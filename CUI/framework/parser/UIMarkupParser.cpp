@@ -12,6 +12,7 @@
 #include "../controls/ListView.h"
 #include "../controls/ScrollViewer.h"
 #include "../controls/MessageBox.h"
+#include "../controls/TabView.h"
 #include "../controls/VSCodeControls.h"
 #include <fstream>
 #include <sstream>
@@ -21,7 +22,7 @@
 namespace CUI {
 
 UIMarkupParser::UIMarkupParser() {
-    // Register standard controls & WPF panels & WinUI ContentDialog
+    // Register standard controls & WPF panels & WinUI ContentDialog & TabView
     RegisterElementFactory("UIElement", []() { return std::make_shared<UIElement>(); });
     RegisterElementFactory("Panel", []() { return std::make_shared<Panel>(); });
     RegisterElementFactory("StackPanel", []() { return std::make_shared<StackPanel>(); });
@@ -42,6 +43,7 @@ UIMarkupParser::UIMarkupParser() {
     RegisterElementFactory("ListView", []() { return std::make_shared<ListView>(); });
     RegisterElementFactory("ScrollViewer", []() { return std::make_shared<ScrollViewer>(); });
     RegisterElementFactory("ContentDialog", []() { return std::make_shared<ContentDialog>(); });
+    RegisterElementFactory("TabView", []() { return std::make_shared<TabView>(); });
 
     // VS Code Specific Components
     RegisterElementFactory("TitleBar", []() { return std::make_shared<TitleBar>(); });

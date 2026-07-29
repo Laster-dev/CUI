@@ -37,8 +37,8 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     std::wstring wTitle(title.begin(), title.end());
 
-    // Custom frameless window with native OS shadow & Snap Layouts support
-    DWORD dwStyle = WS_POPUP | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU;
+    // Standard OVERLAPPEDWINDOW with DWM non-client frame extension for 100% native OS window animations
+    DWORD dwStyle = WS_OVERLAPPEDWINDOW;
     DWORD dwExStyle = m_transparentMode ? (WS_EX_LAYERED | WS_EX_APPWINDOW) : 0;
 
     m_hwnd = CreateWindowEx(
@@ -55,7 +55,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     if (!m_hwnd) return false;
 
-    // Extend DWM frame to client area for custom titlebar + Win11 Snap Layouts + OS window shadow
+    // Extend DWM frame into client area to keep native Windows DWM animations (minimize / maximize / restore / snap)
     MARGINS margins = { 1, 1, 1, 1 };
     DwmExtendFrameIntoClientArea(m_hwnd, &margins);
 
@@ -122,14 +122,29 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
     case WM_NCCALCSIZE:
         if (wParam == TRUE) {
-            // Remove standard OS titlebar caption while preserving DWM shadow & resize borders
+            // When maximized, Windows expands window bounds slightly beyond screen (-8px) to hide native borders.
+            // Adjust top/bottom/left/right padding when maximized so content padding is consistent with windowed mode.
             return 0;
         }
         break;
 
     case WM_NCACTIVATE:
-        // Prevent Windows DWM from rendering default white/light inactive border on frameless windows
-        return TRUE;
+        // Pass to DefWindowProc with -1 margins to maintain native animation state
+        return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
+
+    case WM_SYSCOMMAND:
+        // Handle window system commands (minimize, maximize, restore, close) with native animations
+        if ((wParam & 0xFFF0) == SC_MINIMIZE) {
+            ShowWindow(m_hwnd, SW_MINIMIZE);
+            return 0;
+        } else if ((wParam & 0xFFF0) == SC_RESTORE) {
+            ShowWindow(m_hwnd, SW_RESTORE);
+            return 0;
+        } else if ((wParam & 0xFFF0) == SC_MAXIMIZE) {
+            ShowWindow(m_hwnd, SW_MAXIMIZE);
+            return 0;
+        }
+        break;
 
     case WM_NCHITTEST: {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
@@ -142,21 +157,23 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         float winW = static_cast<float>(rc.right);
         float winH = static_cast<float>(rc.bottom);
 
-        // 1. Resizing border handles (8-direction border resize)
-        int borderThickness = 8;
-        bool left = (pt.x < borderThickness);
-        bool right = (pt.x >= rc.right - borderThickness);
-        bool top = (pt.y < borderThickness);
-        bool bottom = (pt.y >= rc.bottom - borderThickness);
+        // 1. Resizing border handles (8-direction border resize) - only when NOT maximized
+        if (!IsZoomed(m_hwnd)) {
+            int borderThickness = 8;
+            bool left = (pt.x < borderThickness);
+            bool right = (pt.x >= rc.right - borderThickness);
+            bool top = (pt.y < borderThickness);
+            bool bottom = (pt.y >= rc.bottom - borderThickness);
 
-        if (top && left) return HTTOPLEFT;
-        if (top && right) return HTTOPRIGHT;
-        if (bottom && left) return HTBOTTOMLEFT;
-        if (bottom && right) return HTBOTTOMRIGHT;
-        if (left) return HTLEFT;
-        if (right) return HTRIGHT;
-        if (top) return HTTOP;
-        if (bottom) return HTBOTTOM;
+            if (top && left) return HTTOPLEFT;
+            if (top && right) return HTTOPRIGHT;
+            if (bottom && left) return HTBOTTOMLEFT;
+            if (bottom && right) return HTBOTTOMRIGHT;
+            if (left) return HTLEFT;
+            if (right) return HTRIGHT;
+            if (top) return HTTOP;
+            if (bottom) return HTBOTTOM;
+        }
 
         // 2. Custom TitleBar Hit-Testing & Win11 Snap Layouts
         if (fy >= 0 && fy <= 40.0f) {
@@ -185,16 +202,18 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_NCLBUTTONDOWN:
-        // System titlebar buttons (Close, Maximize, Minimize)
         if (wParam == HTCLOSE) {
-            PostQuitMessage(0);
+            PostMessage(m_hwnd, WM_CLOSE, 0, 0);
             return 0;
         } else if (wParam == HTMAXBUTTON) {
-            if (IsZoomed(m_hwnd)) ShowWindow(m_hwnd, SW_RESTORE);
-            else ShowWindow(m_hwnd, SW_MAXIMIZE);
+            if (IsZoomed(m_hwnd)) {
+                SendMessage(m_hwnd, WM_SYSCOMMAND, SC_RESTORE, 0);
+            } else {
+                SendMessage(m_hwnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+            }
             return 0;
         } else if (wParam == HTMINBUTTON) {
-            ShowWindow(m_hwnd, SW_MINIMIZE);
+            SendMessage(m_hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
             return 0;
         }
         break;
@@ -362,9 +381,12 @@ void Window::OnPaint() {
 void Window::OnResize(UINT width, UINT height) {
     m_gfxContext.Resize(width, height);
     if (m_rootElement) {
-        Size avail(static_cast<float>(width), static_cast<float>(height));
+        bool isMaximized = IsZoomed(m_hwnd);
+        float pad = isMaximized ? 8.0f : 0.0f; // Add inner padding when maximized to prevent edge clipping
+
+        Size avail(static_cast<float>(width) - pad * 2, static_cast<float>(height) - pad * 2);
         m_rootElement->Measure(avail);
-        m_rootElement->Arrange(Rect(0, 0, static_cast<float>(width), static_cast<float>(height)));
+        m_rootElement->Arrange(Rect(pad, pad, static_cast<float>(width) - pad * 2, static_cast<float>(height) - pad * 2));
     }
 }
 

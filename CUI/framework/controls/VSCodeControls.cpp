@@ -6,7 +6,7 @@ namespace CUI {
 // 1. TitleBar Implementation
 // ==========================================
 TitleBar::TitleBar() {
-    SetProperty("height", Value(30.0f));
+    SetProperty("height", Value(34.0f));
     SetProperty("background", Value(D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f))); // VS Code Title bar dark
     SetProperty("title", Value("CUI - Visual Studio Code [Direct2D UI Engine]"));
 }
@@ -15,13 +15,13 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
     // Draw app icon
-    Rect iconRect(m_bounds.x + 8, m_bounds.y + 7, 16, 16);
-    ctx.FillRoundedRect(iconRect, 3.0f, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+    Rect iconRect(m_bounds.x + 10, m_bounds.y + (m_bounds.height - 18) * 0.5f, 18, 18);
+    ctx.FillRoundedRect(iconRect, 4.0f, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
     ctx.DrawText("C", iconRect, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     // Draw menu items
     std::vector<std::string> menus = { "File", "Edit", "Selection", "View", "Go", "Run", "Terminal", "Help" };
-    float menuX = m_bounds.x + 32;
+    float menuX = m_bounds.x + 36;
     D2D1_COLOR_F menuColor = D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f);
 
     for (const auto& item : menus) {
@@ -35,16 +35,60 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     std::string title = GetProperty("title").AsString();
     ctx.DrawText(title, m_bounds, D2D1::ColorF(0x99 / 255.0f, 0x99 / 255.0f, 0x99 / 255.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-    // Draw window control buttons on right (_, [ ], X)
-    float btnW = 45.0f;
+    // Render Windows 11 Native Vector System Action Buttons (Minimize, Maximize, Close)
+    float btnW = 46.0f;
+    float btnH = m_bounds.height;
     float rightX = m_bounds.x + m_bounds.width - btnW * 3;
 
-    // Minimize
-    ctx.DrawText("_", Rect(rightX, m_bounds.y, btnW, m_bounds.height), menuColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    // Maximize
-    ctx.DrawText("[ ]", Rect(rightX + btnW, m_bounds.y, btnW, m_bounds.height), menuColor, "Segoe UI", 10.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    // Close
-    ctx.DrawText("X", Rect(rightX + btnW * 2, m_bounds.y, btnW, m_bounds.height), menuColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    // Detect mouse hover state based on cursor position
+    POINT pt;
+    GetCursorPos(&pt);
+    HWND hwnd = WindowFromPoint(pt);
+    bool isHoveredInTitle = false;
+    float hoverX = -1.0f;
+
+    // Check if mouse is within titlebar action buttons
+    RECT windowRc;
+    if (GetWindowRect(hwnd, &windowRc)) {
+        float clientX = static_cast<float>(pt.x - windowRc.left);
+        float clientY = static_cast<float>(pt.y - windowRc.top);
+        if (clientY >= 0 && clientY <= m_bounds.height) {
+            isHoveredInTitle = true;
+            hoverX = clientX;
+        }
+    }
+
+    // 1. Minimize Button (_)
+    Rect minBtnRect(rightX, m_bounds.y, btnW, btnH);
+    bool isMinHover = isHoveredInTitle && (hoverX >= rightX && hoverX < rightX + btnW);
+    if (isMinHover) {
+        ctx.FillRect(minBtnRect, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f)); // Hover grey background
+    }
+    // Draw vector line icon for minimize
+    float iconCenterY = m_bounds.y + btnH * 0.5f;
+    ctx.DrawLine(Point(rightX + 18.0f, iconCenterY), Point(rightX + 28.0f, iconCenterY), D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f), 1.0f);
+
+    // 2. Maximize / Restore Button ([ ])
+    Rect maxBtnRect(rightX + btnW, m_bounds.y, btnW, btnH);
+    bool isMaxHover = isHoveredInTitle && (hoverX >= rightX + btnW && hoverX < rightX + btnW * 2);
+    if (isMaxHover) {
+        ctx.FillRect(maxBtnRect, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f)); // Hover grey background
+    }
+    // Draw vector square icon for maximize
+    Rect maxIconRect(rightX + btnW + 18.0f, iconCenterY - 5.0f, 10.0f, 10.0f);
+    ctx.DrawRect(maxIconRect, D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f), 1.0f);
+
+    // 3. Close Button (X)
+    Rect closeBtnRect(rightX + btnW * 2, m_bounds.y, btnW, btnH);
+    bool isCloseHover = isHoveredInTitle && (hoverX >= rightX + btnW * 2);
+    if (isCloseHover) {
+        ctx.FillRect(closeBtnRect, D2D1::ColorF(0xC4 / 255.0f, 0x2B / 255.0f, 0x1C / 255.0f, 1.0f)); // Win11 Hover Red background (#C42B1C)
+    }
+    // Draw vector cross X icon for close
+    D2D1_COLOR_F closeIconColor = isCloseHover ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f);
+    float closeCenterX = rightX + btnW * 2 + 23.0f;
+    ctx.DrawLine(Point(closeCenterX - 5.0f, iconCenterY - 5.0f), Point(closeCenterX + 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
+    ctx.DrawLine(Point(closeCenterX + 5.0f, iconCenterY - 5.0f), Point(closeCenterX - 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
 
     // Bottom border line
     ctx.DrawLine(Point(m_bounds.x, m_bounds.y + m_bounds.height - 1), Point(m_bounds.x + m_bounds.width, m_bounds.y + m_bounds.height - 1), D2D1::ColorF(0x2B / 255.0f, 0x2B / 255.0f, 0x2B / 255.0f, 1.0f));

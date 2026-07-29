@@ -166,6 +166,7 @@
     <ClCompile Include="framework\controls\Panel.cpp" />
     <ClCompile Include="framework\controls\ScrollViewer.cpp" />
     <ClCompile Include="framework\controls\MessageBox.cpp" />
+    <ClCompile Include="framework\controls\TabView.cpp" />
     <ClCompile Include="framework\controls\VSCodeControls.cpp" />
     <ClCompile Include="framework\parser\StyleManager.cpp" />
     <ClCompile Include="framework\parser\UIMarkupParser.cpp" />
@@ -195,11 +196,16 @@
     <ClInclude Include="framework\controls\Panel.h" />
     <ClInclude Include="framework\controls\ScrollViewer.h" />
     <ClInclude Include="framework\controls\MessageBox.h" />
+    <ClInclude Include="framework\controls\TabView.h" />
     <ClInclude Include="framework\controls\VSCodeControls.h" />
     <ClInclude Include="framework\parser\StyleManager.h" />
     <ClInclude Include="framework\parser\UIMarkupParser.h" />
     <ClInclude Include="framework\window\Window.h" />
     <ClInclude Include="framework\window\CUIWindow.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="assets\gallery_layout.xml" />
+    <Xml Include="assets\vscode_layout.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

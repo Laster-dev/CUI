@@ -28,7 +28,8 @@
 
             <TextBlock text="ADVANCED SYSTEM &amp; DIALOGS" fontSize="11" fontWeight="Bold" color="#858585" margin="8, 12, 0, 4"/>
             <Button id="btnNavDialog" text="  [16] WinUI ContentDialog" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
-            <Button id="btnNavVSCode" text="  [17] VS Code Full IDE" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <Button id="btnNavTabView" text="  [17] TabView (Tabbed Page)" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <Button id="btnNavVSCode" text="  [18] VS Code Full IDE" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
         </StackPanel>
 
         <!-- Right Main Showcase Area (Center Preview + Right Options Inspector) -->
