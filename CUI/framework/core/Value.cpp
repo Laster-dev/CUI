@@ -132,8 +132,10 @@ D2D1_COLOR_F Value::ParseColor(const std::string& str) {
 }
 
 Value Value::ParseAuto(const std::string& str) {
-    if (str == "true" || str == "false") {
-        return Value(str == "true");
+    if (str == "true" || str == "false" || str == "True" || str == "False") {
+        std::string lower = str;
+        std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+        return Value(lower == "true");
     }
     if (!str.empty() && str[0] == '#') {
         return Value(ParseColor(str));

@@ -134,6 +134,9 @@ UIElement* UIElement::HitTestOverlay(float x, float y) {
     std::string visStr = GetProperty("visibility").AsString("Visible");
     if (visStr != "Visible") return nullptr;
 
+    UIElement* selfOverlay = OnHitTestOverlay(x, y);
+    if (selfOverlay) return selfOverlay;
+
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
         UIElement* hit = (*it)->HitTestOverlay(x, y);
         if (hit) return hit;
@@ -146,11 +149,11 @@ UIElement* UIElement::HitTest(float x, float y) {
     std::string visStr = GetProperty("visibility").AsString("Visible");
     if (visStr != "Visible") return nullptr;
 
-    // 1. Prioritize active overlays (open dropdowns, context menus, popups)
+    // 1. Prioritize active overlays (open dropdowns, context menus, popups, content dialogs)
     UIElement* overlayHit = HitTestOverlay(x, y);
     if (overlayHit) return overlayHit;
 
-    // 2. Check children first (topmost first) so popups/dropdowns outside parent bounds get hit
+    // 2. Check children first (topmost first)
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
         UIElement* hit = (*it)->HitTest(x, y);
         if (hit) return hit;

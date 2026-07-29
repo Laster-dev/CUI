@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <StackPanel orientation="Vertical" background="#1E1E1E">
-    <!-- Gallery Top Header -->
-    <StackPanel orientation="Horizontal" height="40" background="#252526" padding="12, 0, 12, 0">
-        <TextBlock text="CUI Control Gallery" fontSize="15" fontWeight="Bold" color="#FFFFFF" align="Center"/>
-        <TextBlock text="  |  Step-by-Step Interactive Component Showcase" fontSize="12" color="#858585" align="Center"/>
-    </StackPanel>
+    <!-- Custom TitleBar with Caption, Drag Region & Window Action Buttons -->
+    <TitleBar id="appTitleBar" title="CUI Control Gallery | Direct2D Custom TitleBar Window"/>
 
     <!-- Main Content Area: Left Navigation Bar + Right Showcase Area -->
     <StackPanel orientation="Horizontal" flexGrow="1">
@@ -20,12 +17,18 @@
             <Button id="btnNavListBox" text="  [7] ListBox (100k Virtual)" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
             <Button id="btnNavListView" text="  [8] ListView (RubberBand)" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
 
-            <TextBlock text="LAYOUT & CONTAINERS" fontSize="11" fontWeight="Bold" color="#858585" margin="8, 12, 0, 4"/>
-            <Button id="btnNavPanel" text="  [4] StackPanel" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
-            <Button id="btnNavScroll" text="  [5] ScrollViewer" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <TextBlock text="WPF LAYOUT PANELS" fontSize="11" fontWeight="Bold" color="#858585" margin="8, 12, 0, 4"/>
+            <Button id="btnNavGrid" text="  [9] Grid (*, Auto, Px)" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <Button id="btnNavCanvas" text="  [10] Canvas (Absolute)" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <Button id="btnNavWrapPanel" text="  [11] WrapPanel (Flow)" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <Button id="btnNavDockPanel" text="  [12] DockPanel (Dock)" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <Button id="btnNavUniformGrid" text="  [13] UniformGrid" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <Button id="btnNavPanel" text="  [14] StackPanel (Flex)" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <Button id="btnNavScroll" text="  [15] ScrollViewer" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
 
-            <TextBlock text="VS CODE COMPONENTS" fontSize="11" fontWeight="Bold" color="#858585" margin="8, 12, 0, 4"/>
-            <Button id="btnNavVSCode" text="  [6] VS Code Full IDE" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <TextBlock text="ADVANCED SYSTEM &amp; DIALOGS" fontSize="11" fontWeight="Bold" color="#858585" margin="8, 12, 0, 4"/>
+            <Button id="btnNavDialog" text="  [16] WinUI ContentDialog" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
+            <Button id="btnNavVSCode" text="  [17] VS Code Full IDE" background="#2D2D2D" color="#CCCCCC" height="28" align="Stretch"/>
         </StackPanel>
 
         <!-- Right Main Showcase Area (Center Preview + Right Options Inspector) -->

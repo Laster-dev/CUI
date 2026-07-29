@@ -165,6 +165,7 @@
     <ClCompile Include="framework\controls\ListView.cpp" />
     <ClCompile Include="framework\controls\Panel.cpp" />
     <ClCompile Include="framework\controls\ScrollViewer.cpp" />
+    <ClCompile Include="framework\controls\MessageBox.cpp" />
     <ClCompile Include="framework\controls\VSCodeControls.cpp" />
     <ClCompile Include="framework\parser\StyleManager.cpp" />
     <ClCompile Include="framework\parser\UIMarkupParser.cpp" />
@@ -193,6 +194,7 @@
     <ClInclude Include="framework\controls\ListView.h" />
     <ClInclude Include="framework\controls\Panel.h" />
     <ClInclude Include="framework\controls\ScrollViewer.h" />
+    <ClInclude Include="framework\controls\MessageBox.h" />
     <ClInclude Include="framework\controls\VSCodeControls.h" />
     <ClInclude Include="framework\parser\StyleManager.h" />
     <ClInclude Include="framework\parser\UIMarkupParser.h" />

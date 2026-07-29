@@ -45,6 +45,37 @@ public:
     Size MeasureText(const std::string& text, const std::string& fontName = "Segoe UI",
                      float fontSize = 13.0f, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL);
 
+    struct TextLayoutOptions {
+        float maxWidth = 10000.0f;
+        float maxHeight = 10000.0f;
+        DWRITE_WORD_WRAPPING wrapping = DWRITE_WORD_WRAPPING_NO_WRAP;
+        DWRITE_PARAGRAPH_ALIGNMENT paragraphAlignment = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+        // lineSpacing: multiplier of font size (1.0 = default). Ignored when lineHeight > 0.
+        float lineSpacing = 1.0f;
+        // lineHeight: uniform line height in DIPs. When > 0, overrides lineSpacing.
+        float lineHeight = 0.0f;
+    };
+
+    struct TextCaretInfo {
+        float x = 0.0f;
+        float y = 0.0f;
+        float height = 0.0f;
+    };
+
+    static ComPtr<IDWriteFactory> GetSharedWriteFactory();
+    static ComPtr<IDWriteTextLayout> CreateTextLayout(
+        const std::wstring& text,
+        const std::string& fontName,
+        float fontSize,
+        const TextLayoutOptions& options,
+        DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL);
+
+    void DrawTextLayout(IDWriteTextLayout* layout, const Rect& originRect, D2D1_COLOR_F color);
+    static TextCaretInfo GetTextCaretInfo(IDWriteTextLayout* layout, UINT32 position, const Point& origin);
+    static UINT32 HitTestTextLayout(IDWriteTextLayout* layout, float x, float y, const Point& origin);
+    static bool GetTextSelectionBounds(IDWriteTextLayout* layout, UINT32 start, UINT32 end,
+                                       const Point& origin, std::vector<D2D1_RECT_F>& rects);
+
     float GetDpiScale() const { return m_dpiScale; }
 
 private:

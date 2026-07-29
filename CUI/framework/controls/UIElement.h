@@ -58,6 +58,7 @@ public:
 
     virtual UIElement* HitTest(float x, float y);
     virtual UIElement* HitTestOverlay(float x, float y);
+    virtual UIElement* OnHitTestOverlay(float x, float y) { return nullptr; }
 
     // Visual states
     bool IsHovered() const { return m_isHovered; }

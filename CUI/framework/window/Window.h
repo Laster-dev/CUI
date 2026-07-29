@@ -12,7 +12,7 @@ public:
     Window();
     virtual ~Window();
 
-    bool Create(const std::string& title, int width = 1280, int height = 800);
+    bool Create(const std::string& title, int width = 1280, int height = 800, bool transparentMode = false);
     void Show();
     void RunMessageLoop();
 
@@ -21,6 +21,9 @@ public:
 
     HWND GetHWND() const { return m_hwnd; }
     GraphicsContext& GetGraphicsContext() { return m_gfxContext; }
+
+    bool IsTransparentMode() const { return m_transparentMode; }
+    void SetTransparentMode(bool enabled);
 
 private:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -43,6 +46,7 @@ private:
     UIElement* m_focusedElement = nullptr;
     std::shared_ptr<ContextMenu> m_activeContextMenu = nullptr;
     bool m_trackingMouse = false;
+    bool m_transparentMode = false;
 };
 
 } // namespace CUI

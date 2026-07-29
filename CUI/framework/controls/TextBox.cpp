@@ -1,6 +1,38 @@
+#define NOMINMAX
 #include "TextBox.h"
+#include <algorithm>
 
 namespace CUI {
+
+namespace {
+
+bool GetBoolProperty(const Control* control, const char* primary, const char* alternate, bool def) {
+    std::string primaryVal = control->GetProperty(primary).AsString("");
+    if (!primaryVal.empty()) return control->GetProperty(primary).AsBool(def);
+    return control->GetProperty(alternate).AsBool(def);
+}
+
+std::string GetStringProperty(const Control* control, const char* primary, const char* alternate, const std::string& def) {
+    std::string primaryVal = control->GetProperty(primary).AsString("");
+    if (!primaryVal.empty()) return primaryVal;
+    std::string alternateVal = control->GetProperty(alternate).AsString("");
+    if (!alternateVal.empty()) return alternateVal;
+    return def;
+}
+
+float GetFloatProperty(const Control* control, const char* primary, const char* alternate, float def) {
+    if (control->HasProperty(primary)) return control->GetProperty(primary).AsFloat(def);
+    if (control->HasProperty(alternate)) return control->GetProperty(alternate).AsFloat(def);
+    return def;
+}
+
+std::wstring BuildDisplayText(const std::wstring& wtext, int cursorPos, const std::wstring& compString) {
+    if (compString.empty()) return wtext;
+    int safePos = std::clamp(cursorPos, 0, static_cast<int>(wtext.length()));
+    return wtext.substr(0, safePos) + compString + wtext.substr(safePos);
+}
+
+} // namespace
 
 TextBox::TextBox() {
     SetProperty("text", Value(""));
@@ -14,9 +46,13 @@ TextBox::TextBox() {
     SetProperty("placeholderColor", Value(D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f, 1.0f)));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("fontSize", Value(13.0f));
+    SetProperty("lineSpacing", Value(1.0f));
+    SetProperty("lineHeight", Value(0.0f));
     SetProperty("padding", Value(Thickness(8, 6, 8, 6)));
     SetProperty("width", Value(260.0f));
     SetProperty("height", Value(32.0f));
+    SetProperty("AcceptsReturn", Value(false));
+    SetProperty("TextWrapping", Value("NoWrap"));
 }
 
 TextBox::TextBox(const std::string& placeholder) : TextBox() {
@@ -27,7 +63,185 @@ void TextBox::SetText(const std::string& text) {
     SetProperty("text", Value(text));
 }
 
+bool TextBox::GetAcceptsReturn() const {
+    return GetBoolProperty(this, "AcceptsReturn", "acceptsReturn", false);
+}
+
+bool TextBox::IsTextWrapping() const {
+    std::string wrap = GetStringProperty(this, "TextWrapping", "textWrapping", "NoWrap");
+    std::transform(wrap.begin(), wrap.end(), wrap.begin(), ::tolower);
+    return wrap == "wrap";
+}
+
+bool TextBox::IsMultiline() const {
+    return GetAcceptsReturn() || IsTextWrapping();
+}
+
+Rect TextBox::GetTextRect() const {
+    Thickness padding = GetProperty("padding").AsThickness(Thickness(8, 6, 8, 6));
+    return Rect(
+        m_bounds.x + padding.left,
+        m_bounds.y + padding.top,
+        m_bounds.width - padding.left - padding.right,
+        m_bounds.height - padding.top - padding.bottom
+    );
+}
+
+Point TextBox::GetLayoutOrigin(const Rect& textRect) const {
+    return Point(textRect.x - m_scrollOffsetX, textRect.y - m_scrollOffsetY);
+}
+
+float TextBox::GetContentWidth(GraphicsContext& ctx, const std::wstring& wtext, const Rect& textRect) const {
+    auto layout = BuildTextLayout(ctx, wtext, textRect);
+    if (!layout) return 0.0f;
+
+    DWRITE_TEXT_METRICS metrics = {};
+    layout->GetMetrics(&metrics);
+    return metrics.width;
+}
+
+void TextBox::ClampScrollOffsets(GraphicsContext& ctx, const std::wstring& wtext, const Rect& textRect) {
+    if (IsMultiline()) {
+        m_scrollOffsetX = 0.0f;
+        Rect layoutRect = textRect;
+        layoutRect.height = 100000.0f;
+        auto layout = BuildTextLayout(ctx, wtext, layoutRect);
+        if (layout) {
+            DWRITE_TEXT_METRICS metrics = {};
+            layout->GetMetrics(&metrics);
+            float maxScrollY = std::max(0.0f, metrics.height - textRect.height);
+            m_scrollOffsetY = std::clamp(m_scrollOffsetY, 0.0f, maxScrollY);
+        }
+    } else {
+        m_scrollOffsetY = 0.0f;
+        float contentWidth = GetContentWidth(ctx, wtext, textRect);
+        float maxScrollX = std::max(0.0f, contentWidth - textRect.width);
+        m_scrollOffsetX = std::clamp(m_scrollOffsetX, 0.0f, maxScrollX);
+    }
+}
+
+Microsoft::WRL::ComPtr<IDWriteTextLayout> TextBox::BuildTextLayout(GraphicsContext& ctx, const std::wstring& wtext,
+                                                                     const Rect& textRect) const {
+    GraphicsContext::TextLayoutOptions options;
+    options.maxWidth = IsTextWrapping() ? textRect.width : 100000.0f;
+    options.maxHeight = IsMultiline() ? 100000.0f : textRect.height;
+    options.wrapping = IsTextWrapping() ? DWRITE_WORD_WRAPPING_WRAP : DWRITE_WORD_WRAPPING_NO_WRAP;
+    options.paragraphAlignment = IsMultiline()
+        ? DWRITE_PARAGRAPH_ALIGNMENT_NEAR
+        : DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+    options.lineSpacing = GetFloatProperty(this, "lineSpacing", "LineSpacing", 1.0f);
+    options.lineHeight = GetFloatProperty(this, "lineHeight", "LineHeight", 0.0f);
+
+    float fontSize = GetFloatProperty(this, "fontSize", "FontSize", 13.0f);
+    std::string fontFamily = GetStringProperty(this, "fontFamily", "FontFamily", "Segoe UI");
+
+    return ctx.CreateTextLayout(wtext, fontFamily, fontSize, options);
+}
+
+int TextBox::GetCaretIndexFromPoint(GraphicsContext& ctx, float x, float y) {
+    std::wstring wtext = BuildDisplayText(
+        Utf8ToUtf16(GetProperty("text").AsString("")),
+        m_cursorPos,
+        m_compString
+    );
+
+    Rect textRect = GetTextRect();
+    auto layout = BuildTextLayout(ctx, wtext, textRect);
+    if (!layout) return 0;
+
+    Point origin = GetLayoutOrigin(textRect);
+    return static_cast<int>(ctx.HitTestTextLayout(layout.Get(), x, y, origin));
+}
+
+GraphicsContext::TextCaretInfo TextBox::GetCaretScreenPos(GraphicsContext& ctx, int caretPos) {
+    std::wstring wtext = BuildDisplayText(
+        Utf8ToUtf16(GetProperty("text").AsString("")),
+        m_cursorPos,
+        m_compString
+    );
+
+    Rect textRect = GetTextRect();
+    auto layout = BuildTextLayout(ctx, wtext, textRect);
+    if (!layout) return {};
+
+    int displayPos = caretPos;
+    if (!m_compString.empty() && caretPos >= m_cursorPos) {
+        displayPos = caretPos + static_cast<int>(m_compString.length());
+    }
+
+    displayPos = std::clamp(displayPos, 0, static_cast<int>(wtext.length()));
+    return ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(displayPos), GetLayoutOrigin(textRect));
+}
+
+void TextBox::EnsureCaretVisible(GraphicsContext& ctx) {
+    Rect textRect = GetTextRect();
+    std::wstring wtext = BuildDisplayText(
+        Utf8ToUtf16(GetProperty("text").AsString("")),
+        m_cursorPos,
+        m_compString
+    );
+
+    int visiblePos = m_cursorPos;
+    if (!m_compString.empty()) {
+        visiblePos += static_cast<int>(m_compString.length());
+    }
+
+    auto layout = BuildTextLayout(ctx, wtext, textRect);
+    if (!layout) return;
+
+    Point origin = GetLayoutOrigin(textRect);
+    auto caret = ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(visiblePos), origin);
+
+    if (IsMultiline()) {
+        if (caret.y < textRect.y) {
+            m_scrollOffsetY -= (textRect.y - caret.y);
+        } else if (caret.y + caret.height > textRect.y + textRect.height) {
+            m_scrollOffsetY += (caret.y + caret.height) - (textRect.y + textRect.height);
+        }
+    } else {
+        const float padding = 2.0f;
+        if (caret.x < textRect.x + padding) {
+            m_scrollOffsetX -= (textRect.x + padding - caret.x);
+        } else if (caret.x > textRect.x + textRect.width - padding) {
+            m_scrollOffsetX += caret.x - (textRect.x + textRect.width - padding);
+        }
+    }
+
+    ClampScrollOffsets(ctx, wtext, textRect);
+}
+
+void TextBox::InsertText(const std::wstring& text) {
+    if (text.empty()) return;
+
+    PushUndoState();
+
+    std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+    if (HasSelection()) {
+        int selMin = (std::min)(m_selectionStart, m_selectionEnd);
+        int selMax = (std::max)(m_selectionStart, m_selectionEnd);
+        if (selMin >= 0 && selMax <= static_cast<int>(wtext.length()) && selMax > selMin) {
+            wtext.erase(selMin, selMax - selMin);
+            m_cursorPos = selMin;
+        }
+    }
+
+    if (m_cursorPos > static_cast<int>(wtext.length())) {
+        m_cursorPos = static_cast<int>(wtext.length());
+    }
+
+    wtext.insert(m_cursorPos, text);
+    m_cursorPos += static_cast<int>(text.size());
+    m_selectionStart = m_cursorPos;
+    m_selectionEnd = m_cursorPos;
+    SetText(Utf16ToUtf8(wtext));
+
+    GraphicsContext ctx;
+    EnsureCaretVisible(ctx);
+}
+
 void TextBox::PushUndoState() {
+    if (m_undoing) return;
+
     TextBoxUndoState state;
     state.text = GetProperty("text").AsString();
     state.cursorPos = m_cursorPos;
@@ -89,33 +303,6 @@ Size TextBox::Measure(Size availableSize) {
     return m_desiredSize;
 }
 
-int TextBox::GetCaretIndexFromX(GraphicsContext& ctx, float mouseX) {
-    std::string text = GetProperty("text").AsString("");
-    std::wstring wtext = Utf8ToUtf16(text);
-    if (wtext.empty()) return 0;
-
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(8, 6, 8, 6));
-
-    float relX = mouseX - (m_bounds.x + padding.left);
-    if (relX <= 0.0f) return 0;
-
-    int bestIdx = static_cast<int>(wtext.length());
-    float minDiff = 100000.0f;
-
-    for (size_t i = 0; i <= wtext.length(); ++i) {
-        std::string sub = Utf16ToUtf8(wtext.substr(0, i));
-        Size sz = ctx.MeasureText(sub, font, fontSize);
-        float diff = std::abs(sz.width - relX);
-        if (diff < minDiff) {
-            minDiff = diff;
-            bestIdx = static_cast<int>(i);
-        }
-    }
-    return bestIdx;
-}
-
 void TextBox::SelectAll() {
     std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
     m_selectionStart = 0;
@@ -167,83 +354,77 @@ void TextBox::OnRender(GraphicsContext& ctx) {
 
     std::string text = GetProperty("text").AsString("");
     std::string placeholder = GetProperty("placeholder").AsString("Enter text...");
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(8, 6, 8, 6));
-
-    Rect textRect(
-        m_bounds.x + padding.left,
-        m_bounds.y + padding.top,
-        m_bounds.width - padding.left - padding.right,
-        m_bounds.height - padding.top - padding.bottom
-    );
+    std::string font = GetStringProperty(this, "fontFamily", "FontFamily", "Segoe UI");
+    float fontSize = GetFloatProperty(this, "fontSize", "FontSize", 13.0f);
+    Rect textRect = GetTextRect();
 
     if (text.empty() && m_compString.empty() && !m_isFocused) {
         D2D1_COLOR_F phColor = GetProperty("placeholderColor").AsColor(D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f, 1.0f));
-        ctx.DrawText(placeholder, textRect, phColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    } else {
-        std::wstring wtext = Utf8ToUtf16(text);
+        DWRITE_PARAGRAPH_ALIGNMENT vAlign = IsMultiline()
+            ? DWRITE_PARAGRAPH_ALIGNMENT_NEAR
+            : DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+        ctx.DrawText(placeholder, textRect, phColor, font, fontSize,
+                     DWRITE_TEXT_ALIGNMENT_LEADING, vAlign);
+        return;
+    }
 
-        // Draw VS Code Selection Blue Rectangle (#264F78) if selected
-        if (m_isFocused && HasSelection()) {
-            int selMin = (std::min)(m_selectionStart, m_selectionEnd);
-            int selMax = (std::max)(m_selectionStart, m_selectionEnd);
+    std::wstring wtext = Utf8ToUtf16(text);
+    std::wstring displayWText = BuildDisplayText(wtext, m_cursorPos, m_compString);
 
-            std::string subMin = Utf16ToUtf8(wtext.substr(0, selMin));
-            std::string subMax = Utf16ToUtf8(wtext.substr(0, selMax));
+    if (m_isFocused) {
+        EnsureCaretVisible(ctx);
+    }
 
-            Size sizeMin = ctx.MeasureText(subMin, font, fontSize);
-            Size sizeMax = ctx.MeasureText(subMax, font, fontSize);
+    auto layout = BuildTextLayout(ctx, displayWText, textRect);
+    if (!layout) return;
 
-            float selX = textRect.x + sizeMin.width;
-            float selW = sizeMax.width - sizeMin.width;
-            if (selX + selW > textRect.x + textRect.width) selW = (textRect.x + textRect.width) - selX;
+    Point origin = GetLayoutOrigin(textRect);
+    Rect layoutRect(origin.x, origin.y, textRect.width, textRect.height + m_scrollOffsetY);
 
-            Rect selRect(selX, textRect.y, selW, textRect.height);
-            ctx.FillRect(selRect, D2D1::ColorF(0x26 / 255.0f, 0x4F / 255.0f, 0x78 / 255.0f, 0.8f));
-        }
+    ctx.PushClip(textRect);
 
-        // Handle Chinese IME Composition String (e.g. jiao'ao 预编辑拼音)
-        std::string displayText = text;
-        if (!m_compString.empty()) {
-            if (m_cursorPos > static_cast<int>(wtext.length())) m_cursorPos = static_cast<int>(wtext.length());
-            std::wstring wsub = wtext.substr(0, m_cursorPos);
-            std::wstring wrest = wtext.substr(m_cursorPos);
-            std::wstring wdisp = wsub + m_compString + wrest;
-            displayText = Utf16ToUtf8(wdisp);
-        }
+    if (m_isFocused && HasSelection()) {
+        int selMin = (std::min)(m_selectionStart, m_selectionEnd);
+        int selMax = (std::max)(m_selectionStart, m_selectionEnd);
 
-        D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
-        ctx.DrawText(displayText, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-
-        // Draw IME composition string dashed underline
-        if (!m_compString.empty()) {
-            std::wstring wsub = wtext.substr(0, m_cursorPos);
-            Size sizeBefore = ctx.MeasureText(Utf16ToUtf8(wsub), font, fontSize);
-            Size sizeComp = ctx.MeasureText(Utf16ToUtf8(m_compString), font, fontSize);
-
-            float compX = textRect.x + sizeBefore.width;
-            float compY = textRect.y + textRect.height - 2.0f;
-            ctx.DrawLine(Point(compX, compY), Point(compX + sizeComp.width, compY), D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f), 1.5f);
-        }
-
-        // Draw blinking cursor line (500ms cycle)
-        bool cursorBlinkState = ((GetTickCount64() / 500) % 2 == 0);
-        if (m_isFocused && cursorBlinkState) {
-            if (m_cursorPos > static_cast<int>(wtext.length())) {
-                m_cursorPos = static_cast<int>(wtext.length());
+        std::vector<D2D1_RECT_F> selRects;
+        if (ctx.GetTextSelectionBounds(layout.Get(), static_cast<UINT32>(selMin), static_cast<UINT32>(selMax), origin, selRects)) {
+            for (const auto& r : selRects) {
+                ctx.FillRect(Rect(r.left, r.top, r.right - r.left, r.bottom - r.top),
+                             D2D1::ColorF(0x26 / 255.0f, 0x4F / 255.0f, 0x78 / 255.0f, 0.8f));
             }
-            std::wstring wsub = wtext.substr(0, m_cursorPos);
-            if (!m_compString.empty()) wsub += m_compString;
-            std::string subText = Utf16ToUtf8(wsub);
-
-            Size textMeasured = ctx.MeasureText(subText, font, fontSize);
-            float cursorX = textRect.x + textMeasured.width;
-            if (cursorX > textRect.x + textRect.width) cursorX = textRect.x + textRect.width;
-
-            ctx.FillRect(Rect(cursorX, textRect.y + 2, 1.5f, textRect.height - 4), D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
         }
     }
+
+    D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
+    ctx.DrawTextLayout(layout.Get(), layoutRect, textColor);
+
+    if (!m_compString.empty()) {
+        auto compCaret = ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(m_cursorPos), origin);
+        float compY = compCaret.y + compCaret.height - 2.0f;
+        auto compEnd = ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(m_cursorPos + static_cast<int>(m_compString.length())), origin);
+        ctx.DrawLine(Point(compCaret.x, compY), Point(compEnd.x, compY),
+                     D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f), 1.5f);
+    }
+
+    bool cursorBlinkState = ((GetTickCount64() / 500) % 2 == 0);
+    if (m_isFocused && cursorBlinkState) {
+        int displayCaretPos = m_cursorPos;
+        if (!m_compString.empty()) {
+            displayCaretPos += static_cast<int>(m_compString.length());
+        }
+        displayCaretPos = std::clamp(displayCaretPos, 0, static_cast<int>(displayWText.length()));
+
+        auto caret = ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(displayCaretPos), origin);
+        float cursorX = caret.x;
+        float cursorY = caret.y + 2.0f;
+        float cursorH = std::max(12.0f, caret.height - 4.0f);
+
+        ctx.FillRect(Rect(cursorX, cursorY, 1.5f, cursorH),
+                     D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+    }
+
+    ctx.PopClip();
 }
 
 void TextBox::OnMouseDblClick(Point pt) {
@@ -254,9 +435,8 @@ void TextBox::OnMouseDblClick(Point pt) {
     if (wtext.empty()) return;
 
     GraphicsContext ctx;
-    int idx = GetCaretIndexFromX(ctx, pt.x);
+    int idx = GetCaretIndexFromPoint(ctx, pt.x, pt.y);
 
-    // Double-click word selection algorithm
     int start = idx;
     while (start > 0 && iswalnum(wtext[start - 1])) {
         start--;
@@ -267,7 +447,6 @@ void TextBox::OnMouseDblClick(Point pt) {
     }
 
     if (start == end && idx < static_cast<int>(wtext.length())) {
-        // If punctuation or Chinese character, select single character
         start = idx;
         end = idx + 1;
     }
@@ -288,26 +467,48 @@ void TextBox::OnBlur() {
     m_selectionStart = m_cursorPos;
     m_selectionEnd = m_cursorPos;
     m_compString.clear();
+    m_suppressCharCount = 0;
+    m_scrollOffsetX = 0.0f;
+    m_scrollOffsetY = 0.0f;
 }
 
 void TextBox::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
     OnFocus();
     GraphicsContext ctx;
-    int idx = GetCaretIndexFromX(ctx, pt.x);
+    int idx = GetCaretIndexFromPoint(ctx, pt.x, pt.y);
     m_cursorPos = idx;
     m_selectionStart = idx;
     m_selectionEnd = idx;
     m_isDraggingSelection = true;
+    EnsureCaretVisible(ctx);
 }
 
 void TextBox::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
     if (m_isDraggingSelection && m_isPressed) {
         GraphicsContext ctx;
-        int idx = GetCaretIndexFromX(ctx, pt.x);
+        Rect textRect = GetTextRect();
+
+        if (!IsMultiline()) {
+            const float scrollStep = 10.0f;
+            if (pt.x > textRect.x + textRect.width) {
+                m_scrollOffsetX += scrollStep;
+            } else if (pt.x < textRect.x) {
+                m_scrollOffsetX -= scrollStep;
+            }
+            std::wstring wtext = BuildDisplayText(
+                Utf8ToUtf16(GetProperty("text").AsString("")),
+                m_cursorPos,
+                m_compString
+            );
+            ClampScrollOffsets(ctx, wtext, textRect);
+        }
+
+        int idx = GetCaretIndexFromPoint(ctx, pt.x, pt.y);
         m_selectionEnd = idx;
         m_cursorPos = idx;
+        EnsureCaretVisible(ctx);
     }
 }
 
@@ -317,30 +518,28 @@ void TextBox::OnMouseUp(Point pt) {
 }
 
 void TextBox::OnKeyDown(int vkCode) {
+    m_suppressCharCount = 0;
+
     std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
 
     bool isCtrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     bool isShiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
 
-    // Ctrl+Z: Undo
     if (isCtrlDown && (vkCode == 'Z' || vkCode == 'z')) {
         Undo();
         return;
     }
 
-    // Ctrl+Y: Redo
     if (isCtrlDown && (vkCode == 'Y' || vkCode == 'y')) {
         Redo();
         return;
     }
 
-    // Ctrl+A: Select All
     if (isCtrlDown && (vkCode == 'A' || vkCode == 'a')) {
         SelectAll();
         return;
     }
 
-    // Ctrl+C: Copy selected text to clipboard
     if (isCtrlDown && (vkCode == 'C' || vkCode == 'c')) {
         if (HasSelection()) {
             int selMin = (std::min)(m_selectionStart, m_selectionEnd);
@@ -363,7 +562,6 @@ void TextBox::OnKeyDown(int vkCode) {
         return;
     }
 
-    // Ctrl+X: Cut selected text to clipboard
     if (isCtrlDown && (vkCode == 'X' || vkCode == 'x')) {
         if (HasSelection()) {
             int selMin = (std::min)(m_selectionStart, m_selectionEnd);
@@ -383,11 +581,11 @@ void TextBox::OnKeyDown(int vkCode) {
                 CloseClipboard();
             }
             DeleteSelection();
+            wtext = Utf8ToUtf16(GetProperty("text").AsString());
         }
         return;
     }
 
-    // Ctrl+V: Paste text from clipboard
     if (isCtrlDown && (vkCode == 'V' || vkCode == 'v')) {
         if (IsClipboardFormatAvailable(CF_UNICODETEXT) && OpenClipboard(nullptr)) {
             HANDLE hData = GetClipboardData(CF_UNICODETEXT);
@@ -397,26 +595,26 @@ void TextBox::OnKeyDown(int vkCode) {
                     std::wstring clipText(pText);
                     GlobalUnlock(hData);
 
-                    PushUndoState();
-                    if (HasSelection()) {
-                        // inline delete selection without pushing extra undo
-                        int selMin = (std::min)(m_selectionStart, m_selectionEnd);
-                        int selMax = (std::max)(m_selectionStart, m_selectionEnd);
-                        wtext.erase(selMin, selMax - selMin);
-                        m_cursorPos = selMin;
-                        m_selectionStart = selMin;
-                        m_selectionEnd = selMin;
-                        SetProperty("text", Value(Utf16ToUtf8(wtext)));
-                        wtext = Utf8ToUtf16(GetProperty("text").AsString());
+                    if (!GetAcceptsReturn()) {
+                        for (wchar_t& ch : clipText) {
+                            if (ch == L'\r' || ch == L'\n') ch = L' ';
+                        }
+                    } else {
+                        std::wstring normalized;
+                        normalized.reserve(clipText.size());
+                        for (size_t i = 0; i < clipText.size(); ++i) {
+                            wchar_t ch = clipText[i];
+                            if (ch == L'\r') {
+                                if (i + 1 < clipText.size() && clipText[i + 1] == L'\n') continue;
+                                normalized.push_back(L'\n');
+                            } else {
+                                normalized.push_back(ch);
+                            }
+                        }
+                        clipText = normalized;
                     }
-                    if (m_cursorPos > static_cast<int>(wtext.length())) {
-                        m_cursorPos = static_cast<int>(wtext.length());
-                    }
-                    wtext.insert(m_cursorPos, clipText);
-                    m_cursorPos += static_cast<int>(clipText.size());
-                    m_selectionStart = m_cursorPos;
-                    m_selectionEnd = m_cursorPos;
-                    SetText(Utf16ToUtf8(wtext));
+
+                    InsertText(clipText);
                 }
             }
             CloseClipboard();
@@ -424,7 +622,13 @@ void TextBox::OnKeyDown(int vkCode) {
         return;
     }
 
-    // Backspace
+    if (vkCode == VK_RETURN && GetAcceptsReturn()) {
+        InsertText(L"\n");
+        GraphicsContext ctx;
+        EnsureCaretVisible(ctx);
+        return;
+    }
+
     if (vkCode == VK_BACK) {
         if (HasSelection()) {
             DeleteSelection();
@@ -436,9 +640,12 @@ void TextBox::OnKeyDown(int vkCode) {
             m_selectionEnd = m_cursorPos;
             SetText(Utf16ToUtf8(wtext));
         }
+        GraphicsContext ctx;
+        EnsureCaretVisible(ctx);
+        return;
     }
-    // Delete
-    else if (vkCode == VK_DELETE) {
+
+    if (vkCode == VK_DELETE) {
         if (HasSelection()) {
             DeleteSelection();
         } else if (m_cursorPos < static_cast<int>(wtext.length())) {
@@ -448,68 +655,122 @@ void TextBox::OnKeyDown(int vkCode) {
             m_selectionEnd = m_cursorPos;
             SetText(Utf16ToUtf8(wtext));
         }
+        GraphicsContext ctx;
+        EnsureCaretVisible(ctx);
+        return;
     }
-    // Left arrow
-    else if (vkCode == VK_LEFT) {
+
+    GraphicsContext ctx;
+
+    if (vkCode == VK_LEFT) {
         if (m_cursorPos > 0) {
             m_cursorPos--;
-            if (!isShiftDown) {
-                m_selectionStart = m_cursorPos;
-            }
+            if (!isShiftDown) m_selectionStart = m_cursorPos;
             m_selectionEnd = m_cursorPos;
         }
+        EnsureCaretVisible(ctx);
+        return;
     }
-    // Right arrow
-    else if (vkCode == VK_RIGHT) {
+
+    if (vkCode == VK_RIGHT) {
         if (m_cursorPos < static_cast<int>(wtext.length())) {
             m_cursorPos++;
-            if (!isShiftDown) {
-                m_selectionStart = m_cursorPos;
-            }
+            if (!isShiftDown) m_selectionStart = m_cursorPos;
             m_selectionEnd = m_cursorPos;
         }
+        EnsureCaretVisible(ctx);
+        return;
     }
-    // Home
-    else if (vkCode == VK_HOME) {
-        m_cursorPos = 0;
-        if (!isShiftDown) {
-            m_selectionStart = m_cursorPos;
-        }
+
+    if (vkCode == VK_UP || vkCode == VK_DOWN) {
+        if (!IsMultiline()) return;
+
+        auto caret = GetCaretScreenPos(ctx, m_cursorPos);
+        float targetY = caret.y + (vkCode == VK_UP ? -caret.height * 0.5f : caret.height * 1.5f);
+
+        Rect textRect = GetTextRect();
+        std::wstring displayWText = BuildDisplayText(wtext, m_cursorPos, m_compString);
+        auto layout = BuildTextLayout(ctx, displayWText, textRect);
+        if (!layout) return;
+
+        UINT32 newPos = ctx.HitTestTextLayout(layout.Get(), caret.x, targetY, GetLayoutOrigin(textRect));
+        m_cursorPos = static_cast<int>(newPos);
+        if (!isShiftDown) m_selectionStart = m_cursorPos;
         m_selectionEnd = m_cursorPos;
+        EnsureCaretVisible(ctx);
+        return;
     }
-    // End
-    else if (vkCode == VK_END) {
-        m_cursorPos = static_cast<int>(wtext.length());
-        if (!isShiftDown) {
-            m_selectionStart = m_cursorPos;
+
+    if (vkCode == VK_HOME) {
+        if (IsMultiline()) {
+            auto caret = GetCaretScreenPos(ctx, m_cursorPos);
+            Rect textRect = GetTextRect();
+            std::wstring displayWText = BuildDisplayText(wtext, m_cursorPos, m_compString);
+            auto layout = BuildTextLayout(ctx, displayWText, textRect);
+            if (layout) {
+                UINT32 newPos = ctx.HitTestTextLayout(layout.Get(), textRect.x, caret.y, GetLayoutOrigin(textRect));
+                m_cursorPos = static_cast<int>(newPos);
+            }
+        } else {
+            m_cursorPos = 0;
+            m_scrollOffsetX = 0.0f;
         }
+        if (!isShiftDown) m_selectionStart = m_cursorPos;
         m_selectionEnd = m_cursorPos;
+        return;
+    }
+
+    if (vkCode == VK_END) {
+        if (IsMultiline()) {
+            auto caret = GetCaretScreenPos(ctx, m_cursorPos);
+            Rect textRect = GetTextRect();
+            std::wstring displayWText = BuildDisplayText(wtext, m_cursorPos, m_compString);
+            auto layout = BuildTextLayout(ctx, displayWText, textRect);
+            if (layout) {
+                UINT32 newPos = ctx.HitTestTextLayout(layout.Get(), textRect.x + textRect.width, caret.y, GetLayoutOrigin(textRect));
+                m_cursorPos = static_cast<int>(newPos);
+            }
+        } else {
+            m_cursorPos = static_cast<int>(wtext.length());
+            EnsureCaretVisible(ctx);
+        }
+        if (!isShiftDown) m_selectionStart = m_cursorPos;
+        m_selectionEnd = m_cursorPos;
+        return;
     }
 }
 
+void TextBox::CommitImeResult(const std::wstring& result) {
+    m_compString.clear();
+    if (result.empty()) return;
+
+    InsertText(result);
+    // IME commit is also delivered as WM_CHAR; suppress duplicates (e.g. Shift during composition).
+    m_suppressCharCount = static_cast<int>(result.length());
+
+    GraphicsContext ctx;
+    EnsureCaretVisible(ctx);
+}
+
 void TextBox::OnCharInput(wchar_t ch) {
-    if (ch >= 32) { // Printable characters including Chinese Unicode
-        PushUndoState();
-        if (HasSelection()) {
-            // inline delete selection without extra undo
-            std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
-            int selMin = (std::min)(m_selectionStart, m_selectionEnd);
-            int selMax = (std::max)(m_selectionStart, m_selectionEnd);
-            if (selMin >= 0 && selMax <= static_cast<int>(wtext.length()) && selMax > selMin) {
-                wtext.erase(selMin, selMax - selMin);
-                m_cursorPos = selMin;
-                SetProperty("text", Value(Utf16ToUtf8(wtext)));
-            }
+    if (m_suppressCharCount > 0) {
+        m_suppressCharCount--;
+        return;
+    }
+
+    if (ch == L'\r' || ch == L'\n') {
+        if (GetAcceptsReturn()) {
+            InsertText(L"\n");
+            GraphicsContext ctx;
+            EnsureCaretVisible(ctx);
         }
-        std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
-        if (m_cursorPos > static_cast<int>(wtext.length())) {
-            m_cursorPos = static_cast<int>(wtext.length());
-        }
-        wtext.insert(m_cursorPos, 1, ch);
-        m_cursorPos++;
-        m_selectionStart = m_cursorPos;
-        m_selectionEnd = m_cursorPos;
-        SetText(Utf16ToUtf8(wtext));
+        return;
+    }
+
+    if (ch >= 32) {
+        InsertText(std::wstring(1, ch));
+        GraphicsContext ctx;
+        EnsureCaretVisible(ctx);
     }
 }
 

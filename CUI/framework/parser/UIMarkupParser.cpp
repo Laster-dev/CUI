@@ -11,6 +11,7 @@
 #include "../controls/ListBox.h"
 #include "../controls/ListView.h"
 #include "../controls/ScrollViewer.h"
+#include "../controls/MessageBox.h"
 #include "../controls/VSCodeControls.h"
 #include <fstream>
 #include <sstream>
@@ -20,10 +21,16 @@
 namespace CUI {
 
 UIMarkupParser::UIMarkupParser() {
-    // Register standard controls & VS Code controls
+    // Register standard controls & WPF panels & WinUI ContentDialog
     RegisterElementFactory("UIElement", []() { return std::make_shared<UIElement>(); });
     RegisterElementFactory("Panel", []() { return std::make_shared<Panel>(); });
     RegisterElementFactory("StackPanel", []() { return std::make_shared<StackPanel>(); });
+    RegisterElementFactory("Canvas", []() { return std::make_shared<Canvas>(); });
+    RegisterElementFactory("Grid", []() { return std::make_shared<Grid>(); });
+    RegisterElementFactory("WrapPanel", []() { return std::make_shared<WrapPanel>(); });
+    RegisterElementFactory("DockPanel", []() { return std::make_shared<DockPanel>(); });
+    RegisterElementFactory("UniformGrid", []() { return std::make_shared<UniformGrid>(); });
+
     RegisterElementFactory("TextBlock", []() { return std::make_shared<TextBlock>(); });
     RegisterElementFactory("Button", []() { return std::make_shared<Button>(); });
     RegisterElementFactory("TextBox", []() { return std::make_shared<TextBox>(); });
@@ -34,6 +41,7 @@ UIMarkupParser::UIMarkupParser() {
     RegisterElementFactory("ListBox", []() { return std::make_shared<ListBox>(); });
     RegisterElementFactory("ListView", []() { return std::make_shared<ListView>(); });
     RegisterElementFactory("ScrollViewer", []() { return std::make_shared<ScrollViewer>(); });
+    RegisterElementFactory("ContentDialog", []() { return std::make_shared<ContentDialog>(); });
 
     // VS Code Specific Components
     RegisterElementFactory("TitleBar", []() { return std::make_shared<TitleBar>(); });
@@ -56,7 +64,6 @@ std::shared_ptr<UIElement> UIMarkupParser::CreateElement(const std::string& tagN
     return std::make_shared<Panel>();
 }
 
-// Simple XML Node structure for parsing
 struct XmlNode {
     std::string tagName;
     std::unordered_map<std::string, std::string> attributes;
@@ -74,23 +81,20 @@ static XmlNode ParseXmlNodeInternal(const std::string& xml, size_t& pos) {
     SkipWhitespace(xml, pos);
 
     if (pos >= xml.length() || xml[pos] != '<') return node;
-    pos++; // skip '<'
+    pos++;
 
-    // Check header <?xml ... ?> or comment <!-- ... -->
     if (pos < xml.length() && (xml[pos] == '?' || xml[pos] == '!')) {
         while (pos < xml.length() && xml[pos] != '>') pos++;
-        if (pos < xml.length()) pos++; // skip '>'
+        if (pos < xml.length()) pos++;
         return ParseXmlNodeInternal(xml, pos);
     }
 
-    // Read Tag Name
     size_t nameStart = pos;
     while (pos < xml.length() && !isspace(xml[pos]) && xml[pos] != '>' && xml[pos] != '/') {
         pos++;
     }
     node.tagName = xml.substr(nameStart, pos - nameStart);
 
-    // Read Attributes
     while (pos < xml.length()) {
         SkipWhitespace(xml, pos);
         if (pos >= xml.length() || xml[pos] == '>' || xml[pos] == '/') break;
@@ -104,7 +108,7 @@ static XmlNode ParseXmlNodeInternal(const std::string& xml, size_t& pos) {
         SkipWhitespace(xml, pos);
         std::string attrVal = "";
         if (pos < xml.length() && xml[pos] == '=') {
-            pos++; // skip '='
+            pos++;
             SkipWhitespace(xml, pos);
             if (pos < xml.length() && (xml[pos] == '"' || xml[pos] == '\'')) {
                 char quote = xml[pos++];
@@ -113,7 +117,7 @@ static XmlNode ParseXmlNodeInternal(const std::string& xml, size_t& pos) {
                     pos++;
                 }
                 attrVal = xml.substr(valStart, pos - valStart);
-                if (pos < xml.length()) pos++; // skip quote
+                if (pos < xml.length()) pos++;
             }
         }
         if (!attrName.empty()) {
@@ -123,17 +127,15 @@ static XmlNode ParseXmlNodeInternal(const std::string& xml, size_t& pos) {
 
     SkipWhitespace(xml, pos);
     if (pos < xml.length() && xml[pos] == '/') {
-        // Self closing tag <Tag ... />
-        pos++; // skip '/'
+        pos++;
         if (pos < xml.length() && xml[pos] == '>') pos++;
         return node;
     }
 
     if (pos < xml.length() && xml[pos] == '>') {
-        pos++; // skip '>'
+        pos++;
     }
 
-    // Read Children until </TagName>
     std::string closeTag = "</" + node.tagName + ">";
     while (pos < xml.length()) {
         SkipWhitespace(xml, pos);
@@ -146,7 +148,6 @@ static XmlNode ParseXmlNodeInternal(const std::string& xml, size_t& pos) {
 
         if (xml[pos] == '<') {
             if (xml.compare(pos, 2, "</") == 0) {
-                // Closing tag of parent or mismatch
                 while (pos < xml.length() && xml[pos] != '>') pos++;
                 if (pos < xml.length()) pos++;
                 break;
@@ -169,7 +170,8 @@ static std::shared_ptr<UIElement> BuildTreeFromXmlNode(UIMarkupParser& parser, c
     std::shared_ptr<UIElement> elem = parser.CreateElement(xmlNode.tagName);
     if (!elem) return nullptr;
 
-    // Apply attributes
+    Grid* gridElem = dynamic_cast<Grid*>(elem.get());
+
     for (const auto& kv : xmlNode.attributes) {
         const std::string& attrName = kv.first;
         const std::string& attrVal = kv.second;
@@ -178,8 +180,11 @@ static std::shared_ptr<UIElement> BuildTreeFromXmlNode(UIMarkupParser& parser, c
             elem->SetId(attrVal);
         } else if (attrName == "styleClass") {
             elem->SetStyleClass(attrVal);
+        } else if (gridElem && (attrName == "columnDefinitions" || attrName == "ColumnDefinitions")) {
+            gridElem->SetColumnDefinitions(attrVal);
+        } else if (gridElem && (attrName == "rowDefinitions" || attrName == "RowDefinitions")) {
+            gridElem->SetRowDefinitions(attrVal);
         } else {
-            // Check for Binding expression: {Binding Path=PropName}
             if (attrVal.find("{Binding") != std::string::npos) {
                 size_t pathPos = attrVal.find("Path=");
                 if (pathPos != std::string::npos) {
@@ -196,10 +201,8 @@ static std::shared_ptr<UIElement> BuildTreeFromXmlNode(UIMarkupParser& parser, c
         }
     }
 
-    // Apply Styles
     StyleManager::Instance().ApplyStyle(elem.get());
 
-    // Recursively build children
     for (const auto& childXml : xmlNode.children) {
         auto childElem = BuildTreeFromXmlNode(parser, childXml, deferredBindings);
         if (childElem) {

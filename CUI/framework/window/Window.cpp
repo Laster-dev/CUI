@@ -2,10 +2,12 @@
 #include "../controls/TextBox.h"
 #include "../controls/ContextMenu.h"
 #include <windowsx.h>
+#include <dwmapi.h>
 #include <imm.h>
 #include <iostream>
 
 #pragma comment(lib, "imm32.lib")
+#pragma comment(lib, "dwmapi.lib")
 
 namespace CUI {
 
@@ -18,7 +20,8 @@ Window::~Window() {
     }
 }
 
-bool Window::Create(const std::string& title, int width, int height) {
+bool Window::Create(const std::string& title, int width, int height, bool transparentMode) {
+    m_transparentMode = transparentMode;
     HINSTANCE hInstance = GetModuleHandle(nullptr);
 
     WNDCLASSEX wc = {};
@@ -27,18 +30,22 @@ bool Window::Create(const std::string& title, int width, int height) {
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wc.hbrBackground = nullptr; // Direct2D double buffering
+    wc.hbrBackground = nullptr;
     wc.lpszClassName = L"CUI_WindowClass";
 
     RegisterClassEx(&wc);
 
     std::wstring wTitle(title.begin(), title.end());
 
+    // Custom frameless window with native OS shadow & Snap Layouts support
+    DWORD dwStyle = WS_POPUP | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU;
+    DWORD dwExStyle = m_transparentMode ? (WS_EX_LAYERED | WS_EX_APPWINDOW) : 0;
+
     m_hwnd = CreateWindowEx(
-        0,
+        dwExStyle,
         L"CUI_WindowClass",
         wTitle.c_str(),
-        WS_OVERLAPPEDWINDOW,
+        dwStyle,
         CW_USEDEFAULT, CW_USEDEFAULT,
         width, height,
         nullptr, nullptr,
@@ -48,14 +55,26 @@ bool Window::Create(const std::string& title, int width, int height) {
 
     if (!m_hwnd) return false;
 
+    // Extend DWM frame to client area for custom titlebar + Win11 Snap Layouts + OS window shadow
+    MARGINS margins = { 1, 1, 1, 1 };
+    DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+
+    if (m_transparentMode) {
+        SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA);
+    }
+
     if (!m_gfxContext.Initialize(m_hwnd)) {
         return false;
     }
 
-    SetTimer(m_hwnd, 1, 500, nullptr); // 500ms Cursor Blink Timer
-    SetTimer(m_hwnd, 2, 1, nullptr);  // 1ms Auto-Scroll Timer (~1000fps, WM_TIMER precision ~15ms)
+    SetTimer(m_hwnd, 1, 500, nullptr);
+    SetTimer(m_hwnd, 2, 1, nullptr);
 
     return true;
+}
+
+void Window::SetTransparentMode(bool enabled) {
+    m_transparentMode = enabled;
 }
 
 void Window::Show() {
@@ -101,6 +120,85 @@ LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
+    case WM_NCCALCSIZE:
+        if (wParam == TRUE) {
+            // Remove standard OS titlebar caption while preserving DWM shadow & resize borders
+            return 0;
+        }
+        break;
+
+    case WM_NCACTIVATE:
+        // Prevent Windows DWM from rendering default white/light inactive border on frameless windows
+        return TRUE;
+
+    case WM_NCHITTEST: {
+        POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+        ScreenToClient(m_hwnd, &pt);
+        float fx = static_cast<float>(pt.x);
+        float fy = static_cast<float>(pt.y);
+
+        RECT rc;
+        GetClientRect(m_hwnd, &rc);
+        float winW = static_cast<float>(rc.right);
+        float winH = static_cast<float>(rc.bottom);
+
+        // 1. Resizing border handles (8-direction border resize)
+        int borderThickness = 8;
+        bool left = (pt.x < borderThickness);
+        bool right = (pt.x >= rc.right - borderThickness);
+        bool top = (pt.y < borderThickness);
+        bool bottom = (pt.y >= rc.bottom - borderThickness);
+
+        if (top && left) return HTTOPLEFT;
+        if (top && right) return HTTOPRIGHT;
+        if (bottom && left) return HTBOTTOMLEFT;
+        if (bottom && right) return HTBOTTOMRIGHT;
+        if (left) return HTLEFT;
+        if (right) return HTRIGHT;
+        if (top) return HTTOP;
+        if (bottom) return HTBOTTOM;
+
+        // 2. Custom TitleBar Hit-Testing & Win11 Snap Layouts
+        if (fy >= 0 && fy <= 40.0f) {
+            // Close Button
+            if (fx >= winW - 45.0f) {
+                return HTCLOSE;
+            }
+            // Maximize / Restore Button -> Returns HTMAXBUTTON to trigger Win11 Snap Layouts
+            if (fx >= winW - 90.0f && fx < winW - 45.0f) {
+                return HTMAXBUTTON;
+            }
+            // Minimize Button
+            if (fx >= winW - 135.0f && fx < winW - 90.0f) {
+                return HTMINBUTTON;
+            }
+
+            // Drag window caption
+            if (fx < winW - 135.0f && m_rootElement) {
+                UIElement* hit = m_rootElement->HitTest(fx, fy);
+                if (!hit || std::string(hit->GetClassName()) == "TitleBar" || hit == m_rootElement.get()) {
+                    return HTCAPTION;
+                }
+            }
+        }
+        return HTCLIENT;
+    }
+
+    case WM_NCLBUTTONDOWN:
+        // System titlebar buttons (Close, Maximize, Minimize)
+        if (wParam == HTCLOSE) {
+            PostQuitMessage(0);
+            return 0;
+        } else if (wParam == HTMAXBUTTON) {
+            if (IsZoomed(m_hwnd)) ShowWindow(m_hwnd, SW_RESTORE);
+            else ShowWindow(m_hwnd, SW_MAXIMIZE);
+            return 0;
+        } else if (wParam == HTMINBUTTON) {
+            ShowWindow(m_hwnd, SW_MINIMIZE);
+            return 0;
+        }
+        break;
+
     case WM_PAINT:
         OnPaint();
         return 0;
@@ -196,10 +294,9 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         if (bytes > 0) {
                             std::wstring resultStr(bytes / sizeof(wchar_t), 0);
                             ImmGetCompositionStringW(hIMC, GCS_RESULTSTR, &resultStr[0], bytes);
+                            tb->CommitImeResult(resultStr);
+                        } else {
                             tb->SetCompositionString(L"");
-                            for (wchar_t ch : resultStr) {
-                                tb->OnCharInput(ch);
-                            }
                         }
                     }
                     ImmReleaseContext(m_hwnd, hIMC);
@@ -242,8 +339,11 @@ void Window::OnPaint() {
 
     m_gfxContext.BeginDraw();
 
-    // Clear background with VS Code dark color #1F1F1F
-    m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f));
+    if (m_transparentMode) {
+        m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+    } else {
+        m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f));
+    }
 
     if (m_rootElement) {
         m_rootElement->Render(m_gfxContext);
@@ -290,7 +390,6 @@ void Window::OnMouseMove(int x, int y) {
     }
 
     if (m_pressedElement) {
-        // Forward mouse drag events to pressed element even if mouse leaves control/window
         m_pressedElement->OnMouseMove(Point(fx, fy));
         return;
     }
@@ -382,7 +481,6 @@ void Window::OnRButtonDown(int x, int y) {
     if (target) {
         target->OnMouseRightClick(Point(fx, fy));
 
-        // Find context menu on target or ancestor
         UIElement* curr = target;
         while (curr) {
             auto menu = curr->GetContextMenu();

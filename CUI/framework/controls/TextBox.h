@@ -1,6 +1,8 @@
 #pragma once
 #include "Control.h"
 #include <vector>
+#include <dwrite.h>
+#include <wrl/client.h>
 
 namespace CUI {
 
@@ -31,6 +33,7 @@ public:
     virtual void OnFocus() override;
     virtual void OnBlur() override;
     void OnCharInput(wchar_t ch);
+    void CommitImeResult(const std::wstring& result);
 
     void SetCompositionString(const std::wstring& compStr) { m_compString = compStr; }
     std::wstring GetCompositionString() const { return m_compString; }
@@ -46,7 +49,23 @@ public:
     void SetPlaceholder(const std::string& ph) { SetProperty("placeholder", Value(ph)); }
 
 private:
-    int GetCaretIndexFromX(GraphicsContext& ctx, float x);
+    bool GetAcceptsReturn() const;
+    bool IsTextWrapping() const;
+    bool IsMultiline() const;
+
+    Rect GetTextRect() const;
+    Point GetLayoutOrigin(const Rect& textRect) const;
+
+    Microsoft::WRL::ComPtr<IDWriteTextLayout> BuildTextLayout(GraphicsContext& ctx, const std::wstring& wtext,
+                                                              const Rect& textRect) const;
+
+    int GetCaretIndexFromPoint(GraphicsContext& ctx, float x, float y);
+    GraphicsContext::TextCaretInfo GetCaretScreenPos(GraphicsContext& ctx, int caretPos);
+    void EnsureCaretVisible(GraphicsContext& ctx);
+    void ClampScrollOffsets(GraphicsContext& ctx, const std::wstring& wtext, const Rect& textRect);
+    float GetContentWidth(GraphicsContext& ctx, const std::wstring& wtext, const Rect& textRect) const;
+    void InsertText(const std::wstring& text);
+
     void PushUndoState();
     void Undo();
     void Redo();
@@ -55,11 +74,14 @@ private:
     int m_selectionStart = 0;
     int m_selectionEnd = 0;
     bool m_isDraggingSelection = false;
+    float m_scrollOffsetX = 0.0f;
+    float m_scrollOffsetY = 0.0f;
     std::wstring m_compString;
+    int m_suppressCharCount = 0;
 
     std::vector<TextBoxUndoState> m_undoStack;
     std::vector<TextBoxUndoState> m_redoStack;
-    bool m_undoing = false; // prevent push during undo/redo
+    bool m_undoing = false;
 };
 
 } // namespace CUI

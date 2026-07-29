@@ -11,6 +11,7 @@
 #include "framework/controls/Image.h"
 #include "framework/controls/ListView.h"
 #include "framework/controls/ContextMenu.h"
+#include "framework/controls/MessageBox.h"
 #include "framework/controls/Panel.h"
 #include "framework/controls/VSCodeControls.h"
 #include "framework/core/Binding.h"
@@ -36,11 +37,21 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
     auto btnNavComboBox = root->FindElementById("btnNavComboBox");
     auto btnNavListBox = root->FindElementById("btnNavListBox");
     auto btnNavListView = root->FindElementById("btnNavListView");
+
+    auto btnNavGrid = root->FindElementById("btnNavGrid");
+    auto btnNavCanvas = root->FindElementById("btnNavCanvas");
+    auto btnNavWrapPanel = root->FindElementById("btnNavWrapPanel");
+    auto btnNavDockPanel = root->FindElementById("btnNavDockPanel");
+    auto btnNavUniformGrid = root->FindElementById("btnNavUniformGrid");
     auto btnNavPanel = root->FindElementById("btnNavPanel");
     auto btnNavScroll = root->FindElementById("btnNavScroll");
+    auto btnNavDialog = root->FindElementById("btnNavDialog");
     auto btnNavVSCode = root->FindElementById("btnNavVSCode");
 
-    std::vector<std::shared_ptr<UIElement>> navButtons = { btnNavButton, btnNavTextBlock, btnNavTextBox, btnNavCheckBox, btnNavHyperlink, btnNavComboBox, btnNavListBox, btnNavListView, btnNavPanel, btnNavScroll, btnNavVSCode };
+    std::vector<std::shared_ptr<UIElement>> navButtons = { 
+        btnNavButton, btnNavTextBlock, btnNavTextBox, btnNavCheckBox, btnNavHyperlink, btnNavComboBox, btnNavListBox, btnNavListView, 
+        btnNavGrid, btnNavCanvas, btnNavWrapPanel, btnNavDockPanel, btnNavUniformGrid, btnNavPanel, btnNavScroll, btnNavDialog, btnNavVSCode 
+    };
 
     auto logEvent = [txtEventLog, &window](const std::string& msg) {
         if (txtEventLog) {
@@ -49,25 +60,22 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         }
     };
 
-    // Create & attach ContextMenu to root with Multi-Level Submenus (多级右键菜单)
+    // Create & attach ContextMenu to root with Multi-Level Submenus
     auto globalMenu = std::make_shared<ContextMenu>();
     globalMenu->AddItem("Cut", "Ctrl+X", [logEvent]() { logEvent("ContextMenu Action: Cut"); });
     globalMenu->AddItem("Copy", "Ctrl+C", [logEvent]() { logEvent("ContextMenu Action: Copy"); });
     globalMenu->AddItem("Paste", "Ctrl+V", [logEvent]() { logEvent("ContextMenu Action: Paste"); });
     globalMenu->AddSeparator();
 
-    // 1. Submenu Level 2: Encoding
     auto subEncoding = globalMenu->AddSubMenu("Encoding");
     subEncoding->AddItem("UTF-8", [logEvent]() { logEvent("Selected Encoding: UTF-8"); });
     subEncoding->AddItem("UTF-16 LE", [logEvent]() { logEvent("Selected Encoding: UTF-16 LE"); });
     subEncoding->AddItem("GBK / GB2312", [logEvent]() { logEvent("Selected Encoding: GBK"); });
 
-    // 2. Submenu Level 2: Change Theme
     auto subTheme = globalMenu->AddSubMenu("Change Theme");
     subTheme->AddItem("VS Code Dark+ (Default)", [logEvent]() { logEvent("Applied Theme: VS Code Dark+"); });
     subTheme->AddItem("Monokai Dark", [logEvent]() { logEvent("Applied Theme: Monokai Dark"); });
 
-    // 3. Submenu Level 2 & Level 3: Advanced Tools -> Color Accent Palette
     auto subTools = globalMenu->AddSubMenu("Advanced Tools");
     subTools->AddItem("Inspect Element Tree", [logEvent]() { logEvent("Tools Action: Inspect Element Tree"); });
 
@@ -163,7 +171,6 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // Helper to bind demo button clicks
     auto bindDemoButtons = [logEvent](std::shared_ptr<UIElement> parent) {
         if (!parent) return;
         for (const auto& child : parent->GetChildren()) {
@@ -175,10 +182,8 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         }
     };
 
-    // Bind initial demo buttons in gallery_layout.xml
     bindDemoButtons(previewCanvas);
 
-    // Real-time XML Live Reloading Listener
     if (txtXmlPreview) {
         txtXmlPreview->OnPropertyChanged().Connect([=, &window](const std::string& propName, const Value& val) {
             if (propName == "text" && previewCanvas) {
@@ -202,7 +207,7 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 1. Switch to [1] Button Gallery Page
+    // 1. Button Showcase
     if (btnNavButton) {
         btnNavButton->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavButton);
@@ -236,7 +241,6 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
 
                 bindDemoButtons(previewCanvas);
 
-                // Trigger layout measure & arrange
                 RECT rc;
                 GetClientRect(window.GetHWND(), &rc);
                 root->Measure(Size(static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
@@ -245,7 +249,7 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 2. Switch to [2] TextBlock Gallery Page
+    // 2. TextBlock Showcase
     if (btnNavTextBlock) {
         btnNavTextBlock->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavTextBlock);
@@ -283,13 +287,13 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 3. Switch to [3] TextBox Gallery Page
+    // 3. TextBox Showcase
     if (btnNavTextBox) {
         btnNavTextBox->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavTextBox);
             if (txtControlTitle) txtControlTitle->SetProperty("text", Value("3. TextBox Input Showcase"));
             if (txtControlDesc) txtControlDesc->SetProperty("text", Value("Text input control supporting placeholder text, focus state, and interactive typing."));
-            if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<TextBox placeholder=\"Click and type text...\" background=\"#3C3C3C\" color=\"#FFFFFF\"/>"));
+            if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<TextBox placeholder=\"Click and type text...\" background=\"#3C3C3C\" TextWrapping=\"Wrap\" AcceptsReturn=\"True\" color=\"#FFFFFF\" width=\"280\" height=\"240\"/>"));
             logEvent("Switched to TextBox Input Showcase.");
 
             if (previewCanvas) {
@@ -297,8 +301,10 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
 
                 auto tb1 = std::make_shared<TextBox>("Click & type text here...");
                 tb1->SetId("tbDemo");
-                tb1->SetProperty("width", Value(300.0f));
-                tb1->SetProperty("height", Value(34.0f));
+                tb1->SetProperty("width", Value(280.0f));
+                tb1->SetProperty("height", Value(240.0f));
+                tb1->SetProperty("TextWrapping", Value("Wrap"));
+                tb1->SetProperty("AcceptsReturn", Value(true));
 
                 previewCanvas->AddChild(tb1);
 
@@ -310,12 +316,12 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 4. Switch to [4] CheckBox Gallery Page
+    // 4. CheckBox Showcase
     if (btnNavCheckBox) {
         btnNavCheckBox->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavCheckBox);
             if (txtControlTitle) txtControlTitle->SetProperty("text", Value("4. CheckBox Control Showcase"));
-            if (txtControlDesc) txtControlDesc->SetProperty("text", Value("Supports 3 states: Unchecked, Checked (✓), and Indeterminate (-) with tri-state toggling."));
+            if (txtControlDesc) txtControlDesc->SetProperty("text", Value("Supports 3 states: Unchecked, Checked (v), and Indeterminate (-) with tri-state toggling."));
             if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<CheckBox text=\"Enable Feature\" checkState=\"Checked\" isThreeState=\"true\"/>"));
             logEvent("Switched to CheckBox Showcase.");
 
@@ -355,7 +361,7 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 5. Switch to [5] HyperlinkButton Gallery Page
+    // 5. HyperlinkButton Showcase
     if (btnNavHyperlink) {
         btnNavHyperlink->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavHyperlink);
@@ -382,7 +388,7 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 6. Switch to [6] ComboBox Gallery Page
+    // 6. ComboBox Showcase
     if (btnNavComboBox) {
         btnNavComboBox->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavComboBox);
@@ -414,7 +420,7 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 7. Switch to [7] ListBox Gallery Page
+    // 7. ListBox Showcase (100k Virtual)
     if (btnNavListBox) {
         btnNavListBox->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavListBox);
@@ -430,7 +436,6 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
                 listbox->SetProperty("width", Value(280.0f));
                 listbox->SetProperty("height", Value(240.0f));
 
-                // 1. Add Custom Control Items (CheckBox + Multiple Images + TextBlock + Action Button)
                 std::vector<D2D1_COLOR_F> avatarColors = {
                     D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f),
                     D2D1::ColorF(0x6B / 255.0f, 0x21 / 255.0f, 0xA8 / 255.0f),
@@ -452,19 +457,16 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
                         logEvent("Custom Row #" + std::to_string(i) + " CheckBox State: " + std::to_string(static_cast<int>(state)));
                     });
 
-                    // Image 1: Circular User Avatar Image
                     auto imgAvatar = std::make_shared<Image>(ImageType::Avatar, initials[i-1], avatarColors[i-1]);
                     imgAvatar->SetProperty("width", Value(20.0f));
                     imgAvatar->SetProperty("height", Value(20.0f));
                     imgAvatar->SetProperty("margin", Value("2,0,4,0"));
 
-                    // Image 2: File Type Badge Image
                     auto imgFile = std::make_shared<Image>(ImageType::FileIcon, fileExts[i-1], D2D1::ColorF(0x33 / 255.0f, 0x33 / 255.0f, 0x33 / 255.0f));
                     imgFile->SetProperty("width", Value(28.0f));
                     imgFile->SetProperty("height", Value(18.0f));
                     imgFile->SetProperty("margin", Value("0,0,6,0"));
 
-                    // Image 3: Online Status Dot Badge Image
                     auto imgStatus = std::make_shared<Image>(ImageType::StatusBadge, "", D2D1::ColorF(0x10 / 255.0f, 0xB9 / 255.0f, 0x81 / 255.0f));
                     imgStatus->SetProperty("width", Value(10.0f));
                     imgStatus->SetProperty("height", Value(10.0f));
@@ -495,7 +497,6 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
                     listbox->AddItem(itemPanel);
                 }
 
-                // 2. Populate Virtual String Items
                 for (int i = 6; i <= 10000; ++i) {
                     listbox->AddItem("Virtual Item #" + std::to_string(i));
                 }
@@ -519,7 +520,7 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 8. Switch to [8] ListView Gallery Page
+    // 8. ListView Showcase
     if (btnNavListView) {
         btnNavListView->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavListView);
@@ -542,7 +543,6 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
                 listview->AddColumn("Status", 70.0f);
                 listview->AddColumn("CPU %", 60.0f);
 
-                // 100K virtual rows - data fetched on-demand
                 struct VirtualData : ListViewDataSource {
                     std::string GetCellText(int row, int col) override {
                         switch (col) {
@@ -574,11 +574,261 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 7. Switch to StackPanel Gallery Page
+    // 16. WinUI ContentDialog / MessageBox Showcase
+    if (btnNavDialog) {
+        btnNavDialog->OnClick().Connect([=, &window](UIElement*) {
+            updateActiveNav(btnNavDialog);
+            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("16. WinUI Custom ContentDialog / MessageBox Showcase"));
+            if (txtControlDesc) txtControlDesc->SetProperty("text", Value("Custom-rendered Direct2D modal dialog with WinUI 3 backdrop overlay, card shadow, and callback delegates."));
+            if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<Button text=\"Trigger WinUI ContentDialog\" background=\"#007ACC\"/>"));
+            logEvent("Switched to WinUI ContentDialog Showcase.");
+
+            if (previewCanvas) {
+                previewCanvas->ClearChildren();
+
+                auto btnShowDlg = std::make_shared<Button>("Trigger WinUI ContentDialog");
+                btnShowDlg->SetProperty("background", Value("#007ACC"));
+                btnShowDlg->SetProperty("padding", Value(Thickness(16, 8, 16, 8)));
+
+                btnShowDlg->OnClick().Connect([root, logEvent](UIElement*) {
+                    ContentDialog::ShowMessageBox(root.get(), "Unsaved Changes Warning", "You have unsaved changes in your document. Do you want to save them before exiting?", [logEvent](DialogResult res) {
+                        if (res == DialogResult::Primary) {
+                            logEvent("ContentDialog Result: Primary (OK / Save)");
+                        } else if (res == DialogResult::Cancel) {
+                            logEvent("ContentDialog Result: Cancelled");
+                        }
+                    });
+                });
+
+                previewCanvas->AddChild(btnShowDlg);
+
+                RECT rc;
+                GetClientRect(window.GetHWND(), &rc);
+                root->Measure(Size(static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+                root->Arrange(Rect(0, 0, static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+            }
+        });
+    }
+
+    // 9. Grid Panel Showcase (*, Auto, Px)
+    if (btnNavGrid) {
+        btnNavGrid->OnClick().Connect([=, &window](UIElement*) {
+            updateActiveNav(btnNavGrid);
+            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("9. Grid Panel Layout Showcase"));
+            if (txtControlDesc) txtControlDesc->SetProperty("text", Value("WPF Grid panel supporting ColumnDefinitions and RowDefinitions (*, Auto, Pixel) and Grid.Row / Grid.Column."));
+            if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<Grid columnDefinitions=\"100,Auto,1*\" rowDefinitions=\"Auto,1*\" width=\"400\" height=\"180\">\n  <Button text=\"(0,0) 100px\" Grid.Column=\"0\" Grid.Row=\"0\" background=\"#0E639C\"/>\n  <Button text=\"(0,1) Auto\" Grid.Column=\"1\" Grid.Row=\"0\" background=\"#1177BB\"/>\n  <Button text=\"(0,2) 1* Star\" Grid.Column=\"2\" Grid.Row=\"0\" background=\"#007ACC\"/>\n  <Button text=\"(1,0) Row 1 Span 3\" Grid.Column=\"0\" Grid.Row=\"1\" Grid.ColumnSpan=\"3\" background=\"#2D2D2D\"/>\n</Grid>"));
+            logEvent("Switched to WPF Grid Showcase.");
+
+            if (previewCanvas) {
+                previewCanvas->ClearChildren();
+
+                auto grid = std::make_shared<Grid>();
+                grid->SetProperty("width", Value(420.0f));
+                grid->SetProperty("height", Value(180.0f));
+                grid->SetColumnDefinitions("100,Auto,1*");
+                grid->SetRowDefinitions("40,1*");
+
+                auto g1 = std::make_shared<Button>("(0,0) 100px");
+                g1->SetProperty("Grid.Column", Value(0));
+                g1->SetProperty("Grid.Row", Value(0));
+                g1->SetProperty("background", Value("#0E639C"));
+
+                auto g2 = std::make_shared<Button>("(0,1) Auto");
+                g2->SetProperty("Grid.Column", Value(1));
+                g2->SetProperty("Grid.Row", Value(0));
+                g2->SetProperty("background", Value("#1177BB"));
+
+                auto g3 = std::make_shared<Button>("(0,2) 1* Star");
+                g3->SetProperty("Grid.Column", Value(2));
+                g3->SetProperty("Grid.Row", Value(0));
+                g3->SetProperty("background", Value("#007ACC"));
+
+                auto g4 = std::make_shared<Button>("(1,0) Row 1 Span 3 Cols");
+                g4->SetProperty("Grid.Column", Value(0));
+                g4->SetProperty("Grid.Row", Value(1));
+                g4->SetProperty("Grid.ColumnSpan", Value(3));
+                g4->SetProperty("background", Value("#2D2D2D"));
+
+                grid->AddChild(g1);
+                grid->AddChild(g2);
+                grid->AddChild(g3);
+                grid->AddChild(g4);
+
+                previewCanvas->AddChild(grid);
+
+                RECT rc;
+                GetClientRect(window.GetHWND(), &rc);
+                root->Measure(Size(static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+                root->Arrange(Rect(0, 0, static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+            }
+        });
+    }
+
+    // 10. Canvas Showcase (Absolute positioning)
+    if (btnNavCanvas) {
+        btnNavCanvas->OnClick().Connect([=, &window](UIElement*) {
+            updateActiveNav(btnNavCanvas);
+            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("10. Canvas Absolute Layout Showcase"));
+            if (txtControlDesc) txtControlDesc->SetProperty("text", Value("WPF Canvas supporting attached properties Canvas.Left, Canvas.Top, Canvas.Right, Canvas.Bottom."));
+            if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<Canvas width=\"400\" height=\"180\" background=\"#252526\">\n  <Button text=\"Left: 20, Top: 30\" Canvas.Left=\"20\" Canvas.Top=\"30\" width=\"140\" height=\"35\" background=\"#0E639C\"/>\n  <Button text=\"Right: 20, Bottom: 20\" Canvas.Right=\"20\" Canvas.Bottom=\"20\" width=\"160\" height=\"35\" background=\"#10B981\"/>\n</Canvas>"));
+            logEvent("Switched to WPF Canvas Showcase.");
+
+            if (previewCanvas) {
+                previewCanvas->ClearChildren();
+
+                auto canvas = std::make_shared<Canvas>();
+                canvas->SetProperty("width", Value(400.0f));
+                canvas->SetProperty("height", Value(180.0f));
+                canvas->SetProperty("background", Value("#252526"));
+
+                auto c1 = std::make_shared<Button>("Left: 20, Top: 30");
+                c1->SetProperty("Canvas.Left", Value(20.0f));
+                c1->SetProperty("Canvas.Top", Value(30.0f));
+                c1->SetProperty("width", Value(140.0f));
+                c1->SetProperty("height", Value(35.0f));
+                c1->SetProperty("background", Value("#0E639C"));
+
+                auto c2 = std::make_shared<Button>("Right: 20, Bottom: 20");
+                c2->SetProperty("Canvas.Right", Value(20.0f));
+                c2->SetProperty("Canvas.Bottom", Value(20.0f));
+                c2->SetProperty("width", Value(160.0f));
+                c2->SetProperty("height", Value(35.0f));
+                c2->SetProperty("background", Value("#10B981"));
+
+                canvas->AddChild(c1);
+                canvas->AddChild(c2);
+
+                previewCanvas->AddChild(canvas);
+
+                RECT rc;
+                GetClientRect(window.GetHWND(), &rc);
+                root->Measure(Size(static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+                root->Arrange(Rect(0, 0, static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+            }
+        });
+    }
+
+    // 11. WrapPanel Showcase (Flow Layout)
+    if (btnNavWrapPanel) {
+        btnNavWrapPanel->OnClick().Connect([=, &window](UIElement*) {
+            updateActiveNav(btnNavWrapPanel);
+            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("11. WrapPanel Flow Layout Showcase"));
+            if (txtControlDesc) txtControlDesc->SetProperty("text", Value("WPF WrapPanel sequentially positions child elements and wraps them to the next line at the edge."));
+            if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<WrapPanel orientation=\"Horizontal\" width=\"380\">\n  <Button text=\"Item 1\" margin=\"4\"/>\n  <Button text=\"Item 2\" margin=\"4\"/>\n  <Button text=\"Item 3\" margin=\"4\"/>\n  <Button text=\"Item 4\" margin=\"4\"/>\n  <Button text=\"Item 5\" margin=\"4\"/>\n</WrapPanel>"));
+            logEvent("Switched to WPF WrapPanel Showcase.");
+
+            if (previewCanvas) {
+                previewCanvas->ClearChildren();
+
+                auto wrap = std::make_shared<WrapPanel>();
+                wrap->SetProperty("width", Value(360.0f));
+                wrap->SetProperty("orientation", Value("Horizontal"));
+
+                for (int i = 1; i <= 8; ++i) {
+                    auto b = std::make_shared<Button>("Wrap Item #" + std::to_string(i));
+                    b->SetProperty("margin", Value("4,4,4,4"));
+                    b->SetProperty("padding", Value(Thickness(8, 4, 8, 4)));
+                    b->SetProperty("background", Value("#0E639C"));
+                    wrap->AddChild(b);
+                }
+
+                previewCanvas->AddChild(wrap);
+
+                RECT rc;
+                GetClientRect(window.GetHWND(), &rc);
+                root->Measure(Size(static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+                root->Arrange(Rect(0, 0, static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+            }
+        });
+    }
+
+    // 12. DockPanel Showcase
+    if (btnNavDockPanel) {
+        btnNavDockPanel->OnClick().Connect([=, &window](UIElement*) {
+            updateActiveNav(btnNavDockPanel);
+            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("12. DockPanel Layout Showcase"));
+            if (txtControlDesc) txtControlDesc->SetProperty("text", Value("WPF DockPanel docking children to Left, Top, Right, Bottom with LastChildFill option."));
+            if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<DockPanel width=\"400\" height=\"200\" lastChildFill=\"true\">\n  <Button text=\"Top Dock\" DockPanel.Dock=\"Top\" height=\"35\" background=\"#0E639C\"/>\n  <Button text=\"Left Dock\" DockPanel.Dock=\"Left\" width=\"90\" background=\"#1177BB\"/>\n  <Button text=\"Bottom Dock\" DockPanel.Dock=\"Bottom\" height=\"35\" background=\"#10B981\"/>\n  <Button text=\"Fill Center\" background=\"#2D2D2D\"/>\n</DockPanel>"));
+            logEvent("Switched to WPF DockPanel Showcase.");
+
+            if (previewCanvas) {
+                previewCanvas->ClearChildren();
+
+                auto dock = std::make_shared<DockPanel>();
+                dock->SetProperty("width", Value(400.0f));
+                dock->SetProperty("height", Value(200.0f));
+
+                auto dTop = std::make_shared<Button>("Top Dock Header");
+                dTop->SetProperty("DockPanel.Dock", Value("Top"));
+                dTop->SetProperty("height", Value(35.0f));
+                dTop->SetProperty("background", Value("#0E639C"));
+
+                auto dLeft = std::make_shared<Button>("Left Dock Bar");
+                dLeft->SetProperty("DockPanel.Dock", Value("Left"));
+                dLeft->SetProperty("width", Value(100.0f));
+                dLeft->SetProperty("background", Value("#1177BB"));
+
+                auto dBottom = std::make_shared<Button>("Bottom Status Dock");
+                dBottom->SetProperty("DockPanel.Dock", Value("Bottom"));
+                dBottom->SetProperty("height", Value(30.0f));
+                dBottom->SetProperty("background", Value("#10B981"));
+
+                auto dCenter = std::make_shared<Button>("Fill Center Content Area");
+                dCenter->SetProperty("background", Value("#2D2D2D"));
+
+                dock->AddChild(dTop);
+                dock->AddChild(dLeft);
+                dock->AddChild(dBottom);
+                dock->AddChild(dCenter);
+
+                previewCanvas->AddChild(dock);
+
+                RECT rc;
+                GetClientRect(window.GetHWND(), &rc);
+                root->Measure(Size(static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+                root->Arrange(Rect(0, 0, static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+            }
+        });
+    }
+
+    // 13. UniformGrid Showcase
+    if (btnNavUniformGrid) {
+        btnNavUniformGrid->OnClick().Connect([=, &window](UIElement*) {
+            updateActiveNav(btnNavUniformGrid);
+            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("13. UniformGrid Showcase"));
+            if (txtControlDesc) txtControlDesc->SetProperty("text", Value("WPF UniformGrid arranging all visible controls in equally sized cells."));
+            if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<UniformGrid rows=\"2\" columns=\"3\" width=\"380\" height=\"160\">\n  <Button text=\"Cell 1\"/>\n  <Button text=\"Cell 2\"/>\n  <Button text=\"Cell 3\"/>\n  <Button text=\"Cell 4\"/>\n  <Button text=\"Cell 5\"/>\n  <Button text=\"Cell 6\"/>\n</UniformGrid>"));
+            logEvent("Switched to WPF UniformGrid Showcase.");
+
+            if (previewCanvas) {
+                previewCanvas->ClearChildren();
+
+                auto ug = std::make_shared<UniformGrid>(2, 3);
+                ug->SetProperty("width", Value(390.0f));
+                ug->SetProperty("height", Value(160.0f));
+
+                for (int i = 1; i <= 6; ++i) {
+                    auto b = std::make_shared<Button>("Grid Cell #" + std::to_string(i));
+                    b->SetProperty("margin", Value("2,2,2,2"));
+                    b->SetProperty("background", Value((i % 2 == 0) ? "#0E639C" : "#1177BB"));
+                    ug->AddChild(b);
+                }
+
+                previewCanvas->AddChild(ug);
+
+                RECT rc;
+                GetClientRect(window.GetHWND(), &rc);
+                root->Measure(Size(static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+                root->Arrange(Rect(0, 0, static_cast<float>(rc.right), static_cast<float>(rc.bottom)));
+            }
+        });
+    }
+
+    // StackPanel Showcase
     if (btnNavPanel) {
         btnNavPanel->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavPanel);
-            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("4. StackPanel Flex Layout Showcase"));
+            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("14. StackPanel Flex Layout Showcase"));
             if (txtControlDesc) txtControlDesc->SetProperty("text", Value("Two-pass Flexbox layout engine supporting Horizontal/Vertical orientations and Gap spacing."));
             if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<StackPanel orientation=\"Horizontal\" gap=\"8\">\n  <Button text=\"Box 1\"/>\n  <Button text=\"Box 2\"/>\n</StackPanel>"));
             logEvent("Switched to StackPanel Layout Showcase.");
@@ -609,11 +859,11 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 5. Switch to [5] ScrollViewer Gallery Page
+    // ScrollViewer Showcase
     if (btnNavScroll) {
         btnNavScroll->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavScroll);
-            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("5. ScrollViewer Container Showcase"));
+            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("15. ScrollViewer Container Showcase"));
             if (txtControlDesc) txtControlDesc->SetProperty("text", Value("Scrollable view container with customizable scrollbar indicator and view clipping."));
             if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<ScrollViewer>\n  <StackPanel orientation=\"Vertical\">...</StackPanel>\n</ScrollViewer>"));
             logEvent("Switched to ScrollViewer Showcase.");
@@ -642,11 +892,11 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         });
     }
 
-    // 6. Switch to [6] VS Code Full IDE Gallery Page
+    // VS Code Full IDE Showcase
     if (btnNavVSCode) {
         btnNavVSCode->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavVSCode);
-            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("6. VS Code Composite IDE Showcase"));
+            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("17. VS Code Composite IDE Showcase"));
             if (txtControlDesc) txtControlDesc->SetProperty("text", Value("Complete Visual Studio Code Dark+ theme layout constructed entirely via XML descriptor."));
             if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<TitleBar/> <ActivityBar/> <SideBar/> <TabBar/> <EditorView/> <StatusBar/>"));
             logEvent("Switched to VS Code Composite IDE Showcase.");
@@ -698,16 +948,16 @@ int main() {
 
     parser.ApplyBindings(dataContext);
 
-    std::cout << "[Step 3] UI Tree Created. Initializing Direct2D Host Window...\n";
+    std::cout << "[Step 3] UI Tree Created. Initializing Direct2D Frameless Window...\n";
 
     Window window;
-    if (!window.Create("CUI Control Gallery - Step-by-Step Interactive Showcase", 1280, 780)) {
+    // Pass true for frameless transparent self-drawn window mode
+    if (!window.Create("CUI Control Gallery - Step-by-Step Interactive Showcase", 1280, 780, true)) {
         std::cerr << "Failed to create Direct2D host window." << std::endl;
         CoUninitialize();
         return -1;
     }
 
-    // Setup interactive gallery callbacks
     SetupGalleryInteractions(rootElement, window);
 
     window.SetRootElement(rootElement);
