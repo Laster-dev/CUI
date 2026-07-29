@@ -76,6 +76,7 @@ public:
     virtual void OnMouseMove(Point pt);
     virtual void OnMouseWheel(float delta) {}
     virtual void OnKeyDown(int vkCode);
+    virtual void OnAutoScrollTick() {}
 
     void SetContextMenu(std::shared_ptr<ContextMenu> menu) { m_contextMenu = menu; }
     std::shared_ptr<ContextMenu> GetContextMenu() const { return m_contextMenu; }

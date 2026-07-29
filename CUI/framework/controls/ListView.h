@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_set>
 #include <functional>
+#include <cstdint>
 
 namespace CUI {
 
@@ -51,6 +52,7 @@ public:
     virtual void OnMouseUp(Point pt) override;
     virtual void OnKeyDown(int vkCode) override;
     virtual void OnMouseWheel(float delta) override;
+    virtual void OnAutoScrollTick() override;
 
     // Columns Management
     void AddColumn(const std::string& header, float width = 120.0f);
@@ -89,6 +91,9 @@ private:
     int GetColumnIndexFromX(float x) const;
     void UpdateRubberBandSelection();
     float GetTotalColumnsWidth() const;
+    // Applies auto-scroll based on last mouse position.
+    // Does not call ClampScroll() / UpdateRubberBandSelection().
+    bool ApplyAutoScroll();
 
     std::string GetCellText(int row, int col) const;
     std::shared_ptr<UIElement> GetCellElement(int row, int col) const;
@@ -120,8 +125,18 @@ private:
     std::unordered_set<int> m_initialSelectedBeforeDrag;
 
     bool m_isRubberBandSelecting = false;
-    Point m_rubberBandStart;
-    Point m_rubberBandCurrent;
+    Point m_rubberBandStart;     // content coordinates (scroll-adjusted)
+    Point m_rubberBandCurrent;   // screen coordinates
+    float m_rubberBandScrollOffsetY = 0.0f; // snap scrollY at drag start
+
+    // Auto-scroll state
+    float m_autoScrollLastMouseX = 0.0f;
+    float m_autoScrollLastMouseY = 0.0f;
+    // Used to avoid rapid direction flip (jitter) around the midline.
+    // +1: auto-scroll down, -1: auto-scroll up.
+    int m_autoScrollDirY = 1;
+    // Time normalization for ApplyAutoScroll() (timer tick vs mouse-move calls).
+    std::uint64_t m_lastAutoScrollMs = 0;
 
     // Scroll state
     float m_scrollY = 0.0f;

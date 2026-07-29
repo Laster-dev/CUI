@@ -53,6 +53,7 @@ bool Window::Create(const std::string& title, int width, int height) {
     }
 
     SetTimer(m_hwnd, 1, 500, nullptr); // 500ms Cursor Blink Timer
+    SetTimer(m_hwnd, 2, 1, nullptr);  // 1ms Auto-Scroll Timer (~1000fps, WM_TIMER precision ~15ms)
 
     return true;
 }
@@ -105,8 +106,15 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return 0;
 
     case WM_TIMER:
-        if (m_focusedElement) {
-            InvalidateRect(m_hwnd, nullptr, FALSE);
+        if (wParam == 1) {
+            if (m_focusedElement) {
+                InvalidateRect(m_hwnd, nullptr, FALSE);
+            }
+        } else if (wParam == 2) {
+            if (m_focusedElement) {
+                m_focusedElement->OnAutoScrollTick();
+                InvalidateRect(m_hwnd, nullptr, FALSE);
+            }
         }
         return 0;
 

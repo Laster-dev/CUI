@@ -204,18 +204,24 @@ int ListView::GetRowIndexFromY(float y) const {
 void ListView::UpdateRubberBandSelection() {
     if (!m_isRubberBandSelecting) return;
 
-    // Calculate rubber-band selection rectangle in container space
-    float minX = std::min(m_rubberBandStart.x, m_rubberBandCurrent.x);
-    float maxX = std::max(m_rubberBandStart.x, m_rubberBandCurrent.x);
-    float minY = std::min(m_rubberBandStart.y, m_rubberBandCurrent.y);
-    float maxY = std::max(m_rubberBandStart.y, m_rubberBandCurrent.y);
+    // m_rubberBandStart is in content coords; m_rubberBandCurrent is screen coords
+    // Convert current mouse to content coordinates
+    float currentContentX = m_rubberBandCurrent.x - m_bounds.x + m_scrollX;
+    float currentContentY = m_rubberBandCurrent.y - m_bounds.y - m_headerHeight + m_scrollY;
 
-    // Determine row index range covered by rubber-band Y coordinates
-    int startRow = GetRowIndexFromY(minY);
-    int endRow = GetRowIndexFromY(maxY);
+    // Selection rectangle in content coordinates
+    float minContentX = std::min(m_rubberBandStart.x, currentContentX);
+    float maxContentX = std::max(m_rubberBandStart.x, currentContentX);
+    float minContentY = std::min(m_rubberBandStart.y, currentContentY);
+    float maxContentY = std::max(m_rubberBandStart.y, currentContentY);
 
-    if (startRow == -1 && minY < m_bounds.y + m_headerHeight) startRow = 0;
-    if (endRow == -1 && maxY > m_bounds.y + m_headerHeight) endRow = static_cast<int>(GetRowCount()) - 1;
+    // Determine row index range from content Y coords
+    int startRow = (minContentY >= 0.0f) ? static_cast<int>(minContentY / m_rowHeight) : 0;
+    int endRow = (maxContentY >= 0.0f) ? static_cast<int>(maxContentY / m_rowHeight) : 0;
+
+    int rowCount = static_cast<int>(GetRowCount());
+    startRow = std::clamp(startRow, 0, rowCount - 1);
+    endRow = std::clamp(endRow, 0, rowCount - 1);
 
     bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     if (ctrlDown) {
@@ -224,14 +230,11 @@ void ListView::UpdateRubberBandSelection() {
         m_selectedIndices.clear();
     }
 
-    if (startRow != -1 && endRow != -1) {
-        int r1 = std::min(startRow, endRow);
-        int r2 = std::max(startRow, endRow);
-        int rowCount = static_cast<int>(GetRowCount());
-        for (int r = r1; r <= r2; ++r) {
-            if (r >= 0 && r < rowCount) {
-                m_selectedIndices.insert(r);
-            }
+    int r1 = std::min(startRow, endRow);
+    int r2 = std::max(startRow, endRow);
+    for (int r = r1; r <= r2; ++r) {
+        if (r >= 0 && r < rowCount) {
+            m_selectedIndices.insert(r);
         }
     }
     m_onSelectionChangedEvent.Invoke(this, -1);
@@ -376,14 +379,33 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
     // 3. Draw Rubber-Band Selection Box (拉框选择虚线框)
     if (m_isRubberBandSelecting) {
-        float rx = std::min(m_rubberBandStart.x, m_rubberBandCurrent.x);
-        float ry = std::min(m_rubberBandStart.y, m_rubberBandCurrent.y);
-        float rw = std::abs(m_rubberBandCurrent.x - m_rubberBandStart.x);
-        float rh = std::abs(m_rubberBandCurrent.y - m_rubberBandStart.y);
+        // Current mouse in content coords
+        float curContentX = m_rubberBandCurrent.x - m_bounds.x + m_scrollX;
+        float curContentY = m_rubberBandCurrent.y - m_bounds.y - m_headerHeight + m_scrollY;
 
-        Rect rubberRect(rx, ry, rw, rh);
-        ctx.FillRect(rubberRect, D2D1::ColorF(0.0f, 0.48f, 0.80f, 0.25f)); // Translucent Blue
-        ctx.DrawRect(rubberRect, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f), 1.0f);
+        // Visible content Y range
+        float visTop = m_scrollY;
+        float visBottom = m_scrollY + m_bounds.height - m_headerHeight;
+
+        // Clamp both start & current to visible content range
+        float drawTop = std::clamp(std::min(m_rubberBandStart.y, curContentY), visTop, visBottom);
+        float drawBottom = std::clamp(std::max(m_rubberBandStart.y, curContentY), visTop, visBottom);
+
+        // Convert to screen Y
+        float screenTop = m_bounds.y + m_headerHeight + drawTop - m_scrollY;
+        float screenBottom = m_bounds.y + m_headerHeight + drawBottom - m_scrollY;
+
+        // X: clamp to content width
+        float drawLeft = std::clamp(std::min(m_rubberBandStart.x, curContentX), 0.0f, GetTotalColumnsWidth());
+        float drawRight = std::clamp(std::max(m_rubberBandStart.x, curContentX), 0.0f, GetTotalColumnsWidth());
+        float screenLeft = m_bounds.x + drawLeft - m_scrollX;
+        float screenRight = m_bounds.x + drawRight - m_scrollX;
+
+        if (screenBottom > screenTop && screenRight > screenLeft) {
+            Rect rubberRect(screenLeft, screenTop, screenRight - screenLeft, screenBottom - screenTop);
+            ctx.FillRect(rubberRect, D2D1::ColorF(0.0f, 0.48f, 0.80f, 0.25f));
+            ctx.DrawRect(rubberRect, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f), 1.0f);
+        }
     }
 
     // 4. Draw Vertical & Horizontal ScrollBars
@@ -476,13 +498,31 @@ void ListView::OnMouseMove(Point pt) {
         float dy = pt.y - m_mouseDownPoint.y;
         if (std::sqrt(dx * dx + dy * dy) > 4.0f) {
             m_isRubberBandSelecting = true;
-            m_rubberBandStart = m_mouseDownPoint;
+            // Store start in content coordinates (scroll-adjusted)
+            m_rubberBandStart.x = m_mouseDownPoint.x - m_bounds.x + m_scrollX;
+            m_rubberBandStart.y = m_mouseDownPoint.y - m_bounds.y - m_headerHeight + m_scrollY;
+            m_rubberBandScrollOffsetY = m_scrollY;
+
+            // Initialize auto-scroll direction to reduce jitter around midline.
+            float contentTop = m_bounds.y + m_headerHeight;
+            float contentBottom = m_bounds.y + m_bounds.height;
+            float contentH = contentBottom - contentTop;
+            if (contentH > 0.0f) {
+                float midY = contentTop + contentH * 0.5f;
+                m_autoScrollDirY = (pt.y >= midY) ? 1 : -1; // +1 down, -1 up
+            }
         }
     }
 
     // 4. Rubber-Band Drag Selection
-    if (m_isRubberBandSelecting && m_isPressed) {
+    if (m_isRubberBandSelecting) {
         m_rubberBandCurrent = pt;
+        m_autoScrollLastMouseX = pt.x;
+        m_autoScrollLastMouseY = pt.y;
+        bool scrolled = ApplyAutoScroll();
+        if (scrolled) {
+            ClampScroll();
+        }
         UpdateRubberBandSelection();
         return;
     }
@@ -557,6 +597,78 @@ void ListView::OnMouseWheel(float delta) {
         m_scrollY -= delta * m_rowHeight * 3.0f;
     }
     ClampScroll();
+}
+
+bool ListView::ApplyAutoScroll() {
+    float mouseX = m_autoScrollLastMouseX;
+    float mouseY = m_autoScrollLastMouseY;
+    bool scrolled = false;
+
+    // Normalize speed by real time elapsed since last ApplyAutoScroll().
+    // Otherwise, calling it from WM_MOUSEMOVE (more frequent) makes scrolling too fast.
+    std::uint64_t nowMs = GetTickCount64();
+    float dtScale = 1.0f; // relative to ~15ms WM_TIMER resolution (see Window.cpp comment)
+    if (m_lastAutoScrollMs != 0) {
+        float dtMs = static_cast<float>(nowMs - m_lastAutoScrollMs);
+        dtScale = dtMs / 15.0f;
+    }
+    m_lastAutoScrollMs = nowMs;
+    dtScale = std::clamp(dtScale, 0.25f, 2.0f);
+
+    // Auto-scroll Y - use visible area's midline + hysteresis to avoid jitter.
+    float contentTop = m_bounds.y + m_headerHeight;
+    float contentBottom = m_bounds.y + m_bounds.height;
+    float contentH = contentBottom - contentTop;
+    if (contentH > 0.0f) {
+        float midY = contentTop + contentH * 0.5f;
+        float deltaY = mouseY - midY; // +: mouse below midline (scroll down), -: mouse above
+        float absDeltaY = std::abs(deltaY);
+
+        // Scale acceleration relative to list height so it doesn't saturate immediately.
+        float speedDivisor = std::max(5.0f, contentH / 12.0f);
+
+        // Hysteresis zone around midline (5% of visible height).
+        // Increase hysteresis to reduce up/down jitter while dragging.
+        float switchZone = std::max(2.0f, contentH * 0.15f);
+
+        int dirY = m_autoScrollDirY;
+        if (absDeltaY >= switchZone) {
+            dirY = (deltaY >= 0.0f) ? 1 : -1;
+            m_autoScrollDirY = dirY;
+        }
+
+        float speed = std::min(100.0f, 2.0f + std::pow(absDeltaY / speedDivisor, 2.0f));
+        float scaledSpeed = std::min(100.0f, speed * dtScale);
+        if (dirY > 0) m_scrollY += scaledSpeed;
+        else m_scrollY -= scaledSpeed;
+        scrolled = true;
+    }
+
+    // Auto-scroll X - keep existing edge-based behavior
+    if (mouseX < m_bounds.x) {
+        float overDistance = m_bounds.x - mouseX;
+        float speed = std::min(100.0f, 8.0f + std::pow(overDistance / 5.0f, 2.0f));
+        float scaledSpeed = std::min(100.0f, speed * dtScale);
+        m_scrollX -= scaledSpeed;
+        scrolled = true;
+    } else if (mouseX > m_bounds.x + m_bounds.width) {
+        float overDistance = mouseX - (m_bounds.x + m_bounds.width);
+        float speed = std::min(100.0f, 8.0f + std::pow(overDistance / 5.0f, 2.0f));
+        float scaledSpeed = std::min(100.0f, speed * dtScale);
+        m_scrollX += scaledSpeed;
+        scrolled = true;
+    }
+
+    return scrolled;
+}
+
+void ListView::OnAutoScrollTick() {
+    if (!m_isRubberBandSelecting) return;
+
+    if (ApplyAutoScroll()) {
+        ClampScroll();
+        UpdateRubberBandSelection();
+    }
 }
 
 void ListView::OnKeyDown(int vkCode) {
