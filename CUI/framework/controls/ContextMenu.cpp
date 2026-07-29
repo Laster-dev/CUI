@@ -132,6 +132,8 @@ void ContextMenu::AddSeparator() {
 
 void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
     m_popupPosition = Point(x, y);
+    m_windowWidth = windowW;
+    m_windowHeight = windowH;
     m_isOpen = true;
 
     // Calculate dimensions
@@ -148,14 +150,14 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
 
     // Smart right-edge overflow check: flip to left of cursor
     float popupX = x;
-    if (windowW > 0.0f && (x + itemW > windowW)) {
+    if (windowW > 0.0f && (x + itemW > windowW - 4.0f)) {
         popupX = x - itemW;
         if (popupX < 4.0f) popupX = (windowW > itemW + 8.0f) ? (windowW - itemW - 4.0f) : 4.0f;
     }
 
     // Smart bottom-edge overflow check: flip above cursor
     float popupY = y;
-    if (windowH > 0.0f && (y + totalH > windowH)) {
+    if (windowH > 0.0f && (y + totalH > windowH - 4.0f)) {
         popupY = y - totalH;
         if (popupY < 4.0f) popupY = (windowH > totalH + 8.0f) ? (windowH - totalH - 4.0f) : 4.0f;
     }
@@ -163,6 +165,48 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
     m_bounds = Rect(popupX, popupY, itemW, totalH);
 
     // Arrange items inside calculated bounds
+    float currentY = popupY + 4.0f;
+    for (auto& item : m_items) {
+        float h = item->IsSeparator() ? 6.0f : 26.0f;
+        item->Arrange(Rect(popupX + 4.0f, currentY, itemW - 8.0f, h));
+        currentY += h;
+    }
+}
+
+void ContextMenu::ShowSubMenuAt(Rect parentItemBounds, float windowW, float windowH) {
+    m_windowWidth = windowW;
+    m_windowHeight = windowH;
+    m_isOpen = true;
+
+    float itemW = 200.0f;
+    float totalH = 8.0f; // Padding top/bottom
+
+    for (auto& item : m_items) {
+        if (item->IsSeparator()) {
+            totalH += 6.0f;
+        } else {
+            totalH += 26.0f;
+        }
+    }
+
+    // Target right side of parent item by default
+    float popupX = parentItemBounds.x + parentItemBounds.width - 2.0f;
+    // Right-edge overflow check: flip to LEFT of parent item!
+    if (windowW > 0.0f && (popupX + itemW > windowW - 4.0f)) {
+        popupX = parentItemBounds.x - itemW + 2.0f;
+        if (popupX < 4.0f) popupX = 4.0f;
+    }
+
+    // Target top of parent item by default
+    float popupY = parentItemBounds.y - 4.0f;
+    // Bottom-edge overflow check: flip UPWARDS!
+    if (windowH > 0.0f && (popupY + totalH > windowH - 4.0f)) {
+        popupY = parentItemBounds.y + parentItemBounds.height - totalH + 4.0f;
+        if (popupY < 4.0f) popupY = 4.0f;
+    }
+
+    m_bounds = Rect(popupX, popupY, itemW, totalH);
+
     float currentY = popupY + 4.0f;
     for (auto& item : m_items) {
         float h = item->IsSeparator() ? 6.0f : 26.0f;
@@ -220,8 +264,7 @@ UIElement* ContextMenu::HitTestOverlay(float x, float y) {
                     if (m_activeSubMenu != item->GetSubMenu()) {
                         if (m_activeSubMenu) m_activeSubMenu->Hide();
                         m_activeSubMenu = item->GetSubMenu();
-                        Rect b = item->GetBounds();
-                        m_activeSubMenu->ShowAt(b.x + b.width - 2.0f, b.y - 4.0f);
+                        m_activeSubMenu->ShowSubMenuAt(item->GetBounds(), m_windowWidth, m_windowHeight);
                     }
                 } else if (!item->IsSeparator()) {
                     if (m_activeSubMenu) {
