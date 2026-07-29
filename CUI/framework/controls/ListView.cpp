@@ -142,7 +142,13 @@ void ListView::UpdateRubberBandSelection() {
     if (startRow == -1 && minY < m_bounds.y + m_headerHeight) startRow = 0;
     if (endRow == -1 && maxY > m_bounds.y + m_headerHeight) endRow = static_cast<int>(m_rows.size()) - 1;
 
-    m_selectedIndices.clear();
+    bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    if (ctrlDown) {
+        m_selectedIndices = m_initialSelectedBeforeDrag;
+    } else {
+        m_selectedIndices.clear();
+    }
+
     if (startRow != -1 && endRow != -1) {
         int r1 = std::min(startRow, endRow);
         int r2 = std::max(startRow, endRow);
@@ -271,6 +277,11 @@ void ListView::OnRender(GraphicsContext& ctx) {
 void ListView::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
 
+    m_isMouseDown = true;
+    m_mouseDownPoint = pt;
+    m_initialSelectedBeforeDrag = m_selectedIndices;
+    m_pendingRowClick = -1;
+
     // 1. Check Column Resizing Splitters in Header Bar
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
         float currX = m_bounds.x - m_scrollX;
@@ -288,9 +299,62 @@ void ListView::OnMouseDown(Point pt) {
         return;
     }
 
-    // 2. Row Click & Selection Management
+    // Record pending row click
     int clickedRow = GetRowIndexFromY(pt.y);
-    if (clickedRow >= 0) {
+    m_pendingRowClick = clickedRow;
+}
+
+void ListView::OnMouseMove(Point pt) {
+    Control::OnMouseMove(pt);
+
+    // 1. Column Resizing Drag
+    if (m_isResizingColumn && m_resizingColumnIndex >= 0 && m_resizingColumnIndex < static_cast<int>(m_columns.size())) {
+        float deltaX = pt.x - m_dragStartX;
+        float newW = std::max(m_columns[m_resizingColumnIndex].minWidth, m_initialColumnWidth + deltaX);
+        m_columns[m_resizingColumnIndex].width = newW;
+        return;
+    }
+
+    // 2. Check if mouse drag exceeds threshold to start Rubber-Band Marquee Selection
+    if (m_isMouseDown && !m_isResizingColumn && !m_isRubberBandSelecting) {
+        float dx = pt.x - m_mouseDownPoint.x;
+        float dy = pt.y - m_mouseDownPoint.y;
+        if (std::sqrt(dx * dx + dy * dy) > 4.0f) {
+            m_isRubberBandSelecting = true;
+            m_rubberBandStart = m_mouseDownPoint;
+        }
+    }
+
+    // 3. Rubber-Band Drag Selection
+    if (m_isRubberBandSelecting && m_isPressed) {
+        m_rubberBandCurrent = pt;
+        UpdateRubberBandSelection();
+        return;
+    }
+
+    // 4. Hover state on Column Splitter lines
+    m_hoveredColumnSplitter = -1;
+    if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
+        float currX = m_bounds.x - m_scrollX;
+        for (size_t c = 0; c < m_columns.size(); ++c) {
+            float splitterX = currX + m_columns[c].width;
+            if (std::abs(pt.x - splitterX) <= 5.0f && m_columns[c].isResizable) {
+                m_hoveredColumnSplitter = static_cast<int>(c);
+                break;
+            }
+            currX += m_columns[c].width;
+        }
+    }
+
+    m_hoveredRowIndex = GetRowIndexFromY(pt.y);
+}
+
+void ListView::OnMouseUp(Point pt) {
+    Control::OnMouseUp(pt);
+
+    // If mouse was clicked without dragging, perform normal row selection!
+    if (!m_isRubberBandSelecting && !m_isResizingColumn && m_pendingRowClick != -1) {
+        int clickedRow = m_pendingRowClick;
         bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
         bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
 
@@ -314,53 +378,17 @@ void ListView::OnMouseDown(Point pt) {
             }
         }
         m_onSelectionChangedEvent.Invoke(this, clickedRow);
-    } else {
-        // Start Rubber-Band Drag Selection in empty area
-        m_isRubberBandSelecting = true;
-        m_rubberBandStart = pt;
-        m_rubberBandCurrent = pt;
-    }
-}
-
-void ListView::OnMouseMove(Point pt) {
-    Control::OnMouseMove(pt);
-
-    // 1. Column Resizing Drag
-    if (m_isResizingColumn && m_resizingColumnIndex >= 0 && m_resizingColumnIndex < static_cast<int>(m_columns.size())) {
-        float deltaX = pt.x - m_dragStartX;
-        float newW = std::max(m_columns[m_resizingColumnIndex].minWidth, m_initialColumnWidth + deltaX);
-        m_columns[m_resizingColumnIndex].width = newW;
-        return;
+    } else if (!m_isRubberBandSelecting && !m_isResizingColumn && m_pendingRowClick == -1) {
+        // Clicked empty area without dragging -> clear selection
+        m_selectedIndices.clear();
+        m_anchorIndex = -1;
+        m_onSelectionChangedEvent.Invoke(this, -1);
     }
 
-    // 2. Rubber-Band Drag Selection
-    if (m_isRubberBandSelecting && m_isPressed) {
-        m_rubberBandCurrent = pt;
-        UpdateRubberBandSelection();
-        return;
-    }
-
-    // 3. Hover state on Column Splitter lines
-    m_hoveredColumnSplitter = -1;
-    if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
-        float currX = m_bounds.x - m_scrollX;
-        for (size_t c = 0; c < m_columns.size(); ++c) {
-            float splitterX = currX + m_columns[c].width;
-            if (std::abs(pt.x - splitterX) <= 5.0f && m_columns[c].isResizable) {
-                m_hoveredColumnSplitter = static_cast<int>(c);
-                break;
-            }
-            currX += m_columns[c].width;
-        }
-    }
-
-    m_hoveredRowIndex = GetRowIndexFromY(pt.y);
-}
-
-void ListView::OnMouseUp(Point pt) {
-    Control::OnMouseUp(pt);
+    m_isMouseDown = false;
     m_isResizingColumn = false;
     m_isRubberBandSelecting = false;
+    m_pendingRowClick = -1;
 }
 
 void ListView::OnMouseWheel(float delta) {

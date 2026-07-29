@@ -83,6 +83,11 @@ private:
     float m_initialColumnWidth = 0.0f;
 
     // Rubber-band selection state (拉框选择)
+    bool m_isMouseDown = false;
+    Point m_mouseDownPoint;
+    int m_pendingRowClick = -1;
+    std::unordered_set<int> m_initialSelectedBeforeDrag;
+
     bool m_isRubberBandSelecting = false;
     Point m_rubberBandStart;
     Point m_rubberBandCurrent;
