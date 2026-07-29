@@ -1,0 +1,198 @@
+#include "ContextMenu.h"
+
+namespace CUI {
+
+MenuItem::MenuItem() {
+    SetProperty("text", Value(""));
+    SetProperty("icon", Value(""));
+    SetProperty("shortcutText", Value(""));
+    SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
+    SetProperty("fontSize", Value(12.0f));
+    SetProperty("fontFamily", Value("Segoe UI"));
+    SetProperty("height", Value(26.0f));
+}
+
+MenuItem::MenuItem(const std::string& text, std::function<void()> onClick) : MenuItem() {
+    SetProperty("text", Value(text));
+    m_command = onClick;
+}
+
+Size MenuItem::Measure(Size availableSize) {
+    if (m_isSeparator) {
+        m_desiredSize = Size(180.0f, 6.0f);
+        return m_desiredSize;
+    }
+    m_desiredSize = Size(180.0f, 26.0f);
+    return m_desiredSize;
+}
+
+void MenuItem::OnRender(GraphicsContext& ctx) {
+    if (m_isSeparator) {
+        float lineY = m_bounds.y + m_bounds.height / 2.0f;
+        ctx.DrawLine(Point(m_bounds.x + 8.0f, lineY), Point(m_bounds.x + m_bounds.width - 8.0f, lineY), D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f), 1.0f);
+        return;
+    }
+
+    bool enabled = IsEnabled();
+    if (m_isHovered && enabled) {
+        ctx.FillRoundedRect(m_bounds, 3.0f, D2D1::ColorF(0x04 / 255.0f, 0x39 / 255.0f, 0x61 / 255.0f)); // VS Code Menu Hover Blue #043961
+    }
+
+    std::string text = GetProperty("text").AsString("");
+    std::string icon = GetIcon();
+    std::string shortcut = GetShortcutText();
+    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
+    float fontSize = GetProperty("fontSize").AsFloat(12.0f);
+
+    D2D1_COLOR_F textColor = enabled
+        ? D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f)
+        : D2D1::ColorF(0x66 / 255.0f, 0x66 / 255.0f, 0x66 / 255.0f);
+
+    // Draw Icon if available
+    float iconW = 24.0f;
+    if (!icon.empty()) {
+        Rect iconRect(m_bounds.x + 6.0f, m_bounds.y, iconW, m_bounds.height);
+        ctx.DrawText(icon, iconRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+
+    // Draw Main Text
+    Rect textRect(m_bounds.x + 10.0f + (icon.empty() ? 0.0f : iconW), m_bounds.y, m_bounds.width - 60.0f, m_bounds.height);
+    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+    // Draw Shortcut Text on Right End
+    if (!shortcut.empty()) {
+        Rect shortcutRect(m_bounds.x + m_bounds.width - 70.0f, m_bounds.y, 62.0f, m_bounds.height);
+        D2D1_COLOR_F scColor = enabled ? D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f) : textColor;
+        ctx.DrawText(shortcut, shortcutRect, scColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+}
+
+void MenuItem::OnMouseDown(Point pt) {
+    Control::OnMouseDown(pt);
+    if (IsEnabled()) {
+        ExecuteCommand();
+    }
+}
+
+void MenuItem::ExecuteCommand() {
+    if (m_command) {
+        m_command();
+    }
+    OnClick().Invoke(this);
+    if (m_parentMenu) {
+        m_parentMenu->Hide();
+    }
+}
+
+// ---------------- ContextMenu ----------------
+
+ContextMenu::ContextMenu() {
+    SetProperty("background", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f)));
+    SetProperty("borderBrush", Value(D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 1.0f)));
+    SetProperty("borderThickness", Value(1.0f));
+    SetProperty("cornerRadius", Value(4.0f));
+}
+
+std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, std::function<void()> onClick) {
+    auto item = std::make_shared<MenuItem>(text, onClick);
+    item->SetParentContextMenu(this);
+    m_items.push_back(item);
+    AddChild(item);
+    return item;
+}
+
+std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, const std::string& shortcut, std::function<void()> onClick) {
+    auto item = std::make_shared<MenuItem>(text, onClick);
+    item->SetShortcutText(shortcut);
+    item->SetParentContextMenu(this);
+    m_items.push_back(item);
+    AddChild(item);
+    return item;
+}
+
+void ContextMenu::AddSeparator() {
+    auto item = std::make_shared<MenuItem>();
+    item->SetIsSeparator(true);
+    m_items.push_back(item);
+    AddChild(item);
+}
+
+void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
+    m_popupPosition = Point(x, y);
+    m_isOpen = true;
+
+    // Calculate dimensions
+    float itemW = 200.0f;
+    float totalH = 8.0f; // Padding top/bottom
+
+    for (auto& item : m_items) {
+        if (item->IsSeparator()) {
+            totalH += 6.0f;
+        } else {
+            totalH += 26.0f;
+        }
+    }
+
+    // Smart right-edge overflow check: flip to left of cursor
+    float popupX = x;
+    if (windowW > 0.0f && (x + itemW > windowW)) {
+        popupX = x - itemW;
+        if (popupX < 4.0f) popupX = (windowW > itemW + 8.0f) ? (windowW - itemW - 4.0f) : 4.0f;
+    }
+
+    // Smart bottom-edge overflow check: flip above cursor
+    float popupY = y;
+    if (windowH > 0.0f && (y + totalH > windowH)) {
+        popupY = y - totalH;
+        if (popupY < 4.0f) popupY = (windowH > totalH + 8.0f) ? (windowH - totalH - 4.0f) : 4.0f;
+    }
+
+    m_bounds = Rect(popupX, popupY, itemW, totalH);
+
+    // Arrange items inside calculated bounds
+    float currentY = popupY + 4.0f;
+    for (auto& item : m_items) {
+        float h = item->IsSeparator() ? 6.0f : 26.0f;
+        item->Arrange(Rect(popupX + 4.0f, currentY, itemW - 8.0f, h));
+        currentY += h;
+    }
+}
+
+void ContextMenu::Hide() {
+    m_isOpen = false;
+}
+
+void ContextMenu::OnRenderOverlay(GraphicsContext& ctx) {
+    if (!m_isOpen || m_items.empty()) return;
+
+    float radius = GetProperty("cornerRadius").AsFloat(4.0f);
+
+    // Draw ContextMenu Popup Box (Shadow & Background)
+    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
+    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 1.0f));
+
+    ctx.FillRoundedRect(m_bounds, radius, bg);
+    ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);
+
+    // Render Menu Items
+    for (auto& item : m_items) {
+        item->Render(ctx);
+    }
+}
+
+UIElement* ContextMenu::HitTestOverlay(float x, float y) {
+    if (!m_isOpen || m_items.empty()) return nullptr;
+
+    if (m_bounds.Contains(x, y)) {
+        for (auto it = m_items.rbegin(); it != m_items.rend(); ++it) {
+            if ((*it)->GetBounds().Contains(x, y)) {
+                return (*it).get();
+            }
+        }
+        return this;
+    }
+
+    return nullptr;
+}
+
+} // namespace CUI
