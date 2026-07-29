@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "MenuBar.h"
+
 namespace CUI {
 
 // 1. TitleBar
@@ -14,6 +16,16 @@ public:
 
     virtual const char* GetClassName() const override { return "TitleBar"; }
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual void OnMouseDown(Point pt) override;
+    virtual void OnMouseMove(Point pt) override;
+    virtual void OnMouseLeave() override;
+
+    virtual UIElement* HitTest(float x, float y) override;
+
+    MenuBar& GetMenuBar() { return m_menuBar; }
+
+private:
+    MenuBar m_menuBar;
 };
 
 // 2. ActivityBar

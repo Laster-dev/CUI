@@ -231,7 +231,8 @@ HRESULT GraphicsContext::EndDraw() {
     }
 
     if (m_swapChain) {
-        m_swapChain->Present(1, 0);
+        // Present(0, 0) disables VSync wait, unlocking 1000+ FPS ultra-high speed rendering!
+        m_swapChain->Present(0, 0);
     }
     return hr;
 }

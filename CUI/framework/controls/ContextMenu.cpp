@@ -56,7 +56,7 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
     }
 
     // Draw Main Text
-    Rect textRect(m_bounds.x + 10.0f + (icon.empty() ? 0.0f : iconW), m_bounds.y, m_bounds.width - 60.0f, m_bounds.height);
+    Rect textRect(m_bounds.x + 10.0f + (icon.empty() ? 0.0f : iconW), m_bounds.y, m_bounds.width - 120.0f, m_bounds.height);
     ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // Draw Shortcut Text or Submenu Right Arrow on Right End
@@ -64,7 +64,7 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
         Rect arrowRect(m_bounds.x + m_bounds.width - 20.0f, m_bounds.y, 16.0f, m_bounds.height);
         ctx.DrawText(">", arrowRect, textColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     } else if (!shortcut.empty()) {
-        Rect shortcutRect(m_bounds.x + m_bounds.width - 70.0f, m_bounds.y, 62.0f, m_bounds.height);
+        Rect shortcutRect(m_bounds.x + m_bounds.width - 125.0f, m_bounds.y, 115.0f, m_bounds.height);
         D2D1_COLOR_F scColor = enabled ? D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f) : textColor;
         ctx.DrawText(shortcut, shortcutRect, scColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
@@ -136,8 +136,21 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
     m_windowHeight = windowH;
     m_isOpen = true;
 
-    // Calculate dimensions
-    float itemW = 200.0f;
+    // Calculate dynamic menu width based on item content and shortcuts
+    float maxItemWidth = 220.0f;
+    for (auto& item : m_items) {
+        if (!item->IsSeparator()) {
+            std::string t = item->GetProperty("text").AsString();
+            std::string sc = item->GetShortcutText();
+            float tLen = static_cast<float>(t.length()) * 7.5f;
+            float scLen = static_cast<float>(sc.length()) * 7.5f;
+            float reqW = tLen + scLen + 50.0f;
+            if (reqW > maxItemWidth) {
+                maxItemWidth = reqW;
+            }
+        }
+    }
+    float itemW = maxItemWidth;
     float totalH = 8.0f; // Padding top/bottom
 
     for (auto& item : m_items) {

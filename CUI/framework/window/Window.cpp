@@ -190,12 +190,13 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 return HTMINBUTTON;
             }
 
-            // Drag window caption
+            // Drag window caption (only when clicking directly on empty TitleBar space, NOT child controls)
             if (fx < winW - 135.0f && m_rootElement) {
                 UIElement* hit = m_rootElement->HitTest(fx, fy);
-                if (!hit || std::string(hit->GetClassName()) == "TitleBar" || hit == m_rootElement.get()) {
-                    return HTCAPTION;
+                if (hit && std::string(hit->GetClassName()) != "TitleBar" && hit != m_rootElement.get()) {
+                    return HTCLIENT; // All child controls inside titlebar (MenuBar, Buttons, etc.) process UI clicks!
                 }
+                return HTCAPTION;
             }
         }
         return HTCLIENT;
@@ -402,12 +403,32 @@ void Window::OnMouseMove(int x, int y) {
 
     if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
         UIElement* itemHover = m_activeContextMenu->HitTestOverlay(fx, fy);
+        if (!itemHover && m_rootElement) {
+            // Check if hovering over MenuBar items while dropdown is active
+            UIElement* rootHit = m_rootElement->HitTest(fx, fy);
+            if (rootHit) {
+                itemHover = rootHit;
+            }
+        }
+
         if (itemHover != m_hoveredElement) {
             if (m_hoveredElement) m_hoveredElement->OnMouseLeave();
             m_hoveredElement = itemHover;
             if (m_hoveredElement) m_hoveredElement->OnMouseEnter();
         }
-        if (m_hoveredElement) m_hoveredElement->OnMouseMove(Point(fx, fy));
+        if (m_hoveredElement) {
+            m_hoveredElement->OnMouseMove(Point(fx, fy));
+            // Keep m_activeContextMenu synchronized if MenuBar opened a new dropdown
+            UIElement* curr = m_hoveredElement;
+            while (curr) {
+                auto menu = curr->GetContextMenu();
+                if (menu && menu->IsOpen()) {
+                    m_activeContextMenu = menu;
+                    break;
+                }
+                curr = curr->GetParent();
+            }
+        }
         return;
     }
 
@@ -461,6 +482,17 @@ void Window::OnLButtonDown(int x, int y) {
         m_pressedElement = target;
         SetCapture(m_hwnd);
         m_pressedElement->OnMouseDown(Point(fx, fy));
+
+        // Check if target or ancestor activated a ContextMenu
+        UIElement* curr = target;
+        while (curr) {
+            auto menu = curr->GetContextMenu();
+            if (menu && menu->IsOpen()) {
+                m_activeContextMenu = menu;
+                break;
+            }
+            curr = curr->GetParent();
+        }
     }
 }
 

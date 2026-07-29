@@ -25,6 +25,8 @@ public:
     bool IsTransparentMode() const { return m_transparentMode; }
     void SetTransparentMode(bool enabled);
 
+    void SetActiveContextMenu(std::shared_ptr<ContextMenu> menu) { m_activeContextMenu = menu; }
+
 private:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);

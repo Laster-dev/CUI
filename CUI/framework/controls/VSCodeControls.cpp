@@ -9,6 +9,61 @@ TitleBar::TitleBar() {
     SetProperty("height", Value(34.0f));
     SetProperty("background", Value(D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f))); // VS Code Title bar dark
     SetProperty("title", Value("CUI - Visual Studio Code [Direct2D UI Engine]"));
+
+    // Populate real interactive MenuBar dropdown menus
+    auto fileMenu = m_menuBar.AddMenu("File");
+    fileMenu->AddItem("New Text File", "Ctrl+N");
+    fileMenu->AddItem("New File...", "Ctrl+Alt+Windows+N");
+    fileMenu->AddItem("New Window", "Ctrl+Shift+N");
+    fileMenu->AddSeparator();
+    fileMenu->AddItem("Open File...", "Ctrl+O");
+    fileMenu->AddItem("Open Folder...", "Ctrl+K Ctrl+O");
+    fileMenu->AddSeparator();
+    fileMenu->AddItem("Save", "Ctrl+S");
+    fileMenu->AddItem("Save As...", "Ctrl+Shift+S");
+    fileMenu->AddSeparator();
+    fileMenu->AddItem("Exit", "Alt+F4");
+
+    auto editMenu = m_menuBar.AddMenu("Edit");
+    editMenu->AddItem("Undo", "Ctrl+Z");
+    editMenu->AddItem("Redo", "Ctrl+Y");
+    editMenu->AddSeparator();
+    editMenu->AddItem("Cut", "Ctrl+X");
+    editMenu->AddItem("Copy", "Ctrl+C");
+    editMenu->AddItem("Paste", "Ctrl+V");
+    editMenu->AddSeparator();
+    editMenu->AddItem("Find", "Ctrl+F");
+    editMenu->AddItem("Replace", "Ctrl+H");
+
+    auto selMenu = m_menuBar.AddMenu("Selection");
+    selMenu->AddItem("Select All", "Ctrl+A");
+    selMenu->AddItem("Expand Selection", "Shift+Alt+Right");
+    selMenu->AddItem("Shrink Selection", "Shift+Alt+Left");
+
+    auto viewMenu = m_menuBar.AddMenu("View");
+    viewMenu->AddItem("Command Palette...", "Ctrl+Shift+P");
+    viewMenu->AddItem("Open View...", "Ctrl+Q");
+    viewMenu->AddSeparator();
+    viewMenu->AddItem("Appearance");
+    viewMenu->AddItem("Editor Layout");
+
+    auto goMenu = m_menuBar.AddMenu("Go");
+    goMenu->AddItem("Back", "Alt+Left");
+    goMenu->AddItem("Forward", "Alt+Right");
+    goMenu->AddItem("Go to File...", "Ctrl+P");
+
+    auto runMenu = m_menuBar.AddMenu("Run");
+    runMenu->AddItem("Start Debugging", "F5");
+    runMenu->AddItem("Run Without Debugging", "Ctrl+F5");
+
+    auto termMenu = m_menuBar.AddMenu("Terminal");
+    termMenu->AddItem("New Terminal", "Ctrl+Shift+`");
+    termMenu->AddItem("Run Task...");
+
+    auto helpMenu = m_menuBar.AddMenu("Help");
+    helpMenu->AddItem("Welcome");
+    helpMenu->AddItem("Documentation");
+    helpMenu->AddItem("About CUI Engine");
 }
 
 void TitleBar::OnRender(GraphicsContext& ctx) {
@@ -19,17 +74,10 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     ctx.FillRoundedRect(iconRect, 4.0f, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
     ctx.DrawText("C", iconRect, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
-    // Draw menu items
-    std::vector<std::string> menus = { "File", "Edit", "Selection", "View", "Go", "Run", "Terminal", "Help" };
-    float menuX = m_bounds.x + 36;
-    D2D1_COLOR_F menuColor = D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f);
-
-    for (const auto& item : menus) {
-        Size sz = ctx.MeasureText(item, "Segoe UI", 12.0f);
-        Rect itemRect(menuX, m_bounds.y, sz.width + 12, m_bounds.height);
-        ctx.DrawText(item, itemRect, menuColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        menuX += sz.width + 12;
-    }
+    // Render Real Interactive MenuBar
+    Rect menuBarRect(m_bounds.x + 36, m_bounds.y, 500.0f, m_bounds.height);
+    m_menuBar.Arrange(menuBarRect);
+    m_menuBar.OnRender(ctx);
 
     // Draw title in center
     std::string title = GetProperty("title").AsString();
@@ -92,6 +140,27 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
 
     // Bottom border line
     ctx.DrawLine(Point(m_bounds.x, m_bounds.y + m_bounds.height - 1), Point(m_bounds.x + m_bounds.width, m_bounds.y + m_bounds.height - 1), D2D1::ColorF(0x2B / 255.0f, 0x2B / 255.0f, 0x2B / 255.0f, 1.0f));
+}
+
+void TitleBar::OnMouseDown(Point pt) {
+    Control::OnMouseDown(pt);
+    m_menuBar.OnMouseDown(pt);
+}
+
+void TitleBar::OnMouseMove(Point pt) {
+    Control::OnMouseMove(pt);
+    m_menuBar.OnMouseMove(pt);
+}
+
+void TitleBar::OnMouseLeave() {
+    Control::OnMouseLeave();
+    m_menuBar.OnMouseLeave();
+}
+
+UIElement* TitleBar::HitTest(float x, float y) {
+    UIElement* mbHit = m_menuBar.HitTest(x, y);
+    if (mbHit) return mbHit;
+    return Control::HitTest(x, y);
 }
 
 // ==========================================
