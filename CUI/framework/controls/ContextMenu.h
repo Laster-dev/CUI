@@ -29,6 +29,10 @@ public:
     std::string GetIcon() const { return GetProperty("icon").AsString(); }
     void SetIcon(const std::string& icon) { SetProperty("icon", Value(icon)); }
 
+    std::shared_ptr<ContextMenu> GetSubMenu() const { return m_subMenu; }
+    void SetSubMenu(std::shared_ptr<ContextMenu> subMenu) { m_subMenu = subMenu; }
+    bool HasSubMenu() const { return m_subMenu != nullptr; }
+
     void SetParentContextMenu(ContextMenu* menu) { m_parentMenu = menu; }
     void ExecuteCommand();
 
@@ -36,6 +40,7 @@ private:
     bool m_isSeparator = false;
     std::function<void()> m_command;
     ContextMenu* m_parentMenu = nullptr;
+    std::shared_ptr<ContextMenu> m_subMenu = nullptr;
 };
 
 class ContextMenu : public UIElement {
@@ -51,6 +56,7 @@ public:
 
     std::shared_ptr<MenuItem> AddItem(const std::string& text, std::function<void()> onClick = nullptr);
     std::shared_ptr<MenuItem> AddItem(const std::string& text, const std::string& shortcut, std::function<void()> onClick = nullptr);
+    std::shared_ptr<ContextMenu> AddSubMenu(const std::string& text);
     void AddSeparator();
 
     void ShowAt(float x, float y, float windowW = 0.0f, float windowH = 0.0f);
@@ -64,6 +70,7 @@ private:
     bool m_isOpen = false;
     Point m_popupPosition;
     int m_hoveredIndex = -1;
+    std::shared_ptr<ContextMenu> m_activeSubMenu = nullptr;
 };
 
 } // namespace CUI

@@ -59,8 +59,11 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
     Rect textRect(m_bounds.x + 10.0f + (icon.empty() ? 0.0f : iconW), m_bounds.y, m_bounds.width - 60.0f, m_bounds.height);
     ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-    // Draw Shortcut Text on Right End
-    if (!shortcut.empty()) {
+    // Draw Shortcut Text or Submenu Right Arrow on Right End
+    if (HasSubMenu()) {
+        Rect arrowRect(m_bounds.x + m_bounds.width - 20.0f, m_bounds.y, 16.0f, m_bounds.height);
+        ctx.DrawText(">", arrowRect, textColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    } else if (!shortcut.empty()) {
         Rect shortcutRect(m_bounds.x + m_bounds.width - 70.0f, m_bounds.y, 62.0f, m_bounds.height);
         D2D1_COLOR_F scColor = enabled ? D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f) : textColor;
         ctx.DrawText(shortcut, shortcutRect, scColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -69,7 +72,7 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
 
 void MenuItem::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
-    if (IsEnabled()) {
+    if (IsEnabled() && !HasSubMenu()) {
         ExecuteCommand();
     }
 }
@@ -108,6 +111,16 @@ std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, const st
     m_items.push_back(item);
     AddChild(item);
     return item;
+}
+
+std::shared_ptr<ContextMenu> ContextMenu::AddSubMenu(const std::string& text) {
+    auto item = std::make_shared<MenuItem>(text);
+    auto subMenu = std::make_shared<ContextMenu>();
+    item->SetSubMenu(subMenu);
+    item->SetParentContextMenu(this);
+    m_items.push_back(item);
+    AddChild(item);
+    return subMenu;
 }
 
 void ContextMenu::AddSeparator() {
@@ -160,6 +173,10 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
 
 void ContextMenu::Hide() {
     m_isOpen = false;
+    if (m_activeSubMenu) {
+        m_activeSubMenu->Hide();
+        m_activeSubMenu = nullptr;
+    }
 }
 
 void ContextMenu::OnRenderOverlay(GraphicsContext& ctx) {
@@ -178,15 +195,41 @@ void ContextMenu::OnRenderOverlay(GraphicsContext& ctx) {
     for (auto& item : m_items) {
         item->Render(ctx);
     }
+
+    // Render Active Submenu if open
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
+        m_activeSubMenu->OnRenderOverlay(ctx);
+    }
 }
 
 UIElement* ContextMenu::HitTestOverlay(float x, float y) {
     if (!m_isOpen || m_items.empty()) return nullptr;
 
+    // 1. Check open active submenu first!
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
+        UIElement* subHit = m_activeSubMenu->HitTestOverlay(x, y);
+        if (subHit) return subHit;
+    }
+
+    // 2. Check current context menu items
     if (m_bounds.Contains(x, y)) {
         for (auto it = m_items.rbegin(); it != m_items.rend(); ++it) {
             if ((*it)->GetBounds().Contains(x, y)) {
-                return (*it).get();
+                auto item = (*it);
+                if (item->HasSubMenu()) {
+                    if (m_activeSubMenu != item->GetSubMenu()) {
+                        if (m_activeSubMenu) m_activeSubMenu->Hide();
+                        m_activeSubMenu = item->GetSubMenu();
+                        Rect b = item->GetBounds();
+                        m_activeSubMenu->ShowAt(b.x + b.width - 2.0f, b.y - 4.0f);
+                    }
+                } else if (!item->IsSeparator()) {
+                    if (m_activeSubMenu) {
+                        m_activeSubMenu->Hide();
+                        m_activeSubMenu = nullptr;
+                    }
+                }
+                return item.get();
             }
         }
         return this;

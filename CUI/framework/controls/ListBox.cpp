@@ -24,45 +24,83 @@ ListBox::ListBox() {
 }
 
 void ListBox::AddItem(const std::string& item) {
-    m_items.push_back(item);
+    m_itemDatas.push_back({ item, nullptr });
+}
+
+void ListBox::AddItem(std::shared_ptr<UIElement> customElement) {
+    if (customElement) {
+        m_itemDatas.push_back({ "", customElement });
+        AddChild(customElement);
+    }
 }
 
 void ListBox::SetItems(const std::vector<std::string>& items) {
-    m_items = items;
+    m_itemDatas.clear();
+    ClearChildren();
+    for (const auto& s : items) {
+        m_itemDatas.push_back({ s, nullptr });
+    }
     m_selectedIndex = -1;
     m_scrollY = 0.0f;
 }
 
 void ListBox::ClearItems() {
-    m_items.clear();
+    m_itemDatas.clear();
+    ClearChildren();
     m_selectedIndex = -1;
     m_scrollY = 0.0f;
 }
 
 std::string ListBox::GetItemAt(size_t index) const {
-    if (index < m_items.size()) {
-        return m_items[index];
+    if (index < m_itemDatas.size()) {
+        return m_itemDatas[index].text;
     }
     return "";
 }
 
 void ListBox::SetSelectedIndex(int index) {
-    if (index >= -1 && index < static_cast<int>(m_items.size())) {
+    if (index >= -1 && index < static_cast<int>(m_itemDatas.size())) {
         if (m_selectedIndex != index) {
             m_selectedIndex = index;
             if (m_selectedIndex >= 0) {
                 EnsureVisible(m_selectedIndex);
-                m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, m_items[m_selectedIndex]);
+                m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, m_itemDatas[m_selectedIndex].text);
             }
         }
     }
 }
 
 std::string ListBox::GetSelectedItem() const {
-    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_items.size())) {
-        return m_items[m_selectedIndex];
+    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_itemDatas.size())) {
+        return m_itemDatas[m_selectedIndex].text;
     }
     return "";
+}
+
+UIElement* ListBox::HitTest(float x, float y) {
+    std::string visStr = GetProperty("visibility").AsString("Visible");
+    if (visStr != "Visible") return nullptr;
+
+    if (m_bounds.Contains(x, y)) {
+        int idx = GetItemIndexFromY(y);
+        if (idx >= 0 && idx < static_cast<int>(m_itemDatas.size())) {
+            if (m_itemDatas[idx].customElement) {
+                float itemH = GetItemHeight();
+                float sbWidth = (m_maxScrollY > 0.0f) ? 8.0f : 0.0f;
+                float itemW = m_bounds.width - 4.0f - sbWidth;
+                float itemY = m_bounds.y + 2.0f + idx * itemH - m_scrollY;
+                Rect itemRect(m_bounds.x + 2.0f, itemY, itemW, itemH);
+
+                m_itemDatas[idx].customElement->Measure(Size(itemW, itemH));
+                m_itemDatas[idx].customElement->Arrange(itemRect);
+
+                UIElement* childHit = m_itemDatas[idx].customElement->HitTest(x, y);
+                if (childHit && childHit != m_itemDatas[idx].customElement.get()) return childHit;
+            }
+        }
+        return this;
+    }
+    return nullptr;
 }
 
 Size ListBox::Measure(Size availableSize) {
@@ -74,7 +112,7 @@ Size ListBox::Measure(Size availableSize) {
 
 void ListBox::ClampScroll() {
     float itemH = GetItemHeight();
-    float contentH = itemH * m_items.size();
+    float contentH = itemH * m_itemDatas.size();
     float viewH = m_bounds.height - 4.0f;
 
     m_maxScrollY = std::max(0.0f, contentH - viewH);
@@ -86,14 +124,14 @@ int ListBox::GetItemIndexFromY(float y) const {
     float itemH = GetItemHeight();
     if (relativeY < 0.0f) return -1;
     int idx = static_cast<int>(relativeY / itemH);
-    if (idx >= 0 && idx < static_cast<int>(m_items.size())) {
+    if (idx >= 0 && idx < static_cast<int>(m_itemDatas.size())) {
         return idx;
     }
     return -1;
 }
 
 void ListBox::EnsureVisible(int index) {
-    if (index < 0 || index >= static_cast<int>(m_items.size())) return;
+    if (index < 0 || index >= static_cast<int>(m_itemDatas.size())) return;
 
     float itemH = GetItemHeight();
     float itemTop = index * itemH;
@@ -108,10 +146,26 @@ void ListBox::EnsureVisible(int index) {
     ClampScroll();
 }
 
+void ListBox::Render(GraphicsContext& ctx) {
+    std::string visStr = GetProperty("visibility").AsString("Visible");
+    if (visStr != "Visible") return;
+
+    bool clip = ShouldClipToBounds();
+    if (clip) {
+        ctx.PushClip(m_bounds);
+    }
+
+    OnRender(ctx);
+
+    if (clip) {
+        ctx.PopClip();
+    }
+}
+
 void ListBox::OnRender(GraphicsContext& ctx) {
     // 1. Support items property parsing from XML DSL
     std::string itemsProp = GetProperty("items").AsString("");
-    if (!itemsProp.empty() && m_items.empty()) {
+    if (!itemsProp.empty() && m_itemDatas.empty()) {
         std::stringstream ss(itemsProp);
         std::string item;
         while (std::getline(ss, item, ',')) {
@@ -145,7 +199,7 @@ void ListBox::OnRender(GraphicsContext& ctx) {
 
     // Calculate virtualized index range
     int startIdx = std::max(0, static_cast<int>(m_scrollY / itemH));
-    int endIdx = std::min(static_cast<int>(m_items.size()) - 1, static_cast<int>((m_scrollY + m_bounds.height) / itemH));
+    int endIdx = std::min(static_cast<int>(m_itemDatas.size()) - 1, static_cast<int>((m_scrollY + m_bounds.height) / itemH));
 
     for (int i = startIdx; i <= endIdx; ++i) {
         float itemY = m_bounds.y + 2.0f + i * itemH - m_scrollY;
@@ -161,10 +215,16 @@ void ListBox::OnRender(GraphicsContext& ctx) {
             ctx.FillRoundedRect(itemRect, 2.0f, hoverBg);
         }
 
-        // Draw item text
-        D2D1_COLOR_F textClr = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textColor;
-        Rect textRect(itemRect.x + 8.0f, itemRect.y, itemRect.width - 16.0f, itemRect.height);
-        ctx.DrawText(m_items[i], textRect, textClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // Draw custom element OR standard text
+        if (m_itemDatas[i].customElement) {
+            m_itemDatas[i].customElement->Measure(Size(itemRect.width, itemRect.height));
+            m_itemDatas[i].customElement->Arrange(itemRect);
+            m_itemDatas[i].customElement->Render(ctx);
+        } else {
+            D2D1_COLOR_F textClr = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textColor;
+            Rect textRect(itemRect.x + 8.0f, itemRect.y, itemRect.width - 16.0f, itemRect.height);
+            ctx.DrawText(m_itemDatas[i].text, textRect, textClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
     }
 
     // 3. Render Direct2D Vector ScrollBar on Right Edge
@@ -173,7 +233,7 @@ void ListBox::OnRender(GraphicsContext& ctx) {
         float trackY = m_bounds.y + 2.0f;
         float trackH = m_bounds.height - 4.0f;
 
-        float contentH = itemH * m_items.size();
+        float contentH = itemH * m_itemDatas.size();
         float thumbH = std::max(20.0f, trackH * (trackH / contentH));
         float thumbY = trackY + (m_scrollY / m_maxScrollY) * (trackH - thumbH);
 
@@ -212,8 +272,8 @@ void ListBox::OnMouseDblClick(Point pt) {
     Control::OnMouseDblClick(pt);
 
     int clickedIdx = GetItemIndexFromY(pt.y);
-    if (clickedIdx >= 0 && clickedIdx < static_cast<int>(m_items.size())) {
-        m_onItemDoubleClickedEvent.Invoke(this, clickedIdx, m_items[clickedIdx]);
+    if (clickedIdx >= 0 && clickedIdx < static_cast<int>(m_itemDatas.size())) {
+        m_onItemDoubleClickedEvent.Invoke(this, clickedIdx, m_itemDatas[clickedIdx].text);
     }
 }
 
@@ -224,7 +284,7 @@ void ListBox::OnMouseMove(Point pt) {
         float deltaY = pt.y - m_dragStartY;
         float trackH = m_bounds.height - 4.0f;
         float itemH = GetItemHeight();
-        float contentH = itemH * m_items.size();
+        float contentH = itemH * m_itemDatas.size();
         float thumbH = std::max(20.0f, trackH * (trackH / contentH));
         float scrollableTrackH = trackH - thumbH;
 
@@ -250,7 +310,7 @@ void ListBox::OnMouseWheel(float delta) {
 }
 
 void ListBox::OnKeyDown(int vkCode) {
-    if (m_items.empty()) return;
+    if (m_itemDatas.empty()) return;
 
     int newIdx = m_selectedIndex;
     int visibleCount = static_cast<int>((m_bounds.height - 4.0f) / GetItemHeight());
@@ -260,19 +320,19 @@ void ListBox::OnKeyDown(int vkCode) {
         newIdx = std::max(0, m_selectedIndex - 1);
         break;
     case VK_DOWN:
-        newIdx = std::min(static_cast<int>(m_items.size()) - 1, (m_selectedIndex == -1) ? 0 : m_selectedIndex + 1);
+        newIdx = std::min(static_cast<int>(m_itemDatas.size()) - 1, (m_selectedIndex == -1) ? 0 : m_selectedIndex + 1);
         break;
     case VK_PRIOR: // Page Up
         newIdx = std::max(0, m_selectedIndex - visibleCount);
         break;
     case VK_NEXT: // Page Down
-        newIdx = std::min(static_cast<int>(m_items.size()) - 1, m_selectedIndex + visibleCount);
+        newIdx = std::min(static_cast<int>(m_itemDatas.size()) - 1, m_selectedIndex + visibleCount);
         break;
     case VK_HOME:
         newIdx = 0;
         break;
     case VK_END:
-        newIdx = static_cast<int>(m_items.size()) - 1;
+        newIdx = static_cast<int>(m_itemDatas.size()) - 1;
         break;
     }
 

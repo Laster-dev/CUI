@@ -1,4 +1,5 @@
 #include "framework/window/Window.h"
+#include "framework/window/CUIWindow.h"
 #include "framework/parser/UIMarkupParser.h"
 #include "framework/controls/Button.h"
 #include "framework/controls/TextBox.h"
@@ -7,6 +8,7 @@
 #include "framework/controls/HyperlinkButton.h"
 #include "framework/controls/ComboBox.h"
 #include "framework/controls/ListBox.h"
+#include "framework/controls/Image.h"
 #include "framework/controls/ListView.h"
 #include "framework/controls/ContextMenu.h"
 #include "framework/controls/Panel.h"
@@ -47,11 +49,33 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
         }
     };
 
-    // Create & attach ContextMenu to root
+    // Create & attach ContextMenu to root with Multi-Level Submenus (多级右键菜单)
     auto globalMenu = std::make_shared<ContextMenu>();
     globalMenu->AddItem("Cut", "Ctrl+X", [logEvent]() { logEvent("ContextMenu Action: Cut"); });
     globalMenu->AddItem("Copy", "Ctrl+C", [logEvent]() { logEvent("ContextMenu Action: Copy"); });
     globalMenu->AddItem("Paste", "Ctrl+V", [logEvent]() { logEvent("ContextMenu Action: Paste"); });
+    globalMenu->AddSeparator();
+
+    // 1. Submenu Level 2: Encoding
+    auto subEncoding = globalMenu->AddSubMenu("Encoding");
+    subEncoding->AddItem("UTF-8", [logEvent]() { logEvent("Selected Encoding: UTF-8"); });
+    subEncoding->AddItem("UTF-16 LE", [logEvent]() { logEvent("Selected Encoding: UTF-16 LE"); });
+    subEncoding->AddItem("GBK / GB2312", [logEvent]() { logEvent("Selected Encoding: GBK"); });
+
+    // 2. Submenu Level 2: Change Theme
+    auto subTheme = globalMenu->AddSubMenu("Change Theme");
+    subTheme->AddItem("VS Code Dark+ (Default)", [logEvent]() { logEvent("Applied Theme: VS Code Dark+"); });
+    subTheme->AddItem("Monokai Dark", [logEvent]() { logEvent("Applied Theme: Monokai Dark"); });
+
+    // 3. Submenu Level 2 & Level 3: Advanced Tools -> Color Accent Palette
+    auto subTools = globalMenu->AddSubMenu("Advanced Tools");
+    subTools->AddItem("Inspect Element Tree", [logEvent]() { logEvent("Tools Action: Inspect Element Tree"); });
+
+    auto subColor = subTools->AddSubMenu("Color Accent Palette");
+    subColor->AddItem("VS Code Blue (#007ACC)", [logEvent]() { logEvent("Accent Color: Blue"); });
+    subColor->AddItem("Emerald Green (#10B981)", [logEvent]() { logEvent("Accent Color: Emerald"); });
+    subColor->AddItem("Purple Velvet (#8B5CF6)", [logEvent]() { logEvent("Accent Color: Purple"); });
+
     globalMenu->AddSeparator();
     globalMenu->AddItem("Select All", "Ctrl+A", [logEvent]() { logEvent("ContextMenu Action: Select All"); });
     globalMenu->AddSeparator();
@@ -406,13 +430,75 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
                 listbox->SetProperty("width", Value(280.0f));
                 listbox->SetProperty("height", Value(240.0f));
 
-                // Populate 100,000 Virtual Items to demonstrate ultra performance!
-                std::vector<std::string> virtualItems;
-                virtualItems.reserve(100000);
-                for (int i = 1; i <= 100000; ++i) {
-                    virtualItems.push_back("Virtual Item #" + std::to_string(i));
+                // 1. Add Custom Control Items (CheckBox + Multiple Images + TextBlock + Action Button)
+                std::vector<D2D1_COLOR_F> avatarColors = {
+                    D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f),
+                    D2D1::ColorF(0x6B / 255.0f, 0x21 / 255.0f, 0xA8 / 255.0f),
+                    D2D1::ColorF(0x05 / 255.0f, 0x96 / 255.0f, 0x69 / 255.0f),
+                    D2D1::ColorF(0xD9 / 255.0f, 0x77 / 255.0f, 0x06 / 255.0f),
+                    D2D1::ColorF(0xDC / 255.0f, 0x26 / 255.0f, 0x26 / 255.0f)
+                };
+                std::vector<std::string> initials = { "AG", "VS", "UI", "DX", "C2" };
+                std::vector<std::string> fileExts = { "CPP", "PNG", "XML", "DLL", "EXE" };
+
+                for (int i = 1; i <= 5; ++i) {
+                    auto itemPanel = std::make_shared<StackPanel>();
+                    itemPanel->SetProperty("orientation", Value("Horizontal"));
+                    itemPanel->SetProperty("alignVertical", Value("Center"));
+
+                    auto chk = std::make_shared<CheckBox>();
+                    chk->SetProperty("margin", Value("4,0,4,0"));
+                    chk->OnCheckStateChanged().Connect([logEvent, i](CheckBox*, CheckState state) {
+                        logEvent("Custom Row #" + std::to_string(i) + " CheckBox State: " + std::to_string(static_cast<int>(state)));
+                    });
+
+                    // Image 1: Circular User Avatar Image
+                    auto imgAvatar = std::make_shared<Image>(ImageType::Avatar, initials[i-1], avatarColors[i-1]);
+                    imgAvatar->SetProperty("width", Value(20.0f));
+                    imgAvatar->SetProperty("height", Value(20.0f));
+                    imgAvatar->SetProperty("margin", Value("2,0,4,0"));
+
+                    // Image 2: File Type Badge Image
+                    auto imgFile = std::make_shared<Image>(ImageType::FileIcon, fileExts[i-1], D2D1::ColorF(0x33 / 255.0f, 0x33 / 255.0f, 0x33 / 255.0f));
+                    imgFile->SetProperty("width", Value(28.0f));
+                    imgFile->SetProperty("height", Value(18.0f));
+                    imgFile->SetProperty("margin", Value("0,0,6,0"));
+
+                    // Image 3: Online Status Dot Badge Image
+                    auto imgStatus = std::make_shared<Image>(ImageType::StatusBadge, "", D2D1::ColorF(0x10 / 255.0f, 0xB9 / 255.0f, 0x81 / 255.0f));
+                    imgStatus->SetProperty("width", Value(10.0f));
+                    imgStatus->SetProperty("height", Value(10.0f));
+                    imgStatus->SetProperty("margin", Value("0,0,6,0"));
+
+                    auto txt = std::make_shared<TextBlock>();
+                    txt->SetProperty("text", Value("User_" + initials[i-1]));
+                    txt->SetProperty("color", Value(D2D1::ColorF(0xEE / 255.0f, 0xEE / 255.0f, 0xEE / 255.0f)));
+                    txt->SetProperty("fontSize", Value(12.0f));
+
+                    auto btn = std::make_shared<Button>();
+                    btn->SetProperty("text", Value("Action"));
+                    btn->SetProperty("width", Value(45.0f));
+                    btn->SetProperty("height", Value(20.0f));
+                    btn->SetProperty("fontSize", Value(10.0f));
+                    btn->SetProperty("margin", Value("6,0,0,0"));
+                    btn->OnClick().Connect([logEvent, i](UIElement*) {
+                        logEvent("Custom Row #" + std::to_string(i) + " Action Button Clicked!");
+                    });
+
+                    itemPanel->AddChild(chk);
+                    itemPanel->AddChild(imgAvatar);
+                    itemPanel->AddChild(imgFile);
+                    itemPanel->AddChild(imgStatus);
+                    itemPanel->AddChild(txt);
+                    itemPanel->AddChild(btn);
+
+                    listbox->AddItem(itemPanel);
                 }
-                listbox->SetItems(virtualItems);
+
+                // 2. Populate Virtual String Items
+                for (int i = 6; i <= 10000; ++i) {
+                    listbox->AddItem("Virtual Item #" + std::to_string(i));
+                }
                 listbox->SetSelectedIndex(0);
 
                 listbox->OnSelectionChanged().Connect([logEvent](ListBox*, int idx, const std::string& item) {
@@ -449,24 +535,48 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
                 listview->SetProperty("width", Value(480.0f));
                 listview->SetProperty("height", Value(280.0f));
 
-                listview->AddColumn("ID", 60.0f);
+                listview->AddColumn("Select", 50.0f);
+                listview->AddColumn("Avatar", 55.0f);
                 listview->AddColumn("Process Name", 160.0f);
-                listview->AddColumn("Status", 100.0f);
-                listview->AddColumn("Memory Usage", 120.0f);
+                listview->AddColumn("Status", 90.0f);
+                listview->AddColumn("Action", 75.0f);
 
-                std::vector<std::vector<std::string>> sampleRows = {
-                    { "1001", "CUI_Renderer.exe", "Running", "45.2 MB" },
-                    { "1002", "VSCode_Service.exe", "Active", "128.5 MB" },
-                    { "1003", "Direct2D_Engine.dll", "Loaded", "12.4 MB" },
-                    { "1004", "DirectWrite_Font.dll", "Loaded", "8.1 MB" },
-                    { "1005", "Antigravity_Agent.exe", "Running", "89.6 MB" },
-                    { "1006", "MSBuild_Worker.exe", "Idle", "34.0 MB" },
-                    { "1007", "Windows_Kernel.sys", "System", "512.0 MB" },
-                    { "1008", "UI_Markup_Parser.dll", "Active", "15.8 MB" },
-                    { "1009", "ContextMenu_Host.exe", "Running", "22.3 MB" },
-                    { "1010", "Virtualizing_Grid.dll", "Active", "64.1 MB" }
+                // Add Row 1 with Custom Cell Controls (CheckBox, Image, Button) in ListView!
+                auto chk1 = std::make_shared<CheckBox>();
+                chk1->OnCheckStateChanged().Connect([logEvent](CheckBox*, CheckState state) {
+                    logEvent("ListView Row #1 CheckBox Toggled: " + std::to_string(static_cast<int>(state)));
+                });
+
+                auto img1 = std::make_shared<Image>(ImageType::Avatar, "CUI", D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f));
+                img1->SetProperty("width", Value(22.0f));
+                img1->SetProperty("height", Value(22.0f));
+
+                auto btn1 = std::make_shared<Button>();
+                btn1->SetProperty("text", Value("Kill"));
+                btn1->SetProperty("width", Value(50.0f));
+                btn1->SetProperty("height", Value(20.0f));
+                btn1->SetProperty("fontSize", Value(10.0f));
+                btn1->OnClick().Connect([logEvent](UIElement*) {
+                    logEvent("ListView Row #1 Kill Process Clicked!");
+                });
+
+                std::vector<ListViewCellData> customRow1 = {
+                    { "", chk1 },
+                    { "", img1 },
+                    { "CUI_Renderer.exe", nullptr },
+                    { "Running", nullptr },
+                    { "", btn1 }
                 };
-                listview->SetRows(sampleRows);
+                listview->AddRow(customRow1);
+
+                // Add standard rows
+                std::vector<std::vector<std::string>> sampleRows = {
+                    { "[ ]", "VS", "VSCode_Service.exe", "Active", "Kill" },
+                    { "[ ]", "DX", "Direct2D_Engine.dll", "Loaded", "Kill" },
+                    { "[ ]", "AG", "Antigravity_Agent.exe", "Running", "Kill" },
+                    { "[ ]", "MS", "MSBuild_Worker.exe", "Idle", "Kill" }
+                };
+                for (const auto& r : sampleRows) listview->AddRow(r);
 
                 listview->OnSelectionChanged().Connect([logEvent](ListView* lv, int) {
                     logEvent("ListView Selection Changed! Total Selected: " + std::to_string(lv->GetSelectedIndices().size()));

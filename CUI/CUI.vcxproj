@@ -158,6 +158,7 @@
     <ClCompile Include="framework\controls\TextBox.cpp" />
     <ClCompile Include="framework\controls\CheckBox.cpp" />
     <ClCompile Include="framework\controls\HyperlinkButton.cpp" />
+    <ClCompile Include="framework\controls\Image.cpp" />
     <ClCompile Include="framework\controls\ComboBox.cpp" />
     <ClCompile Include="framework\controls\ContextMenu.cpp" />
     <ClCompile Include="framework\controls\ListBox.cpp" />
@@ -168,6 +169,7 @@
     <ClCompile Include="framework\parser\StyleManager.cpp" />
     <ClCompile Include="framework\parser\UIMarkupParser.cpp" />
     <ClCompile Include="framework\window\Window.cpp" />
+    <ClCompile Include="framework\window\CUIWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework\core\Value.h" />
@@ -184,6 +186,7 @@
     <ClInclude Include="framework\controls\TextBox.h" />
     <ClInclude Include="framework\controls\CheckBox.h" />
     <ClInclude Include="framework\controls\HyperlinkButton.h" />
+    <ClInclude Include="framework\controls\Image.h" />
     <ClInclude Include="framework\controls\ComboBox.h" />
     <ClInclude Include="framework\controls\ContextMenu.h" />
     <ClInclude Include="framework\controls\ListBox.h" />
@@ -194,6 +197,7 @@
     <ClInclude Include="framework\parser\StyleManager.h" />
     <ClInclude Include="framework\parser\UIMarkupParser.h" />
     <ClInclude Include="framework\window\Window.h" />
+    <ClInclude Include="framework\window\CUIWindow.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

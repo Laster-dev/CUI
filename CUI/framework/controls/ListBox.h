@@ -17,6 +17,7 @@ public:
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_ARROW) : nullptr; }
 
     virtual Size Measure(Size availableSize) override;
+    virtual void Render(GraphicsContext& ctx) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseDblClick(Point pt) override;
@@ -27,10 +28,13 @@ public:
 
     // Items & Data Management
     void AddItem(const std::string& item);
+    void AddItem(std::shared_ptr<UIElement> customElement);
     void SetItems(const std::vector<std::string>& items);
     void ClearItems();
 
-    size_t GetItemCount() const { return m_items.size(); }
+    virtual UIElement* HitTest(float x, float y) override;
+
+    size_t GetItemCount() const { return m_itemDatas.size(); }
     std::string GetItemAt(size_t index) const;
 
     // Selection
@@ -46,12 +50,17 @@ public:
     Event<ListBox*, int, const std::string&>& OnSelectionChanged() { return m_onSelectionChangedEvent; }
     Event<ListBox*, int, const std::string&>& OnItemDoubleClicked() { return m_onItemDoubleClickedEvent; }
 
+struct ListBoxItemData {
+    std::string text;
+    std::shared_ptr<UIElement> customElement = nullptr;
+};
+
 private:
     void ClampScroll();
     int GetItemIndexFromY(float y) const;
     void EnsureVisible(int index);
 
-    std::vector<std::string> m_items;
+    std::vector<ListBoxItemData> m_itemDatas;
     int m_selectedIndex = -1;
     int m_hoveredIndex = -1;
 

@@ -281,6 +281,12 @@ void Window::OnMouseMove(int x, int y) {
         return;
     }
 
+    if (m_pressedElement) {
+        // Forward mouse drag events to pressed element even if mouse leaves control/window
+        m_pressedElement->OnMouseMove(Point(fx, fy));
+        return;
+    }
+
     UIElement* newHover = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
     if (newHover != m_hoveredElement) {
         if (m_hoveredElement) {
@@ -324,6 +330,7 @@ void Window::OnLButtonDown(int x, int y) {
 
     if (target) {
         m_pressedElement = target;
+        SetCapture(m_hwnd);
         m_pressedElement->OnMouseDown(Point(fx, fy));
     }
 }
@@ -346,6 +353,7 @@ void Window::OnLButtonUp(int x, int y) {
         m_pressedElement->OnMouseUp(Point(fx, fy));
         m_pressedElement = nullptr;
     }
+    ReleaseCapture();
 }
 
 void Window::OnRButtonDown(int x, int y) {

@@ -19,6 +19,11 @@ struct ListViewColumn {
     bool isResizable = true;
 };
 
+struct ListViewCellData {
+    std::string text;
+    std::shared_ptr<UIElement> customElement = nullptr;
+};
+
 class ListView : public Control {
 public:
     ListView();
@@ -28,7 +33,9 @@ public:
     virtual HCURSOR GetCursor() const override;
 
     virtual Size Measure(Size availableSize) override;
+    virtual void Render(GraphicsContext& ctx) override;
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual UIElement* HitTest(float x, float y) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
@@ -42,7 +49,9 @@ public:
 
     // Data Rows Management
     void AddRow(const std::vector<std::string>& rowData);
+    void AddRow(const std::vector<ListViewCellData>& rowData);
     void SetRows(const std::vector<std::vector<std::string>>& rowsData);
+    void SetRows(const std::vector<std::vector<ListViewCellData>>& rowsData);
     void ClearRows();
     size_t GetRowCount() const { return m_rows.size(); }
 
@@ -68,7 +77,7 @@ private:
     float GetTotalColumnsWidth() const;
 
     std::vector<ListViewColumn> m_columns;
-    std::vector<std::vector<std::string>> m_rows;
+    std::vector<std::vector<ListViewCellData>> m_rows;
 
     ListViewSelectionMode m_selectionMode = ListViewSelectionMode::Extended;
     std::unordered_set<int> m_selectedIndices;
@@ -97,6 +106,9 @@ private:
     float m_scrollX = 0.0f;
     float m_maxScrollY = 0.0f;
     float m_maxScrollX = 0.0f;
+    bool m_isDraggingScrollbar = false;
+    float m_dragStartY = 0.0f;
+    float m_dragStartScrollY = 0.0f;
 
     float m_headerHeight = 32.0f;
     float m_rowHeight = 28.0f;

@@ -43,17 +43,45 @@ void ListView::ClearColumns() {
 }
 
 void ListView::AddRow(const std::vector<std::string>& rowData) {
+    std::vector<ListViewCellData> cellRow;
+    cellRow.reserve(rowData.size());
+    for (const auto& s : rowData) {
+        cellRow.push_back({ s, nullptr });
+    }
+    m_rows.push_back(cellRow);
+}
+
+void ListView::AddRow(const std::vector<ListViewCellData>& rowData) {
     m_rows.push_back(rowData);
+    for (const auto& cell : rowData) {
+        if (cell.customElement) AddChild(cell.customElement);
+    }
 }
 
 void ListView::SetRows(const std::vector<std::vector<std::string>>& rowsData) {
-    m_rows = rowsData;
+    ClearChildren();
+    m_rows.clear();
+    for (const auto& row : rowsData) {
+        AddRow(row);
+    }
+    m_selectedIndices.clear();
+    m_anchorIndex = -1;
+    m_scrollY = 0.0f;
+}
+
+void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsData) {
+    ClearChildren();
+    m_rows.clear();
+    for (const auto& row : rowsData) {
+        AddRow(row);
+    }
     m_selectedIndices.clear();
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
 }
 
 void ListView::ClearRows() {
+    ClearChildren();
     m_rows.clear();
     m_selectedIndices.clear();
     m_anchorIndex = -1;
@@ -161,6 +189,50 @@ void ListView::UpdateRubberBandSelection() {
     m_onSelectionChangedEvent.Invoke(this, -1);
 }
 
+void ListView::Render(GraphicsContext& ctx) {
+    std::string visStr = GetProperty("visibility").AsString("Visible");
+    if (visStr != "Visible") return;
+
+    bool clip = ShouldClipToBounds();
+    if (clip) {
+        ctx.PushClip(m_bounds);
+    }
+
+    OnRender(ctx);
+
+    if (clip) {
+        ctx.PopClip();
+    }
+}
+
+UIElement* ListView::HitTest(float x, float y) {
+    std::string visStr = GetProperty("visibility").AsString("Visible");
+    if (visStr != "Visible") return nullptr;
+
+    if (m_bounds.Contains(x, y)) {
+        int r = GetRowIndexFromY(y);
+        if (r >= 0 && r < static_cast<int>(m_rows.size())) {
+            float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - m_scrollY;
+            float cellX = m_bounds.x - m_scrollX;
+
+            for (size_t c = 0; c < m_columns.size(); ++c) {
+                float colW = m_columns[c].width;
+                if (c < m_rows[r].size() && m_rows[r][c].customElement) {
+                    Rect cellRect(cellX + 2.0f, rowY + 2.0f, colW - 4.0f, m_rowHeight - 4.0f);
+                    m_rows[r][c].customElement->Measure(Size(cellRect.width, cellRect.height));
+                    m_rows[r][c].customElement->Arrange(cellRect);
+
+                    UIElement* childHit = m_rows[r][c].customElement->HitTest(x, y);
+                    if (childHit && childHit != m_rows[r][c].customElement.get()) return childHit;
+                }
+                cellX += colW;
+            }
+        }
+        return this;
+    }
+    return nullptr;
+}
+
 void ListView::OnRender(GraphicsContext& ctx) {
     ClampScroll();
 
@@ -235,9 +307,16 @@ void ListView::OnRender(GraphicsContext& ctx) {
         for (size_t c = 0; c < m_columns.size(); ++c) {
             float colW = m_columns[c].width;
             if (c < rowData.size()) {
-                Rect cellRect(cellX + 8.0f, rowY, colW - 16.0f, m_rowHeight);
-                D2D1_COLOR_F cellClr = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textClr;
-                ctx.DrawText(rowData[c], cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                if (rowData[c].customElement) {
+                    Rect cellRect(cellX + 2.0f, rowY + 2.0f, colW - 4.0f, m_rowHeight - 4.0f);
+                    rowData[c].customElement->Measure(Size(cellRect.width, cellRect.height));
+                    rowData[c].customElement->Arrange(cellRect);
+                    rowData[c].customElement->Render(ctx);
+                } else {
+                    Rect cellRect(cellX + 8.0f, rowY, colW - 16.0f, m_rowHeight);
+                    D2D1_COLOR_F cellClr = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textClr;
+                    ctx.DrawText(rowData[c].text, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                }
             }
             // Cell Vertical Grid Line
             ctx.DrawLine(Point(cellX + colW, rowY), Point(cellX + colW, rowY + m_rowHeight), gridLineClr, 1.0f);
@@ -282,7 +361,18 @@ void ListView::OnMouseDown(Point pt) {
     m_initialSelectedBeforeDrag = m_selectedIndices;
     m_pendingRowClick = -1;
 
-    // 1. Check Column Resizing Splitters in Header Bar
+    // 1. Check Vertical ScrollBar Track / Thumb Click
+    if (m_maxScrollY > 0.0f) {
+        float trackX = m_bounds.x + m_bounds.width - 12.0f;
+        if (pt.x >= trackX && pt.y >= m_bounds.y + m_headerHeight) {
+            m_isDraggingScrollbar = true;
+            m_dragStartY = pt.y;
+            m_dragStartScrollY = m_scrollY;
+            return;
+        }
+    }
+
+    // 2. Check Column Resizing Splitters in Header Bar
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
         float currX = m_bounds.x - m_scrollX;
         for (size_t c = 0; c < m_columns.size(); ++c) {
@@ -307,7 +397,22 @@ void ListView::OnMouseDown(Point pt) {
 void ListView::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
 
-    // 1. Column Resizing Drag
+    // 1. Check ScrollBar Dragging
+    if (m_isDraggingScrollbar && m_isPressed) {
+        float deltaY = pt.y - m_dragStartY;
+        float trackH = m_bounds.height - m_headerHeight - 4.0f;
+        float contentH = m_rowHeight * m_rows.size();
+        float thumbH = std::max(20.0f, trackH * (trackH / contentH));
+        float scrollableTrackH = trackH - thumbH;
+
+        if (scrollableTrackH > 0.0f) {
+            m_scrollY = m_dragStartScrollY + (deltaY / scrollableTrackH) * m_maxScrollY;
+            ClampScroll();
+        }
+        return;
+    }
+
+    // 2. Column Resizing Drag
     if (m_isResizingColumn && m_resizingColumnIndex >= 0 && m_resizingColumnIndex < static_cast<int>(m_columns.size())) {
         float deltaX = pt.x - m_dragStartX;
         float newW = std::max(m_columns[m_resizingColumnIndex].minWidth, m_initialColumnWidth + deltaX);
@@ -315,8 +420,8 @@ void ListView::OnMouseMove(Point pt) {
         return;
     }
 
-    // 2. Check if mouse drag exceeds threshold to start Rubber-Band Marquee Selection
-    if (m_isMouseDown && !m_isResizingColumn && !m_isRubberBandSelecting) {
+    // 3. Check if mouse drag exceeds threshold to start Rubber-Band Marquee Selection
+    if (m_isMouseDown && !m_isResizingColumn && !m_isDraggingScrollbar && !m_isRubberBandSelecting) {
         float dx = pt.x - m_mouseDownPoint.x;
         float dy = pt.y - m_mouseDownPoint.y;
         if (std::sqrt(dx * dx + dy * dy) > 4.0f) {
@@ -325,14 +430,14 @@ void ListView::OnMouseMove(Point pt) {
         }
     }
 
-    // 3. Rubber-Band Drag Selection
+    // 4. Rubber-Band Drag Selection
     if (m_isRubberBandSelecting && m_isPressed) {
         m_rubberBandCurrent = pt;
         UpdateRubberBandSelection();
         return;
     }
 
-    // 4. Hover state on Column Splitter lines
+    // 5. Hover state on Column Splitter lines
     m_hoveredColumnSplitter = -1;
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
         float currX = m_bounds.x - m_scrollX;
@@ -388,6 +493,7 @@ void ListView::OnMouseUp(Point pt) {
     m_isMouseDown = false;
     m_isResizingColumn = false;
     m_isRubberBandSelecting = false;
+    m_isDraggingScrollbar = false;
     m_pendingRowClick = -1;
 }
 

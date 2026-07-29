@@ -6,6 +6,7 @@
 #include "../controls/TextBox.h"
 #include "../controls/CheckBox.h"
 #include "../controls/HyperlinkButton.h"
+#include "../controls/Image.h"
 #include "../controls/ComboBox.h"
 #include "../controls/ListBox.h"
 #include "../controls/ListView.h"
@@ -28,6 +29,7 @@ UIMarkupParser::UIMarkupParser() {
     RegisterElementFactory("TextBox", []() { return std::make_shared<TextBox>(); });
     RegisterElementFactory("CheckBox", []() { return std::make_shared<CheckBox>(); });
     RegisterElementFactory("HyperlinkButton", []() { return std::make_shared<HyperlinkButton>(); });
+    RegisterElementFactory("Image", []() { return std::make_shared<Image>(); });
     RegisterElementFactory("ComboBox", []() { return std::make_shared<ComboBox>(); });
     RegisterElementFactory("ListBox", []() { return std::make_shared<ListBox>(); });
     RegisterElementFactory("ListView", []() { return std::make_shared<ListView>(); });
