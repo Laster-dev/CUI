@@ -523,63 +523,45 @@ void SetupGalleryInteractions(std::shared_ptr<UIElement> root, Window& window) {
     if (btnNavListView) {
         btnNavListView->OnClick().Connect([=, &window](UIElement*) {
             updateActiveNav(btnNavListView);
-            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("8. ListView Multi-Column & Rubber-Band Showcase"));
-            if (txtControlDesc) txtControlDesc->SetProperty("text", Value("High-performance ListView with multi-column headers, live column width drag resizing, rubber-band marquee drag selection & Ctrl/Shift multi-select."));
-            if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<ListView width=\"480\" height=\"280\"/>"));
-            logEvent("Switched to ListView Showcase.");
+            if (txtControlTitle) txtControlTitle->SetProperty("text", Value("8. ListView VirtualMode 100K Showcase"));
+            if (txtControlDesc) txtControlDesc->SetProperty("text", Value("High-performance ListView with 100,000 rows using VirtualMode + DataSource callback. Only visible rows are rendered (O(visible))."));
+            if (txtXmlPreview) txtXmlPreview->SetProperty("text", Value("<ListView width=\"520\" height=\"360\"/>"));
+            logEvent("Switched to ListView 100K VirtualMode Showcase.");
 
             if (previewCanvas) {
                 previewCanvas->ClearChildren();
 
                 auto listview = std::make_shared<ListView>();
-                listview->SetProperty("width", Value(480.0f));
-                listview->SetProperty("height", Value(280.0f));
+                listview->SetProperty("width", Value(520.0f));
+                listview->SetProperty("height", Value(360.0f));
 
-                listview->AddColumn("Select", 50.0f);
-                listview->AddColumn("Avatar", 55.0f);
-                listview->AddColumn("Process Name", 160.0f);
-                listview->AddColumn("Status", 90.0f);
-                listview->AddColumn("Action", 75.0f);
+                listview->AddColumn("#", 50.0f);
+                listview->AddColumn("Process Name", 180.0f);
+                listview->AddColumn("PID", 80.0f);
+                listview->AddColumn("Memory", 90.0f);
+                listview->AddColumn("Status", 70.0f);
+                listview->AddColumn("CPU %", 60.0f);
 
-                // Add Row 1 with Custom Cell Controls (CheckBox, Image, Button) in ListView!
-                auto chk1 = std::make_shared<CheckBox>();
-                chk1->OnCheckStateChanged().Connect([logEvent](CheckBox*, CheckState state) {
-                    logEvent("ListView Row #1 CheckBox Toggled: " + std::to_string(static_cast<int>(state)));
-                });
-
-                auto img1 = std::make_shared<Image>(ImageType::Avatar, "CUI", D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f));
-                img1->SetProperty("width", Value(22.0f));
-                img1->SetProperty("height", Value(22.0f));
-
-                auto btn1 = std::make_shared<Button>();
-                btn1->SetProperty("text", Value("Kill"));
-                btn1->SetProperty("width", Value(50.0f));
-                btn1->SetProperty("height", Value(20.0f));
-                btn1->SetProperty("fontSize", Value(10.0f));
-                btn1->OnClick().Connect([logEvent](UIElement*) {
-                    logEvent("ListView Row #1 Kill Process Clicked!");
-                });
-
-                std::vector<ListViewCellData> customRow1 = {
-                    { "", chk1 },
-                    { "", img1 },
-                    { "CUI_Renderer.exe", nullptr },
-                    { "Running", nullptr },
-                    { "", btn1 }
+                // 100K virtual rows - data fetched on-demand
+                struct VirtualData : ListViewDataSource {
+                    std::string GetCellText(int row, int col) override {
+                        switch (col) {
+                        case 0: return std::to_string(row);
+                        case 1: return "Process_" + std::to_string(row) + ".exe";
+                        case 2: return std::to_string(10000 + row);
+                        case 3: return std::to_string((row * 47) % 9999) + " MB";
+                        case 4: return (row % 3 == 0) ? "Running" : (row % 3 == 1) ? "Idle" : "Paused";
+                        case 5: return std::to_string(row % 100) + "." + std::to_string(row % 10);
+                        default: return "";
+                        }
+                    }
                 };
-                listview->AddRow(customRow1);
 
-                // Add standard rows
-                std::vector<std::vector<std::string>> sampleRows = {
-                    { "[ ]", "VS", "VSCode_Service.exe", "Active", "Kill" },
-                    { "[ ]", "DX", "Direct2D_Engine.dll", "Loaded", "Kill" },
-                    { "[ ]", "AG", "Antigravity_Agent.exe", "Running", "Kill" },
-                    { "[ ]", "MS", "MSBuild_Worker.exe", "Idle", "Kill" }
-                };
-                for (const auto& r : sampleRows) listview->AddRow(r);
+                static VirtualData vs;
+                listview->SetVirtualMode(100000, &vs);
 
                 listview->OnSelectionChanged().Connect([logEvent](ListView* lv, int) {
-                    logEvent("ListView Selection Changed! Total Selected: " + std::to_string(lv->GetSelectedIndices().size()));
+                    logEvent("100K ListView Selection Changed! Selected: " + std::to_string(lv->GetSelectedIndices().size()));
                 });
 
                 previewCanvas->AddChild(listview);

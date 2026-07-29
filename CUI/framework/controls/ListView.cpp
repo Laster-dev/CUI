@@ -83,15 +83,61 @@ void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsDat
 void ListView::ClearRows() {
     ClearChildren();
     m_rows.clear();
+    m_virtualMode = false;
+    m_virtualRowCount = 0;
+    m_dataSource = nullptr;
     m_selectedIndices.clear();
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
 }
 
+size_t ListView::GetRowCount() const {
+    if (m_virtualMode) return static_cast<size_t>(m_virtualRowCount);
+    return m_rows.size();
+}
+
+void ListView::SetVirtualMode(int rowCount, ListViewDataSource* dataSource) {
+    ClearChildren();
+    m_rows.clear();
+    m_virtualMode = true;
+    m_virtualRowCount = rowCount;
+    m_dataSource = dataSource;
+    m_selectedIndices.clear();
+    m_anchorIndex = -1;
+    m_scrollY = 0.0f;
+}
+
+std::string ListView::GetCellText(int row, int col) const {
+    if (m_virtualMode) {
+        if (m_dataSource) return m_dataSource->GetCellText(row, col);
+        return "";
+    }
+    if (row >= 0 && row < static_cast<int>(m_rows.size())) {
+        if (col >= 0 && col < static_cast<int>(m_rows[row].size())) {
+            return m_rows[row][col].text;
+        }
+    }
+    return "";
+}
+
+std::shared_ptr<UIElement> ListView::GetCellElement(int row, int col) const {
+    if (m_virtualMode) {
+        if (m_dataSource) return m_dataSource->GetCellElement(row, col);
+        return nullptr;
+    }
+    if (row >= 0 && row < static_cast<int>(m_rows.size())) {
+        if (col >= 0 && col < static_cast<int>(m_rows[row].size())) {
+            return m_rows[row][col].customElement;
+        }
+    }
+    return nullptr;
+}
+
 void ListView::SelectAll() {
     m_selectedIndices.clear();
-    for (size_t i = 0; i < m_rows.size(); ++i) {
-        m_selectedIndices.insert(static_cast<int>(i));
+    int rowCount = static_cast<int>(GetRowCount());
+    for (int i = 0; i < rowCount; ++i) {
+        m_selectedIndices.insert(i);
     }
     m_onSelectionChangedEvent.Invoke(this, -1);
 }
@@ -103,7 +149,7 @@ void ListView::ClearSelection() {
 }
 
 void ListView::SetRowSelected(int rowIndex, bool selected) {
-    if (rowIndex >= 0 && rowIndex < static_cast<int>(m_rows.size())) {
+    if (rowIndex >= 0 && rowIndex < static_cast<int>(GetRowCount())) {
         if (selected) {
             m_selectedIndices.insert(rowIndex);
         } else {
@@ -133,7 +179,7 @@ Size ListView::Measure(Size availableSize) {
 }
 
 void ListView::ClampScroll() {
-    float totalContentH = m_rowHeight * m_rows.size();
+    float totalContentH = m_rowHeight * static_cast<float>(GetRowCount());
     float viewH = m_bounds.height - m_headerHeight - 4.0f;
     m_maxScrollY = std::max(0.0f, totalContentH - viewH);
     m_scrollY = std::clamp(m_scrollY, 0.0f, m_maxScrollY);
@@ -148,7 +194,8 @@ int ListView::GetRowIndexFromY(float y) const {
     float contentY = y - m_bounds.y - m_headerHeight + m_scrollY;
     if (contentY < 0.0f) return -1;
     int idx = static_cast<int>(contentY / m_rowHeight);
-    if (idx >= 0 && idx < static_cast<int>(m_rows.size())) {
+    int rowCount = static_cast<int>(GetRowCount());
+    if (idx >= 0 && idx < rowCount) {
         return idx;
     }
     return -1;
@@ -168,7 +215,7 @@ void ListView::UpdateRubberBandSelection() {
     int endRow = GetRowIndexFromY(maxY);
 
     if (startRow == -1 && minY < m_bounds.y + m_headerHeight) startRow = 0;
-    if (endRow == -1 && maxY > m_bounds.y + m_headerHeight) endRow = static_cast<int>(m_rows.size()) - 1;
+    if (endRow == -1 && maxY > m_bounds.y + m_headerHeight) endRow = static_cast<int>(GetRowCount()) - 1;
 
     bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     if (ctrlDown) {
@@ -180,8 +227,9 @@ void ListView::UpdateRubberBandSelection() {
     if (startRow != -1 && endRow != -1) {
         int r1 = std::min(startRow, endRow);
         int r2 = std::max(startRow, endRow);
+        int rowCount = static_cast<int>(GetRowCount());
         for (int r = r1; r <= r2; ++r) {
-            if (r >= 0 && r < static_cast<int>(m_rows.size())) {
+            if (r >= 0 && r < rowCount) {
                 m_selectedIndices.insert(r);
             }
         }
@@ -211,19 +259,21 @@ UIElement* ListView::HitTest(float x, float y) {
 
     if (m_bounds.Contains(x, y)) {
         int r = GetRowIndexFromY(y);
-        if (r >= 0 && r < static_cast<int>(m_rows.size())) {
+        int rowCount = static_cast<int>(GetRowCount());
+        if (r >= 0 && r < rowCount) {
             float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - m_scrollY;
             float cellX = m_bounds.x - m_scrollX;
 
             for (size_t c = 0; c < m_columns.size(); ++c) {
                 float colW = m_columns[c].width;
-                if (c < m_rows[r].size() && m_rows[r][c].customElement) {
+                auto cellElem = GetCellElement(r, static_cast<int>(c));
+                if (cellElem) {
                     Rect cellRect(cellX + 2.0f, rowY + 2.0f, colW - 4.0f, m_rowHeight - 4.0f);
-                    m_rows[r][c].customElement->Measure(Size(cellRect.width, cellRect.height));
-                    m_rows[r][c].customElement->Arrange(cellRect);
+                    cellElem->Measure(Size(cellRect.width, cellRect.height));
+                    cellElem->Arrange(cellRect);
 
-                    UIElement* childHit = m_rows[r][c].customElement->HitTest(x, y);
-                    if (childHit && childHit != m_rows[r][c].customElement.get()) return childHit;
+                    UIElement* childHit = cellElem->HitTest(x, y);
+                    if (childHit && childHit != cellElem.get()) return childHit;
                 }
                 cellX += colW;
             }
@@ -278,8 +328,9 @@ void ListView::OnRender(GraphicsContext& ctx) {
     Rect contentArea(m_bounds.x + 1.0f, m_bounds.y + m_headerHeight + 1.0f, m_bounds.width - 2.0f, m_bounds.height - m_headerHeight - 2.0f);
     ctx.PushClip(contentArea);
 
+    int rowCount = static_cast<int>(GetRowCount());
     int startRow = std::max(0, static_cast<int>(m_scrollY / m_rowHeight));
-    int endRow = std::min(static_cast<int>(m_rows.size()) - 1, static_cast<int>((m_scrollY + contentArea.height) / m_rowHeight));
+    int endRow = std::min(rowCount - 1, static_cast<int>((m_scrollY + contentArea.height) / m_rowHeight));
 
     float totalColsW = GetTotalColumnsWidth();
 
@@ -302,21 +353,20 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
         // Draw Cells Data
         float cellX = m_bounds.x - m_scrollX;
-        const auto& rowData = m_rows[r];
 
         for (size_t c = 0; c < m_columns.size(); ++c) {
             float colW = m_columns[c].width;
-            if (c < rowData.size()) {
-                if (rowData[c].customElement) {
-                    Rect cellRect(cellX + 2.0f, rowY + 2.0f, colW - 4.0f, m_rowHeight - 4.0f);
-                    rowData[c].customElement->Measure(Size(cellRect.width, cellRect.height));
-                    rowData[c].customElement->Arrange(cellRect);
-                    rowData[c].customElement->Render(ctx);
-                } else {
-                    Rect cellRect(cellX + 8.0f, rowY, colW - 16.0f, m_rowHeight);
-                    D2D1_COLOR_F cellClr = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textClr;
-                    ctx.DrawText(rowData[c].text, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-                }
+            auto cellElem = GetCellElement(r, static_cast<int>(c));
+            if (cellElem) {
+                Rect cellRect(cellX + 2.0f, rowY + 2.0f, colW - 4.0f, m_rowHeight - 4.0f);
+                cellElem->Measure(Size(cellRect.width, cellRect.height));
+                cellElem->Arrange(cellRect);
+                cellElem->Render(ctx);
+            } else {
+                std::string cellText = GetCellText(r, static_cast<int>(c));
+                Rect cellRect(cellX + 8.0f, rowY, colW - 16.0f, m_rowHeight);
+                D2D1_COLOR_F cellClr = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textClr;
+                ctx.DrawText(cellText, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             }
             // Cell Vertical Grid Line
             ctx.DrawLine(Point(cellX + colW, rowY), Point(cellX + colW, rowY + m_rowHeight), gridLineClr, 1.0f);
@@ -342,7 +392,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
         float trackY = m_bounds.y + m_headerHeight + 2.0f;
         float trackH = m_bounds.height - m_headerHeight - 4.0f;
 
-        float contentH = m_rowHeight * m_rows.size();
+        float contentH = m_rowHeight * static_cast<float>(GetRowCount());
         float thumbH = std::max(20.0f, trackH * (trackH / contentH));
         float thumbY = trackY + (m_scrollY / m_maxScrollY) * (trackH - thumbH);
 
@@ -401,7 +451,7 @@ void ListView::OnMouseMove(Point pt) {
     if (m_isDraggingScrollbar && m_isPressed) {
         float deltaY = pt.y - m_dragStartY;
         float trackH = m_bounds.height - m_headerHeight - 4.0f;
-        float contentH = m_rowHeight * m_rows.size();
+        float contentH = m_rowHeight * static_cast<float>(GetRowCount());
         float thumbH = std::max(20.0f, trackH * (trackH / contentH));
         float scrollableTrackH = trackH - thumbH;
 
@@ -456,6 +506,8 @@ void ListView::OnMouseMove(Point pt) {
 
 void ListView::OnMouseUp(Point pt) {
     Control::OnMouseUp(pt);
+
+    int rowCount = static_cast<int>(GetRowCount());
 
     // If mouse was clicked without dragging, perform normal row selection!
     if (!m_isRubberBandSelecting && !m_isResizingColumn && m_pendingRowClick != -1) {
@@ -515,17 +567,31 @@ void ListView::OnKeyDown(int vkCode) {
         return;
     }
 
-    if (m_rows.empty()) return;
+    int rowCount = static_cast<int>(GetRowCount());
+    if (rowCount == 0) return;
 
     int activeRow = (m_anchorIndex != -1) ? m_anchorIndex : 0;
     int newRow = activeRow;
+    int visibleCount = static_cast<int>((m_bounds.height - m_headerHeight - 4.0f) / m_rowHeight);
 
     switch (vkCode) {
     case VK_UP:
         newRow = std::max(0, activeRow - 1);
         break;
     case VK_DOWN:
-        newRow = std::min(static_cast<int>(m_rows.size()) - 1, activeRow + 1);
+        newRow = std::min(rowCount - 1, activeRow + 1);
+        break;
+    case VK_PRIOR: // Page Up
+        newRow = std::max(0, activeRow - visibleCount);
+        break;
+    case VK_NEXT: // Page Down
+        newRow = std::min(rowCount - 1, activeRow + visibleCount);
+        break;
+    case VK_HOME:
+        newRow = 0;
+        break;
+    case VK_END:
+        newRow = rowCount - 1;
         break;
     }
 

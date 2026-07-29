@@ -23,6 +23,65 @@ TextBox::TextBox(const std::string& placeholder) : TextBox() {
     SetProperty("placeholder", Value(placeholder));
 }
 
+void TextBox::SetText(const std::string& text) {
+    SetProperty("text", Value(text));
+}
+
+void TextBox::PushUndoState() {
+    TextBoxUndoState state;
+    state.text = GetProperty("text").AsString();
+    state.cursorPos = m_cursorPos;
+    state.selectionStart = m_selectionStart;
+    state.selectionEnd = m_selectionEnd;
+    m_undoStack.push_back(state);
+    if (m_undoStack.size() > 200) {
+        m_undoStack.erase(m_undoStack.begin());
+    }
+    m_redoStack.clear();
+}
+
+void TextBox::Undo() {
+    if (m_undoStack.empty()) return;
+
+    TextBoxUndoState current;
+    current.text = GetProperty("text").AsString();
+    current.cursorPos = m_cursorPos;
+    current.selectionStart = m_selectionStart;
+    current.selectionEnd = m_selectionEnd;
+    m_redoStack.push_back(current);
+
+    TextBoxUndoState prev = m_undoStack.back();
+    m_undoStack.pop_back();
+
+    m_undoing = true;
+    SetProperty("text", Value(prev.text));
+    m_undoing = false;
+    m_cursorPos = prev.cursorPos;
+    m_selectionStart = prev.selectionStart;
+    m_selectionEnd = prev.selectionEnd;
+}
+
+void TextBox::Redo() {
+    if (m_redoStack.empty()) return;
+
+    TextBoxUndoState current;
+    current.text = GetProperty("text").AsString();
+    current.cursorPos = m_cursorPos;
+    current.selectionStart = m_selectionStart;
+    current.selectionEnd = m_selectionEnd;
+    m_undoStack.push_back(current);
+
+    TextBoxUndoState next = m_redoStack.back();
+    m_redoStack.pop_back();
+
+    m_undoing = true;
+    SetProperty("text", Value(next.text));
+    m_undoing = false;
+    m_cursorPos = next.cursorPos;
+    m_selectionStart = next.selectionStart;
+    m_selectionEnd = next.selectionEnd;
+}
+
 Size TextBox::Measure(Size availableSize) {
     float expW = GetProperty("width").AsFloat(260.0f);
     float expH = GetProperty("height").AsFloat(32.0f);
@@ -72,6 +131,7 @@ void TextBox::DeleteSelection() {
     int selMax = (std::max)(m_selectionStart, m_selectionEnd);
 
     if (selMin >= 0 && selMax <= static_cast<int>(wtext.length()) && selMax > selMin) {
+        PushUndoState();
         wtext.erase(selMin, selMax - selMin);
         m_cursorPos = selMin;
         m_selectionStart = selMin;
@@ -262,31 +322,135 @@ void TextBox::OnKeyDown(int vkCode) {
     bool isCtrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     bool isShiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
 
+    // Ctrl+Z: Undo
+    if (isCtrlDown && (vkCode == 'Z' || vkCode == 'z')) {
+        Undo();
+        return;
+    }
+
+    // Ctrl+Y: Redo
+    if (isCtrlDown && (vkCode == 'Y' || vkCode == 'y')) {
+        Redo();
+        return;
+    }
+
+    // Ctrl+A: Select All
     if (isCtrlDown && (vkCode == 'A' || vkCode == 'a')) {
         SelectAll();
         return;
     }
 
+    // Ctrl+C: Copy selected text to clipboard
+    if (isCtrlDown && (vkCode == 'C' || vkCode == 'c')) {
+        if (HasSelection()) {
+            int selMin = (std::min)(m_selectionStart, m_selectionEnd);
+            int selMax = (std::max)(m_selectionStart, m_selectionEnd);
+            std::wstring selected = wtext.substr(selMin, selMax - selMin);
+
+            if (OpenClipboard(nullptr)) {
+                EmptyClipboard();
+                size_t bytes = (selected.size() + 1) * sizeof(wchar_t);
+                HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+                if (hMem) {
+                    wchar_t* pMem = static_cast<wchar_t*>(GlobalLock(hMem));
+                    memcpy(pMem, selected.c_str(), bytes);
+                    GlobalUnlock(hMem);
+                    SetClipboardData(CF_UNICODETEXT, hMem);
+                }
+                CloseClipboard();
+            }
+        }
+        return;
+    }
+
+    // Ctrl+X: Cut selected text to clipboard
+    if (isCtrlDown && (vkCode == 'X' || vkCode == 'x')) {
+        if (HasSelection()) {
+            int selMin = (std::min)(m_selectionStart, m_selectionEnd);
+            int selMax = (std::max)(m_selectionStart, m_selectionEnd);
+            std::wstring selected = wtext.substr(selMin, selMax - selMin);
+
+            if (OpenClipboard(nullptr)) {
+                EmptyClipboard();
+                size_t bytes = (selected.size() + 1) * sizeof(wchar_t);
+                HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+                if (hMem) {
+                    wchar_t* pMem = static_cast<wchar_t*>(GlobalLock(hMem));
+                    memcpy(pMem, selected.c_str(), bytes);
+                    GlobalUnlock(hMem);
+                    SetClipboardData(CF_UNICODETEXT, hMem);
+                }
+                CloseClipboard();
+            }
+            DeleteSelection();
+        }
+        return;
+    }
+
+    // Ctrl+V: Paste text from clipboard
+    if (isCtrlDown && (vkCode == 'V' || vkCode == 'v')) {
+        if (IsClipboardFormatAvailable(CF_UNICODETEXT) && OpenClipboard(nullptr)) {
+            HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+            if (hData) {
+                const wchar_t* pText = static_cast<const wchar_t*>(GlobalLock(hData));
+                if (pText) {
+                    std::wstring clipText(pText);
+                    GlobalUnlock(hData);
+
+                    PushUndoState();
+                    if (HasSelection()) {
+                        // inline delete selection without pushing extra undo
+                        int selMin = (std::min)(m_selectionStart, m_selectionEnd);
+                        int selMax = (std::max)(m_selectionStart, m_selectionEnd);
+                        wtext.erase(selMin, selMax - selMin);
+                        m_cursorPos = selMin;
+                        m_selectionStart = selMin;
+                        m_selectionEnd = selMin;
+                        SetProperty("text", Value(Utf16ToUtf8(wtext)));
+                        wtext = Utf8ToUtf16(GetProperty("text").AsString());
+                    }
+                    if (m_cursorPos > static_cast<int>(wtext.length())) {
+                        m_cursorPos = static_cast<int>(wtext.length());
+                    }
+                    wtext.insert(m_cursorPos, clipText);
+                    m_cursorPos += static_cast<int>(clipText.size());
+                    m_selectionStart = m_cursorPos;
+                    m_selectionEnd = m_cursorPos;
+                    SetText(Utf16ToUtf8(wtext));
+                }
+            }
+            CloseClipboard();
+        }
+        return;
+    }
+
+    // Backspace
     if (vkCode == VK_BACK) {
         if (HasSelection()) {
             DeleteSelection();
         } else if (!wtext.empty() && m_cursorPos > 0) {
+            PushUndoState();
             wtext.erase(m_cursorPos - 1, 1);
             m_cursorPos--;
             m_selectionStart = m_cursorPos;
             m_selectionEnd = m_cursorPos;
             SetText(Utf16ToUtf8(wtext));
         }
-    } else if (vkCode == VK_DELETE) {
+    }
+    // Delete
+    else if (vkCode == VK_DELETE) {
         if (HasSelection()) {
             DeleteSelection();
         } else if (m_cursorPos < static_cast<int>(wtext.length())) {
+            PushUndoState();
             wtext.erase(m_cursorPos, 1);
             m_selectionStart = m_cursorPos;
             m_selectionEnd = m_cursorPos;
             SetText(Utf16ToUtf8(wtext));
         }
-    } else if (vkCode == VK_LEFT) {
+    }
+    // Left arrow
+    else if (vkCode == VK_LEFT) {
         if (m_cursorPos > 0) {
             m_cursorPos--;
             if (!isShiftDown) {
@@ -294,7 +458,9 @@ void TextBox::OnKeyDown(int vkCode) {
             }
             m_selectionEnd = m_cursorPos;
         }
-    } else if (vkCode == VK_RIGHT) {
+    }
+    // Right arrow
+    else if (vkCode == VK_RIGHT) {
         if (m_cursorPos < static_cast<int>(wtext.length())) {
             m_cursorPos++;
             if (!isShiftDown) {
@@ -303,12 +469,37 @@ void TextBox::OnKeyDown(int vkCode) {
             m_selectionEnd = m_cursorPos;
         }
     }
+    // Home
+    else if (vkCode == VK_HOME) {
+        m_cursorPos = 0;
+        if (!isShiftDown) {
+            m_selectionStart = m_cursorPos;
+        }
+        m_selectionEnd = m_cursorPos;
+    }
+    // End
+    else if (vkCode == VK_END) {
+        m_cursorPos = static_cast<int>(wtext.length());
+        if (!isShiftDown) {
+            m_selectionStart = m_cursorPos;
+        }
+        m_selectionEnd = m_cursorPos;
+    }
 }
 
 void TextBox::OnCharInput(wchar_t ch) {
     if (ch >= 32) { // Printable characters including Chinese Unicode
+        PushUndoState();
         if (HasSelection()) {
-            DeleteSelection();
+            // inline delete selection without extra undo
+            std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+            int selMin = (std::min)(m_selectionStart, m_selectionEnd);
+            int selMax = (std::max)(m_selectionStart, m_selectionEnd);
+            if (selMin >= 0 && selMax <= static_cast<int>(wtext.length()) && selMax > selMin) {
+                wtext.erase(selMin, selMax - selMin);
+                m_cursorPos = selMin;
+                SetProperty("text", Value(Utf16ToUtf8(wtext)));
+            }
         }
         std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
         if (m_cursorPos > static_cast<int>(wtext.length())) {

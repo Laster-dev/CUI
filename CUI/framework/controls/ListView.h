@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <unordered_set>
+#include <functional>
 
 namespace CUI {
 
@@ -22,6 +23,15 @@ struct ListViewColumn {
 struct ListViewCellData {
     std::string text;
     std::shared_ptr<UIElement> customElement = nullptr;
+};
+
+// Virtual data source for high-performance 100k+ row ListView
+// Usage: SetVirtualMode(100000, callback) - callback returns cell text per (row, col)
+class ListViewDataSource {
+public:
+    virtual ~ListViewDataSource() = default;
+    virtual std::string GetCellText(int row, int col) = 0;
+    virtual std::shared_ptr<UIElement> GetCellElement(int row, int col) { return nullptr; }
 };
 
 class ListView : public Control {
@@ -47,13 +57,17 @@ public:
     void ClearColumns();
     const std::vector<ListViewColumn>& GetColumns() const { return m_columns; }
 
-    // Data Rows Management
+    // In-Memory Data Rows Management (for small-medium datasets)
     void AddRow(const std::vector<std::string>& rowData);
     void AddRow(const std::vector<ListViewCellData>& rowData);
     void SetRows(const std::vector<std::vector<std::string>>& rowsData);
     void SetRows(const std::vector<std::vector<ListViewCellData>>& rowsData);
     void ClearRows();
-    size_t GetRowCount() const { return m_rows.size(); }
+    size_t GetRowCount() const;
+
+    // Virtual Mode for 100k+ rows (high performance)
+    void SetVirtualMode(int rowCount, ListViewDataSource* dataSource);
+    bool IsVirtualMode() const { return m_virtualMode; }
 
     // Selection Management
     ListViewSelectionMode GetSelectionMode() const { return m_selectionMode; }
@@ -76,8 +90,16 @@ private:
     void UpdateRubberBandSelection();
     float GetTotalColumnsWidth() const;
 
+    std::string GetCellText(int row, int col) const;
+    std::shared_ptr<UIElement> GetCellElement(int row, int col) const;
+
     std::vector<ListViewColumn> m_columns;
     std::vector<std::vector<ListViewCellData>> m_rows;
+
+    // Virtual mode state
+    bool m_virtualMode = false;
+    int m_virtualRowCount = 0;
+    ListViewDataSource* m_dataSource = nullptr;
 
     ListViewSelectionMode m_selectionMode = ListViewSelectionMode::Extended;
     std::unordered_set<int> m_selectedIndices;
