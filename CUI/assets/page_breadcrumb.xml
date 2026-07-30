@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="BreadcrumbBar 面包屑路径导航控件" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="支持路径深层多节点、分隔符指示与节点直接点击跳转。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="24" cornerRadius="6" borderBrush="#333333" borderThickness="1" gap="16">
+            <BreadcrumbBar id="targetBreadcrumb"/>
+        </StackPanel>
+    </StackPanel>
+
+    <PropertyGrid id="propGridBreadcrumb" width="320"/>
+</StackPanel>

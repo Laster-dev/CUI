@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="ProgressBar 进度条控件" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="支持确定进度 Value 绘制与 isIndeterminate=true 动画不确定模式。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="24" cornerRadius="6" borderBrush="#333333" borderThickness="1" gap="20">
+            <TextBlock text="1. 确定进度模式 (Value = 65%):" fontSize="12" color="#AAAAAA"/>
+            <ProgressBar id="targetProgress" value="65" width="280" height="8"/>
+
+            <TextBlock text="2. 不确定加载动画模式 (IsIndeterminate):" fontSize="12" color="#AAAAAA"/>
+            <ProgressBar isIndeterminate="true" width="280" height="8"/>
+        </StackPanel>
+    </StackPanel>
+
+    <PropertyGrid id="propGridProgressBar" width="320"/>
+</StackPanel>

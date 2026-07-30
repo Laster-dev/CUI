@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="TimePicker 时间选择器控件" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="支持 HH:mm 格式化时间、快捷微调与时间变动回调。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="24" cornerRadius="6" borderBrush="#333333" borderThickness="1" gap="16">
+            <TimePicker id="targetTimePicker"/>
+        </StackPanel>
+    </StackPanel>
+
+    <PropertyGrid id="propGridTimePicker" width="320"/>
+</StackPanel>

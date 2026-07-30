@@ -26,6 +26,7 @@ public:
     virtual ~TreeView() = default;
 
     virtual const char* GetClassName() const override { return "TreeView"; }
+    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual HCURSOR GetCursor() const override;
 
     virtual Size Measure(Size availableSize) override;

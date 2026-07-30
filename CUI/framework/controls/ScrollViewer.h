@@ -1,5 +1,6 @@
 #pragma once
 #include "UIElement.h"
+#include "ChromiumScrollAnimator.h"
 #include <cmath>
 
 namespace CUI {
@@ -26,7 +27,7 @@ public:
 
     float GetScrollOffsetY() const { return m_offsetY; }
     void SetScrollOffsetY(float offset);
-    bool IsScrollAnimating() const { return std::abs(m_velocityY) > kStopSpeed; }
+    bool IsScrollAnimating() const { return m_scrollAnimator.IsActive(); }
 
 private:
     float GetMaxScroll() const;
@@ -34,15 +35,15 @@ private:
     Rect GetScrollbarTrackRect() const;
     Rect GetScrollbarThumbRect() const;
     void ClampOffset();
-    void StopInertia();
-    bool AdvanceInertia();
+    void StopSmoothScroll();
+    bool AdvanceSmoothScroll();
     double SecondsSinceLastTick();
     float MeasureContentHeight(float contentWidth);
     void RefreshContentMetrics(float viewportWidth, float viewportHeight);
     void PositionChildren();
 
     float m_offsetY = 0.0f;
-    float m_velocityY = 0.0f; // px / second
+    ChromiumScrollAnimator m_scrollAnimator;
     float m_contentHeight = 0.0f;
     float m_measuredContentWidth = -1.0f;
 
@@ -55,15 +56,10 @@ private:
     LONGLONG m_lastAnimQpc = 0;
 
     // Leave enough inset so thumb is outside the window's ~8px resize border.
-    static constexpr float kScrollbarInset = 12.0f;
+    static constexpr float kScrollbarInset = 18.0f;
     static constexpr float kScrollbarWidth = 8.0f;
     // Extra scrollable space so the last row isn't glued to the bottom edge.
     static constexpr float kContentBottomPad = 20.0f;
-
-    static constexpr float kWheelImpulse = 1400.0f;
-    static constexpr float kFriction = 9.5f;
-    static constexpr float kMaxSpeed = 9000.0f;
-    static constexpr float kStopSpeed = 12.0f;
 };
 
 } // namespace CUI

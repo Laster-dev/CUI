@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <ScrollViewer flexGrow="1" background="#1E1E1E">
+        <StackPanel orientation="Vertical" padding="20" gap="16">
+            <StackPanel orientation="Vertical" gap="4">
+                <TextBlock text="新补充 11 款常用标准控件全套 Showcase" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+                <TextBlock text="覆盖范围调节、单选/开关、日期/时间、调色板、面包屑导航、分页条与拆分条。" fontSize="12" color="#888888"/>
+            </StackPanel>
+
+            <StackPanel orientation="Vertical" gap="8" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+                <TextBlock text="1. Slider (滑块) &amp; ProgressBar (进度条)" fontSize="13" fontWeight="Bold" color="#569CD6"/>
+                <Slider id="demoSlider" value="45" width="280" height="24"/>
+                <ProgressBar id="demoProgress" value="45" width="280" height="6"/>
+                <ProgressBar id="demoIndeterminate" isIndeterminate="true" width="280" height="6"/>
+            </StackPanel>
+
+            <StackPanel orientation="Vertical" gap="8" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+                <TextBlock text="2. NumberBox (数字微调) &amp; RadioButton (单选) &amp; ToggleSwitch (开关)" fontSize="13" fontWeight="Bold" color="#569CD6"/>
+                <NumberBox id="demoNumber" value="12.5" step="0.5" width="140" height="28"/>
+                <StackPanel orientation="Horizontal" gap="16">
+                    <RadioButton text="选项 A (Option A)" groupName="Grp1" isChecked="true"/>
+                    <RadioButton text="选项 B (Option B)" groupName="Grp1"/>
+                </StackPanel>
+                <ToggleSwitch id="demoToggle" header="启用系统高级硬件加速" isOn="true"/>
+            </StackPanel>
+
+            <StackPanel orientation="Vertical" gap="8" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+                <TextBlock text="3. DatePicker (日期选择) &amp; TimePicker (时间选择) &amp; ColorPicker (色彩拾取)" fontSize="13" fontWeight="Bold" color="#569CD6"/>
+                <StackPanel orientation="Horizontal" gap="12">
+                    <DatePicker id="demoDate"/>
+                    <TimePicker id="demoTime"/>
+                </StackPanel>
+                <ColorPicker id="demoColor"/>
+            </StackPanel>
+
+            <StackPanel orientation="Vertical" gap="8" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+                <TextBlock text="4. BreadcrumbBar (面包屑导航) &amp; PagingControl (分页条) &amp; Splitter (拆分条)" fontSize="13" fontWeight="Bold" color="#569CD6"/>
+                <BreadcrumbBar id="demoBreadcrumb"/>
+                <PagingControl id="demoPaging" currentPage="1" totalPages="10"/>
+                <Splitter id="demoSplitter" orientation="Horizontal" width="280" height="6"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+
+    <PropertyGrid id="propGridNewControls" width="320"/>
+</StackPanel>

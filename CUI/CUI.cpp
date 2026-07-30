@@ -17,6 +17,7 @@
 #include "framework/controls/PropertyGrid.h"
 #include "framework/controls/Toast.h"
 #include "framework/controls/ToastCenter.h"
+#include "framework/controls/TreeView.h"
 #include <iostream>
 #include <vector>
 #include <memory>
@@ -38,45 +39,46 @@ static void StartStreamingThread() {
 
     g_isStreaming = true;
     g_streamThread = std::thread([]() {
-        UINT w = 420, h = 240;
-        std::vector<uint32_t> pixels(w * h);
-        float frameTime = 0.0f;
+        uint32_t width = 640;
+        uint32_t height = 360;
+        std::vector<uint32_t> pixels(width * height);
+        uint32_t frame = 0;
+
         while (g_isStreaming) {
-            frameTime += 0.05f;
-            for (UINT y = 0; y < h; ++y) {
-                float fy = static_cast<float>(y) / 24.0f;
-                for (UINT x = 0; x < w; ++x) {
-                    float fx = static_cast<float>(x) / 24.0f;
-                    float v = std::sin(fx + frameTime) + std::sin(fy + frameTime) + std::sin((fx + fy + frameTime) / 2.0f);
-                    uint8_t r = static_cast<uint8_t>((std::sin(v * 3.14159f) + 1.0f) * 127.5f);
-                    uint8_t g = static_cast<uint8_t>((std::cos(v * 3.14159f) + 1.0f) * 127.5f);
-                    uint8_t b = static_cast<uint8_t>(255 - r);
-                    pixels[y * w + x] = (255 << 24) | (r << 16) | (g << 8) | b;
+            frame++;
+            for (uint32_t y = 0; y < height; ++y) {
+                for (uint32_t x = 0; x < width; ++x) {
+                    uint8_t r = static_cast<uint8_t>((x + frame) % 256);
+                    uint8_t g = static_cast<uint8_t>((y + frame * 2) % 256);
+                    uint8_t b = static_cast<uint8_t>((x + y + frame * 3) % 256);
+                    pixels[y * width + x] = (0xFF << 24) | (r << 16) | (g << 8) | b;
                 }
             }
             if (g_streamImage) {
-                g_streamImage->UpdatePixelBuffer(pixels.data(), w, h);
+                g_streamImage->UpdatePixelBuffer(pixels.data(), width, height);
             }
             if (g_activeWindow && g_activeWindow->GetHWND()) {
                 InvalidateRect(g_activeWindow->GetHWND(), nullptr, FALSE);
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     });
 }
 
 static void StopStreamingThread() {
-    if (g_isStreaming) {
-        g_isStreaming = false;
-        if (g_streamThread.joinable()) {
-            g_streamThread.join();
-        }
+    g_isStreaming = false;
+    if (g_streamThread.joinable()) {
+        g_streamThread.join();
     }
 }
 
 static void NotifyPropertyUpdated(UIElement* element, Window& window) {
     if (window.GetRootElement()) {
-        window.Relayout();
+        RECT rc;
+        GetClientRect(window.GetHWND(), &rc);
+        Size avail(static_cast<float>(rc.right - rc.left), static_cast<float>(rc.bottom - rc.top));
+        window.GetRootElement()->Measure(avail);
+        window.GetRootElement()->Arrange(Rect(0, 0, avail.width, avail.height));
     }
     if (window.GetHWND()) {
         InvalidateRect(window.GetHWND(), nullptr, FALSE);
@@ -110,6 +112,85 @@ void BindParsedXmlInteractions(std::shared_ptr<UIElement> root, Window& window) 
     if (propGridTb && tbElem) {
         propGridTb->SetTargetElement(tbElem, &window);
     }
+
+    auto targetTree = std::dynamic_pointer_cast<TreeView>(root->FindElementById("targetTree"));
+    auto propGridTree = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridTree"));
+    if (targetTree) {
+        auto rootNode1 = std::make_shared<TreeViewItem>();
+        rootNode1->header = "CUI 框架源代码 (src)";
+        rootNode1->isExpanded = true;
+
+        auto n1 = std::make_shared<TreeViewItem>(); n1->header = "framework/controls/UIElement.cpp";
+        auto n2 = std::make_shared<TreeViewItem>(); n2->header = "framework/controls/TreeView.cpp";
+        auto n3 = std::make_shared<TreeViewItem>(); n3->header = "framework/controls/ScrollViewer.cpp";
+        rootNode1->children = { n1, n2, n3 };
+
+        auto rootNode2 = std::make_shared<TreeViewItem>();
+        rootNode2->header = "UI XML 布局资源 (assets)";
+        rootNode2->isExpanded = true;
+
+        auto a1 = std::make_shared<TreeViewItem>(); a1->header = "gallery_layout.xml";
+        auto a2 = std::make_shared<TreeViewItem>(); a2->header = "page_treeview.xml";
+        auto a3 = std::make_shared<TreeViewItem>(); a3->header = "page_button.xml";
+        rootNode2->children = { a1, a2, a3 };
+
+        auto rootNode3 = std::make_shared<TreeViewItem>();
+        rootNode3->header = "第三方编译库 (deps)";
+        rootNode3->isExpanded = false;
+        auto d1 = std::make_shared<TreeViewItem>(); d1->header = "Direct2D.lib";
+        auto d2 = std::make_shared<TreeViewItem>(); d2->header = "DirectWrite.lib";
+        rootNode3->children = { d1, d2 };
+
+        targetTree->SetItems({ rootNode1, rootNode2, rootNode3 });
+
+        if (propGridTree) {
+            propGridTree->SetTargetElement(targetTree, &window);
+        }
+    }
+
+    auto propGridSlider = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridSlider"));
+    auto targetSlider = root->FindElementById("targetSlider");
+    if (propGridSlider && targetSlider) propGridSlider->SetTargetElement(targetSlider, &window);
+
+    auto propGridProgressBar = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridProgressBar"));
+    auto targetProgress = root->FindElementById("targetProgress");
+    if (propGridProgressBar && targetProgress) propGridProgressBar->SetTargetElement(targetProgress, &window);
+
+    auto propGridNumberBox = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridNumberBox"));
+    auto targetNumberBox = root->FindElementById("targetNumberBox");
+    if (propGridNumberBox && targetNumberBox) propGridNumberBox->SetTargetElement(targetNumberBox, &window);
+
+    auto propGridRadio = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridRadio"));
+    auto targetRadio = root->FindElementById("targetRadio");
+    if (propGridRadio && targetRadio) propGridRadio->SetTargetElement(targetRadio, &window);
+
+    auto propGridToggle = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridToggle"));
+    auto targetToggle = root->FindElementById("targetToggle");
+    if (propGridToggle && targetToggle) propGridToggle->SetTargetElement(targetToggle, &window);
+
+    auto propGridDatePicker = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridDatePicker"));
+    auto targetDatePicker = root->FindElementById("targetDatePicker");
+    if (propGridDatePicker && targetDatePicker) propGridDatePicker->SetTargetElement(targetDatePicker, &window);
+
+    auto propGridTimePicker = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridTimePicker"));
+    auto targetTimePicker = root->FindElementById("targetTimePicker");
+    if (propGridTimePicker && targetTimePicker) propGridTimePicker->SetTargetElement(targetTimePicker, &window);
+
+    auto propGridColorPicker = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridColorPicker"));
+    auto targetColorPicker = root->FindElementById("targetColorPicker");
+    if (propGridColorPicker && targetColorPicker) propGridColorPicker->SetTargetElement(targetColorPicker, &window);
+
+    auto propGridBreadcrumb = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridBreadcrumb"));
+    auto targetBreadcrumb = root->FindElementById("targetBreadcrumb");
+    if (propGridBreadcrumb && targetBreadcrumb) propGridBreadcrumb->SetTargetElement(targetBreadcrumb, &window);
+
+    auto propGridPaging = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridPaging"));
+    auto targetPaging = root->FindElementById("targetPaging");
+    if (propGridPaging && targetPaging) propGridPaging->SetTargetElement(targetPaging, &window);
+
+    auto propGridSplitter = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridSplitter"));
+    auto targetSplitterH = root->FindElementById("targetSplitterH");
+    if (propGridSplitter && targetSplitterH) propGridSplitter->SetTargetElement(targetSplitterH, &window);
 
     auto txtLogMsg = root->FindElementById("txtLogMsg");
     auto targetBtn = btnElem;

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="Splitter / GridSplitter 可拖拽拆分条控件" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="支持水平/垂直方向布局拆分、鼠标悬停光标改变与拖拽调宽调高。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="24" cornerRadius="6" borderBrush="#333333" borderThickness="1" gap="16">
+            <TextBlock text="1. 水平方向拆分条 (Horizontal Splitter):" fontSize="12" color="#AAAAAA"/>
+            <Splitter id="targetSplitterH" orientation="Horizontal" width="280" height="6"/>
+
+            <TextBlock text="2. 垂直方向拆分条 (Vertical Splitter):" fontSize="12" color="#AAAAAA"/>
+            <Splitter id="targetSplitterV" orientation="Vertical" width="6" height="120"/>
+        </StackPanel>
+    </StackPanel>
+
+    <PropertyGrid id="propGridSplitter" width="320"/>
+</StackPanel>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="DatePicker 日期选择器控件" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="支持年月日读取、快捷切换与标准格式化输出。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="24" cornerRadius="6" borderBrush="#333333" borderThickness="1" gap="16">
+            <DatePicker id="targetDatePicker"/>
+        </StackPanel>
+    </StackPanel>
+
+    <PropertyGrid id="propGridDatePicker" width="320"/>
+</StackPanel>

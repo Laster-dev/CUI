@@ -1,4 +1,6 @@
 #include "Control.h"
+#include <algorithm>
+#include <cmath>
 
 namespace CUI {
 
@@ -7,23 +9,55 @@ Control::Control() {
     SetProperty("pressedBackground", Value(D2D1::ColorF(0, 0, 0, 0)));
 }
 
+D2D1_COLOR_F Control::BlendColor(D2D1_COLOR_F from, D2D1_COLOR_F to, float t) const {
+    t = std::clamp(t, 0.0f, 1.0f);
+    return D2D1::ColorF(
+        from.r + (to.r - from.r) * t,
+        from.g + (to.g - from.g) * t,
+        from.b + (to.b - from.b) * t,
+        from.a + (to.a - from.a) * t
+    );
+}
+
+void Control::UpdateVisualStateTarget() {
+    if (!IsEnabled()) {
+        m_visualStateTarget = 0.0f;
+    } else if (m_isPressed) {
+        m_visualStateTarget = 1.0f;
+    } else if (m_isHovered || m_isFocused) {
+        m_visualStateTarget = 0.55f;
+    } else {
+        m_visualStateTarget = 0.0f;
+    }
+}
+
+D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
+    D2D1_COLOR_F bg = GetProperty("background").AsColor(fallback);
+    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(bg);
+    D2D1_COLOR_F pressedBg = GetProperty("pressedBackground").AsColor(hoverBg);
+    D2D1_COLOR_F disabledBg = GetProperty("disabledBackground").AsColor(D2D1::ColorF(0x28 / 255.0f, 0x28 / 255.0f, 0x28 / 255.0f, 0.6f));
+
+    if (!IsEnabled()) return disabledBg;
+    if (m_visualState <= 0.0f) return bg;
+    if (m_visualState <= 0.55f) return BlendColor(bg, hoverBg, m_visualState / 0.55f);
+    return BlendColor(hoverBg, pressedBg, (m_visualState - 0.55f) / 0.45f);
+}
+
+bool Control::OnAnimationTick() {
+    bool childAnimating = UIElement::OnAnimationTick();
+    UpdateVisualStateTarget();
+    float delta = m_visualStateTarget - m_visualState;
+    if (std::abs(delta) <= 0.01f) {
+        m_visualState = m_visualStateTarget;
+        return childAnimating;
+    }
+    m_visualState += delta * 0.28f;
+    return true;
+}
+
 void Control::OnRender(GraphicsContext& ctx) {
     float radius = GetProperty("cornerRadius").AsFloat(0.0f);
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0, 0, 0, 0));
-
-    bool enabled = IsEnabled();
-
-    if (enabled) {
-        if (m_isPressed) {
-            D2D1_COLOR_F pbg = GetProperty("pressedBackground").AsColor(D2D1::ColorF(0, 0, 0, 0));
-            if (pbg.a > 0.0f) bg = pbg;
-        } else if (m_isHovered) {
-            D2D1_COLOR_F hbg = GetProperty("hoverBackground").AsColor(D2D1::ColorF(0, 0, 0, 0));
-            if (hbg.a > 0.0f) bg = hbg;
-        }
-    } else {
-        bg = D2D1::ColorF(0x28 / 255.0f, 0x28 / 255.0f, 0x28 / 255.0f, 0.6f);
-    }
+    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0, 0, 0, 0));
 
     if (bg.a > 0.0f) {
         if (radius > 0.0f) {
@@ -49,20 +83,24 @@ void Control::OnRender(GraphicsContext& ctx) {
 void Control::OnMouseEnter() {
     if (!IsEnabled()) return;
     UIElement::OnMouseEnter();
+    UpdateVisualStateTarget();
 }
 
 void Control::OnMouseLeave() {
     UIElement::OnMouseLeave();
+    UpdateVisualStateTarget();
 }
 
 void Control::OnMouseDown(Point pt) {
     if (!IsEnabled()) return;
     UIElement::OnMouseDown(pt);
+    UpdateVisualStateTarget();
 }
 
 void Control::OnMouseUp(Point pt) {
     if (!IsEnabled()) return;
     UIElement::OnMouseUp(pt);
+    UpdateVisualStateTarget();
 }
 
 void Control::OnMouseMove(Point pt) {

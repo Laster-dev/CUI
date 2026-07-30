@@ -8,6 +8,17 @@
 
 namespace CUI {
 
+namespace {
+float GetChromiumWheelStep(float viewportHeight) {
+    UINT lines = 3;
+    SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &lines, 0);
+    if (lines == WHEEL_PAGESCROLL) {
+        return (std::max)(40.0f, viewportHeight);
+    }
+    return (std::max)(1u, lines) * 40.0f;
+}
+}
+
 ListView::ListView() {
     SetProperty("background", Value(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f, 1.0f))); // VS Code Code Editor Dark #1E1E1E
     SetProperty("headerBackground", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f)));
@@ -22,10 +33,11 @@ ListView::ListView() {
     SetProperty("width", Value(480.0f));
     SetProperty("height", Value(320.0f));
     QueryPerformanceFrequency(&m_qpcFreq);
+    m_scrollAnimator.Reset(0.0f);
 }
 
-void ListView::StopInertia() {
-    m_velocityY = 0.0f;
+void ListView::StopSmoothScroll() {
+    m_scrollAnimator.JumpTo(m_scrollY);
     m_lastAnimQpc = 0;
 }
 
@@ -45,37 +57,22 @@ double ListView::SecondsSinceLastTick() {
     return dt;
 }
 
-bool ListView::AdvanceInertia() {
+bool ListView::AdvanceSmoothScroll() {
     if (m_isDraggingScrollbar || m_isRubberBandSelecting) {
-        StopInertia();
-        return false;
-    }
-
-    if (std::abs(m_velocityY) <= kStopSpeed) {
-        if (m_velocityY != 0.0f) {
-            m_velocityY = 0.0f;
-            m_lastAnimQpc = 0;
-            ClampScroll();
-        }
+        StopSmoothScroll();
         return false;
     }
 
     double dt = SecondsSinceLastTick();
-    float oldScrollY = m_scrollY;
-    m_scrollY += m_velocityY * static_cast<float>(dt);
-    ClampScroll();
-
-    if (m_scrollY <= 0.0f || m_scrollY >= m_maxScrollY) {
-        m_velocityY = 0.0f;
-    } else {
-        m_velocityY *= static_cast<float>(std::exp(-kFriction * dt));
-        if (std::abs(m_velocityY) <= kStopSpeed) {
-            m_velocityY = 0.0f;
-            m_lastAnimQpc = 0;
-        }
+    bool advanced = m_scrollAnimator.Tick(dt, 0.0f, m_maxScrollY);
+    if (!advanced) {
+        m_lastAnimQpc = 0;
+        return false;
     }
 
-    return std::abs(m_scrollY - oldScrollY) > 0.01f || std::abs(m_velocityY) > kStopSpeed;
+    m_scrollY = m_scrollAnimator.Current();
+    ClampScroll();
+    return true;
 }
 
 HCURSOR ListView::GetCursor() const {
@@ -122,6 +119,7 @@ void ListView::SetRows(const std::vector<std::vector<std::string>>& rowsData) {
     m_selectedIndices.clear();
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
+    m_scrollAnimator.JumpTo(0.0f);
 }
 
 void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsData) {
@@ -133,6 +131,7 @@ void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsDat
     m_selectedIndices.clear();
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
+    m_scrollAnimator.JumpTo(0.0f);
 }
 
 void ListView::ClearRows() {
@@ -144,6 +143,7 @@ void ListView::ClearRows() {
     m_selectedIndices.clear();
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
+    m_scrollAnimator.JumpTo(0.0f);
 }
 
 size_t ListView::GetRowCount() const {
@@ -160,6 +160,7 @@ void ListView::SetVirtualMode(int rowCount, ListViewDataSource* dataSource) {
     m_selectedIndices.clear();
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
+    m_scrollAnimator.JumpTo(0.0f);
 }
 
 std::string ListView::GetCellText(int row, int col) const {
@@ -238,6 +239,7 @@ void ListView::ClampScroll() {
     float viewH = m_bounds.height - m_headerHeight - 4.0f;
     m_maxScrollY = std::max(0.0f, totalContentH - viewH);
     m_scrollY = std::clamp(m_scrollY, 0.0f, m_maxScrollY);
+    m_scrollAnimator.ClampTo(0.0f, m_maxScrollY);
 
     float totalColsW = GetTotalColumnsWidth();
     float viewW = m_bounds.width - 4.0f;
@@ -482,7 +484,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
 void ListView::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
-    StopInertia();
+    StopSmoothScroll();
 
     m_isMouseDown = true;
     m_mouseDownPoint = pt;
@@ -536,6 +538,7 @@ void ListView::OnMouseMove(Point pt) {
         if (scrollableTrackH > 0.0f) {
             m_scrollY = m_dragStartScrollY + (deltaY / scrollableTrackH) * m_maxScrollY;
             ClampScroll();
+            m_scrollAnimator.JumpTo(m_scrollY);
         }
         return;
     }
@@ -651,8 +654,8 @@ void ListView::OnMouseWheel(float delta) {
         m_scrollX -= delta * 40.0f;
         ClampScroll();
     } else {
-        m_velocityY -= delta * kWheelImpulse;
-        m_velocityY = std::clamp(m_velocityY, -kMaxSpeed, kMaxSpeed);
+        ClampScroll();
+        m_scrollAnimator.ScrollBy(-delta * GetChromiumWheelStep(m_bounds.height - m_headerHeight), 0.0f, m_maxScrollY);
         if (m_lastAnimQpc == 0) {
             LARGE_INTEGER now = {};
             QueryPerformanceCounter(&now);
@@ -778,7 +781,7 @@ void ListView::OnKeyDown(int vkCode) {
 }
 
 bool ListView::OnAnimationTick() {
-    return AdvanceInertia();
+    return AdvanceSmoothScroll();
 }
 
 } // namespace CUI

@@ -7,19 +7,33 @@
 
 namespace CUI {
 
+namespace {
+float GetChromiumWheelStep(float viewportHeight) {
+    UINT lines = 3;
+    SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &lines, 0);
+    if (lines == WHEEL_PAGESCROLL) {
+        return (std::max)(40.0f, viewportHeight);
+    }
+    return (std::max)(1u, lines) * 40.0f;
+}
+}
+
 ScrollViewer::ScrollViewer() {
     SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
     QueryPerformanceFrequency(&m_qpcFreq);
+    m_scrollAnimator.Reset(0.0f);
 }
 
 void ScrollViewer::SetScrollOffsetY(float offset) {
-    StopInertia();
+    StopSmoothScroll();
     m_offsetY = offset;
     ClampOffset();
+    m_scrollAnimator.JumpTo(m_offsetY);
+    PositionChildren();
 }
 
-void ScrollViewer::StopInertia() {
-    m_velocityY = 0.0f;
+void ScrollViewer::StopSmoothScroll() {
+    m_scrollAnimator.JumpTo(m_offsetY);
     m_lastAnimQpc = 0;
 }
 
@@ -57,6 +71,7 @@ Rect ScrollViewer::GetScrollbarThumbRect() const {
 
 void ScrollViewer::ClampOffset() {
     m_offsetY = std::clamp(m_offsetY, 0.0f, GetMaxScroll());
+    m_scrollAnimator.ClampTo(0.0f, GetMaxScroll());
 }
 
 double ScrollViewer::SecondsSinceLastTick() {
@@ -232,7 +247,7 @@ void ScrollViewer::OnMouseDown(Point pt) {
     Rect thumb = GetScrollbarThumbRect();
 
     if (thumb.Contains(pt.x, pt.y)) {
-        StopInertia();
+        StopSmoothScroll();
         m_isDraggingThumb = true;
         m_dragStartY = pt.y;
         m_dragStartOffsetY = m_offsetY;
@@ -240,7 +255,7 @@ void ScrollViewer::OnMouseDown(Point pt) {
     }
 
     if (track.Contains(pt.x, pt.y)) {
-        StopInertia();
+        StopSmoothScroll();
         float maxScroll = GetMaxScroll();
         float trackH = track.height;
         float thumbH = thumb.height;
@@ -248,6 +263,7 @@ void ScrollViewer::OnMouseDown(Point pt) {
         clickRatio = std::clamp(clickRatio, 0.0f, 1.0f);
         m_offsetY = clickRatio * maxScroll;
         ClampOffset();
+        m_scrollAnimator.JumpTo(m_offsetY);
         PositionChildren();
     }
 }
@@ -265,6 +281,7 @@ void ScrollViewer::OnMouseMove(Point pt) {
         float deltaY = pt.y - m_dragStartY;
         m_offsetY = m_dragStartOffsetY + (deltaY / scrollableTrack) * maxScroll;
         ClampOffset();
+        m_scrollAnimator.JumpTo(m_offsetY);
         PositionChildren();
     }
 }
@@ -281,8 +298,7 @@ void ScrollViewer::OnMouseWheel(float delta) {
         return;
     }
 
-    m_velocityY -= delta * kWheelImpulse;
-    m_velocityY = std::clamp(m_velocityY, -kMaxSpeed, kMaxSpeed);
+    m_scrollAnimator.ScrollBy(-delta * GetChromiumWheelStep(m_bounds.height), 0.0f, maxScroll);
 
     if (m_lastAnimQpc == 0) {
         LARGE_INTEGER now = {};
@@ -291,49 +307,28 @@ void ScrollViewer::OnMouseWheel(float delta) {
     }
 }
 
-bool ScrollViewer::AdvanceInertia() {
+bool ScrollViewer::AdvanceSmoothScroll() {
     if (m_isDraggingThumb) {
-        StopInertia();
-        return false;
-    }
-
-    if (std::abs(m_velocityY) <= kStopSpeed) {
-        if (m_velocityY != 0.0f) {
-            m_velocityY = 0.0f;
-            m_lastAnimQpc = 0;
-            ClampOffset();
-            PositionChildren();
-        }
+        StopSmoothScroll();
         return false;
     }
 
     double dt = SecondsSinceLastTick();
-    float maxScroll = GetMaxScroll();
-
-    m_offsetY += m_velocityY * static_cast<float>(dt);
-
-    if (m_offsetY < 0.0f) {
-        m_offsetY = 0.0f;
-        m_velocityY = 0.0f;
-    } else if (m_offsetY > maxScroll) {
-        m_offsetY = maxScroll;
-        m_velocityY = 0.0f;
-    }
-
-    m_velocityY *= static_cast<float>(std::exp(-kFriction * dt));
-
-    if (std::abs(m_velocityY) <= kStopSpeed) {
-        m_velocityY = 0.0f;
+    bool advanced = m_scrollAnimator.Tick(dt, 0.0f, GetMaxScroll());
+    if (!advanced) {
         m_lastAnimQpc = 0;
+        return false;
     }
 
+    m_offsetY = m_scrollAnimator.Current();
+    ClampOffset();
     PositionChildren();
-    return std::abs(m_velocityY) > kStopSpeed;
+    return true;
 }
 
 bool ScrollViewer::OnAnimationTick() {
     bool childAnimating = UIElement::OnAnimationTick();
-    bool selfAnimating = AdvanceInertia();
+    bool selfAnimating = AdvanceSmoothScroll();
     return childAnimating || selfAnimating;
 }
 

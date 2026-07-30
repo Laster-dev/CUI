@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="ToggleSwitch 现代化开关控件" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="Win11/iOS 风格滑动开关，带 On/Off 平滑动画与色彩自定义。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="24" cornerRadius="6" borderBrush="#333333" borderThickness="1" gap="16">
+            <ToggleSwitch id="targetToggle" header="启用系统 GPU 硬件加速" isOn="true"/>
+            <ToggleSwitch header="开启暗黑极客主题" isOn="false"/>
+        </StackPanel>
+    </StackPanel>
+
+    <PropertyGrid id="propGridToggle" width="320"/>
+</StackPanel>

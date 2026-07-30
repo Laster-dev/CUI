@@ -9,6 +9,7 @@ TitleBar::TitleBar() {
     SetProperty("height", Value(34.0f));
     SetProperty("background", Value(D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f))); // VS Code Title bar dark
     SetProperty("title", Value("CUI - Visual Studio Code [Direct2D UI Engine]"));
+    m_menuBar.SetParent(this);
 
     // Populate real interactive MenuBar dropdown menus
     auto fileMenu = m_menuBar.AddMenu("File");
@@ -159,7 +160,7 @@ void TitleBar::OnMouseLeave() {
 
 UIElement* TitleBar::HitTest(float x, float y) {
     UIElement* mbHit = m_menuBar.HitTest(x, y);
-    if (mbHit) return mbHit;
+    if (mbHit) return this;
     return Control::HitTest(x, y);
 }
 

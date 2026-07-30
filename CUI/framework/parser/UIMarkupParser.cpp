@@ -19,6 +19,18 @@
 #include "../controls/PropertyGrid.h"
 #include "../controls/Toast.h"
 #include "../controls/ToastCenter.h"
+#include "../controls/TreeView.h"
+#include "../controls/Slider.h"
+#include "../controls/ProgressBar.h"
+#include "../controls/NumberBox.h"
+#include "../controls/RadioButton.h"
+#include "../controls/ToggleSwitch.h"
+#include "../controls/DatePicker.h"
+#include "../controls/TimePicker.h"
+#include "../controls/ColorPicker.h"
+#include "../controls/BreadcrumbBar.h"
+#include "../controls/PagingControl.h"
+#include "../controls/Splitter.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -54,6 +66,18 @@ UIMarkupParser::UIMarkupParser() {
     RegisterElementFactory("PropertyGrid", []() { return std::make_shared<PropertyGrid>(); });
     RegisterElementFactory("Toast", []() { return std::make_shared<Toast>(); });
     RegisterElementFactory("ToastCenter", []() { return std::make_shared<ToastCenter>(); });
+    RegisterElementFactory("TreeView", []() { return std::make_shared<TreeView>(); });
+    RegisterElementFactory("Slider", []() { return std::make_shared<Slider>(); });
+    RegisterElementFactory("ProgressBar", []() { return std::make_shared<ProgressBar>(); });
+    RegisterElementFactory("NumberBox", []() { return std::make_shared<NumberBox>(); });
+    RegisterElementFactory("RadioButton", []() { return std::make_shared<RadioButton>(); });
+    RegisterElementFactory("ToggleSwitch", []() { return std::make_shared<ToggleSwitch>(); });
+    RegisterElementFactory("DatePicker", []() { return std::make_shared<DatePicker>(); });
+    RegisterElementFactory("TimePicker", []() { return std::make_shared<TimePicker>(); });
+    RegisterElementFactory("ColorPicker", []() { return std::make_shared<ColorPicker>(); });
+    RegisterElementFactory("BreadcrumbBar", []() { return std::make_shared<BreadcrumbBar>(); });
+    RegisterElementFactory("PagingControl", []() { return std::make_shared<PagingControl>(); });
+    RegisterElementFactory("Splitter", []() { return std::make_shared<Splitter>(); });
 
     // VS Code Specific Components
     RegisterElementFactory("TitleBar", []() { return std::make_shared<TitleBar>(); });

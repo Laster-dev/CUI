@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include "ChromiumScrollAnimator.h"
 #include <vector>
 #include <string>
 #include <unordered_set>
@@ -97,8 +98,8 @@ private:
     // Applies auto-scroll based on last mouse position.
     // Does not call ClampScroll() / UpdateRubberBandSelection().
     bool ApplyAutoScroll();
-    void StopInertia();
-    bool AdvanceInertia();
+    void StopSmoothScroll();
+    bool AdvanceSmoothScroll();
     double SecondsSinceLastTick();
 
     std::string GetCellText(int row, int col) const;
@@ -149,7 +150,7 @@ private:
     float m_scrollX = 0.0f;
     float m_maxScrollY = 0.0f;
     float m_maxScrollX = 0.0f;
-    float m_velocityY = 0.0f;
+    ChromiumScrollAnimator m_scrollAnimator;
     bool m_isDraggingScrollbar = false;
     float m_dragStartY = 0.0f;
     float m_dragStartScrollY = 0.0f;
@@ -158,11 +159,6 @@ private:
 
     float m_headerHeight = 32.0f;
     float m_rowHeight = 28.0f;
-
-    static constexpr float kWheelImpulse = 1600.0f;
-    static constexpr float kFriction = 10.5f;
-    static constexpr float kMaxSpeed = 10000.0f;
-    static constexpr float kStopSpeed = 12.0f;
 
     Event<ListView*, int> m_onSelectionChangedEvent;
     Event<ListView*, int> m_onRowDoubleClickedEvent;

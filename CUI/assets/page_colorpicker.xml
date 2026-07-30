@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="ColorPicker 调色板与色彩拾取控件" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="内置调色板面板，支持已选颜色实时预览与变动事件。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="24" cornerRadius="6" borderBrush="#333333" borderThickness="1" gap="16">
+            <ColorPicker id="targetColorPicker"/>
+        </StackPanel>
+    </StackPanel>
+
+    <PropertyGrid id="propGridColorPicker" width="320"/>
+</StackPanel>
