@@ -15,6 +15,7 @@
 #include "../controls/TabView.h"
 #include "../controls/MenuBar.h"
 #include "../controls/VSCodeControls.h"
+#include "../controls/PropertyGrid.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -46,6 +47,7 @@ UIMarkupParser::UIMarkupParser() {
     RegisterElementFactory("ContentDialog", []() { return std::make_shared<ContentDialog>(); });
     RegisterElementFactory("TabView", []() { return std::make_shared<TabView>(); });
     RegisterElementFactory("MenuBar", []() { return std::make_shared<MenuBar>(); });
+    RegisterElementFactory("PropertyGrid", []() { return std::make_shared<PropertyGrid>(); });
 
     // VS Code Specific Components
     RegisterElementFactory("TitleBar", []() { return std::make_shared<TitleBar>(); });
@@ -207,10 +209,42 @@ static std::shared_ptr<UIElement> BuildTreeFromXmlNode(UIMarkupParser& parser, c
 
     StyleManager::Instance().ApplyStyle(elem.get());
 
+    TabView* tabViewElem = dynamic_cast<TabView*>(elem.get());
+
     for (const auto& childXml : xmlNode.children) {
-        auto childElem = BuildTreeFromXmlNode(parser, childXml, deferredBindings);
-        if (childElem) {
-            elem->AddChild(childElem);
+        if (tabViewElem && childXml.tagName == "TabItem") {
+            std::string header = "Tab";
+            std::string icon = "";
+            std::string srcFile = "";
+            bool closable = false;
+
+            auto hIt = childXml.attributes.find("header");
+            if (hIt != childXml.attributes.end()) header = hIt->second;
+
+            auto iIt = childXml.attributes.find("icon");
+            if (iIt != childXml.attributes.end()) icon = iIt->second;
+
+            auto cIt = childXml.attributes.find("isClosable");
+            if (cIt != childXml.attributes.end()) closable = (cIt->second == "true" || cIt->second == "1");
+
+            auto sIt = childXml.attributes.find("src");
+            if (sIt != childXml.attributes.end()) srcFile = sIt->second;
+
+            std::shared_ptr<UIElement> tabContent = nullptr;
+            if (!srcFile.empty()) {
+                tabContent = parser.ParseXmlFile("assets/" + srcFile);
+            } else if (!childXml.children.empty()) {
+                tabContent = BuildTreeFromXmlNode(parser, childXml.children[0], deferredBindings);
+            }
+
+            if (tabContent) {
+                tabViewElem->AddTab(header, tabContent, icon, closable);
+            }
+        } else {
+            auto childElem = BuildTreeFromXmlNode(parser, childXml, deferredBindings);
+            if (childElem) {
+                elem->AddChild(childElem);
+            }
         }
     }
 

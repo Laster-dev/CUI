@@ -69,7 +69,9 @@ public:
 
     // Virtual Mode for 100k+ rows (high performance)
     void SetVirtualMode(int rowCount, ListViewDataSource* dataSource);
-    bool IsVirtualMode() const { return m_virtualMode; }
+    // Row Height
+    float GetRowHeight() const { return m_rowHeight; }
+    void SetRowHeight(float h) { m_rowHeight = h; }
 
     // Selection Management
     ListViewSelectionMode GetSelectionMode() const { return m_selectionMode; }

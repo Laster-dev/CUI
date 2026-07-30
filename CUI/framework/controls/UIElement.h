@@ -9,12 +9,21 @@ namespace CUI {
 
 class ContextMenu;
 
+struct PropertyMeta {
+    std::string name;          // 英文属性名 (如 "width")
+    std::string displayName;   // 中文名称 (如 "宽度 (Width)")
+    std::string category;      // 分组 (布局/外观/字体/控制)
+    std::string type;          // "string", "number", "color", "bool", "enum"
+    std::vector<std::string> options; // 枚举可选项
+};
+
 class UIElement : public Object {
 public:
     UIElement();
     virtual ~UIElement() = default;
 
     virtual const char* GetClassName() const override { return "UIElement"; }
+    virtual std::vector<PropertyMeta> GetPropertyMetas() const;
 
     std::string GetId() const { return m_id; }
     void SetId(const std::string& id) { m_id = id; }
@@ -75,7 +84,7 @@ public:
     virtual void OnMouseRightClick(Point pt) {}
     virtual void OnMouseUp(Point pt);
     virtual void OnMouseMove(Point pt);
-    virtual void OnMouseWheel(float delta) {}
+    virtual void OnMouseWheel(float delta);
     virtual void OnKeyDown(int vkCode);
     virtual void OnAutoScrollTick() {}
 

@@ -182,23 +182,51 @@ void LayoutEngine::ArrangeFlexPanel(UIElement* panel, Rect finalRect, Orientatio
         Size dSize = child->GetDesiredSize();
         float flex = child->GetProperty("flexGrow").AsFloat(0.0f);
 
+        float expMain = (orientation == Orientation::Horizontal) ? child->GetProperty("width").AsFloat(-1.0f) : child->GetProperty("height").AsFloat(-1.0f);
+        float expCross = (orientation == Orientation::Horizontal) ? child->GetProperty("height").AsFloat(-1.0f) : child->GetProperty("width").AsFloat(-1.0f);
+
         float childMainSize = (orientation == Orientation::Horizontal) ? dSize.width : dSize.height;
-        if (totalFlexGrow > 0.0f && flex > 0.0f) {
+        if (expMain >= 0.0f) {
+            childMainSize = expMain;
+        } else if (totalFlexGrow > 0.0f && flex > 0.0f) {
             childMainSize += extraMain * (flex / totalFlexGrow);
         }
 
-        std::string childAlign = child->GetProperty("align").AsString("Stretch");
         float childCrossSize = (orientation == Orientation::Horizontal) ? dSize.height : dSize.width;
-        if (childAlign == "Stretch" || childCrossSize == 0.0f) {
+        if (expCross >= 0.0f) {
+            childCrossSize = expCross;
+        }
+        float childCrossPos = crossStart;
+
+        std::string childAlign = child->GetProperty("align").AsString("");
+        std::string childAlignH = child->GetProperty("alignHorizontal").AsString("");
+        std::string childAlignV = child->GetProperty("alignVertical").AsString("");
+
+        std::string crossAlign = "Stretch";
+        if (orientation == Orientation::Horizontal) {
+            if (!childAlignV.empty()) crossAlign = childAlignV;
+            else if (!childAlign.empty()) crossAlign = childAlign;
+        } else {
+            if (!childAlignH.empty()) crossAlign = childAlignH;
+            else if (!childAlign.empty()) crossAlign = childAlign;
+        }
+
+        if (expCross >= 0.0f || crossAlign == "Center" || crossAlign == "Start" || crossAlign == "End") {
+            if (crossAlign == "Center") {
+                childCrossPos = crossStart + (crossSize - childCrossSize) / 2.0f;
+            } else if (crossAlign == "End") {
+                childCrossPos = crossStart + crossSize - childCrossSize;
+            }
+        } else if (crossAlign == "Stretch") {
             childCrossSize = crossSize;
         }
 
         Rect childRect;
         if (orientation == Orientation::Horizontal) {
-            childRect = Rect(currentMain, crossStart, childMainSize, childCrossSize);
+            childRect = Rect(currentMain, childCrossPos, childMainSize, childCrossSize);
             currentMain += childMainSize + gap;
         } else {
-            childRect = Rect(crossStart, currentMain, childCrossSize, childMainSize);
+            childRect = Rect(childCrossPos, currentMain, childCrossSize, childMainSize);
             currentMain += childMainSize + gap;
         }
 

@@ -17,6 +17,7 @@ public:
     void SetProperty(const std::string& name, const Value& val);
     Value GetProperty(const std::string& name) const;
     bool HasProperty(const std::string& name) const;
+    const std::unordered_map<std::string, Value>& GetAllProperties() const { return m_properties; }
 
     Event<const std::string&, const Value&>& OnPropertyChanged() { return m_propertyChangedEvent; }
 

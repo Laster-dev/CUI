@@ -34,7 +34,27 @@ void ListBox::AddItem(std::shared_ptr<UIElement> customElement) {
     }
 }
 
+void ListBox::SetVirtualCount(size_t count) {
+    m_virtualMode = true;
+    m_virtualCount = count;
+    m_itemDatas.clear();
+    ClearChildren();
+    ClampScroll();
+}
+
+void ListBox::SetVirtualMode(size_t count, ListBoxDataSource* dataSource) {
+    m_virtualMode = true;
+    m_virtualCount = count;
+    m_dataSource = dataSource;
+    m_itemDatas.clear();
+    ClearChildren();
+    ClampScroll();
+}
+
 void ListBox::SetItems(const std::vector<std::string>& items) {
+    m_virtualMode = false;
+    m_virtualCount = 0;
+    m_dataSource = nullptr;
     m_itemDatas.clear();
     ClearChildren();
     for (const auto& s : items) {
@@ -45,6 +65,9 @@ void ListBox::SetItems(const std::vector<std::string>& items) {
 }
 
 void ListBox::ClearItems() {
+    m_virtualMode = false;
+    m_virtualCount = 0;
+    m_dataSource = nullptr;
     m_itemDatas.clear();
     ClearChildren();
     m_selectedIndex = -1;
@@ -52,6 +75,15 @@ void ListBox::ClearItems() {
 }
 
 std::string ListBox::GetItemAt(size_t index) const {
+    if (m_virtualMode) {
+        if (m_dataSource && index < m_virtualCount) {
+            return m_dataSource->GetItemText(index);
+        }
+        if (index < m_virtualCount) {
+            return "Virtual Item #" + std::to_string(index + 1);
+        }
+        return "";
+    }
     if (index < m_itemDatas.size()) {
         return m_itemDatas[index].text;
     }
@@ -59,20 +91,21 @@ std::string ListBox::GetItemAt(size_t index) const {
 }
 
 void ListBox::SetSelectedIndex(int index) {
-    if (index >= -1 && index < static_cast<int>(m_itemDatas.size())) {
+    size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+    if (index >= -1 && index < static_cast<int>(count)) {
         if (m_selectedIndex != index) {
             m_selectedIndex = index;
             if (m_selectedIndex >= 0) {
                 EnsureVisible(m_selectedIndex);
-                m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, m_itemDatas[m_selectedIndex].text);
+                m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetItemAt(m_selectedIndex));
             }
         }
     }
 }
 
 std::string ListBox::GetSelectedItem() const {
-    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_itemDatas.size())) {
-        return m_itemDatas[m_selectedIndex].text;
+    if (m_selectedIndex >= 0) {
+        return GetItemAt(m_selectedIndex);
     }
     return "";
 }
@@ -83,8 +116,9 @@ UIElement* ListBox::HitTest(float x, float y) {
 
     if (m_bounds.Contains(x, y)) {
         int idx = GetItemIndexFromY(y);
-        if (idx >= 0 && idx < static_cast<int>(m_itemDatas.size())) {
-            if (m_itemDatas[idx].customElement) {
+        size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+        if (idx >= 0 && idx < static_cast<int>(count)) {
+            if (!m_virtualMode && m_itemDatas[idx].customElement) {
                 float itemH = GetItemHeight();
                 float sbWidth = (m_maxScrollY > 0.0f) ? 8.0f : 0.0f;
                 float itemW = m_bounds.width - 4.0f - sbWidth;
@@ -112,7 +146,8 @@ Size ListBox::Measure(Size availableSize) {
 
 void ListBox::ClampScroll() {
     float itemH = GetItemHeight();
-    float contentH = itemH * m_itemDatas.size();
+    size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+    float contentH = itemH * count;
     float viewH = m_bounds.height - 4.0f;
 
     m_maxScrollY = std::max(0.0f, contentH - viewH);
@@ -124,14 +159,16 @@ int ListBox::GetItemIndexFromY(float y) const {
     float itemH = GetItemHeight();
     if (relativeY < 0.0f) return -1;
     int idx = static_cast<int>(relativeY / itemH);
-    if (idx >= 0 && idx < static_cast<int>(m_itemDatas.size())) {
+    size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+    if (idx >= 0 && idx < static_cast<int>(count)) {
         return idx;
     }
     return -1;
 }
 
 void ListBox::EnsureVisible(int index) {
-    if (index < 0 || index >= static_cast<int>(m_itemDatas.size())) return;
+    size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+    if (index < 0 || index >= static_cast<int>(count)) return;
 
     float itemH = GetItemHeight();
     float itemTop = index * itemH;
@@ -165,7 +202,7 @@ void ListBox::Render(GraphicsContext& ctx) {
 void ListBox::OnRender(GraphicsContext& ctx) {
     // 1. Support items property parsing from XML DSL
     std::string itemsProp = GetProperty("items").AsString("");
-    if (!itemsProp.empty() && m_itemDatas.empty()) {
+    if (!m_virtualMode && !itemsProp.empty() && m_itemDatas.empty()) {
         std::stringstream ss(itemsProp);
         std::string item;
         while (std::getline(ss, item, ',')) {
@@ -198,8 +235,9 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     float itemW = m_bounds.width - 4.0f - sbWidth;
 
     // Calculate virtualized index range
+    size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
     int startIdx = std::max(0, static_cast<int>(m_scrollY / itemH));
-    int endIdx = std::min(static_cast<int>(m_itemDatas.size()) - 1, static_cast<int>((m_scrollY + m_bounds.height) / itemH));
+    int endIdx = std::min(static_cast<int>(count) - 1, static_cast<int>((m_scrollY + m_bounds.height) / itemH));
 
     for (int i = startIdx; i <= endIdx; ++i) {
         float itemY = m_bounds.y + 2.0f + i * itemH - m_scrollY;
@@ -216,14 +254,15 @@ void ListBox::OnRender(GraphicsContext& ctx) {
         }
 
         // Draw custom element OR standard text
-        if (m_itemDatas[i].customElement) {
+        if (!m_virtualMode && m_itemDatas[i].customElement) {
             m_itemDatas[i].customElement->Measure(Size(itemRect.width, itemRect.height));
             m_itemDatas[i].customElement->Arrange(itemRect);
             m_itemDatas[i].customElement->Render(ctx);
         } else {
+            std::string itemText = GetItemAt(i);
             D2D1_COLOR_F textClr = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textColor;
             Rect textRect(itemRect.x + 8.0f, itemRect.y, itemRect.width - 16.0f, itemRect.height);
-            ctx.DrawText(m_itemDatas[i].text, textRect, textClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            ctx.DrawText(itemText, textRect, textClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
     }
 

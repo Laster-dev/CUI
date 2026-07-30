@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="ScrollViewer 滚动视口容器控制台" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="支持溢出大尺寸子内容的平滑像素滚动与 Direct2D 滚动条渲染。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <ScrollViewer id="targetSv" width="380" height="240">
+                <StackPanel orientation="Vertical" gap="8" padding="10">
+                    <Button text="可滚动列表项 #1" background="#007ACC" padding="12,6,12,6"/>
+                    <Button text="可滚动列表项 #2" background="#007ACC" padding="12,6,12,6"/>
+                    <Button text="可滚动列表项 #3" background="#007ACC" padding="12,6,12,6"/>
+                    <Button text="可滚动列表项 #4" background="#007ACC" padding="12,6,12,6"/>
+                    <Button text="可滚动列表项 #5" background="#007ACC" padding="12,6,12,6"/>
+                    <Button text="可滚动列表项 #6" background="#007ACC" padding="12,6,12,6"/>
+                    <Button text="可滚动列表项 #7" background="#007ACC" padding="12,6,12,6"/>
+                    <Button text="可滚动列表项 #8" background="#007ACC" padding="12,6,12,6"/>
+                </StackPanel>
+            </ScrollViewer>
+        </StackPanel>
+    </StackPanel>
+
+    <StackPanel orientation="Vertical" width="320" background="#252526" padding="16" gap="10" borderBrush="#333333" borderThickness="1">
+        <TextBlock text="滚动容器属性表 (ScrollViewer)" fontSize="12" fontWeight="Bold" color="#569CD6"/>
+
+        <TextBlock text="纵向滚动偏移量 (ScrollOffsetY) [px]:" fontSize="11" color="#AAAAAA"/>
+        <TextBox id="inputSvOffset" text="0" width="280" height="26"/>
+    </StackPanel>
+</StackPanel>

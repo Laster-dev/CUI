@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="Grid 网格布局属性控制台" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="修改列定义 (ColumnDefinitions) 与 行定义 (RowDefinitions) 实时切割网格。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <Grid id="targetGrid" width="460" height="240" columnDefinitions="1*,2*,100" rowDefinitions="40,1*,1*">
+                <Button text="Cell(0,0)" Grid.Row="0" Grid.Column="0" background="#007ACC"/>
+                <Button text="Cell(0,1) 2*" Grid.Row="0" Grid.Column="1" background="#0E639C"/>
+                <Button text="100px" Grid.Row="0" Grid.Column="2" background="#10B981"/>
+                <Button text="Row 1 Span 2 Cols" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" background="#D13438"/>
+            </Grid>
+        </StackPanel>
+    </StackPanel>
+
+    <StackPanel orientation="Vertical" width="320" background="#252526" padding="16" gap="10" borderBrush="#333333" borderThickness="1">
+        <TextBlock text="网格属性控制表 (Grid)" fontSize="12" fontWeight="Bold" color="#569CD6"/>
+
+        <TextBlock text="列定义 (ColumnDefinitions):" fontSize="11" color="#AAAAAA"/>
+        <TextBox id="inputCols" text="1*,2*,100" width="280" height="26"/>
+
+        <TextBlock text="行定义 (RowDefinitions):" fontSize="11" color="#AAAAAA"/>
+        <TextBox id="inputRows" text="40,1*,1*" width="280" height="26"/>
+    </StackPanel>
+</StackPanel>

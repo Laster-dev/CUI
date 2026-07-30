@@ -46,6 +46,16 @@ public:
     float GetItemHeight() const { return GetProperty("itemHeight").AsFloat(28.0f); }
     void SetItemHeight(float h) { SetProperty("itemHeight", Value(h)); }
 
+    // Virtual Mode (0 memory allocation for 100k/1M items)
+    void SetVirtualCount(size_t count);
+
+    struct ListBoxDataSource {
+        virtual ~ListBoxDataSource() = default;
+        virtual std::string GetItemText(size_t index) = 0;
+    };
+    void SetVirtualMode(size_t count, ListBoxDataSource* dataSource);
+    bool IsVirtualMode() const { return m_virtualMode; }
+
     // Events
     Event<ListBox*, int, const std::string&>& OnSelectionChanged() { return m_onSelectionChangedEvent; }
     Event<ListBox*, int, const std::string&>& OnItemDoubleClicked() { return m_onItemDoubleClickedEvent; }
@@ -61,6 +71,9 @@ private:
     void EnsureVisible(int index);
 
     std::vector<ListBoxItemData> m_itemDatas;
+    bool m_virtualMode = false;
+    size_t m_virtualCount = 0;
+    ListBoxDataSource* m_dataSource = nullptr;
     int m_selectedIndex = -1;
     int m_hoveredIndex = -1;
 

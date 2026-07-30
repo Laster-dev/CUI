@@ -19,6 +19,10 @@ void TabView::AddTab(const std::string& title, std::shared_ptr<UIElement> conten
 
     if (content) {
         AddChild(content);
+        int addedIndex = static_cast<int>(m_tabs.size());
+        if (addedIndex != m_selectedIndex) {
+            content->SetProperty("visibility", Value("Collapsed"));
+        }
     }
 
     m_tabs.push_back(item);
@@ -55,10 +59,16 @@ void TabView::SetSelectedIndex(int index) {
     m_selectedIndex = index;
 
     // Show active tab content, hide other contents
+    float headerH = 36.0f;
+    Rect contentRect(m_bounds.x, m_bounds.y + headerH, m_bounds.width, m_bounds.height - headerH);
+    Size contentAvail(m_bounds.width, m_bounds.height - headerH);
+
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         if (m_tabs[i].content) {
             if (static_cast<int>(i) == m_selectedIndex) {
                 m_tabs[i].content->SetProperty("visibility", Value("Visible"));
+                m_tabs[i].content->Measure(contentAvail);
+                m_tabs[i].content->Arrange(contentRect);
             } else {
                 m_tabs[i].content->SetProperty("visibility", Value("Collapsed"));
             }
@@ -102,7 +112,10 @@ void TabView::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F headerBg = GetProperty("headerBackground").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f));
     ctx.FillRect(headerBarRect, headerBg);
 
-    float tabX = m_bounds.x + 4.0f;
+    // Clip tab buttons within header bounds
+    ctx.PushClip(headerBarRect);
+
+    float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         const auto& tab = m_tabs[i];
@@ -155,8 +168,25 @@ void TabView::OnRender(GraphicsContext& ctx) {
         tabX += tabW + 4.0f;
     }
 
+    ctx.PopClip();
+
     // Draw TabBar Bottom border line
     ctx.DrawLine(Point(m_bounds.x, m_bounds.y + headerH - 1), Point(m_bounds.x + m_bounds.width, m_bounds.y + headerH - 1), D2D1::ColorF(0x33 / 255.0f, 0x33 / 255.0f, 0x33 / 255.0f));
+}
+
+void TabView::OnMouseWheel(float delta) {
+    float headerH = 36.0f;
+    GraphicsContext ctx;
+    float totalTabsWidth = 8.0f;
+    for (const auto& tab : m_tabs) {
+        Size titleSize = ctx.MeasureText(tab.title, "Segoe UI", 12.0f);
+        totalTabsWidth += (std::max)(110.0f, titleSize.width + 54.0f) + 4.0f;
+    }
+
+    float maxScroll = (std::max)(0.0f, totalTabsWidth - m_bounds.width);
+    m_scrollOffsetX -= delta * 40.0f;
+    if (m_scrollOffsetX < 0.0f) m_scrollOffsetX = 0.0f;
+    if (m_scrollOffsetX > maxScroll) m_scrollOffsetX = maxScroll;
 }
 
 void TabView::OnMouseMove(Point pt) {
@@ -166,7 +196,7 @@ void TabView::OnMouseMove(Point pt) {
 
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + headerH) {
         GraphicsContext ctx;
-        float tabX = m_bounds.x + 4.0f;
+        float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
 
         for (size_t i = 0; i < m_tabs.size(); ++i) {
             Size titleSize = ctx.MeasureText(m_tabs[i].title, "Segoe UI", 12.0f);
@@ -193,7 +223,7 @@ void TabView::OnMouseDown(Point pt) {
     float headerH = 36.0f;
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + headerH) {
         GraphicsContext ctx;
-        float tabX = m_bounds.x + 4.0f;
+        float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
 
         for (size_t i = 0; i < m_tabs.size(); ++i) {
             Size titleSize = ctx.MeasureText(m_tabs[i].title, "Segoe UI", 12.0f);

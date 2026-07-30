@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="Button 按钮控件全属性交互控制台" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="由 PropertyGrid 自动化反射引擎进行 100% 精准双向绑定控制。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="30" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <Button id="targetBtn" text="交互测试按钮" background="#007ACC" hoverBackground="#0098FF" pressedBackground="#005A9E" fontSize="14" padding="16,8,16,8" cornerRadius="4"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" background="#252526" padding="10" gap="4" borderBrush="#333333" borderThickness="1" cornerRadius="4">
+            <TextBlock text="事件日志 (Event Log)" fontSize="11" fontWeight="Bold" color="#4EC9B0"/>
+            <TextBlock id="txtLogMsg" text="[就绪] 点击目标按钮触发 OnClick 点击事件..." fontSize="12" fontFamily="Consolas" color="#B5CEA8"/>
+        </StackPanel>
+    </StackPanel>
+
+    <PropertyGrid id="propGrid" width="320"/>
+</StackPanel>

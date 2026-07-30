@@ -371,7 +371,9 @@ ComPtr<IDWriteTextLayout> GraphicsContext::CreateTextLayout(
     DWRITE_FONT_WEIGHT weight) {
 
     ComPtr<IDWriteFactory> factory = GetSharedWriteFactory();
-    if (!factory || text.empty()) return nullptr;
+    if (!factory) return nullptr;
+
+    const std::wstring& targetText = text.empty() ? L" " : text;
 
     std::wstring wFont = Utf8ToUtf16(fontName);
     ComPtr<IDWriteTextFormat> format;
@@ -393,8 +395,8 @@ ComPtr<IDWriteTextLayout> GraphicsContext::CreateTextLayout(
 
     ComPtr<IDWriteTextLayout> layout;
     hr = factory->CreateTextLayout(
-        text.c_str(),
-        static_cast<UINT32>(text.length()),
+        targetText.c_str(),
+        static_cast<UINT32>(targetText.length()),
         format.Get(),
         options.maxWidth,
         options.maxHeight,

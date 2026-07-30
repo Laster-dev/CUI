@@ -20,6 +20,7 @@ public:
     virtual ~TextBox() = default;
 
     virtual const char* GetClassName() const override { return "TextBox"; }
+    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_IBEAM) : nullptr; }
 
     virtual Size Measure(Size availableSize) override;
@@ -47,6 +48,8 @@ public:
 
     std::string GetPlaceholder() const { return GetProperty("placeholder").AsString(); }
     void SetPlaceholder(const std::string& ph) { SetProperty("placeholder", Value(ph)); }
+
+    Event<TextBox*, const std::string&>& OnTextChanged() { return m_onTextChangedEvent; }
 
 private:
     bool GetAcceptsReturn() const;
@@ -82,6 +85,8 @@ private:
     std::vector<TextBoxUndoState> m_undoStack;
     std::vector<TextBoxUndoState> m_redoStack;
     bool m_undoing = false;
+
+    Event<TextBox*, const std::string&> m_onTextChangedEvent;
 };
 
 } // namespace CUI

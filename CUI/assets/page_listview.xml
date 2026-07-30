@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="ListView 100k 多列虚拟化表单全属性控制台" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="支持多列表头、框选（Rubber-band）与 10 万行渲染。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <ListView id="targetListView" width="500" height="280"/>
+        </StackPanel>
+    </StackPanel>
+
+    <ScrollViewer width="320" background="#252526" borderBrush="#333333" borderThickness="1">
+        <StackPanel orientation="Vertical" padding="16" gap="8">
+            <TextBlock text="表单属性控制表 (ListView)" fontSize="12" fontWeight="Bold" color="#569CD6"/>
+
+            <TextBlock text="行高度 (RowHeight) [px]:" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputRowH" text="24" width="280" height="26"/>
+
+            <TextBlock text="显式宽度 (Width):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputLvWidth" text="500" width="280" height="26"/>
+
+            <TextBlock text="显式高度 (Height):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputLvHeight" text="280" width="280" height="26"/>
+
+            <TextBlock text="外边距 (Margin):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputLvMargin" text="0,0,0,0" width="280" height="26"/>
+        </StackPanel>
+    </ScrollViewer>
+</StackPanel>

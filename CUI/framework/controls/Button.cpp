@@ -2,6 +2,15 @@
 
 namespace CUI {
 
+std::vector<PropertyMeta> Button::GetPropertyMetas() const {
+    auto metas = UIElement::GetPropertyMetas();
+    metas.push_back({ "icon", "前置图标 (Icon)", "基本信息", "string" });
+    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
+    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
+    metas.push_back({ "color", "文字颜色 (Color)", "字体文本", "color" });
+    return metas;
+}
+
 Button::Button() {
     SetProperty("text", Value("Button"));
     SetProperty("icon", Value(""));
@@ -48,7 +57,9 @@ Size Button::Measure(Size availableSize) {
 
 void Button::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
-    if (m_isPressed) {
+    if (!IsEnabled()) {
+        bg = GetProperty("disabledBackground").AsColor(D2D1::ColorF(0x3A / 255.0f, 0x3A / 255.0f, 0x3A / 255.0f, 1.0f));
+    } else if (m_isPressed) {
         bg = GetProperty("pressedBackground").AsColor(bg);
     } else if (m_isHovered) {
         bg = GetProperty("hoverBackground").AsColor(bg);

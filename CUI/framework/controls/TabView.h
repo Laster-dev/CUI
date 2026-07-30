@@ -32,6 +32,7 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
+    virtual void OnMouseWheel(float delta) override;
 
     Event<TabView*, int>& OnSelectionChanged() { return m_selectionChangedEvent; }
     Event<TabView*, int>& OnTabClosed() { return m_tabClosedEvent; }
@@ -40,6 +41,7 @@ private:
     std::vector<TabViewItem> m_tabs;
     int m_selectedIndex = 0;
     int m_hoveredCloseIndex = -1;
+    float m_scrollOffsetX = 0.0f;
 
     Event<TabView*, int> m_selectionChangedEvent;
     Event<TabView*, int> m_tabClosedEvent;

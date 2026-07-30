@@ -1,7 +1,19 @@
 #include "ComboBox.h"
 #include <sstream>
+#include <algorithm>
 
 namespace CUI {
+
+std::vector<PropertyMeta> ComboBox::GetPropertyMetas() const {
+    auto metas = UIElement::GetPropertyMetas();
+    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
+    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
+    metas.push_back({ "color", "文字颜色 (Color)", "字体文本", "color" });
+    metas.push_back({ "itemHeight", "下拉项高度 (ItemHeight)", "下拉控制", "number" });
+    metas.push_back({ "dropdownBackground", "下拉框背景 (DropBg)", "下拉控制", "color" });
+    metas.push_back({ "selectedItemBackground", "选中项背景 (SelItemBg)", "下拉控制", "color" });
+    return metas;
+}
 
 ComboBox::ComboBox() {
     SetProperty("placeholder", Value("Select option..."));
@@ -115,23 +127,27 @@ void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
 
-    float itemHeight = 28.0f;
+    float itemHeight = GetProperty("itemHeight").AsFloat(28.0f);
     float menuH = itemHeight * m_items.size();
     Rect menuRect(m_bounds.x, m_bounds.y + m_bounds.height + 2.0f, m_bounds.width, menuH);
 
+    D2D1_COLOR_F dropBg = GetProperty("dropdownBackground").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
+    D2D1_COLOR_F selBg = GetProperty("selectedItemBackground").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+    float radius = GetProperty("cornerRadius").AsFloat(4.0f);
+
     // Draw dropdown popup shadow & background (Topmost Overlay Pass)
-    ctx.FillRoundedRect(menuRect, 4.0f, D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
-    ctx.DrawRoundedRect(menuRect, 4.0f, D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 1.0f), 1.0f);
+    ctx.FillRoundedRect(menuRect, radius, dropBg);
+    ctx.DrawRoundedRect(menuRect, radius, D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 1.0f), 1.0f);
 
     for (size_t i = 0; i < m_items.size(); ++i) {
         Rect itemRect(menuRect.x + 2, menuRect.y + i * itemHeight + 2, menuRect.width - 4, itemHeight - 4);
         bool isSelected = (static_cast<int>(i) == m_selectedIndex);
 
         if (isSelected) {
-            ctx.FillRoundedRect(itemRect, 2.0f, D2D1::ColorF(0x04 / 255.0f, 0x39 / 255.0f, 0x61 / 255.0f));
+            ctx.FillRoundedRect(itemRect, 2.0f, selBg);
         }
 
-        D2D1_COLOR_F itemColor = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f);
+        D2D1_COLOR_F itemColor = GetProperty("color").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
         ctx.DrawText(m_items[i], Rect(itemRect.x + 8, itemRect.y, itemRect.width - 16, itemRect.height), itemColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
 }

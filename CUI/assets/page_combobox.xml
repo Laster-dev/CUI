@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="ComboBox 下拉选择框全属性控制台" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="支持弹出式下拉菜单与动态在线添加新选项。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="40" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <ComboBox id="targetCombo" width="240"/>
+        </StackPanel>
+    </StackPanel>
+
+    <ScrollViewer width="320" background="#252526" borderBrush="#333333" borderThickness="1">
+        <StackPanel orientation="Vertical" padding="16" gap="8">
+            <TextBlock text="下拉框属性控制表 (ComboBox)" fontSize="12" fontWeight="Bold" color="#569CD6"/>
+
+            <CheckBox id="chkComboEnabled" text="是否启用 (IsEnabled)" checkState="Checked"/>
+
+            <TextBlock text="添加新选项 (AddItem):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputNewItem" text="自定义新主题" width="280" height="26"/>
+            <Button id="btnAddItem" text="添加选项到下拉菜单" background="#007ACC" padding="12,6,12,6"/>
+
+            <TextBlock text="显式宽度 (Width):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputComboWidth" text="240" width="280" height="26"/>
+
+            <TextBlock text="显式高度 (Height):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputComboHeight" text="-1" width="280" height="26"/>
+
+            <TextBlock text="外边距 (Margin):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputComboMargin" text="0,0,0,0" width="280" height="26"/>
+        </StackPanel>
+    </ScrollViewer>
+</StackPanel>

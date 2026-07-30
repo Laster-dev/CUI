@@ -20,6 +20,30 @@ UIElement::UIElement() {
     SetProperty("align", Value("Stretch"));
 }
 
+std::vector<PropertyMeta> UIElement::GetPropertyMetas() const {
+    return {
+        { "text", "文本内容 (Text)", "基本信息", "string" },
+        { "width", "宽度 (Width) [-1自适应]", "尺寸布局", "number" },
+        { "height", "高度 (Height) [-1自适应]", "尺寸布局", "number" },
+        { "minWidth", "最小宽度 (MinWidth)", "尺寸布局", "number" },
+        { "minHeight", "最小高度 (MinHeight)", "尺寸布局", "number" },
+        { "margin", "外边距 (Margin)", "尺寸布局", "string" },
+        { "padding", "内边距 (Padding)", "尺寸布局", "string" },
+        { "alignHorizontal", "水平对齐 (AlignH)", "尺寸布局", "enum", { "Stretch", "Start", "Center", "End" } },
+        { "alignVertical", "垂直对齐 (AlignV)", "尺寸布局", "enum", { "Stretch", "Start", "Center", "End" } },
+        { "background", "背景颜色 (Background)", "色彩外观", "color" },
+        { "hoverBackground", "悬停背景色 (HoverBg)", "色彩外观", "color" },
+        { "pressedBackground", "按下背景色 (PressedBg)", "色彩外观", "color" },
+        { "disabledBackground", "禁用背景色 (DisabledBg)", "色彩外观", "color" },
+        { "borderBrush", "边框颜色 (BorderBrush)", "色彩外观", "color" },
+        { "borderThickness", "边框粗细 (BorderThickness)", "色彩外观", "number" },
+        { "cornerRadius", "圆角半径 (CornerRadius)", "色彩外观", "number" },
+        { "opacity", "不透明度 (Opacity) [0-1]", "色彩外观", "number" },
+        { "isEnabled", "是否启用 (IsEnabled)", "交互状态", "bool" },
+        { "visibility", "显示状态 (Visibility)", "交互状态", "enum", { "Visible", "Hidden", "Collapsed" } }
+    };
+}
+
 void UIElement::AddChild(std::shared_ptr<UIElement> child) {
     if (!child) return;
     child->SetParent(this);
@@ -190,6 +214,12 @@ void UIElement::OnMouseUp(Point pt) {
 }
 
 void UIElement::OnMouseMove(Point pt) {
+}
+
+void UIElement::OnMouseWheel(float delta) {
+    if (m_parent) {
+        m_parent->OnMouseWheel(delta);
+    }
 }
 
 void UIElement::OnKeyDown(int vkCode) {

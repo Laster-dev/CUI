@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="CheckBox 复选框全属性控制台" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="支持选中(v)、未选中、以及三态不定状态(-)。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="40" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <CheckBox id="targetCb" text="交互功能开关" checkState="Checked"/>
+        </StackPanel>
+    </StackPanel>
+
+    <ScrollViewer width="320" background="#252526" borderBrush="#333333" borderThickness="1">
+        <StackPanel orientation="Vertical" padding="16" gap="8">
+            <TextBlock text="复选框属性控制表 (CheckBox)" fontSize="12" fontWeight="Bold" color="#569CD6"/>
+
+            <TextBlock text="标签文本 (Text):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputCbLabel" text="交互功能开关" width="280" height="26"/>
+
+            <CheckBox id="chkCbEnabled" text="是否启用 (IsEnabled)" checkState="Checked"/>
+            <CheckBox id="chkThreeState" text="三态模式 (IsThreeState)"/>
+
+            <TextBlock text="选中状态 (CheckState):" fontSize="11" color="#AAAAAA"/>
+            <ComboBox id="comboCbState" width="280"/>
+
+            <TextBlock text="字体大小 (FontSize):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputCbFontSize" text="13" width="280" height="26"/>
+
+            <TextBlock text="显式宽度 (Width) [-1自适应]:" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputCbWidth" text="-1" width="280" height="26"/>
+
+            <TextBlock text="显式高度 (Height) [-1自适应]:" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputCbHeight" text="-1" width="280" height="26"/>
+
+            <TextBlock text="内边距 (Padding):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputCbPadding" text="4,4,4,4" width="280" height="26"/>
+
+            <TextBlock text="外边距 (Margin):" fontSize="11" color="#AAAAAA"/>
+            <TextBox id="inputCbMargin" text="0,0,0,0" width="280" height="26"/>
+        </StackPanel>
+    </ScrollViewer>
+</StackPanel>

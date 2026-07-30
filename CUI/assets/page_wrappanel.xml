@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="WrapPanel 流式布局控制台" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="多行流式排版，达到边缘时自动折行或折列。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <WrapPanel id="targetWrap" width="380" height="240" orientation="Horizontal">
+                <Button text="Tag #1" background="#007ACC" padding="14,6,14,6"/>
+                <Button text="Tag #2" background="#007ACC" padding="14,6,14,6"/>
+                <Button text="Tag #3" background="#007ACC" padding="14,6,14,6"/>
+                <Button text="Tag #4" background="#007ACC" padding="14,6,14,6"/>
+                <Button text="Tag #5" background="#007ACC" padding="14,6,14,6"/>
+                <Button text="Tag #6" background="#007ACC" padding="14,6,14,6"/>
+            </WrapPanel>
+        </StackPanel>
+    </StackPanel>
+
+    <StackPanel orientation="Vertical" width="320" background="#252526" padding="16" gap="10" borderBrush="#333333" borderThickness="1">
+        <TextBlock text="流式面板属性表 (WrapPanel)" fontSize="12" fontWeight="Bold" color="#569CD6"/>
+
+        <TextBlock text="排版方向 (Orientation):" fontSize="11" color="#AAAAAA"/>
+        <ComboBox id="comboWrapOrient" width="280"/>
+    </StackPanel>
+</StackPanel>

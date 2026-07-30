@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="TextBlock 文本控件全属性控制台" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="支持 DirectWrite 高级排版、行间距、固定行高、颜色与字体调节。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="40" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <TextBlock id="targetText" text="DirectWrite 高性能矢量文本渲染" fontSize="18" fontWeight="Bold" color="#4EC9B0"/>
+        </StackPanel>
+    </StackPanel>
+
+    <PropertyGrid id="propGridText" width="320"/>
+</StackPanel>

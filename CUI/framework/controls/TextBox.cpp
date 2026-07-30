@@ -1,8 +1,27 @@
 #define NOMINMAX
 #include "TextBox.h"
 #include <algorithm>
+#include <cwctype>
 
 namespace CUI {
+
+std::vector<PropertyMeta> TextBox::GetPropertyMetas() const {
+    auto metas = UIElement::GetPropertyMetas();
+    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
+    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
+    metas.push_back({ "fontWeight", "字体粗细 (FontWeight)", "字体文本", "enum", { "Normal", "Bold", "Light" } });
+    metas.push_back({ "color", "文字颜色 (Color)", "字体文本", "color" });
+    metas.push_back({ "lineSpacing", "行间距 (LineSpacing)", "高级排版", "number" });
+    metas.push_back({ "lineHeight", "固定行高 (LineHeight)", "高级排版", "number" });
+    metas.push_back({ "placeholder", "占位提示词 (Placeholder)", "输入控制", "string" });
+    metas.push_back({ "placeholderColor", "提示词颜色 (PhColor)", "输入控制", "color" });
+    metas.push_back({ "caretColor", "光标颜色 (CaretColor)", "光标排版", "color" });
+    metas.push_back({ "caretWidth", "光标宽度 (CaretWidth)", "光标排版", "number" });
+    metas.push_back({ "caretBlinkRate", "光标闪烁频率 (BlinkMs)", "光标排版", "number" });
+    metas.push_back({ "TextWrapping", "自动换行 (TextWrapping)", "输入控制", "enum", { "NoWrap", "Wrap" } });
+    metas.push_back({ "AcceptsReturn", "允许回车 (AcceptsReturn)", "输入控制", "bool" });
+    return metas;
+}
 
 namespace {
 
@@ -60,7 +79,10 @@ TextBox::TextBox(const std::string& placeholder) : TextBox() {
 }
 
 void TextBox::SetText(const std::string& text) {
-    SetProperty("text", Value(text));
+    if (GetText() != text) {
+        SetProperty("text", Value(text));
+        m_onTextChangedEvent.Invoke(this, text);
+    }
 }
 
 bool TextBox::GetAcceptsReturn() const {
@@ -407,8 +429,11 @@ void TextBox::OnRender(GraphicsContext& ctx) {
                      D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f), 1.5f);
     }
 
-    bool cursorBlinkState = ((GetTickCount64() / 500) % 2 == 0);
-    if (m_isFocused && cursorBlinkState) {
+    int blinkRate = GetProperty("caretBlinkRate").AsInt(500);
+    if (blinkRate <= 0) blinkRate = 500;
+    bool cursorBlinkState = ((GetTickCount64() / blinkRate) % 2 == 0);
+
+    if (m_isFocused && cursorBlinkState && IsEnabled()) {
         int displayCaretPos = m_cursorPos;
         if (!m_compString.empty()) {
             displayCaretPos += static_cast<int>(m_compString.length());
@@ -419,9 +444,10 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         float cursorX = caret.x;
         float cursorY = caret.y + 2.0f;
         float cursorH = std::max(12.0f, caret.height - 4.0f);
+        float cursorWidth = GetProperty("caretWidth").AsFloat(1.5f);
+        D2D1_COLOR_F cursorColor = GetProperty("caretColor").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
 
-        ctx.FillRect(Rect(cursorX, cursorY, 1.5f, cursorH),
-                     D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+        ctx.FillRect(Rect(cursorX, cursorY, cursorWidth, cursorH), cursorColor);
     }
 
     ctx.PopClip();

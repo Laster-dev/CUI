@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="WinUI ContentDialog 模态弹窗控制台" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="WinUI 3 风格半透明遮罩与自定义消息弹窗。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="40" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <Button id="btnTriggerDialog" text="弹出 WinUI ContentDialog 消息框" background="#007ACC" padding="16,8,16,8"/>
+        </StackPanel>
+    </StackPanel>
+
+    <StackPanel orientation="Vertical" width="320" background="#252526" padding="16" gap="8" borderBrush="#333333" borderThickness="1">
+        <TextBlock text="弹窗属性控制表 (ContentDialog)" fontSize="12" fontWeight="Bold" color="#569CD6"/>
+    </StackPanel>
+</StackPanel>

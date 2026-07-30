@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="1000+ FPS 动态图像推流控制台" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="Direct2D ID2D1Bitmap1 硬件位图实时推流，支持在线暂停与恢复播放。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="20" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <Image id="dynImageStream" width="420" height="240"/>
+        </StackPanel>
+    </StackPanel>
+
+    <StackPanel orientation="Vertical" width="320" background="#252526" padding="16" gap="10" borderBrush="#333333" borderThickness="1">
+        <TextBlock text="推流控制面板 (Stream Control)" fontSize="12" fontWeight="Bold" color="#569CD6"/>
+
+        <Button id="btnToggleStream" text="暂停推流播放" background="#D13438" padding="16,8,16,8"/>
+
+        <TextBlock text="画布宽度 (Width):" fontSize="11" color="#AAAAAA"/>
+        <TextBox id="inputStreamWidth" text="420" width="280" height="26"/>
+
+        <TextBlock text="画布高度 (Height):" fontSize="11" color="#AAAAAA"/>
+        <TextBox id="inputStreamHeight" text="240" width="280" height="26"/>
+    </StackPanel>
+</StackPanel>
