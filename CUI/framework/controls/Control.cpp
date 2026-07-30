@@ -20,15 +20,20 @@ D2D1_COLOR_F Control::BlendColor(D2D1_COLOR_F from, D2D1_COLOR_F to, float t) co
 }
 
 void Control::UpdateVisualStateTarget() {
+    m_visualStateTarget = GetVisualStateTarget();
+}
+
+float Control::GetVisualStateTarget() const {
     if (!IsEnabled()) {
-        m_visualStateTarget = 0.0f;
-    } else if (m_isPressed) {
-        m_visualStateTarget = 1.0f;
-    } else if (m_isHovered || m_isFocused) {
-        m_visualStateTarget = 0.55f;
-    } else {
-        m_visualStateTarget = 0.0f;
+        return 0.0f;
     }
+    if (m_isPressed) {
+        return 1.0f;
+    }
+    if (m_isHovered || m_isFocused) {
+        return 0.55f;
+    }
+    return 0.0f;
 }
 
 D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
@@ -53,6 +58,10 @@ bool Control::OnAnimationTick() {
     }
     m_visualState += delta * 0.28f;
     return true;
+}
+
+bool Control::HasSelfAnimation() const {
+    return std::abs(GetVisualStateTarget() - m_visualState) > 0.01f;
 }
 
 void Control::OnRender(GraphicsContext& ctx) {

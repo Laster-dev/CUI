@@ -20,6 +20,7 @@ public:
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseWheel(float delta) override;
     virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     bool IsPopupOpen() const { return m_isPopupOpen; }
     void SetPopupOpen(bool open) { m_isPopupOpen = open; }

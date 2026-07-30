@@ -70,6 +70,12 @@ bool ProgressBar::OnAnimationTick() {
     return true;
 }
 
+bool ProgressBar::HasSelfAnimation() const {
+    return Control::HasSelfAnimation()
+        || IsIndeterminate()
+        || std::abs(GetValue() - m_displayValue) > 0.01f;
+}
+
 void ProgressBar::OnRender(GraphicsContext& ctx) {
     float radius = GetProperty("cornerRadius").AsFloat(3.0f);
     D2D1_COLOR_F trackBg = GetProperty("trackColor").AsColor(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f));

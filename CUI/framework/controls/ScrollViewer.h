@@ -23,6 +23,7 @@ public:
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseWheel(float delta) override;
     virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
     virtual HCURSOR GetCursor() const override;
 
     float GetScrollOffsetY() const { return m_offsetY; }

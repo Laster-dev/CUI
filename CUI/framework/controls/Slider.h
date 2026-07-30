@@ -19,6 +19,7 @@ public:
     virtual void OnMouseUp(Point pt) override;
     virtual void OnKeyDown(int vkCode) override;
     virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     float GetValue() const { return GetProperty("value").AsFloat(0.0f); }
     void SetValue(float val);

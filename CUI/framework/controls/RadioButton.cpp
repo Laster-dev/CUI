@@ -122,6 +122,11 @@ bool RadioButton::OnAnimationTick() {
     return animating;
 }
 
+bool RadioButton::HasSelfAnimation() const {
+    float target = GetState() == CheckState::Checked ? 1.0f : 0.0f;
+    return CheckBox::HasSelfAnimation() || std::abs(target - m_selectionProgress) > 0.01f;
+}
+
 void RadioButton::SetChecked(bool checked) {
     SetState(checked ? CheckState::Checked : CheckState::Unchecked);
 }

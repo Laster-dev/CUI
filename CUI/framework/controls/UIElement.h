@@ -90,6 +90,8 @@ public:
     virtual bool NeedsAutoScrollTick() const { return false; }
     // Returns true if any animation still needs frames (smooth scroll, etc.).
     virtual bool OnAnimationTick();
+    virtual bool HasSelfAnimation() const { return false; }
+    virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const;
 
     void SetContextMenu(std::shared_ptr<ContextMenu> menu) { m_contextMenu = menu; }
     std::shared_ptr<ContextMenu> GetContextMenu() const { return m_contextMenu; }

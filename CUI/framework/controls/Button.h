@@ -17,6 +17,7 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
 private:
     Point m_rippleCenter{};

@@ -147,6 +147,13 @@ bool Slider::OnAnimationTick() {
     return true;
 }
 
+bool Slider::HasSelfAnimation() const {
+    if (m_isDragging) {
+        return Control::HasSelfAnimation();
+    }
+    return Control::HasSelfAnimation() || std::abs(GetValue() - m_displayValue) > 0.01f;
+}
+
 void Slider::OnKeyDown(int vkCode) {
     Control::OnKeyDown(vkCode);
     float step = GetStep();

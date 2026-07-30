@@ -77,6 +77,9 @@ public:
                                        const Point& origin, std::vector<D2D1_RECT_F>& rects);
 
     float GetDpiScale() const { return m_dpiScale; }
+    void SetPaintBounds(const Rect& rect) { m_paintBounds = rect; }
+    const Rect& GetPaintBounds() const { return m_paintBounds; }
+    bool IntersectsPaintBounds(const Rect& rect) const { return m_paintBounds.IsEmpty() || rect.Intersects(m_paintBounds); }
 
 private:
     HRESULT CreateDeviceIndependentResources();
@@ -94,6 +97,7 @@ private:
 
     RenderResources m_resources;
     std::vector<D2D1_RECT_F> m_clipStack;
+    Rect m_paintBounds;
 };
 
 } // namespace CUI

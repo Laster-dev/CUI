@@ -237,6 +237,20 @@ bool TimePicker::OnAnimationTick() {
     return base || hourAnimating || minuteAnimating;
 }
 
+bool TimePicker::HasSelfAnimation() const {
+    auto axisAnimating = [](float current, float target, int count) {
+        float diff = target - current;
+        float halfRange = static_cast<float>(count) * 0.5f;
+        if (diff > halfRange) diff -= static_cast<float>(count);
+        if (diff < -halfRange) diff += static_cast<float>(count);
+        return std::abs(diff) > 0.001f;
+    };
+
+    return Control::HasSelfAnimation()
+        || axisAnimating(m_hourPosition, m_hourTarget, 24)
+        || axisAnimating(m_minutePosition, m_minuteTarget, 60);
+}
+
 void TimePicker::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 

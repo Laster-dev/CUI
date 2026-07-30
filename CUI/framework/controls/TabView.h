@@ -36,6 +36,7 @@ public:
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseWheel(float delta) override;
     virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
     virtual UIElement* HitTest(float x, float y) override;
 
     Event<TabView*, int>& OnSelectionChanged() { return m_selectionChangedEvent; }

@@ -399,6 +399,10 @@ bool Toast::OnAnimationTick() {
     return false;
 }
 
+bool Toast::HasSelfAnimation() const {
+    return m_state == 1 || m_state == 4;
+}
+
 std::shared_ptr<Toast> Toast::Show(UIElement* root,
     const std::string& title,
     const std::string& message,

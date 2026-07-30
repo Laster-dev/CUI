@@ -46,6 +46,7 @@ private:
     void SetHoveredElement(UIElement* element);
     void SetPressedElement(UIElement* element);
     void SetFocusedElement(UIElement* element);
+    void InvalidateAnimatedRegions();
 
     HWND m_hwnd = nullptr;
     GraphicsContext m_gfxContext;

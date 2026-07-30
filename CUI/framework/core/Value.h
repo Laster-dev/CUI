@@ -50,6 +50,33 @@ struct Rect {
         return px >= x && px <= x + width && py >= y && py <= y + height;
     }
 
+    bool IsEmpty() const {
+        return width <= 0.0f || height <= 0.0f;
+    }
+
+    bool Intersects(const Rect& other) const {
+        if (IsEmpty() || other.IsEmpty()) return false;
+        return x < other.x + other.width
+            && x + width > other.x
+            && y < other.y + other.height
+            && y + height > other.y;
+    }
+
+    Rect Union(const Rect& other) const {
+        if (IsEmpty()) return other;
+        if (other.IsEmpty()) return *this;
+
+        float left = (x < other.x) ? x : other.x;
+        float top = (y < other.y) ? y : other.y;
+        float right = (x + width > other.x + other.width) ? (x + width) : (other.x + other.width);
+        float bottom = (y + height > other.y + other.height) ? (y + height) : (other.y + other.height);
+        return Rect(left, top, right - left, bottom - top);
+    }
+
+    Rect Inflate(float amount) const {
+        return Rect(x - amount, y - amount, width + amount * 2.0f, height + amount * 2.0f);
+    }
+
     D2D1_RECT_F ToD2D() const {
         return D2D1::RectF(x, y, x + width, y + height);
     }

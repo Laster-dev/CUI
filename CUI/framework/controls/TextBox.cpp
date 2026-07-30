@@ -360,6 +360,16 @@ bool TextBox::OnAnimationTick() {
     return base || animating;
 }
 
+bool TextBox::HasSelfAnimation() const {
+    bool hasFloatingLabel = !GetProperty("placeholder").AsString("").empty();
+    bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetProperty("text").AsString("").empty() || !m_compString.empty());
+    float labelTarget = shouldFloat ? 1.0f : 0.0f;
+    float focusTarget = m_isFocused ? 1.0f : 0.0f;
+    return Control::HasSelfAnimation()
+        || std::abs(labelTarget - m_labelProgress) > 0.01f
+        || std::abs(focusTarget - m_focusLineProgress) > 0.01f;
+}
+
 void TextBox::SelectAll() {
     std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
     m_selectionStart = 0;

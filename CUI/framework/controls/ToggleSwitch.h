@@ -16,6 +16,7 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseUp(Point pt) override;
     virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     bool IsOn() const { return GetProperty("isOn").AsBool(false); }
     void SetIsOn(bool on);

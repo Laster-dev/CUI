@@ -62,6 +62,11 @@ bool ToggleSwitch::OnAnimationTick() {
     return base;
 }
 
+bool ToggleSwitch::HasSelfAnimation() const {
+    float targetRatio = IsOn() ? 1.0f : 0.0f;
+    return Control::HasSelfAnimation() || std::abs(m_knobPosRatio - targetRatio) > 0.01f;
+}
+
 void ToggleSwitch::OnMouseUp(Point pt) {
     Control::OnMouseUp(pt);
     if (m_bounds.Contains(pt.x, pt.y)) {

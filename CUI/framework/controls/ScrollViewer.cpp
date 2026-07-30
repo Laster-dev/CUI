@@ -332,4 +332,8 @@ bool ScrollViewer::OnAnimationTick() {
     return childAnimating || selfAnimating;
 }
 
+bool ScrollViewer::HasSelfAnimation() const {
+    return m_scrollAnimator.IsActive();
+}
+
 } // namespace CUI

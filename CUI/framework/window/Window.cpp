@@ -56,6 +56,29 @@ void Window::SetFocusedElement(UIElement* element) {
     m_focusedElement = CaptureElementRef(element);
 }
 
+void Window::InvalidateAnimatedRegions() {
+    if (!m_hwnd || !m_rootElement) {
+        return;
+    }
+
+    Rect dirtyRect;
+    bool hasDirty = false;
+    m_rootElement->CollectAnimationBounds(dirtyRect, hasDirty);
+
+    if (!hasDirty) {
+        InvalidateRect(m_hwnd, nullptr, FALSE);
+        return;
+    }
+
+    RECT rc = {
+        static_cast<LONG>(std::floor(dirtyRect.x)) - 2,
+        static_cast<LONG>(std::floor(dirtyRect.y)) - 2,
+        static_cast<LONG>(std::ceil(dirtyRect.x + dirtyRect.width)) + 2,
+        static_cast<LONG>(std::ceil(dirtyRect.y + dirtyRect.height)) + 2
+    };
+    InvalidateRect(m_hwnd, &rc, FALSE);
+}
+
 Window::~Window() {
     if (m_hwnd) {
         KillTimer(m_hwnd, 1);
@@ -146,6 +169,7 @@ void Window::RunMessageLoop() {
         const bool shouldProbeAnimation = hadMessage || animationActive;
         const bool frameDue = !animationActive || (now - lastFrameTime) >= targetFrame;
         bool animating = animationActive;
+        bool didAnimationTick = false;
         if (shouldProbeAnimation && frameDue && m_rootElement) {
             animating = m_rootElement->OnAnimationTick();
             if (auto focused = LockElement(m_focusedElement)) {
@@ -155,11 +179,12 @@ void Window::RunMessageLoop() {
                 }
             }
             lastFrameTime = now;
+            didAnimationTick = true;
         }
         animationActive = animating;
 
-        if (animating) {
-            InvalidateRect(m_hwnd, nullptr, FALSE);
+        if (didAnimationTick && animating) {
+            InvalidateAnimatedRegions();
             UpdateWindow(m_hwnd);
             continue;
         }
@@ -467,6 +492,14 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 void Window::OnPaint() {
     PAINTSTRUCT ps;
     BeginPaint(m_hwnd, &ps);
+
+    Rect paintBounds(
+        static_cast<float>(ps.rcPaint.left),
+        static_cast<float>(ps.rcPaint.top),
+        static_cast<float>(ps.rcPaint.right - ps.rcPaint.left),
+        static_cast<float>(ps.rcPaint.bottom - ps.rcPaint.top)
+    );
+    m_gfxContext.SetPaintBounds(paintBounds);
 
     m_gfxContext.BeginDraw();
 

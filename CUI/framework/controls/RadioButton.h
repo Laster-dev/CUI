@@ -16,6 +16,7 @@ public:
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
     virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     std::string GetGroupName() const { return GetProperty("groupName").AsString(""); }
     void SetGroupName(const std::string& group) { SetProperty("groupName", Value(group)); }

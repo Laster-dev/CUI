@@ -92,6 +92,10 @@ bool Button::OnAnimationTick() {
     return true;
 }
 
+bool Button::HasSelfAnimation() const {
+    return Control::HasSelfAnimation() || m_rippleActive;
+}
+
 void Button::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
     D2D1_COLOR_F baseBorder = GetProperty("borderBrush").AsColor(D2D1::ColorF(0, 0, 0, 0));

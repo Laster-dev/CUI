@@ -402,4 +402,18 @@ bool TabView::OnAnimationTick() {
     return animating;
 }
 
+bool TabView::HasSelfAnimation() const {
+    if (std::abs(m_scrollTargetX - m_scrollOffsetX) > 0.1f) {
+        return true;
+    }
+
+    for (size_t i = 0; i < m_tabs.size(); ++i) {
+        float target = (static_cast<int>(i) == m_selectedIndex) ? 1.0f : 0.0f;
+        if (std::abs(target - m_tabs[i].accentProgress) > 0.01f) {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace CUI

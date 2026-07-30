@@ -165,4 +165,20 @@ bool ToastCenter::OnAnimationTick() {
     return active;
 }
 
+void ToastCenter::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    for (const auto& toast : m_toasts) {
+        if (!toast || !toast->HasSelfAnimation()) {
+            continue;
+        }
+
+        Rect bounds = toast->GetRenderBounds();
+        if (bounds.IsEmpty()) {
+            bounds = toast->CalculateBounds(GetWindowRect(), 0);
+        }
+        bounds = bounds.Inflate(8.0f);
+        dirtyRect = hasDirty ? dirtyRect.Union(bounds) : bounds;
+        hasDirty = true;
+    }
+}
+
 } // namespace CUI

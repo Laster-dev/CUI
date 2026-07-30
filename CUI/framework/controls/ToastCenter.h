@@ -19,6 +19,7 @@ public:
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
     virtual bool OnAnimationTick() override;
+    virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
 
     std::shared_ptr<Toast> AddToast(const std::shared_ptr<Toast>& toast);
     std::shared_ptr<Toast> ShowToast(const std::string& title,

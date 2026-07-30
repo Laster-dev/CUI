@@ -214,4 +214,14 @@ bool CheckBox::OnAnimationTick() {
     return animating;
 }
 
+bool CheckBox::HasSelfAnimation() const {
+    float fillTarget = GetState() == CheckState::Unchecked ? 0.0f : 1.0f;
+    float checkTarget = GetState() == CheckState::Checked ? 1.0f : 0.0f;
+    float indeterminateTarget = GetState() == CheckState::Indeterminate ? 1.0f : 0.0f;
+    return Control::HasSelfAnimation()
+        || std::abs(fillTarget - m_fillProgress) > 0.01f
+        || std::abs(checkTarget - m_checkProgress) > 0.01f
+        || std::abs(indeterminateTarget - m_indeterminateProgress) > 0.01f;
+}
+
 } // namespace CUI

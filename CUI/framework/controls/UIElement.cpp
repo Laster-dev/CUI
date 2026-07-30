@@ -249,4 +249,22 @@ bool UIElement::OnAnimationTick() {
     return any;
 }
 
+void UIElement::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    std::string visStr = GetProperty("visibility").AsString("Visible");
+    if (visStr != "Visible") {
+        return;
+    }
+
+    if (HasSelfAnimation() && !m_bounds.IsEmpty()) {
+        dirtyRect = hasDirty ? dirtyRect.Union(m_bounds) : m_bounds;
+        hasDirty = true;
+    }
+
+    for (const auto& child : m_children) {
+        if (child) {
+            child->CollectAnimationBounds(dirtyRect, hasDirty);
+        }
+    }
+}
+
 } // namespace CUI

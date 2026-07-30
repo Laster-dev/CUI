@@ -51,6 +51,7 @@ public:
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
     virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
     virtual void OnMouseEnter() override;
     virtual void OnMouseLeave() override;
     virtual void OnMouseDown(Point pt) override;
