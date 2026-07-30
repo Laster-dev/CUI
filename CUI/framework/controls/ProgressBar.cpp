@@ -41,9 +41,10 @@ Size ProgressBar::Measure(Size availableSize) {
 bool ProgressBar::OnAnimationTick() {
     bool baseAnim = Control::OnAnimationTick();
     if (IsIndeterminate()) {
-        m_animOffset += 4.0f;
-        if (m_animOffset > m_bounds.width * 1.5f) {
-            m_animOffset = -m_bounds.width * 0.5f;
+        m_animOffset += 2.5f;
+        float wrapWidth = (m_bounds.width > 0.0f) ? m_bounds.width : 200.0f;
+        if (m_animOffset > wrapWidth * 1.5f) {
+            m_animOffset = -wrapWidth * 0.5f;
         }
         return true;
     }

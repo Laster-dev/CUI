@@ -301,9 +301,13 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 InvalidateRect(m_hwnd, nullptr, FALSE);
             }
         } else if (wParam == 2) {
-            // ListView rubber-band auto-scroll etc. (not used for smooth wheel scroll)
+            // 16ms High-Precision Timer: Drive UI animations (ProgressBar indeterminate, smooth scroll, etc.)
+            bool animating = m_rootElement && m_rootElement->OnAnimationTick();
             if (auto focused = LockElement(m_focusedElement)) {
                 focused->OnAutoScrollTick();
+                animating = true;
+            }
+            if (animating) {
                 InvalidateRect(m_hwnd, nullptr, FALSE);
             }
         }
