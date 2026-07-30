@@ -54,6 +54,7 @@ public:
     virtual void OnKeyDown(int vkCode) override;
     virtual void OnMouseWheel(float delta) override;
     virtual void OnAutoScrollTick() override;
+    virtual bool NeedsAutoScrollTick() const override { return m_isRubberBandSelecting; }
     virtual bool OnAnimationTick() override;
 
     // Columns Management

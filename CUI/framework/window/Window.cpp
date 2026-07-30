@@ -59,7 +59,6 @@ void Window::SetFocusedElement(UIElement* element) {
 Window::~Window() {
     if (m_hwnd) {
         KillTimer(m_hwnd, 1);
-        KillTimer(m_hwnd, 2);
         DestroyWindow(m_hwnd);
     }
 }
@@ -110,7 +109,6 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     }
 
     SetTimer(m_hwnd, 1, 500, nullptr);
-    SetTimer(m_hwnd, 2, 16, nullptr);
 
     return true;
 }
@@ -131,6 +129,7 @@ void Window::RunMessageLoop() {
     using clock = std::chrono::steady_clock;
     auto lastFrameTime = clock::now();
     constexpr auto targetFrame = std::chrono::milliseconds(8);
+    bool animationActive = false;
 
     for (;;) {
         bool hadMessage = false;
@@ -144,14 +143,21 @@ void Window::RunMessageLoop() {
         }
 
         const auto now = clock::now();
-        const bool frameDue = (now - lastFrameTime) >= targetFrame;
-        bool animating = false;
-        if (frameDue && m_rootElement) {
+        const bool shouldProbeAnimation = hadMessage || animationActive;
+        const bool frameDue = !animationActive || (now - lastFrameTime) >= targetFrame;
+        bool animating = animationActive;
+        if (shouldProbeAnimation && frameDue && m_rootElement) {
             animating = m_rootElement->OnAnimationTick();
+            if (auto focused = LockElement(m_focusedElement)) {
+                if (focused->NeedsAutoScrollTick()) {
+                    focused->OnAutoScrollTick();
+                    animating = true;
+                }
+            }
             lastFrameTime = now;
         }
+        animationActive = animating;
 
-        // Drive UI animations on a vsync-paced path even while input is active.
         if (animating) {
             InvalidateRect(m_hwnd, nullptr, FALSE);
             UpdateWindow(m_hwnd);
@@ -159,13 +165,15 @@ void Window::RunMessageLoop() {
         }
 
         if (!hadMessage) {
-            MsgWaitForMultipleObjectsEx(
-                0,
-                nullptr,
-                frameDue ? 1 : static_cast<DWORD>(targetFrame.count()),
-                QS_ALLINPUT,
-                MWMO_INPUTAVAILABLE
-            );
+            if (animationActive) {
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - lastFrameTime);
+                DWORD waitMs = elapsed >= targetFrame
+                    ? 0
+                    : static_cast<DWORD>((targetFrame - elapsed).count());
+                MsgWaitForMultipleObjectsEx(0, nullptr, waitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            } else {
+                WaitMessage();
+            }
         }
     }
 }
@@ -320,16 +328,6 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_TIMER:
         if (wParam == 1) {
             if (auto focused = LockElement(m_focusedElement)) {
-                InvalidateRect(m_hwnd, nullptr, FALSE);
-            }
-        } else if (wParam == 2) {
-            // 16ms High-Precision Timer: Drive UI animations (ProgressBar indeterminate, smooth scroll, etc.)
-            bool animating = m_rootElement && m_rootElement->OnAnimationTick();
-            if (auto focused = LockElement(m_focusedElement)) {
-                focused->OnAutoScrollTick();
-                animating = true;
-            }
-            if (animating) {
                 InvalidateRect(m_hwnd, nullptr, FALSE);
             }
         }

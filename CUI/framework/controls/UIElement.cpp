@@ -235,6 +235,11 @@ void UIElement::OnKeyDown(int vkCode) {
 }
 
 bool UIElement::OnAnimationTick() {
+    std::string visStr = GetProperty("visibility").AsString("Visible");
+    if (visStr != "Visible") {
+        return false;
+    }
+
     bool any = false;
     for (auto& child : m_children) {
         if (child && child->OnAnimationTick()) {

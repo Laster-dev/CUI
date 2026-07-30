@@ -87,6 +87,7 @@ public:
     virtual void OnMouseWheel(float delta);
     virtual void OnKeyDown(int vkCode);
     virtual void OnAutoScrollTick() {}
+    virtual bool NeedsAutoScrollTick() const { return false; }
     // Returns true if any animation still needs frames (smooth scroll, etc.).
     virtual bool OnAnimationTick();
 
