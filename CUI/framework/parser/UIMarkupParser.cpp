@@ -240,6 +240,7 @@ static std::shared_ptr<UIElement> BuildTreeFromXmlNode(UIMarkupParser& parser, c
     StyleManager::Instance().ApplyStyle(elem.get());
 
     TabView* tabViewElem = dynamic_cast<TabView*>(elem.get());
+    CollapsePanel* collapseElem = dynamic_cast<CollapsePanel*>(elem.get());
 
     for (const auto& childXml : xmlNode.children) {
         if (tabViewElem && childXml.tagName == "TabItem") {
@@ -273,7 +274,11 @@ static std::shared_ptr<UIElement> BuildTreeFromXmlNode(UIMarkupParser& parser, c
         } else {
             auto childElem = BuildTreeFromXmlNode(parser, childXml, deferredBindings);
             if (childElem) {
-                elem->AddChild(childElem);
+                if (collapseElem) {
+                    collapseElem->SetContent(childElem);
+                } else {
+                    elem->AddChild(childElem);
+                }
             }
         }
     }

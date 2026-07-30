@@ -14,6 +14,7 @@ public:
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;
+    virtual void OnRender(GraphicsContext& ctx) override;
 
     int GetCurrentPage() const { return GetProperty("currentPage").AsInt(1); }
     void SetCurrentPage(int page);

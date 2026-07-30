@@ -3,15 +3,43 @@
     <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="16" background="#1E1E1E">
         <StackPanel orientation="Vertical" gap="4">
             <TextBlock text="Splitter / GridSplitter 可拖拽拆分条控件" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
-            <TextBlock text="支持水平/垂直方向布局拆分、鼠标悬停光标改变与拖拽调宽调高。" fontSize="12" color="#888888"/>
+            <TextBlock text="支持水平/垂直方向动态比例拆分。按住中轴线拖拽，左右/上下面板尺寸动态响应联动！" fontSize="12" color="#888888"/>
         </StackPanel>
 
-        <StackPanel orientation="Vertical" alignHorizontal="Center" background="#252526" padding="24" cornerRadius="6" borderBrush="#333333" borderThickness="1" gap="16">
-            <TextBlock text="1. 水平方向拆分条 (Horizontal Splitter):" fontSize="12" color="#AAAAAA"/>
-            <Splitter id="targetSplitterH" orientation="Horizontal" width="280" height="6"/>
+        <StackPanel orientation="Vertical" background="#252526" padding="16" cornerRadius="6" borderBrush="#3E3E42" borderThickness="1" gap="16">
+            <TextBlock text="1. 水平（左右）面板可拖拽拆分 (Horizontal Splitter Demo):" fontSize="12" color="#AAAAAA"/>
+            <StackPanel orientation="Horizontal" height="180" background="#1E1E1E" cornerRadius="4" borderBrush="#333333" borderThickness="1">
+                <StackPanel orientation="Vertical" width="180" background="#252526" padding="12" gap="8">
+                    <TextBlock text="[左侧文件树面板]" fontSize="12" fontWeight="Bold" color="#007ACC"/>
+                    <TextBlock text="• main.cpp" fontSize="11" color="#CCCCCC"/>
+                    <TextBlock text="• App.xaml" fontSize="11" color="#CCCCCC"/>
+                    <TextBlock text="• config.json" fontSize="11" color="#CCCCCC"/>
+                </StackPanel>
 
-            <TextBlock text="2. 垂直方向拆分条 (Vertical Splitter):" fontSize="12" color="#AAAAAA"/>
-            <Splitter id="targetSplitterV" orientation="Vertical" width="6" height="120"/>
+                <Splitter id="targetSplitterH" orientation="Vertical" width="6"/>
+
+                <StackPanel orientation="Vertical" flexGrow="1" background="#1E1E1E" padding="12" gap="8">
+                    <TextBlock text="[右侧主编辑区]" fontSize="12" fontWeight="Bold" color="#4EC9B0"/>
+                    <TextBlock text="拖拽左侧边界线（Splitter），即可平滑改变左右两端区域的宽度分配。" fontSize="11" color="#888888"/>
+                </StackPanel>
+            </StackPanel>
+
+            <TextBlock text="2. 垂直（上下）面板可拖拽拆分 (Vertical Splitter Demo):" fontSize="12" color="#AAAAAA"/>
+            <StackPanel orientation="Vertical" height="220" background="#1E1E1E" cornerRadius="4" borderBrush="#333333" borderThickness="1">
+                <StackPanel orientation="Vertical" height="110" background="#252526" padding="12" gap="4">
+                    <TextBlock text="[上方代码编辑视口]" fontSize="12" fontWeight="Bold" color="#D16969"/>
+                    <TextBlock text="1  #include <iostream>" fontSize="11" color="#6A9955"/>
+                    <TextBlock text="2  int main() { return 0; }" fontSize="11" color="#DCDCAA"/>
+                </StackPanel>
+
+                <Splitter id="targetSplitterV" orientation="Horizontal" height="6"/>
+
+                <StackPanel orientation="Vertical" flexGrow="1" background="#1E1E1E" padding="12" gap="4">
+                    <TextBlock text="[下方集成终端/控制台]" fontSize="12" fontWeight="Bold" color="#CE9178"/>
+                    <TextBlock text="PS C:\Project> msbuild CUI.slnx /t:Build" fontSize="11" color="#CCCCCC"/>
+                    <TextBlock text="Build succeeded. 0 Errors, 0 Warnings." fontSize="11" color="#4EC9B0"/>
+                </StackPanel>
+            </StackPanel>
         </StackPanel>
     </StackPanel>
 

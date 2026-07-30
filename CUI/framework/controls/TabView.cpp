@@ -1,5 +1,7 @@
 #include "TabView.h"
 #include <algorithm>
+#include <cmath>
+#include <windows.h>
 
 namespace CUI {
 
@@ -38,6 +40,8 @@ void TabView::AddTab(const std::string& title, std::shared_ptr<UIElement> conten
 
     if (m_tabs.size() == 1) {
         SetSelectedIndex(0);
+    } else {
+        EnsureSelectedTabVisible();
     }
 }
 
@@ -68,7 +72,7 @@ void TabView::SetSelectedIndex(int index) {
     m_selectedIndex = index;
 
     // Show active tab content, hide other contents
-    float headerH = 36.0f;
+    float headerH = GetHeaderHeight();
     Rect contentRect(m_bounds.x, m_bounds.y + headerH, m_bounds.width, m_bounds.height - headerH);
     Size contentAvail(m_bounds.width, m_bounds.height - headerH);
 
@@ -84,11 +88,12 @@ void TabView::SetSelectedIndex(int index) {
         }
     }
 
+    EnsureSelectedTabVisible();
     m_selectionChangedEvent.Invoke(this, m_selectedIndex);
 }
 
 Size TabView::Measure(Size availableSize) {
-    float headerH = 36.0f;
+    float headerH = GetHeaderHeight();
     Size contentAvail(availableSize.width, availableSize.height - headerH);
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
@@ -103,7 +108,7 @@ Size TabView::Measure(Size availableSize) {
 
 void TabView::Arrange(Rect finalRect) {
     m_bounds = finalRect;
-    float headerH = 36.0f;
+    float headerH = GetHeaderHeight();
     Rect contentRect(finalRect.x, finalRect.y + headerH, finalRect.width, finalRect.height - headerH);
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
@@ -111,10 +116,67 @@ void TabView::Arrange(Rect finalRect) {
             m_tabs[i].content->Arrange(contentRect);
         }
     }
+
+    GraphicsContext ctx;
+    float maxScroll = (std::max)(0.0f, GetTotalTabsWidth(ctx) - (std::max)(0.0f, m_bounds.width - 8.0f));
+    m_scrollTargetX = std::clamp(m_scrollTargetX, 0.0f, maxScroll);
+    m_scrollOffsetX = std::clamp(m_scrollOffsetX, 0.0f, maxScroll);
+}
+
+float TabView::GetHeaderHeight() const {
+    return 36.0f;
+}
+
+float TabView::MeasureTabWidth(GraphicsContext& ctx, const TabViewItem& tab) const {
+    float minW = GetProperty("minTabWidth").AsFloat(80.0f);
+    float maxW = GetProperty("maxTabWidth").AsFloat(260.0f);
+
+    float width = 24.0f;
+    if (!tab.icon.empty()) {
+        width += 16.0f + 8.0f;
+    }
+    width += ctx.MeasureText(tab.title, "Segoe UI", 12.0f, DWRITE_FONT_WEIGHT_NORMAL).width;
+    width += tab.isClosable ? 24.0f : 10.0f;
+    return std::clamp(width, minW, maxW);
+}
+
+float TabView::GetTotalTabsWidth(GraphicsContext& ctx) const {
+    float total = 4.0f;
+    for (const auto& tab : m_tabs) {
+        total += MeasureTabWidth(ctx, tab) + 4.0f;
+    }
+    return total;
+}
+
+void TabView::EnsureSelectedTabVisible() {
+    if (m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_tabs.size()) || m_bounds.width <= 0.0f) {
+        return;
+    }
+
+    GraphicsContext ctx;
+    float tabX = m_bounds.x + 4.0f;
+    for (int i = 0; i < m_selectedIndex; ++i) {
+        tabX += MeasureTabWidth(ctx, m_tabs[i]) + 4.0f;
+    }
+
+    float selectedW = MeasureTabWidth(ctx, m_tabs[m_selectedIndex]);
+    float relativeStart = tabX - m_bounds.x;
+    float relativeEnd = relativeStart + selectedW;
+    float viewportStart = m_scrollTargetX;
+    float viewportEnd = m_scrollTargetX + (std::max)(0.0f, m_bounds.width - 8.0f);
+
+    if (relativeStart < viewportStart) {
+        m_scrollTargetX = relativeStart;
+    } else if (relativeEnd > viewportEnd) {
+        m_scrollTargetX = relativeEnd - (std::max)(0.0f, m_bounds.width - 8.0f);
+    }
+
+    float maxScroll = (std::max)(0.0f, GetTotalTabsWidth(ctx) - (std::max)(0.0f, m_bounds.width - 8.0f));
+    m_scrollTargetX = std::clamp(m_scrollTargetX, 0.0f, maxScroll);
 }
 
 void TabView::OnRender(GraphicsContext& ctx) {
-    float headerH = 36.0f;
+    float headerH = GetHeaderHeight();
     Rect headerBarRect(m_bounds.x, m_bounds.y, m_bounds.width, headerH);
 
     // Draw TabBar Header background
@@ -126,23 +188,19 @@ void TabView::OnRender(GraphicsContext& ctx) {
 
     float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
 
-    float minW = GetProperty("minTabWidth").AsFloat(80.0f);
-    float maxW = GetProperty("maxTabWidth").AsFloat(260.0f);
-
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         const auto& tab = m_tabs[i];
         bool isActive = (static_cast<int>(i) == m_selectedIndex);
 
-        Size titleSize = ctx.MeasureText(tab.title, "Segoe UI", 12.0f);
-        float neededW = titleSize.width + 54.0f;
-        float tabW = std::clamp(neededW, minW, maxW);
+        float tabW = MeasureTabWidth(ctx, tab);
         Rect tabRect(tabX, m_bounds.y + 4.0f, tabW, headerH - 4.0f);
 
         D2D1_COLOR_F tabBg = isActive ? GetProperty("activeTabBackground").AsColor(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f))
                                       : GetProperty("inactiveTabBackground").AsColor(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f));
 
-        // Draw tab background with rounded top corners
+        // Rounded top corners only; bottom edge stays flush with content.
         ctx.FillRoundedRect(tabRect, 4.0f, tabBg);
+        ctx.FillRect(Rect(tabRect.x, tabRect.y + tabRect.height - 4.0f, tabRect.width, 4.0f), tabBg);
 
         if (isActive) {
             // Active accent indicator bar at top
@@ -187,40 +245,63 @@ void TabView::OnRender(GraphicsContext& ctx) {
     ctx.DrawLine(Point(m_bounds.x, m_bounds.y + headerH - 1), Point(m_bounds.x + m_bounds.width, m_bounds.y + headerH - 1), D2D1::ColorF(0x33 / 255.0f, 0x33 / 255.0f, 0x33 / 255.0f));
 }
 
-void TabView::OnMouseWheel(float delta) {
-    float headerH = 36.0f;
-    GraphicsContext ctx;
-    float totalTabsWidth = 8.0f;
-    float minW = GetProperty("minTabWidth").AsFloat(80.0f);
-    float maxW = GetProperty("maxTabWidth").AsFloat(260.0f);
+bool TabView::IsPointInHeader(float x, float y) const {
+    const float headerH = GetHeaderHeight();
+    return x >= m_bounds.x && x <= m_bounds.x + m_bounds.width
+        && y >= m_bounds.y && y <= m_bounds.y + headerH;
+}
 
-    for (const auto& tab : m_tabs) {
-        Size titleSize = ctx.MeasureText(tab.title, "Segoe UI", 12.0f);
-        float neededW = titleSize.width + 54.0f;
-        totalTabsWidth += std::clamp(neededW, minW, maxW) + 4.0f;
+void TabView::ScrollHeaderByWheel(float delta) {
+    GraphicsContext ctx;
+    float maxScroll = (std::max)(0.0f, GetTotalTabsWidth(ctx) - (std::max)(0.0f, m_bounds.width - 8.0f));
+    m_scrollTargetX = std::clamp(m_scrollTargetX - delta * 72.0f, 0.0f, maxScroll);
+}
+
+void TabView::OnMouseWheel(float delta) {
+    POINT screenPt{};
+    if (GetCursorPos(&screenPt)) {
+        HWND hwnd = WindowFromPoint(screenPt);
+        if (hwnd) {
+            POINT clientPt = screenPt;
+            ScreenToClient(hwnd, &clientPt);
+            if (IsPointInHeader(static_cast<float>(clientPt.x), static_cast<float>(clientPt.y))) {
+                ScrollHeaderByWheel(delta);
+                return;
+            }
+        }
     }
 
-    float maxScroll = (std::max)(0.0f, totalTabsWidth - m_bounds.width);
-    m_scrollOffsetX -= delta * 40.0f;
-    if (m_scrollOffsetX < 0.0f) m_scrollOffsetX = 0.0f;
-    if (m_scrollOffsetX > maxScroll) m_scrollOffsetX = maxScroll;
+    UIElement::OnMouseWheel(delta);
+}
+
+UIElement* TabView::HitTest(float x, float y) {
+    std::string visStr = GetProperty("visibility").AsString("Visible");
+    if (visStr != "Visible" || !m_bounds.Contains(x, y)) {
+        return nullptr;
+    }
+
+    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_tabs.size()) && m_tabs[m_selectedIndex].content) {
+        if (!IsPointInHeader(x, y)) {
+            if (UIElement* childHit = m_tabs[m_selectedIndex].content->HitTest(x, y)) {
+                return childHit;
+            }
+        }
+    }
+
+    return this;
 }
 
 void TabView::OnMouseMove(Point pt) {
-    float headerH = 36.0f;
+    float headerH = GetHeaderHeight();
     int oldHover = m_hoveredCloseIndex;
     m_hoveredCloseIndex = -1;
 
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + headerH) {
         GraphicsContext ctx;
         float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
-        float minW = GetProperty("minTabWidth").AsFloat(80.0f);
-        float maxW = GetProperty("maxTabWidth").AsFloat(260.0f);
 
         for (size_t i = 0; i < m_tabs.size(); ++i) {
-            Size titleSize = ctx.MeasureText(m_tabs[i].title, "Segoe UI", 12.0f);
-            float neededW = titleSize.width + 54.0f;
-            float tabW = std::clamp(neededW, minW, maxW);
+            float tabW = MeasureTabWidth(ctx, m_tabs[i]);
 
             if (m_tabs[i].isClosable) {
                 float closeX = tabX + tabW - 22.0f;
@@ -240,17 +321,13 @@ void TabView::OnMouseMove(Point pt) {
 void TabView::OnMouseDown(Point pt) {
     UIElement::OnMouseDown(pt);
 
-    float headerH = 36.0f;
+    float headerH = GetHeaderHeight();
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + headerH) {
         GraphicsContext ctx;
         float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
-        float minW = GetProperty("minTabWidth").AsFloat(80.0f);
-        float maxW = GetProperty("maxTabWidth").AsFloat(260.0f);
 
         for (size_t i = 0; i < m_tabs.size(); ++i) {
-            Size titleSize = ctx.MeasureText(m_tabs[i].title, "Segoe UI", 12.0f);
-            float neededW = titleSize.width + 54.0f;
-            float tabW = std::clamp(neededW, minW, maxW);
+            float tabW = MeasureTabWidth(ctx, m_tabs[i]);
             Rect tabRect(tabX, m_bounds.y + 4.0f, tabW, headerH - 4.0f);
 
             if (tabRect.Contains(pt.x, pt.y)) {
@@ -272,6 +349,18 @@ void TabView::OnMouseDown(Point pt) {
             tabX += tabW + 4.0f;
         }
     }
+}
+
+bool TabView::OnAnimationTick() {
+    bool childAnimating = UIElement::OnAnimationTick();
+    float delta = m_scrollTargetX - m_scrollOffsetX;
+    if (std::abs(delta) <= 0.1f) {
+        m_scrollOffsetX = m_scrollTargetX;
+        return childAnimating;
+    }
+
+    m_scrollOffsetX += delta * 0.22f;
+    return true;
 }
 
 } // namespace CUI

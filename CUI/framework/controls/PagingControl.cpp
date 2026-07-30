@@ -18,6 +18,31 @@ PagingControl::PagingControl() {
     m_btnPage2 = std::make_shared<Button>("2");
     m_btnPage3 = std::make_shared<Button>("3");
 
+    auto styleBtn = [](std::shared_ptr<Button> btn, bool active) {
+        if (!btn) return;
+        if (active) {
+            btn->SetProperty("background", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+            btn->SetProperty("hoverBackground", Value(D2D1::ColorF(0x1C / 255.0f, 0x97 / 255.0f, 0xEA / 255.0f, 1.0f)));
+            btn->SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
+            btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+        } else {
+            btn->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
+            btn->SetProperty("hoverBackground", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+            btn->SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
+            btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+        }
+        btn->SetProperty("borderThickness", Value(1.0f));
+        btn->SetProperty("cornerRadius", Value(4.0f));
+        btn->SetProperty("fontSize", Value(12.0f));
+        btn->SetProperty("padding", Value(Thickness(0)));
+    };
+
+    styleBtn(m_btnPrev, false);
+    styleBtn(m_btnPage1, true);
+    styleBtn(m_btnPage2, false);
+    styleBtn(m_btnPage3, false);
+    styleBtn(m_btnNext, false);
+
     AddChild(m_btnPrev);
     AddChild(m_btnPage1);
     AddChild(m_btnPage2);
@@ -55,7 +80,7 @@ void PagingControl::Arrange(Rect finalRect) {
     m_bounds = finalRect;
     float btnW = 32.0f;
     float gap = 6.0f;
-    float startX = finalRect.x + (finalRect.width - (5 * btnW + 4 * gap)) * 0.5f;
+    float startX = finalRect.x + (finalRect.width - (5 * btnW + 4 * gap + 70.0f)) * 0.5f;
 
     m_btnPrev->Arrange(Rect(startX + 0 * (btnW + gap), finalRect.y, btnW, finalRect.height));
     m_btnPage1->Arrange(Rect(startX + 1 * (btnW + gap), finalRect.y, btnW, finalRect.height));
@@ -64,11 +89,45 @@ void PagingControl::Arrange(Rect finalRect) {
     m_btnNext->Arrange(Rect(startX + 4 * (btnW + gap), finalRect.y, btnW, finalRect.height));
 }
 
+void PagingControl::OnRender(GraphicsContext& ctx) {
+    Control::OnRender(ctx);
+
+    // Draw total pages text on right end
+    float btnW = 32.0f;
+    float gap = 6.0f;
+    float startX = m_bounds.x + (m_bounds.width - (5 * btnW + 4 * gap + 70.0f)) * 0.5f;
+    Rect infoRect(startX + 5 * (btnW + gap) + 4.0f, m_bounds.y, 65.0f, m_bounds.height);
+
+    std::string info = "共 " + std::to_string(GetTotalPages()) + " 页";
+    ctx.DrawText(info, infoRect, D2D1::ColorF(0x88 / 255.0f, 0x88 / 255.0f, 0x88 / 255.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+}
+
 void PagingControl::SetCurrentPage(int page) {
     int total = GetTotalPages();
     page = std::clamp(page, 1, total);
     if (GetCurrentPage() != page) {
         SetProperty("currentPage", Value(page));
+
+        auto updateStyle = [page](std::shared_ptr<Button> btn, int targetP) {
+            if (!btn) return;
+            bool active = (page == targetP);
+            if (active) {
+                btn->SetProperty("background", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+                btn->SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
+                btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+                btn->SetProperty("borderThickness", Value(1.0f));
+            } else {
+                btn->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
+                btn->SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
+                btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+                btn->SetProperty("borderThickness", Value(1.0f));
+            }
+        };
+
+        updateStyle(m_btnPage1, 1);
+        updateStyle(m_btnPage2, 2);
+        updateStyle(m_btnPage3, 3);
+
         m_onPageChangedEvent.Invoke(this, page);
     }
 }

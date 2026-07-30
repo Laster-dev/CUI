@@ -158,6 +158,11 @@ void TitleBar::OnMouseLeave() {
     m_menuBar.OnMouseLeave();
 }
 
+void TitleBar::OnBlur() {
+    Control::OnBlur();
+    m_menuBar.OnBlur();
+}
+
 bool TitleBar::IsMenuBarHit(float x, float y) {
     return m_menuBar.HitTest(x, y) != nullptr;
 }

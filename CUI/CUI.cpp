@@ -42,26 +42,40 @@ static void StartStreamingThread() {
         uint32_t width = 640;
         uint32_t height = 360;
         std::vector<uint32_t> pixels(width * height);
-        uint32_t frame = 0;
+
+        HDC hdcScreen = GetDC(nullptr);
+        HDC hdcMem = CreateCompatibleDC(hdcScreen);
+        HBITMAP hbm = CreateCompatibleBitmap(hdcScreen, width, height);
+        SelectObject(hdcMem, hbm);
+
+        BITMAPINFO bmi = {};
+        bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bmi.bmiHeader.biWidth = width;
+        bmi.bmiHeader.biHeight = -static_cast<int32_t>(height); // Top-down
+        bmi.bmiHeader.biPlanes = 1;
+        bmi.bmiHeader.biBitCount = 32;
+        bmi.bmiHeader.biCompression = BI_RGB;
+
+        int screenW = GetSystemMetrics(SM_CXSCREEN);
+        int screenH = GetSystemMetrics(SM_CYSCREEN);
 
         while (g_isStreaming) {
-            frame++;
-            for (uint32_t y = 0; y < height; ++y) {
-                for (uint32_t x = 0; x < width; ++x) {
-                    uint8_t r = static_cast<uint8_t>((x + frame) % 256);
-                    uint8_t g = static_cast<uint8_t>((y + frame * 2) % 256);
-                    uint8_t b = static_cast<uint8_t>((x + y + frame * 3) % 256);
-                    pixels[y * width + x] = (0xFF << 24) | (r << 16) | (g << 8) | b;
-                }
-            }
+            SetStretchBltMode(hdcMem, HALFTONE);
+            StretchBlt(hdcMem, 0, 0, width, height, hdcScreen, 0, 0, screenW, screenH, SRCCOPY);
+            GetDIBits(hdcMem, hbm, 0, height, pixels.data(), &bmi, DIB_RGB_COLORS);
+
             if (g_streamImage) {
                 g_streamImage->UpdatePixelBuffer(pixels.data(), width, height);
             }
             if (g_activeWindow && g_activeWindow->GetHWND()) {
                 InvalidateRect(g_activeWindow->GetHWND(), nullptr, FALSE);
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
+
+        DeleteObject(hbm);
+        DeleteDC(hdcMem);
+        ReleaseDC(nullptr, hdcScreen);
     });
 }
 
@@ -191,6 +205,10 @@ void BindParsedXmlInteractions(std::shared_ptr<UIElement> root, Window& window) 
     auto propGridSplitter = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridSplitter"));
     auto targetSplitterH = root->FindElementById("targetSplitterH");
     if (propGridSplitter && targetSplitterH) propGridSplitter->SetTargetElement(targetSplitterH, &window);
+
+    auto propGridCollapse = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridCollapse"));
+    auto targetCollapse1 = root->FindElementById("targetCollapse1");
+    if (propGridCollapse && targetCollapse1) propGridCollapse->SetTargetElement(targetCollapse1, &window);
 
     auto propGridNewControls = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridNewControls"));
     if (propGridNewControls) {

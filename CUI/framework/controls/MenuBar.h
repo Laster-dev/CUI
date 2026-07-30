@@ -22,12 +22,15 @@ public:
 
     std::shared_ptr<ContextMenu> AddMenu(const std::string& title);
     void ClearMenus() { m_menus.clear(); }
+    void ClearActiveMenu() { m_activeOpenIndex = -1; m_hoveredIndex = -1; }
+    void ResetInteractionState();
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseLeave() override;
+    virtual void OnBlur() override;
 
 private:
     std::vector<MenuBarItem> m_menus;

@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include <chrono>
 
 namespace CUI {
 
@@ -30,6 +31,7 @@ public:
 private:
     float m_animOffset = 0.0f;
     float m_displayValue = 0.0f;
+    std::chrono::steady_clock::time_point m_lastTickTime{};
 };
 
 } // namespace CUI

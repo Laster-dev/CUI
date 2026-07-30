@@ -85,6 +85,19 @@ void MenuBar::OnMouseLeave() {
     m_hoveredIndex = -1;
 }
 
+void MenuBar::ResetInteractionState() {
+    m_hoveredIndex = -1;
+    m_activeOpenIndex = -1;
+    m_isHovered = false;
+    m_isPressed = false;
+    m_isFocused = false;
+}
+
+void MenuBar::OnBlur() {
+    Control::OnBlur();
+    ResetInteractionState();
+}
+
 void MenuBar::OnMouseDown(Point pt) {
     for (size_t i = 0; i < m_menus.size(); ++i) {
         if (m_menus[i].bounds.Contains(pt.x, pt.y)) {

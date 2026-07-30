@@ -2,11 +2,15 @@
 #include "../controls/TextBox.h"
 #include "../controls/ContextMenu.h"
 #include "../controls/VSCodeControls.h"
+#include "../controls/DatePicker.h"
+#include "../controls/TimePicker.h"
+#include "../controls/ColorPicker.h"
 #include <windowsx.h>
 #include <dwmapi.h>
 #include <imm.h>
 #include <iostream>
 #include <algorithm>
+#include <chrono>
 
 #pragma comment(lib, "imm32.lib")
 #pragma comment(lib, "dwmapi.lib")
@@ -124,9 +128,14 @@ void Window::Show() {
 
 void Window::RunMessageLoop() {
     MSG msg = {};
+    using clock = std::chrono::steady_clock;
+    auto lastFrameTime = clock::now();
+    constexpr auto targetFrame = std::chrono::milliseconds(8);
+
     for (;;) {
-        // Drain the queue first
-        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+        bool hadMessage = false;
+        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            hadMessage = true;
             if (msg.message == WM_QUIT) {
                 return;
             }
@@ -134,17 +143,30 @@ void Window::RunMessageLoop() {
             DispatchMessage(&msg);
         }
 
-        // Drive UI animations (smooth scroll etc.) on a vsync-paced path:
-        // UpdateWindow -> OnPaint -> Present(1) waits for vertical blank.
-        bool animating = m_rootElement && m_rootElement->OnAnimationTick();
+        const auto now = clock::now();
+        const bool frameDue = (now - lastFrameTime) >= targetFrame;
+        bool animating = false;
+        if (frameDue && m_rootElement) {
+            animating = m_rootElement->OnAnimationTick();
+            lastFrameTime = now;
+        }
+
+        // Drive UI animations on a vsync-paced path even while input is active.
         if (animating) {
             InvalidateRect(m_hwnd, nullptr, FALSE);
             UpdateWindow(m_hwnd);
             continue;
         }
 
-        // Idle: sleep until the next input / timer message
-        WaitMessage();
+        if (!hadMessage) {
+            MsgWaitForMultipleObjectsEx(
+                0,
+                nullptr,
+                frameDue ? 1 : static_cast<DWORD>(targetFrame.count()),
+                QS_ALLINPUT,
+                MWMO_INPUTAVAILABLE
+            );
+        }
     }
 }
 
@@ -351,7 +373,16 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         ScreenToClient(m_hwnd, &pt);
         float delta = static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) / WHEEL_DELTA;
-        UIElement* target = m_rootElement ? m_rootElement->HitTest(static_cast<float>(pt.x), static_cast<float>(pt.y)) : nullptr;
+        float fx = static_cast<float>(pt.x);
+        float fy = static_cast<float>(pt.y);
+
+        UIElement* target = nullptr;
+        if (m_rootElement) {
+            target = m_rootElement->HitTestOverlay(fx, fy);
+            if (!target) {
+                target = m_rootElement->HitTest(fx, fy);
+            }
+        }
         if (target) {
             target->OnMouseWheel(delta);
             InvalidateRect(m_hwnd, nullptr, FALSE);
@@ -563,6 +594,26 @@ bool Window::OnLButtonDown(int x, int y) {
     float fx = static_cast<float>(x);
     float fy = static_cast<float>(y);
 
+    if (m_rootElement) {
+        UIElement* overlayHit = m_rootElement->HitTestOverlay(fx, fy);
+        if (overlayHit) {
+            overlayHit->OnMouseDown(Point(fx, fy));
+            return true;
+        } else {
+            // Clicked outside any overlay popups -> close open DatePicker/TimePicker/ColorPicker popups
+            std::function<void(UIElement*)> closePopups = [&](UIElement* elem) {
+                if (!elem) return;
+                if (auto dp = dynamic_cast<DatePicker*>(elem)) dp->SetPopupOpen(false);
+                if (auto tp = dynamic_cast<TimePicker*>(elem)) tp->SetPopupOpen(false);
+                if (auto cp = dynamic_cast<ColorPicker*>(elem)) cp->SetPopupOpen(false);
+                for (auto& child : elem->GetChildren()) {
+                    closePopups(child.get());
+                }
+            };
+            closePopups(m_rootElement.get());
+        }
+    }
+
     if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
         UIElement* menuHit = m_activeContextMenu->HitTestOverlay(fx, fy);
         if (menuHit) {
@@ -572,6 +623,23 @@ bool Window::OnLButtonDown(int x, int y) {
         } else {
             m_activeContextMenu->Hide();
             m_activeContextMenu = nullptr;
+            // Clear MenuBar active highlight state when clicking outside
+            if (m_rootElement) {
+                std::function<void(UIElement*)> clearMenuBar = [&](UIElement* elem) {
+                    if (!elem) return;
+                    if (auto mb = dynamic_cast<MenuBar*>(elem)) {
+                        mb->ResetInteractionState();
+                    }
+                    for (auto& child : elem->GetChildren()) {
+                        clearMenuBar(child.get());
+                    }
+                };
+                clearMenuBar(m_rootElement.get());
+            }
+            if (auto hovered = LockElement(m_hoveredElement)) {
+                hovered->OnMouseLeave();
+            }
+            m_hoveredElement.reset();
         }
     }
 

@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "TextBox.h"
 #include <algorithm>
+#include <cmath>
 #include <cwctype>
 
 namespace CUI {
@@ -55,21 +56,23 @@ std::wstring BuildDisplayText(const std::wstring& wtext, int cursorPos, const st
 
 TextBox::TextBox() {
     SetProperty("text", Value(""));
-    SetProperty("placeholder", Value("Enter text..."));
-    SetProperty("background", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
-    SetProperty("hoverBackground", Value(D2D1::ColorF(0x44 / 255.0f, 0x44 / 255.0f, 0x44 / 255.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x33 / 255.0f, 0x33 / 255.0f, 0x33 / 255.0f, 1.0f)));
-    SetProperty("focusedBorderBrush", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("borderThickness", Value(1.0f));
+    SetProperty("placeholder", Value(""));
+    SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
+    SetProperty("hoverBackground", Value(D2D1::ColorF(0, 0, 0, 0)));
+    SetProperty("borderBrush", Value(D2D1::ColorF(0, 0, 0, 0)));
+    SetProperty("focusedBorderBrush", Value(D2D1::ColorF(0, 0, 0, 0)));
+    SetProperty("borderThickness", Value(0.0f));
+    SetProperty("underlineColor", Value(D2D1::ColorF(0x3B / 255.0f, 0x4A / 255.0f, 0x57 / 255.0f, 1.0f)));
+    SetProperty("activeUnderlineColor", Value(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f)));
     SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
-    SetProperty("placeholderColor", Value(D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f, 1.0f)));
+    SetProperty("placeholderColor", Value(D2D1::ColorF(0x8B / 255.0f, 0x9A / 255.0f, 0xA8 / 255.0f, 1.0f)));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("fontSize", Value(13.0f));
     SetProperty("lineSpacing", Value(1.0f));
     SetProperty("lineHeight", Value(0.0f));
-    SetProperty("padding", Value(Thickness(8, 6, 8, 6)));
+    SetProperty("padding", Value(Thickness(0, 18, 0, 8)));
     SetProperty("width", Value(260.0f));
-    SetProperty("height", Value(32.0f));
+    SetProperty("height", Value(48.0f));
     SetProperty("AcceptsReturn", Value(false));
     SetProperty("TextWrapping", Value("NoWrap"));
 }
@@ -100,12 +103,17 @@ bool TextBox::IsMultiline() const {
 }
 
 Rect TextBox::GetTextRect() const {
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(8, 6, 8, 6));
+    std::string placeholder = GetProperty("placeholder").AsString("");
+    bool hasFloatingLabel = !placeholder.empty();
+    Thickness padding = hasFloatingLabel
+        ? GetProperty("padding").AsThickness(Thickness(0, 18, 0, 8))
+        : Thickness(0, 6, 0, 6);
+    float extraTop = hasFloatingLabel ? ((1.0f - m_labelProgress) * 8.0f) : 0.0f;
     return Rect(
         m_bounds.x + padding.left,
-        m_bounds.y + padding.top,
+        m_bounds.y + padding.top + extraTop,
         m_bounds.width - padding.left - padding.right,
-        m_bounds.height - padding.top - padding.bottom
+        m_bounds.height - padding.top - padding.bottom - extraTop - 2.0f
     );
 }
 
@@ -320,9 +328,36 @@ void TextBox::Redo() {
 
 Size TextBox::Measure(Size availableSize) {
     float expW = GetProperty("width").AsFloat(260.0f);
-    float expH = GetProperty("height").AsFloat(32.0f);
+    float expH = GetProperty("height").AsFloat(48.0f);
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
+}
+
+bool TextBox::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    bool hasFloatingLabel = !GetProperty("placeholder").AsString("").empty();
+    bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetProperty("text").AsString("").empty() || !m_compString.empty());
+    float target = shouldFloat ? 1.0f : 0.0f;
+    float delta = target - m_labelProgress;
+
+    bool animating = false;
+    if (std::abs(delta) > 0.01f) {
+        m_labelProgress += delta * 0.22f;
+        animating = true;
+    } else {
+        m_labelProgress = target;
+    }
+
+    float focusTarget = m_isFocused ? 1.0f : 0.0f;
+    float focusDelta = focusTarget - m_focusLineProgress;
+    if (std::abs(focusDelta) > 0.01f) {
+        m_focusLineProgress += focusDelta * 0.18f;
+        animating = true;
+    } else {
+        m_focusLineProgress = focusTarget;
+    }
+
+    return base || animating;
 }
 
 void TextBox::SelectAll() {
@@ -351,43 +386,47 @@ void TextBox::DeleteSelection() {
 
 void TextBox::OnRender(GraphicsContext& ctx) {
     float radius = GetProperty("cornerRadius").AsFloat(0.0f);
-
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f));
-    if (m_isHovered) {
-        bg = GetProperty("hoverBackground").AsColor(bg);
-    }
-    if (radius > 0.0f) {
-        ctx.FillRoundedRect(m_bounds, radius, bg);
-    } else {
-        ctx.FillRect(m_bounds, bg);
-    }
-
-    D2D1_COLOR_F borderBrush = m_isFocused
-        ? GetProperty("focusedBorderBrush").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f))
-        : GetProperty("borderBrush").AsColor(D2D1::ColorF(0x33 / 255.0f, 0x33 / 255.0f, 0x33 / 255.0f, 1.0f));
-    float borderThickness = GetProperty("borderThickness").AsFloat(1.0f);
-    if (borderThickness > 0.0f) {
+    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0, 0, 0, 0));
+    if (bg.a > 0.0f) {
         if (radius > 0.0f) {
-            ctx.DrawRoundedRect(m_bounds, radius, borderBrush, m_isFocused ? 1.5f : borderThickness);
+            ctx.FillRoundedRect(m_bounds, radius, bg);
         } else {
-            ctx.DrawRect(m_bounds, borderBrush, m_isFocused ? 1.5f : borderThickness);
+            ctx.FillRect(m_bounds, bg);
         }
     }
 
     std::string text = GetProperty("text").AsString("");
     std::string placeholder = GetProperty("placeholder").AsString("Enter text...");
+    bool hasFloatingLabel = !placeholder.empty();
     std::string font = GetStringProperty(this, "fontFamily", "FontFamily", "Segoe UI");
     float fontSize = GetFloatProperty(this, "fontSize", "FontSize", 13.0f);
+    D2D1_COLOR_F phBase = GetProperty("placeholderColor").AsColor(D2D1::ColorF(0x8B / 255.0f, 0x9A / 255.0f, 0xA8 / 255.0f, 1.0f));
+    D2D1_COLOR_F phActive = GetProperty("activeUnderlineColor").AsColor(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f));
     Rect textRect = GetTextRect();
+    float labelFontSize = fontSize + (11.0f - fontSize) * m_labelProgress;
+    float labelY = m_bounds.y + 16.0f + (4.0f - 16.0f) * m_labelProgress;
+    Rect labelRect(m_bounds.x, labelY, m_bounds.width, 16.0f);
+    D2D1_COLOR_F labelColor = BlendColor(phBase, phActive, m_isFocused ? m_labelProgress : m_labelProgress * 0.35f);
 
-    if (text.empty() && m_compString.empty() && !m_isFocused) {
-        D2D1_COLOR_F phColor = GetProperty("placeholderColor").AsColor(D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f, 1.0f));
-        DWRITE_PARAGRAPH_ALIGNMENT vAlign = IsMultiline()
-            ? DWRITE_PARAGRAPH_ALIGNMENT_NEAR
-            : DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
-        ctx.DrawText(placeholder, textRect, phColor, font, fontSize,
-                     DWRITE_TEXT_ALIGNMENT_LEADING, vAlign);
-        return;
+    if (hasFloatingLabel) {
+        ctx.DrawText(
+            placeholder,
+            labelRect,
+            labelColor,
+            font,
+            labelFontSize,
+            DWRITE_TEXT_ALIGNMENT_LEADING,
+            DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
+            m_labelProgress > 0.6f ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL
+        );
+    }
+
+    if (hasFloatingLabel && text.empty() && m_compString.empty() && m_labelProgress < 0.98f) {
+        float alpha = 1.0f - m_labelProgress;
+        D2D1_COLOR_F phColor = D2D1::ColorF(phBase.r, phBase.g, phBase.b, phBase.a * alpha);
+        Rect inlinePlaceholderRect(m_bounds.x, m_bounds.y + 15.0f, m_bounds.width, m_bounds.height - 18.0f);
+        ctx.DrawText(placeholder, inlinePlaceholderRect, phColor, font, fontSize,
+                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
     }
 
     std::wstring wtext = Utf8ToUtf16(text);
@@ -451,6 +490,19 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     }
 
     ctx.PopClip();
+
+    D2D1_COLOR_F underlineColor = GetProperty("underlineColor").AsColor(D2D1::ColorF(0x3B / 255.0f, 0x4A / 255.0f, 0x57 / 255.0f, 1.0f));
+    D2D1_COLOR_F activeUnderlineColor = GetProperty("activeUnderlineColor").AsColor(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f));
+    float lineY = m_bounds.y + m_bounds.height - 2.0f;
+    ctx.DrawLine(Point(m_bounds.x, lineY), Point(m_bounds.x + m_bounds.width, lineY), underlineColor, 1.0f);
+
+    float focusFactor = std::clamp(m_focusLineProgress, 0.0f, 1.0f);
+    if (focusFactor > 0.01f) {
+        float eased = 1.0f - std::pow(1.0f - focusFactor, 2.4f);
+        float activeWidth = m_bounds.width * eased;
+        float activeX = m_bounds.x + (m_bounds.width - activeWidth) * 0.5f;
+        ctx.DrawLine(Point(activeX, lineY), Point(activeX + activeWidth, lineY), activeUnderlineColor, 1.0f + eased);
+    }
 }
 
 void TextBox::OnMouseDblClick(Point pt) {

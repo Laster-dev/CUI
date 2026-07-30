@@ -4,6 +4,12 @@
 
 namespace CUI {
 
+enum class DatePickerViewMode {
+    DayGrid,
+    MonthGrid,
+    YearGrid
+};
+
 class DatePicker : public Control {
 public:
     DatePicker();
@@ -16,6 +22,7 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
+    virtual UIElement* OnHitTestOverlay(float x, float y) override;
     virtual void OnMouseDown(Point pt) override;
 
     bool IsPopupOpen() const { return m_isPopupOpen; }
@@ -33,6 +40,8 @@ private:
     int m_year = 2026;
     int m_month = 7;
     int m_day = 30;
+    int m_viewStartYear = 2020;
+    DatePickerViewMode m_viewMode = DatePickerViewMode::DayGrid;
     bool m_isPopupOpen = false;
     Event<DatePicker*, int, int, int> m_onDateChangedEvent;
 };

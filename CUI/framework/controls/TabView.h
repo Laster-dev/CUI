@@ -34,6 +34,8 @@ public:
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseWheel(float delta) override;
+    virtual bool OnAnimationTick() override;
+    virtual UIElement* HitTest(float x, float y) override;
 
     Event<TabView*, int>& OnSelectionChanged() { return m_selectionChangedEvent; }
     Event<TabView*, int>& OnTabClosed() { return m_tabClosedEvent; }
@@ -43,9 +45,17 @@ private:
     int m_selectedIndex = 0;
     int m_hoveredCloseIndex = -1;
     float m_scrollOffsetX = 0.0f;
+    float m_scrollTargetX = 0.0f;
 
     Event<TabView*, int> m_selectionChangedEvent;
     Event<TabView*, int> m_tabClosedEvent;
+
+    bool IsPointInHeader(float x, float y) const;
+    void ScrollHeaderByWheel(float delta);
+    float GetHeaderHeight() const;
+    float MeasureTabWidth(GraphicsContext& ctx, const TabViewItem& tab) const;
+    float GetTotalTabsWidth(GraphicsContext& ctx) const;
+    void EnsureSelectedTabVisible();
 };
 
 } // namespace CUI

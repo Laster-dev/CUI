@@ -15,6 +15,14 @@ public:
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual void OnMouseDown(Point pt) override;
+    virtual bool OnAnimationTick() override;
+
+private:
+    Point m_rippleCenter{};
+    float m_rippleRadius = 0.0f;
+    float m_rippleOpacity = 0.0f;
+    bool m_rippleActive = false;
 };
 
 } // namespace CUI

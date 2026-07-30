@@ -25,6 +25,7 @@ public:
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual bool OnAnimationTick() override;
 
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseDblClick(Point pt) override;
@@ -81,6 +82,8 @@ private:
     float m_scrollOffsetY = 0.0f;
     std::wstring m_compString;
     int m_suppressCharCount = 0;
+    float m_labelProgress = 0.0f;
+    float m_focusLineProgress = 0.0f;
 
     std::vector<TextBoxUndoState> m_undoStack;
     std::vector<TextBoxUndoState> m_redoStack;

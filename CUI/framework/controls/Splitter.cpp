@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "Splitter.h"
+#include <algorithm>
 
 namespace CUI {
 
@@ -44,6 +45,91 @@ void Splitter::OnMouseMove(Point pt) {
     if (m_isDragging) {
         std::string orient = GetOrientation();
         float delta = (orient == "Vertical") ? (pt.x - m_dragStartPt.x) : (pt.y - m_dragStartPt.y);
+        if (std::abs(delta) < 0.001f) {
+            return;
+        }
+
+        if (m_parent) {
+            const auto& siblings = m_parent->GetChildren();
+            for (size_t i = 0; i < siblings.size(); ++i) {
+                if (siblings[i].get() != this) {
+                    continue;
+                }
+
+                std::shared_ptr<UIElement> prevElem;
+                std::shared_ptr<UIElement> nextElem;
+
+                for (size_t prev = i; prev-- > 0;) {
+                    if (siblings[prev] && siblings[prev]->GetProperty("visibility").AsString("Visible") != "Collapsed") {
+                        prevElem = siblings[prev];
+                        break;
+                    }
+                }
+
+                for (size_t next = i + 1; next < siblings.size(); ++next) {
+                    if (siblings[next] && siblings[next]->GetProperty("visibility").AsString("Visible") != "Collapsed") {
+                        nextElem = siblings[next];
+                        break;
+                    }
+                }
+
+                if (prevElem && nextElem) {
+                    if (orient == "Vertical") {
+                        float prevMin = std::max(20.0f, prevElem->GetProperty("minWidth").AsFloat(0.0f));
+                        float nextMin = std::max(20.0f, nextElem->GetProperty("minWidth").AsFloat(0.0f));
+                        float prevWidth = prevElem->GetBounds().width;
+                        float nextWidth = nextElem->GetBounds().width;
+                        float minDelta = prevMin - prevWidth;
+                        float maxDelta = nextWidth - nextMin;
+                        if (minDelta > maxDelta) {
+                            minDelta = 0.0f;
+                            maxDelta = 0.0f;
+                        }
+                        float appliedDelta = std::clamp(delta, minDelta, maxDelta);
+                        if (std::abs(appliedDelta) > 0.001f) {
+                            prevElem->SetProperty("width", Value(prevWidth + appliedDelta));
+                            nextElem->SetProperty("width", Value(nextWidth - appliedDelta));
+                        }
+                    } else {
+                        float prevMin = std::max(20.0f, prevElem->GetProperty("minHeight").AsFloat(0.0f));
+                        float nextMin = std::max(20.0f, nextElem->GetProperty("minHeight").AsFloat(0.0f));
+                        float prevHeight = prevElem->GetBounds().height;
+                        float nextHeight = nextElem->GetBounds().height;
+                        float minDelta = prevMin - prevHeight;
+                        float maxDelta = nextHeight - nextMin;
+                        if (minDelta > maxDelta) {
+                            minDelta = 0.0f;
+                            maxDelta = 0.0f;
+                        }
+                        float appliedDelta = std::clamp(delta, minDelta, maxDelta);
+                        if (std::abs(appliedDelta) > 0.001f) {
+                            prevElem->SetProperty("height", Value(prevHeight + appliedDelta));
+                            nextElem->SetProperty("height", Value(nextHeight - appliedDelta));
+                        }
+                    }
+                } else if (prevElem) {
+                    if (orient == "Vertical") {
+                        float newW = std::max(20.0f, prevElem->GetBounds().width + delta);
+                        prevElem->SetProperty("width", Value(newW));
+                    } else {
+                        float newH = std::max(20.0f, prevElem->GetBounds().height + delta);
+                        prevElem->SetProperty("height", Value(newH));
+                    }
+                }
+                break;
+            }
+
+            UIElement* root = m_parent;
+            while (root && root->GetParent()) {
+                root = root->GetParent();
+            }
+            if (root) {
+                Rect rootBounds = root->GetBounds();
+                root->Measure(Size(rootBounds.width, rootBounds.height));
+                root->Arrange(rootBounds);
+            }
+        }
+
         m_onSplitterMovedEvent.Invoke(this, delta);
         m_dragStartPt = pt;
     }

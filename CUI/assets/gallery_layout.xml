@@ -22,6 +22,7 @@
         <TabItem header="BreadcrumbBar 面包屑" icon="[E]" src="page_breadcrumb.xml"/>
         <TabItem header="PagingControl 分页条" icon="[G]" src="page_paging.xml"/>
         <TabItem header="Splitter 拆分条" icon="[Z]" src="page_splitter.xml"/>
+        <TabItem header="CollapsePanel 折叠面板" icon="[C]" src="page_collapsepanel.xml"/>
         <TabItem header="ListBox (100k)" icon="[L]" src="page_listbox.xml"/>
         <TabItem header="ListView (100k)" icon="[V]" src="page_listview.xml"/>
         <TabItem header="TreeView 树形图" icon="[Y]" src="page_treeview.xml"/>

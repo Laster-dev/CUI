@@ -19,6 +19,7 @@ public:
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseLeave() override;
+    virtual void OnBlur() override;
 
     virtual UIElement* HitTest(float x, float y) override;
 

@@ -51,37 +51,120 @@ void DatePicker::SetDate(int y, int m, int d) {
     m_onDateChangedEvent.Invoke(this, m_year, m_month, m_day);
 }
 
+UIElement* DatePicker::OnHitTestOverlay(float x, float y) {
+    if (!m_isPopupOpen) return nullptr;
+    float popW = 240.0f;
+    float popH = 240.0f;
+    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
+    if (popRect.Contains(x, y)) {
+        return this;
+    }
+    return nullptr;
+}
+
 void DatePicker::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
 
     if (m_isPopupOpen) {
-        // Calculate popup bounds
-        float popW = 210.0f;
-        float popH = 200.0f;
+        float popW = 240.0f;
+        float popH = 240.0f;
         Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
 
         if (popRect.Contains(pt.x, pt.y)) {
-            // Clicked inside calendar grid
-            float headerH = 28.0f;
-            float gridY = popRect.y + headerH + 20.0f;
-            float cellW = popW / 7.0f;
-            float cellH = 24.0f;
+            // Header Buttons: Prev / Year / Month / Next
+            Rect btnPrev(popRect.x + 4.0f, popRect.y + 6.0f, 22.0f, 22.0f);
+            Rect btnNext(popRect.x + popW - 26.0f, popRect.y + 6.0f, 22.0f, 22.0f);
+            float midW = (popW - 56.0f) * 0.5f;
+            Rect yrRect(popRect.x + 28.0f, popRect.y + 6.0f, midW, 22.0f);
+            Rect moRect(popRect.x + 28.0f + midW, popRect.y + 6.0f, midW, 22.0f);
 
-            if (pt.y >= gridY) {
+            // Click Year button -> YearGrid mode directly
+            if (yrRect.Contains(pt.x, pt.y)) {
+                m_viewMode = DatePickerViewMode::YearGrid;
+                m_viewStartYear = (m_year / 12) * 12;
+                return;
+            }
+            // Click Month button -> MonthGrid mode directly
+            if (moRect.Contains(pt.x, pt.y)) {
+                m_viewMode = DatePickerViewMode::MonthGrid;
+                return;
+            }
+
+            // Arrow Prev/Next behavior dependent on ViewMode
+            if (btnPrev.Contains(pt.x, pt.y)) {
+                if (m_viewMode == DatePickerViewMode::DayGrid) {
+                    int newM = m_month - 1;
+                    int newY = m_year;
+                    if (newM < 1) { newM = 12; newY--; }
+                    SetDate(newY, newM, m_day);
+                } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
+                    SetDate(m_year - 1, m_month, m_day);
+                } else {
+                    m_viewStartYear -= 12;
+                }
+                return;
+            }
+
+            if (btnNext.Contains(pt.x, pt.y)) {
+                if (m_viewMode == DatePickerViewMode::DayGrid) {
+                    int newM = m_month + 1;
+                    int newY = m_year;
+                    if (newM > 12) { newM = 1; newY++; }
+                    SetDate(newY, newM, m_day);
+                } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
+                    SetDate(m_year + 1, m_month, m_day);
+                } else {
+                    m_viewStartYear += 12;
+                }
+                return;
+            }
+
+            // Content Grid Click Handling
+            float bodyY = popRect.y + 36.0f;
+            if (m_viewMode == DatePickerViewMode::DayGrid) {
+                float gridY = bodyY + 20.0f;
+                float cellW = popW / 7.0f;
+                float cellH = 26.0f;
+                if (pt.y >= gridY) {
+                    int col = static_cast<int>((pt.x - popRect.x) / cellW);
+                    int row = static_cast<int>((pt.y - gridY) / cellH);
+                    int clickedDay = row * 7 + col + 1;
+                    if (clickedDay >= 1 && clickedDay <= 31) {
+                        SetDate(m_year, m_month, clickedDay);
+                        m_isPopupOpen = false;
+                        return;
+                    }
+                }
+            } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
+                // 3x4 Month Grid
+                float cellW = popW / 3.0f;
+                float cellH = (popH - 44.0f) / 4.0f;
                 int col = static_cast<int>((pt.x - popRect.x) / cellW);
-                int row = static_cast<int>((pt.y - gridY) / cellH);
-                int clickedDay = row * 7 + col + 1;
-                if (clickedDay >= 1 && clickedDay <= 31) {
-                    SetDate(m_year, m_month, clickedDay);
-                    m_isPopupOpen = false;
+                int row = static_cast<int>((pt.y - bodyY) / cellH);
+                int selectedMonth = row * 3 + col + 1;
+                if (selectedMonth >= 1 && selectedMonth <= 12) {
+                    SetDate(m_year, selectedMonth, m_day);
+                    m_viewMode = DatePickerViewMode::DayGrid;
                     return;
                 }
+            } else if (m_viewMode == DatePickerViewMode::YearGrid) {
+                // 3x4 Year Grid (12 years per page)
+                float cellW = popW / 3.0f;
+                float cellH = (popH - 44.0f) / 4.0f;
+                int col = static_cast<int>((pt.x - popRect.x) / cellW);
+                int row = static_cast<int>((pt.y - bodyY) / cellH);
+                int selectedYear = m_viewStartYear + row * 3 + col;
+                SetDate(selectedYear, m_month, m_day);
+                m_viewMode = DatePickerViewMode::MonthGrid;
+                return;
             }
+            return;
         }
         m_isPopupOpen = false;
     } else {
         if (m_bounds.Contains(pt.x, pt.y)) {
             m_isPopupOpen = true;
+            m_viewMode = DatePickerViewMode::DayGrid;
         }
     }
 }
@@ -101,48 +184,107 @@ void DatePicker::OnRender(GraphicsContext& ctx) {
 void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
     if (!m_isPopupOpen) return;
 
-    float popW = 210.0f;
-    float popH = 200.0f;
+    float popW = 240.0f;
+    float popH = 240.0f;
     Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
 
     D2D1_COLOR_F bg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f);
     D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f);
     D2D1_COLOR_F textCol = D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f);
+    D2D1_COLOR_F btnCol = D2D1::ColorF(0x56 / 255.0f, 0x9C / 255.0f, 0xD6 / 255.0f, 1.0f);
     D2D1_COLOR_F selBg = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f);
 
-    // Draw PopUp Drop Shadow & Background
     ctx.FillRoundedRect(popRect, 6.0f, bg);
     ctx.DrawRoundedRect(popRect, 6.0f, border, 1.5f);
 
-    // Render Calendar Header (Year-Month)
-    std::stringstream ssHeader;
-    ssHeader << m_year << "年 " << m_month << "月";
-    Rect headerRect(popRect.x, popRect.y + 4.0f, popW, 24.0f);
-    ctx.DrawText(ssHeader.str(), headerRect, D2D1::ColorF(0x56 / 255.0f, 0x9C / 255.0f, 0xD6 / 255.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    // Header Controls (Prev Arrow / Year Button / Month Button / Next Arrow)
+    Rect btnPrev(popRect.x + 4.0f, popRect.y + 6.0f, 22.0f, 22.0f);
+    Rect btnNext(popRect.x + popW - 26.0f, popRect.y + 6.0f, 22.0f, 22.0f);
+    float midW = (popW - 56.0f) * 0.5f;
+    Rect yrRect(popRect.x + 28.0f, popRect.y + 6.0f, midW, 22.0f);
+    Rect moRect(popRect.x + 28.0f + midW, popRect.y + 6.0f, midW, 22.0f);
 
-    // Render Day-of-Week headers (日 一 二 三 四 五 六)
-    const char* weekNames[] = { "日", "一", "二", "三", "四", "五", "六" };
-    float cellW = popW / 7.0f;
-    float startY = popRect.y + 28.0f;
-    for (int w = 0; w < 7; ++w) {
-        Rect wRect(popRect.x + w * cellW, startY, cellW, 18.0f);
-        ctx.DrawText(weekNames[w], wRect, D2D1::ColorF(0x88 / 255.0f, 0x88 / 255.0f, 0x88 / 255.0f), "Segoe UI", 10.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("‹", btnPrev, btnCol, "Segoe UI", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("›", btnNext, btnCol, "Segoe UI", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+    if (m_viewMode == DatePickerViewMode::DayGrid) {
+        ctx.DrawText(std::to_string(m_year) + "年 ▼", yrRect, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(std::to_string(m_month) + "月 ▼", moRect, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
+        Rect fullTitle(popRect.x + 28.0f, popRect.y + 6.0f, popW - 56.0f, 22.0f);
+        ctx.DrawText(std::to_string(m_year) + "年 (选择月份)", fullTitle, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    } else {
+        Rect fullTitle(popRect.x + 28.0f, popRect.y + 6.0f, popW - 56.0f, 22.0f);
+        ctx.DrawText(std::to_string(m_viewStartYear) + " - " + std::to_string(m_viewStartYear + 11) + "年", fullTitle, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
     }
 
-    // Render Days 1..31
-    float gridY = startY + 20.0f;
-    float cellH = 24.0f;
-    for (int d = 1; d <= 31; ++d) {
-        int idx = d - 1;
-        int row = idx / 7;
-        int col = idx % 7;
-        Rect cellRect(popRect.x + col * cellW + 2.0f, gridY + row * cellH, cellW - 4.0f, cellH - 2.0f);
+    ctx.DrawLine(Point(popRect.x + 6.0f, popRect.y + 32.0f), Point(popRect.x + popW - 6.0f, popRect.y + 32.0f), D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f));
 
-        if (d == m_day) {
-            ctx.FillRoundedRect(cellRect, 3.0f, selBg);
-            ctx.DrawText(std::to_string(d), cellRect, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
-        } else {
-            ctx.DrawText(std::to_string(d), cellRect, textCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    float bodyY = popRect.y + 36.0f;
+
+    if (m_viewMode == DatePickerViewMode::DayGrid) {
+        // Week Headers
+        const char* weekNames[] = { "日", "一", "二", "三", "四", "五", "六" };
+        float cellW = popW / 7.0f;
+        for (int w = 0; w < 7; ++w) {
+            Rect wRect(popRect.x + w * cellW, bodyY, cellW, 18.0f);
+            ctx.DrawText(weekNames[w], wRect, D2D1::ColorF(0x88 / 255.0f, 0x88 / 255.0f, 0x88 / 255.0f), "Segoe UI", 10.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
+
+        // Days Grid
+        float gridY = bodyY + 20.0f;
+        float cellH = 26.0f;
+        for (int d = 1; d <= 31; ++d) {
+            int idx = d - 1;
+            int row = idx / 7;
+            int col = idx % 7;
+            Rect cellRect(popRect.x + col * cellW + 2.0f, gridY + row * cellH, cellW - 4.0f, cellH - 2.0f);
+
+            if (d == m_day) {
+                ctx.FillRoundedRect(cellRect, 3.0f, selBg);
+                ctx.DrawText(std::to_string(d), cellRect, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+            } else {
+                ctx.DrawText(std::to_string(d), cellRect, textCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            }
+        }
+    } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
+        // Render 12 Month Cards Grid (3x4)
+        const char* monthNames[] = { "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月" };
+        float cellW = popW / 3.0f;
+        float cellH = (popH - 44.0f) / 4.0f;
+
+        for (int m = 1; m <= 12; ++m) {
+            int idx = m - 1;
+            int row = idx / 3;
+            int col = idx % 3;
+            Rect cellRect(popRect.x + col * cellW + 4.0f, bodyY + row * cellH + 2.0f, cellW - 8.0f, cellH - 4.0f);
+
+            if (m == m_month) {
+                ctx.FillRoundedRect(cellRect, 4.0f, selBg);
+                ctx.DrawText(monthNames[idx], cellRect, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+            } else {
+                ctx.FillRoundedRect(cellRect, 4.0f, D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x30 / 255.0f));
+                ctx.DrawText(monthNames[idx], cellRect, textCol, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            }
+        }
+    } else if (m_viewMode == DatePickerViewMode::YearGrid) {
+        // Render 12 Year Cards Grid (3x4)
+        float cellW = popW / 3.0f;
+        float cellH = (popH - 44.0f) / 4.0f;
+
+        for (int i = 0; i < 12; ++i) {
+            int yr = m_viewStartYear + i;
+            int row = i / 3;
+            int col = i % 3;
+            Rect cellRect(popRect.x + col * cellW + 4.0f, bodyY + row * cellH + 2.0f, cellW - 8.0f, cellH - 4.0f);
+
+            if (yr == m_year) {
+                ctx.FillRoundedRect(cellRect, 4.0f, selBg);
+                ctx.DrawText(std::to_string(yr), cellRect, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+            } else {
+                ctx.FillRoundedRect(cellRect, 4.0f, D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x30 / 255.0f));
+                ctx.DrawText(std::to_string(yr), cellRect, textCol, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            }
         }
     }
 }

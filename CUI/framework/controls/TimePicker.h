@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include <chrono>
 
 namespace CUI {
 
@@ -15,7 +16,10 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
+    virtual UIElement* OnHitTestOverlay(float x, float y) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual void OnMouseWheel(float delta) override;
+    virtual bool OnAnimationTick() override;
 
     bool IsPopupOpen() const { return m_isPopupOpen; }
     void SetPopupOpen(bool open) { m_isPopupOpen = open; }
@@ -28,9 +32,24 @@ public:
     Event<TimePicker*, int, int>& OnTimeChanged() { return m_onTimeChangedEvent; }
 
 private:
+    Rect GetPopupRect() const;
+    Rect GetWheelRect(int column) const;
+    Rect GetSelectionRect(int column) const;
+    int HitTestColumn(float x, float y) const;
+    void NudgeColumn(int column, int delta);
+    void SnapTargetsToSelection();
+    void ApplyAnimatedSelection();
+
     int m_hour = 14;
     int m_minute = 30;
     bool m_isPopupOpen = false;
+
+    float m_hourPosition = 14.0f;
+    float m_minutePosition = 30.0f;
+    float m_hourTarget = 14.0f;
+    float m_minuteTarget = 30.0f;
+    std::chrono::steady_clock::time_point m_lastAnimTime{};
+
     Event<TimePicker*, int, int> m_onTimeChangedEvent;
 };
 

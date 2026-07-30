@@ -4,6 +4,7 @@
 #include "ProgressBar.h"
 #include <algorithm>
 #include <cmath>
+#include <chrono>
 
 namespace CUI {
 
@@ -40,8 +41,17 @@ Size ProgressBar::Measure(Size availableSize) {
 
 bool ProgressBar::OnAnimationTick() {
     bool baseAnim = Control::OnAnimationTick();
+    const auto now = std::chrono::steady_clock::now();
+    float deltaSeconds = 1.0f / 60.0f;
+    if (m_lastTickTime.time_since_epoch().count() != 0) {
+        deltaSeconds = std::chrono::duration<float>(now - m_lastTickTime).count();
+        deltaSeconds = std::clamp(deltaSeconds, 1.0f / 240.0f, 0.05f);
+    }
+    m_lastTickTime = now;
+
     if (IsIndeterminate()) {
-        m_animOffset += 2.5f;
+        const float speed = 220.0f;
+        m_animOffset += speed * deltaSeconds;
         float wrapWidth = (m_bounds.width > 0.0f) ? m_bounds.width : 200.0f;
         if (m_animOffset > wrapWidth * 1.5f) {
             m_animOffset = -wrapWidth * 0.5f;
@@ -55,7 +65,8 @@ bool ProgressBar::OnAnimationTick() {
         m_displayValue = target;
         return baseAnim;
     }
-    m_displayValue += delta * 0.25f;
+    float smoothing = 1.0f - std::exp(-12.0f * deltaSeconds);
+    m_displayValue += delta * smoothing;
     return true;
 }
 
