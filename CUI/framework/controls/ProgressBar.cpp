@@ -17,6 +17,7 @@ ProgressBar::ProgressBar() {
     SetProperty("width", Value(200.0f));
     SetProperty("height", Value(6.0f));
     SetProperty("cornerRadius", Value(3.0f));
+    m_displayValue = GetValue();
 }
 
 std::vector<PropertyMeta> ProgressBar::GetPropertyMetas() const {
@@ -46,7 +47,15 @@ bool ProgressBar::OnAnimationTick() {
         }
         return true;
     }
-    return baseAnim;
+
+    float target = GetValue();
+    float delta = target - m_displayValue;
+    if (std::abs(delta) <= 0.01f) {
+        m_displayValue = target;
+        return baseAnim;
+    }
+    m_displayValue += delta * 0.25f;
+    return true;
 }
 
 void ProgressBar::OnRender(GraphicsContext& ctx) {
@@ -68,7 +77,7 @@ void ProgressBar::OnRender(GraphicsContext& ctx) {
     } else {
         float minVal = GetMinimum();
         float maxVal = GetMaximum();
-        float val = std::clamp(GetValue(), minVal, maxVal);
+        float val = std::clamp(m_displayValue, minVal, maxVal);
         float ratio = (maxVal > minVal) ? (val - minVal) / (maxVal - minVal) : 0.0f;
 
         float fillW = m_bounds.width * ratio;

@@ -1,9 +1,80 @@
 #include "PropertyGrid.h"
 #include "../window/Window.h"
+#include "TextBox.h"
+#include "CheckBox.h"
+#include "RadioButton.h"
+#include "Slider.h"
+#include "ProgressBar.h"
+#include "NumberBox.h"
+#include "ToggleSwitch.h"
+#include "DatePicker.h"
+#include "TimePicker.h"
+#include "ColorPicker.h"
+#include "PagingControl.h"
 #include <sstream>
 #include <algorithm>
+#include <cstdio>
 
 namespace CUI {
+
+namespace {
+bool TryParseDate(const std::string& value, int& y, int& m, int& d) {
+    return sscanf_s(value.c_str(), "%d-%d-%d", &y, &m, &d) == 3;
+}
+
+bool TryParseTime(const std::string& value, int& h, int& m) {
+    return sscanf_s(value.c_str(), "%d:%d", &h, &m) == 2;
+}
+
+void ApplyTargetProperty(UIElement* target, const std::string& propName, const Value& value) {
+    if (!target) return;
+
+    if (auto tb = dynamic_cast<TextBox*>(target)) {
+        if (propName == "text") { tb->SetText(value.AsString()); return; }
+    }
+    if (auto cb = dynamic_cast<CheckBox*>(target)) {
+        if (propName == "checkState") {
+            std::string s = value.AsString("Unchecked");
+            cb->SetState(s == "Checked" ? CheckState::Checked : (s == "Indeterminate" ? CheckState::Indeterminate : CheckState::Unchecked));
+            return;
+        }
+    }
+    if (auto slider = dynamic_cast<Slider*>(target)) {
+        if (propName == "value") { slider->SetValue(value.AsFloat()); return; }
+    }
+    if (auto progress = dynamic_cast<ProgressBar*>(target)) {
+        if (propName == "value") { progress->SetValue(value.AsFloat()); return; }
+        if (propName == "isIndeterminate") { progress->SetIsIndeterminate(value.AsBool()); return; }
+    }
+    if (auto number = dynamic_cast<NumberBox*>(target)) {
+        if (propName == "value") { number->SetValue(value.AsFloat()); return; }
+    }
+    if (auto toggle = dynamic_cast<ToggleSwitch*>(target)) {
+        if (propName == "isOn") { toggle->SetIsOn(value.AsBool()); return; }
+    }
+    if (auto date = dynamic_cast<DatePicker*>(target)) {
+        if (propName == "dateStr") {
+            int y = 0, m = 0, d = 0;
+            if (TryParseDate(value.AsString(), y, m, d)) { date->SetDate(y, m, d); return; }
+        }
+    }
+    if (auto time = dynamic_cast<TimePicker*>(target)) {
+        if (propName == "timeStr") {
+            int h = 0, m = 0;
+            if (TryParseTime(value.AsString(), h, m)) { time->SetTime(h, m); return; }
+        }
+    }
+    if (auto color = dynamic_cast<ColorPicker*>(target)) {
+        if (propName == "selectedColor") { color->SetSelectedColor(value.AsColor()); return; }
+    }
+    if (auto paging = dynamic_cast<PagingControl*>(target)) {
+        if (propName == "currentPage") { paging->SetCurrentPage(value.AsInt()); return; }
+        if (propName == "totalPages") { paging->SetTotalPages(value.AsInt()); return; }
+    }
+
+    target->SetProperty(propName, value);
+}
+}
 
 PropertyGrid::PropertyGrid() {
     SetProperty("background", Value("#252526"));
@@ -85,7 +156,7 @@ void PropertyGrid::RebuildUI() {
                 if (m_updatingFromTarget) return;
                 auto t = weakTarget.lock();
                 if (t) {
-                    t->SetProperty(propName, Value(st == CheckState::Checked));
+                    ApplyTargetProperty(t.get(), propName, Value(st == CheckState::Checked));
                     if (host) {
                         Window* w = reinterpret_cast<Window*>(host);
                         w->Relayout();
@@ -118,7 +189,7 @@ void PropertyGrid::RebuildUI() {
                 if (m_updatingFromTarget) return;
                 auto t = weakTarget.lock();
                 if (t) {
-                    t->SetProperty(propName, Value(opt));
+                    ApplyTargetProperty(t.get(), propName, Value(opt));
                     if (host) {
                         Window* w = reinterpret_cast<Window*>(host);
                         w->Relayout();
@@ -155,18 +226,20 @@ void PropertyGrid::RebuildUI() {
                 if (m_updatingFromTarget) return;
                 auto t = weakTarget.lock();
                 if (t) {
+                    Value newValue;
                     if (pType == "number") {
                         float f = static_cast<float>(atof(valStr.c_str()));
-                        t->SetProperty(propName, Value(f));
+                        newValue = Value(f);
                     } else if (pType == "color") {
-                        t->SetProperty(propName, Value(Value::ParseColor(valStr)));
+                        newValue = Value(Value::ParseColor(valStr));
                     } else {
                         if (propName == "margin" || propName == "padding") {
-                            t->SetProperty(propName, Value(Thickness::Parse(valStr)));
+                            newValue = Value(Thickness::Parse(valStr));
                         } else {
-                            t->SetProperty(propName, Value(valStr));
+                            newValue = Value(valStr);
                         }
                     }
+                    ApplyTargetProperty(t.get(), propName, newValue);
                     if (host) {
                         Window* w = reinterpret_cast<Window*>(host);
                         w->Relayout();

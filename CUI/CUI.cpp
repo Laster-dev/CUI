@@ -192,6 +192,25 @@ void BindParsedXmlInteractions(std::shared_ptr<UIElement> root, Window& window) 
     auto targetSplitterH = root->FindElementById("targetSplitterH");
     if (propGridSplitter && targetSplitterH) propGridSplitter->SetTargetElement(targetSplitterH, &window);
 
+    auto propGridNewControls = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridNewControls"));
+    if (propGridNewControls) {
+        const char* ids[] = {
+            "demoSlider", "demoProgress", "demoIndeterminate", "demoNumber", "demoToggle",
+            "demoDate", "demoTime", "demoColor", "demoBreadcrumb", "demoPaging", "demoSplitter"
+        };
+        for (const char* id : ids) {
+            auto element = root->FindElementById(id);
+            if (!element) continue;
+            if (!propGridNewControls->GetTargetElement()) {
+                propGridNewControls->SetTargetElement(element, &window);
+            }
+            element->OnMouseDownEvent().Connect([propGridNewControls, element, &window](UIElement*, Point) {
+                propGridNewControls->SetTargetElement(element, &window);
+                RequestRedraw(window);
+            });
+        }
+    }
+
     auto txtLogMsg = root->FindElementById("txtLogMsg");
     auto targetBtn = btnElem;
     auto inputText = std::dynamic_pointer_cast<TextBox>(root->FindElementById("inputText"));

@@ -77,9 +77,9 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
     }
 
     float radius = GetProperty("cornerRadius").AsFloat(3.0f);
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f));
-    if (m_isHovered || m_isDropDownOpen) {
-        bg = GetProperty("hoverBackground").AsColor(bg);
+    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f));
+    if (m_isDropDownOpen) {
+        bg = BlendColor(bg, GetProperty("hoverBackground").AsColor(bg), 0.8f);
     }
 
     if (radius > 0.0f) {

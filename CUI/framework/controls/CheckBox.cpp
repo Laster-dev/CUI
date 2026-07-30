@@ -1,4 +1,5 @@
 #include "CheckBox.h"
+#include <algorithm>
 
 namespace CUI {
 
@@ -17,6 +18,18 @@ CheckBox::CheckBox() {
 
 CheckBox::CheckBox(const std::string& text) : CheckBox() {
     SetProperty("text", Value(text));
+}
+
+std::vector<PropertyMeta> CheckBox::GetPropertyMetas() const {
+    auto metas = Control::GetPropertyMetas();
+    metas.push_back({ "text", "标签文本 (Text)", "基本信息", "string" });
+    metas.push_back({ "checkState", "选中状态 (CheckState)", "复选配置", "enum", { "Unchecked", "Checked", "Indeterminate" } });
+    metas.push_back({ "isThreeState", "三态模式 (ThreeState)", "复选配置", "bool" });
+    metas.push_back({ "checkedBackground", "选中背景 (CheckedBg)", "色彩外观", "color" });
+    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
+    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
+    metas.push_back({ "color", "文字颜色 (Color)", "字体文本", "color" });
+    return metas;
 }
 
 CheckState CheckBox::GetState() const {
@@ -72,7 +85,8 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     float boxY = m_bounds.y + (m_bounds.height - boxSize) / 2.0f;
     Rect boxRect(m_bounds.x + padding.left, boxY, boxSize, boxSize);
 
-    D2D1_COLOR_F accentBlue = D2D1::ColorF(0x4C / 255.0f, 0xC2 / 255.0f, 0xFF / 255.0f, 1.0f); // #4CC2FF WinUI Fluent Accent Blue
+    D2D1_COLOR_F accentBase = D2D1::ColorF(0x4C / 255.0f, 0xC2 / 255.0f, 0xFF / 255.0f, 1.0f); // #4CC2FF WinUI Fluent Accent Blue
+    D2D1_COLOR_F accentBlue = BlendColor(accentBase, D2D1::ColorF(0x78 / 255.0f, 0xD7 / 255.0f, 0xFF / 255.0f, 1.0f), m_visualState);
     D2D1_COLOR_F checkedIconColor = D2D1::ColorF(0x00 / 255.0f, 0x00 / 255.0f, 0x00 / 255.0f, 1.0f); // Black check mark
 
     if (state == CheckState::Checked || state == CheckState::Indeterminate) {
@@ -94,10 +108,11 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
         }
     } else {
         // Unchecked state: Clean dark background with light gray rounded border (#999999)
-        D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x20 / 255.0f, 0x20 / 255.0f, 0x20 / 255.0f, 1.0f));
-        D2D1_COLOR_F border = m_isHovered
-            ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.9f)
-            : D2D1::ColorF(0x8E / 255.0f, 0x8E / 255.0f, 0x8E / 255.0f, 0.8f);
+        D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0x20 / 255.0f, 0x20 / 255.0f, 0x20 / 255.0f, 1.0f));
+        D2D1_COLOR_F border = BlendColor(
+            D2D1::ColorF(0x8E / 255.0f, 0x8E / 255.0f, 0x8E / 255.0f, 0.8f),
+            D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.9f),
+            (std::min)(1.0f, m_visualState / 0.55f));
 
         ctx.FillRoundedRect(boxRect, radius, bg);
         ctx.DrawRoundedRect(boxRect, radius, border, 1.2f);

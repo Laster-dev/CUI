@@ -67,7 +67,7 @@ void Control::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    D2D1_COLOR_F borderBrush = enabled
+    D2D1_COLOR_F borderBrush = IsEnabled()
         ? GetProperty("borderBrush").AsColor(D2D1::ColorF(0, 0, 0, 0))
         : D2D1::ColorF(0x3A / 255.0f, 0x3A / 255.0f, 0x3A / 255.0f, 0.5f);
     float borderThickness = GetProperty("borderThickness").AsFloat(0.0f);

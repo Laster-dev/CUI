@@ -23,6 +23,7 @@ public:
     virtual UIElement* HitTest(float x, float y) override;
 
     MenuBar& GetMenuBar() { return m_menuBar; }
+    bool IsMenuBarHit(float x, float y);
 
 private:
     MenuBar m_menuBar;

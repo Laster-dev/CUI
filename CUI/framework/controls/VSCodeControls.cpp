@@ -158,6 +158,10 @@ void TitleBar::OnMouseLeave() {
     m_menuBar.OnMouseLeave();
 }
 
+bool TitleBar::IsMenuBarHit(float x, float y) {
+    return m_menuBar.HitTest(x, y) != nullptr;
+}
+
 UIElement* TitleBar::HitTest(float x, float y) {
     UIElement* mbHit = m_menuBar.HitTest(x, y);
     if (mbHit) return this;

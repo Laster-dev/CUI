@@ -56,14 +56,7 @@ Size Button::Measure(Size availableSize) {
 }
 
 void Button::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
-    if (!IsEnabled()) {
-        bg = GetProperty("disabledBackground").AsColor(D2D1::ColorF(0x3A / 255.0f, 0x3A / 255.0f, 0x3A / 255.0f, 1.0f));
-    } else if (m_isPressed) {
-        bg = GetProperty("pressedBackground").AsColor(bg);
-    } else if (m_isHovered) {
-        bg = GetProperty("hoverBackground").AsColor(bg);
-    }
+    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
 
     float radius = GetProperty("cornerRadius").AsFloat(2.0f);
     if (radius > 0.0f) {

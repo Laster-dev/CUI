@@ -29,6 +29,7 @@ public:
 
 private:
     float m_animOffset = 0.0f;
+    float m_displayValue = 0.0f;
 };
 
 } // namespace CUI

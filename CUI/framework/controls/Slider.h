@@ -18,6 +18,7 @@ public:
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
     virtual void OnKeyDown(int vkCode) override;
+    virtual bool OnAnimationTick() override;
 
     float GetValue() const { return GetProperty("value").AsFloat(0.0f); }
     void SetValue(float val);
@@ -39,6 +40,7 @@ private:
     Rect GetTrackRect() const;
 
     bool m_isDragging = false;
+    float m_displayValue = 0.0f;
     Event<Slider*, float> m_onValueChangedEvent;
 };
 

@@ -1,6 +1,7 @@
 #include "Window.h"
 #include "../controls/TextBox.h"
 #include "../controls/ContextMenu.h"
+#include "../controls/VSCodeControls.h"
 #include <windowsx.h>
 #include <dwmapi.h>
 #include <imm.h>
@@ -259,6 +260,11 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             // Drag window caption (only when clicking directly on empty TitleBar space, NOT child controls)
             if (fx < winW - 135.0f && m_rootElement) {
                 UIElement* hit = m_rootElement->HitTest(fx, fy);
+                if (auto titleBar = dynamic_cast<TitleBar*>(hit)) {
+                    if (titleBar->IsMenuBarHit(fx, fy)) {
+                        return HTCLIENT;
+                    }
+                }
                 if (hit && std::string(hit->GetClassName()) != "TitleBar" && hit != m_rootElement.get()) {
                     return HTCLIENT; // All child controls inside titlebar (MenuBar, Buttons, etc.) process UI clicks!
                 }

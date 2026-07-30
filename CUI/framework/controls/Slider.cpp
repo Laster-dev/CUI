@@ -18,6 +18,7 @@ Slider::Slider() {
     SetProperty("thumbColor", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
     SetProperty("width", Value(200.0f));
     SetProperty("height", Value(24.0f));
+    m_displayValue = GetValue();
 }
 
 std::vector<PropertyMeta> Slider::GetPropertyMetas() const {
@@ -57,7 +58,7 @@ Rect Slider::GetThumbRect() const {
     Rect track = GetTrackRect();
     float minVal = GetMinimum();
     float maxVal = GetMaximum();
-    float val = std::clamp(GetValue(), minVal, maxVal);
+    float val = std::clamp(m_displayValue, minVal, maxVal);
     float ratio = (maxVal > minVal) ? (val - minVal) / (maxVal - minVal) : 0.0f;
 
     std::string orient = GetProperty("orientation").AsString("Horizontal");
@@ -84,6 +85,9 @@ void Slider::SetValue(float val) {
 
     if (std::abs(GetValue() - val) > 0.0001f) {
         SetProperty("value", Value(val));
+        if (m_isDragging) {
+            m_displayValue = val;
+        }
         m_onValueChangedEvent.Invoke(this, val);
     }
 }
@@ -124,6 +128,23 @@ void Slider::OnMouseMove(Point pt) {
 void Slider::OnMouseUp(Point pt) {
     Control::OnMouseUp(pt);
     m_isDragging = false;
+}
+
+bool Slider::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    if (m_isDragging) {
+        m_displayValue = GetValue();
+        return base;
+    }
+
+    float target = GetValue();
+    float delta = target - m_displayValue;
+    if (std::abs(delta) <= 0.01f) {
+        m_displayValue = target;
+        return base;
+    }
+    m_displayValue += delta * 0.25f;
+    return true;
 }
 
 void Slider::OnKeyDown(int vkCode) {
