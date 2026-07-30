@@ -128,7 +128,7 @@ void Window::RunMessageLoop() {
     MSG msg = {};
     using clock = std::chrono::steady_clock;
     auto lastFrameTime = clock::now();
-    constexpr auto targetFrame = std::chrono::milliseconds(8);
+    constexpr auto targetFrame = std::chrono::milliseconds(16);
     bool animationActive = false;
 
     for (;;) {

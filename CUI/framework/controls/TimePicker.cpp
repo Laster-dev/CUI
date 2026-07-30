@@ -234,7 +234,7 @@ bool TimePicker::OnAnimationTick() {
     bool minuteAnimating = animateAxis(m_minutePosition, m_minuteTarget, 60);
 
     ApplyAnimatedSelection();
-    return base || m_isPopupOpen || hourAnimating || minuteAnimating;
+    return base || hourAnimating || minuteAnimating;
 }
 
 void TimePicker::OnRender(GraphicsContext& ctx) {

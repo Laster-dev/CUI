@@ -98,9 +98,9 @@ Size TabView::Measure(Size availableSize) {
     float headerH = GetHeaderHeight();
     Size contentAvail(availableSize.width, availableSize.height - headerH);
 
-    for (size_t i = 0; i < m_tabs.size(); ++i) {
-        if (m_tabs[i].content) {
-            m_tabs[i].content->Measure(contentAvail);
+    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_tabs.size())) {
+        if (m_tabs[m_selectedIndex].content) {
+            m_tabs[m_selectedIndex].content->Measure(contentAvail);
         }
     }
 
@@ -113,9 +113,9 @@ void TabView::Arrange(Rect finalRect) {
     float headerH = GetHeaderHeight();
     Rect contentRect(finalRect.x, finalRect.y + headerH, finalRect.width, finalRect.height - headerH);
 
-    for (size_t i = 0; i < m_tabs.size(); ++i) {
-        if (m_tabs[i].content) {
-            m_tabs[i].content->Arrange(contentRect);
+    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_tabs.size())) {
+        if (m_tabs[m_selectedIndex].content) {
+            m_tabs[m_selectedIndex].content->Arrange(contentRect);
         }
     }
 
