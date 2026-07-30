@@ -1,33 +1,151 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include "ScrollViewer.h"
 #include <algorithm>
+#include <cmath>
 
 namespace CUI {
 
 ScrollViewer::ScrollViewer() {
     SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
+    QueryPerformanceFrequency(&m_qpcFreq);
+}
+
+void ScrollViewer::SetScrollOffsetY(float offset) {
+    StopInertia();
+    m_offsetY = offset;
+    ClampOffset();
+}
+
+void ScrollViewer::StopInertia() {
+    m_velocityY = 0.0f;
+    m_lastAnimQpc = 0;
+}
+
+float ScrollViewer::GetMaxScroll() const {
+    return (std::max)(0.0f, m_contentHeight - m_bounds.height);
+}
+
+float ScrollViewer::GetScrollbarReserve() const {
+    if (m_contentHeight > m_bounds.height && m_bounds.height > 0.0f) {
+        return kScrollbarInset + kScrollbarWidth;
+    }
+    return 0.0f;
+}
+
+Rect ScrollViewer::GetScrollbarTrackRect() const {
+    float trackX = m_bounds.x + m_bounds.width - kScrollbarInset - kScrollbarWidth;
+    return Rect(trackX, m_bounds.y, kScrollbarWidth, m_bounds.height);
+}
+
+Rect ScrollViewer::GetScrollbarThumbRect() const {
+    Rect track = GetScrollbarTrackRect();
+    float maxScroll = GetMaxScroll();
+    if (maxScroll <= 0.0f || m_bounds.height <= 0.0f || m_contentHeight <= 0.0f) {
+        return Rect(track.x, track.y, track.width, 0.0f);
+    }
+
+    float thumbHeight = (m_bounds.height / m_contentHeight) * track.height;
+    if (thumbHeight < 24.0f) thumbHeight = 24.0f;
+    if (thumbHeight > track.height) thumbHeight = track.height;
+
+    float scrollRatio = m_offsetY / maxScroll;
+    float thumbY = track.y + scrollRatio * (track.height - thumbHeight);
+    return Rect(track.x, thumbY, track.width, thumbHeight);
+}
+
+void ScrollViewer::ClampOffset() {
+    m_offsetY = std::clamp(m_offsetY, 0.0f, GetMaxScroll());
+}
+
+double ScrollViewer::SecondsSinceLastTick() {
+    LARGE_INTEGER now = {};
+    QueryPerformanceCounter(&now);
+
+    if (m_lastAnimQpc == 0 || m_qpcFreq.QuadPart <= 0) {
+        m_lastAnimQpc = now.QuadPart;
+        return 1.0 / 120.0;
+    }
+
+    double dt = static_cast<double>(now.QuadPart - m_lastAnimQpc) / static_cast<double>(m_qpcFreq.QuadPart);
+    m_lastAnimQpc = now.QuadPart;
+
+    if (dt < 0.0005) dt = 0.0005;
+    if (dt > 0.050) dt = 0.050;
+    return dt;
+}
+
+float ScrollViewer::MeasureContentHeight(float contentWidth) {
+    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    float height = 0.0f;
+    Size avail(std::max(0.0f, contentWidth), 100000.0f);
+    for (auto& child : GetChildren()) {
+        std::string vis = child->GetProperty("visibility").AsString("Visible");
+        if (vis == "Collapsed") continue;
+        Size dSize = child->Measure(avail);
+        height = std::max(height, dSize.height);
+    }
+    m_measuredContentWidth = contentWidth;
+    return padding.top + height + padding.bottom + kContentBottomPad;
+}
+
+void ScrollViewer::RefreshContentMetrics(float viewportWidth, float viewportHeight) {
+    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    float innerWidth = std::max(0.0f, viewportWidth - padding.left - padding.right);
+
+    // First measure without a scrollbar. If it overflows, measure once more with
+    // the reserved scrollbar gutter because narrower text may wrap higher.
+    m_contentHeight = MeasureContentHeight(innerWidth);
+    if (m_contentHeight > viewportHeight) {
+        float contentWidth = std::max(0.0f, innerWidth - kScrollbarInset - kScrollbarWidth);
+        m_contentHeight = MeasureContentHeight(contentWidth);
+    }
+    ClampOffset();
+}
+
+void ScrollViewer::PositionChildren() {
+    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    float innerWidth = std::max(0.0f, m_bounds.width - padding.left - padding.right);
+    float reserve = GetScrollbarReserve();
+    float childWidth = std::max(0.0f, innerWidth - reserve);
+    float viewportContentHeight = std::max(0.0f, m_bounds.height - padding.top - padding.bottom);
+
+    // Scrolling changes only child positions. Do not Measure here: thumb dragging
+    // and inertial animation run at frame rate.
+    float naturalHeight = 0.0f;
+    for (auto& child : GetChildren()) {
+        std::string vis = child->GetProperty("visibility").AsString("Visible");
+        if (vis == "Collapsed") continue;
+        naturalHeight = std::max(naturalHeight, child->GetDesiredSize().height);
+    }
+    float childHeight = std::max(viewportContentHeight, naturalHeight);
+
+    for (auto& child : GetChildren()) {
+        std::string vis = child->GetProperty("visibility").AsString("Visible");
+        if (vis == "Collapsed") continue;
+        Rect childRect(
+            m_bounds.x + padding.left,
+            m_bounds.y + padding.top - m_offsetY,
+            childWidth,
+            childHeight
+        );
+        child->Arrange(childRect);
+    }
 }
 
 Size ScrollViewer::Measure(Size availableSize) {
     Thickness margin = GetProperty("margin").AsThickness(Thickness(0));
     Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
 
-    Size contentAvail(availableSize.width - margin.left - margin.right - padding.left - padding.right, 100000.0f);
-    if (contentAvail.width < 0) contentAvail.width = 0;
-
-    m_contentHeight = 0.0f;
-    for (auto& child : GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
-
-        Size dSize = child->Measure(contentAvail);
-        m_contentHeight = (std::max)(m_contentHeight, dSize.height);
-    }
-
     float expW = GetProperty("width").AsFloat(-1.0f);
     float expH = GetProperty("height").AsFloat(-1.0f);
 
+    // Use the control's own width when explicit — NOT the parent's full available width.
+    // Measuring with the window width was underestimating wrapped content for a 320px panel.
     float finalW = (expW >= 0.0f) ? expW : availableSize.width;
     float finalH = (expH >= 0.0f) ? expH : availableSize.height;
+    RefreshContentMetrics(finalW - margin.left - margin.right, finalH - margin.top - margin.bottom);
 
     m_desiredSize = Size(finalW, finalH);
     return m_desiredSize;
@@ -36,24 +154,15 @@ Size ScrollViewer::Measure(Size availableSize) {
 void ScrollViewer::Arrange(Rect finalRect) {
     m_bounds = finalRect;
     Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
-
-    float maxScroll = (std::max)(0.0f, m_contentHeight - m_bounds.height);
-    if (m_offsetY > maxScroll) m_offsetY = maxScroll;
-    if (m_offsetY < 0.0f) m_offsetY = 0.0f;
-
-    Rect childRect(
-        finalRect.x + padding.left,
-        finalRect.y + padding.top - m_offsetY,
-        finalRect.width - padding.left - padding.right,
-        (std::max)(finalRect.height, m_contentHeight)
+    float reserve = GetScrollbarReserve();
+    float contentWidth = std::max(
+        0.0f,
+        finalRect.width - padding.left - padding.right - reserve
     );
-
-    for (auto& child : GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
-
-        child->Arrange(childRect);
+    if (std::abs(contentWidth - m_measuredContentWidth) > 0.5f) {
+        RefreshContentMetrics(finalRect.width, finalRect.height);
     }
+    PositionChildren();
 }
 
 void ScrollViewer::Render(GraphicsContext& ctx) {
@@ -67,34 +176,165 @@ void ScrollViewer::Render(GraphicsContext& ctx) {
         child->Render(ctx);
     }
 
+    if (m_contentHeight > m_bounds.height && m_bounds.height > 0.0f) {
+        Rect track = GetScrollbarTrackRect();
+        Rect thumb = GetScrollbarThumbRect();
+
+        float trackAlpha = m_scrollbarHovered || m_isDraggingThumb ? 0.18f : 0.08f;
+        ctx.FillRoundedRect(track, 4.0f, D2D1::ColorF(1.0f, 1.0f, 1.0f, trackAlpha));
+
+        float thumbAlpha = m_isDraggingThumb ? 0.75f : (m_scrollbarHovered ? 0.55f : 0.40f);
+        ctx.FillRoundedRect(thumb, 4.0f, D2D1::ColorF(0x79 / 255.0f, 0x79 / 255.0f, 0x79 / 255.0f, thumbAlpha));
+    }
+
     ctx.PopClip();
 }
 
 void ScrollViewer::OnRender(GraphicsContext& ctx) {
     UIElement::OnRender(ctx);
+}
 
-    // Render scrollbar indicator if content exceeds view
-    if (m_contentHeight > m_bounds.height && m_bounds.height > 0.0f) {
-        float trackHeight = m_bounds.height;
-        float thumbHeight = (m_bounds.height / m_contentHeight) * trackHeight;
-        if (thumbHeight < 20.0f) thumbHeight = 20.0f;
+UIElement* ScrollViewer::HitTest(float x, float y) {
+    std::string visStr = GetProperty("visibility").AsString("Visible");
+    if (visStr != "Visible") return nullptr;
 
-        float maxScroll = m_contentHeight - m_bounds.height;
-        float scrollRatio = (maxScroll > 0.0f) ? (m_offsetY / maxScroll) : 0.0f;
-        float thumbY = m_bounds.y + scrollRatio * (trackHeight - thumbHeight);
+    if (m_contentHeight > m_bounds.height && GetScrollbarTrackRect().Contains(x, y)) {
+        return this;
+    }
 
-        Rect thumbRect(m_bounds.x + m_bounds.width - 6.0f, thumbY, 4.0f, thumbHeight);
-        ctx.FillRoundedRect(thumbRect, 2.0f, D2D1::ColorF(0x79 / 255.0f, 0x79 / 255.0f, 0x79 / 255.0f, 0.4f));
+    UIElement* overlayHit = HitTestOverlay(x, y);
+    if (overlayHit) return overlayHit;
+
+    for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+        UIElement* hit = (*it)->HitTest(x, y);
+        if (hit) return hit;
+    }
+
+    if (m_bounds.Contains(x, y)) {
+        return this;
+    }
+    return nullptr;
+}
+
+HCURSOR ScrollViewer::GetCursor() const {
+    if (m_scrollbarHovered || m_isDraggingThumb) {
+        return LoadCursor(nullptr, IDC_ARROW);
+    }
+    return nullptr;
+}
+
+void ScrollViewer::OnMouseDown(Point pt) {
+    UIElement::OnMouseDown(pt);
+
+    if (m_contentHeight <= m_bounds.height) return;
+
+    Rect track = GetScrollbarTrackRect();
+    Rect thumb = GetScrollbarThumbRect();
+
+    if (thumb.Contains(pt.x, pt.y)) {
+        StopInertia();
+        m_isDraggingThumb = true;
+        m_dragStartY = pt.y;
+        m_dragStartOffsetY = m_offsetY;
+        return;
+    }
+
+    if (track.Contains(pt.x, pt.y)) {
+        StopInertia();
+        float maxScroll = GetMaxScroll();
+        float trackH = track.height;
+        float thumbH = thumb.height;
+        float clickRatio = (pt.y - track.y - thumbH * 0.5f) / (std::max)(1.0f, trackH - thumbH);
+        clickRatio = std::clamp(clickRatio, 0.0f, 1.0f);
+        m_offsetY = clickRatio * maxScroll;
+        ClampOffset();
+        PositionChildren();
     }
 }
 
-void ScrollViewer::OnMouseWheel(float delta) {
-    float maxScroll = (std::max)(0.0f, m_contentHeight - m_bounds.height);
-    m_offsetY -= delta * 40.0f;
-    if (m_offsetY < 0.0f) m_offsetY = 0.0f;
-    if (m_offsetY > maxScroll) m_offsetY = maxScroll;
+void ScrollViewer::OnMouseMove(Point pt) {
+    UIElement::OnMouseMove(pt);
 
-    Arrange(m_bounds);
+    m_scrollbarHovered = (m_contentHeight > m_bounds.height) && GetScrollbarTrackRect().Contains(pt.x, pt.y);
+
+    if (m_isDraggingThumb && m_isPressed) {
+        float maxScroll = GetMaxScroll();
+        Rect track = GetScrollbarTrackRect();
+        Rect thumb = GetScrollbarThumbRect();
+        float scrollableTrack = (std::max)(1.0f, track.height - thumb.height);
+        float deltaY = pt.y - m_dragStartY;
+        m_offsetY = m_dragStartOffsetY + (deltaY / scrollableTrack) * maxScroll;
+        ClampOffset();
+        PositionChildren();
+    }
+}
+
+void ScrollViewer::OnMouseUp(Point pt) {
+    UIElement::OnMouseUp(pt);
+    m_isDraggingThumb = false;
+}
+
+void ScrollViewer::OnMouseWheel(float delta) {
+    float maxScroll = GetMaxScroll();
+    if (maxScroll <= 0.0f) {
+        UIElement::OnMouseWheel(delta);
+        return;
+    }
+
+    m_velocityY -= delta * kWheelImpulse;
+    m_velocityY = std::clamp(m_velocityY, -kMaxSpeed, kMaxSpeed);
+
+    if (m_lastAnimQpc == 0) {
+        LARGE_INTEGER now = {};
+        QueryPerformanceCounter(&now);
+        m_lastAnimQpc = now.QuadPart;
+    }
+}
+
+bool ScrollViewer::AdvanceInertia() {
+    if (m_isDraggingThumb) {
+        StopInertia();
+        return false;
+    }
+
+    if (std::abs(m_velocityY) <= kStopSpeed) {
+        if (m_velocityY != 0.0f) {
+            m_velocityY = 0.0f;
+            m_lastAnimQpc = 0;
+            ClampOffset();
+            PositionChildren();
+        }
+        return false;
+    }
+
+    double dt = SecondsSinceLastTick();
+    float maxScroll = GetMaxScroll();
+
+    m_offsetY += m_velocityY * static_cast<float>(dt);
+
+    if (m_offsetY < 0.0f) {
+        m_offsetY = 0.0f;
+        m_velocityY = 0.0f;
+    } else if (m_offsetY > maxScroll) {
+        m_offsetY = maxScroll;
+        m_velocityY = 0.0f;
+    }
+
+    m_velocityY *= static_cast<float>(std::exp(-kFriction * dt));
+
+    if (std::abs(m_velocityY) <= kStopSpeed) {
+        m_velocityY = 0.0f;
+        m_lastAnimQpc = 0;
+    }
+
+    PositionChildren();
+    return std::abs(m_velocityY) > kStopSpeed;
+}
+
+bool ScrollViewer::OnAnimationTick() {
+    bool childAnimating = UIElement::OnAnimationTick();
+    bool selfAnimating = AdvanceInertia();
+    return childAnimating || selfAnimating;
 }
 
 } // namespace CUI

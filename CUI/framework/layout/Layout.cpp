@@ -1,3 +1,6 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include "Layout.h"
 #include "../controls/UIElement.h"
 #include "../controls/Panel.h"
@@ -143,54 +146,85 @@ void LayoutEngine::ArrangeFlexPanel(UIElement* panel, Rect finalRect, Orientatio
     const auto& children = panel->GetChildren();
     if (children.empty()) return;
 
+    std::vector<UIElement*> visibleChildren;
+    std::vector<float> mainSizes;
+    std::vector<float> flexFactors;
+    std::vector<float> minMainSizes;
     float totalFlexGrow = 0.0f;
     float usedMain = 0.0f;
-    int visibleCount = 0;
 
     for (auto& child : children) {
         std::string vis = child->GetProperty("visibility").AsString("Visible");
         if (vis == "Collapsed") continue;
 
-        visibleCount++;
         Size dSize = child->GetDesiredSize();
-
         float flex = child->GetProperty("flexGrow").AsFloat(0.0f);
-        totalFlexGrow += flex;
+        float explicitMain = (orientation == Orientation::Horizontal)
+            ? child->GetProperty("width").AsFloat(-1.0f)
+            : child->GetProperty("height").AsFloat(-1.0f);
+        float baseMain = explicitMain >= 0.0f
+            ? explicitMain
+            : ((orientation == Orientation::Horizontal) ? dSize.width : dSize.height);
+        float minMain = (orientation == Orientation::Horizontal)
+            ? child->GetProperty("minWidth").AsFloat(0.0f)
+            : child->GetProperty("minHeight").AsFloat(0.0f);
 
-        if (orientation == Orientation::Horizontal) {
-            usedMain += dSize.width;
-        } else {
-            usedMain += dSize.height;
-        }
+        visibleChildren.push_back(child.get());
+        mainSizes.push_back(std::max(baseMain, minMain));
+        flexFactors.push_back(std::max(0.0f, flex));
+        minMainSizes.push_back(std::max(0.0f, minMain));
+        usedMain += mainSizes.back();
+        totalFlexGrow += flexFactors.back();
     }
 
-    if (visibleCount > 1) {
-        usedMain += gap * (visibleCount - 1);
+    if (visibleChildren.size() > 1) {
+        usedMain += gap * static_cast<float>(visibleChildren.size() - 1);
     }
 
     float availableMain = (orientation == Orientation::Horizontal) ? finalRect.width : finalRect.height;
-    float extraMain = (std::max)(0.0f, availableMain - usedMain);
+    float remaining = availableMain - usedMain;
+
+    if (remaining > 0.0f && totalFlexGrow > 0.0f) {
+        // Grow every flex item, including one with an explicit flex-basis.
+        for (size_t i = 0; i < mainSizes.size(); ++i) {
+            if (flexFactors[i] > 0.0f) {
+                mainSizes[i] += remaining * (flexFactors[i] / totalFlexGrow);
+            }
+        }
+    } else if (remaining < 0.0f && totalFlexGrow > 0.0f) {
+        // A flex item must also shrink when its desired content becomes wider/taller
+        // than the viewport. Without this, changing a child width can draw off-screen.
+        float deficit = -remaining;
+        for (int pass = 0; pass < 2 && deficit > 0.01f; ++pass) {
+            float shrinkWeight = 0.0f;
+            for (size_t i = 0; i < mainSizes.size(); ++i) {
+                if (flexFactors[i] > 0.0f && mainSizes[i] > minMainSizes[i]) {
+                    shrinkWeight += flexFactors[i];
+                }
+            }
+            if (shrinkWeight <= 0.0f) break;
+
+            float removed = 0.0f;
+            for (size_t i = 0; i < mainSizes.size(); ++i) {
+                if (flexFactors[i] <= 0.0f || mainSizes[i] <= minMainSizes[i]) continue;
+                float requested = deficit * (flexFactors[i] / shrinkWeight);
+                float actual = std::min(requested, mainSizes[i] - minMainSizes[i]);
+                mainSizes[i] -= actual;
+                removed += actual;
+            }
+            if (removed <= 0.01f) break;
+            deficit -= removed;
+        }
+    }
 
     float currentMain = (orientation == Orientation::Horizontal) ? finalRect.x : finalRect.y;
     float crossStart = (orientation == Orientation::Horizontal) ? finalRect.y : finalRect.x;
     float crossSize = (orientation == Orientation::Horizontal) ? finalRect.height : finalRect.width;
 
-    for (auto& child : children) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
-
+    for (size_t i = 0; i < visibleChildren.size(); ++i) {
+        UIElement* child = visibleChildren[i];
         Size dSize = child->GetDesiredSize();
-        float flex = child->GetProperty("flexGrow").AsFloat(0.0f);
-
-        float expMain = (orientation == Orientation::Horizontal) ? child->GetProperty("width").AsFloat(-1.0f) : child->GetProperty("height").AsFloat(-1.0f);
         float expCross = (orientation == Orientation::Horizontal) ? child->GetProperty("height").AsFloat(-1.0f) : child->GetProperty("width").AsFloat(-1.0f);
-
-        float childMainSize = (orientation == Orientation::Horizontal) ? dSize.width : dSize.height;
-        if (expMain >= 0.0f) {
-            childMainSize = expMain;
-        } else if (totalFlexGrow > 0.0f && flex > 0.0f) {
-            childMainSize += extraMain * (flex / totalFlexGrow);
-        }
 
         float childCrossSize = (orientation == Orientation::Horizontal) ? dSize.height : dSize.width;
         if (expCross >= 0.0f) {
@@ -223,11 +257,11 @@ void LayoutEngine::ArrangeFlexPanel(UIElement* panel, Rect finalRect, Orientatio
 
         Rect childRect;
         if (orientation == Orientation::Horizontal) {
-            childRect = Rect(currentMain, childCrossPos, childMainSize, childCrossSize);
-            currentMain += childMainSize + gap;
+            childRect = Rect(currentMain, childCrossPos, mainSizes[i], childCrossSize);
+            currentMain += mainSizes[i] + gap;
         } else {
-            childRect = Rect(childCrossPos, currentMain, childCrossSize, childMainSize);
-            currentMain += childMainSize + gap;
+            childRect = Rect(childCrossPos, currentMain, childCrossSize, mainSizes[i]);
+            currentMain += mainSizes[i] + gap;
         }
 
         child->Arrange(childRect);

@@ -87,6 +87,15 @@ Size UIElement::Measure(Size availableSize) {
     return m_desiredSize;
 }
 
+bool UIElement::ShouldClipToBounds() const {
+    // Allow scroll content panels to disable clipping so last items aren't cut off
+    // when content-height measurement is slightly short.
+    if (HasProperty("clipToBounds")) {
+        return GetProperty("clipToBounds").AsBool(true);
+    }
+    return true;
+}
+
 void UIElement::Arrange(Rect finalRect) {
     std::string visStr = GetProperty("visibility").AsString("Visible");
     if (visStr == "Collapsed") {
@@ -223,6 +232,16 @@ void UIElement::OnMouseWheel(float delta) {
 }
 
 void UIElement::OnKeyDown(int vkCode) {
+}
+
+bool UIElement::OnAnimationTick() {
+    bool any = false;
+    for (auto& child : m_children) {
+        if (child && child->OnAnimationTick()) {
+            any = true;
+        }
+    }
+    return any;
 }
 
 } // namespace CUI

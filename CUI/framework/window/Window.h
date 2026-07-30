@@ -17,6 +17,7 @@ public:
     void RunMessageLoop();
 
     void SetRootElement(std::shared_ptr<UIElement> root);
+    void Relayout();
     std::shared_ptr<UIElement> GetRootElement() const { return m_rootElement; }
 
     HWND GetHWND() const { return m_hwnd; }

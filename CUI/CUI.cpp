@@ -72,12 +72,7 @@ static void StopStreamingThread() {
 
 static void NotifyPropertyUpdated(UIElement* element, Window& window) {
     if (window.GetRootElement()) {
-        auto root = window.GetRootElement();
-        RECT rc;
-        GetClientRect(window.GetHWND(), &rc);
-        Size avail(static_cast<float>(rc.right - rc.left), static_cast<float>(rc.bottom - rc.top));
-        root->Measure(avail);
-        root->Arrange(Rect(0, 0, avail.width, avail.height));
+        window.Relayout();
     }
     if (window.GetHWND()) {
         InvalidateRect(window.GetHWND(), nullptr, FALSE);

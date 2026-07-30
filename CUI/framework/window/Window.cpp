@@ -5,6 +5,7 @@
 #include <dwmapi.h>
 #include <imm.h>
 #include <iostream>
+#include <algorithm>
 
 #pragma comment(lib, "imm32.lib")
 #pragma comment(lib, "dwmapi.lib")
@@ -86,19 +87,43 @@ void Window::Show() {
 
 void Window::RunMessageLoop() {
     MSG msg = {};
-    while (GetMessage(&msg, nullptr, 0, 0)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+    for (;;) {
+        // Drain the queue first
+        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+            if (msg.message == WM_QUIT) {
+                return;
+            }
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
+        // Drive UI animations (smooth scroll etc.) on a vsync-paced path:
+        // UpdateWindow -> OnPaint -> Present(1) waits for vertical blank.
+        bool animating = m_rootElement && m_rootElement->OnAnimationTick();
+        if (animating) {
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+            UpdateWindow(m_hwnd);
+            continue;
+        }
+
+        // Idle: sleep until the next input / timer message
+        WaitMessage();
     }
 }
 
 void Window::SetRootElement(std::shared_ptr<UIElement> root) {
     m_rootElement = root;
-    if (m_hwnd) {
-        RECT rc;
-        GetClientRect(m_hwnd, &rc);
-        OnResize(rc.right - rc.left, rc.bottom - rc.top);
-    }
+    Relayout();
+}
+
+void Window::Relayout() {
+    if (!m_hwnd) return;
+    RECT rc;
+    GetClientRect(m_hwnd, &rc);
+    OnResize(
+        static_cast<UINT>(std::max<LONG>(0, rc.right - rc.left)),
+        static_cast<UINT>(std::max<LONG>(0, rc.bottom - rc.top))
+    );
 }
 
 LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -122,8 +147,19 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
     case WM_NCCALCSIZE:
         if (wParam == TRUE) {
-            // When maximized, Windows expands window bounds slightly beyond screen (-8px) to hide native borders.
-            // Adjust top/bottom/left/right padding when maximized so content padding is consistent with windowed mode.
+            auto* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+            if (IsZoomed(m_hwnd)) {
+                // A maximized WS_OVERLAPPEDWINDOW is intentionally larger than the
+                // monitor work area by the invisible resize-frame thickness. Because
+                // this window removes the whole non-client area, that enlargement
+                // otherwise becomes client pixels and our UI is rendered off-screen.
+                HMONITOR monitor = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
+                MONITORINFO info = {};
+                info.cbSize = sizeof(info);
+                if (GetMonitorInfo(monitor, &info)) {
+                    params->rgrc[0] = info.rcWork;
+                }
+            }
             return 0;
         }
         break;
@@ -229,6 +265,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 InvalidateRect(m_hwnd, nullptr, FALSE);
             }
         } else if (wParam == 2) {
+            // ListView rubber-band auto-scroll etc. (not used for smooth wheel scroll)
             if (m_focusedElement) {
                 m_focusedElement->OnAutoScrollTick();
                 InvalidateRect(m_hwnd, nullptr, FALSE);

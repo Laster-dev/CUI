@@ -14,6 +14,8 @@ PropertyGrid::PropertyGrid() {
     m_container->SetProperty("orientation", Value("Vertical"));
     m_container->SetProperty("padding", Value(Thickness(12, 12, 12, 12)));
     m_container->SetProperty("gap", Value(8.0f));
+    // Prevent last property rows from being clipped if content height is slightly short.
+    m_container->SetProperty("clipToBounds", Value(false));
 
     AddChild(m_container);
 }
@@ -86,11 +88,7 @@ void PropertyGrid::RebuildUI() {
                     t->SetProperty(propName, Value(st == CheckState::Checked));
                     if (host) {
                         Window* w = reinterpret_cast<Window*>(host);
-                        RECT rc;
-                        GetClientRect(w->GetHWND(), &rc);
-                        Size avail(static_cast<float>(rc.right - rc.left), static_cast<float>(rc.bottom - rc.top));
-                        w->GetRootElement()->Measure(avail);
-                        w->GetRootElement()->Arrange(Rect(0, 0, avail.width, avail.height));
+                        w->Relayout();
                         InvalidateRect(w->GetHWND(), nullptr, FALSE);
                     }
                 }
@@ -101,7 +99,7 @@ void PropertyGrid::RebuildUI() {
 
         } else if (meta.type == "enum") {
             auto combo = std::make_shared<ComboBox>();
-            combo->SetProperty("width", Value(280.0f));
+            combo->SetProperty("width", Value(260.0f));
             combo->SetProperty("height", Value(26.0f));
 
             int selectIdx = 0;
@@ -123,11 +121,7 @@ void PropertyGrid::RebuildUI() {
                     t->SetProperty(propName, Value(opt));
                     if (host) {
                         Window* w = reinterpret_cast<Window*>(host);
-                        RECT rc;
-                        GetClientRect(w->GetHWND(), &rc);
-                        Size avail(static_cast<float>(rc.right - rc.left), static_cast<float>(rc.bottom - rc.top));
-                        w->GetRootElement()->Measure(avail);
-                        w->GetRootElement()->Arrange(Rect(0, 0, avail.width, avail.height));
+                        w->Relayout();
                         InvalidateRect(w->GetHWND(), nullptr, FALSE);
                     }
                 }
@@ -138,7 +132,7 @@ void PropertyGrid::RebuildUI() {
 
         } else {
             auto input = std::make_shared<TextBox>();
-            input->SetProperty("width", Value(280.0f));
+            input->SetProperty("width", Value(260.0f));
             input->SetProperty("height", Value(26.0f));
 
             std::string displayValStr = "";
@@ -175,11 +169,7 @@ void PropertyGrid::RebuildUI() {
                     }
                     if (host) {
                         Window* w = reinterpret_cast<Window*>(host);
-                        RECT rc;
-                        GetClientRect(w->GetHWND(), &rc);
-                        Size avail(static_cast<float>(rc.right - rc.left), static_cast<float>(rc.bottom - rc.top));
-                        w->GetRootElement()->Measure(avail);
-                        w->GetRootElement()->Arrange(Rect(0, 0, avail.width, avail.height));
+                        w->Relayout();
                         InvalidateRect(w->GetHWND(), nullptr, FALSE);
                     }
                 }

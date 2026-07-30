@@ -58,7 +58,7 @@ public:
 
     virtual Size Measure(Size availableSize);
     virtual void Arrange(Rect finalRect);
-    virtual bool ShouldClipToBounds() const { return true; }
+    virtual bool ShouldClipToBounds() const;
     virtual void Render(GraphicsContext& ctx);
     virtual void OnRender(GraphicsContext& ctx);
 
@@ -87,6 +87,8 @@ public:
     virtual void OnMouseWheel(float delta);
     virtual void OnKeyDown(int vkCode);
     virtual void OnAutoScrollTick() {}
+    // Returns true if any animation still needs frames (smooth scroll, etc.).
+    virtual bool OnAnimationTick();
 
     void SetContextMenu(std::shared_ptr<ContextMenu> menu) { m_contextMenu = menu; }
     std::shared_ptr<ContextMenu> GetContextMenu() const { return m_contextMenu; }
