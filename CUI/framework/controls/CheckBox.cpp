@@ -1,7 +1,23 @@
 #include "CheckBox.h"
 #include <algorithm>
+#include <cmath>
 
 namespace CUI {
+namespace {
+float EaseOutCubic(float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    return 1.0f - std::pow(1.0f - t, 3.0f);
+}
+
+float EaseOutQuad(float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    return 1.0f - (1.0f - t) * (1.0f - t);
+}
+
+Point LerpPoint(const Point& a, const Point& b, float t) {
+    return Point(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+}
+}
 
 CheckBox::CheckBox() {
     SetProperty("text", Value("CheckBox"));
@@ -45,6 +61,7 @@ void CheckBox::SetState(CheckState state) {
     else if (state == CheckState::Indeterminate) s = "Indeterminate";
 
     SetProperty("checkState", Value(s));
+    SetProperty("isChecked", Value(state == CheckState::Checked));
     m_onCheckStateChangedEvent.Invoke(this, state);
 }
 
@@ -88,34 +105,45 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F accentBase = D2D1::ColorF(0x4C / 255.0f, 0xC2 / 255.0f, 0xFF / 255.0f, 1.0f); // #4CC2FF WinUI Fluent Accent Blue
     D2D1_COLOR_F accentBlue = BlendColor(accentBase, D2D1::ColorF(0x78 / 255.0f, 0xD7 / 255.0f, 0xFF / 255.0f, 1.0f), m_visualState);
     D2D1_COLOR_F checkedIconColor = D2D1::ColorF(0x00 / 255.0f, 0x00 / 255.0f, 0x00 / 255.0f, 1.0f); // Black check mark
+    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0x20 / 255.0f, 0x20 / 255.0f, 0x20 / 255.0f, 1.0f));
+    D2D1_COLOR_F border = BlendColor(
+        D2D1::ColorF(0x8E / 255.0f, 0x8E / 255.0f, 0x8E / 255.0f, 0.8f),
+        D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.9f),
+        (std::min)(1.0f, m_visualState / 0.55f));
 
-    if (state == CheckState::Checked || state == CheckState::Indeterminate) {
-        // Draw Vibrant Fluent Cyan-Blue Rounded Box
-        ctx.FillRoundedRect(boxRect, radius, accentBlue);
+    D2D1_COLOR_F fillColor = BlendColor(bg, accentBlue, m_fillProgress);
+    D2D1_COLOR_F borderColor = BlendColor(border, accentBlue, m_fillProgress * 0.9f);
+    ctx.FillRoundedRect(boxRect, radius, fillColor);
+    ctx.DrawRoundedRect(boxRect, radius, borderColor, 1.2f);
 
-        if (state == CheckState::Checked) {
-            // Draw Anti-Aliased Vector Checkmark "✓" (2 connected line segments)
-            Point p1(boxRect.x + 4.5f, boxRect.y + 9.5f);
-            Point p2(boxRect.x + 7.5f, boxRect.y + 12.5f);
-            Point p3(boxRect.x + 13.5f, boxRect.y + 5.5f);
+    float checkFactor = EaseOutCubic(m_checkProgress);
+    if (checkFactor > 0.001f) {
+        Point p1(boxRect.x + 4.6f, boxRect.y + 9.4f);
+        Point p2(boxRect.x + 7.6f, boxRect.y + 12.3f);
+        Point p3(boxRect.x + 13.4f, boxRect.y + 6.0f);
+        float len1 = std::sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
+        float len2 = std::sqrt((p3.x - p2.x) * (p3.x - p2.x) + (p3.y - p2.y) * (p3.y - p2.y));
+        float total = len1 + len2;
+        float drawLen = total * checkFactor;
 
-            ctx.DrawLine(p1, p2, checkedIconColor, 1.8f);
-            ctx.DrawLine(p2, p3, checkedIconColor, 1.8f);
-        } else if (state == CheckState::Indeterminate) {
-            // Draw Indeterminate "-" solid center rect
-            Rect barRect(boxRect.x + 4.5f, boxRect.y + 7.5f, 9.0f, 3.0f);
-            ctx.FillRoundedRect(barRect, 1.0f, checkedIconColor);
+        if (drawLen <= len1) {
+            float segT = len1 > 0.0f ? drawLen / len1 : 1.0f;
+            ctx.DrawLine(p1, LerpPoint(p1, p2, segT), checkedIconColor, 1.9f);
+        } else {
+            ctx.DrawLine(p1, p2, checkedIconColor, 1.9f);
+            float remain = drawLen - len1;
+            float segT = len2 > 0.0f ? remain / len2 : 1.0f;
+            ctx.DrawLine(p2, LerpPoint(p2, p3, segT), checkedIconColor, 1.9f);
         }
-    } else {
-        // Unchecked state: Clean dark background with light gray rounded border (#999999)
-        D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0x20 / 255.0f, 0x20 / 255.0f, 0x20 / 255.0f, 1.0f));
-        D2D1_COLOR_F border = BlendColor(
-            D2D1::ColorF(0x8E / 255.0f, 0x8E / 255.0f, 0x8E / 255.0f, 0.8f),
-            D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.9f),
-            (std::min)(1.0f, m_visualState / 0.55f));
+    }
 
-        ctx.FillRoundedRect(boxRect, radius, bg);
-        ctx.DrawRoundedRect(boxRect, radius, border, 1.2f);
+    float indeterminateFactor = EaseOutQuad(m_indeterminateProgress);
+    if (indeterminateFactor > 0.001f) {
+        float halfWidth = 4.5f * indeterminateFactor;
+        float centerX = boxRect.x + boxRect.width * 0.5f;
+        float centerY = boxRect.y + boxRect.height * 0.5f;
+        Rect barRect(centerX - halfWidth, centerY - 1.5f, halfWidth * 2.0f, 3.0f);
+        ctx.FillRoundedRect(barRect, 1.0f, checkedIconColor);
     }
 
     // Draw Label Text
@@ -148,6 +176,42 @@ void CheckBox::OnMouseDown(Point pt) {
     }
 
     SetState(newState);
+}
+
+bool CheckBox::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    bool animating = base;
+
+    CheckState state = GetState();
+    float fillTarget = state == CheckState::Unchecked ? 0.0f : 1.0f;
+    float checkTarget = state == CheckState::Checked ? 1.0f : 0.0f;
+    float indeterminateTarget = state == CheckState::Indeterminate ? 1.0f : 0.0f;
+
+    float fillDelta = fillTarget - m_fillProgress;
+    if (std::abs(fillDelta) > 0.01f) {
+        m_fillProgress += fillDelta * 0.24f;
+        animating = true;
+    } else {
+        m_fillProgress = fillTarget;
+    }
+
+    float checkDelta = checkTarget - m_checkProgress;
+    if (std::abs(checkDelta) > 0.01f) {
+        m_checkProgress += checkDelta * 0.20f;
+        animating = true;
+    } else {
+        m_checkProgress = checkTarget;
+    }
+
+    float indeterminateDelta = indeterminateTarget - m_indeterminateProgress;
+    if (std::abs(indeterminateDelta) > 0.01f) {
+        m_indeterminateProgress += indeterminateDelta * 0.20f;
+        animating = true;
+    } else {
+        m_indeterminateProgress = indeterminateTarget;
+    }
+
+    return animating;
 }
 
 } // namespace CUI

@@ -22,6 +22,7 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual bool OnAnimationTick() override;
 
     CheckState GetState() const;
     void SetState(CheckState state);
@@ -32,6 +33,10 @@ public:
     Event<CheckBox*, CheckState>& OnCheckStateChanged() { return m_onCheckStateChangedEvent; }
 
 private:
+    float m_fillProgress = 0.0f;
+    float m_checkProgress = 0.0f;
+    float m_indeterminateProgress = 0.0f;
+
     Event<CheckBox*, CheckState> m_onCheckStateChangedEvent;
 };
 

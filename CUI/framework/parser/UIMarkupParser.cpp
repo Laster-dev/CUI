@@ -220,6 +220,13 @@ static std::shared_ptr<UIElement> BuildTreeFromXmlNode(UIMarkupParser& parser, c
             gridElem->SetColumnDefinitions(attrVal);
         } else if (gridElem && (attrName == "rowDefinitions" || attrName == "RowDefinitions")) {
             gridElem->SetRowDefinitions(attrVal);
+        } else if (attrName == "isChecked") {
+            if (auto checkBox = dynamic_cast<CheckBox*>(elem.get())) {
+                bool isChecked = (attrVal == "true" || attrVal == "1" || attrVal == "True");
+                checkBox->SetState(isChecked ? CheckState::Checked : CheckState::Unchecked);
+            } else {
+                elem->SetProperty(attrName, Value::ParseAuto(attrVal));
+            }
         } else {
             if (attrVal.find("{Binding") != std::string::npos) {
                 size_t pathPos = attrVal.find("Path=");
