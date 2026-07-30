@@ -21,6 +21,61 @@ ListView::ListView() {
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("width", Value(480.0f));
     SetProperty("height", Value(320.0f));
+    QueryPerformanceFrequency(&m_qpcFreq);
+}
+
+void ListView::StopInertia() {
+    m_velocityY = 0.0f;
+    m_lastAnimQpc = 0;
+}
+
+double ListView::SecondsSinceLastTick() {
+    LARGE_INTEGER now = {};
+    QueryPerformanceCounter(&now);
+
+    if (m_lastAnimQpc == 0 || m_qpcFreq.QuadPart <= 0) {
+        m_lastAnimQpc = now.QuadPart;
+        return 1.0 / 120.0;
+    }
+
+    double dt = static_cast<double>(now.QuadPart - m_lastAnimQpc) / static_cast<double>(m_qpcFreq.QuadPart);
+    m_lastAnimQpc = now.QuadPart;
+    if (dt < 0.0005) dt = 0.0005;
+    if (dt > 0.050) dt = 0.050;
+    return dt;
+}
+
+bool ListView::AdvanceInertia() {
+    if (m_isDraggingScrollbar || m_isRubberBandSelecting) {
+        StopInertia();
+        return false;
+    }
+
+    if (std::abs(m_velocityY) <= kStopSpeed) {
+        if (m_velocityY != 0.0f) {
+            m_velocityY = 0.0f;
+            m_lastAnimQpc = 0;
+            ClampScroll();
+        }
+        return false;
+    }
+
+    double dt = SecondsSinceLastTick();
+    float oldScrollY = m_scrollY;
+    m_scrollY += m_velocityY * static_cast<float>(dt);
+    ClampScroll();
+
+    if (m_scrollY <= 0.0f || m_scrollY >= m_maxScrollY) {
+        m_velocityY = 0.0f;
+    } else {
+        m_velocityY *= static_cast<float>(std::exp(-kFriction * dt));
+        if (std::abs(m_velocityY) <= kStopSpeed) {
+            m_velocityY = 0.0f;
+            m_lastAnimQpc = 0;
+        }
+    }
+
+    return std::abs(m_scrollY - oldScrollY) > 0.01f || std::abs(m_velocityY) > kStopSpeed;
 }
 
 HCURSOR ListView::GetCursor() const {
@@ -427,6 +482,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
 void ListView::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
+    StopInertia();
 
     m_isMouseDown = true;
     m_mouseDownPoint = pt;
@@ -593,10 +649,16 @@ void ListView::OnMouseWheel(float delta) {
     bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
     if (shiftDown) {
         m_scrollX -= delta * 40.0f;
+        ClampScroll();
     } else {
-        m_scrollY -= delta * m_rowHeight * 3.0f;
+        m_velocityY -= delta * kWheelImpulse;
+        m_velocityY = std::clamp(m_velocityY, -kMaxSpeed, kMaxSpeed);
+        if (m_lastAnimQpc == 0) {
+            LARGE_INTEGER now = {};
+            QueryPerformanceCounter(&now);
+            m_lastAnimQpc = now.QuadPart;
+        }
     }
-    ClampScroll();
 }
 
 bool ListView::ApplyAutoScroll() {
@@ -713,6 +775,10 @@ void ListView::OnKeyDown(int vkCode) {
         m_selectedIndices.insert(newRow);
         m_onSelectionChangedEvent.Invoke(this, newRow);
     }
+}
+
+bool ListView::OnAnimationTick() {
+    return AdvanceInertia();
 }
 
 } // namespace CUI

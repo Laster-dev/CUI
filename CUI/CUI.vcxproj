@@ -170,7 +170,10 @@
     <ClCompile Include="framework\controls\Panel.cpp" />
     <ClCompile Include="framework\controls\ScrollViewer.cpp" />
     <ClCompile Include="framework\controls\MessageBox.cpp" />
+    <ClCompile Include="framework\controls\Toast.cpp" />
+    <ClCompile Include="framework\controls\ToastCenter.cpp" />
     <ClCompile Include="framework\controls\TabView.cpp" />
+    <ClCompile Include="framework\controls\CollapsePanel.cpp" />
     <ClCompile Include="framework\controls\MenuBar.cpp" />
     <ClCompile Include="framework\controls\VSCodeControls.cpp" />
     <ClCompile Include="framework\controls\PropertyGrid.cpp" />
@@ -202,7 +205,10 @@
     <ClInclude Include="framework\controls\Panel.h" />
     <ClInclude Include="framework\controls\ScrollViewer.h" />
     <ClInclude Include="framework\controls\MessageBox.h" />
+    <ClInclude Include="framework\controls\Toast.h" />
+    <ClInclude Include="framework\controls\ToastCenter.h" />
     <ClInclude Include="framework\controls\TabView.h" />
+    <ClInclude Include="framework\controls\CollapsePanel.h" />
     <ClInclude Include="framework\controls\MenuBar.h" />
     <ClInclude Include="framework\controls\VSCodeControls.h" />
     <ClInclude Include="framework\controls\PropertyGrid.h" />
@@ -219,3 +225,6 @@
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
+
+
+

@@ -134,7 +134,7 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.BufferCount = 2;
     swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
     swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
     hr = dxgiFactory->CreateSwapChainForHwnd(
@@ -231,8 +231,8 @@ HRESULT GraphicsContext::EndDraw() {
     }
 
     if (m_swapChain) {
-        // Present(0, 0) disables VSync wait, unlocking 1000+ FPS ultra-high speed rendering!
-        m_swapChain->Present(0, 0);
+        // Pace animation to the compositor refresh rate for smoother scrolling/toast motion.
+        m_swapChain->Present(1, 0);
     }
     return hr;
 }

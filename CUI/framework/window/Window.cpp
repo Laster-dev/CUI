@@ -10,13 +10,51 @@
 #pragma comment(lib, "imm32.lib")
 #pragma comment(lib, "dwmapi.lib")
 
+#ifndef DWMWA_BORDER_COLOR
+#define DWMWA_BORDER_COLOR 34
+#endif
+
 namespace CUI {
 
 Window::Window() {}
 
+std::shared_ptr<UIElement> Window::CaptureElementRef(UIElement* element) {
+    if (!element) return nullptr;
+    try {
+        return std::dynamic_pointer_cast<UIElement>(element->shared_from_this());
+    } catch (const std::bad_weak_ptr&) {
+        return nullptr;
+    }
+}
+
+std::shared_ptr<UIElement> Window::LockElement(const std::weak_ptr<UIElement>& element) const {
+    return element.lock();
+}
+
+bool Window::NeedsContinuousMouseRedraw(UIElement* element) {
+    if (!element) return false;
+    const char* cls = element->GetClassName();
+    return std::strcmp(cls, "ListView") == 0
+        || std::strcmp(cls, "ScrollViewer") == 0
+        || std::strcmp(cls, "TabView") == 0;
+}
+
+void Window::SetHoveredElement(UIElement* element) {
+    m_hoveredElement = CaptureElementRef(element);
+}
+
+void Window::SetPressedElement(UIElement* element) {
+    m_pressedElement = CaptureElementRef(element);
+}
+
+void Window::SetFocusedElement(UIElement* element) {
+    m_focusedElement = CaptureElementRef(element);
+}
+
 Window::~Window() {
     if (m_hwnd) {
         KillTimer(m_hwnd, 1);
+        KillTimer(m_hwnd, 2);
         DestroyWindow(m_hwnd);
     }
 }
@@ -56,9 +94,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     if (!m_hwnd) return false;
 
-    // Extend DWM frame into client area to keep native Windows DWM animations (minimize / maximize / restore / snap)
-    MARGINS margins = { 1, 1, 1, 1 };
-    DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+    UpdateDwmChrome();
 
     if (m_transparentMode) {
         SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA);
@@ -69,7 +105,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     }
 
     SetTimer(m_hwnd, 1, 500, nullptr);
-    SetTimer(m_hwnd, 2, 1, nullptr);
+    SetTimer(m_hwnd, 2, 16, nullptr);
 
     return true;
 }
@@ -149,16 +185,10 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (wParam == TRUE) {
             auto* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
             if (IsZoomed(m_hwnd)) {
-                // A maximized WS_OVERLAPPEDWINDOW is intentionally larger than the
-                // monitor work area by the invisible resize-frame thickness. Because
-                // this window removes the whole non-client area, that enlargement
-                // otherwise becomes client pixels and our UI is rendered off-screen.
-                HMONITOR monitor = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
-                MONITORINFO info = {};
-                info.cbSize = sizeof(info);
-                if (GetMonitorInfo(monitor, &info)) {
-                    params->rgrc[0] = info.rcWork;
-                }
+                // Use the full maximized window rect as the client area so DWM does
+                // not leave a 1px non-client strip (white border) around rcWork.
+                // OnResize keeps an inner padding so content stays on-screen.
+                params->rgrc[0] = params->rgrc[1];
             }
             return 0;
         }
@@ -261,31 +291,34 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_TIMER:
         if (wParam == 1) {
-            if (m_focusedElement) {
+            if (auto focused = LockElement(m_focusedElement)) {
                 InvalidateRect(m_hwnd, nullptr, FALSE);
             }
         } else if (wParam == 2) {
             // ListView rubber-band auto-scroll etc. (not used for smooth wheel scroll)
-            if (m_focusedElement) {
-                m_focusedElement->OnAutoScrollTick();
+            if (auto focused = LockElement(m_focusedElement)) {
+                focused->OnAutoScrollTick();
                 InvalidateRect(m_hwnd, nullptr, FALSE);
             }
         }
         return 0;
 
     case WM_SIZE:
+        UpdateDwmChrome();
         OnResize(LOWORD(lParam), HIWORD(lParam));
         InvalidateRect(m_hwnd, nullptr, FALSE);
         return 0;
 
     case WM_MOUSEMOVE:
-        OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        InvalidateRect(m_hwnd, nullptr, FALSE);
+        if (OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+        }
         return 0;
 
     case WM_LBUTTONDOWN:
-        OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        InvalidateRect(m_hwnd, nullptr, FALSE);
+        if (OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+        }
         return 0;
 
     case WM_LBUTTONDBLCLK:
@@ -294,8 +327,9 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return 0;
 
     case WM_LBUTTONUP:
-        OnLButtonUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        InvalidateRect(m_hwnd, nullptr, FALSE);
+        if (OnLButtonUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+        }
         return 0;
 
     case WM_RBUTTONDOWN:
@@ -316,15 +350,15 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_KEYDOWN:
-        if (m_focusedElement) {
-            m_focusedElement->OnKeyDown(static_cast<int>(wParam));
+        if (auto focused = LockElement(m_focusedElement)) {
+            focused->OnKeyDown(static_cast<int>(wParam));
             InvalidateRect(m_hwnd, nullptr, FALSE);
         }
         return 0;
 
     case WM_CHAR:
-        if (m_focusedElement) {
-            if (auto tb = dynamic_cast<TextBox*>(m_focusedElement)) {
+        if (auto focused = LockElement(m_focusedElement)) {
+            if (auto tb = dynamic_cast<TextBox*>(focused.get())) {
                 tb->OnCharInput(static_cast<wchar_t>(wParam));
                 InvalidateRect(m_hwnd, nullptr, FALSE);
             }
@@ -332,8 +366,8 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return 0;
 
     case WM_IME_COMPOSITION:
-        if (m_focusedElement) {
-            if (auto tb = dynamic_cast<TextBox*>(m_focusedElement)) {
+        if (auto focused = LockElement(m_focusedElement)) {
+            if (auto tb = dynamic_cast<TextBox*>(focused.get())) {
                 HIMC hIMC = ImmGetContext(m_hwnd);
                 if (hIMC) {
                     if (lParam & GCS_COMPSTR) {
@@ -364,8 +398,9 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         break;
 
     case WM_SETCURSOR:
-        if (LOWORD(lParam) == HTCLIENT && m_hoveredElement) {
-            HCURSOR hCur = m_hoveredElement->GetCursor();
+        if (LOWORD(lParam) == HTCLIENT) {
+            auto hovered = LockElement(m_hoveredElement);
+            HCURSOR hCur = hovered ? hovered->GetCursor() : nullptr;
             if (hCur) {
                 SetCursor(hCur);
                 return TRUE;
@@ -374,9 +409,9 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         break;
 
     case WM_MOUSELEAVE:
-        if (m_hoveredElement) {
-            m_hoveredElement->OnMouseLeave();
-            m_hoveredElement = nullptr;
+        if (auto hovered = LockElement(m_hoveredElement)) {
+            hovered->OnMouseLeave();
+            m_hoveredElement.reset();
             InvalidateRect(m_hwnd, nullptr, FALSE);
         }
         m_trackingMouse = false;
@@ -396,10 +431,11 @@ void Window::OnPaint() {
 
     m_gfxContext.BeginDraw();
 
-    if (m_transparentMode) {
+    const D2D1_COLOR_F bgColor = D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f);
+    if (m_transparentMode && !IsZoomed(m_hwnd)) {
         m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
     } else {
-        m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f));
+        m_gfxContext.GetD2DContext()->Clear(bgColor);
     }
 
     if (m_rootElement) {
@@ -416,6 +452,20 @@ void Window::OnPaint() {
     EndPaint(m_hwnd, &ps);
 }
 
+void Window::UpdateDwmChrome() {
+    if (!m_hwnd) return;
+
+    // Restore: keep a 1px DWM inset for native snap/maximize animations.
+    // Maximized: zero inset so the client fills the window and no white border shows.
+    const bool maximized = IsZoomed(m_hwnd) != FALSE;
+    const MARGINS margins = maximized ? MARGINS{ 0, 0, 0, 0 } : MARGINS{ 1, 1, 1, 1 };
+    DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+
+    // Match the app background on Win11's 1px window border.
+    const COLORREF borderColor = RGB(0x1F, 0x1F, 0x1F);
+    DwmSetWindowAttribute(m_hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
+}
+
 void Window::OnResize(UINT width, UINT height) {
     m_gfxContext.Resize(width, height);
     if (m_rootElement) {
@@ -428,7 +478,8 @@ void Window::OnResize(UINT width, UINT height) {
     }
 }
 
-void Window::OnMouseMove(int x, int y) {
+bool Window::OnMouseMove(int x, int y) {
+    bool dirty = false;
     if (!m_trackingMouse) {
         TRACKMOUSEEVENT tme = { sizeof(tme), TME_LEAVE, m_hwnd, 0 };
         TrackMouseEvent(&tme);
@@ -448,15 +499,18 @@ void Window::OnMouseMove(int x, int y) {
             }
         }
 
-        if (itemHover != m_hoveredElement) {
-            if (m_hoveredElement) m_hoveredElement->OnMouseLeave();
-            m_hoveredElement = itemHover;
-            if (m_hoveredElement) m_hoveredElement->OnMouseEnter();
+        auto hovered = LockElement(m_hoveredElement);
+        if (itemHover != hovered.get()) {
+            if (hovered) hovered->OnMouseLeave();
+            SetHoveredElement(itemHover);
+            hovered = LockElement(m_hoveredElement);
+            if (hovered) hovered->OnMouseEnter();
+            dirty = true;
         }
-        if (m_hoveredElement) {
-            m_hoveredElement->OnMouseMove(Point(fx, fy));
+        if (hovered) {
+            hovered->OnMouseMove(Point(fx, fy));
             // Keep m_activeContextMenu synchronized if MenuBar opened a new dropdown
-            UIElement* curr = m_hoveredElement;
+            UIElement* curr = hovered.get();
             while (curr) {
                 auto menu = curr->GetContextMenu();
                 if (menu && menu->IsOpen()) {
@@ -466,31 +520,36 @@ void Window::OnMouseMove(int x, int y) {
                 curr = curr->GetParent();
             }
         }
-        return;
+        return dirty || NeedsContinuousMouseRedraw(hovered.get());
     }
 
-    if (m_pressedElement) {
-        m_pressedElement->OnMouseMove(Point(fx, fy));
-        return;
+    if (auto pressed = LockElement(m_pressedElement)) {
+        pressed->OnMouseMove(Point(fx, fy));
+        return true;
     }
 
     UIElement* newHover = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
-    if (newHover != m_hoveredElement) {
-        if (m_hoveredElement) {
-            m_hoveredElement->OnMouseLeave();
+    auto hovered = LockElement(m_hoveredElement);
+    if (newHover != hovered.get()) {
+        if (hovered) {
+            hovered->OnMouseLeave();
         }
-        m_hoveredElement = newHover;
-        if (m_hoveredElement) {
-            m_hoveredElement->OnMouseEnter();
+        SetHoveredElement(newHover);
+        hovered = LockElement(m_hoveredElement);
+        if (hovered) {
+            hovered->OnMouseEnter();
         }
+        dirty = true;
     }
 
-    if (m_hoveredElement) {
-        m_hoveredElement->OnMouseMove(Point(fx, fy));
+    if (hovered) {
+        hovered->OnMouseMove(Point(fx, fy));
+        dirty = dirty || NeedsContinuousMouseRedraw(hovered.get());
     }
+    return dirty;
 }
 
-void Window::OnLButtonDown(int x, int y) {
+bool Window::OnLButtonDown(int x, int y) {
     float fx = static_cast<float>(x);
     float fy = static_cast<float>(y);
 
@@ -499,7 +558,7 @@ void Window::OnLButtonDown(int x, int y) {
         if (menuHit) {
             menuHit->OnMouseDown(Point(fx, fy));
             m_activeContextMenu = nullptr;
-            return;
+            return true;
         } else {
             m_activeContextMenu->Hide();
             m_activeContextMenu = nullptr;
@@ -507,18 +566,22 @@ void Window::OnLButtonDown(int x, int y) {
     }
 
     UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
-    if (m_focusedElement && m_focusedElement != target) {
-        m_focusedElement->OnBlur();
+    auto focused = LockElement(m_focusedElement);
+    if (focused && focused.get() != target) {
+        focused->OnBlur();
     }
-    m_focusedElement = target;
-    if (m_focusedElement) {
-        m_focusedElement->OnFocus();
+    SetFocusedElement(target);
+    focused = LockElement(m_focusedElement);
+    if (focused) {
+        focused->OnFocus();
     }
 
     if (target) {
-        m_pressedElement = target;
+        SetPressedElement(target);
         SetCapture(m_hwnd);
-        m_pressedElement->OnMouseDown(Point(fx, fy));
+        if (auto pressed = LockElement(m_pressedElement)) {
+            pressed->OnMouseDown(Point(fx, fy));
+        }
 
         // Check if target or ancestor activated a ContextMenu
         UIElement* curr = target;
@@ -531,6 +594,7 @@ void Window::OnLButtonDown(int x, int y) {
             curr = curr->GetParent();
         }
     }
+    return target != nullptr || m_activeContextMenu != nullptr;
 }
 
 void Window::OnLButtonDblClick(int x, int y) {
@@ -543,15 +607,18 @@ void Window::OnLButtonDblClick(int x, int y) {
     }
 }
 
-void Window::OnLButtonUp(int x, int y) {
+bool Window::OnLButtonUp(int x, int y) {
     float fx = static_cast<float>(x);
     float fy = static_cast<float>(y);
+    bool dirty = false;
 
-    if (m_pressedElement) {
-        m_pressedElement->OnMouseUp(Point(fx, fy));
-        m_pressedElement = nullptr;
+    if (auto pressed = LockElement(m_pressedElement)) {
+        pressed->OnMouseUp(Point(fx, fy));
+        dirty = true;
     }
+    m_pressedElement.reset();
     ReleaseCapture();
+    return dirty;
 }
 
 void Window::OnRButtonDown(int x, int y) {
@@ -578,7 +645,7 @@ void Window::OnRButtonDown(int x, int y) {
             if (menu) {
                 m_activeContextMenu = menu;
                 m_activeContextMenu->ShowAt(fx, fy, winW, winH);
-                m_focusedElement = menu.get();
+                SetFocusedElement(menu.get());
                 break;
             }
             curr = curr->GetParent();

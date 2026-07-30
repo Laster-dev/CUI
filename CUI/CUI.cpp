@@ -15,11 +15,15 @@
 #include "framework/controls/TabView.h"
 #include "framework/controls/MenuBar.h"
 #include "framework/controls/PropertyGrid.h"
+#include "framework/controls/Toast.h"
+#include "framework/controls/ToastCenter.h"
 #include <iostream>
 #include <vector>
 #include <memory>
 #include <thread>
 #include <atomic>
+#include <functional>
+#include <string>
 
 using namespace CUI;
 
@@ -79,6 +83,12 @@ static void NotifyPropertyUpdated(UIElement* element, Window& window) {
     }
 }
 
+static void RequestRedraw(Window& window) {
+    if (window.GetHWND()) {
+        InvalidateRect(window.GetHWND(), nullptr, FALSE);
+    }
+}
+
 void BindParsedXmlInteractions(std::shared_ptr<UIElement> root, Window& window) {
     if (!root) return;
 
@@ -102,12 +112,6 @@ void BindParsedXmlInteractions(std::shared_ptr<UIElement> root, Window& window) 
     }
 
     auto txtLogMsg = root->FindElementById("txtLogMsg");
-    if (btnElem && txtLogMsg) {
-        btnElem->OnClick().Connect([txtLogMsg, &window](UIElement*) {
-            txtLogMsg->SetProperty("text", Value("[日志] Button 按钮 OnClick 被成功触发！"));
-            NotifyPropertyUpdated(nullptr, window);
-        });
-    }
     auto targetBtn = btnElem;
     auto inputText = std::dynamic_pointer_cast<TextBox>(root->FindElementById("inputText"));
     auto inputIcon = std::dynamic_pointer_cast<TextBox>(root->FindElementById("inputIcon"));
@@ -120,6 +124,7 @@ void BindParsedXmlInteractions(std::shared_ptr<UIElement> root, Window& window) 
     if (targetBtn && txtLogMsg) {
         targetBtn->OnClick().Connect([txtLogMsg, &window](UIElement*) {
             txtLogMsg->SetProperty("text", Value("[日志] Button 按钮 OnClick 被成功触发！"));
+            Toast::Show(window.GetRootElement().get(), "Toast", "按钮已触发，四角位置可配置", ToastCorner::BottomRight, 2200);
             NotifyPropertyUpdated(nullptr, window);
         });
     }
@@ -626,7 +631,7 @@ void BindParsedXmlInteractions(std::shared_ptr<UIElement> root, Window& window) 
         });
     }
 
-    // 10. ContentDialog Page
+        // 10. ContentDialog Page
     auto btnTriggerDialog = root->FindElementById("btnTriggerDialog");
     if (btnTriggerDialog) {
         btnTriggerDialog->OnClick().Connect([root](UIElement*) {
@@ -634,7 +639,89 @@ void BindParsedXmlInteractions(std::shared_ptr<UIElement> root, Window& window) 
         });
     }
 
-    // 11. Grid Page
+    // 10b. Toast Notification Center Page
+    auto toastTemplate = root->FindElementById("toastTemplate");
+    auto propGridToast = std::dynamic_pointer_cast<PropertyGrid>(root->FindElementById("propGridToast"));
+    if (propGridToast && toastTemplate) {
+        propGridToast->SetTargetElement(toastTemplate, &window);
+    }
+
+    auto txtToastLog = root->FindElementById("txtToastLog");
+    auto txtToastCount = root->FindElementById("txtToastCount");
+    auto getToastRoot = [&window, root]() {
+        return window.GetRootElement() ? window.GetRootElement() : root;
+    };
+    auto updateToastStatus = [txtToastLog, txtToastCount, getToastRoot, &window](const std::string& msg) {
+        if (txtToastLog) txtToastLog->SetProperty("text", Value(msg));
+        if (txtToastCount) {
+            auto center = ToastCenter::Ensure(getToastRoot().get());
+            size_t n = center ? center->GetActiveCount() : 0;
+            txtToastCount->SetProperty("text", Value(std::string("活动通知: ") + std::to_string(static_cast<unsigned long long>(n))));
+        }
+        RequestRedraw(window);
+    };
+
+    auto showStyledToast = [getToastRoot, toastTemplate, updateToastStatus](const std::string& title, const std::string& message, const std::string& accent, ToastCorner corner, int durationMs, bool autoClose) {
+        auto center = ToastCenter::Ensure(getToastRoot().get());
+        if (!center) return;
+        auto toast = std::make_shared<Toast>();
+        if (toastTemplate) toast->ApplyFrom(toastTemplate.get());
+        toast->SetTitle(title);
+        toast->SetMessage(message);
+        toast->SetAccent(accent);
+        toast->SetCorner(corner);
+        toast->SetDurationMs(durationMs);
+        toast->SetAutoClose(autoClose);
+        center->AddToast(toast);
+        updateToastStatus(std::string("[Toast] ") + title);
+    };
+
+    auto bindToastBtn = [root](const char* id, const std::function<void(UIElement*)>& fn) {
+        auto btn = root->FindElementById(id);
+        if (btn) btn->OnClick().Connect(fn);
+    };
+
+    bindToastBtn("btnToastInfo", [showStyledToast](UIElement*) {
+        showStyledToast("信息", "这是一条普通信息通知。", "#007ACC", ToastCorner::BottomRight, 2500, true);
+    });
+    bindToastBtn("btnToastSuccess", [showStyledToast](UIElement*) {
+        showStyledToast("成功", "操作已完成，数据已保存。", "#10B981", ToastCorner::BottomRight, 2500, true);
+    });
+    bindToastBtn("btnToastWarn", [showStyledToast](UIElement*) {
+        showStyledToast("警告", "磁盘空间不足，请及时清理。", "#D7A400", ToastCorner::BottomRight, 3000, true);
+    });
+    bindToastBtn("btnToastError", [showStyledToast](UIElement*) {
+        showStyledToast("错误", "网络请求失败，请稍后重试。", "#D13438", ToastCorner::BottomRight, 3200, true);
+    });
+    bindToastBtn("btnToastFromXml", [getToastRoot, toastTemplate, updateToastStatus](UIElement*) {
+        auto center = ToastCenter::Ensure(getToastRoot().get());
+        if (!center) return;
+        center->ShowFromTemplate(toastTemplate.get());
+        updateToastStatus("[Toast] 已按 XML 模板弹出");
+    });
+    bindToastBtn("btnToastStack", [showStyledToast](UIElement*) {
+        for (int i = 1; i <= 5; ++i) {
+            showStyledToast(std::string("堆叠 #") + std::to_string(i), "多条通知会按角位置自动堆叠。", "#007ACC", ToastCorner::BottomRight, 3500 + i * 200, true);
+        }
+    });
+    bindToastBtn("btnToastCorners", [showStyledToast](UIElement*) {
+        showStyledToast("左上", "TopLeft 入场动画", "#007ACC", ToastCorner::TopLeft, 2800, true);
+        showStyledToast("右上", "TopRight 入场动画", "#10B981", ToastCorner::TopRight, 2800, true);
+        showStyledToast("左下", "BottomLeft 入场动画", "#D7A400", ToastCorner::BottomLeft, 2800, true);
+        showStyledToast("右下", "BottomRight 入场动画", "#D13438", ToastCorner::BottomRight, 2800, true);
+    });
+    bindToastBtn("btnToastDismiss", [getToastRoot, updateToastStatus](UIElement*) {
+        auto center = ToastCenter::Ensure(getToastRoot().get());
+        if (center) center->DismissAll();
+        updateToastStatus("[Toast] 已请求关闭全部通知");
+    });
+    bindToastBtn("btnCornerTL", [showStyledToast](UIElement*) { showStyledToast("左上角", "corner = TopLeft", "#007ACC", ToastCorner::TopLeft, 2200, true); });
+    bindToastBtn("btnCornerTR", [showStyledToast](UIElement*) { showStyledToast("右上角", "corner = TopRight", "#007ACC", ToastCorner::TopRight, 2200, true); });
+    bindToastBtn("btnCornerBL", [showStyledToast](UIElement*) { showStyledToast("左下角", "corner = BottomLeft", "#007ACC", ToastCorner::BottomLeft, 2200, true); });
+    bindToastBtn("btnCornerBR", [showStyledToast](UIElement*) { showStyledToast("右下角", "corner = BottomRight", "#007ACC", ToastCorner::BottomRight, 2200, true); });
+    bindToastBtn("btnToastLong", [showStyledToast](UIElement*) { showStyledToast("长时通知", "6 秒后自动关闭（悬停可暂停）。", "#8E44AD", ToastCorner::BottomRight, 6000, true); });
+    bindToastBtn("btnToastSticky", [showStyledToast](UIElement*) { showStyledToast("固定通知", "不会自动关闭，请点击关闭。", "#8E44AD", ToastCorner::BottomRight, 0, false); });
+// 11. Grid Page
     auto targetGrid = std::dynamic_pointer_cast<Grid>(root->FindElementById("targetGrid"));
     auto inputCols = std::dynamic_pointer_cast<TextBox>(root->FindElementById("inputCols"));
     auto inputRows = std::dynamic_pointer_cast<TextBox>(root->FindElementById("inputRows"));
@@ -761,7 +848,7 @@ int main() {
     }
 
     std::cout << "========================================================\n";
-    std::cout << "     CUI Control Gallery - Complete 17 Controls Showcase\n";
+    std::cout << "     CUI Control Gallery - Complete 18 Controls Showcase\n";
     std::cout << "========================================================\n";
 
     UIMarkupParser parser;
@@ -775,7 +862,7 @@ int main() {
     }
 
     Window window;
-    if (!window.Create("CUI Control Gallery - 17 大控件嵌入式 XML 控制台", 1280, 780, true)) {
+    if (!window.Create("CUI Control Gallery - 18 大控件嵌入式 XML 控制台", 1280, 780, true)) {
         std::cerr << "Failed to create Direct2D host window." << std::endl;
         CoUninitialize();
         return -1;
@@ -793,3 +880,7 @@ int main() {
     CoUninitialize();
     return 0;
 }
+
+
+
+

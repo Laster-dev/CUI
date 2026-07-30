@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <StackPanel orientation="Vertical" background="#1E1E1E">
     <!-- 自定义窗口标题栏组件 -->
-    <TitleBar id="appTitleBar" title="CUI Control Gallery | 17 大全套控件嵌入式模组 Showcase"/>
+    <TitleBar id="appTitleBar" title="CUI Control Gallery | 18 大全套控件嵌入式模组 Showcase"/>
 
-    <!-- 主 View 框架：采用嵌套子页 src 嵌入式 TabView，展示全部 17 个控件与布局面板 -->
+    <!-- 主 View 框架：采用嵌套子页 src 嵌入式 TabView，展示全部 18 个控件与布局面板 -->
     <TabView id="mainTabView" flexGrow="1">
-        <!-- 基础与高级控件 10 个 -->
+        <!-- 基础与高级控件 -->
         <TabItem header="Button 按钮" icon="[B]" src="page_button.xml"/>
         <TabItem header="TextBlock 文本" icon="[T]" src="page_textblock.xml"/>
         <TabItem header="TextBox 输入框" icon="[I]" src="page_textbox.xml"/>
@@ -16,8 +16,9 @@
         <TabItem header="Hyperlink 超链接" icon="[H]" src="page_hyperlink.xml"/>
         <TabItem header="1000+ FPS 动态推流" icon="[S]" src="page_image_stream.xml"/>
         <TabItem header="ContentDialog 弹窗" icon="[D]" src="page_dialog.xml"/>
+        <TabItem header="Toast 通知中心" icon="[N]" src="page_toast.xml"/>
 
-        <!-- WPF Layout 布局控件 7 个 -->
+        <!-- WPF Layout 布局控件 -->
         <TabItem header="Grid 网格布局" icon="[G]" src="page_grid.xml"/>
         <TabItem header="Canvas 画布" icon="[A]" src="page_canvas.xml"/>
         <TabItem header="WrapPanel 流式布局" icon="[W]" src="page_wrappanel.xml"/>
@@ -26,4 +27,7 @@
         <TabItem header="StackPanel 线性布局" icon="[P]" src="page_stackpanel.xml"/>
         <TabItem header="ScrollViewer 滚动容器" icon="[R]" src="page_scrollviewer.xml"/>
     </TabView>
+
+    <!-- 全局通知中心：堆叠多条 Toast，XML 可配置宿主 -->
+    <ToastCenter id="toastCenter"/>
 </StackPanel>

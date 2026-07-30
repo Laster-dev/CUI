@@ -18,5 +18,12 @@
     <ClCompile Include="CUI.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="framework\controls\CollapsePanel.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework\controls\CollapsePanel.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
 </Project>

@@ -34,19 +34,26 @@ private:
 
     void OnPaint();
     void OnResize(UINT width, UINT height);
-    void OnMouseMove(int x, int y);
-    void OnLButtonDown(int x, int y);
+    void UpdateDwmChrome();
+    bool OnMouseMove(int x, int y);
+    bool OnLButtonDown(int x, int y);
     void OnLButtonDblClick(int x, int y);
-    void OnLButtonUp(int x, int y);
+    bool OnLButtonUp(int x, int y);
     void OnRButtonDown(int x, int y);
+    static std::shared_ptr<UIElement> CaptureElementRef(UIElement* element);
+    std::shared_ptr<UIElement> LockElement(const std::weak_ptr<UIElement>& element) const;
+    static bool NeedsContinuousMouseRedraw(UIElement* element);
+    void SetHoveredElement(UIElement* element);
+    void SetPressedElement(UIElement* element);
+    void SetFocusedElement(UIElement* element);
 
     HWND m_hwnd = nullptr;
     GraphicsContext m_gfxContext;
     std::shared_ptr<UIElement> m_rootElement;
 
-    UIElement* m_hoveredElement = nullptr;
-    UIElement* m_pressedElement = nullptr;
-    UIElement* m_focusedElement = nullptr;
+    std::weak_ptr<UIElement> m_hoveredElement;
+    std::weak_ptr<UIElement> m_pressedElement;
+    std::weak_ptr<UIElement> m_focusedElement;
     std::shared_ptr<ContextMenu> m_activeContextMenu = nullptr;
     bool m_trackingMouse = false;
     bool m_transparentMode = false;

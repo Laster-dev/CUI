@@ -13,9 +13,12 @@
 #include "../controls/ScrollViewer.h"
 #include "../controls/MessageBox.h"
 #include "../controls/TabView.h"
+#include "../controls/CollapsePanel.h"
 #include "../controls/MenuBar.h"
 #include "../controls/VSCodeControls.h"
 #include "../controls/PropertyGrid.h"
+#include "../controls/Toast.h"
+#include "../controls/ToastCenter.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -46,8 +49,11 @@ UIMarkupParser::UIMarkupParser() {
     RegisterElementFactory("ScrollViewer", []() { return std::make_shared<ScrollViewer>(); });
     RegisterElementFactory("ContentDialog", []() { return std::make_shared<ContentDialog>(); });
     RegisterElementFactory("TabView", []() { return std::make_shared<TabView>(); });
+    RegisterElementFactory("CollapsePanel", []() { return std::make_shared<CollapsePanel>(); });
     RegisterElementFactory("MenuBar", []() { return std::make_shared<MenuBar>(); });
     RegisterElementFactory("PropertyGrid", []() { return std::make_shared<PropertyGrid>(); });
+    RegisterElementFactory("Toast", []() { return std::make_shared<Toast>(); });
+    RegisterElementFactory("ToastCenter", []() { return std::make_shared<ToastCenter>(); });
 
     // VS Code Specific Components
     RegisterElementFactory("TitleBar", []() { return std::make_shared<TitleBar>(); });
@@ -278,3 +284,5 @@ void UIMarkupParser::ApplyBindings(std::shared_ptr<Object> dataContext) {
 }
 
 } // namespace CUI
+
+

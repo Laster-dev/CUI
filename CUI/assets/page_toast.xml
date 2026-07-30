@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<StackPanel orientation="Horizontal" flexGrow="1">
+    <StackPanel orientation="Vertical" flexGrow="1" padding="20" gap="14" background="#1E1E1E">
+        <StackPanel orientation="Vertical" gap="4">
+            <TextBlock text="Toast 通知中心 / Toast Notification Center" fontSize="18" fontWeight="Bold" color="#FFFFFF"/>
+            <TextBlock text="XML 可配置控件 + 入场/出场动画 + 多条堆叠通知。悬停暂停自动关闭，点击关闭按钮或卡片可关闭。" fontSize="12" color="#888888"/>
+        </StackPanel>
+
+        <!-- XML 配置模板：属性会被 ShowFromTemplate 读取并克隆到通知中心 -->
+        <Toast id="toastTemplate"
+               title="XML Toast"
+               message="这是从 XML 模板克隆的通知"
+               corner="BottomRight"
+               durationMs="2800"
+               autoClose="true"
+               closeable="true"
+               width="320"
+               spacing="8"
+               background="#2D2D30"
+               accent="#007ACC"
+               titleColor="#FFFFFF"
+               messageColor="#E5E5E5"
+               visibility="Collapsed"/>
+
+        <StackPanel orientation="Vertical" background="#252526" padding="16" gap="12" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <TextBlock text="快速触发" fontSize="13" fontWeight="Bold" color="#4EC9B0"/>
+            <StackPanel orientation="Horizontal" gap="10">
+                <Button id="btnToastInfo" text="信息 Info" background="#007ACC" padding="14,8,14,8" cornerRadius="4"/>
+                <Button id="btnToastSuccess" text="成功 Success" background="#10B981" padding="14,8,14,8" cornerRadius="4"/>
+                <Button id="btnToastWarn" text="警告 Warning" background="#D7A400" padding="14,8,14,8" cornerRadius="4"/>
+                <Button id="btnToastError" text="错误 Error" background="#D13438" padding="14,8,14,8" cornerRadius="4"/>
+            </StackPanel>
+            <StackPanel orientation="Horizontal" gap="10">
+                <Button id="btnToastFromXml" text="按 XML 模板弹出" background="#8E44AD" padding="14,8,14,8" cornerRadius="4"/>
+                <Button id="btnToastStack" text="堆叠 5 条" background="#3C3C3C" padding="14,8,14,8" cornerRadius="4"/>
+                <Button id="btnToastCorners" text="四角齐发" background="#3C3C3C" padding="14,8,14,8" cornerRadius="4"/>
+                <Button id="btnToastDismiss" text="全部关闭" background="#5A5A5A" padding="14,8,14,8" cornerRadius="4"/>
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" background="#252526" padding="16" gap="10" cornerRadius="6" borderBrush="#333333" borderThickness="1">
+            <TextBlock text="角位置 / Duration" fontSize="13" fontWeight="Bold" color="#4EC9B0"/>
+            <StackPanel orientation="Horizontal" gap="10">
+                <Button id="btnCornerTL" text="左上" background="#2D2D30" padding="12,6,12,6"/>
+                <Button id="btnCornerTR" text="右上" background="#2D2D30" padding="12,6,12,6"/>
+                <Button id="btnCornerBL" text="左下" background="#2D2D30" padding="12,6,12,6"/>
+                <Button id="btnCornerBR" text="右下" background="#2D2D30" padding="12,6,12,6"/>
+            </StackPanel>
+            <StackPanel orientation="Horizontal" gap="10">
+                <Button id="btnToastLong" text="长时 6s" background="#3C3C3C" padding="12,6,12,6"/>
+                <Button id="btnToastSticky" text="不自动关闭" background="#3C3C3C" padding="12,6,12,6"/>
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel orientation="Vertical" background="#252526" padding="12" gap="4" borderBrush="#333333" borderThickness="1" cornerRadius="4">
+            <TextBlock text="事件日志 (Event Log)" fontSize="11" fontWeight="Bold" color="#4EC9B0"/>
+            <TextBlock id="txtToastLog" text="[就绪] 点击上方按钮触发 Toast 通知..." fontSize="12" fontFamily="Consolas" color="#B5CEA8"/>
+            <TextBlock id="txtToastCount" text="活动通知: 0" fontSize="12" fontFamily="Consolas" color="#9CDCFE"/>
+        </StackPanel>
+    </StackPanel>
+
+    <PropertyGrid id="propGridToast" width="320"/>
+</StackPanel>
