@@ -8,6 +8,15 @@ TabView::TabView() {
     SetProperty("headerBackground", Value("#252526"));
     SetProperty("activeTabBackground", Value("#1E1E1E"));
     SetProperty("inactiveTabBackground", Value("#2D2D2D"));
+    SetProperty("minTabWidth", Value(80.0f));
+    SetProperty("maxTabWidth", Value(260.0f));
+}
+
+std::vector<PropertyMeta> TabView::GetPropertyMetas() const {
+    auto metas = UIElement::GetPropertyMetas();
+    metas.push_back({ "minTabWidth", "最小标签宽度 (MinTabWidth)", "标签栏配置", "number" });
+    metas.push_back({ "maxTabWidth", "最大标签宽度 (MaxTabWidth)", "标签栏配置", "number" });
+    return metas;
 }
 
 void TabView::AddTab(const std::string& title, std::shared_ptr<UIElement> content, const std::string& icon, bool isClosable) {
@@ -117,12 +126,16 @@ void TabView::OnRender(GraphicsContext& ctx) {
 
     float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
 
+    float minW = GetProperty("minTabWidth").AsFloat(80.0f);
+    float maxW = GetProperty("maxTabWidth").AsFloat(260.0f);
+
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         const auto& tab = m_tabs[i];
         bool isActive = (static_cast<int>(i) == m_selectedIndex);
 
         Size titleSize = ctx.MeasureText(tab.title, "Segoe UI", 12.0f);
-        float tabW = (std::max)(110.0f, titleSize.width + 54.0f);
+        float neededW = titleSize.width + 54.0f;
+        float tabW = std::clamp(neededW, minW, maxW);
         Rect tabRect(tabX, m_bounds.y + 4.0f, tabW, headerH - 4.0f);
 
         D2D1_COLOR_F tabBg = isActive ? GetProperty("activeTabBackground").AsColor(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f))
@@ -178,9 +191,13 @@ void TabView::OnMouseWheel(float delta) {
     float headerH = 36.0f;
     GraphicsContext ctx;
     float totalTabsWidth = 8.0f;
+    float minW = GetProperty("minTabWidth").AsFloat(80.0f);
+    float maxW = GetProperty("maxTabWidth").AsFloat(260.0f);
+
     for (const auto& tab : m_tabs) {
         Size titleSize = ctx.MeasureText(tab.title, "Segoe UI", 12.0f);
-        totalTabsWidth += (std::max)(110.0f, titleSize.width + 54.0f) + 4.0f;
+        float neededW = titleSize.width + 54.0f;
+        totalTabsWidth += std::clamp(neededW, minW, maxW) + 4.0f;
     }
 
     float maxScroll = (std::max)(0.0f, totalTabsWidth - m_bounds.width);
@@ -197,10 +214,13 @@ void TabView::OnMouseMove(Point pt) {
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + headerH) {
         GraphicsContext ctx;
         float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
+        float minW = GetProperty("minTabWidth").AsFloat(80.0f);
+        float maxW = GetProperty("maxTabWidth").AsFloat(260.0f);
 
         for (size_t i = 0; i < m_tabs.size(); ++i) {
             Size titleSize = ctx.MeasureText(m_tabs[i].title, "Segoe UI", 12.0f);
-            float tabW = (std::max)(110.0f, titleSize.width + 54.0f);
+            float neededW = titleSize.width + 54.0f;
+            float tabW = std::clamp(neededW, minW, maxW);
 
             if (m_tabs[i].isClosable) {
                 float closeX = tabX + tabW - 22.0f;
@@ -224,12 +244,16 @@ void TabView::OnMouseDown(Point pt) {
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + headerH) {
         GraphicsContext ctx;
         float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
+        float minW = GetProperty("minTabWidth").AsFloat(80.0f);
+        float maxW = GetProperty("maxTabWidth").AsFloat(260.0f);
 
         for (size_t i = 0; i < m_tabs.size(); ++i) {
             Size titleSize = ctx.MeasureText(m_tabs[i].title, "Segoe UI", 12.0f);
-            float tabW = (std::max)(110.0f, titleSize.width + 54.0f);
+            float neededW = titleSize.width + 54.0f;
+            float tabW = std::clamp(neededW, minW, maxW);
+            Rect tabRect(tabX, m_bounds.y + 4.0f, tabW, headerH - 4.0f);
 
-            if (pt.x >= tabX && pt.x <= tabX + tabW) {
+            if (tabRect.Contains(pt.x, pt.y)) {
                 // Check if close button was clicked
                 if (m_tabs[i].isClosable) {
                     float closeX = tabX + tabW - 22.0f;

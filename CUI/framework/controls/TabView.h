@@ -21,6 +21,7 @@ public:
     virtual ~TabView() = default;
 
     virtual const char* GetClassName() const override { return "TabView"; }
+    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
 
     void AddTab(const std::string& title, std::shared_ptr<UIElement> content, const std::string& icon = "", bool isClosable = true);
     void RemoveTab(int index);

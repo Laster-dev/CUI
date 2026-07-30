@@ -14,7 +14,11 @@ public:
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
+
+    bool IsPopupOpen() const { return m_isPopupOpen; }
+    void SetPopupOpen(bool open) { m_isPopupOpen = open; }
 
     int GetHour() const { return m_hour; }
     int GetMinute() const { return m_minute; }
@@ -26,6 +30,7 @@ public:
 private:
     int m_hour = 14;
     int m_minute = 30;
+    bool m_isPopupOpen = false;
     Event<TimePicker*, int, int> m_onTimeChangedEvent;
 };
 

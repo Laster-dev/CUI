@@ -16,15 +16,30 @@ NumberBox::NumberBox() {
     SetProperty("width", Value(120.0f));
     SetProperty("height", Value(28.0f));
 
+    SetProperty("background", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f)));
+    SetProperty("borderBrush", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
+    SetProperty("borderThickness", Value(1.0f));
+
     m_inputBox = std::make_shared<TextBox>();
     m_inputBox->SetText("0");
+    m_inputBox->SetProperty("background", Value(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f, 1.0f)));
+    m_inputBox->SetProperty("borderBrush", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
+    m_inputBox->SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
 
     m_btnUp = std::make_shared<Button>("▲");
-    m_btnUp->SetProperty("fontSize", Value(9.0f));
+    m_btnUp->SetProperty("fontSize", Value(8.0f));
+    m_btnUp->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
+    m_btnUp->SetProperty("hoverBackground", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+    m_btnUp->SetProperty("borderBrush", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
+    m_btnUp->SetProperty("color", Value(D2D1::ColorF(0xAA / 255.0f, 0xAA / 255.0f, 0xAA / 255.0f, 1.0f)));
     m_btnUp->SetProperty("padding", Value(Thickness(0)));
 
     m_btnDown = std::make_shared<Button>("▼");
-    m_btnDown->SetProperty("fontSize", Value(9.0f));
+    m_btnDown->SetProperty("fontSize", Value(8.0f));
+    m_btnDown->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
+    m_btnDown->SetProperty("hoverBackground", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+    m_btnDown->SetProperty("borderBrush", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
+    m_btnDown->SetProperty("color", Value(D2D1::ColorF(0xAA / 255.0f, 0xAA / 255.0f, 0xAA / 255.0f, 1.0f)));
     m_btnDown->SetProperty("padding", Value(Thickness(0)));
 
     AddChild(m_inputBox);

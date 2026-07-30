@@ -295,6 +295,10 @@ void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_C
     if (brush && format) {
         format->SetTextAlignment(align);
         format->SetParagraphAlignment(vAlign);
+        format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+
+        DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
+        format->SetTrimming(&trimming, nullptr);
 
         std::wstring wText = Utf8ToUtf16(text);
         m_d2dContext->DrawText(
