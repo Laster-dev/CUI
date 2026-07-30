@@ -13,6 +13,7 @@ struct TabViewItem {
     std::string icon;
     std::shared_ptr<UIElement> content;
     bool isClosable = true;
+    float accentProgress = 0.0f;
 };
 
 class TabView : public UIElement {

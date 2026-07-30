@@ -10,6 +10,8 @@ TabView::TabView() {
     SetProperty("headerBackground", Value("#252526"));
     SetProperty("activeTabBackground", Value("#1E1E1E"));
     SetProperty("inactiveTabBackground", Value("#2D2D2D"));
+    SetProperty("underlineColor", Value(D2D1::ColorF(0x3B / 255.0f, 0x4A / 255.0f, 0x57 / 255.0f, 1.0f)));
+    SetProperty("activeUnderlineColor", Value(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f)));
     SetProperty("minTabWidth", Value(80.0f));
     SetProperty("maxTabWidth", Value(260.0f));
 }
@@ -202,9 +204,32 @@ void TabView::OnRender(GraphicsContext& ctx) {
         ctx.FillRoundedRect(tabRect, 4.0f, tabBg);
         ctx.FillRect(Rect(tabRect.x, tabRect.y + tabRect.height - 4.0f, tabRect.width, 4.0f), tabBg);
 
-        if (isActive) {
-            // Active accent indicator bar at top
-            ctx.FillRect(Rect(tabX + 4, m_bounds.y + 4.0f, tabW - 8, 2.0f), D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f));
+        float indicatorInset = 6.0f;
+        float indicatorWidth = (std::max)(0.0f, tabW - indicatorInset * 2.0f);
+        float indicatorY = m_bounds.y + 4.0f;
+        D2D1_COLOR_F underlineColor = GetProperty("underlineColor").AsColor(D2D1::ColorF(0x3B / 255.0f, 0x4A / 255.0f, 0x57 / 255.0f, 1.0f));
+        D2D1_COLOR_F activeUnderlineColor = GetProperty("activeUnderlineColor").AsColor(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f));
+
+        if (isActive || tab.accentProgress > 0.01f) {
+            ctx.DrawLine(
+                Point(tabX + indicatorInset, indicatorY),
+                Point(tabX + indicatorInset + indicatorWidth, indicatorY),
+                underlineColor,
+                1.0f
+            );
+        }
+
+        float focusFactor = std::clamp(tab.accentProgress, 0.0f, 1.0f);
+        if (focusFactor > 0.01f && indicatorWidth > 0.0f) {
+            float eased = 1.0f - std::pow(1.0f - focusFactor, 2.4f);
+            float activeWidth = indicatorWidth * eased;
+            float activeX = tabX + indicatorInset + (indicatorWidth - activeWidth) * 0.5f;
+            ctx.DrawLine(
+                Point(activeX, indicatorY),
+                Point(activeX + activeWidth, indicatorY),
+                activeUnderlineColor,
+                1.0f + eased
+            );
         }
 
         // Draw Icon if available
@@ -353,14 +378,28 @@ void TabView::OnMouseDown(Point pt) {
 
 bool TabView::OnAnimationTick() {
     bool childAnimating = UIElement::OnAnimationTick();
+    bool animating = childAnimating;
+
     float delta = m_scrollTargetX - m_scrollOffsetX;
-    if (std::abs(delta) <= 0.1f) {
+    if (std::abs(delta) > 0.1f) {
+        m_scrollOffsetX += delta * 0.22f;
+        animating = true;
+    } else {
         m_scrollOffsetX = m_scrollTargetX;
-        return childAnimating;
     }
 
-    m_scrollOffsetX += delta * 0.22f;
-    return true;
+    for (size_t i = 0; i < m_tabs.size(); ++i) {
+        float target = (static_cast<int>(i) == m_selectedIndex) ? 1.0f : 0.0f;
+        float accentDelta = target - m_tabs[i].accentProgress;
+        if (std::abs(accentDelta) > 0.01f) {
+            m_tabs[i].accentProgress += accentDelta * 0.18f;
+            animating = true;
+        } else {
+            m_tabs[i].accentProgress = target;
+        }
+    }
+
+    return animating;
 }
 
 } // namespace CUI
