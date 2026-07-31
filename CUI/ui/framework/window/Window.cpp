@@ -15,8 +15,8 @@
 #pragma comment(lib, "imm32.lib")
 #pragma comment(lib, "dwmapi.lib")
 
-#ifndef DWMWA_BORDER_COLOR
-#define DWMWA_BORDER_COLOR 34
+#ifndef DWMWA_WINDOW_CORNER_PREFERENCE
+#define DWMWA_WINDOW_CORNER_PREFERENCE 33
 #endif
 
 namespace CUI {
@@ -567,6 +567,10 @@ void Window::UpdateDwmChrome() {
     const bool maximized = IsZoomed(m_hwnd) != FALSE;
     const MARGINS margins = maximized ? MARGINS{ 0, 0, 0, 0 } : MARGINS{ 1, 1, 1, 1 };
     DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+
+    // 1. Force Native Windows 11 DWM Rounded Corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33)
+    DWM_WINDOW_CORNER_PREFERENCE preference = maximized ? DWMWCP_DONOTROUND : DWMWCP_ROUND;
+    DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 
     // Match the app background on Win11's 1px window border.
     const COLORREF borderColor = RGB(0x1F, 0x1F, 0x1F);
