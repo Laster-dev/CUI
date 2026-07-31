@@ -1,0 +1,31 @@
+#include "PageRegistry.h"
+#include "../ShowcaseHelpers.h"
+#include "framework/core/CUIDsl.h"
+
+using namespace CUI;
+using namespace CUI::DSL;
+
+ShowcasePage BuildScrollViewerPage(const ShowcaseContext&) {
+    auto target = std::make_shared<ScrollViewer>();
+    target->SetProperty("width", Value(380.0f));
+    target->SetProperty("height", Value(240.0f));
+    target->AddChild(Column(8).Padding(10).Children({
+        ElevatedButton("可滚动列表项 #1").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #2").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #3").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #4").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #5").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #6").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #7").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #8").Background("#007ACC").Padding(12, 6, 12, 6).Build()
+    }).Build());
+    return { "ScrollViewer 滚动容器", CreatePage(
+        "ScrollViewer 滚动视口容器控制台",
+        "支持溢出大尺寸子内容的平滑像素滚动与 Direct2D 滚动条渲染。",
+        CreateDemoSurface({ target }, 0.0f),
+        CreateRightPanel({
+            CreateShowcaseText("滚动容器属性表 (ScrollViewer)", 12.0f, "#569CD6", true),
+            CreateShowcaseText("纵向滚动偏移量 (ScrollOffsetY) [px]:", 11.0f, "#AAAAAA"),
+            TextField("0").Width(280).Height(26).Build()
+        })) };
+}

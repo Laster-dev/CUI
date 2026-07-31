@@ -15,15 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CUI.cpp">
+    <ClCompile Include="showcase\app\main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="framework\controls\CollapsePanel.cpp">
+    <ClCompile Include="ui\framework\controls\CollapsePanel.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework\controls\CollapsePanel.h">
+    <ClInclude Include="ui\framework\controls\CollapsePanel.h">
       <Filter>头文件</Filter>
     </ClInclude>
+  </ItemGroup>
 </Project>

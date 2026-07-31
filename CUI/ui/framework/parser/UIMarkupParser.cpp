@@ -270,7 +270,7 @@ static std::shared_ptr<UIElement> BuildTreeFromXmlNode(UIMarkupParser& parser, c
 
             std::shared_ptr<UIElement> tabContent = nullptr;
             if (!srcFile.empty()) {
-                tabContent = parser.ParseXmlFile("assets/" + srcFile);
+                tabContent = parser.ParseXmlFile("showcase/assets/" + srcFile);
             } else if (!childXml.children.empty()) {
                 tabContent = BuildTreeFromXmlNode(parser, childXml.children[0], deferredBindings);
             }

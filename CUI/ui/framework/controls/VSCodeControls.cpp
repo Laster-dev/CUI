@@ -253,9 +253,10 @@ SideBar::SideBar() {
         { "#", "controls", 2, true, true },
         { "c", "UIElement.h", 3, false, false },
         { "c", "VSCodeControls.h", 3, false, false },
-        { "v", "assets", 1, true, true },
-        { "x", "vscode_layout.xml", 2, false, false },
-        { "c", "CUI.cpp", 1, false, false }
+        { "v", "showcase", 1, true, true },
+        { "v", "assets", 2, true, true },
+        { "x", "vscode_layout.xml", 3, false, false },
+        { "c", "main.cpp", 2, false, false }
     };
 }
 
@@ -321,7 +322,7 @@ TabBar::TabBar() {
     m_tabs = {
         { "c", "GraphicsContext.cpp", true },
         { "x", "vscode_layout.xml", false },
-        { "c", "CUI.cpp", false }
+        { "c", "main.cpp", false }
     };
 }
 

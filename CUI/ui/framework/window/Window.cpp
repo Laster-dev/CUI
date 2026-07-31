@@ -37,11 +37,12 @@ std::shared_ptr<UIElement> Window::LockElement(const std::weak_ptr<UIElement>& e
 }
 
 bool Window::NeedsContinuousMouseRedraw(UIElement* element) {
-    if (!element) return false;
-    const char* cls = element->GetClassName();
-    return std::strcmp(cls, "ListView") == 0
-        || std::strcmp(cls, "ScrollViewer") == 0
-        || std::strcmp(cls, "TabView") == 0;
+    if (!element) {
+        return false;
+    }
+
+    const std::string className = element->GetClassName();
+    return className == "TitleBar" || className == "MenuBar";
 }
 
 void Window::SetHoveredElement(UIElement* element) {
@@ -366,9 +367,17 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_MOUSEMOVE:
         if (OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
-            InvalidateRect(m_hwnd, nullptr, FALSE);
+            InvalidateAnimatedRegions();
         }
         return 0;
+
+    case WM_NCMOUSEMOVE:
+        InvalidateRect(m_hwnd, nullptr, FALSE);
+        return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
+
+    case WM_NCMOUSELEAVE:
+        InvalidateRect(m_hwnd, nullptr, FALSE);
+        return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 
     case WM_LBUTTONDOWN:
         if (OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {

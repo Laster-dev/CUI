@@ -82,28 +82,18 @@ private:
         }
 
         double SolveCurveX(double x) const {
+            if (x <= 0.0) return 0.0;
+            if (x >= 1.0) return 1.0;
+
+            // Direct 2-iteration Newton-Raphson for O(1) ultra-fast Bezier root finding
             double t = x;
-            for (int i = 0; i < 8; ++i) {
+            for (int i = 0; i < 2; ++i) {
                 double xAtT = SampleCurve(x1, x2, t) - x;
                 double d = SampleDerivative(x1, x2, t);
-                if (std::abs(xAtT) < 1e-7 || std::abs(d) < 1e-7) break;
+                if (std::abs(d) < 1e-6) break;
                 t -= xAtT / d;
             }
-            if (t >= 0.0 && t <= 1.0) return t;
-
-            double lo = 0.0;
-            double hi = 1.0;
-            t = x;
-            while (lo < hi) {
-                double xAtT = SampleCurve(x1, x2, t);
-                if (std::abs(xAtT - x) < 1e-7) return t;
-                if (x > xAtT) lo = t;
-                else hi = t;
-                double next = (hi + lo) * 0.5;
-                if (std::abs(next - t) < 1e-7) break;
-                t = next;
-            }
-            return t;
+            return std::clamp(t, 0.0, 1.0);
         }
 
         double GetValue(double x) const {

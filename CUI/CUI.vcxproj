@@ -77,6 +77,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -97,6 +98,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -115,6 +117,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -136,6 +139,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir)ui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -148,102 +152,140 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CUI.cpp" />
-    <ClCompile Include="framework\core\Value.cpp" />
-    <ClCompile Include="framework\core\Object.cpp" />
-    <ClCompile Include="framework\core\Binding.cpp" />
-    <ClCompile Include="framework\render\RenderResources.cpp" />
-    <ClCompile Include="framework\render\GraphicsContext.cpp" />
-    <ClCompile Include="framework\layout\Layout.cpp" />
-    <ClCompile Include="framework\controls\UIElement.cpp" />
-    <ClCompile Include="framework\controls\Control.cpp" />
-    <ClCompile Include="framework\controls\TextBlock.cpp" />
-    <ClCompile Include="framework\controls\Button.cpp" />
-    <ClCompile Include="framework\controls\TextBox.cpp" />
-    <ClCompile Include="framework\controls\CheckBox.cpp" />
-    <ClCompile Include="framework\controls\HyperlinkButton.cpp" />
-    <ClCompile Include="framework\controls\Image.cpp" />
-    <ClCompile Include="framework\controls\ComboBox.cpp" />
-    <ClCompile Include="framework\controls\ContextMenu.cpp" />
-    <ClCompile Include="framework\controls\ListBox.cpp" />
-    <ClCompile Include="framework\controls\ListView.cpp" />
-    <ClCompile Include="framework\controls\Panel.cpp" />
-    <ClCompile Include="framework\controls\ScrollViewer.cpp" />
-    <ClCompile Include="framework\controls\MessageBox.cpp" />
-    <ClCompile Include="framework\controls\Toast.cpp" />
-    <ClCompile Include="framework\controls\ToastCenter.cpp" />
-    <ClCompile Include="framework\controls\TabView.cpp" />
-    <ClCompile Include="framework\controls\CollapsePanel.cpp" />
-    <ClCompile Include="framework\controls\MenuBar.cpp" />
-    <ClCompile Include="framework\controls\VSCodeControls.cpp" />
-    <ClCompile Include="framework\controls\PropertyGrid.cpp" />
-    <ClCompile Include="framework\controls\TreeView.cpp" />
-    <ClCompile Include="framework\controls\Slider.cpp" />
-    <ClCompile Include="framework\controls\ProgressBar.cpp" />
-    <ClCompile Include="framework\controls\NumberBox.cpp" />
-    <ClCompile Include="framework\controls\RadioButton.cpp" />
-    <ClCompile Include="framework\controls\ToggleSwitch.cpp" />
-    <ClCompile Include="framework\controls\DatePicker.cpp" />
-    <ClCompile Include="framework\controls\TimePicker.cpp" />
-    <ClCompile Include="framework\controls\ColorPicker.cpp" />
-    <ClCompile Include="framework\controls\BreadcrumbBar.cpp" />
-    <ClCompile Include="framework\controls\PagingControl.cpp" />
-    <ClCompile Include="framework\controls\Splitter.cpp" />
-    <ClCompile Include="framework\parser\StyleManager.cpp" />
-    <ClCompile Include="framework\parser\UIMarkupParser.cpp" />
-    <ClCompile Include="framework\window\Window.cpp" />
-    <ClCompile Include="framework\window\CUIWindow.cpp" />
+    <ClCompile Include="showcase\app\main.cpp" />
+    <ClCompile Include="showcase\app\ShowcaseHelpers.cpp" />
+    <ClCompile Include="showcase\app\Streaming.cpp" />
+    <ClCompile Include="showcase\app\pages\ButtonPage.cpp" />
+    <ClCompile Include="showcase\app\pages\TextBlockPage.cpp" />
+    <ClCompile Include="showcase\app\pages\TextBoxPage.cpp" />
+    <ClCompile Include="showcase\app\pages\CheckBoxPage.cpp" />
+    <ClCompile Include="showcase\app\pages\RadioButtonPage.cpp" />
+    <ClCompile Include="showcase\app\pages\ToggleSwitchPage.cpp" />
+    <ClCompile Include="showcase\app\pages\ComboBoxPage.cpp" />
+    <ClCompile Include="showcase\app\pages\SliderPage.cpp" />
+    <ClCompile Include="showcase\app\pages\ProgressBarPage.cpp" />
+    <ClCompile Include="showcase\app\pages\NumberBoxPage.cpp" />
+    <ClCompile Include="showcase\app\pages\DatePickerPage.cpp" />
+    <ClCompile Include="showcase\app\pages\TimePickerPage.cpp" />
+    <ClCompile Include="showcase\app\pages\ColorPickerPage.cpp" />
+    <ClCompile Include="showcase\app\pages\BreadcrumbPage.cpp" />
+    <ClCompile Include="showcase\app\pages\PagingPage.cpp" />
+    <ClCompile Include="showcase\app\pages\SplitterPage.cpp" />
+    <ClCompile Include="showcase\app\pages\CollapsePage.cpp" />
+    <ClCompile Include="showcase\app\pages\ListBoxPage.cpp" />
+    <ClCompile Include="showcase\app\pages\ListViewPage.cpp" />
+    <ClCompile Include="showcase\app\pages\TreeViewPage.cpp" />
+    <ClCompile Include="showcase\app\pages\HyperlinkPage.cpp" />
+    <ClCompile Include="showcase\app\pages\StreamPage.cpp" />
+    <ClCompile Include="showcase\app\pages\DialogPage.cpp" />
+    <ClCompile Include="showcase\app\pages\ToastPage.cpp" />
+    <ClCompile Include="showcase\app\pages\GridPage.cpp" />
+    <ClCompile Include="showcase\app\pages\CanvasPage.cpp" />
+    <ClCompile Include="showcase\app\pages\WrapPage.cpp" />
+    <ClCompile Include="showcase\app\pages\DockPage.cpp" />
+    <ClCompile Include="showcase\app\pages\UniformPage.cpp" />
+    <ClCompile Include="showcase\app\pages\StackPanelPage.cpp" />
+    <ClCompile Include="showcase\app\pages\ScrollViewerPage.cpp" />
+    <ClCompile Include="ui\framework\core\Value.cpp" />
+    <ClCompile Include="ui\framework\core\Object.cpp" />
+    <ClCompile Include="ui\framework\core\Binding.cpp" />
+    <ClCompile Include="ui\framework\render\RenderResources.cpp" />
+    <ClCompile Include="ui\framework\render\GraphicsContext.cpp" />
+    <ClCompile Include="ui\framework\layout\Layout.cpp" />
+    <ClCompile Include="ui\framework\controls\UIElement.cpp" />
+    <ClCompile Include="ui\framework\controls\Control.cpp" />
+    <ClCompile Include="ui\framework\controls\TextBlock.cpp" />
+    <ClCompile Include="ui\framework\controls\Button.cpp" />
+    <ClCompile Include="ui\framework\controls\TextBox.cpp" />
+    <ClCompile Include="ui\framework\controls\CheckBox.cpp" />
+    <ClCompile Include="ui\framework\controls\HyperlinkButton.cpp" />
+    <ClCompile Include="ui\framework\controls\Image.cpp" />
+    <ClCompile Include="ui\framework\controls\ComboBox.cpp" />
+    <ClCompile Include="ui\framework\controls\ContextMenu.cpp" />
+    <ClCompile Include="ui\framework\controls\ListBox.cpp" />
+    <ClCompile Include="ui\framework\controls\ListView.cpp" />
+    <ClCompile Include="ui\framework\controls\Panel.cpp" />
+    <ClCompile Include="ui\framework\controls\ScrollViewer.cpp" />
+    <ClCompile Include="ui\framework\controls\MessageBox.cpp" />
+    <ClCompile Include="ui\framework\controls\Toast.cpp" />
+    <ClCompile Include="ui\framework\controls\ToastCenter.cpp" />
+    <ClCompile Include="ui\framework\controls\TabView.cpp" />
+    <ClCompile Include="ui\framework\controls\CollapsePanel.cpp" />
+    <ClCompile Include="ui\framework\controls\MenuBar.cpp" />
+    <ClCompile Include="ui\framework\controls\VSCodeControls.cpp" />
+    <ClCompile Include="ui\framework\controls\PropertyGrid.cpp" />
+    <ClCompile Include="ui\framework\controls\TreeView.cpp" />
+    <ClCompile Include="ui\framework\controls\Slider.cpp" />
+    <ClCompile Include="ui\framework\controls\ProgressBar.cpp" />
+    <ClCompile Include="ui\framework\controls\NumberBox.cpp" />
+    <ClCompile Include="ui\framework\controls\RadioButton.cpp" />
+    <ClCompile Include="ui\framework\controls\ToggleSwitch.cpp" />
+    <ClCompile Include="ui\framework\controls\DatePicker.cpp" />
+    <ClCompile Include="ui\framework\controls\TimePicker.cpp" />
+    <ClCompile Include="ui\framework\controls\ColorPicker.cpp" />
+    <ClCompile Include="ui\framework\controls\BreadcrumbBar.cpp" />
+    <ClCompile Include="ui\framework\controls\PagingControl.cpp" />
+    <ClCompile Include="ui\framework\controls\Splitter.cpp" />
+    <ClCompile Include="ui\framework\parser\StyleManager.cpp" />
+    <ClCompile Include="ui\framework\parser\UIMarkupParser.cpp" />
+    <ClCompile Include="ui\framework\window\Window.cpp" />
+    <ClCompile Include="ui\framework\window\CUIWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework\core\Value.h" />
-    <ClInclude Include="framework\core\Event.h" />
-    <ClInclude Include="framework\core\Object.h" />
-    <ClInclude Include="framework\core\Binding.h" />
-    <ClInclude Include="framework\render\RenderResources.h" />
-    <ClInclude Include="framework\render\GraphicsContext.h" />
-    <ClInclude Include="framework\layout\Layout.h" />
-    <ClInclude Include="framework\controls\UIElement.h" />
-    <ClInclude Include="framework\controls\Control.h" />
-    <ClInclude Include="framework\controls\TextBlock.h" />
-    <ClInclude Include="framework\controls\Button.h" />
-    <ClInclude Include="framework\controls\TextBox.h" />
-    <ClInclude Include="framework\controls\CheckBox.h" />
-    <ClInclude Include="framework\controls\HyperlinkButton.h" />
-    <ClInclude Include="framework\controls\Image.h" />
-    <ClInclude Include="framework\controls\ComboBox.h" />
-    <ClInclude Include="framework\controls\ContextMenu.h" />
-    <ClInclude Include="framework\controls\ListBox.h" />
-    <ClInclude Include="framework\controls\ListView.h" />
-    <ClInclude Include="framework\controls\Panel.h" />
-    <ClInclude Include="framework\controls\ScrollViewer.h" />
-    <ClInclude Include="framework\controls\MessageBox.h" />
-    <ClInclude Include="framework\controls\Toast.h" />
-    <ClInclude Include="framework\controls\ToastCenter.h" />
-    <ClInclude Include="framework\controls\TabView.h" />
-    <ClInclude Include="framework\controls\CollapsePanel.h" />
-    <ClInclude Include="framework\controls\MenuBar.h" />
-    <ClInclude Include="framework\controls\VSCodeControls.h" />
-    <ClInclude Include="framework\controls\PropertyGrid.h" />
-    <ClInclude Include="framework\controls\TreeView.h" />
-    <ClInclude Include="framework\controls\Slider.h" />
-    <ClInclude Include="framework\controls\ProgressBar.h" />
-    <ClInclude Include="framework\controls\NumberBox.h" />
-    <ClInclude Include="framework\controls\RadioButton.h" />
-    <ClInclude Include="framework\controls\ToggleSwitch.h" />
-    <ClInclude Include="framework\controls\DatePicker.h" />
-    <ClInclude Include="framework\controls\TimePicker.h" />
-    <ClInclude Include="framework\controls\ColorPicker.h" />
-    <ClInclude Include="framework\controls\BreadcrumbBar.h" />
-    <ClInclude Include="framework\controls\PagingControl.h" />
-    <ClInclude Include="framework\controls\Splitter.h" />
-    <ClInclude Include="framework\parser\StyleManager.h" />
-    <ClInclude Include="framework\parser\UIMarkupParser.h" />
-    <ClInclude Include="framework\window\Window.h" />
-    <ClInclude Include="framework\window\CUIWindow.h" />
+    <ClInclude Include="showcase\app\ShowcaseContext.h" />
+    <ClInclude Include="showcase\app\ShowcaseHelpers.h" />
+    <ClInclude Include="showcase\app\Streaming.h" />
+    <ClInclude Include="showcase\app\pages\PageRegistry.h" />
+    <ClInclude Include="ui\framework\core\Value.h" />
+    <ClInclude Include="ui\framework\core\Event.h" />
+    <ClInclude Include="ui\framework\core\Object.h" />
+    <ClInclude Include="ui\framework\core\Binding.h" />
+    <ClInclude Include="ui\framework\core\CUIDsl.h" />
+    <ClInclude Include="ui\framework\render\RenderResources.h" />
+    <ClInclude Include="ui\framework\render\GraphicsContext.h" />
+    <ClInclude Include="ui\framework\layout\Layout.h" />
+    <ClInclude Include="ui\framework\controls\UIElement.h" />
+    <ClInclude Include="ui\framework\controls\Control.h" />
+    <ClInclude Include="ui\framework\controls\TextBlock.h" />
+    <ClInclude Include="ui\framework\controls\Button.h" />
+    <ClInclude Include="ui\framework\controls\TextBox.h" />
+    <ClInclude Include="ui\framework\controls\CheckBox.h" />
+    <ClInclude Include="ui\framework\controls\HyperlinkButton.h" />
+    <ClInclude Include="ui\framework\controls\Image.h" />
+    <ClInclude Include="ui\framework\controls\ComboBox.h" />
+    <ClInclude Include="ui\framework\controls\ContextMenu.h" />
+    <ClInclude Include="ui\framework\controls\ListBox.h" />
+    <ClInclude Include="ui\framework\controls\ListView.h" />
+    <ClInclude Include="ui\framework\controls\Panel.h" />
+    <ClInclude Include="ui\framework\controls\ScrollViewer.h" />
+    <ClInclude Include="ui\framework\controls\MessageBox.h" />
+    <ClInclude Include="ui\framework\controls\Toast.h" />
+    <ClInclude Include="ui\framework\controls\ToastCenter.h" />
+    <ClInclude Include="ui\framework\controls\TabView.h" />
+    <ClInclude Include="ui\framework\controls\CollapsePanel.h" />
+    <ClInclude Include="ui\framework\controls\MenuBar.h" />
+    <ClInclude Include="ui\framework\controls\VSCodeControls.h" />
+    <ClInclude Include="ui\framework\controls\PropertyGrid.h" />
+    <ClInclude Include="ui\framework\controls\TreeView.h" />
+    <ClInclude Include="ui\framework\controls\Slider.h" />
+    <ClInclude Include="ui\framework\controls\ProgressBar.h" />
+    <ClInclude Include="ui\framework\controls\NumberBox.h" />
+    <ClInclude Include="ui\framework\controls\RadioButton.h" />
+    <ClInclude Include="ui\framework\controls\ToggleSwitch.h" />
+    <ClInclude Include="ui\framework\controls\DatePicker.h" />
+    <ClInclude Include="ui\framework\controls\TimePicker.h" />
+    <ClInclude Include="ui\framework\controls\ColorPicker.h" />
+    <ClInclude Include="ui\framework\controls\BreadcrumbBar.h" />
+    <ClInclude Include="ui\framework\controls\PagingControl.h" />
+    <ClInclude Include="ui\framework\controls\Splitter.h" />
+    <ClInclude Include="ui\framework\parser\StyleManager.h" />
+    <ClInclude Include="ui\framework\parser\UIMarkupParser.h" />
+    <ClInclude Include="ui\framework\window\Window.h" />
+    <ClInclude Include="ui\framework\window\CUIWindow.h" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="assets\gallery_layout.xml" />
-    <Xml Include="assets\vscode_layout.xml" />
+    <Xml Include="showcase\assets\gallery_layout.xml" />
+    <Xml Include="showcase\assets\vscode_layout.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
