@@ -237,6 +237,19 @@ LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 }
 
 LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    // Win11 Snap Layout + custom title bar notes:
+    // 1. Do not call DwmDefWindowProc for every non-client message up front.
+    //    If DWM/DefWindowProc gets WM_NCCALCSIZE, WM_NCACTIVATE, or WM_NCPAINT
+    //    before our custom handling, Windows can restore and paint the native
+    //    caption/title bar over the CUI-drawn one.
+    // 2. Keep WM_NCCALCSIZE returning 0 so the client area owns the whole window.
+    //    That is what makes the CUI TitleBar the visible title bar.
+    // 3. For Snap Layout hover, WM_NCHITTEST must return HTMAXBUTTON on the
+    //    custom maximize button rectangle. That rectangle must be tested before
+    //    the top resize border, otherwise a windowed app returns HTTOP/HTTOPRIGHT
+    //    and Windows never sees a maximize button under the cursor.
+    // 4. DwmDefWindowProc can still participate narrowly in non-client mouse
+    //    movement, but it must not own the whole non-client message pipeline.
     switch (uMsg) {
     case WM_NCCALCSIZE:
         if (wParam == TRUE) {
@@ -244,7 +257,6 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (IsZoomed(m_hwnd)) {
                 // Use the full maximized window rect as the client area so DWM does
                 // not leave a 1px non-client strip (white border) around rcWork.
-                // OnResize keeps an inner padding so content stays on-screen.
                 params->rgrc[0] = params->rgrc[1];
             }
             return 0;
@@ -252,11 +264,13 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         break;
 
     case WM_NCACTIVATE:
-        // Pass to DefWindowProc with -1 margins to maintain native animation state
-        return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
+        return TRUE;
+
+    case WM_NCPAINT:
+        return 0;
 
     case WM_SYSCOMMAND:
-        // Handle window system commands (minimize, maximize, restore, close) with native animations
+        // Handle window system commands with native animations
         if ((wParam & 0xFFF0) == SC_MINIMIZE) {
             ShowWindow(m_hwnd, SW_MINIMIZE);
             return 0;
@@ -271,22 +285,38 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_NCHITTEST: {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-        ScreenToClient(m_hwnd, &pt);
-        float fx = static_cast<float>(pt.x);
-        float fy = static_cast<float>(pt.y);
+        POINT clientPt = pt;
+        ScreenToClient(m_hwnd, &clientPt);
+        float fx = static_cast<float>(clientPt.x);
+        float fy = static_cast<float>(clientPt.y);
 
         RECT rc;
         GetClientRect(m_hwnd, &rc);
         float winW = static_cast<float>(rc.right);
         float winH = static_cast<float>(rc.bottom);
 
-        // 1. Resizing border handles (8-direction border resize) - only when NOT maximized
+        // System buttons get first chance. In windowed mode, the top resize band
+        // overlaps their upper pixels; returning HTTOP there prevents Win11 from
+        // seeing HTMAXBUTTON, so Snap Layout hover never appears.
+        if (fy >= 0 && fy <= 40.0f) {
+            if (fx >= winW - 45.0f) {
+                return HTCLOSE;
+            }
+            if (fx >= winW - 90.0f && fx < winW - 45.0f) {
+                return HTMAXBUTTON;
+            }
+            if (fx >= winW - 135.0f && fx < winW - 90.0f) {
+                return HTMINBUTTON;
+            }
+        }
+
+        // 2. Resizing border handles (8-direction border resize) - only when NOT maximized
         if (!IsZoomed(m_hwnd)) {
             int borderThickness = 8;
-            bool left = (pt.x < borderThickness);
-            bool right = (pt.x >= rc.right - borderThickness);
-            bool top = (pt.y < borderThickness);
-            bool bottom = (pt.y >= rc.bottom - borderThickness);
+            bool left = (clientPt.x < borderThickness);
+            bool right = (clientPt.x >= rc.right - borderThickness);
+            bool top = (clientPt.y < borderThickness);
+            bool bottom = (clientPt.y >= rc.bottom - borderThickness);
 
             if (top && left) return HTTOPLEFT;
             if (top && right) return HTTOPRIGHT;
@@ -298,21 +328,8 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (bottom) return HTBOTTOM;
         }
 
-        // 2. Custom TitleBar Hit-Testing & Win11 Snap Layouts
+        // 3. Custom TitleBar Hit-Testing & Windows 11 Snap Layouts Integration
         if (fy >= 0 && fy <= 40.0f) {
-            // Close Button
-            if (fx >= winW - 45.0f) {
-                return HTCLOSE;
-            }
-            // Maximize / Restore Button -> Returns HTMAXBUTTON to trigger Win11 Snap Layouts
-            if (fx >= winW - 90.0f && fx < winW - 45.0f) {
-                return HTMAXBUTTON;
-            }
-            // Minimize Button
-            if (fx >= winW - 135.0f && fx < winW - 90.0f) {
-                return HTMINBUTTON;
-            }
-
             // Drag window caption (only when clicking directly on empty TitleBar space, NOT child controls)
             if (fx < winW - 135.0f && m_rootElement) {
                 UIElement* hit = m_rootElement->HitTest(fx, fy);
@@ -327,10 +344,12 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 return HTCAPTION;
             }
         }
+
         return HTCLIENT;
     }
 
-    case WM_NCLBUTTONDOWN:
+    case WM_NCLBUTTONDOWN: {
+        LRESULT res = DefWindowProc(m_hwnd, uMsg, wParam, lParam);
         if (wParam == HTCLOSE) {
             PostMessage(m_hwnd, WM_CLOSE, 0, 0);
             return 0;
@@ -345,7 +364,8 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             SendMessage(m_hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
             return 0;
         }
-        break;
+        return res;
+    }
 
     case WM_PAINT:
         OnPaint();
@@ -372,6 +392,12 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return 0;
 
     case WM_NCMOUSEMOVE:
+        {
+            // Narrow DWM handoff: enough for non-client hover behavior, without
+            // letting DWM resurrect native caption painting via NCCALCSIZE/PAINT.
+            LRESULT dwmResult = 0;
+            DwmDefWindowProc(m_hwnd, uMsg, wParam, lParam, &dwmResult);
+        }
         InvalidateRect(m_hwnd, nullptr, FALSE);
         return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 
@@ -545,6 +571,18 @@ void Window::UpdateDwmChrome() {
     // Match the app background on Win11's 1px window border.
     const COLORREF borderColor = RGB(0x1F, 0x1F, 0x1F);
     DwmSetWindowAttribute(m_hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
+
+    // Register Custom TitleBar Maximize Button Rect with Win11 DWM (DWMWA_CAPTION_BUTTON_BOUNDS = 35)
+    RECT rc;
+    GetClientRect(m_hwnd, &rc);
+    float winW = static_cast<float>(rc.right);
+    RECT maxBtnRect = {
+        static_cast<LONG>(winW - 90.0f),
+        0,
+        static_cast<LONG>(winW - 45.0f),
+        static_cast<LONG>(40.0f)
+    };
+    DwmSetWindowAttribute(m_hwnd, 35, &maxBtnRect, sizeof(maxBtnRect));
 }
 
 void Window::OnResize(UINT width, UINT height) {

@@ -130,7 +130,7 @@ int main() {
     std::cout << "========================================================\n";
 
     Window window;
-    if (!window.Create("CUI Control Gallery - 全套旧展示页纯 C++ 声明式 Widget 回填版", 1280, 780, true)) {
+    if (!window.Create("CUI Control Gallery - 全套旧展示页纯 C++ 声明式 Widget 回填版", 1280, 780, false)) {
         CoUninitialize();
         return -1;
     }
