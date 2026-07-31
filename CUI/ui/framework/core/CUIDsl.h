@@ -295,7 +295,14 @@ inline ElementBuilder<ScrollViewer> SingleChildScrollView() {
 inline ElementBuilder<Panel> Expanded(std::shared_ptr<UIElement> child, float flex = 1.0f) {
     auto p = ElementBuilder<Panel>();
     p.FlexGrow(flex);
-    if (child) p.Add(child);
+    if (child) {
+        // Flutter's Expanded gives its child tight constraints from the expanded
+        // slot. The wrapper participates in the parent flex layout, and the
+        // child must also flex inside that wrapper; otherwise it keeps its old
+        // desired height and can paint past the actual viewport.
+        child->SetProperty("flexGrow", Value(1.0f));
+        p.Add(child);
+    }
     return p;
 }
 

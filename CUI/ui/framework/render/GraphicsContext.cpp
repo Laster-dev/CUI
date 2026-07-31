@@ -53,10 +53,16 @@ HRESULT GraphicsContext::CreateDeviceResources() {
 
     RECT rc;
     GetClientRect(m_hwnd, &rc);
-    UINT width = rc.right - rc.left;
-    UINT height = rc.bottom - rc.top;
-    if (width == 0) width = 1;
-    if (height == 0) height = 1;
+    UINT width = static_cast<UINT>(std::max<LONG>(1, rc.right - rc.left));
+    UINT height = static_cast<UINT>(std::max<LONG>(1, rc.bottom - rc.top));
+
+    float dpiX = 96.0f;
+    float dpiY = 96.0f;
+    UINT dpi = GetDpiForWindow(m_hwnd);
+    if (dpi > 0) {
+        dpiX = static_cast<float>(dpi);
+        dpiY = static_cast<float>(dpi);
+    }
 
     // Create D3D11 Device
     UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
@@ -125,6 +131,9 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     if (FAILED(hr)) return hr;
 
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+    // Use the current custom-chrome client size explicitly and pair it with
+    // DXGI_SCALING_NONE. Width/height mismatches here show up as real unpainted
+    // bands, so the window proc must keep GetClientRect authoritative.
     swapChainDesc.Width = width;
     swapChainDesc.Height = height;
     swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -133,7 +142,7 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     swapChainDesc.SampleDesc.Quality = 0;
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.BufferCount = 2;
-    swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+    swapChainDesc.Scaling = DXGI_SCALING_NONE;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
     swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
@@ -153,7 +162,9 @@ HRESULT GraphicsContext::CreateDeviceResources() {
 
     D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1(
         D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+        dpiX,
+        dpiY
     );
 
     ComPtr<ID2D1Bitmap1> d2dTargetBitmap;
@@ -166,13 +177,6 @@ HRESULT GraphicsContext::CreateDeviceResources() {
 
     m_d2dContext->SetTarget(d2dTargetBitmap.Get());
 
-    // DPI setting
-    float dpiX = 96.0f, dpiY = 96.0f;
-    UINT dpi = GetDpiForWindow(m_hwnd);
-    if (dpi > 0) {
-        dpiX = (float)dpi;
-        dpiY = (float)dpi;
-    }
     m_dpiScale = dpiX / 96.0f;
     m_d2dContext->SetDpi(dpiX, dpiY);
 
@@ -184,26 +188,61 @@ void GraphicsContext::Resize(UINT width, UINT height) {
     if (!m_d2dContext || !m_swapChain) return;
 
     m_d2dContext->SetTarget(nullptr);
+    m_d2dContext->Flush();
     m_resources.ReleaseDeviceResources();
 
     if (width == 0) width = 1;
     if (height == 0) height = 1;
 
     HRESULT hr = m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-    if (SUCCEEDED(hr)) {
-        ComPtr<IDXGISurface> dxgiBackBuffer;
-        m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer));
-
-        D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1(
-            D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)
-        );
-
-        ComPtr<ID2D1Bitmap1> d2dTargetBitmap;
-        m_d2dContext->CreateBitmapFromDxgiSurface(dxgiBackBuffer.Get(), &bitmapProperties, &d2dTargetBitmap);
-        m_d2dContext->SetTarget(d2dTargetBitmap.Get());
-        m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
+    if (FAILED(hr)) {
+        ReleaseDeviceResources();
+        CreateDeviceResources();
+        return;
     }
+
+    ComPtr<IDXGISurface> dxgiBackBuffer;
+    hr = m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer));
+    if (FAILED(hr)) {
+        ReleaseDeviceResources();
+        CreateDeviceResources();
+        return;
+    }
+
+    float dpiX = 96.0f;
+    float dpiY = 96.0f;
+    UINT dpi = GetDpiForWindow(m_hwnd);
+    if (dpi > 0) {
+        dpiX = static_cast<float>(dpi);
+        dpiY = static_cast<float>(dpi);
+    }
+
+    D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1(
+        D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+        dpiX,
+        dpiY
+    );
+
+    ComPtr<ID2D1Bitmap1> d2dTargetBitmap;
+    hr = m_d2dContext->CreateBitmapFromDxgiSurface(dxgiBackBuffer.Get(), &bitmapProperties, &d2dTargetBitmap);
+    if (FAILED(hr)) {
+        ReleaseDeviceResources();
+        CreateDeviceResources();
+        return;
+    }
+
+    m_d2dContext->SetTarget(d2dTargetBitmap.Get());
+
+    // ResizeBuffers recreates the surface backing the D2D target. Reapply the
+    // current window DPI here so the first frame after startup/resize uses the
+    // same DIP->pixel mapping as subsequent paints. Without this, the app can
+    // come up slightly blurry until a later resize path fully refreshes the
+    // render target state.
+    m_dpiScale = dpiX / 96.0f;
+    m_d2dContext->SetDpi(dpiX, dpiY);
+
+    m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
 }
 
 void GraphicsContext::ReleaseDeviceResources() {
@@ -237,9 +276,32 @@ HRESULT GraphicsContext::EndDraw() {
     return hr;
 }
 
+inline float SnapPixel(float val) {
+    return std::floor(val + 0.5f);
+}
+
+inline D2D1_RECT_F SnapRectForStroke(const Rect& rect, float strokeWidth) {
+    float halfStroke = strokeWidth * 0.5f;
+    return D2D1::RectF(
+        std::floor(rect.x) + halfStroke,
+        std::floor(rect.y) + halfStroke,
+        std::floor(rect.x + rect.width) - halfStroke,
+        std::floor(rect.y + rect.height) - halfStroke
+    );
+}
+
+inline D2D1_RECT_F SnapRectForFill(const Rect& rect) {
+    return D2D1::RectF(
+        std::floor(rect.x),
+        std::floor(rect.y),
+        std::floor(rect.x + rect.width),
+        std::floor(rect.y + rect.height)
+    );
+}
+
 void GraphicsContext::PushClip(const Rect& rect) {
     if (m_d2dContext) {
-        D2D1_RECT_F d2dRect = rect.ToD2D();
+        D2D1_RECT_F d2dRect = SnapRectForFill(rect);
         m_clipStack.push_back(d2dRect);
         m_d2dContext->PushAxisAlignedClip(d2dRect, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     }
@@ -254,33 +316,38 @@ void GraphicsContext::PopClip() {
 
 void GraphicsContext::DrawRect(const Rect& rect, D2D1_COLOR_F color, float strokeWidth) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        m_d2dContext->DrawRectangle(rect.ToD2D(), brush, strokeWidth);
+        m_d2dContext->DrawRectangle(SnapRectForStroke(rect, strokeWidth), brush, strokeWidth);
     }
 }
 
 void GraphicsContext::FillRect(const Rect& rect, D2D1_COLOR_F color) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        m_d2dContext->FillRectangle(rect.ToD2D(), brush);
+        m_d2dContext->FillRectangle(SnapRectForFill(rect), brush);
     }
 }
 
 void GraphicsContext::FillRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(rect.ToD2D(), radius, radius);
+        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(SnapRectForFill(rect), radius, radius);
         m_d2dContext->FillRoundedRectangle(rr, brush);
     }
 }
 
 void GraphicsContext::DrawRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color, float strokeWidth) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(rect.ToD2D(), radius, radius);
+        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(SnapRectForStroke(rect, strokeWidth), radius, radius);
         m_d2dContext->DrawRoundedRectangle(rr, brush, strokeWidth);
     }
 }
 
 void GraphicsContext::DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        m_d2dContext->DrawLine(D2D1::Point2F(p1.x, p1.y), D2D1::Point2F(p2.x, p2.y), brush, strokeWidth);
+        float offset = (static_cast<int>(strokeWidth) % 2 == 1) ? 0.5f : 0.0f;
+        float x1 = std::floor(p1.x) + offset;
+        float y1 = std::floor(p1.y) + offset;
+        float x2 = std::floor(p2.x) + offset;
+        float y2 = std::floor(p2.y) + offset;
+        m_d2dContext->DrawLine(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), brush, strokeWidth);
     }
 }
 
@@ -301,11 +368,17 @@ void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_C
         format->SetTrimming(&trimming, nullptr);
 
         std::wstring wText = Utf8ToUtf16(text);
+        Rect snappedRect(
+            std::floor(rect.x),
+            std::floor(rect.y),
+            std::floor(rect.width),
+            std::floor(rect.height)
+        );
         m_d2dContext->DrawText(
             wText.c_str(),
             static_cast<UINT32>(wText.length()),
             format,
-            rect.ToD2D(),
+            snappedRect.ToD2D(),
             brush,
             D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
         );
@@ -426,7 +499,7 @@ void GraphicsContext::DrawTextLayout(IDWriteTextLayout* layout, const Rect& orig
     if (!brush) return;
 
     m_d2dContext->DrawTextLayout(
-        D2D1::Point2F(originRect.x, originRect.y),
+        D2D1::Point2F(std::floor(originRect.x), std::floor(originRect.y)),
         layout,
         brush,
         D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT

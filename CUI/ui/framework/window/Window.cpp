@@ -8,7 +8,6 @@
 #include <windowsx.h>
 #include <dwmapi.h>
 #include <imm.h>
-#include <iostream>
 #include <algorithm>
 #include <chrono>
 
@@ -144,6 +143,14 @@ void Window::SetTransparentMode(bool enabled) {
 void Window::Show() {
     if (m_hwnd) {
         ShowWindow(m_hwnd, SW_SHOW);
+        // The very first layout often happens before the shown window settles on
+        // its final client metrics/DPI-backed swap-chain size. If we paint using
+        // that pre-show geometry, text and 1px edges can land on fractional
+        // device pixels and look soft until the first WM_SIZE arrives.
+        // Force one post-show relayout so startup uses the same path as a manual
+        // resize, which keeps the initial frame crisp.
+        Relayout();
+        InvalidateRect(m_hwnd, nullptr, FALSE);
         UpdateWindow(m_hwnd);
     }
 }
@@ -259,9 +266,14 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 // not leave a 1px non-client strip (white border) around rcWork.
                 params->rgrc[0] = params->rgrc[1];
             }
-            return 0;
         }
-        break;
+        // Custom chrome must consume both NCCALCSIZE forms. During the hidden
+        // CreateWindow path Windows can ask with wParam == FALSE; if that falls
+        // through to DefWindowProc, the first client rect is the classic
+        // OVERLAPPEDWINDOW area (for example 1280x780 becomes 1264x741). The
+        // swap chain is then created too small, leaving an unpainted strip on
+        // the right/bottom until the first manual resize.
+        return 0;
 
     case WM_NCACTIVATE:
         return TRUE;
@@ -381,8 +393,38 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_SIZE:
         UpdateDwmChrome();
-        OnResize(LOWORD(lParam), HIWORD(lParam));
+        // Do not trust WM_SIZE's lParam in the custom-chrome startup path. A
+        // queued/synchronous size message can still carry the old native
+        // OVERLAPPEDWINDOW client size (for example height 741) even after
+        // WM_NCCALCSIZE has made GetClientRect report the full 780px surface.
+        // Always relayout from GetClientRect so stale WM_SIZE data cannot shrink
+        // the root tree and leave an unpainted strip at the bottom.
+        Relayout();
         InvalidateRect(m_hwnd, nullptr, FALSE);
+        return 0;
+
+    case WM_DPICHANGED:
+        {
+            // When Windows changes the DPI for this HWND, it provides the
+            // recommended outer window bounds. Apply them immediately and then
+            // relayout/recreate the render target at the new DPI so text stays
+            // crisp instead of being temporarily bitmap-scaled.
+            const RECT* suggestedRect = reinterpret_cast<const RECT*>(lParam);
+            if (suggestedRect) {
+                SetWindowPos(
+                    m_hwnd,
+                    nullptr,
+                    suggestedRect->left,
+                    suggestedRect->top,
+                    suggestedRect->right - suggestedRect->left,
+                    suggestedRect->bottom - suggestedRect->top,
+                    SWP_NOZORDER | SWP_NOACTIVATE
+                );
+            }
+            UpdateDwmChrome();
+            Relayout();
+            InvalidateRect(m_hwnd, nullptr, FALSE);
+        }
         return 0;
 
     case WM_MOUSEMOVE:
@@ -593,11 +635,24 @@ void Window::OnResize(UINT width, UINT height) {
     m_gfxContext.Resize(width, height);
     if (m_rootElement) {
         bool isMaximized = IsZoomed(m_hwnd);
-        float pad = isMaximized ? 8.0f : 0.0f; // Add inner padding when maximized to prevent edge clipping
+        constexpr float resizeBorder = 8.0f;
 
-        Size avail(static_cast<float>(width) - pad * 2, static_cast<float>(height) - pad * 2);
+        // Custom chrome makes the client rect equal to the whole window so DWM
+        // snap/resize behavior works. The bottom few pixels are still the resize
+        // edge, though, and are not a reliable viewport for scrollable content.
+        // Keep them outside the layout rect so ScrollViewer computes max scroll
+        // from the actually visible area instead of hiding the last row under
+        // the resize edge.
+        float padLeft = isMaximized ? resizeBorder : 0.0f;
+        float padTop = isMaximized ? resizeBorder : 0.0f;
+        float padRight = isMaximized ? resizeBorder : 0.0f;
+        float padBottom = resizeBorder;
+
+        float layoutW = (std::max)(0.0f, static_cast<float>(width) - padLeft - padRight);
+        float layoutH = (std::max)(0.0f, static_cast<float>(height) - padTop - padBottom);
+        Size avail(layoutW, layoutH);
         m_rootElement->Measure(avail);
-        m_rootElement->Arrange(Rect(pad, pad, static_cast<float>(width) - pad * 2, static_cast<float>(height) - pad * 2));
+        m_rootElement->Arrange(Rect(padLeft, padTop, layoutW, layoutH));
     }
 }
 

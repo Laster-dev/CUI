@@ -25,6 +25,8 @@ public:
     void ClearActiveMenu() { m_activeOpenIndex = -1; m_hoveredIndex = -1; }
     void ResetInteractionState();
 
+    float GetTotalWidth(GraphicsContext& ctx);
+
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;

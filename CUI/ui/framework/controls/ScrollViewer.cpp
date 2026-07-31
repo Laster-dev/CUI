@@ -16,6 +16,24 @@ float GetChromiumWheelStep(float viewportHeight) {
     }
     return (std::max)(1u, lines) * 40.0f;
 }
+
+float GetVisualBottom(UIElement* element) {
+    if (!element || element->GetProperty("visibility").AsString("Visible") != "Visible") {
+        return 0.0f;
+    }
+
+    Rect bounds = element->GetBounds();
+    float bottom = bounds.y + bounds.height;
+
+    if (element->ShouldClipToBounds()) {
+        return bottom;
+    }
+
+    for (const auto& child : element->GetChildren()) {
+        bottom = (std::max)(bottom, GetVisualBottom(child.get()));
+    }
+    return bottom;
+}
 }
 
 ScrollViewer::ScrollViewer() {
@@ -146,6 +164,26 @@ void ScrollViewer::PositionChildren() {
             childHeight
         );
         child->Arrange(childRect);
+    }
+
+    float visualBottom = 0.0f;
+    for (auto& child : GetChildren()) {
+        std::string vis = child->GetProperty("visibility").AsString("Visible");
+        if (vis == "Collapsed") continue;
+        visualBottom = (std::max)(visualBottom, GetVisualBottom(child.get()));
+    }
+
+    if (visualBottom > 0.0f) {
+        float contentTop = m_bounds.y + padding.top - m_offsetY;
+        float visualContentHeight = visualBottom - contentTop + padding.bottom + kContentBottomPad;
+        if (visualContentHeight > m_contentHeight + 0.5f) {
+            // Some layout containers intentionally render children past their own
+            // bounds (PropertyGrid does this to avoid clipping rows). Scroll range
+            // must follow the real visual subtree, not only the direct child's
+            // desired height, or the last controls cannot be scrolled into view.
+            m_contentHeight = visualContentHeight;
+            ClampOffset();
+        }
     }
 }
 

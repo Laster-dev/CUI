@@ -5,6 +5,7 @@
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/ToastCenter.h"
 #include "framework/controls/VSCodeControls.h"
+#include <shellscalingapi.h>
 #include <iostream>
 #include <vector>
 
@@ -104,7 +105,11 @@ public:
             effectiveContext.windowRef = context.window;
         }
 
-        return Column().Children({
+        // Root chrome/content must not use the default Column gap. ToastCenter is
+        // a zero-size overlay host; if it participates in a gapped Column, the
+        // flex layout still reserves an 8px gap before it and the main content
+        // stops short of the bottom edge on the first layout.
+        return Column(0).Children({
             titleBar,
             Expanded(GalleryTabs(effectiveContext, context).Build()),
             toastCenter
@@ -122,6 +127,14 @@ static std::shared_ptr<UIElement> BuildRoot(const ShowcaseContext& ctx) {
 }
 
 int main() {
+    // This app draws its own pixels and text via Direct2D, so it must opt into
+    // per-monitor DPI awareness before creating any HWND. Otherwise Windows
+    // treats the process as DPI-unaware, bitmap-scales the first frame, and the
+    // whole window looks soft until later size changes force a sharper redraw.
+    if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
+        SetProcessDPIAware();
+    }
+
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (FAILED(hr)) return -1;
 

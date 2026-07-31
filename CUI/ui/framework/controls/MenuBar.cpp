@@ -6,7 +6,7 @@ namespace CUI {
 
 MenuBar::MenuBar() {
     SetProperty("height", Value(30.0f));
-    SetProperty("background", Value("#252526"));
+    SetProperty("background", Value("#1F1F1F"));
     SetProperty("color", Value("#CCCCCC"));
 }
 
@@ -16,6 +16,15 @@ std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {
     item.dropDownMenu = std::make_shared<ContextMenu>();
     m_menus.push_back(item);
     return item.dropDownMenu;
+}
+
+float MenuBar::GetTotalWidth(GraphicsContext& ctx) {
+    float totalW = 12.0f;
+    for (size_t i = 0; i < m_menus.size(); ++i) {
+        Size txtSize = ctx.MeasureText(m_menus[i].title, "Segoe UI", 12.0f);
+        totalW += txtSize.width + 20.0f;
+    }
+    return totalW;
 }
 
 Size MenuBar::Measure(Size availableSize) {

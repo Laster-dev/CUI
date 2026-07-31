@@ -7,7 +7,10 @@ namespace CUI {
 // ==========================================
 TitleBar::TitleBar() {
     SetProperty("height", Value(34.0f));
-    SetProperty("background", Value(D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f))); // VS Code Title bar dark
+    auto bgVal = Value(D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f));
+    SetProperty("background", bgVal);
+    SetProperty("hoverBackground", bgVal);
+    SetProperty("pressedBackground", bgVal);
     SetProperty("title", Value("CUI - Visual Studio Code [Direct2D UI Engine]"));
     m_menuBar.SetParent(this);
 
@@ -75,8 +78,9 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     ctx.FillRoundedRect(iconRect, 4.0f, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
     ctx.DrawText("C", iconRect, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
-    // Render Real Interactive MenuBar
-    Rect menuBarRect(m_bounds.x + 36, m_bounds.y, 500.0f, m_bounds.height);
+    // Render Real Interactive MenuBar with dynamic content-fit width
+    float calcMenuBarW = m_menuBar.GetTotalWidth(ctx);
+    Rect menuBarRect(m_bounds.x + 36, m_bounds.y, calcMenuBarW, m_bounds.height);
     m_menuBar.Arrange(menuBarRect);
     m_menuBar.OnRender(ctx);
 
