@@ -32,6 +32,8 @@ public:
 
     bool IsTransparentMode() const { return m_transparentMode; }
     void SetTransparentMode(bool enabled);
+    void SetLowPerformanceMode(bool enabled);
+    bool IsLowPerformanceMode() const { return m_lowPerformanceMode; }
 
     void SetActiveContextMenu(std::shared_ptr<ContextMenu> menu) { m_activeContextMenu = menu; }
 
@@ -75,6 +77,7 @@ private:
     DirtyRegion m_pendingDirtyRegion;
     RenderLayer m_sceneLayer;
     bool m_showRenderStatsOverlay = true;
+    bool m_lowPerformanceMode = false;
     std::chrono::steady_clock::time_point m_overlayFpsSampleStart{};
     unsigned m_overlayFrameCounter = 0;
     float m_overlayFps = 0.0f;

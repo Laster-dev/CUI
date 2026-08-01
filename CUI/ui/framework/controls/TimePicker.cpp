@@ -206,6 +206,13 @@ void TimePicker::OnMouseDown(Point pt) {
 
 bool TimePicker::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_hourPosition = WrapPosition(m_hourTarget, 24);
+        m_minutePosition = WrapPosition(m_minuteTarget, 60);
+        ApplyAnimatedSelection();
+        m_lastAnimTime = std::chrono::steady_clock::time_point{};
+        return base;
+    }
 
     const auto now = std::chrono::steady_clock::now();
     float deltaSeconds = 1.0f / 60.0f;
@@ -248,8 +255,8 @@ bool TimePicker::HasSelfAnimation() const {
     };
 
     return Control::HasSelfAnimation()
-        || axisAnimating(m_hourPosition, m_hourTarget, 24)
-        || axisAnimating(m_minutePosition, m_minuteTarget, 60);
+        || (UIElement::AreAnimationsEnabled() && axisAnimating(m_hourPosition, m_hourTarget, 24))
+        || (UIElement::AreAnimationsEnabled() && axisAnimating(m_minutePosition, m_minuteTarget, 60));
 }
 
 void TimePicker::OnRender(GraphicsContext& ctx) {

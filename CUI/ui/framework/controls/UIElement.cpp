@@ -5,6 +5,7 @@
 
 namespace CUI {
 
+bool UIElement::s_animationsEnabled = true;
 float UIElement::s_animationDeltaSeconds = 1.0f / 60.0f;
 
 namespace {
@@ -329,6 +330,14 @@ void UIElement::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume)
             child->CollectRenderDirtyRegion(dirtyRegion, consume);
         }
     }
+}
+
+void UIElement::SetAnimationsEnabled(bool enabled) {
+    s_animationsEnabled = enabled;
+}
+
+bool UIElement::AreAnimationsEnabled() {
+    return s_animationsEnabled;
 }
 
 void UIElement::SetAnimationDeltaSeconds(float dtSeconds) {

@@ -95,6 +95,8 @@ public:
     virtual bool HasSelfAnimation() const { return false; }
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const;
     virtual void CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume = true);
+    static void SetAnimationsEnabled(bool enabled);
+    static bool AreAnimationsEnabled();
     static void SetAnimationDeltaSeconds(float dtSeconds);
     static float GetAnimationDeltaSeconds();
     RenderNode& GetRenderNode() { return m_renderNode; }
@@ -130,6 +132,7 @@ protected:
     Event<UIElement*> m_onClickEvent;
     Event<UIElement*, Point> m_onMouseDownEvent;
     std::shared_ptr<ContextMenu> m_contextMenu;
+    static bool s_animationsEnabled;
     static float s_animationDeltaSeconds;
     RenderNode m_renderNode;
 };

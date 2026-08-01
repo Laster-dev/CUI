@@ -655,6 +655,11 @@ void ListView::OnMouseWheel(float delta) {
         ClampScroll();
     } else {
         ClampScroll();
+        if (!UIElement::AreAnimationsEnabled()) {
+            m_scrollY = std::clamp(m_scrollY - delta * GetChromiumWheelStep(m_bounds.height - m_headerHeight), 0.0f, m_maxScrollY);
+            m_scrollAnimator.JumpTo(m_scrollY);
+            return;
+        }
         m_scrollAnimator.ScrollBy(-delta * GetChromiumWheelStep(m_bounds.height - m_headerHeight), 0.0f, m_maxScrollY);
         if (m_lastAnimQpc == 0) {
             LARGE_INTEGER now = {};
@@ -781,6 +786,14 @@ void ListView::OnKeyDown(int vkCode) {
 }
 
 bool ListView::OnAnimationTick() {
+    if (!UIElement::AreAnimationsEnabled()) {
+        if (m_scrollAnimator.IsActive()) {
+            m_scrollY = m_scrollAnimator.Target();
+            ClampScroll();
+            m_scrollAnimator.JumpTo(m_scrollY);
+        }
+        return false;
+    }
     return AdvanceSmoothScroll();
 }
 

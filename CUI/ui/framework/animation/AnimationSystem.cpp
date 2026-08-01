@@ -1,4 +1,5 @@
 #include "AnimationSystem.h"
+#include "../controls/UIElement.h"
 
 namespace CUI {
 
@@ -10,6 +11,11 @@ float AnimationSystem::BlendFactor(float responseAt60Hz, float dtSeconds) {
 }
 
 bool AnimationSystem::Step(float& current, float target, float dtSeconds, float responseAt60Hz, float epsilon) {
+    if (!UIElement::AreAnimationsEnabled()) {
+        current = target;
+        return false;
+    }
+
     float delta = target - current;
     if (std::abs(delta) <= epsilon) {
         current = target;

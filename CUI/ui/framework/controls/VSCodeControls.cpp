@@ -99,17 +99,45 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     HWND hwnd = WindowFromPoint(pt);
     bool isHoveredInTitle = false;
     float hoverX = -1.0f;
+    float hoverY = -1.0f;
 
     // Check if mouse is within titlebar action buttons
-    RECT windowRc;
+    RECT windowRc = {};
     if (GetWindowRect(hwnd, &windowRc)) {
         float clientX = static_cast<float>(pt.x - windowRc.left);
         float clientY = static_cast<float>(pt.y - windowRc.top);
         if (clientY >= 0 && clientY <= m_bounds.height) {
             isHoveredInTitle = true;
             hoverX = clientX;
+            hoverY = clientY;
         }
     }
+
+    Rect lowPerfRect = GetLowPerformanceToggleRect();
+    bool lowPerfOn = !UIElement::AreAnimationsEnabled();
+    bool isLowPerfHover = isHoveredInTitle && lowPerfRect.Contains(hoverX, hoverY);
+    D2D1_COLOR_F toggleBg = lowPerfOn
+        ? D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, isLowPerfHover ? 0.92f : 0.82f)
+        : D2D1::ColorF(1.0f, 1.0f, 1.0f, isLowPerfHover ? 0.14f : 0.08f);
+    D2D1_COLOR_F toggleBorder = lowPerfOn
+        ? D2D1::ColorF(0x36 / 255.0f, 0xB2 / 255.0f, 0xFF / 255.0f, 0.95f)
+        : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f);
+    D2D1_COLOR_F toggleText = lowPerfOn
+        ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)
+        : D2D1::ColorF(0xD8 / 255.0f, 0xD8 / 255.0f, 0xD8 / 255.0f, 1.0f);
+
+    ctx.FillRoundedRect(lowPerfRect, 8.0f, toggleBg);
+    ctx.DrawRoundedRect(lowPerfRect, 8.0f, toggleBorder, 1.0f);
+    ctx.DrawText(
+        lowPerfOn ? "低性能" : "动画",
+        lowPerfRect,
+        toggleText,
+        "Segoe UI",
+        11.0f,
+        DWRITE_TEXT_ALIGNMENT_CENTER,
+        DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+        DWRITE_FONT_WEIGHT_SEMI_BOLD
+    );
 
     // 1. Minimize Button (_)
     Rect minBtnRect(rightX, m_bounds.y, btnW, btnH);
@@ -149,6 +177,16 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
 
 void TitleBar::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
+    if (IsLowPerformanceToggleHit(pt.x, pt.y)) {
+        POINT screenPt = {};
+        if (GetCursorPos(&screenPt)) {
+            HWND hwnd = WindowFromPoint(screenPt);
+            if (hwnd) {
+                PostMessage(hwnd, WM_APP + 42, 0, 0);
+            }
+        }
+        return;
+    }
     m_menuBar.OnMouseDown(pt);
 }
 
@@ -171,7 +209,25 @@ bool TitleBar::IsMenuBarHit(float x, float y) {
     return m_menuBar.HitTest(x, y) != nullptr;
 }
 
+Rect TitleBar::GetLowPerformanceToggleRect() const {
+    constexpr float buttonWidth = 46.0f;
+    constexpr float toggleWidth = 76.0f;
+    constexpr float toggleHeight = 24.0f;
+    constexpr float toggleGap = 10.0f;
+    float rightX = m_bounds.x + m_bounds.width - buttonWidth * 3.0f;
+    float x = rightX - toggleGap - toggleWidth;
+    float y = m_bounds.y + (m_bounds.height - toggleHeight) * 0.5f;
+    return Rect(x, y, toggleWidth, toggleHeight);
+}
+
+bool TitleBar::IsLowPerformanceToggleHit(float x, float y) const {
+    return GetLowPerformanceToggleRect().Contains(x, y);
+}
+
 UIElement* TitleBar::HitTest(float x, float y) {
+    if (IsLowPerformanceToggleHit(x, y)) {
+        return this;
+    }
     UIElement* mbHit = m_menuBar.HitTest(x, y);
     if (mbHit) return this;
     return Control::HitTest(x, y);

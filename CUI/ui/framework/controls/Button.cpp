@@ -69,6 +69,11 @@ Size Button::Measure(Size availableSize) {
 
 void Button::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_rippleActive = false;
+        m_rippleOpacity = 0.0f;
+        return;
+    }
     m_rippleCenter = pt;
     m_rippleRadius = 4.0f;
     m_rippleOpacity = 0.35f; // Soft translucent Telegram ripple
@@ -77,6 +82,11 @@ void Button::OnMouseDown(Point pt) {
 
 bool Button::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_rippleActive = false;
+        m_rippleOpacity = 0.0f;
+        return base;
+    }
     if (!m_rippleActive) {
         return base;
     }

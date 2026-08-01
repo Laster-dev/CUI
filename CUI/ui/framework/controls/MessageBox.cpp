@@ -107,6 +107,24 @@ bool ContentDialog::OnAnimationTick() {
     bool childAnim = UIElement::OnAnimationTick();
     if (!m_isOpen && m_animState == 0) return childAnim;
 
+    if (!UIElement::AreAnimationsEnabled()) {
+        if (m_animState == 1) {
+            m_animState = 2;
+            m_animProgress = 1.0f;
+            return childAnim;
+        }
+        if (m_animState == 3) {
+            m_animState = 0;
+            m_animProgress = 0.0f;
+            m_isOpen = false;
+            if (m_parent) {
+                m_parent->RemoveChildRaw(this);
+            }
+            return false;
+        }
+        return childAnim;
+    }
+
     auto now = std::chrono::steady_clock::now();
     float elapsed = std::chrono::duration<float>(now - m_animStartTime).count();
 
@@ -139,7 +157,7 @@ bool ContentDialog::OnAnimationTick() {
 }
 
 bool ContentDialog::HasSelfAnimation() const {
-    return m_animState == 1 || m_animState == 3;
+    return UIElement::AreAnimationsEnabled() && (m_animState == 1 || m_animState == 3);
 }
 
 void ContentDialog::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {

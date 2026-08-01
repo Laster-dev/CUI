@@ -347,6 +347,21 @@ void Toast::OnMouseUp(Point pt) {
 
 bool Toast::OnAnimationTick() {
     if (m_state == 3) return false;
+    if (!UIElement::AreAnimationsEnabled()) {
+        if (m_state == 1) {
+            m_state = 2;
+            m_stateTime = std::chrono::steady_clock::now();
+            m_currentOpacity = 1.0f;
+            m_currentSlideX = 0.0f;
+            m_currentSlideY = 0.0f;
+        } else if (m_state == 4) {
+            m_state = 3;
+            m_currentOpacity = 0.0f;
+            m_currentSlideX = 0.0f;
+            m_currentSlideY = 0.0f;
+        }
+        return false;
+    }
 
     auto now = std::chrono::steady_clock::now();
     float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_stateTime).count() / 1000.0f;
@@ -400,7 +415,7 @@ bool Toast::OnAnimationTick() {
 }
 
 bool Toast::HasSelfAnimation() const {
-    return m_state == 1 || m_state == 4;
+    return UIElement::AreAnimationsEnabled() && (m_state == 1 || m_state == 4);
 }
 
 std::shared_ptr<Toast> Toast::Show(UIElement* root,

@@ -41,6 +41,16 @@ Size ProgressBar::Measure(Size availableSize) {
 
 bool ProgressBar::OnAnimationTick() {
     bool baseAnim = Control::OnAnimationTick();
+    if (!UIElement::AreAnimationsEnabled()) {
+        if (IsIndeterminate()) {
+            m_animOffset = 0.0f;
+        } else {
+            m_displayValue = GetValue();
+        }
+        m_lastTickTime = std::chrono::steady_clock::time_point{};
+        return baseAnim;
+    }
+
     const auto now = std::chrono::steady_clock::now();
     float deltaSeconds = 1.0f / 60.0f;
     if (m_lastTickTime.time_since_epoch().count() != 0) {
@@ -72,8 +82,8 @@ bool ProgressBar::OnAnimationTick() {
 
 bool ProgressBar::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
-        || IsIndeterminate()
-        || std::abs(GetValue() - m_displayValue) > 0.01f;
+        || (UIElement::AreAnimationsEnabled() && IsIndeterminate())
+        || (UIElement::AreAnimationsEnabled() && std::abs(GetValue() - m_displayValue) > 0.01f);
 }
 
 void ProgressBar::OnRender(GraphicsContext& ctx) {

@@ -612,6 +612,17 @@ void ScrollViewer::OnMouseWheel(float delta) {
         return;
     }
 
+    if (!UIElement::AreAnimationsEnabled()) {
+        float previousOffset = m_offsetY;
+        m_offsetY = std::clamp(m_offsetY - delta * GetChromiumWheelStep(m_bounds.height), 0.0f, maxScroll);
+        m_scrollAnimator.JumpTo(m_offsetY);
+        PositionChildren();
+        if (std::abs(previousOffset - m_offsetY) > 0.01f) {
+            MarkScrollVisualDirty(previousOffset);
+        }
+        return;
+    }
+
     m_scrollAnimator.ScrollBy(-delta * GetChromiumWheelStep(m_bounds.height), 0.0f, maxScroll);
 
     if (m_lastAnimQpc == 0) {
@@ -646,12 +657,25 @@ bool ScrollViewer::AdvanceSmoothScroll() {
 
 bool ScrollViewer::OnAnimationTick() {
     bool childAnimating = UIElement::OnAnimationTick();
+    if (!UIElement::AreAnimationsEnabled()) {
+        if (m_scrollAnimator.IsActive()) {
+            float previousOffset = m_offsetY;
+            m_offsetY = m_scrollAnimator.Target();
+            ClampOffset();
+            PositionChildren();
+            m_scrollAnimator.JumpTo(m_offsetY);
+            if (std::abs(previousOffset - m_offsetY) > 0.01f) {
+                MarkScrollVisualDirty(previousOffset);
+            }
+        }
+        return childAnimating;
+    }
     bool selfAnimating = AdvanceSmoothScroll();
     return childAnimating || selfAnimating;
 }
 
 bool ScrollViewer::HasSelfAnimation() const {
-    return m_scrollAnimator.IsActive();
+    return UIElement::AreAnimationsEnabled() && m_scrollAnimator.IsActive();
 }
 
 } // namespace CUI

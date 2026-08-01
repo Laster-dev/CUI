@@ -25,6 +25,8 @@ public:
 
     MenuBar& GetMenuBar() { return m_menuBar; }
     bool IsMenuBarHit(float x, float y);
+    Rect GetLowPerformanceToggleRect() const;
+    bool IsLowPerformanceToggleHit(float x, float y) const;
 
 private:
     MenuBar m_menuBar;

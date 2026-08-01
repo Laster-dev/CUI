@@ -22,6 +22,8 @@
 namespace CUI {
 
 namespace {
+constexpr UINT WM_CUI_TOGGLE_LOW_PERF = WM_APP + 42;
+
 float GetWindowRefreshRateHz(HWND hwnd) {
     if (!hwnd) {
         return 60.0f;
@@ -270,6 +272,25 @@ void Window::Show() {
     }
 }
 
+void Window::SetLowPerformanceMode(bool enabled) {
+    if (m_lowPerformanceMode == enabled) {
+        return;
+    }
+
+    m_lowPerformanceMode = enabled;
+    UIElement::SetAnimationsEnabled(!enabled);
+
+    if (m_rootElement) {
+        UIElement::SetAnimationDeltaSeconds(1.0f / 60.0f);
+        m_rootElement->OnAnimationTick();
+        m_rootElement->SyncRenderState();
+    }
+
+    m_lastAnimationDirtyRect = Rect();
+    m_hasLastAnimationDirtyRect = false;
+    RequestFullRepaint();
+}
+
 void Window::RunMessageLoop() {
     MSG msg = {};
     using clock = std::chrono::steady_clock;
@@ -292,7 +313,7 @@ void Window::RunMessageLoop() {
         const float refreshHz = GetWindowRefreshRateHz(m_hwnd);
         const auto targetFrame = std::chrono::duration<double>(1.0 / (std::max)(30.0f, refreshHz));
         m_animationManager.SetTargetFrameSeconds(static_cast<float>(targetFrame.count()));
-        const bool shouldProbeAnimation = hadMessage || animationActive;
+        const bool shouldProbeAnimation = hadMessage || (!m_lowPerformanceMode && animationActive);
         const bool frameDue = !animationActive || (now - lastFrameTime) >= targetFrame;
         bool animating = animationActive;
         bool didAnimationTick = false;
@@ -470,6 +491,9 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (fx < winW - 135.0f && m_rootElement) {
                 UIElement* hit = m_rootElement->HitTest(fx, fy);
                 if (auto titleBar = dynamic_cast<TitleBar*>(hit)) {
+                    if (titleBar->IsLowPerformanceToggleHit(fx, fy)) {
+                        return HTCLIENT;
+                    }
                     if (titleBar->IsMenuBarHit(fx, fy)) {
                         return HTCLIENT;
                     }
@@ -505,6 +529,10 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_PAINT:
         OnPaint();
+        return 0;
+
+    case WM_CUI_TOGGLE_LOW_PERF:
+        SetLowPerformanceMode(!m_lowPerformanceMode);
         return 0;
 
     case WM_TIMER:
