@@ -2,6 +2,7 @@
 #include "UIElement.h"
 #include "Button.h"
 #include "Panel.h"
+#include "../animation/AnimationSystem.h"
 #include "../render/DirtyRegion.h"
 #include "../render/RenderLayer.h"
 #include <vector>
@@ -15,7 +16,7 @@ struct TabViewItem {
     std::string icon;
     std::shared_ptr<UIElement> content;
     bool isClosable = true;
-    float accentProgress = 0.0f;
+    AnimatedScalar accentAnim{};
 };
 
 class TabView : public UIElement {
@@ -66,7 +67,7 @@ private:
     std::vector<TabViewItem> m_tabs;
     int m_selectedIndex = 0;
     int m_hoveredCloseIndex = -1;
-    float m_scrollOffsetX = 0.0f;
+    AnimatedScalar m_scrollOffsetXAnim{};
     float m_scrollTargetX = 0.0f;
     RenderLayer m_headerLayer;
     RenderLayer m_contentLayer;

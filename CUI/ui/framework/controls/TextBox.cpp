@@ -119,7 +119,7 @@ Rect TextBox::GetTextRect() const {
     Thickness padding = hasFloatingLabel
         ? GetProperty("padding").AsThickness(Thickness(0, 18, 0, 8))
         : Thickness(0, 6, 0, 6);
-    float extraTop = hasFloatingLabel ? ((1.0f - m_labelProgress) * 8.0f) : 0.0f;
+    float extraTop = hasFloatingLabel ? ((1.0f - m_labelAnim.Current()) * 8.0f) : 0.0f;
     return Rect(
         m_bounds.x + padding.left,
         m_bounds.y + padding.top + extraTop,
@@ -356,33 +356,15 @@ Size TextBox::Measure(Size availableSize) {
 
 bool TextBox::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
-    auto frameBlend = [](float factorAt60Hz) {
-        factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
-        float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
-        return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
-    };
     bool hasFloatingLabel = !GetProperty("placeholder").AsString("").empty();
     bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetProperty("text").AsString("").empty() || !m_compString.empty());
     float target = shouldFloat ? 1.0f : 0.0f;
-    float delta = target - m_labelProgress;
-
-    bool animating = false;
-    if (std::abs(delta) > 0.01f) {
-        m_labelProgress += delta * frameBlend(0.22f);
-        animating = true;
-    } else {
-        m_labelProgress = target;
-    }
-
     float focusTarget = m_isFocused ? 1.0f : 0.0f;
-    float focusDelta = focusTarget - m_focusLineProgress;
-    if (std::abs(focusDelta) > 0.01f) {
-        m_focusLineProgress += focusDelta * frameBlend(0.18f);
-        animating = true;
-    } else {
-        m_focusLineProgress = focusTarget;
-    }
+    m_labelAnim.SetTarget(target);
+    m_focusLineAnim.SetTarget(focusTarget);
 
+    bool animating = m_labelAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.22f, 0.01f });
+    animating = m_focusLineAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.18f, 0.01f }) || animating;
     return base || animating;
 }
 
@@ -392,8 +374,8 @@ bool TextBox::HasSelfAnimation() const {
     float labelTarget = shouldFloat ? 1.0f : 0.0f;
     float focusTarget = m_isFocused ? 1.0f : 0.0f;
     return Control::HasSelfAnimation()
-        || std::abs(labelTarget - m_labelProgress) > 0.01f
-        || std::abs(focusTarget - m_focusLineProgress) > 0.01f;
+        || std::abs(labelTarget - m_labelAnim.Current()) > 0.01f
+        || std::abs(focusTarget - m_focusLineAnim.Current()) > 0.01f;
 }
 
 void TextBox::SelectAll() {
@@ -439,10 +421,12 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F phBase = GetProperty("placeholderColor").AsColor(D2D1::ColorF(0x8B / 255.0f, 0x9A / 255.0f, 0xA8 / 255.0f, 1.0f));
     D2D1_COLOR_F phActive = GetProperty("activeUnderlineColor").AsColor(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f));
     Rect textRect = GetTextRect();
-    float labelFontSize = fontSize + (11.0f - fontSize) * m_labelProgress;
-    float labelY = m_bounds.y + 16.0f + (4.0f - 16.0f) * m_labelProgress;
+    float labelProgress = m_labelAnim.Current();
+    float focusLineProgress = m_focusLineAnim.Current();
+    float labelFontSize = fontSize + (11.0f - fontSize) * labelProgress;
+    float labelY = m_bounds.y + 16.0f + (4.0f - 16.0f) * labelProgress;
     Rect labelRect(m_bounds.x, labelY, m_bounds.width, 16.0f);
-    D2D1_COLOR_F labelColor = BlendColor(phBase, phActive, m_isFocused ? m_labelProgress : m_labelProgress * 0.35f);
+    D2D1_COLOR_F labelColor = BlendColor(phBase, phActive, m_isFocused ? labelProgress : labelProgress * 0.35f);
 
     if (hasFloatingLabel) {
         ctx.DrawText(
@@ -453,12 +437,12 @@ void TextBox::OnRender(GraphicsContext& ctx) {
             labelFontSize,
             DWRITE_TEXT_ALIGNMENT_LEADING,
             DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-            m_labelProgress > 0.6f ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL
+            labelProgress > 0.6f ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL
         );
     }
 
-    if (hasFloatingLabel && text.empty() && m_compString.empty() && m_labelProgress < 0.98f) {
-        float alpha = 1.0f - m_labelProgress;
+    if (hasFloatingLabel && text.empty() && m_compString.empty() && labelProgress < 0.98f) {
+        float alpha = 1.0f - labelProgress;
         D2D1_COLOR_F phColor = D2D1::ColorF(phBase.r, phBase.g, phBase.b, phBase.a * alpha);
         Rect inlinePlaceholderRect(m_bounds.x, m_bounds.y + 15.0f, m_bounds.width, m_bounds.height - 18.0f);
         ctx.DrawText(placeholder, inlinePlaceholderRect, phColor, font, fontSize,
@@ -532,7 +516,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     float lineY = m_bounds.y + m_bounds.height - 2.0f;
     ctx.DrawLine(Point(m_bounds.x, lineY), Point(m_bounds.x + m_bounds.width, lineY), underlineColor, 1.0f);
 
-    float focusFactor = std::clamp(m_focusLineProgress, 0.0f, 1.0f);
+    float focusFactor = std::clamp(focusLineProgress, 0.0f, 1.0f);
     if (focusFactor > 0.01f) {
         float eased = 1.0f - std::pow(1.0f - focusFactor, 2.4f);
         float activeWidth = m_bounds.width * eased;

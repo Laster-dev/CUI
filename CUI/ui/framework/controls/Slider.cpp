@@ -6,13 +6,7 @@
 #include <cmath>
 
 namespace CUI {
-namespace {
-float FrameBlend(float factorAt60Hz) {
-    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
-    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
-    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
-}
-}
+namespace {}
 
 Slider::Slider() {
     SetProperty("minimum", Value(0.0f));
@@ -25,7 +19,7 @@ Slider::Slider() {
     SetProperty("thumbColor", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
     SetProperty("width", Value(200.0f));
     SetProperty("height", Value(24.0f));
-    m_displayValue = GetValue();
+    m_displayValueAnim.Reset(GetValue());
 }
 
 std::vector<PropertyMeta> Slider::GetPropertyMetas() const {
@@ -65,7 +59,7 @@ Rect Slider::GetThumbRect() const {
     Rect track = GetTrackRect();
     float minVal = GetMinimum();
     float maxVal = GetMaximum();
-    float val = std::clamp(m_displayValue, minVal, maxVal);
+    float val = std::clamp(m_displayValueAnim.Current(), minVal, maxVal);
     float ratio = (maxVal > minVal) ? (val - minVal) / (maxVal - minVal) : 0.0f;
 
     std::string orient = GetProperty("orientation").AsString("Horizontal");
@@ -105,7 +99,7 @@ void Slider::MarkSliderVisualDirty(const Rect& previousThumb, float previousDisp
         dirty = dirty.Union(track.Inflate(2.0f));
     }
 
-    if (std::abs(previousDisplayValue - m_displayValue) > 0.01f) {
+    if (std::abs(previousDisplayValue - m_displayValueAnim.Current()) > 0.01f) {
         dirty = dirty.Union(track.Inflate(2.0f));
     }
 
@@ -123,10 +117,10 @@ void Slider::SetValue(float val) {
 
     if (std::abs(GetValue() - val) > 0.0001f) {
         const Rect previousThumb = GetThumbRect();
-        const float previousDisplayValue = m_displayValue;
+        const float previousDisplayValue = m_displayValueAnim.Current();
         SetProperty("value", Value(val));
         if (m_isDragging) {
-            m_displayValue = val;
+            m_displayValueAnim.Reset(val);
         }
         MarkSliderVisualDirty(previousThumb, previousDisplayValue);
         m_onValueChangedEvent.Invoke(this, val);
@@ -174,19 +168,19 @@ void Slider::OnMouseUp(Point pt) {
 bool Slider::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
     if (m_isDragging) {
-        m_displayValue = GetValue();
+        m_displayValueAnim.Reset(GetValue());
         return base;
     }
 
     float target = GetValue();
-    float delta = target - m_displayValue;
-    if (std::abs(delta) <= 0.01f) {
-        m_displayValue = target;
+    m_displayValueAnim.SetTarget(target);
+    if (!m_displayValueAnim.IsAnimating(0.01f)) {
+        m_displayValueAnim.Reset(target);
         return base;
     }
     const Rect previousThumb = GetThumbRect();
-    const float previousDisplayValue = m_displayValue;
-    m_displayValue += delta * FrameBlend(0.25f);
+    const float previousDisplayValue = m_displayValueAnim.Current();
+    m_displayValueAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.25f, 0.01f });
     MarkSliderVisualDirty(previousThumb, previousDisplayValue);
     return true;
 }
@@ -195,7 +189,7 @@ bool Slider::HasSelfAnimation() const {
     if (m_isDragging) {
         return Control::HasSelfAnimation();
     }
-    return Control::HasSelfAnimation() || std::abs(GetValue() - m_displayValue) > 0.01f;
+    return Control::HasSelfAnimation() || std::abs(GetValue() - m_displayValueAnim.Current()) > 0.01f;
 }
 
 void Slider::OnKeyDown(int vkCode) {

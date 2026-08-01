@@ -34,9 +34,9 @@ public:
     Event<CheckBox*, CheckState>& OnCheckStateChanged() { return m_onCheckStateChangedEvent; }
 
 private:
-    float m_fillProgress = 0.0f;
-    float m_checkProgress = 0.0f;
-    float m_indeterminateProgress = 0.0f;
+    AnimatedScalar m_fillAnim{};
+    AnimatedScalar m_checkAnim{};
+    AnimatedScalar m_indeterminateAnim{};
 
     Event<CheckBox*, CheckState> m_onCheckStateChangedEvent;
 };

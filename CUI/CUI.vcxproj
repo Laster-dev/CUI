@@ -192,6 +192,7 @@
     <ClCompile Include="ui\framework\core\Object.cpp" />
     <ClCompile Include="ui\framework\core\Binding.cpp" />
     <ClCompile Include="ui\framework\animation\AnimationManager.cpp" />
+    <ClCompile Include="ui\framework\animation\AnimationSystem.cpp" />
     <ClCompile Include="ui\framework\render\RenderResources.cpp" />
     <ClCompile Include="ui\framework\render\DirtyRegion.cpp" />
     <ClCompile Include="ui\framework\render\GraphicsContext.cpp" />
@@ -250,6 +251,7 @@
     <ClInclude Include="ui\framework\core\Binding.h" />
     <ClInclude Include="ui\framework\core\CUIDsl.h" />
     <ClInclude Include="ui\framework\animation\AnimationManager.h" />
+    <ClInclude Include="ui\framework\animation\AnimationSystem.h" />
     <ClInclude Include="ui\framework\render\DirtyRegion.h" />
     <ClInclude Include="ui\framework\render\RenderResources.h" />
     <ClInclude Include="ui\framework\render\GraphicsContext.h" />

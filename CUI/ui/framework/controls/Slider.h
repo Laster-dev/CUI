@@ -42,7 +42,7 @@ private:
     void MarkSliderVisualDirty(const Rect& previousThumb, float previousDisplayValue);
 
     bool m_isDragging = false;
-    float m_displayValue = 0.0f;
+    AnimatedScalar m_displayValueAnim{};
     Event<Slider*, float> m_onValueChangedEvent;
 };
 

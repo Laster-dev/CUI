@@ -12,11 +12,6 @@ float EaseLine(float t) {
     return 1.0f - std::pow(1.0f - t, 2.4f);
 }
 
-float FrameBlend(float factorAt60Hz) {
-    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
-    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
-    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
-}
 }
 
 RadioButton::RadioButton() : CheckBox("RadioButton") {
@@ -83,14 +78,14 @@ void RadioButton::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F border = BlendColor(
         D2D1::ColorF(0x8E / 255.0f, 0x8E / 255.0f, 0x8E / 255.0f, 0.85f),
         accent,
-        (std::min)(1.0f, m_visualState / 0.55f)
+        (std::min)(1.0f, m_visualStateAnim.Current() / 0.55f)
     );
     D2D1_COLOR_F bg = GetAnimatedBackground(GetProperty("background").AsColor(D2D1::ColorF(0x20 / 255.0f, 0x20 / 255.0f, 0x20 / 255.0f, 1.0f)));
 
     ctx.FillRoundedRect(checkRect, size * 0.5f, bg);
     ctx.DrawRoundedRect(checkRect, size * 0.5f, border, 1.4f);
 
-    float dotFactor = std::clamp(m_selectionProgress, 0.0f, 1.0f);
+    float dotFactor = std::clamp(m_selectionAnim.Current(), 0.0f, 1.0f);
     if (dotFactor > 0.01f) {
         float eased = EaseLine(dotFactor);
         float maxDiameter = 8.0f;
@@ -117,20 +112,15 @@ bool RadioButton::OnAnimationTick() {
     bool animating = base;
 
     float target = GetState() == CheckState::Checked ? 1.0f : 0.0f;
-    float delta = target - m_selectionProgress;
-    if (std::abs(delta) > 0.01f) {
-        m_selectionProgress += delta * FrameBlend(0.18f);
-        animating = true;
-    } else {
-        m_selectionProgress = target;
-    }
+    m_selectionAnim.SetTarget(target);
+    animating = m_selectionAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.18f, 0.01f }) || animating;
 
     return animating;
 }
 
 bool RadioButton::HasSelfAnimation() const {
     float target = GetState() == CheckState::Checked ? 1.0f : 0.0f;
-    return CheckBox::HasSelfAnimation() || std::abs(target - m_selectionProgress) > 0.01f;
+    return CheckBox::HasSelfAnimation() || std::abs(target - m_selectionAnim.Current()) > 0.01f;
 }
 
 void RadioButton::SetChecked(bool checked) {

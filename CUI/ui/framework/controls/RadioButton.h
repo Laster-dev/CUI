@@ -24,7 +24,7 @@ public:
 private:
     void SetChecked(bool checked);
     void UncheckSiblingsInGroup();
-    float m_selectionProgress = 0.0f;
+    AnimatedScalar m_selectionAnim{};
 };
 
 } // namespace CUI

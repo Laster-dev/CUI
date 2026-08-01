@@ -18,11 +18,6 @@ Point LerpPoint(const Point& a, const Point& b, float t) {
     return Point(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
 }
 
-float FrameBlend(float factorAt60Hz) {
-    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
-    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
-    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
-}
 }
 
 CheckBox::CheckBox() {
@@ -109,20 +104,25 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     Rect boxRect(m_bounds.x + padding.left, boxY, boxSize, boxSize);
 
     D2D1_COLOR_F accentBase = D2D1::ColorF(0x4C / 255.0f, 0xC2 / 255.0f, 0xFF / 255.0f, 1.0f); // #4CC2FF WinUI Fluent Accent Blue
-    D2D1_COLOR_F accentBlue = BlendColor(accentBase, D2D1::ColorF(0x78 / 255.0f, 0xD7 / 255.0f, 0xFF / 255.0f, 1.0f), m_visualState);
+    float visualState = m_visualStateAnim.Current();
+    D2D1_COLOR_F accentBlue = BlendColor(accentBase, D2D1::ColorF(0x78 / 255.0f, 0xD7 / 255.0f, 0xFF / 255.0f, 1.0f), visualState);
     D2D1_COLOR_F checkedIconColor = D2D1::ColorF(0x00 / 255.0f, 0x00 / 255.0f, 0x00 / 255.0f, 1.0f); // Black check mark
     D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0x20 / 255.0f, 0x20 / 255.0f, 0x20 / 255.0f, 1.0f));
     D2D1_COLOR_F border = BlendColor(
         D2D1::ColorF(0x8E / 255.0f, 0x8E / 255.0f, 0x8E / 255.0f, 0.8f),
         D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.9f),
-        (std::min)(1.0f, m_visualState / 0.55f));
+        (std::min)(1.0f, visualState / 0.55f));
 
-    D2D1_COLOR_F fillColor = BlendColor(bg, accentBlue, m_fillProgress);
-    D2D1_COLOR_F borderColor = BlendColor(border, accentBlue, m_fillProgress * 0.9f);
+    float fillProgress = m_fillAnim.Current();
+    float checkProgress = m_checkAnim.Current();
+    float indeterminateProgress = m_indeterminateAnim.Current();
+
+    D2D1_COLOR_F fillColor = BlendColor(bg, accentBlue, fillProgress);
+    D2D1_COLOR_F borderColor = BlendColor(border, accentBlue, fillProgress * 0.9f);
     ctx.FillRoundedRect(boxRect, radius, fillColor);
     ctx.DrawRoundedRect(boxRect, radius, borderColor, 1.2f);
 
-    float checkFactor = EaseOutCubic(m_checkProgress);
+    float checkFactor = EaseOutCubic(checkProgress);
     if (checkFactor > 0.001f) {
         Point p1(boxRect.x + 4.6f, boxRect.y + 9.4f);
         Point p2(boxRect.x + 7.6f, boxRect.y + 12.3f);
@@ -143,7 +143,7 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    float indeterminateFactor = EaseOutQuad(m_indeterminateProgress);
+    float indeterminateFactor = EaseOutQuad(indeterminateProgress);
     if (indeterminateFactor > 0.001f) {
         float halfWidth = 4.5f * indeterminateFactor;
         float centerX = boxRect.x + boxRect.width * 0.5f;
@@ -193,29 +193,12 @@ bool CheckBox::OnAnimationTick() {
     float checkTarget = state == CheckState::Checked ? 1.0f : 0.0f;
     float indeterminateTarget = state == CheckState::Indeterminate ? 1.0f : 0.0f;
 
-    float fillDelta = fillTarget - m_fillProgress;
-    if (std::abs(fillDelta) > 0.01f) {
-        m_fillProgress += fillDelta * FrameBlend(0.24f);
-        animating = true;
-    } else {
-        m_fillProgress = fillTarget;
-    }
-
-    float checkDelta = checkTarget - m_checkProgress;
-    if (std::abs(checkDelta) > 0.01f) {
-        m_checkProgress += checkDelta * FrameBlend(0.20f);
-        animating = true;
-    } else {
-        m_checkProgress = checkTarget;
-    }
-
-    float indeterminateDelta = indeterminateTarget - m_indeterminateProgress;
-    if (std::abs(indeterminateDelta) > 0.01f) {
-        m_indeterminateProgress += indeterminateDelta * FrameBlend(0.20f);
-        animating = true;
-    } else {
-        m_indeterminateProgress = indeterminateTarget;
-    }
+    m_fillAnim.SetTarget(fillTarget);
+    m_checkAnim.SetTarget(checkTarget);
+    m_indeterminateAnim.SetTarget(indeterminateTarget);
+    animating = m_fillAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.24f, 0.01f }) || animating;
+    animating = m_checkAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.20f, 0.01f }) || animating;
+    animating = m_indeterminateAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.20f, 0.01f }) || animating;
 
     return animating;
 }
@@ -225,9 +208,9 @@ bool CheckBox::HasSelfAnimation() const {
     float checkTarget = GetState() == CheckState::Checked ? 1.0f : 0.0f;
     float indeterminateTarget = GetState() == CheckState::Indeterminate ? 1.0f : 0.0f;
     return Control::HasSelfAnimation()
-        || std::abs(fillTarget - m_fillProgress) > 0.01f
-        || std::abs(checkTarget - m_checkProgress) > 0.01f
-        || std::abs(indeterminateTarget - m_indeterminateProgress) > 0.01f;
+        || std::abs(fillTarget - m_fillAnim.Current()) > 0.01f
+        || std::abs(checkTarget - m_checkAnim.Current()) > 0.01f
+        || std::abs(indeterminateTarget - m_indeterminateAnim.Current()) > 0.01f;
 }
 
 } // namespace CUI

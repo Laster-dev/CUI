@@ -1,15 +1,7 @@
 #include "Control.h"
 #include <algorithm>
-#include <cmath>
 
 namespace CUI {
-namespace {
-float FrameBlend(float factorAt60Hz) {
-    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
-    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
-    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
-}
-}
 
 Control::Control() {
     SetProperty("hoverBackground", Value(D2D1::ColorF(0, 0, 0, 0)));
@@ -50,25 +42,22 @@ D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
     D2D1_COLOR_F disabledBg = GetProperty("disabledBackground").AsColor(D2D1::ColorF(0x28 / 255.0f, 0x28 / 255.0f, 0x28 / 255.0f, 0.6f));
 
     if (!IsEnabled()) return disabledBg;
-    if (m_visualState <= 0.0f) return bg;
-    if (m_visualState <= 0.55f) return BlendColor(bg, hoverBg, m_visualState / 0.55f);
-    return BlendColor(hoverBg, pressedBg, (m_visualState - 0.55f) / 0.45f);
+    float visualState = m_visualStateAnim.Current();
+    if (visualState <= 0.0f) return bg;
+    if (visualState <= 0.55f) return BlendColor(bg, hoverBg, visualState / 0.55f);
+    return BlendColor(hoverBg, pressedBg, (visualState - 0.55f) / 0.45f);
 }
 
 bool Control::OnAnimationTick() {
     bool childAnimating = UIElement::OnAnimationTick();
     UpdateVisualStateTarget();
-    float delta = m_visualStateTarget - m_visualState;
-    if (std::abs(delta) <= 0.01f) {
-        m_visualState = m_visualStateTarget;
-        return childAnimating;
-    }
-    m_visualState += delta * FrameBlend(0.28f);
-    return true;
+    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    const bool selfAnimating = m_visualStateAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.28f, 0.01f });
+    return childAnimating || selfAnimating;
 }
 
 bool Control::HasSelfAnimation() const {
-    return std::abs(GetVisualStateTarget() - m_visualState) > 0.01f;
+    return m_visualStateAnim.IsAnimating(0.01f);
 }
 
 void Control::OnRender(GraphicsContext& ctx) {

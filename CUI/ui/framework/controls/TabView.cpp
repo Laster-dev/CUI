@@ -5,13 +5,7 @@
 #include <windows.h>
 
 namespace CUI {
-namespace {
-float FrameBlend(float factorAt60Hz) {
-    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
-    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
-    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
-}
-}
+namespace {}
 
 TabView::TabView() {
     SetProperty("background", Value("#1E1E1E"));
@@ -138,7 +132,7 @@ void TabView::Arrange(Rect finalRect) {
     GraphicsContext ctx;
     float maxScroll = (std::max)(0.0f, GetTotalTabsWidth(ctx) - (std::max)(0.0f, m_bounds.width - 8.0f));
     m_scrollTargetX = std::clamp(m_scrollTargetX, 0.0f, maxScroll);
-    m_scrollOffsetX = std::clamp(m_scrollOffsetX, 0.0f, maxScroll);
+    m_scrollOffsetXAnim.Reset(std::clamp(m_scrollOffsetXAnim.Current(), 0.0f, maxScroll));
     m_headerLayer.SetBounds(GetHeaderRect());
     m_contentLayer.SetBounds(GetContentRect());
     MarkContentDirty();
@@ -340,7 +334,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
     // Clip tab buttons within header bounds
     ctx.PushClip(headerBarRect);
 
-    float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
+    float tabX = m_bounds.x + 4.0f - m_scrollOffsetXAnim.Current();
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         const auto& tab = m_tabs[i];
@@ -362,7 +356,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         D2D1_COLOR_F underlineColor = GetProperty("underlineColor").AsColor(D2D1::ColorF(0x3B / 255.0f, 0x4A / 255.0f, 0x57 / 255.0f, 1.0f));
         D2D1_COLOR_F activeUnderlineColor = GetProperty("activeUnderlineColor").AsColor(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f));
 
-        if (isActive || tab.accentProgress > 0.01f) {
+        if (isActive || tab.accentAnim.Current() > 0.01f) {
             ctx.DrawLine(
                 Point(tabX + indicatorInset, indicatorY),
                 Point(tabX + indicatorInset + indicatorWidth, indicatorY),
@@ -371,7 +365,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
             );
         }
 
-        float focusFactor = std::clamp(tab.accentProgress, 0.0f, 1.0f);
+        float focusFactor = std::clamp(tab.accentAnim.Current(), 0.0f, 1.0f);
         if (focusFactor > 0.01f && indicatorWidth > 0.0f) {
             float eased = 1.0f - std::pow(1.0f - focusFactor, 2.4f);
             float activeWidth = indicatorWidth * eased;
@@ -476,7 +470,7 @@ void TabView::OnMouseMove(Point pt) {
 
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + headerH) {
         GraphicsContext ctx;
-        float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
+        float tabX = m_bounds.x + 4.0f - m_scrollOffsetXAnim.Current();
 
         for (size_t i = 0; i < m_tabs.size(); ++i) {
             float tabW = MeasureTabWidth(ctx, m_tabs[i]);
@@ -506,7 +500,7 @@ void TabView::OnMouseDown(Point pt) {
     float headerH = GetHeaderHeight();
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + headerH) {
         GraphicsContext ctx;
-        float tabX = m_bounds.x + 4.0f - m_scrollOffsetX;
+        float tabX = m_bounds.x + 4.0f - m_scrollOffsetXAnim.Current();
 
         for (size_t i = 0; i < m_tabs.size(); ++i) {
             float tabW = MeasureTabWidth(ctx, m_tabs[i]);
@@ -545,24 +539,18 @@ bool TabView::OnAnimationTick() {
         }
     }
 
-    float delta = m_scrollTargetX - m_scrollOffsetX;
-    if (std::abs(delta) > 0.1f) {
-        m_scrollOffsetX += delta * FrameBlend(0.22f);
+    m_scrollOffsetXAnim.SetTarget(m_scrollTargetX);
+    if (m_scrollOffsetXAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.22f, 0.10f })) {
         MarkHeaderDirty();
         animating = true;
-    } else {
-        m_scrollOffsetX = m_scrollTargetX;
     }
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         float target = (static_cast<int>(i) == m_selectedIndex) ? 1.0f : 0.0f;
-        float accentDelta = target - m_tabs[i].accentProgress;
-        if (std::abs(accentDelta) > 0.01f) {
-            m_tabs[i].accentProgress += accentDelta * FrameBlend(0.18f);
+        m_tabs[i].accentAnim.SetTarget(target);
+        if (m_tabs[i].accentAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.18f, 0.01f })) {
             MarkHeaderDirty();
             animating = true;
-        } else {
-            m_tabs[i].accentProgress = target;
         }
     }
 
@@ -570,13 +558,13 @@ bool TabView::OnAnimationTick() {
 }
 
 bool TabView::HasSelfAnimation() const {
-    if (std::abs(m_scrollTargetX - m_scrollOffsetX) > 0.1f) {
+    if (std::abs(m_scrollTargetX - m_scrollOffsetXAnim.Current()) > 0.1f) {
         return true;
     }
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         float target = (static_cast<int>(i) == m_selectedIndex) ? 1.0f : 0.0f;
-        if (std::abs(target - m_tabs[i].accentProgress) > 0.01f) {
+        if (std::abs(target - m_tabs[i].accentAnim.Current()) > 0.01f) {
             return true;
         }
     }

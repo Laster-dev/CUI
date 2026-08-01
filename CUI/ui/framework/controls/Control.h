@@ -1,5 +1,6 @@
 #pragma once
 #include "UIElement.h"
+#include "../animation/AnimationSystem.h"
 
 namespace CUI {
 
@@ -26,7 +27,7 @@ protected:
     void UpdateVisualStateTarget();
     float GetVisualStateTarget() const;
 
-    float m_visualState = 0.0f;
+    AnimatedScalar m_visualStateAnim{};
     float m_visualStateTarget = 0.0f;
 };
 

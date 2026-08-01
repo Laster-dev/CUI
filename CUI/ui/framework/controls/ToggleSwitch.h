@@ -27,7 +27,7 @@ public:
     Event<ToggleSwitch*, bool>& OnToggled() { return m_onToggledEvent; }
 
 private:
-    float m_knobPosRatio = 0.0f; // 0.0 for Off, 1.0 for On
+    AnimatedScalar m_knobPosAnim{}; // 0.0 for Off, 1.0 for On
     Event<ToggleSwitch*, bool> m_onToggledEvent;
 };
 

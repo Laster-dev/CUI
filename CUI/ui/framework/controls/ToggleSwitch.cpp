@@ -11,12 +11,6 @@ float EaseTrack(float t) {
     t = std::clamp(t, 0.0f, 1.0f);
     return 1.0f - std::pow(1.0f - t, 2.4f);
 }
-
-float FrameBlend(float factorAt60Hz) {
-    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
-    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
-    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
-}
 }
 
 ToggleSwitch::ToggleSwitch() {
@@ -59,18 +53,13 @@ void ToggleSwitch::SetIsOn(bool on) {
 bool ToggleSwitch::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
     float targetRatio = IsOn() ? 1.0f : 0.0f;
-    if (std::abs(m_knobPosRatio - targetRatio) > 0.01f) {
-        m_knobPosRatio += (targetRatio - m_knobPosRatio) * FrameBlend(0.18f);
-        return true;
-    } else {
-        m_knobPosRatio = targetRatio;
-    }
-    return base;
+    m_knobPosAnim.SetTarget(targetRatio);
+    return m_knobPosAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.18f, 0.01f }) || base;
 }
 
 bool ToggleSwitch::HasSelfAnimation() const {
     float targetRatio = IsOn() ? 1.0f : 0.0f;
-    return Control::HasSelfAnimation() || std::abs(m_knobPosRatio - targetRatio) > 0.01f;
+    return Control::HasSelfAnimation() || std::abs(m_knobPosAnim.Current() - targetRatio) > 0.01f;
 }
 
 void ToggleSwitch::OnMouseUp(Point pt) {
@@ -92,7 +81,7 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F knobColor = GetProperty("knobColor").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
     D2D1_COLOR_F borderBrush = GetProperty("borderBrush").AsColor(D2D1::ColorF(0x63 / 255.0f, 0x70 / 255.0f, 0x7C / 255.0f, 0.75f));
 
-    float eased = EaseTrack(m_knobPosRatio);
+    float eased = EaseTrack(m_knobPosAnim.Current());
     D2D1_COLOR_F trackBg = BlendColor(offColor, onColor, eased);
     D2D1_COLOR_F trackBorder = BlendColor(borderBrush, onColor, eased * 0.85f);
 
@@ -107,7 +96,7 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
         ctx.FillRoundedRect(Rect(activeX, pillRect.y + inset, activeWidth, pillRect.height - inset * 2.0f), (pillRect.height - inset * 2.0f) * 0.5f, activeGlow);
     }
 
-    float knobRadius = 6.5f + 0.25f * m_visualState;
+    float knobRadius = 6.5f + 0.25f * m_visualStateAnim.Current();
     float minX = pillRect.x + 3.0f + knobRadius;
     float maxX = pillRect.x + pillW - 3.0f - knobRadius;
     float knobCX = minX + (maxX - minX) * eased;

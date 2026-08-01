@@ -85,8 +85,8 @@ private:
     float m_scrollOffsetY = 0.0f;
     std::wstring m_compString;
     int m_suppressCharCount = 0;
-    float m_labelProgress = 0.0f;
-    float m_focusLineProgress = 0.0f;
+    AnimatedScalar m_labelAnim{};
+    AnimatedScalar m_focusLineAnim{};
 
     std::vector<TextBoxUndoState> m_undoStack;
     std::vector<TextBoxUndoState> m_redoStack;
