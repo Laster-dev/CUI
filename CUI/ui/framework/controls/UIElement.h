@@ -47,6 +47,7 @@ public:
     const std::vector<std::shared_ptr<UIElement>>& GetChildren() const { return m_children; }
     void AddChild(std::shared_ptr<UIElement> child);
     void RemoveChild(std::shared_ptr<UIElement> child);
+    void RemoveChildRaw(UIElement* child);
     void ClearChildren();
 
     std::shared_ptr<UIElement> FindElementById(const std::string& id);

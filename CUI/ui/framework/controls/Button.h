@@ -19,6 +19,9 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
+    void SetText(const std::string& text) { SetProperty("text", Value(text)); }
+    std::string GetText() const { return GetProperty("text").AsString(); }
+
 private:
     Point m_rippleCenter{};
     float m_rippleRadius = 0.0f;

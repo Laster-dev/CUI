@@ -734,6 +734,8 @@ bool Window::OnLButtonDown(int x, int y) {
     if (m_rootElement) {
         UIElement* overlayHit = m_rootElement->HitTestOverlay(fx, fy);
         if (overlayHit) {
+            SetPressedElement(overlayHit);
+            SetCapture(m_hwnd);
             overlayHit->OnMouseDown(Point(fx, fy));
             return true;
         } else {

@@ -30,6 +30,7 @@ public:
 
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseDblClick(Point pt) override;
+    virtual void OnMouseRightClick(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnKeyDown(int vkCode) override;

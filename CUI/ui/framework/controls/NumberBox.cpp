@@ -94,6 +94,10 @@ void NumberBox::SetValue(float val) {
     float maxVal = GetMaximum();
     val = std::clamp(val, minVal, maxVal);
 
+    // Round value to 4 decimal places to prevent floating point precision artifacts (e.g., -0.00000001, 0.0999999)
+    val = std::round(val * 10000.0f) / 10000.0f;
+    if (val == -0.0f) val = 0.0f;
+
     if (std::abs(GetValue() - val) > 0.0001f) {
         SetProperty("value", Value(val));
 

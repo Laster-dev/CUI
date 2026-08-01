@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "TextBox.h"
+#include "ContextMenu.h"
 #include <algorithm>
 #include <cmath>
 #include <cwctype>
@@ -572,6 +573,82 @@ void TextBox::OnMouseDown(Point pt) {
     EnsureCaretVisible(ctx);
 }
 
+void TextBox::OnMouseRightClick(Point pt) {
+    Control::OnMouseRightClick(pt);
+    OnFocus();
+
+    if (!m_contextMenu) {
+        auto menu = std::make_shared<ContextMenu>();
+        menu->AddItem("撤销 (Undo)", "Ctrl+Z", [this]() { Undo(); });
+        menu->AddItem("重做 (Redo)", "Ctrl+Y", [this]() { Redo(); });
+        menu->AddSeparator();
+        menu->AddItem("剪切 (Cut)", "Ctrl+X", [this]() {
+            if (HasSelection()) {
+                std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+                int selMin = (std::min)(m_selectionStart, m_selectionEnd);
+                int selMax = (std::max)(m_selectionStart, m_selectionEnd);
+                std::wstring selected = wtext.substr(selMin, selMax - selMin);
+                if (OpenClipboard(nullptr)) {
+                    EmptyClipboard();
+                    size_t bytes = (selected.size() + 1) * sizeof(wchar_t);
+                    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+                    if (hMem) {
+                        wchar_t* pMem = static_cast<wchar_t*>(GlobalLock(hMem));
+                        memcpy(pMem, selected.c_str(), bytes);
+                        GlobalUnlock(hMem);
+                        SetClipboardData(CF_UNICODETEXT, hMem);
+                    }
+                    CloseClipboard();
+                }
+                DeleteSelection();
+            }
+        });
+        menu->AddItem("复制 (Copy)", "Ctrl+C", [this]() {
+            if (HasSelection()) {
+                std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+                int selMin = (std::min)(m_selectionStart, m_selectionEnd);
+                int selMax = (std::max)(m_selectionStart, m_selectionEnd);
+                std::wstring selected = wtext.substr(selMin, selMax - selMin);
+                if (OpenClipboard(nullptr)) {
+                    EmptyClipboard();
+                    size_t bytes = (selected.size() + 1) * sizeof(wchar_t);
+                    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+                    if (hMem) {
+                        wchar_t* pMem = static_cast<wchar_t*>(GlobalLock(hMem));
+                        memcpy(pMem, selected.c_str(), bytes);
+                        GlobalUnlock(hMem);
+                        SetClipboardData(CF_UNICODETEXT, hMem);
+                    }
+                    CloseClipboard();
+                }
+            }
+        });
+        menu->AddItem("粘贴 (Paste)", "Ctrl+V", [this]() {
+            if (IsClipboardFormatAvailable(CF_UNICODETEXT) && OpenClipboard(nullptr)) {
+                HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+                if (hData) {
+                    const wchar_t* pText = static_cast<const wchar_t*>(GlobalLock(hData));
+                    if (pText) {
+                        std::wstring clipText(pText);
+                        GlobalUnlock(hData);
+                        if (!GetAcceptsReturn()) {
+                            for (wchar_t& ch : clipText) {
+                                if (ch == L'\r' || ch == L'\n') ch = L' ';
+                            }
+                        }
+                        InsertText(clipText);
+                    }
+                }
+                CloseClipboard();
+            }
+        });
+        menu->AddItem("删除 (Delete)", "", [this]() { DeleteSelection(); });
+        menu->AddSeparator();
+        menu->AddItem("全选 (Select All)", "Ctrl+A", [this]() { SelectAll(); });
+        SetContextMenu(menu);
+    }
+}
+
 void TextBox::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
     if (m_isDraggingSelection && m_isPressed) {
@@ -703,6 +780,7 @@ void TextBox::OnKeyDown(int vkCode) {
                     }
 
                     InsertText(clipText);
+                    m_suppressCharCount = 1;
                 }
             }
             CloseClipboard();

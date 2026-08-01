@@ -58,6 +58,16 @@ void UIElement::RemoveChild(std::shared_ptr<UIElement> child) {
     }
 }
 
+void UIElement::RemoveChildRaw(UIElement* child) {
+    auto it = std::find_if(m_children.begin(), m_children.end(), [child](const std::shared_ptr<UIElement>& ptr) {
+        return ptr.get() == child;
+    });
+    if (it != m_children.end()) {
+        (*it)->SetParent(nullptr);
+        m_children.erase(it);
+    }
+}
+
 void UIElement::ClearChildren() {
     for (auto& child : m_children) {
         child->SetParent(nullptr);

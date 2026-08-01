@@ -43,10 +43,31 @@ std::string DatePicker::GetFormattedDate() const {
     return ss.str();
 }
 
+static bool IsLeapYear(int year) {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+static int GetDaysInMonth(int year, int month) {
+    static const int days[] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    if (month == 2 && IsLeapYear(year)) return 29;
+    if (month >= 1 && month <= 12) return days[month];
+    return 31;
+}
+
+static int GetFirstDayOfWeek(int year, int month) {
+    tm time_in = {};
+    time_in.tm_year = year - 1900;
+    time_in.tm_mon = month - 1;
+    time_in.tm_mday = 1;
+    mktime(&time_in);
+    return time_in.tm_wday; // 0 = Sunday, 1 = Monday, ...
+}
+
 void DatePicker::SetDate(int y, int m, int d) {
     m_year = y;
     m_month = std::clamp(m, 1, 12);
-    m_day = std::clamp(d, 1, 31);
+    int daysInMonth = GetDaysInMonth(m_year, m_month);
+    m_day = std::clamp(d, 1, daysInMonth);
     SetProperty("dateStr", Value(GetFormattedDate()));
     m_onDateChangedEvent.Invoke(this, m_year, m_month, m_day);
 }
@@ -128,8 +149,11 @@ void DatePicker::OnMouseDown(Point pt) {
                 if (pt.y >= gridY) {
                     int col = static_cast<int>((pt.x - popRect.x) / cellW);
                     int row = static_cast<int>((pt.y - gridY) / cellH);
-                    int clickedDay = row * 7 + col + 1;
-                    if (clickedDay >= 1 && clickedDay <= 31) {
+                    int firstWday = GetFirstDayOfWeek(m_year, m_month);
+                    int clickedIdx = row * 7 + col;
+                    int clickedDay = clickedIdx - firstWday + 1;
+                    int maxDays = GetDaysInMonth(m_year, m_month);
+                    if (clickedDay >= 1 && clickedDay <= maxDays) {
                         SetDate(m_year, m_month, clickedDay);
                         m_isPopupOpen = false;
                         return;
@@ -234,8 +258,11 @@ void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
         // Days Grid
         float gridY = bodyY + 20.0f;
         float cellH = 26.0f;
-        for (int d = 1; d <= 31; ++d) {
-            int idx = d - 1;
+        int firstWday = GetFirstDayOfWeek(m_year, m_month);
+        int daysInMonth = GetDaysInMonth(m_year, m_month);
+
+        for (int d = 1; d <= daysInMonth; ++d) {
+            int idx = firstWday + (d - 1);
             int row = idx / 7;
             int col = idx % 7;
             Rect cellRect(popRect.x + col * cellW + 2.0f, gridY + row * cellH, cellW - 4.0f, cellH - 2.0f);

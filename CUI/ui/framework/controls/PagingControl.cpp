@@ -57,9 +57,62 @@ PagingControl::PagingControl() {
         SetCurrentPage(GetCurrentPage() + 1);
     });
 
-    m_btnPage1->OnClick().Connect([this](UIElement*) { SetCurrentPage(1); });
-    m_btnPage2->OnClick().Connect([this](UIElement*) { SetCurrentPage(2); });
-    m_btnPage3->OnClick().Connect([this](UIElement*) { SetCurrentPage(3); });
+    m_btnPage1->OnClick().Connect([this](UIElement*) { SetCurrentPage(m_page1Val); });
+    m_btnPage2->OnClick().Connect([this](UIElement*) { SetCurrentPage(m_page2Val); });
+    m_btnPage3->OnClick().Connect([this](UIElement*) { SetCurrentPage(m_page3Val); });
+
+    UpdatePageButtons();
+}
+
+void PagingControl::UpdatePageButtons() {
+    int current = GetCurrentPage();
+    int total = GetTotalPages();
+
+    if (total <= 3) {
+        m_page1Val = 1;
+        m_page2Val = 2;
+        m_page3Val = 3;
+    } else {
+        if (current <= 2) {
+            m_page1Val = 1;
+            m_page2Val = 2;
+            m_page3Val = 3;
+        } else if (current >= total - 1) {
+            m_page1Val = total - 2;
+            m_page2Val = total - 1;
+            m_page3Val = total;
+        } else {
+            m_page1Val = current - 1;
+            m_page2Val = current;
+            m_page3Val = current + 1;
+        }
+    }
+
+    auto updateBtn = [current, total](std::shared_ptr<Button> btn, int val) {
+        if (!btn) return;
+        if (val > total) {
+            btn->SetProperty("visibility", Value("Collapsed"));
+            return;
+        }
+        btn->SetProperty("visibility", Value("Visible"));
+        btn->SetText(std::to_string(val));
+        bool active = (current == val);
+        if (active) {
+            btn->SetProperty("background", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+            btn->SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
+            btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+            btn->SetProperty("borderThickness", Value(1.0f));
+        } else {
+            btn->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
+            btn->SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
+            btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+            btn->SetProperty("borderThickness", Value(1.0f));
+        }
+    };
+
+    updateBtn(m_btnPage1, m_page1Val);
+    updateBtn(m_btnPage2, m_page2Val);
+    updateBtn(m_btnPage3, m_page3Val);
 }
 
 std::vector<PropertyMeta> PagingControl::GetPropertyMetas() const {
@@ -107,33 +160,19 @@ void PagingControl::SetCurrentPage(int page) {
     page = std::clamp(page, 1, total);
     if (GetCurrentPage() != page) {
         SetProperty("currentPage", Value(page));
-
-        auto updateStyle = [page](std::shared_ptr<Button> btn, int targetP) {
-            if (!btn) return;
-            bool active = (page == targetP);
-            if (active) {
-                btn->SetProperty("background", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-                btn->SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
-                btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-                btn->SetProperty("borderThickness", Value(1.0f));
-            } else {
-                btn->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
-                btn->SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
-                btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
-                btn->SetProperty("borderThickness", Value(1.0f));
-            }
-        };
-
-        updateStyle(m_btnPage1, 1);
-        updateStyle(m_btnPage2, 2);
-        updateStyle(m_btnPage3, 3);
-
+        UpdatePageButtons();
         m_onPageChangedEvent.Invoke(this, page);
     }
 }
 
 void PagingControl::SetTotalPages(int total) {
-    SetProperty("totalPages", Value((std::max)(1, total)));
+    int validTotal = (std::max)(1, total);
+    SetProperty("totalPages", Value(validTotal));
+    if (GetCurrentPage() > validTotal) {
+        SetCurrentPage(validTotal);
+    } else {
+        UpdatePageButtons();
+    }
 }
 
 } // namespace CUI

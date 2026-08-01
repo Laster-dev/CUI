@@ -5,6 +5,7 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include <chrono>
 
 namespace CUI {
 
@@ -39,6 +40,10 @@ public:
     virtual UIElement* HitTestOverlay(float x, float y) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
 
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
+    virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
+
     static void ShowMessageBox(UIElement* root, const std::string& title, const std::string& message, std::function<void(DialogResult)> callback = nullptr);
 
 private:
@@ -58,6 +63,11 @@ private:
     std::shared_ptr<Button> m_btnClose;
 
     Rect m_dialogBounds;
+
+    // Animation state
+    int m_animState = 0; // 0=Closed, 1=Opening, 2=Opened, 3=Closing
+    std::chrono::steady_clock::time_point m_animStartTime;
+    float m_animProgress = 0.0f; // 0.0f -> 1.0f
 };
 
 } // namespace CUI

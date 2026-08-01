@@ -266,13 +266,16 @@ void ListBox::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    // 3. Render Direct2D Vector ScrollBar on Right Edge
+    ctx.PopClip();
+
+    // 3. Render Direct2D Vector ScrollBar on Right Edge (outside item content clip)
     if (m_maxScrollY > 0.0f) {
         float trackX = m_bounds.x + m_bounds.width - 8.0f;
         float trackY = m_bounds.y + 2.0f;
         float trackH = m_bounds.height - 4.0f;
 
-        float contentH = itemH * m_itemDatas.size();
+        size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+        float contentH = itemH * count;
         float thumbH = std::max(20.0f, trackH * (trackH / contentH));
         float thumbY = trackY + (m_scrollY / m_maxScrollY) * (trackH - thumbH);
 
@@ -283,8 +286,6 @@ void ListBox::OnRender(GraphicsContext& ctx) {
 
         ctx.FillRoundedRect(thumbRect, 3.0f, thumbBg);
     }
-
-    ctx.PopClip();
 }
 
 void ListBox::OnMouseDown(Point pt) {
@@ -323,7 +324,8 @@ void ListBox::OnMouseMove(Point pt) {
         float deltaY = pt.y - m_dragStartY;
         float trackH = m_bounds.height - 4.0f;
         float itemH = GetItemHeight();
-        float contentH = itemH * m_itemDatas.size();
+        size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+        float contentH = itemH * count;
         float thumbH = std::max(20.0f, trackH * (trackH / contentH));
         float scrollableTrackH = trackH - thumbH;
 

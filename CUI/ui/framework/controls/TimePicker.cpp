@@ -186,6 +186,12 @@ void TimePicker::OnMouseDown(Point pt) {
         return;
     }
 
+    Rect doneRect(popup.x + 12.0f, popup.y + popup.height - 36.0f, popup.width - 24.0f, 30.0f);
+    if (doneRect.Contains(pt.x, pt.y)) {
+        m_isPopupOpen = false;
+        return;
+    }
+
     int column = HitTestColumn(pt.x, pt.y);
     if (column >= 0) {
         Rect wheel = GetWheelRect(column);
@@ -195,11 +201,6 @@ void TimePicker::OnMouseDown(Point pt) {
             NudgeColumn(column, step);
         }
         return;
-    }
-
-    Rect doneRect(popup.x + 12.0f, popup.y + popup.height - 34.0f, popup.width - 24.0f, 22.0f);
-    if (doneRect.Contains(pt.x, pt.y)) {
-        m_isPopupOpen = false;
     }
 }
 
