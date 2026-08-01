@@ -10,6 +10,7 @@
 #include <imm.h>
 #include <algorithm>
 #include <chrono>
+#include <sstream>
 
 #pragma comment(lib, "imm32.lib")
 #pragma comment(lib, "dwmapi.lib")
@@ -19,6 +20,47 @@
 #endif
 
 namespace CUI {
+
+namespace {
+float GetWindowRefreshRateHz(HWND hwnd) {
+    if (!hwnd) {
+        return 60.0f;
+    }
+
+    HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFOEX monitorInfo = {};
+    monitorInfo.cbSize = sizeof(monitorInfo);
+    if (!GetMonitorInfo(monitor, &monitorInfo)) {
+        return 60.0f;
+    }
+
+    DEVMODE devMode = {};
+    devMode.dmSize = sizeof(devMode);
+    if (!EnumDisplaySettings(monitorInfo.szDevice, ENUM_CURRENT_SETTINGS, &devMode)) {
+        return 60.0f;
+    }
+
+    const DWORD hz = devMode.dmDisplayFrequency;
+    if (hz == 0 || hz == 1) {
+        return 60.0f;
+    }
+    return static_cast<float>(hz);
+}
+
+bool CoversRect(const Rect& outer, const Rect& inner, float epsilon = 1.0f) {
+    if (inner.IsEmpty()) {
+        return true;
+    }
+    if (outer.IsEmpty()) {
+        return false;
+    }
+
+    return outer.x <= inner.x + epsilon
+        && outer.y <= inner.y + epsilon
+        && outer.x + outer.width >= inner.x + inner.width - epsilon
+        && outer.y + outer.height >= inner.y + inner.height - epsilon;
+}
+}
 
 Window::Window() {}
 
@@ -216,8 +258,6 @@ void Window::RunMessageLoop() {
     MSG msg = {};
     using clock = std::chrono::steady_clock;
     auto lastFrameTime = clock::now();
-    constexpr auto targetFrame = std::chrono::milliseconds(16);
-    m_animationManager.SetTargetFrameSeconds(1.0f / 60.0f);
     bool animationActive = false;
 
     for (;;) {
@@ -233,6 +273,9 @@ void Window::RunMessageLoop() {
 
         const bool wasAnimationActive = animationActive;
         const auto now = clock::now();
+        const float refreshHz = GetWindowRefreshRateHz(m_hwnd);
+        const auto targetFrame = std::chrono::duration<double>(1.0 / (std::max)(30.0f, refreshHz));
+        m_animationManager.SetTargetFrameSeconds(static_cast<float>(targetFrame.count()));
         const bool shouldProbeAnimation = hadMessage || animationActive;
         const bool frameDue = !animationActive || (now - lastFrameTime) >= targetFrame;
         bool animating = animationActive;
@@ -261,10 +304,10 @@ void Window::RunMessageLoop() {
                 continue;
             }
             if (animationActive) {
-                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - lastFrameTime);
+                auto elapsed = std::chrono::duration<double>(clock::now() - lastFrameTime);
                 DWORD waitMs = elapsed >= targetFrame
                     ? 0
-                    : static_cast<DWORD>((targetFrame - elapsed).count());
+                    : static_cast<DWORD>(std::ceil(std::chrono::duration<double, std::milli>(targetFrame - elapsed).count()));
                 MsgWaitForMultipleObjectsEx(0, nullptr, waitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
             } else {
                 WaitMessage();
@@ -556,6 +599,11 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_KEYDOWN:
+        if (wParam == VK_F8) {
+            m_showRenderStatsOverlay = !m_showRenderStatsOverlay;
+            RequestFullRepaint();
+            return 0;
+        }
         if (auto focused = LockElement(m_focusedElement)) {
             focused->OnKeyDown(static_cast<int>(wParam));
             InvalidatePendingRenderRegions(true);
@@ -642,10 +690,20 @@ void Window::OnPaint() {
         static_cast<float>(ps.rcPaint.bottom - ps.rcPaint.top)
     );
     m_gfxContext.SetPaintBounds(paintBounds);
-    if (m_pendingDirtyRegion.IsEmpty()) {
-        m_pendingDirtyRegion.AddRect(paintBounds);
+    DirtyRegion frameDirtyRegion = m_pendingDirtyRegion;
+    if (frameDirtyRegion.IsEmpty()) {
+        frameDirtyRegion.AddRect(paintBounds);
     }
-    m_compositionContext.BeginFrame(m_rootElement ? m_rootElement->GetBounds() : paintBounds, m_pendingDirtyRegion, true);
+
+    Rect viewportBounds = m_rootElement ? m_rootElement->GetBounds() : paintBounds;
+    Rect dirtyBounds = frameDirtyRegion.GetBounds();
+    bool fullRepaint = frameDirtyRegion.GetRectCount() == 0
+        || viewportBounds.IsEmpty()
+        || CoversRect(paintBounds, viewportBounds)
+        || CoversRect(dirtyBounds, viewportBounds);
+
+    m_compositionContext.BeginFrame(viewportBounds, frameDirtyRegion, fullRepaint);
+    m_gfxContext.SetCompositionContext(&m_compositionContext);
 
     m_gfxContext.BeginDraw();
 
@@ -665,11 +723,60 @@ void Window::OnPaint() {
         m_activeContextMenu->OnRenderOverlay(m_gfxContext);
     }
 
+    DrawRenderStatsOverlay();
+
     m_gfxContext.EndDraw();
+    m_gfxContext.SetCompositionContext(nullptr);
     m_compositionContext.EndFrame();
     m_pendingDirtyRegion.Clear();
 
     EndPaint(m_hwnd, &ps);
+}
+
+void Window::DrawRenderStatsOverlay() {
+    if (!m_showRenderStatsOverlay) {
+        return;
+    }
+
+    using clock = std::chrono::steady_clock;
+    const auto now = clock::now();
+    if (m_overlayFpsSampleStart.time_since_epoch().count() == 0) {
+        m_overlayFpsSampleStart = now;
+    }
+    ++m_overlayFrameCounter;
+    const auto elapsed = std::chrono::duration<float>(now - m_overlayFpsSampleStart).count();
+    if (elapsed >= 0.5f) {
+        m_overlayFps = m_overlayFrameCounter / elapsed;
+        m_overlayFrameCounter = 0;
+        m_overlayFpsSampleStart = now;
+    }
+
+    const auto& stats = m_compositionContext.GetStats();
+    std::ostringstream ss;
+    ss
+        << "帧模式: " << (stats.fullRepaint ? "整帧" : "局部")
+        << "  脏区: " << stats.dirtyRectCount
+        << "  光栅: " << stats.rasterizedNodeCount
+        << "  布局: " << stats.layoutPassCount
+        << "  命中: " << stats.layerCacheHitCount
+        << "  未命中: " << stats.layerCacheMissCount
+        << "  重录: " << stats.layerCacheRerenderCount
+        << "  复用: " << stats.layerCacheReuseCount
+        << "  显示帧率: " << static_cast<int>(std::round(m_overlayFps));
+
+    const std::string text = ss.str();
+    Rect panel(12.0f, (std::max)(12.0f, m_rootElement ? (m_rootElement->GetBounds().height - 40.0f) : 12.0f), 760.0f, 28.0f);
+    m_gfxContext.FillRoundedRect(panel, 6.0f, D2D1::ColorF(0.05f, 0.05f, 0.05f, 0.82f));
+    m_gfxContext.DrawRoundedRect(panel, 6.0f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.10f), 1.0f);
+    m_gfxContext.DrawText(
+        text,
+        Rect(panel.x + 10.0f, panel.y, panel.width - 20.0f, panel.height),
+        D2D1::ColorF(0.92f, 0.92f, 0.92f, 1.0f),
+        "Consolas",
+        12.0f,
+        DWRITE_TEXT_ALIGNMENT_LEADING,
+        DWRITE_PARAGRAPH_ALIGNMENT_CENTER
+    );
 }
 
 void Window::UpdateDwmChrome() {

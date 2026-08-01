@@ -1,5 +1,6 @@
 #pragma once
 #include "RenderResources.h"
+#include "RenderLayer.h"
 #include "../core/Value.h"
 #include <d2d1_1.h>
 #include <dwrite.h>
@@ -11,6 +12,7 @@
 namespace CUI {
 
 using Microsoft::WRL::ComPtr;
+class CompositionContext;
 
 class GraphicsContext {
 public:
@@ -30,6 +32,12 @@ public:
 
     void PushClip(const Rect& rect);
     void PopClip();
+    bool EnsureLayerCache(RenderLayer& layer, Size sizeInDips);
+    ID2D1DeviceContext* BeginLayerDraw(RenderLayer& layer);
+    void EndLayerDraw(RenderLayer& layer);
+    void DrawLayer(const RenderLayer& layer, const Rect& destRect, const Rect* sourceRect = nullptr, float opacity = 1.0f);
+    bool PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, D2D1_COLOR_F clearColor);
+    void PopLayerTarget(RenderLayer& layer);
 
     void DrawRect(const Rect& rect, D2D1_COLOR_F color, float strokeWidth = 1.0f);
     void FillRect(const Rect& rect, D2D1_COLOR_F color);
@@ -80,6 +88,8 @@ public:
     void SetPaintBounds(const Rect& rect) { m_paintBounds = rect; }
     const Rect& GetPaintBounds() const { return m_paintBounds; }
     bool IntersectsPaintBounds(const Rect& rect) const { return m_paintBounds.IsEmpty() || rect.Intersects(m_paintBounds); }
+    void SetCompositionContext(CompositionContext* context) { m_compositionContext = context; }
+    CompositionContext* GetCompositionContext() const { return m_compositionContext; }
 
 private:
     HRESULT CreateDeviceIndependentResources();
@@ -92,12 +102,21 @@ private:
     ComPtr<IDWriteFactory> m_dwriteFactory;
     ComPtr<IWICImagingFactory2> m_wicFactory;
 
+    ComPtr<ID2D1Device> m_d2dDevice;
     ComPtr<ID2D1DeviceContext> m_d2dContext;
     ComPtr<IDXGISwapChain1> m_swapChain;
 
     RenderResources m_resources;
     std::vector<D2D1_RECT_F> m_clipStack;
     Rect m_paintBounds;
+
+    struct TargetState {
+        ComPtr<ID2D1DeviceContext> context;
+        Rect paintBounds;
+        std::vector<D2D1_RECT_F> clipStack;
+    };
+    std::vector<TargetState> m_targetStack;
+    CompositionContext* m_compositionContext = nullptr;
 };
 
 } // namespace CUI

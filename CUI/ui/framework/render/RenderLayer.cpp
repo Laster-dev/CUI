@@ -13,4 +13,12 @@ void RenderLayer::Validate() {
     m_lastRenderedBounds = m_bounds;
 }
 
+void RenderLayer::ResetCache() {
+    m_cacheContext.Reset();
+    m_cacheBitmap.Reset();
+    m_scratchBitmap.Reset();
+    m_cacheSurfaceSize = Size();
+    m_valid = false;
+}
+
 } // namespace CUI

@@ -115,11 +115,10 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     hr = d3dDevice.As(&dxgiDevice);
     if (FAILED(hr)) return hr;
 
-    ComPtr<ID2D1Device> d2dDevice;
-    hr = m_d2dFactory->CreateDevice(dxgiDevice.Get(), &d2dDevice);
+    hr = m_d2dFactory->CreateDevice(dxgiDevice.Get(), &m_d2dDevice);
     if (FAILED(hr)) return hr;
 
-    hr = d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &m_d2dContext);
+    hr = m_d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &m_d2dContext);
     if (FAILED(hr)) return hr;
 
     ComPtr<IDXGIAdapter> dxgiAdapter;
@@ -248,6 +247,7 @@ void GraphicsContext::Resize(UINT width, UINT height) {
 void GraphicsContext::ReleaseDeviceResources() {
     m_resources.ReleaseDeviceResources();
     m_d2dContext.Reset();
+    m_d2dDevice.Reset();
     m_swapChain.Reset();
 }
 
@@ -305,6 +305,156 @@ void GraphicsContext::PushClip(const Rect& rect) {
         m_clipStack.push_back(d2dRect);
         m_d2dContext->PushAxisAlignedClip(d2dRect, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     }
+}
+
+bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
+    if (!m_d2dDevice) {
+        return false;
+    }
+
+    const float width = (std::max)(1.0f, std::ceil(sizeInDips.width));
+    const float height = (std::max)(1.0f, std::ceil(sizeInDips.height));
+
+    const bool recreate = !layer.m_cacheContext
+        || !layer.m_cacheBitmap
+        || std::abs(layer.m_cacheSurfaceSize.width - width) > 0.5f
+        || std::abs(layer.m_cacheSurfaceSize.height - height) > 0.5f;
+
+    if (!recreate) {
+        return true;
+    }
+
+    layer.ResetCache();
+
+    HRESULT hr = m_d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &layer.m_cacheContext);
+    if (FAILED(hr) || !layer.m_cacheContext) {
+        layer.ResetCache();
+        return false;
+    }
+
+    const float dpi = 96.0f * m_dpiScale;
+    D2D1_BITMAP_PROPERTIES1 props = D2D1::BitmapProperties1(
+        D2D1_BITMAP_OPTIONS_TARGET,
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+        dpi,
+        dpi
+    );
+
+    hr = layer.m_cacheContext->CreateBitmap(
+        D2D1::SizeU(static_cast<UINT32>(width), static_cast<UINT32>(height)),
+        nullptr,
+        0,
+        &props,
+        &layer.m_cacheBitmap
+    );
+    if (FAILED(hr) || !layer.m_cacheBitmap) {
+        layer.ResetCache();
+        return false;
+    }
+
+    hr = layer.m_cacheContext->CreateBitmap(
+        D2D1::SizeU(static_cast<UINT32>(width), static_cast<UINT32>(height)),
+        nullptr,
+        0,
+        &props,
+        &layer.m_scratchBitmap
+    );
+    if (FAILED(hr) || !layer.m_scratchBitmap) {
+        layer.ResetCache();
+        return false;
+    }
+
+    layer.m_cacheContext->SetTarget(layer.m_cacheBitmap.Get());
+    layer.SetCacheSurfaceSize(Size(width, height));
+    layer.Invalidate(RenderLayer::SizeDirty | RenderLayer::ContentDirty);
+    return true;
+}
+
+ID2D1DeviceContext* GraphicsContext::BeginLayerDraw(RenderLayer& layer) {
+    if (!layer.m_cacheContext || !layer.m_cacheBitmap) {
+        return nullptr;
+    }
+
+    layer.m_cacheContext->BeginDraw();
+    layer.m_cacheContext->SetTarget(layer.m_cacheBitmap.Get());
+    layer.m_cacheContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+    layer.m_cacheContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+    return layer.m_cacheContext.Get();
+}
+
+void GraphicsContext::EndLayerDraw(RenderLayer& layer) {
+    if (!layer.m_cacheContext) {
+        return;
+    }
+
+    HRESULT hr = layer.m_cacheContext->EndDraw();
+    if (hr == D2DERR_RECREATE_TARGET) {
+        layer.ResetCache();
+    }
+}
+
+void GraphicsContext::DrawLayer(const RenderLayer& layer, const Rect& destRect, const Rect* sourceRect, float opacity) {
+    if (!m_d2dContext || !layer.m_cacheBitmap) {
+        return;
+    }
+
+    D2D1_RECT_F dest = destRect.ToD2D();
+    const D2D1_RECT_F* src = nullptr;
+    D2D1_RECT_F srcRect = {};
+    if (sourceRect && !sourceRect->IsEmpty()) {
+        srcRect = sourceRect->ToD2D();
+        src = &srcRect;
+    }
+
+    m_d2dContext->DrawBitmap(
+        layer.m_cacheBitmap.Get(),
+        &dest,
+        opacity,
+        D2D1_INTERPOLATION_MODE_LINEAR,
+        src
+    );
+}
+
+bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, D2D1_COLOR_F clearColor) {
+    if (!EnsureLayerCache(layer, sizeInDips)) {
+        return false;
+    }
+
+    TargetState state;
+    state.context = m_d2dContext;
+    state.paintBounds = m_paintBounds;
+    state.clipStack = m_clipStack;
+    m_targetStack.push_back(std::move(state));
+
+    m_d2dContext = layer.m_cacheContext;
+    m_paintBounds = paintBounds;
+    m_clipStack.clear();
+    m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
+
+    auto* layerContext = BeginLayerDraw(layer);
+    if (!layerContext) {
+        PopLayerTarget(layer);
+        return false;
+    }
+
+    layerContext->Clear(clearColor);
+    return true;
+}
+
+void GraphicsContext::PopLayerTarget(RenderLayer& layer) {
+    EndLayerDraw(layer);
+
+    if (m_targetStack.empty()) {
+        return;
+    }
+
+    TargetState state = std::move(m_targetStack.back());
+    m_targetStack.pop_back();
+
+    m_d2dContext = state.context;
+    m_paintBounds = state.paintBounds;
+    m_clipStack = std::move(state.clipStack);
+    m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
 }
 
 void GraphicsContext::PopClip() {

@@ -4,6 +4,9 @@
 namespace CUI {
 
 void RenderResources::Initialize(ID2D1DeviceContext* context, IDWriteFactory* dwriteFactory) {
+    if (m_context.Get() != context) {
+        m_brushCache.clear();
+    }
     m_context = context;
     m_dwriteFactory = dwriteFactory;
 }

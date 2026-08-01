@@ -5,6 +5,7 @@
 #include "../render/DirtyRegion.h"
 #include "../animation/AnimationManager.h"
 #include <windows.h>
+#include <chrono>
 #include <memory>
 #include <string>
 
@@ -54,6 +55,7 @@ private:
     void InvalidateAnimatedRegions(bool animationStillActive);
     void RequestFullRepaint();
     void InvalidatePendingRenderRegions(bool fallbackToFullWindow);
+    void DrawRenderStatsOverlay();
 
     HWND m_hwnd = nullptr;
     GraphicsContext m_gfxContext;
@@ -70,6 +72,10 @@ private:
     AnimationManager m_animationManager;
     CompositionContext m_compositionContext;
     DirtyRegion m_pendingDirtyRegion;
+    bool m_showRenderStatsOverlay = true;
+    std::chrono::steady_clock::time_point m_overlayFpsSampleStart{};
+    unsigned m_overlayFrameCounter = 0;
+    float m_overlayFps = 0.0f;
 };
 
 } // namespace CUI

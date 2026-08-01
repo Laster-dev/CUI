@@ -2,6 +2,8 @@
 #include "UIElement.h"
 #include "Button.h"
 #include "Panel.h"
+#include "../render/DirtyRegion.h"
+#include "../render/RenderLayer.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -38,26 +40,34 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
     virtual UIElement* HitTest(float x, float y) override;
+    virtual void SyncRenderState() override;
+    virtual void CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume = true) override;
 
     Event<TabView*, int>& OnSelectionChanged() { return m_selectionChangedEvent; }
     Event<TabView*, int>& OnTabClosed() { return m_tabClosedEvent; }
 
 private:
-    std::vector<TabViewItem> m_tabs;
-    int m_selectedIndex = 0;
-    int m_hoveredCloseIndex = -1;
-    float m_scrollOffsetX = 0.0f;
-    float m_scrollTargetX = 0.0f;
-
-    Event<TabView*, int> m_selectionChangedEvent;
-    Event<TabView*, int> m_tabClosedEvent;
-
     bool IsPointInHeader(float x, float y) const;
     void ScrollHeaderByWheel(float delta);
     float GetHeaderHeight() const;
     float MeasureTabWidth(GraphicsContext& ctx, const TabViewItem& tab) const;
     float GetTotalTabsWidth(GraphicsContext& ctx) const;
     void EnsureSelectedTabVisible();
+    Rect GetHeaderRect() const;
+    void MarkHeaderDirty();
+    void RenderHeaderLayer(GraphicsContext& ctx);
+    void RenderHeaderContents(GraphicsContext& ctx);
+
+    std::vector<TabViewItem> m_tabs;
+    int m_selectedIndex = 0;
+    int m_hoveredCloseIndex = -1;
+    float m_scrollOffsetX = 0.0f;
+    float m_scrollTargetX = 0.0f;
+    RenderLayer m_headerLayer;
+    DirtyRegion m_headerDirty;
+
+    Event<TabView*, int> m_selectionChangedEvent;
+    Event<TabView*, int> m_tabClosedEvent;
 };
 
 } // namespace CUI
