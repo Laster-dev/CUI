@@ -23,6 +23,7 @@ TabView::TabView() {
     SetProperty("minTabWidth", Value(80.0f));
     SetProperty("maxTabWidth", Value(260.0f));
     m_headerLayer.SetCacheable(true);
+    m_contentLayer.SetCacheable(true);
 }
 
 std::vector<PropertyMeta> TabView::GetPropertyMetas() const {
@@ -49,6 +50,7 @@ void TabView::AddTab(const std::string& title, std::shared_ptr<UIElement> conten
 
     m_tabs.push_back(item);
     MarkHeaderDirty();
+    MarkContentDirty();
 
     if (m_tabs.size() == 1) {
         SetSelectedIndex(0);
@@ -66,6 +68,7 @@ void TabView::RemoveTab(int index) {
 
     m_tabs.erase(m_tabs.begin() + index);
     MarkHeaderDirty();
+    MarkContentDirty();
 
     if (m_selectedIndex >= static_cast<int>(m_tabs.size())) {
         m_selectedIndex = static_cast<int>(m_tabs.size()) - 1;
@@ -103,6 +106,7 @@ void TabView::SetSelectedIndex(int index) {
 
     EnsureSelectedTabVisible();
     MarkHeaderDirty();
+    MarkContentDirty();
     m_selectionChangedEvent.Invoke(this, m_selectedIndex);
 }
 
@@ -136,6 +140,8 @@ void TabView::Arrange(Rect finalRect) {
     m_scrollTargetX = std::clamp(m_scrollTargetX, 0.0f, maxScroll);
     m_scrollOffsetX = std::clamp(m_scrollOffsetX, 0.0f, maxScroll);
     m_headerLayer.SetBounds(GetHeaderRect());
+    m_contentLayer.SetBounds(GetContentRect());
+    MarkContentDirty();
 }
 
 float TabView::GetHeaderHeight() const {
@@ -194,6 +200,11 @@ Rect TabView::GetHeaderRect() const {
     return Rect(m_bounds.x, m_bounds.y, m_bounds.width, GetHeaderHeight());
 }
 
+Rect TabView::GetContentRect() const {
+    float headerH = GetHeaderHeight();
+    return Rect(m_bounds.x, m_bounds.y + headerH, m_bounds.width, (std::max)(0.0f, m_bounds.height - headerH));
+}
+
 void TabView::MarkHeaderDirty() {
     Rect header = GetHeaderRect();
     if (!header.IsEmpty()) {
@@ -201,6 +212,32 @@ void TabView::MarkHeaderDirty() {
         m_headerLayer.Invalidate(RenderLayer::ContentDirty | RenderLayer::StructureDirty | RenderLayer::TransformDirty);
         MarkRenderRectDirty(header.Inflate(2.0f));
     }
+}
+
+void TabView::MarkContentDirty() {
+    Rect content = GetContentRect();
+    if (!content.IsEmpty()) {
+        m_contentDirty.AddRect(content.Inflate(2.0f));
+        m_contentLayer.Invalidate(RenderLayer::ContentDirty | RenderLayer::StructureDirty | RenderLayer::TransformDirty);
+        MarkRenderRectDirty(content.Inflate(2.0f));
+    }
+}
+
+UIElement* TabView::GetSelectedContent() const {
+    if (m_selectedIndex < 0 || m_selectedIndex >= static_cast<int>(m_tabs.size())) {
+        return nullptr;
+    }
+    return m_tabs[m_selectedIndex].content.get();
+}
+
+void TabView::Render(GraphicsContext& ctx) {
+    std::string visStr = GetProperty("visibility").AsString("Visible");
+    if (visStr != "Visible") return;
+
+    ctx.PushClip(m_bounds);
+    OnRender(ctx);
+    RenderContentLayer(ctx);
+    ctx.PopClip();
 }
 
 void TabView::OnRender(GraphicsContext& ctx) {
@@ -242,6 +279,54 @@ void TabView::RenderHeaderLayer(GraphicsContext& ctx) {
         Rect sourceRect(0.0f, 0.0f, headerBarRect.width, headerBarRect.height);
         ctx.DrawLayer(m_headerLayer, headerBarRect, &sourceRect);
     }
+}
+
+void TabView::RenderContentLayer(GraphicsContext& ctx) {
+    Rect contentRect = GetContentRect();
+    if (contentRect.IsEmpty()) {
+        return;
+    }
+
+    UIElement* selectedContent = GetSelectedContent();
+    Size cacheSize(contentRect.width, contentRect.height);
+    const bool needsRerender = !m_contentLayer.IsValid()
+        || m_contentLayer.HasDirtyFlags()
+        || m_contentDirty.GetRectCount() > 0;
+
+    if (auto* composition = ctx.GetCompositionContext()) {
+        if (needsRerender) {
+            composition->CountLayerCacheRerender();
+            if (!m_contentLayer.GetCacheBitmap()) {
+                composition->CountLayerCacheMiss();
+            }
+        } else {
+            composition->CountLayerCacheHit();
+            composition->CountLayerCacheReuse();
+        }
+    }
+
+    if (needsRerender && ctx.PushLayerTarget(m_contentLayer, cacheSize, contentRect, D2D1::ColorF(0, 0, 0, 0))) {
+        auto* d2d = ctx.GetD2DContext();
+        D2D1_MATRIX_3X2_F oldTransform{};
+        d2d->GetTransform(&oldTransform);
+        d2d->SetTransform(D2D1::Matrix3x2F::Translation(-contentRect.x, -contentRect.y));
+
+        D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f, 1.0f));
+        ctx.FillRect(contentRect, bg);
+        if (selectedContent) {
+            selectedContent->Render(ctx);
+        }
+
+        d2d->SetTransform(oldTransform);
+        ctx.PopLayerTarget(m_contentLayer);
+        m_contentLayer.Validate();
+        m_contentDirty.Clear();
+    }
+
+    Rect sourceRect(0.0f, 0.0f, contentRect.width, contentRect.height);
+    ctx.PushClip(contentRect);
+    ctx.DrawLayer(m_contentLayer, contentRect, &sourceRect);
+    ctx.PopClip();
 }
 
 void TabView::RenderHeaderContents(GraphicsContext& ctx) {
@@ -452,6 +537,13 @@ void TabView::OnMouseDown(Point pt) {
 bool TabView::OnAnimationTick() {
     bool childAnimating = UIElement::OnAnimationTick();
     bool animating = childAnimating;
+    if (childAnimating) {
+        m_contentLayer.Invalidate(RenderLayer::ContentDirty);
+        Rect content = GetContentRect();
+        if (!content.IsEmpty()) {
+            m_contentDirty.AddRect(content.Inflate(2.0f));
+        }
+    }
 
     float delta = m_scrollTargetX - m_scrollOffsetX;
     if (std::abs(delta) > 0.1f) {
@@ -494,18 +586,32 @@ bool TabView::HasSelfAnimation() const {
 void TabView::SyncRenderState() {
     UIElement::SyncRenderState();
     m_headerLayer.SetBounds(GetHeaderRect());
+    m_contentLayer.SetBounds(GetContentRect());
     m_headerLayer.Validate();
+    m_contentLayer.Validate();
     m_headerDirty.Clear();
+    m_contentDirty.Clear();
 }
 
 void TabView::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume) {
-    UIElement::CollectRenderDirtyRegion(dirtyRegion, consume);
     if (consume) {
-        dirtyRegion.UnionWith(m_headerDirty);
-        m_headerDirty.Clear();
+        dirtyRegion.UnionWith(m_renderNode.ConsumeWorldDirtyRegion());
     } else {
-        dirtyRegion.UnionWith(m_headerDirty);
+        dirtyRegion.UnionWith(m_renderNode.GetWorldDirtyRegion());
     }
+
+    if (UIElement* selectedContent = GetSelectedContent()) {
+        DirtyRegion selectedDirty;
+        selectedContent->CollectRenderDirtyRegion(selectedDirty, false);
+        if (!selectedDirty.IsEmpty()) {
+            m_contentDirty.UnionWith(selectedDirty);
+            m_contentLayer.Invalidate(RenderLayer::ContentDirty);
+        }
+        selectedContent->CollectRenderDirtyRegion(dirtyRegion, consume);
+    }
+
+    dirtyRegion.UnionWith(m_headerDirty);
+    dirtyRegion.UnionWith(m_contentDirty);
 }
 
 } // namespace CUI

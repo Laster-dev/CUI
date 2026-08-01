@@ -33,6 +33,7 @@ public:
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;
+    virtual void Render(GraphicsContext& ctx) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
@@ -54,9 +55,13 @@ private:
     float GetTotalTabsWidth(GraphicsContext& ctx) const;
     void EnsureSelectedTabVisible();
     Rect GetHeaderRect() const;
+    Rect GetContentRect() const;
     void MarkHeaderDirty();
+    void MarkContentDirty();
     void RenderHeaderLayer(GraphicsContext& ctx);
     void RenderHeaderContents(GraphicsContext& ctx);
+    void RenderContentLayer(GraphicsContext& ctx);
+    UIElement* GetSelectedContent() const;
 
     std::vector<TabViewItem> m_tabs;
     int m_selectedIndex = 0;
@@ -64,7 +69,9 @@ private:
     float m_scrollOffsetX = 0.0f;
     float m_scrollTargetX = 0.0f;
     RenderLayer m_headerLayer;
+    RenderLayer m_contentLayer;
     DirtyRegion m_headerDirty;
+    DirtyRegion m_contentDirty;
 
     Event<TabView*, int> m_selectionChangedEvent;
     Event<TabView*, int> m_tabClosedEvent;
