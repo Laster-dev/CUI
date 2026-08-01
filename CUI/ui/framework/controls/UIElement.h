@@ -1,6 +1,7 @@
 #pragma once
 #include "../core/Object.h"
 #include "../render/GraphicsContext.h"
+#include "../render/RenderNode.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -53,7 +54,7 @@ public:
     std::shared_ptr<UIElement> FindElementById(const std::string& id);
 
     Rect GetBounds() const { return m_bounds; }
-    void SetBounds(const Rect& bounds) { m_bounds = bounds; }
+    void SetBounds(const Rect& bounds);
 
     Size GetDesiredSize() const { return m_desiredSize; }
 
@@ -93,6 +94,13 @@ public:
     virtual bool OnAnimationTick();
     virtual bool HasSelfAnimation() const { return false; }
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const;
+    virtual void CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume = true);
+    static void SetAnimationDeltaSeconds(float dtSeconds);
+    static float GetAnimationDeltaSeconds();
+    RenderNode& GetRenderNode() { return m_renderNode; }
+    const RenderNode& GetRenderNode() const { return m_renderNode; }
+    virtual void SyncRenderState();
+    virtual void MarkRenderContentDirty();
 
     void SetContextMenu(std::shared_ptr<ContextMenu> menu) { m_contextMenu = menu; }
     std::shared_ptr<ContextMenu> GetContextMenu() const { return m_contextMenu; }
@@ -105,6 +113,8 @@ public:
     Event<UIElement*, Point>& OnMouseDownEvent() { return m_onMouseDownEvent; }
 
 protected:
+    void MarkRenderRectDirty(const Rect& rect);
+
     std::string m_id;
     std::string m_styleClass;
     UIElement* m_parent = nullptr;
@@ -120,6 +130,8 @@ protected:
     Event<UIElement*> m_onClickEvent;
     Event<UIElement*, Point> m_onMouseDownEvent;
     std::shared_ptr<ContextMenu> m_contextMenu;
+    static float s_animationDeltaSeconds;
+    RenderNode m_renderNode;
 };
 
 } // namespace CUI

@@ -17,6 +17,12 @@ float EaseOutQuad(float t) {
 Point LerpPoint(const Point& a, const Point& b, float t) {
     return Point(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
 }
+
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
 }
 
 CheckBox::CheckBox() {
@@ -189,7 +195,7 @@ bool CheckBox::OnAnimationTick() {
 
     float fillDelta = fillTarget - m_fillProgress;
     if (std::abs(fillDelta) > 0.01f) {
-        m_fillProgress += fillDelta * 0.24f;
+        m_fillProgress += fillDelta * FrameBlend(0.24f);
         animating = true;
     } else {
         m_fillProgress = fillTarget;
@@ -197,7 +203,7 @@ bool CheckBox::OnAnimationTick() {
 
     float checkDelta = checkTarget - m_checkProgress;
     if (std::abs(checkDelta) > 0.01f) {
-        m_checkProgress += checkDelta * 0.20f;
+        m_checkProgress += checkDelta * FrameBlend(0.20f);
         animating = true;
     } else {
         m_checkProgress = checkTarget;
@@ -205,7 +211,7 @@ bool CheckBox::OnAnimationTick() {
 
     float indeterminateDelta = indeterminateTarget - m_indeterminateProgress;
     if (std::abs(indeterminateDelta) > 0.01f) {
-        m_indeterminateProgress += indeterminateDelta * 0.20f;
+        m_indeterminateProgress += indeterminateDelta * FrameBlend(0.20f);
         animating = true;
     } else {
         m_indeterminateProgress = indeterminateTarget;

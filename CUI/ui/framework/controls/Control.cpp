@@ -3,6 +3,13 @@
 #include <cmath>
 
 namespace CUI {
+namespace {
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
+}
 
 Control::Control() {
     SetProperty("hoverBackground", Value(D2D1::ColorF(0, 0, 0, 0)));
@@ -56,7 +63,7 @@ bool Control::OnAnimationTick() {
         m_visualState = m_visualStateTarget;
         return childAnimating;
     }
-    m_visualState += delta * 0.28f;
+    m_visualState += delta * FrameBlend(0.28f);
     return true;
 }
 

@@ -42,6 +42,8 @@ private:
     float MeasureContentHeight(float contentWidth);
     void RefreshContentMetrics(float viewportWidth, float viewportHeight);
     void PositionChildren();
+    Rect GetViewportRect() const;
+    void MarkScrollVisualDirty(float previousOffset);
 
     float m_offsetY = 0.0f;
     ChromiumScrollAnimator m_scrollAnimator;

@@ -11,6 +11,12 @@ float EaseLine(float t) {
     t = std::clamp(t, 0.0f, 1.0f);
     return 1.0f - std::pow(1.0f - t, 2.4f);
 }
+
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
 }
 
 RadioButton::RadioButton() : CheckBox("RadioButton") {
@@ -113,7 +119,7 @@ bool RadioButton::OnAnimationTick() {
     float target = GetState() == CheckState::Checked ? 1.0f : 0.0f;
     float delta = target - m_selectionProgress;
     if (std::abs(delta) > 0.01f) {
-        m_selectionProgress += delta * 0.18f;
+        m_selectionProgress += delta * FrameBlend(0.18f);
         animating = true;
     } else {
         m_selectionProgress = target;

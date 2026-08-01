@@ -3,6 +3,13 @@
 #include <cmath>
 
 namespace CUI {
+namespace {
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
+}
 
 std::vector<PropertyMeta> Button::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
@@ -81,8 +88,8 @@ bool Button::OnAnimationTick() {
     float dy = m_rippleCenter.y - cornerY;
     float maxRadius = std::sqrt(dx * dx + dy * dy);
 
-    m_rippleRadius += (maxRadius - m_rippleRadius) * 0.11f + 1.2f;
-    m_rippleOpacity *= 0.95f;
+    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.11f) + 72.0f * UIElement::GetAnimationDeltaSeconds();
+    m_rippleOpacity *= std::pow(0.95f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
 
     if (m_rippleOpacity <= 0.01f || m_rippleRadius >= maxRadius - 0.2f) {
         m_rippleActive = false;

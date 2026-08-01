@@ -336,6 +336,11 @@ Size TextBox::Measure(Size availableSize) {
 
 bool TextBox::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
+    auto frameBlend = [](float factorAt60Hz) {
+        factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+        float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+        return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+    };
     bool hasFloatingLabel = !GetProperty("placeholder").AsString("").empty();
     bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetProperty("text").AsString("").empty() || !m_compString.empty());
     float target = shouldFloat ? 1.0f : 0.0f;
@@ -343,7 +348,7 @@ bool TextBox::OnAnimationTick() {
 
     bool animating = false;
     if (std::abs(delta) > 0.01f) {
-        m_labelProgress += delta * 0.22f;
+        m_labelProgress += delta * frameBlend(0.22f);
         animating = true;
     } else {
         m_labelProgress = target;
@@ -352,7 +357,7 @@ bool TextBox::OnAnimationTick() {
     float focusTarget = m_isFocused ? 1.0f : 0.0f;
     float focusDelta = focusTarget - m_focusLineProgress;
     if (std::abs(focusDelta) > 0.01f) {
-        m_focusLineProgress += focusDelta * 0.18f;
+        m_focusLineProgress += focusDelta * frameBlend(0.18f);
         animating = true;
     } else {
         m_focusLineProgress = focusTarget;

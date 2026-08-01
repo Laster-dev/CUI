@@ -4,6 +4,8 @@
 
 namespace CUI {
 
+float UIElement::s_animationDeltaSeconds = 1.0f / 60.0f;
+
 UIElement::UIElement() {
     // Default properties
     SetProperty("width", Value(-1.0f)); // -1 means auto
@@ -18,6 +20,8 @@ UIElement::UIElement() {
     SetProperty("borderThickness", Value(0.0f));
     SetProperty("flexGrow", Value(0.0f));
     SetProperty("align", Value("Stretch"));
+    m_renderNode.SetOwner(this);
+    m_renderNode.SetBounds(m_bounds);
 }
 
 std::vector<PropertyMeta> UIElement::GetPropertyMetas() const {
@@ -48,6 +52,7 @@ void UIElement::AddChild(std::shared_ptr<UIElement> child) {
     if (!child) return;
     child->SetParent(this);
     m_children.push_back(child);
+    MarkRenderContentDirty();
 }
 
 void UIElement::RemoveChild(std::shared_ptr<UIElement> child) {
@@ -55,6 +60,7 @@ void UIElement::RemoveChild(std::shared_ptr<UIElement> child) {
     if (it != m_children.end()) {
         (*it)->SetParent(nullptr);
         m_children.erase(it);
+        MarkRenderContentDirty();
     }
 }
 
@@ -65,6 +71,7 @@ void UIElement::RemoveChildRaw(UIElement* child) {
     if (it != m_children.end()) {
         (*it)->SetParent(nullptr);
         m_children.erase(it);
+        MarkRenderContentDirty();
     }
 }
 
@@ -73,6 +80,7 @@ void UIElement::ClearChildren() {
         child->SetParent(nullptr);
     }
     m_children.clear();
+    MarkRenderContentDirty();
 }
 
 std::shared_ptr<UIElement> UIElement::FindElementById(const std::string& id) {
@@ -109,11 +117,11 @@ bool UIElement::ShouldClipToBounds() const {
 void UIElement::Arrange(Rect finalRect) {
     std::string visStr = GetProperty("visibility").AsString("Visible");
     if (visStr == "Collapsed") {
-        m_bounds = Rect(0, 0, 0, 0);
+        SetBounds(Rect(0, 0, 0, 0));
         return;
     }
 
-    m_bounds = finalRect;
+    SetBounds(finalRect);
     LayoutEngine::ArrangeElement(this, finalRect);
 }
 
@@ -211,16 +219,19 @@ UIElement* UIElement::HitTest(float x, float y) {
 
 void UIElement::OnMouseEnter() {
     m_isHovered = true;
+    MarkRenderContentDirty();
 }
 
 void UIElement::OnMouseLeave() {
     m_isHovered = false;
     m_isPressed = false;
+    MarkRenderContentDirty();
 }
 
 void UIElement::OnMouseDown(Point pt) {
     m_isPressed = true;
     m_onMouseDownEvent.Invoke(this, pt);
+    MarkRenderContentDirty();
 }
 
 void UIElement::OnMouseUp(Point pt) {
@@ -229,6 +240,7 @@ void UIElement::OnMouseUp(Point pt) {
         if (m_bounds.Contains(pt.x, pt.y)) {
             m_onClickEvent.Invoke(this);
         }
+        MarkRenderContentDirty();
     }
 }
 
@@ -274,6 +286,63 @@ void UIElement::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
         if (child) {
             child->CollectAnimationBounds(dirtyRect, hasDirty);
         }
+    }
+}
+
+void UIElement::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume) {
+    if (consume) {
+        dirtyRegion.UnionWith(m_renderNode.ConsumeWorldDirtyRegion());
+    } else {
+        dirtyRegion.UnionWith(m_renderNode.GetWorldDirtyRegion());
+    }
+
+    for (auto& child : m_children) {
+        if (child) {
+            child->CollectRenderDirtyRegion(dirtyRegion, consume);
+        }
+    }
+}
+
+void UIElement::SetAnimationDeltaSeconds(float dtSeconds) {
+    s_animationDeltaSeconds = std::clamp(dtSeconds, 1.0f / 240.0f, 0.050f);
+}
+
+float UIElement::GetAnimationDeltaSeconds() {
+    return s_animationDeltaSeconds;
+}
+
+void UIElement::SetBounds(const Rect& bounds) {
+    if (bounds.x == m_bounds.x && bounds.y == m_bounds.y
+        && bounds.width == m_bounds.width && bounds.height == m_bounds.height) {
+        return;
+    }
+
+    m_bounds = bounds;
+    m_renderNode.SetBounds(m_bounds);
+}
+
+void UIElement::SyncRenderState() {
+    m_renderNode.SetOwner(this);
+    m_renderNode.SetBounds(m_bounds);
+    m_renderNode.SyncLayerState();
+    for (auto& child : m_children) {
+        if (child) {
+            child->SyncRenderState();
+        }
+    }
+}
+
+void UIElement::MarkRenderContentDirty() {
+    m_renderNode.MarkContentDirty();
+    if (m_parent) {
+        m_parent->MarkRenderContentDirty();
+    }
+}
+
+void UIElement::MarkRenderRectDirty(const Rect& rect) {
+    m_renderNode.MarkDirtyRect(rect);
+    if (m_parent) {
+        m_parent->MarkRenderRectDirty(rect);
     }
 }
 

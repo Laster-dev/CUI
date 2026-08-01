@@ -4,6 +4,13 @@
 #include <windows.h>
 
 namespace CUI {
+namespace {
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
+}
 
 TabView::TabView() {
     SetProperty("background", Value("#1E1E1E"));
@@ -382,7 +389,7 @@ bool TabView::OnAnimationTick() {
 
     float delta = m_scrollTargetX - m_scrollOffsetX;
     if (std::abs(delta) > 0.1f) {
-        m_scrollOffsetX += delta * 0.22f;
+        m_scrollOffsetX += delta * FrameBlend(0.22f);
         animating = true;
     } else {
         m_scrollOffsetX = m_scrollTargetX;
@@ -392,7 +399,7 @@ bool TabView::OnAnimationTick() {
         float target = (static_cast<int>(i) == m_selectedIndex) ? 1.0f : 0.0f;
         float accentDelta = target - m_tabs[i].accentProgress;
         if (std::abs(accentDelta) > 0.01f) {
-            m_tabs[i].accentProgress += accentDelta * 0.18f;
+            m_tabs[i].accentProgress += accentDelta * FrameBlend(0.18f);
             animating = true;
         } else {
             m_tabs[i].accentProgress = target;

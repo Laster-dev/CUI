@@ -56,7 +56,56 @@ void Window::SetFocusedElement(UIElement* element) {
     m_focusedElement = CaptureElementRef(element);
 }
 
-void Window::InvalidateAnimatedRegions() {
+void Window::RequestFullRepaint() {
+    if (!m_hwnd) {
+        return;
+    }
+
+    m_pendingDirtyRegion.Clear();
+    if (m_rootElement) {
+        m_pendingDirtyRegion.AddRect(m_rootElement->GetBounds());
+    }
+    InvalidateRect(m_hwnd, nullptr, FALSE);
+}
+
+void Window::InvalidatePendingRenderRegions(bool fallbackToFullWindow) {
+    if (!m_hwnd) {
+        return;
+    }
+
+    if (m_rootElement) {
+        m_rootElement->CollectRenderDirtyRegion(m_pendingDirtyRegion, true);
+    }
+
+    if (m_pendingDirtyRegion.IsEmpty()) {
+        if (fallbackToFullWindow) {
+            RequestFullRepaint();
+        }
+        return;
+    }
+
+    const auto& rects = m_pendingDirtyRegion.GetRects();
+    if (rects.size() > 8) {
+        RequestFullRepaint();
+        return;
+    }
+
+    for (const auto& rect : rects) {
+        if (rect.IsEmpty()) {
+            continue;
+        }
+
+        RECT rc = {
+            static_cast<LONG>(std::floor(rect.x)),
+            static_cast<LONG>(std::floor(rect.y)),
+            static_cast<LONG>(std::ceil(rect.x + rect.width)),
+            static_cast<LONG>(std::ceil(rect.y + rect.height))
+        };
+        InvalidateRect(m_hwnd, &rc, FALSE);
+    }
+}
+
+void Window::InvalidateAnimatedRegions(bool animationStillActive) {
     if (!m_hwnd || !m_rootElement) {
         return;
     }
@@ -65,18 +114,26 @@ void Window::InvalidateAnimatedRegions() {
     bool hasDirty = false;
     m_rootElement->CollectAnimationBounds(dirtyRect, hasDirty);
 
+    if (m_hasLastAnimationDirtyRect) {
+        dirtyRect = hasDirty ? dirtyRect.Union(m_lastAnimationDirtyRect) : m_lastAnimationDirtyRect;
+        hasDirty = true;
+    }
+
     if (!hasDirty) {
-        InvalidateRect(m_hwnd, nullptr, FALSE);
         return;
     }
 
-    RECT rc = {
-        static_cast<LONG>(std::floor(dirtyRect.x)) - 2,
-        static_cast<LONG>(std::floor(dirtyRect.y)) - 2,
-        static_cast<LONG>(std::ceil(dirtyRect.x + dirtyRect.width)) + 2,
-        static_cast<LONG>(std::ceil(dirtyRect.y + dirtyRect.height)) + 2
-    };
-    InvalidateRect(m_hwnd, &rc, FALSE);
+    Rect expandedDirtyRect = dirtyRect.Inflate(2.0f);
+    m_pendingDirtyRegion.AddRect(expandedDirtyRect);
+    InvalidatePendingRenderRegions(false);
+
+    if (animationStillActive) {
+        m_lastAnimationDirtyRect = expandedDirtyRect;
+        m_hasLastAnimationDirtyRect = true;
+    } else {
+        m_lastAnimationDirtyRect = Rect();
+        m_hasLastAnimationDirtyRect = false;
+    }
 }
 
 Window::~Window() {
@@ -150,7 +207,7 @@ void Window::Show() {
         // Force one post-show relayout so startup uses the same path as a manual
         // resize, which keeps the initial frame crisp.
         Relayout();
-        InvalidateRect(m_hwnd, nullptr, FALSE);
+        RequestFullRepaint();
         UpdateWindow(m_hwnd);
     }
 }
@@ -160,6 +217,7 @@ void Window::RunMessageLoop() {
     using clock = std::chrono::steady_clock;
     auto lastFrameTime = clock::now();
     constexpr auto targetFrame = std::chrono::milliseconds(16);
+    m_animationManager.SetTargetFrameSeconds(1.0f / 60.0f);
     bool animationActive = false;
 
     for (;;) {
@@ -173,12 +231,15 @@ void Window::RunMessageLoop() {
             DispatchMessage(&msg);
         }
 
+        const bool wasAnimationActive = animationActive;
         const auto now = clock::now();
         const bool shouldProbeAnimation = hadMessage || animationActive;
         const bool frameDue = !animationActive || (now - lastFrameTime) >= targetFrame;
         bool animating = animationActive;
         bool didAnimationTick = false;
         if (shouldProbeAnimation && frameDue && m_rootElement) {
+            m_animationManager.BeginFrame(now, animationActive);
+            UIElement::SetAnimationDeltaSeconds(m_animationManager.GetDeltaSeconds());
             animating = m_rootElement->OnAnimationTick();
             if (auto focused = LockElement(m_focusedElement)) {
                 if (focused->NeedsAutoScrollTick()) {
@@ -191,13 +252,14 @@ void Window::RunMessageLoop() {
         }
         animationActive = animating;
 
-        if (didAnimationTick && animating) {
-            InvalidateAnimatedRegions();
-            UpdateWindow(m_hwnd);
-            continue;
+        if (didAnimationTick && (animating || wasAnimationActive)) {
+            InvalidateAnimatedRegions(animating);
         }
 
         if (!hadMessage) {
+            if (PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+                continue;
+            }
             if (animationActive) {
                 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - lastFrameTime);
                 DWORD waitMs = elapsed >= targetFrame
@@ -213,6 +275,9 @@ void Window::RunMessageLoop() {
 
 void Window::SetRootElement(std::shared_ptr<UIElement> root) {
     m_rootElement = root;
+    if (m_rootElement) {
+        m_rootElement->SyncRenderState();
+    }
     Relayout();
 }
 
@@ -386,7 +451,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_TIMER:
         if (wParam == 1) {
             if (auto focused = LockElement(m_focusedElement)) {
-                InvalidateRect(m_hwnd, nullptr, FALSE);
+                RequestFullRepaint();
             }
         }
         return 0;
@@ -400,7 +465,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         // Always relayout from GetClientRect so stale WM_SIZE data cannot shrink
         // the root tree and leave an unpainted strip at the bottom.
         Relayout();
-        InvalidateRect(m_hwnd, nullptr, FALSE);
+        RequestFullRepaint();
         return 0;
 
     case WM_DPICHANGED:
@@ -423,13 +488,13 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             }
             UpdateDwmChrome();
             Relayout();
-            InvalidateRect(m_hwnd, nullptr, FALSE);
+            RequestFullRepaint();
         }
         return 0;
 
     case WM_MOUSEMOVE:
         if (OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
-            InvalidateAnimatedRegions();
+            InvalidateAnimatedRegions(true);
         }
         return 0;
 
@@ -440,33 +505,33 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             LRESULT dwmResult = 0;
             DwmDefWindowProc(m_hwnd, uMsg, wParam, lParam, &dwmResult);
         }
-        InvalidateRect(m_hwnd, nullptr, FALSE);
+        RequestFullRepaint();
         return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 
     case WM_NCMOUSELEAVE:
-        InvalidateRect(m_hwnd, nullptr, FALSE);
+        RequestFullRepaint();
         return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 
     case WM_LBUTTONDOWN:
         if (OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
-            InvalidateRect(m_hwnd, nullptr, FALSE);
+            InvalidatePendingRenderRegions(true);
         }
         return 0;
 
     case WM_LBUTTONDBLCLK:
         OnLButtonDblClick(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        InvalidateRect(m_hwnd, nullptr, FALSE);
+        InvalidatePendingRenderRegions(true);
         return 0;
 
     case WM_LBUTTONUP:
         if (OnLButtonUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
-            InvalidateRect(m_hwnd, nullptr, FALSE);
+            InvalidatePendingRenderRegions(true);
         }
         return 0;
 
     case WM_RBUTTONDOWN:
         OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        InvalidateRect(m_hwnd, nullptr, FALSE);
+        InvalidatePendingRenderRegions(true);
         return 0;
 
     case WM_MOUSEWHEEL: {
@@ -485,7 +550,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         }
         if (target) {
             target->OnMouseWheel(delta);
-            InvalidateRect(m_hwnd, nullptr, FALSE);
+            InvalidatePendingRenderRegions(true);
         }
         return 0;
     }
@@ -493,7 +558,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_KEYDOWN:
         if (auto focused = LockElement(m_focusedElement)) {
             focused->OnKeyDown(static_cast<int>(wParam));
-            InvalidateRect(m_hwnd, nullptr, FALSE);
+            InvalidatePendingRenderRegions(true);
         }
         return 0;
 
@@ -501,7 +566,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (auto focused = LockElement(m_focusedElement)) {
             if (auto tb = dynamic_cast<TextBox*>(focused.get())) {
                 tb->OnCharInput(static_cast<wchar_t>(wParam));
-                InvalidateRect(m_hwnd, nullptr, FALSE);
+                InvalidatePendingRenderRegions(true);
             }
         }
         return 0;
@@ -532,7 +597,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                     }
                     ImmReleaseContext(m_hwnd, hIMC);
-                    InvalidateRect(m_hwnd, nullptr, FALSE);
+                    InvalidatePendingRenderRegions(true);
                 }
             }
         }
@@ -553,7 +618,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (auto hovered = LockElement(m_hoveredElement)) {
             hovered->OnMouseLeave();
             m_hoveredElement.reset();
-            InvalidateRect(m_hwnd, nullptr, FALSE);
+            InvalidatePendingRenderRegions(true);
         }
         m_trackingMouse = false;
         return 0;
@@ -577,6 +642,10 @@ void Window::OnPaint() {
         static_cast<float>(ps.rcPaint.bottom - ps.rcPaint.top)
     );
     m_gfxContext.SetPaintBounds(paintBounds);
+    if (m_pendingDirtyRegion.IsEmpty()) {
+        m_pendingDirtyRegion.AddRect(paintBounds);
+    }
+    m_compositionContext.BeginFrame(m_rootElement ? m_rootElement->GetBounds() : paintBounds, m_pendingDirtyRegion, true);
 
     m_gfxContext.BeginDraw();
 
@@ -597,6 +666,8 @@ void Window::OnPaint() {
     }
 
     m_gfxContext.EndDraw();
+    m_compositionContext.EndFrame();
+    m_pendingDirtyRegion.Clear();
 
     EndPaint(m_hwnd, &ps);
 }

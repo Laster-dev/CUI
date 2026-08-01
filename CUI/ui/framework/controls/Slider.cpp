@@ -6,6 +6,13 @@
 #include <cmath>
 
 namespace CUI {
+namespace {
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
+}
 
 Slider::Slider() {
     SetProperty("minimum", Value(0.0f));
@@ -143,7 +150,7 @@ bool Slider::OnAnimationTick() {
         m_displayValue = target;
         return base;
     }
-    m_displayValue += delta * 0.25f;
+    m_displayValue += delta * FrameBlend(0.25f);
     return true;
 }
 

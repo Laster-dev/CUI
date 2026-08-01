@@ -11,6 +11,12 @@ float EaseTrack(float t) {
     t = std::clamp(t, 0.0f, 1.0f);
     return 1.0f - std::pow(1.0f - t, 2.4f);
 }
+
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
 }
 
 ToggleSwitch::ToggleSwitch() {
@@ -54,7 +60,7 @@ bool ToggleSwitch::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
     float targetRatio = IsOn() ? 1.0f : 0.0f;
     if (std::abs(m_knobPosRatio - targetRatio) > 0.01f) {
-        m_knobPosRatio += (targetRatio - m_knobPosRatio) * 0.18f;
+        m_knobPosRatio += (targetRatio - m_knobPosRatio) * FrameBlend(0.18f);
         return true;
     } else {
         m_knobPosRatio = targetRatio;

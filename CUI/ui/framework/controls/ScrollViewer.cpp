@@ -40,14 +40,19 @@ ScrollViewer::ScrollViewer() {
     SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
     QueryPerformanceFrequency(&m_qpcFreq);
     m_scrollAnimator.Reset(0.0f);
+    GetRenderNode().GetLayer().SetCacheable(true);
 }
 
 void ScrollViewer::SetScrollOffsetY(float offset) {
+    float previousOffset = m_offsetY;
     StopSmoothScroll();
     m_offsetY = offset;
     ClampOffset();
     m_scrollAnimator.JumpTo(m_offsetY);
     PositionChildren();
+    if (std::abs(previousOffset - m_offsetY) > 0.01f) {
+        MarkScrollVisualDirty(previousOffset);
+    }
 }
 
 void ScrollViewer::StopSmoothScroll() {
@@ -187,6 +192,43 @@ void ScrollViewer::PositionChildren() {
     }
 }
 
+Rect ScrollViewer::GetViewportRect() const {
+    return m_bounds;
+}
+
+void ScrollViewer::MarkScrollVisualDirty(float previousOffset) {
+    if (m_bounds.IsEmpty()) {
+        return;
+    }
+
+    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Rect viewport = GetViewportRect();
+    Rect contentViewport(
+        viewport.x + padding.left,
+        viewport.y + padding.top,
+        (std::max)(0.0f, viewport.width - padding.left - padding.right - GetScrollbarReserve()),
+        (std::max)(0.0f, viewport.height - padding.top - padding.bottom)
+    );
+    if (!contentViewport.IsEmpty()) {
+        MarkRenderRectDirty(contentViewport.Inflate(2.0f));
+    }
+
+    if (m_contentHeight > m_bounds.height) {
+        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+
+        float maxScroll = GetMaxScroll();
+        if (maxScroll > 0.0f) {
+            Rect track = GetScrollbarTrackRect();
+            float thumbHeight = (m_bounds.height / m_contentHeight) * track.height;
+            thumbHeight = std::clamp(thumbHeight, 24.0f, track.height);
+            float previousRatio = std::clamp(previousOffset / maxScroll, 0.0f, 1.0f);
+            float previousThumbY = track.y + previousRatio * (track.height - thumbHeight);
+            MarkRenderRectDirty(Rect(track.x, previousThumbY, track.width, thumbHeight).Inflate(2.0f));
+            MarkRenderRectDirty(GetScrollbarThumbRect().Inflate(2.0f));
+        }
+    }
+}
+
 Size ScrollViewer::Measure(Size availableSize) {
     Thickness margin = GetProperty("margin").AsThickness(Thickness(0));
     Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
@@ -205,7 +247,7 @@ Size ScrollViewer::Measure(Size availableSize) {
 }
 
 void ScrollViewer::Arrange(Rect finalRect) {
-    m_bounds = finalRect;
+    SetBounds(finalRect);
     Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
     float reserve = GetScrollbarReserve();
     float contentWidth = std::max(
@@ -309,9 +351,14 @@ void ScrollViewer::OnMouseDown(Point pt) {
 void ScrollViewer::OnMouseMove(Point pt) {
     UIElement::OnMouseMove(pt);
 
+    bool wasHovered = m_scrollbarHovered;
     m_scrollbarHovered = (m_contentHeight > m_bounds.height) && GetScrollbarTrackRect().Contains(pt.x, pt.y);
+    if (wasHovered != m_scrollbarHovered) {
+        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+    }
 
     if (m_isDraggingThumb && m_isPressed) {
+        float previousOffset = m_offsetY;
         float maxScroll = GetMaxScroll();
         Rect track = GetScrollbarTrackRect();
         Rect thumb = GetScrollbarThumbRect();
@@ -321,11 +368,17 @@ void ScrollViewer::OnMouseMove(Point pt) {
         ClampOffset();
         m_scrollAnimator.JumpTo(m_offsetY);
         PositionChildren();
+        if (std::abs(previousOffset - m_offsetY) > 0.01f) {
+            MarkScrollVisualDirty(previousOffset);
+        }
     }
 }
 
 void ScrollViewer::OnMouseUp(Point pt) {
     UIElement::OnMouseUp(pt);
+    if (m_isDraggingThumb) {
+        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+    }
     m_isDraggingThumb = false;
 }
 
@@ -358,9 +411,13 @@ bool ScrollViewer::AdvanceSmoothScroll() {
         return false;
     }
 
+    float previousOffset = m_offsetY;
     m_offsetY = m_scrollAnimator.Current();
     ClampOffset();
     PositionChildren();
+    if (std::abs(previousOffset - m_offsetY) > 0.01f) {
+        MarkScrollVisualDirty(previousOffset);
+    }
     return true;
 }
 

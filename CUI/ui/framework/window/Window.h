@@ -1,6 +1,9 @@
 #pragma once
 #include "../controls/UIElement.h"
 #include "../render/GraphicsContext.h"
+#include "../render/CompositionContext.h"
+#include "../render/DirtyRegion.h"
+#include "../animation/AnimationManager.h"
 #include <windows.h>
 #include <memory>
 #include <string>
@@ -22,6 +25,8 @@ public:
 
     HWND GetHWND() const { return m_hwnd; }
     GraphicsContext& GetGraphicsContext() { return m_gfxContext; }
+    CompositionContext& GetCompositionContext() { return m_compositionContext; }
+    const CompositionContext& GetCompositionContext() const { return m_compositionContext; }
 
     bool IsTransparentMode() const { return m_transparentMode; }
     void SetTransparentMode(bool enabled);
@@ -46,7 +51,9 @@ private:
     void SetHoveredElement(UIElement* element);
     void SetPressedElement(UIElement* element);
     void SetFocusedElement(UIElement* element);
-    void InvalidateAnimatedRegions();
+    void InvalidateAnimatedRegions(bool animationStillActive);
+    void RequestFullRepaint();
+    void InvalidatePendingRenderRegions(bool fallbackToFullWindow);
 
     HWND m_hwnd = nullptr;
     GraphicsContext m_gfxContext;
@@ -58,6 +65,11 @@ private:
     std::shared_ptr<ContextMenu> m_activeContextMenu = nullptr;
     bool m_trackingMouse = false;
     bool m_transparentMode = false;
+    Rect m_lastAnimationDirtyRect;
+    bool m_hasLastAnimationDirtyRect = false;
+    AnimationManager m_animationManager;
+    CompositionContext m_compositionContext;
+    DirtyRegion m_pendingDirtyRegion;
 };
 
 } // namespace CUI
