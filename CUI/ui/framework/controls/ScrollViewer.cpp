@@ -36,6 +36,25 @@ float GetVisualBottom(UIElement* element) {
     }
     return bottom;
 }
+
+void RenderVisibleSubtree(UIElement* element, GraphicsContext& ctx, const Rect& visibleRect) {
+    if (!element) {
+        return;
+    }
+
+    const std::string visibility = element->GetProperty("visibility").AsString("Visible");
+    if (visibility != "Visible") {
+        return;
+    }
+
+    const Rect bounds = element->GetBounds();
+    const bool clipToBounds = element->ShouldClipToBounds();
+    if (clipToBounds && !bounds.IsEmpty() && !bounds.Intersects(visibleRect)) {
+        return;
+    }
+
+    element->Render(ctx);
+}
 }
 
 ScrollViewer::ScrollViewer() {
@@ -369,7 +388,15 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         }
     }
 
-    if (canPatchViewportCache && ctx.PushLayerTarget(m_contentLayer, cacheSize, Rect(0, 0, cacheSize.width, cacheSize.height), D2D1::ColorF(0, 0, 0, 0))) {
+    Rect visibleWorldRect = m_contentViewportRect;
+    Rect fullContentWorldRect(
+        m_contentViewportRect.x,
+        m_contentViewportRect.y - m_offsetY,
+        m_contentViewportRect.width,
+        cacheHeight
+    );
+
+    if (canPatchViewportCache && ctx.PushLayerTarget(m_contentLayer, cacheSize, visibleWorldRect, D2D1::ColorF(0, 0, 0, 0))) {
         auto* d2d = ctx.GetD2DContext();
         ID2D1Bitmap1* snapshot = m_contentLayer.GetScratchBitmap();
         if (snapshot) {
@@ -395,7 +422,12 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
                 const float contentTop = m_contentViewportRect.y - m_offsetY;
                 d2d->SetTransform(D2D1::Matrix3x2F::Translation(-m_contentViewportRect.x, -contentTop));
                 for (auto& child : GetChildren()) {
-                    child->Render(ctx);
+                    RenderVisibleSubtree(child.get(), ctx, Rect(
+                        m_contentViewportRect.x,
+                        m_contentViewportRect.y + exposedRect.y,
+                        m_contentViewportRect.width,
+                        exposedRect.height
+                    ));
                 }
                 d2d->SetTransform(oldTransform);
                 ctx.PopClip();
@@ -408,7 +440,11 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         m_contentLayerCachesFullContent = false;
         m_pendingViewportScrollPatch = false;
         m_pendingViewportPatchDeltaY = 0.0f;
-    } else if (needsRerender && ctx.PushLayerTarget(m_contentLayer, cacheSize, Rect(0, 0, cacheSize.width, cacheSize.height), D2D1::ColorF(0, 0, 0, 0))) {
+    } else if (needsRerender && ctx.PushLayerTarget(
+        m_contentLayer,
+        cacheSize,
+        cacheFullContent ? fullContentWorldRect : visibleWorldRect,
+        D2D1::ColorF(0, 0, 0, 0))) {
         const float contentTop = m_contentViewportRect.y - (cacheFullContent ? m_offsetY : 0.0f);
         auto* d2d = ctx.GetD2DContext();
         D2D1_MATRIX_3X2_F oldTransform{};
@@ -416,7 +452,9 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         d2d->SetTransform(D2D1::Matrix3x2F::Translation(-m_contentViewportRect.x, -contentTop));
 
         for (auto& child : GetChildren()) {
-            child->Render(ctx);
+            RenderVisibleSubtree(child.get(), ctx, cacheFullContent
+                ? fullContentWorldRect
+                : m_contentViewportRect);
         }
 
         d2d->SetTransform(oldTransform);

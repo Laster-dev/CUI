@@ -39,6 +39,7 @@ private:
     void UpdateValueFromPoint(Point pt);
     Rect GetThumbRect() const;
     Rect GetTrackRect() const;
+    void MarkSliderVisualDirty(const Rect& previousThumb, float previousDisplayValue);
 
     bool m_isDragging = false;
     float m_displayValue = 0.0f;

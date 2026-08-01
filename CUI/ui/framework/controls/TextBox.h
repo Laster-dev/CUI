@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include "../text/TextLayoutCache.h"
 #include <vector>
 #include <dwrite.h>
 #include <wrl/client.h>
@@ -39,7 +40,7 @@ public:
     void OnCharInput(wchar_t ch);
     void CommitImeResult(const std::wstring& result);
 
-    void SetCompositionString(const std::wstring& compStr) { m_compString = compStr; }
+    void SetCompositionString(const std::wstring& compStr);
     std::wstring GetCompositionString() const { return m_compString; }
 
     void SelectAll();
@@ -90,6 +91,7 @@ private:
     std::vector<TextBoxUndoState> m_undoStack;
     std::vector<TextBoxUndoState> m_redoStack;
     bool m_undoing = false;
+    mutable TextLayoutCache m_textLayoutCache;
 
     Event<TextBox*, const std::string&> m_onTextChangedEvent;
 };

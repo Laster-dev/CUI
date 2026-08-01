@@ -15,6 +15,9 @@ public:
         float maxHeight = 10000.0f;
         DWRITE_WORD_WRAPPING wrapping = DWRITE_WORD_WRAPPING_NO_WRAP;
         DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
+        DWRITE_PARAGRAPH_ALIGNMENT paragraphAlignment = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+        float lineSpacing = 1.0f;
+        float lineHeight = 0.0f;
 
         bool operator==(const Key& other) const;
     };

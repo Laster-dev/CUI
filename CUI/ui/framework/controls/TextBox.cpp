@@ -82,9 +82,19 @@ TextBox::TextBox(const std::string& placeholder) : TextBox() {
     SetProperty("placeholder", Value(placeholder));
 }
 
+void TextBox::SetCompositionString(const std::wstring& compStr) {
+    if (m_compString == compStr) {
+        return;
+    }
+    m_compString = compStr;
+    m_textLayoutCache.Clear();
+    MarkRenderContentDirty();
+}
+
 void TextBox::SetText(const std::string& text) {
     if (GetText() != text) {
         SetProperty("text", Value(text));
+        m_textLayoutCache.Clear();
         m_onTextChangedEvent.Invoke(this, text);
     }
 }
@@ -153,6 +163,7 @@ void TextBox::ClampScrollOffsets(GraphicsContext& ctx, const std::wstring& wtext
 
 Microsoft::WRL::ComPtr<IDWriteTextLayout> TextBox::BuildTextLayout(GraphicsContext& ctx, const std::wstring& wtext,
                                                                      const Rect& textRect) const {
+    (void)ctx;
     GraphicsContext::TextLayoutOptions options;
     options.maxWidth = IsTextWrapping() ? textRect.width : 100000.0f;
     options.maxHeight = IsMultiline() ? 100000.0f : textRect.height;
@@ -165,8 +176,17 @@ Microsoft::WRL::ComPtr<IDWriteTextLayout> TextBox::BuildTextLayout(GraphicsConte
 
     float fontSize = GetFloatProperty(this, "fontSize", "FontSize", 13.0f);
     std::string fontFamily = GetStringProperty(this, "fontFamily", "FontFamily", "Segoe UI");
-
-    return ctx.CreateTextLayout(wtext, fontFamily, fontSize, options);
+    TextLayoutCache::Key key;
+    key.text = wtext;
+    key.fontName = fontFamily;
+    key.fontSize = fontSize;
+    key.maxWidth = options.maxWidth;
+    key.maxHeight = options.maxHeight;
+    key.wrapping = options.wrapping;
+    key.paragraphAlignment = options.paragraphAlignment;
+    key.lineSpacing = options.lineSpacing;
+    key.lineHeight = options.lineHeight;
+    return m_textLayoutCache.GetOrCreate(key);
 }
 
 int TextBox::GetCaretIndexFromPoint(GraphicsContext& ctx, float x, float y) {

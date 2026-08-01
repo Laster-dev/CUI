@@ -3,6 +3,7 @@
 #include "../render/GraphicsContext.h"
 #include "../render/CompositionContext.h"
 #include "../render/DirtyRegion.h"
+#include "../render/RenderLayer.h"
 #include "../animation/AnimationManager.h"
 #include <windows.h>
 #include <chrono>
@@ -72,6 +73,7 @@ private:
     AnimationManager m_animationManager;
     CompositionContext m_compositionContext;
     DirtyRegion m_pendingDirtyRegion;
+    RenderLayer m_sceneLayer;
     bool m_showRenderStatsOverlay = true;
     std::chrono::steady_clock::time_point m_overlayFpsSampleStart{};
     unsigned m_overlayFrameCounter = 0;

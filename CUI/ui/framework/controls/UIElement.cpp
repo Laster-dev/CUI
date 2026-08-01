@@ -1,10 +1,31 @@
 #include "UIElement.h"
 #include "../layout/Layout.h"
+#include "../render/CompositionContext.h"
 #include <algorithm>
 
 namespace CUI {
 
 float UIElement::s_animationDeltaSeconds = 1.0f / 60.0f;
+
+namespace {
+bool CanCullElementForCurrentPass(const UIElement* element, const GraphicsContext& ctx) {
+    if (!element) {
+        return true;
+    }
+
+    auto* composition = ctx.GetCompositionContext();
+    if (!composition || composition->IsFullRepaint()) {
+        return false;
+    }
+
+    if (!element->ShouldClipToBounds()) {
+        return false;
+    }
+
+    const Rect bounds = element->GetBounds();
+    return !bounds.IsEmpty() && !ctx.IntersectsPaintBounds(bounds);
+}
+}
 
 UIElement::UIElement() {
     // Default properties
@@ -128,10 +149,17 @@ void UIElement::Arrange(Rect finalRect) {
 void UIElement::Render(GraphicsContext& ctx) {
     std::string visStr = GetProperty("visibility").AsString("Visible");
     if (visStr != "Visible") return;
+    if (CanCullElementForCurrentPass(this, ctx)) {
+        return;
+    }
 
     bool clip = ShouldClipToBounds();
     if (clip) {
         ctx.PushClip(m_bounds);
+    }
+
+    if (auto* composition = ctx.GetCompositionContext()) {
+        composition->CountRasterizedNode();
     }
 
     OnRender(ctx);

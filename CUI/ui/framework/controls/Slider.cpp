@@ -81,6 +81,37 @@ Rect Slider::GetThumbRect() const {
     }
 }
 
+void Slider::MarkSliderVisualDirty(const Rect& previousThumb, float previousDisplayValue) {
+    const Rect currentThumb = GetThumbRect();
+    Rect dirty = previousThumb.Union(currentThumb).Inflate(4.0f);
+
+    std::string orient = GetProperty("orientation").AsString("Horizontal");
+    Rect track = GetTrackRect();
+    float previousFillExtent = 0.0f;
+    float currentFillExtent = 0.0f;
+    if (orient == "Horizontal") {
+        previousFillExtent = previousThumb.x + previousThumb.width * 0.5f;
+        currentFillExtent = currentThumb.x + currentThumb.width * 0.5f;
+        float left = (std::min)(previousFillExtent, currentFillExtent);
+        float right = (std::max)(previousFillExtent, currentFillExtent);
+        dirty = dirty.Union(Rect(track.x, track.y, (std::max)(0.0f, right - track.x), track.height).Inflate(2.0f));
+        dirty = dirty.Union(Rect(left, track.y, (std::max)(0.0f, right - left), track.height).Inflate(2.0f));
+    } else {
+        previousFillExtent = previousThumb.y + previousThumb.height * 0.5f;
+        currentFillExtent = currentThumb.y + currentThumb.height * 0.5f;
+        float top = (std::min)(previousFillExtent, currentFillExtent);
+        float bottom = (std::max)(previousFillExtent, currentFillExtent);
+        dirty = dirty.Union(Rect(track.x, top, track.width, (std::max)(0.0f, bottom - top)).Inflate(2.0f));
+        dirty = dirty.Union(track.Inflate(2.0f));
+    }
+
+    if (std::abs(previousDisplayValue - m_displayValue) > 0.01f) {
+        dirty = dirty.Union(track.Inflate(2.0f));
+    }
+
+    MarkRenderRectDirty(dirty);
+}
+
 void Slider::SetValue(float val) {
     float minVal = GetMinimum();
     float maxVal = GetMaximum();
@@ -91,10 +122,13 @@ void Slider::SetValue(float val) {
     val = std::clamp(val, minVal, maxVal);
 
     if (std::abs(GetValue() - val) > 0.0001f) {
+        const Rect previousThumb = GetThumbRect();
+        const float previousDisplayValue = m_displayValue;
         SetProperty("value", Value(val));
         if (m_isDragging) {
             m_displayValue = val;
         }
+        MarkSliderVisualDirty(previousThumb, previousDisplayValue);
         m_onValueChangedEvent.Invoke(this, val);
     }
 }
@@ -150,7 +184,10 @@ bool Slider::OnAnimationTick() {
         m_displayValue = target;
         return base;
     }
+    const Rect previousThumb = GetThumbRect();
+    const float previousDisplayValue = m_displayValue;
     m_displayValue += delta * FrameBlend(0.25f);
+    MarkSliderVisualDirty(previousThumb, previousDisplayValue);
     return true;
 }
 

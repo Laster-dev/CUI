@@ -60,9 +60,24 @@ bool CoversRect(const Rect& outer, const Rect& inner, float epsilon = 1.0f) {
         && outer.x + outer.width >= inner.x + inner.width - epsilon
         && outer.y + outer.height >= inner.y + inner.height - epsilon;
 }
+
+Rect GetClientBounds(HWND hwnd) {
+    RECT rc = {};
+    if (hwnd) {
+        GetClientRect(hwnd, &rc);
+    }
+    return Rect(
+        static_cast<float>(rc.left),
+        static_cast<float>(rc.top),
+        static_cast<float>(rc.right - rc.left),
+        static_cast<float>(rc.bottom - rc.top)
+    );
+}
 }
 
-Window::Window() {}
+Window::Window() {
+    m_sceneLayer.SetCacheable(true);
+}
 
 std::shared_ptr<UIElement> Window::CaptureElementRef(UIElement* element) {
     if (!element) return nullptr;
@@ -103,6 +118,7 @@ void Window::RequestFullRepaint() {
         return;
     }
 
+    m_sceneLayer.Invalidate(RenderLayer::ContentDirty | RenderLayer::StructureDirty | RenderLayer::SizeDirty);
     m_pendingDirtyRegion.Clear();
     if (m_rootElement) {
         m_pendingDirtyRegion.AddRect(m_rootElement->GetBounds());
@@ -536,8 +552,15 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return 0;
 
     case WM_MOUSEMOVE:
-        if (OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
-            InvalidateAnimatedRegions(true);
+        {
+            const bool dragging = !m_pressedElement.expired();
+            if (OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
+                if (dragging) {
+                    InvalidatePendingRenderRegions(false);
+                } else {
+                    InvalidateAnimatedRegions(true);
+                }
+            }
         }
         return 0;
 
@@ -695,12 +718,13 @@ void Window::OnPaint() {
         frameDirtyRegion.AddRect(paintBounds);
     }
 
-    Rect viewportBounds = m_rootElement ? m_rootElement->GetBounds() : paintBounds;
+    Rect viewportBounds = GetClientBounds(m_hwnd);
     Rect dirtyBounds = frameDirtyRegion.GetBounds();
     bool fullRepaint = frameDirtyRegion.GetRectCount() == 0
         || viewportBounds.IsEmpty()
         || CoversRect(paintBounds, viewportBounds)
-        || CoversRect(dirtyBounds, viewportBounds);
+        || CoversRect(dirtyBounds, viewportBounds)
+        || !m_sceneLayer.IsValid();
 
     m_compositionContext.BeginFrame(viewportBounds, frameDirtyRegion, fullRepaint);
     m_gfxContext.SetCompositionContext(&m_compositionContext);
@@ -708,21 +732,73 @@ void Window::OnPaint() {
     m_gfxContext.BeginDraw();
 
     const D2D1_COLOR_F bgColor = D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f);
+    const D2D1_COLOR_F sceneClearColor = (m_transparentMode && !IsZoomed(m_hwnd))
+        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)
+        : bgColor;
+
+    const Size sceneSize(viewportBounds.width, viewportBounds.height);
+    const bool sceneSizeChanged =
+        std::abs(m_sceneLayer.GetCacheSurfaceSize().width - sceneSize.width) > 0.5f
+        || std::abs(m_sceneLayer.GetCacheSurfaceSize().height - sceneSize.height) > 0.5f;
+    const bool canRestoreScene =
+        !fullRepaint
+        && !sceneSizeChanged
+        && m_sceneLayer.IsValid()
+        && m_sceneLayer.GetCacheBitmap() != nullptr
+        && m_sceneLayer.GetScratchBitmap() != nullptr;
+
+    if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, dirtyBounds.IsEmpty() ? viewportBounds : dirtyBounds, sceneClearColor)) {
+        auto* sceneContext = m_gfxContext.GetD2DContext();
+        if (canRestoreScene) {
+            ID2D1Bitmap1* snapshot = m_sceneLayer.GetScratchBitmap();
+            snapshot->CopyFromBitmap(nullptr, m_sceneLayer.GetCacheBitmap(), nullptr);
+            sceneContext->DrawBitmap(
+                snapshot,
+                viewportBounds.ToD2D(),
+                1.0f,
+                D2D1_INTERPOLATION_MODE_LINEAR,
+                nullptr
+            );
+        }
+
+        auto renderScene = [&]() {
+            if (m_rootElement) {
+                m_rootElement->Render(m_gfxContext);
+                m_rootElement->RenderOverlay(m_gfxContext);
+            }
+            if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
+                m_activeContextMenu->OnRenderOverlay(m_gfxContext);
+            }
+        };
+
+        if (canRestoreScene && frameDirtyRegion.GetRectCount() > 0) {
+            for (const auto& rect : frameDirtyRegion.GetRects()) {
+                if (rect.IsEmpty()) {
+                    continue;
+                }
+                m_gfxContext.PushClip(rect);
+                if (sceneClearColor.a > 0.0f) {
+                    m_gfxContext.FillRect(rect, sceneClearColor);
+                } else {
+                    sceneContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+                }
+                renderScene();
+                m_gfxContext.PopClip();
+            }
+        } else {
+            renderScene();
+        }
+
+        m_gfxContext.PopLayerTarget(m_sceneLayer);
+        m_sceneLayer.Validate();
+    }
+
     if (m_transparentMode && !IsZoomed(m_hwnd)) {
         m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
     } else {
         m_gfxContext.GetD2DContext()->Clear(bgColor);
     }
-
-    if (m_rootElement) {
-        m_rootElement->Render(m_gfxContext);
-        m_rootElement->RenderOverlay(m_gfxContext);
-    }
-
-    if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
-        m_activeContextMenu->OnRenderOverlay(m_gfxContext);
-    }
-
+    m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
     DrawRenderStatsOverlay();
 
     m_gfxContext.EndDraw();
@@ -811,6 +887,7 @@ void Window::UpdateDwmChrome() {
 
 void Window::OnResize(UINT width, UINT height) {
     m_gfxContext.Resize(width, height);
+    m_sceneLayer.Invalidate(RenderLayer::ContentDirty | RenderLayer::StructureDirty | RenderLayer::SizeDirty);
     if (m_rootElement) {
         bool isMaximized = IsZoomed(m_hwnd);
         constexpr float resizeBorder = 8.0f;
