@@ -15,13 +15,14 @@
             </StackPanel>
 
             <StackPanel orientation="Vertical" gap="8" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
-                <TextBlock text="2. NumberBox (数字微调) &amp; RadioButton (单选) &amp; ToggleSwitch (开关)" fontSize="13" fontWeight="Bold" color="#569CD6"/>
-                <NumberBox id="demoNumber" value="12.5" step="0.5" width="140" height="28"/>
+                <TextBlock text="2. PasswordBox (密码输入框) &amp; NumberBox &amp; RadioButton &amp; ToggleSwitch" fontSize="13" fontWeight="Bold" color="#569CD6"/>
+                <PasswordBox id="demoPassword" placeholder="请输入您的系统登录密码" toolTip="悬停提示: 点击右侧眼睛图标可显示/隐藏明文" width="280" height="36"/>
+                <NumberBox id="demoNumber" value="12.5" step="0.5" toolTip="悬停提示: 支持上下按键或微调按钮" width="140" height="28"/>
                 <StackPanel orientation="Horizontal" gap="16">
-                    <RadioButton text="选项 A (Option A)" groupName="Grp1" isChecked="true"/>
-                    <RadioButton text="选项 B (Option B)" groupName="Grp1"/>
+                    <RadioButton text="选项 A (Option A)" groupName="Grp1" isChecked="true" toolTip="悬停提示: 互斥选项 A"/>
+                    <RadioButton text="选项 B (Option B)" groupName="Grp1" toolTip="悬停提示: 互斥选项 B"/>
                 </StackPanel>
-                <ToggleSwitch id="demoToggle" header="启用系统高级硬件加速" isOn="true"/>
+                <ToggleSwitch id="demoToggle" header="启用系统高级硬件加速" isOn="true" toolTip="悬停提示: 开启/关闭硬件加速"/>
             </StackPanel>
 
             <StackPanel orientation="Vertical" gap="8" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">

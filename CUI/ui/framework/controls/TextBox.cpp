@@ -113,6 +113,22 @@ bool TextBox::IsMultiline() const {
     return GetAcceptsReturn() || IsTextWrapping();
 }
 
+std::wstring TextBox::GetDisplayedText() const {
+    std::string text = GetText();
+    std::wstring wtext = Utf8ToUtf16(text);
+    if (IsPasswordMode() && !m_isPasswordRevealed) {
+        return std::wstring(wtext.length(), GetPasswordChar());
+    }
+    return wtext;
+}
+
+Rect TextBox::GetRevealButtonRect() const {
+    float btnSize = 24.0f;
+    float btnX = m_bounds.x + m_bounds.width - btnSize - 6.0f;
+    float btnY = m_bounds.y + (m_bounds.height - btnSize) * 0.5f;
+    return Rect(btnX, btnY, btnSize, btnSize);
+}
+
 Rect TextBox::GetTextRect() const {
     std::string placeholder = GetProperty("placeholder").AsString("");
     bool hasFloatingLabel = !placeholder.empty();
@@ -120,10 +136,11 @@ Rect TextBox::GetTextRect() const {
         ? GetProperty("padding").AsThickness(Thickness(0, 18, 0, 8))
         : Thickness(0, 6, 0, 6);
     float extraTop = hasFloatingLabel ? ((1.0f - m_labelAnim.Current()) * 8.0f) : 0.0f;
+    float rightMargin = (IsPasswordMode() && GetShowRevealButton()) ? 32.0f : 0.0f;
     return Rect(
         m_bounds.x + padding.left,
         m_bounds.y + padding.top + extraTop,
-        m_bounds.width - padding.left - padding.right,
+        (std::max)(0.0f, m_bounds.width - padding.left - padding.right - rightMargin),
         m_bounds.height - padding.top - padding.bottom - extraTop - 2.0f
     );
 }
@@ -191,7 +208,7 @@ Microsoft::WRL::ComPtr<IDWriteTextLayout> TextBox::BuildTextLayout(GraphicsConte
 
 int TextBox::GetCaretIndexFromPoint(GraphicsContext& ctx, float x, float y) {
     std::wstring wtext = BuildDisplayText(
-        Utf8ToUtf16(GetProperty("text").AsString("")),
+        GetDisplayedText(),
         m_cursorPos,
         m_compString
     );
@@ -206,7 +223,7 @@ int TextBox::GetCaretIndexFromPoint(GraphicsContext& ctx, float x, float y) {
 
 GraphicsContext::TextCaretInfo TextBox::GetCaretScreenPos(GraphicsContext& ctx, int caretPos) {
     std::wstring wtext = BuildDisplayText(
-        Utf8ToUtf16(GetProperty("text").AsString("")),
+        GetDisplayedText(),
         m_cursorPos,
         m_compString
     );
@@ -227,7 +244,7 @@ GraphicsContext::TextCaretInfo TextBox::GetCaretScreenPos(GraphicsContext& ctx, 
 void TextBox::EnsureCaretVisible(GraphicsContext& ctx) {
     Rect textRect = GetTextRect();
     std::wstring wtext = BuildDisplayText(
-        Utf8ToUtf16(GetProperty("text").AsString("")),
+        GetDisplayedText(),
         m_cursorPos,
         m_compString
     );
@@ -449,7 +466,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
                      DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
     }
 
-    std::wstring wtext = Utf8ToUtf16(text);
+    std::wstring wtext = GetDisplayedText();
     std::wstring displayWText = BuildDisplayText(wtext, m_cursorPos, m_compString);
 
     if (m_isFocused) {
@@ -523,6 +540,21 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         float activeX = m_bounds.x + (m_bounds.width - activeWidth) * 0.5f;
         ctx.DrawLine(Point(activeX, lineY), Point(activeX + activeWidth, lineY), activeUnderlineColor, 1.0f + eased);
     }
+
+    if (IsPasswordMode() && GetShowRevealButton()) {
+        Rect btnRect = GetRevealButtonRect();
+        D2D1_COLOR_F eyeColor = D2D1::ColorF(0xC0 / 255.0f, 0xC0 / 255.0f, 0xC0 / 255.0f, 0.85f);
+        float cx = btnRect.x + btnRect.width * 0.5f;
+        float cy = btnRect.y + btnRect.height * 0.5f;
+
+        Rect eyeBounds(cx - 7.0f, cy - 4.5f, 14.0f, 9.0f);
+        ctx.DrawRoundedRect(eyeBounds, 4.5f, eyeColor, 1.2f);
+        ctx.FillRoundedRect(Rect(cx - 2.0f, cy - 2.0f, 4.0f, 4.0f), 2.0f, eyeColor);
+
+        if (!m_isPasswordRevealed) {
+            ctx.DrawLine(Point(cx - 7.0f, cy + 5.0f), Point(cx + 7.0f, cy - 5.0f), eyeColor, 1.4f);
+        }
+    }
 }
 
 void TextBox::OnMouseDblClick(Point pt) {
@@ -572,6 +604,10 @@ void TextBox::OnBlur() {
 
 void TextBox::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
+    if (IsPasswordMode() && GetShowRevealButton() && GetRevealButtonRect().Contains(pt.x, pt.y)) {
+        SetIsPasswordRevealed(!IsPasswordRevealed());
+        return;
+    }
     OnFocus();
     GraphicsContext ctx;
     int idx = GetCaretIndexFromPoint(ctx, pt.x, pt.y);

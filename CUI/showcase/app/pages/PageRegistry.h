@@ -13,6 +13,7 @@ struct ShowcasePage {
 ShowcasePage BuildButtonPage(const ShowcaseContext& ctx);
 ShowcasePage BuildTextBlockPage(const ShowcaseContext& ctx);
 ShowcasePage BuildTextBoxPage(const ShowcaseContext& ctx);
+ShowcasePage BuildPasswordBoxPage(const ShowcaseContext& ctx);
 ShowcasePage BuildCheckBoxPage(const ShowcaseContext& ctx);
 ShowcasePage BuildRadioButtonPage(const ShowcaseContext& ctx);
 ShowcasePage BuildToggleSwitchPage(const ShowcaseContext& ctx);

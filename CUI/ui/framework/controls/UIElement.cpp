@@ -52,6 +52,7 @@ UIElement::UIElement() {
 std::vector<PropertyMeta> UIElement::GetPropertyMetas() const {
     return {
         { "text", "文本内容 (Text)", "基本信息", "string" },
+        { "toolTip", "提示信息 (ToolTip)", "基本信息", "string" },
         { "width", "宽度 (Width) [-1自适应]", "尺寸布局", "number" },
         { "height", "高度 (Height) [-1自适应]", "尺寸布局", "number" },
         { "minWidth", "最小宽度 (MinWidth)", "尺寸布局", "number" },
@@ -183,6 +184,42 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
 
     OnRenderOverlay(ctx);
 
+    if (m_isHovered && m_tooltipVisible) {
+        std::string tip = GetToolTip();
+        if (!tip.empty()) {
+            std::string font = "Segoe UI";
+            float fontSize = 12.0f;
+            Size textSize = ctx.MeasureText(tip, font, fontSize);
+
+            Thickness padding(8, 5, 8, 5);
+            float cardW = textSize.width + padding.left + padding.right;
+            float cardH = textSize.height + padding.top + padding.bottom;
+
+            float cardX = m_tooltipAnchorPos.x + 10.0f;
+            float cardY = m_tooltipAnchorPos.y + 18.0f;
+
+            if (cardX + cardW > 1200.0f) {
+                cardX = m_tooltipAnchorPos.x - cardW - 6.0f;
+            }
+            if (cardY + cardH > 800.0f) {
+                cardY = m_tooltipAnchorPos.y - cardH - 6.0f;
+            }
+            if (cardX < 4.0f) cardX = 4.0f;
+            if (cardY < 4.0f) cardY = 4.0f;
+
+            Rect cardRect(cardX, cardY, cardW, cardH);
+            D2D1_COLOR_F bg = D2D1::ColorF(0x2B / 255.0f, 0x2B / 255.0f, 0x2B / 255.0f, 0.95f);
+            D2D1_COLOR_F border = D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 0.90f);
+            D2D1_COLOR_F textColor = D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f, 1.0f);
+
+            ctx.FillRoundedRect(cardRect, 4.0f, bg);
+            ctx.DrawRoundedRect(cardRect, 4.0f, border, 1.0f);
+
+            Rect textRect(cardX + padding.left, cardY + padding.top, textSize.width, textSize.height);
+            ctx.DrawText(tip, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
+    }
+
     for (auto& child : m_children) {
         child->RenderOverlay(ctx);
     }
@@ -251,12 +288,18 @@ UIElement* UIElement::HitTest(float x, float y) {
 
 void UIElement::OnMouseEnter() {
     m_isHovered = true;
+    m_tooltipVisible = false;
+    m_lastMouseMoveTime = std::chrono::steady_clock::now();
     MarkRenderContentDirty();
 }
 
 void UIElement::OnMouseLeave() {
     m_isHovered = false;
     m_isPressed = false;
+    if (m_tooltipVisible) {
+        m_tooltipVisible = false;
+        MarkRenderContentDirty();
+    }
     MarkRenderContentDirty();
 }
 
@@ -277,6 +320,18 @@ void UIElement::OnMouseUp(Point pt) {
 }
 
 void UIElement::OnMouseMove(Point pt) {
+    float dx = pt.x - m_lastMousePos.x;
+    float dy = pt.y - m_lastMousePos.y;
+    float distSq = dx * dx + dy * dy;
+    m_lastMousePos = pt;
+
+    if (distSq > 4.0f) {
+        m_lastMouseMoveTime = std::chrono::steady_clock::now();
+        if (m_tooltipVisible) {
+            m_tooltipVisible = false;
+            MarkRenderContentDirty();
+        }
+    }
 }
 
 void UIElement::OnMouseWheel(float delta) {
@@ -295,6 +350,21 @@ bool UIElement::OnAnimationTick() {
     }
 
     bool any = false;
+
+    if (m_isHovered && !GetToolTip().empty()) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastMouseMoveTime).count();
+        if (elapsedMs >= 450) {
+            if (!m_tooltipVisible) {
+                m_tooltipVisible = true;
+                m_tooltipAnchorPos = m_lastMousePos;
+                MarkRenderContentDirty();
+            }
+        } else {
+            any = true;
+        }
+    }
+
     for (auto& child : m_children) {
         if (child && child->OnAnimationTick()) {
             any = true;

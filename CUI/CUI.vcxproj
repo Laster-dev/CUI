@@ -160,6 +160,7 @@
     <ClCompile Include="showcase\app\pages\ButtonPage.cpp" />
     <ClCompile Include="showcase\app\pages\TextBlockPage.cpp" />
     <ClCompile Include="showcase\app\pages\TextBoxPage.cpp" />
+    <ClCompile Include="showcase\app\pages\PasswordBoxPage.cpp" />
     <ClCompile Include="showcase\app\pages\CheckBoxPage.cpp" />
     <ClCompile Include="showcase\app\pages\RadioButtonPage.cpp" />
     <ClCompile Include="showcase\app\pages\ToggleSwitchPage.cpp" />
@@ -206,6 +207,7 @@
     <ClCompile Include="ui\framework\controls\TextBlock.cpp" />
     <ClCompile Include="ui\framework\controls\Button.cpp" />
     <ClCompile Include="ui\framework\controls\TextBox.cpp" />
+    <ClCompile Include="ui\framework\controls\PasswordBox.cpp" />
     <ClCompile Include="ui\framework\controls\CheckBox.cpp" />
     <ClCompile Include="ui\framework\controls\HyperlinkButton.cpp" />
     <ClCompile Include="ui\framework\controls\Image.cpp" />
@@ -265,6 +267,7 @@
     <ClInclude Include="ui\framework\controls\TextBlock.h" />
     <ClInclude Include="ui\framework\controls\Button.h" />
     <ClInclude Include="ui\framework\controls\TextBox.h" />
+    <ClInclude Include="ui\framework\controls\PasswordBox.h" />
     <ClInclude Include="ui\framework\controls\CheckBox.h" />
     <ClInclude Include="ui\framework\controls\HyperlinkButton.h" />
     <ClInclude Include="ui\framework\controls\Image.h" />

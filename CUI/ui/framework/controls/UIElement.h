@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <chrono>
 
 namespace CUI {
 
@@ -28,6 +29,9 @@ public:
 
     std::string GetId() const { return m_id; }
     void SetId(const std::string& id) { m_id = id; }
+
+    std::string GetToolTip() const { return GetProperty("toolTip").AsString(""); }
+    void SetToolTip(const std::string& tip) { SetProperty("toolTip", Value(tip)); }
 
     // Layout properties
     Thickness GetMargin() const { return GetProperty("margin").AsThickness(); }
@@ -128,6 +132,10 @@ protected:
     bool m_isHovered = false;
     bool m_isPressed = false;
     bool m_isFocused = false;
+    Point m_lastMousePos{ 0.0f, 0.0f };
+    Point m_tooltipAnchorPos{ 0.0f, 0.0f };
+    std::chrono::steady_clock::time_point m_lastMouseMoveTime;
+    bool m_tooltipVisible = false;
 
     Event<UIElement*> m_onClickEvent;
     Event<UIElement*, Point> m_onMouseDownEvent;

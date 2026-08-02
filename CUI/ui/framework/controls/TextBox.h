@@ -53,7 +53,24 @@ public:
     std::string GetPlaceholder() const { return GetProperty("placeholder").AsString(); }
     void SetPlaceholder(const std::string& ph) { SetProperty("placeholder", Value(ph)); }
 
+    virtual std::wstring GetDisplayedText() const;
+    bool IsPasswordMode() const { return GetProperty("isPasswordMode").AsBool(false); }
+    void SetIsPasswordMode(bool isPass) { SetProperty("isPasswordMode", Value(isPass)); }
+
+    wchar_t GetPasswordChar() const {
+        return L'•';
+    }
+
+    bool IsPasswordRevealed() const { return m_isPasswordRevealed; }
+    void SetIsPasswordRevealed(bool revealed) { m_isPasswordRevealed = revealed; MarkRenderContentDirty(); }
+
+    bool GetShowRevealButton() const { return GetProperty("showRevealButton").AsBool(true); }
+    void SetShowRevealButton(bool show) { SetProperty("showRevealButton", Value(show)); }
+
     Event<TextBox*, const std::string&>& OnTextChanged() { return m_onTextChangedEvent; }
+
+protected:
+    Rect GetRevealButtonRect() const;
 
 private:
     bool GetAcceptsReturn() const;
@@ -85,6 +102,7 @@ private:
     float m_scrollOffsetY = 0.0f;
     std::wstring m_compString;
     int m_suppressCharCount = 0;
+    bool m_isPasswordRevealed = false;
     AnimatedScalar m_labelAnim{};
     AnimatedScalar m_focusLineAnim{};
 

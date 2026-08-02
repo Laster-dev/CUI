@@ -40,6 +40,7 @@ public:
             BuildButtonPage(m_ctx),
             BuildTextBlockPage(m_ctx),
             BuildTextBoxPage(m_ctx),
+            BuildPasswordBoxPage(m_ctx),
             BuildCheckBoxPage(m_ctx),
             BuildRadioButtonPage(m_ctx),
             BuildToggleSwitchPage(m_ctx),

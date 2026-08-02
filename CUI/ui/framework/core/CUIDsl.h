@@ -4,6 +4,7 @@
 #include "../controls/Panel.h"
 #include "../controls/Button.h"
 #include "../controls/TextBox.h"
+#include "../controls/PasswordBox.h"
 #include "../controls/TextBlock.h"
 #include "../controls/CheckBox.h"
 #include "../controls/HyperlinkButton.h"
@@ -326,6 +327,12 @@ inline ElementBuilder<NumberBox> NumberBoxWidget(double val = 0.0) {
     auto n = ElementBuilder<NumberBox>();
     n->SetValue(static_cast<float>(val));
     return n;
+}
+
+inline ElementBuilder<PasswordBox> PasswordBoxWidget(const std::string& placeholder = "请输入密码") {
+    auto p = ElementBuilder<PasswordBox>();
+    p->SetPlaceholder(placeholder);
+    return p;
 }
 
 inline ElementBuilder<RadioButton> RadioButtonTile(const std::string& text = "", const std::string& group = "DefaultGroup") {

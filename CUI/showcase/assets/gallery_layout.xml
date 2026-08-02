@@ -9,6 +9,7 @@
         <TabItem header="Button 按钮" icon="[B]" src="page_button.xml"/>
         <TabItem header="TextBlock 文本" icon="[T]" src="page_textblock.xml"/>
         <TabItem header="TextBox 输入框" icon="[I]" src="page_textbox.xml"/>
+        <TabItem header="PasswordBox 密码框" icon="[P]" src="page_passwordbox.xml"/>
         <TabItem header="CheckBox 复选框" icon="[C]" src="page_checkbox.xml"/>
         <TabItem header="RadioButton 单选框" icon="[O]" src="page_radiobutton.xml"/>
         <TabItem header="ToggleSwitch 开关" icon="[K]" src="page_toggleswitch.xml"/>

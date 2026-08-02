@@ -4,6 +4,7 @@
 #include "../controls/TextBlock.h"
 #include "../controls/Button.h"
 #include "../controls/TextBox.h"
+#include "../controls/PasswordBox.h"
 #include "../controls/CheckBox.h"
 #include "../controls/HyperlinkButton.h"
 #include "../controls/Image.h"
@@ -52,6 +53,7 @@ UIMarkupParser::UIMarkupParser() {
     RegisterElementFactory("TextBlock", []() { return std::make_shared<TextBlock>(); });
     RegisterElementFactory("Button", []() { return std::make_shared<Button>(); });
     RegisterElementFactory("TextBox", []() { return std::make_shared<TextBox>(); });
+    RegisterElementFactory("PasswordBox", []() { return std::make_shared<PasswordBox>(); });
     RegisterElementFactory("CheckBox", []() { return std::make_shared<CheckBox>(); });
     RegisterElementFactory("HyperlinkButton", []() { return std::make_shared<HyperlinkButton>(); });
     RegisterElementFactory("Image", []() { return std::make_shared<Image>(); });
