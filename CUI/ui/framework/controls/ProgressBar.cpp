@@ -8,6 +8,10 @@
 
 namespace CUI {
 
+static float WinUI3EaseInOut(float t) {
+    return t < 0.5f ? 4.0f * t * t * t : 1.0f - std::pow(-2.0f * t + 2.0f, 3.0f) / 2.0f;
+}
+
 ProgressBar::ProgressBar() {
     SetProperty("minimum", Value(0.0f));
     SetProperty("maximum", Value(100.0f));
@@ -16,8 +20,8 @@ ProgressBar::ProgressBar() {
     SetProperty("fillColor", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
     SetProperty("trackColor", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
     SetProperty("width", Value(200.0f));
-    SetProperty("height", Value(6.0f));
-    SetProperty("cornerRadius", Value(3.0f));
+    SetProperty("height", Value(3.0f));
+    SetProperty("cornerRadius", Value(1.5f));
     m_displayValue = GetValue();
 }
 
@@ -34,22 +38,13 @@ std::vector<PropertyMeta> ProgressBar::GetPropertyMetas() const {
 
 Size ProgressBar::Measure(Size availableSize) {
     float expW = GetProperty("width").AsFloat(200.0f);
-    float expH = GetProperty("height").AsFloat(6.0f);
+    float expH = GetProperty("height").AsFloat(3.0f);
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
 
 bool ProgressBar::OnAnimationTick() {
     bool baseAnim = Control::OnAnimationTick();
-    if (!UIElement::AreAnimationsEnabled()) {
-        if (IsIndeterminate()) {
-            m_animOffset = 0.0f;
-        } else {
-            m_displayValue = GetValue();
-        }
-        m_lastTickTime = std::chrono::steady_clock::time_point{};
-        return baseAnim;
-    }
 
     const auto now = std::chrono::steady_clock::now();
     float deltaSeconds = 1.0f / 60.0f;
@@ -60,13 +55,17 @@ bool ProgressBar::OnAnimationTick() {
     m_lastTickTime = now;
 
     if (IsIndeterminate()) {
-        const float speed = 220.0f;
+        const float speed = 1.0f;
         m_animOffset += speed * deltaSeconds;
-        float wrapWidth = (m_bounds.width > 0.0f) ? m_bounds.width : 200.0f;
-        if (m_animOffset > wrapWidth * 1.5f) {
-            m_animOffset = -wrapWidth * 0.5f;
+        if (m_animOffset > 10000.0f) {
+            m_animOffset = std::fmod(m_animOffset, 2.0f);
         }
         return true;
+    }
+
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_displayValue = GetValue();
+        return baseAnim;
     }
 
     float target = GetValue();
@@ -82,12 +81,13 @@ bool ProgressBar::OnAnimationTick() {
 
 bool ProgressBar::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
-        || (UIElement::AreAnimationsEnabled() && IsIndeterminate())
+        || IsIndeterminate()
         || (UIElement::AreAnimationsEnabled() && std::abs(GetValue() - m_displayValue) > 0.01f);
 }
 
 void ProgressBar::OnRender(GraphicsContext& ctx) {
-    float radius = GetProperty("cornerRadius").AsFloat(3.0f);
+    float defaultRadius = m_bounds.height * 0.5f;
+    float radius = GetProperty("cornerRadius").AsFloat(defaultRadius);
     D2D1_COLOR_F trackBg = GetProperty("trackColor").AsColor(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f));
     D2D1_COLOR_F fillBg = GetProperty("fillColor").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
 
@@ -95,12 +95,43 @@ void ProgressBar::OnRender(GraphicsContext& ctx) {
     ctx.FillRoundedRect(m_bounds, radius, trackBg);
 
     if (IsIndeterminate()) {
-        float chunkW = m_bounds.width * 0.4f;
-        float chunkX = m_bounds.x + m_animOffset;
-        Rect chunkRect(chunkX, m_bounds.y, chunkW, m_bounds.height);
-
         ctx.PushClip(m_bounds);
-        ctx.FillRoundedRect(chunkRect, radius, fillBg);
+
+        float W = m_bounds.width;
+        float cycleDur = 2.0f;
+        float animTime = m_animOffset;
+        if (!UIElement::AreAnimationsEnabled()) {
+            // Low performance mode: XP-style discrete frame-by-frame step animation (8 FPS step jumps)
+            animTime = std::floor(m_animOffset * 8.0f) / 8.0f;
+        }
+
+        float tNorm = std::fmod(animTime, cycleDur) / cycleDur;
+        if (tNorm < 0.0f) tNorm += 1.0f;
+
+        // WinUI 3 Indicator 1 (Primary / Leading indicator)
+        if (tNorm >= 0.0f && tNorm <= 0.75f) {
+            float p1 = tNorm / 0.75f;
+            float e1 = WinUI3EaseInOut(p1);
+            float startX = m_bounds.x - 0.35f * W;
+            float endX = m_bounds.x + 1.2f * W;
+            float curX = startX + e1 * (endX - startX);
+            float chunkW = W * (0.12f + 0.38f * std::sin(p1 * 3.14159265f));
+            Rect r1(curX, m_bounds.y, chunkW, m_bounds.height);
+            ctx.FillRoundedRect(r1, radius, fillBg);
+        }
+
+        // WinUI 3 Indicator 2 (Secondary / Trailing indicator)
+        if (tNorm >= 0.35f && tNorm <= 1.0f) {
+            float p2 = (tNorm - 0.35f) / 0.65f;
+            float e2 = WinUI3EaseInOut(p2);
+            float startX = m_bounds.x - 0.25f * W;
+            float endX = m_bounds.x + 1.15f * W;
+            float curX = startX + e2 * (endX - startX);
+            float chunkW = W * (0.08f + 0.28f * std::sin(p2 * 3.14159265f));
+            Rect r2(curX, m_bounds.y, chunkW, m_bounds.height);
+            ctx.FillRoundedRect(r2, radius, fillBg);
+        }
+
         ctx.PopClip();
     } else {
         float minVal = GetMinimum();

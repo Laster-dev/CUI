@@ -5,8 +5,8 @@
 using namespace CUI::DSL;
 
 ShowcasePage BuildProgressBarPage(const ShowcaseContext& ctx) {
-    auto target = ProgressBarWidget(65.0f, false).Width(280).Height(8).Build();
-    auto indeterminate = ProgressBarWidget(0.0f, true).Width(280).Height(8).Build();
+    auto target = ProgressBarWidget(65.0f, false).Width(280).Height(3).Build();
+    auto indeterminate = ProgressBarWidget(0.0f, true).Width(280).Height(3).Build();
     return { "ProgressBar 进度条", CreatePage(
         "ProgressBar 进度条控件",
         "支持确定进度 Value 绘制与 isIndeterminate=true 动画不确定模式。",

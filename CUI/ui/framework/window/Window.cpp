@@ -311,9 +311,10 @@ void Window::RunMessageLoop() {
         const bool wasAnimationActive = animationActive;
         const auto now = clock::now();
         const float refreshHz = GetWindowRefreshRateHz(m_hwnd);
-        const auto targetFrame = std::chrono::duration<double>(1.0 / (std::max)(30.0f, refreshHz));
+        const double targetFps = m_lowPerformanceMode ? 8.0 : static_cast<double>((std::max)(30.0f, refreshHz));
+        const auto targetFrame = std::chrono::duration<double>(1.0 / targetFps);
         m_animationManager.SetTargetFrameSeconds(static_cast<float>(targetFrame.count()));
-        const bool shouldProbeAnimation = hadMessage || (!m_lowPerformanceMode && animationActive);
+        const bool shouldProbeAnimation = hadMessage || animationActive;
         const bool frameDue = !animationActive || (now - lastFrameTime) >= targetFrame;
         bool animating = animationActive;
         bool didAnimationTick = false;

@@ -10,8 +10,8 @@
             <StackPanel orientation="Vertical" gap="8" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
                 <TextBlock text="1. Slider (滑块) &amp; ProgressBar (进度条)" fontSize="13" fontWeight="Bold" color="#569CD6"/>
                 <Slider id="demoSlider" value="45" width="280" height="24"/>
-                <ProgressBar id="demoProgress" value="45" width="280" height="6"/>
-                <ProgressBar id="demoIndeterminate" isIndeterminate="true" width="280" height="6"/>
+                <ProgressBar id="demoProgress" value="45" width="280" height="3"/>
+                <ProgressBar id="demoIndeterminate" isIndeterminate="true" width="280" height="3"/>
             </StackPanel>
 
             <StackPanel orientation="Vertical" gap="8" background="#252526" padding="16" cornerRadius="6" borderBrush="#333333" borderThickness="1">
