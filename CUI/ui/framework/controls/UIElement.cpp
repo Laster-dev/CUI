@@ -44,6 +44,9 @@ UIElement::UIElement() {
     SetProperty("align", Value("Stretch"));
     m_renderNode.SetOwner(this);
     m_renderNode.SetBounds(m_bounds);
+    OnPropertyChanged().Connect([this](const std::string&, const Value&) {
+        MarkRenderContentDirty();
+    });
 }
 
 std::vector<PropertyMeta> UIElement::GetPropertyMetas() const {

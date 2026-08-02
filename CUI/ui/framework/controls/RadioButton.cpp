@@ -41,17 +41,30 @@ void RadioButton::UncheckSiblingsInGroup() {
     std::string myGroup = GetGroupName();
     if (myGroup.empty()) return;
 
-    UIElement* parent = GetParent();
-    if (!parent) return;
+    UIElement* searchContainer = GetParent();
+    while (searchContainer) {
+        bool foundAny = false;
+        std::vector<UIElement*> queue;
+        queue.push_back(searchContainer);
 
-    for (const auto& child : parent->GetChildren()) {
-        auto* sibling = dynamic_cast<RadioButton*>(child.get());
-        if (!sibling || sibling == this) {
-            continue;
+        size_t head = 0;
+        while (head < queue.size()) {
+            UIElement* curr = queue[head++];
+            for (const auto& child : curr->GetChildren()) {
+                if (!child) continue;
+                auto* sibling = dynamic_cast<RadioButton*>(child.get());
+                if (sibling && sibling != this && sibling->GetGroupName() == myGroup) {
+                    sibling->SetChecked(false);
+                    sibling->MarkRenderContentDirty();
+                    foundAny = true;
+                } else {
+                    queue.push_back(child.get());
+                }
+            }
         }
-        if (sibling->GetGroupName() == myGroup) {
-            sibling->SetChecked(false);
-        }
+
+        if (foundAny || !searchContainer->GetParent()) break;
+        searchContainer = searchContainer->GetParent();
     }
 }
 
@@ -70,24 +83,35 @@ void RadioButton::OnMouseUp(Point pt) {
 }
 
 void RadioButton::OnRender(GraphicsContext& ctx) {
+    float target = GetState() == CheckState::Checked ? 1.0f : 0.0f;
+    m_selectionAnim.SetTarget(target);
+
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_selectionAnim.Reset(target);
+        UpdateVisualStateTarget();
+        m_visualStateAnim.Reset(m_visualStateTarget);
+    }
+
     Thickness padding = GetProperty("padding").AsThickness(Thickness(4, 4, 4, 4));
     float size = 18.0f;
     Rect checkRect(m_bounds.x + padding.left, m_bounds.y + (m_bounds.height - size) * 0.5f, size, size);
 
     D2D1_COLOR_F accent = GetProperty("accentColor").AsColor(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f));
-    D2D1_COLOR_F border = BlendColor(
-        D2D1::ColorF(0x8E / 255.0f, 0x8E / 255.0f, 0x8E / 255.0f, 0.85f),
-        accent,
-        (std::min)(1.0f, m_visualStateAnim.Current() / 0.55f)
-    );
+    D2D1_COLOR_F defaultBorder = D2D1::ColorF(0x8E / 255.0f, 0x8E / 255.0f, 0x8E / 255.0f, 0.85f);
+    D2D1_COLOR_F hoverBorder = D2D1::ColorF(0xD0 / 255.0f, 0xD0 / 255.0f, 0xD0 / 255.0f, 1.0f);
+
+    float selectionProgress = std::clamp(m_selectionAnim.Current(), 0.0f, 1.0f);
+    float visualProgress = m_visualStateAnim.Current();
+
+    D2D1_COLOR_F borderUnchecked = BlendColor(defaultBorder, hoverBorder, (std::min)(1.0f, visualProgress / 0.55f));
+    D2D1_COLOR_F border = BlendColor(borderUnchecked, accent, selectionProgress);
     D2D1_COLOR_F bg = GetAnimatedBackground(GetProperty("background").AsColor(D2D1::ColorF(0x20 / 255.0f, 0x20 / 255.0f, 0x20 / 255.0f, 1.0f)));
 
     ctx.FillRoundedRect(checkRect, size * 0.5f, bg);
     ctx.DrawRoundedRect(checkRect, size * 0.5f, border, 1.4f);
 
-    float dotFactor = std::clamp(m_selectionAnim.Current(), 0.0f, 1.0f);
-    if (dotFactor > 0.01f) {
-        float eased = EaseLine(dotFactor);
+    if (selectionProgress > 0.01f) {
+        float eased = UIElement::AreAnimationsEnabled() ? EaseLine(selectionProgress) : selectionProgress;
         float maxDiameter = 8.0f;
         float diameter = maxDiameter * eased;
         float dotX = checkRect.x + (checkRect.width - diameter) * 0.5f;
@@ -113,6 +137,10 @@ bool RadioButton::OnAnimationTick() {
 
     float target = GetState() == CheckState::Checked ? 1.0f : 0.0f;
     m_selectionAnim.SetTarget(target);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_selectionAnim.Reset(target);
+        return base;
+    }
     animating = m_selectionAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.18f, 0.01f }) || animating;
 
     return animating;
@@ -125,6 +153,11 @@ bool RadioButton::HasSelfAnimation() const {
 
 void RadioButton::SetChecked(bool checked) {
     SetState(checked ? CheckState::Checked : CheckState::Unchecked);
+    float target = checked ? 1.0f : 0.0f;
+    m_selectionAnim.SetTarget(target);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_selectionAnim.Reset(target);
+    }
 }
 
 } // namespace CUI

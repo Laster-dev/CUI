@@ -98,6 +98,20 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
 
     CheckState state = GetState();
+    float fillTarget = state == CheckState::Unchecked ? 0.0f : 1.0f;
+    float checkTarget = state == CheckState::Checked ? 1.0f : 0.0f;
+    float indeterminateTarget = state == CheckState::Indeterminate ? 1.0f : 0.0f;
+    m_fillAnim.SetTarget(fillTarget);
+    m_checkAnim.SetTarget(checkTarget);
+    m_indeterminateAnim.SetTarget(indeterminateTarget);
+
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_fillAnim.Reset(fillTarget);
+        m_checkAnim.Reset(checkTarget);
+        m_indeterminateAnim.Reset(indeterminateTarget);
+        UpdateVisualStateTarget();
+        m_visualStateAnim.Reset(m_visualStateTarget);
+    }
 
     float boxSize = 18.0f;
     float boxY = m_bounds.y + (m_bounds.height - boxSize) / 2.0f;
