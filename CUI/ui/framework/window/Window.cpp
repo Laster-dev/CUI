@@ -23,6 +23,8 @@ namespace CUI {
 
 namespace {
 constexpr UINT WM_CUI_TOGGLE_LOW_PERF = WM_APP + 42;
+constexpr UINT WM_CUI_TOGGLE_BACKDROP = WM_APP + 43;
+constexpr UINT WM_CUI_TOGGLE_THEME = WM_APP + 44;
 
 float GetWindowRefreshRateHz(HWND hwnd) {
     if (!hwnd) {
@@ -239,6 +241,8 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     if (!m_hwnd) return false;
 
     UpdateDwmChrome();
+    WindowBackdrop::ApplyBackdrop(m_hwnd, m_backdropType);
+    WindowBackdrop::ApplyTheme(m_hwnd, m_themeMode);
 
     if (m_transparentMode) {
         SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA);
@@ -251,6 +255,22 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     SetTimer(m_hwnd, 1, 500, nullptr);
 
     return true;
+}
+
+void Window::SetBackdropType(BackdropType type) {
+    m_backdropType = type;
+    if (m_hwnd) {
+        WindowBackdrop::ApplyBackdrop(m_hwnd, type);
+        RequestFullRepaint();
+    }
+}
+
+void Window::SetThemeMode(ThemeMode theme) {
+    m_themeMode = theme;
+    if (m_hwnd) {
+        WindowBackdrop::ApplyTheme(m_hwnd, theme);
+        RequestFullRepaint();
+    }
 }
 
 void Window::SetTransparentMode(bool enabled) {
@@ -492,7 +512,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (fx < winW - 135.0f && m_rootElement) {
                 UIElement* hit = m_rootElement->HitTest(fx, fy);
                 if (auto titleBar = dynamic_cast<TitleBar*>(hit)) {
-                    if (titleBar->IsLowPerformanceToggleHit(fx, fy)) {
+                    if (titleBar->IsLowPerformanceToggleHit(fx, fy) || titleBar->IsBackdropToggleHit(fx, fy) || titleBar->IsThemeToggleHit(fx, fy)) {
                         return HTCLIENT;
                     }
                     if (titleBar->IsMenuBarHit(fx, fy)) {
@@ -534,6 +554,19 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_CUI_TOGGLE_LOW_PERF:
         SetLowPerformanceMode(!m_lowPerformanceMode);
+        return 0;
+
+    case WM_CUI_TOGGLE_BACKDROP:
+        switch (m_backdropType) {
+        case BackdropType::Mica: SetBackdropType(BackdropType::MicaAlt); break;
+        case BackdropType::MicaAlt: SetBackdropType(BackdropType::Acrylic); break;
+        case BackdropType::Acrylic: SetBackdropType(BackdropType::None); break;
+        case BackdropType::None: default: SetBackdropType(BackdropType::Mica); break;
+        }
+        return 0;
+
+    case WM_CUI_TOGGLE_THEME:
+        SetThemeMode(m_themeMode == ThemeMode::Dark ? ThemeMode::Light : ThemeMode::Dark);
         return 0;
 
     case WM_TIMER:

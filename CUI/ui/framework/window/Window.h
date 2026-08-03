@@ -5,6 +5,7 @@
 #include "../render/DirtyRegion.h"
 #include "../render/RenderLayer.h"
 #include "../animation/AnimationManager.h"
+#include "WindowBackdrop.h"
 #include <windows.h>
 #include <chrono>
 #include <memory>
@@ -34,6 +35,12 @@ public:
     void SetTransparentMode(bool enabled);
     void SetLowPerformanceMode(bool enabled);
     bool IsLowPerformanceMode() const { return m_lowPerformanceMode; }
+
+    void SetBackdropType(BackdropType type);
+    BackdropType GetBackdropType() const { return m_backdropType; }
+
+    void SetThemeMode(ThemeMode theme);
+    ThemeMode GetThemeMode() const { return m_themeMode; }
 
     void SetActiveContextMenu(std::shared_ptr<ContextMenu> menu) { m_activeContextMenu = menu; }
 
@@ -78,6 +85,8 @@ private:
     RenderLayer m_sceneLayer;
     bool m_showRenderStatsOverlay = true;
     bool m_lowPerformanceMode = false;
+    BackdropType m_backdropType = BackdropType::Mica;
+    ThemeMode m_themeMode = ThemeMode::Dark;
     std::chrono::steady_clock::time_point m_overlayFpsSampleStart{};
     unsigned m_overlayFrameCounter = 0;
     float m_overlayFps = 0.0f;

@@ -29,6 +29,7 @@ public:
     ID2D1DeviceContext* GetD2DContext() const { return m_d2dContext.Get(); }
     IDWriteFactory* GetDWriteFactory() const { return m_dwriteFactory.Get(); }
     RenderResources& GetResources() { return m_resources; }
+    HWND GetHwnd() const { return m_hwnd; }
 
     void PushClip(const Rect& rect);
     void PopClip();

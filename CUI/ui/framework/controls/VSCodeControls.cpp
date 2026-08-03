@@ -1,4 +1,5 @@
 #include "VSCodeControls.h"
+#include "../window/Window.h"
 
 namespace CUI {
 
@@ -96,23 +97,35 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     // Detect mouse hover state based on cursor position
     POINT pt;
     GetCursorPos(&pt);
-    HWND hwnd = WindowFromPoint(pt);
+    HWND hwnd = ctx.GetHwnd();
     bool isHoveredInTitle = false;
     float hoverX = -1.0f;
     float hoverY = -1.0f;
 
     // Check if mouse is within titlebar action buttons
     RECT windowRc = {};
-    if (GetWindowRect(hwnd, &windowRc)) {
+    if (hwnd && GetWindowRect(hwnd, &windowRc)) {
         float clientX = static_cast<float>(pt.x - windowRc.left);
         float clientY = static_cast<float>(pt.y - windowRc.top);
-        if (clientY >= 0 && clientY <= m_bounds.height) {
+        if (clientX >= 0 && clientX <= m_bounds.width && clientY >= 0 && clientY <= m_bounds.height) {
             isHoveredInTitle = true;
             hoverX = clientX;
             hoverY = clientY;
         }
     }
 
+    // Query current window state
+    BackdropType curBackdrop = BackdropType::Mica;
+    ThemeMode curTheme = ThemeMode::Dark;
+    if (hwnd) {
+        Window* winObj = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        if (winObj) {
+            curBackdrop = winObj->GetBackdropType();
+            curTheme = winObj->GetThemeMode();
+        }
+    }
+
+    // 1. LowPerf / Animation Toggle Button
     Rect lowPerfRect = GetLowPerformanceToggleRect();
     bool lowPerfOn = !UIElement::AreAnimationsEnabled();
     bool isLowPerfHover = isHoveredInTitle && lowPerfRect.Contains(hoverX, hoverY);
@@ -138,6 +151,36 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
         DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
         DWRITE_FONT_WEIGHT_SEMI_BOLD
     );
+
+    // 2. Backdrop Toggle Button
+    Rect bdpRect = GetBackdropToggleRect();
+    bool isBdpHover = isHoveredInTitle && bdpRect.Contains(hoverX, hoverY);
+    const char* bdpStr = "Mica";
+    if (curBackdrop == BackdropType::MicaAlt) bdpStr = "MicaAlt";
+    else if (curBackdrop == BackdropType::Acrylic) bdpStr = "Acrylic";
+    else if (curBackdrop == BackdropType::None) bdpStr = "无材质";
+
+    std::string bdpText = std::string("材质:") + bdpStr;
+    D2D1_COLOR_F bdpBg = D2D1::ColorF(1.0f, 1.0f, 1.0f, isBdpHover ? 0.14f : 0.08f);
+    D2D1_COLOR_F bdpBorder = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f);
+    D2D1_COLOR_F bdpTextCol = D2D1::ColorF(0xD8 / 255.0f, 0xD8 / 255.0f, 0xD8 / 255.0f, 1.0f);
+
+    ctx.FillRoundedRect(bdpRect, 8.0f, bdpBg);
+    ctx.DrawRoundedRect(bdpRect, 8.0f, bdpBorder, 1.0f);
+    ctx.DrawText(bdpText, bdpRect, bdpTextCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+
+    // 3. Theme Toggle Button
+    Rect themeRect = GetThemeToggleRect();
+    bool isThemeHover = isHoveredInTitle && themeRect.Contains(hoverX, hoverY);
+    const char* themeStr = (curTheme == ThemeMode::Dark) ? "🌙 暗色" : "☀️ 亮色";
+
+    D2D1_COLOR_F themeBg = D2D1::ColorF(1.0f, 1.0f, 1.0f, isThemeHover ? 0.14f : 0.08f);
+    D2D1_COLOR_F themeBorder = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f);
+    D2D1_COLOR_F themeTextCol = D2D1::ColorF(0xD8 / 255.0f, 0xD8 / 255.0f, 0xD8 / 255.0f, 1.0f);
+
+    ctx.FillRoundedRect(themeRect, 8.0f, themeBg);
+    ctx.DrawRoundedRect(themeRect, 8.0f, themeBorder, 1.0f);
+    ctx.DrawText(themeStr, themeRect, themeTextCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
 
     // 1. Minimize Button (_)
     Rect minBtnRect(rightX, m_bounds.y, btnW, btnH);
@@ -177,15 +220,23 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
 
 void TitleBar::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
-    if (IsLowPerformanceToggleHit(pt.x, pt.y)) {
-        POINT screenPt = {};
-        if (GetCursorPos(&screenPt)) {
-            HWND hwnd = WindowFromPoint(screenPt);
-            if (hwnd) {
+    POINT screenPt = {};
+    if (GetCursorPos(&screenPt)) {
+        HWND hwnd = WindowFromPoint(screenPt);
+        if (hwnd) {
+            if (IsLowPerformanceToggleHit(pt.x, pt.y)) {
                 PostMessage(hwnd, WM_APP + 42, 0, 0);
+                return;
+            }
+            if (IsBackdropToggleHit(pt.x, pt.y)) {
+                PostMessage(hwnd, WM_APP + 43, 0, 0);
+                return;
+            }
+            if (IsThemeToggleHit(pt.x, pt.y)) {
+                PostMessage(hwnd, WM_APP + 44, 0, 0);
+                return;
             }
         }
-        return;
     }
     m_menuBar.OnMouseDown(pt);
 }
@@ -211,9 +262,9 @@ bool TitleBar::IsMenuBarHit(float x, float y) {
 
 Rect TitleBar::GetLowPerformanceToggleRect() const {
     constexpr float buttonWidth = 46.0f;
-    constexpr float toggleWidth = 76.0f;
-    constexpr float toggleHeight = 24.0f;
-    constexpr float toggleGap = 10.0f;
+    constexpr float toggleWidth = 60.0f;
+    constexpr float toggleHeight = 22.0f;
+    constexpr float toggleGap = 6.0f;
     float rightX = m_bounds.x + m_bounds.width - buttonWidth * 3.0f;
     float x = rightX - toggleGap - toggleWidth;
     float y = m_bounds.y + (m_bounds.height - toggleHeight) * 0.5f;
@@ -224,8 +275,32 @@ bool TitleBar::IsLowPerformanceToggleHit(float x, float y) const {
     return GetLowPerformanceToggleRect().Contains(x, y);
 }
 
+Rect TitleBar::GetBackdropToggleRect() const {
+    Rect lowPerfRect = GetLowPerformanceToggleRect();
+    constexpr float toggleWidth = 76.0f;
+    constexpr float toggleGap = 6.0f;
+    float x = lowPerfRect.x - toggleGap - toggleWidth;
+    return Rect(x, lowPerfRect.y, toggleWidth, lowPerfRect.height);
+}
+
+bool TitleBar::IsBackdropToggleHit(float x, float y) const {
+    return GetBackdropToggleRect().Contains(x, y);
+}
+
+Rect TitleBar::GetThemeToggleRect() const {
+    Rect bdpRect = GetBackdropToggleRect();
+    constexpr float toggleWidth = 68.0f;
+    constexpr float toggleGap = 6.0f;
+    float x = bdpRect.x - toggleGap - toggleWidth;
+    return Rect(x, bdpRect.y, toggleWidth, bdpRect.height);
+}
+
+bool TitleBar::IsThemeToggleHit(float x, float y) const {
+    return GetThemeToggleRect().Contains(x, y);
+}
+
 UIElement* TitleBar::HitTest(float x, float y) {
-    if (IsLowPerformanceToggleHit(x, y)) {
+    if (IsLowPerformanceToggleHit(x, y) || IsBackdropToggleHit(x, y) || IsThemeToggleHit(x, y)) {
         return this;
     }
     UIElement* mbHit = m_menuBar.HitTest(x, y);

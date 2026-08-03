@@ -189,6 +189,8 @@
     <ClCompile Include="showcase\app\pages\UniformPage.cpp" />
     <ClCompile Include="showcase\app\pages\StackPanelPage.cpp" />
     <ClCompile Include="showcase\app\pages\ScrollViewerPage.cpp" />
+    <ClCompile Include="showcase\app\pages\FlyoutPage.cpp" />
+    <ClCompile Include="showcase\app\pages\NavigationViewPage.cpp" />
     <ClCompile Include="ui\framework\core\Value.cpp" />
     <ClCompile Include="ui\framework\core\Object.cpp" />
     <ClCompile Include="ui\framework\core\Binding.cpp" />
@@ -213,6 +215,9 @@
     <ClCompile Include="ui\framework\controls\Image.cpp" />
     <ClCompile Include="ui\framework\controls\ComboBox.cpp" />
     <ClCompile Include="ui\framework\controls\ContextMenu.cpp" />
+    <ClCompile Include="ui\framework\controls\Flyout.cpp" />
+    <ClCompile Include="ui\framework\controls\NavigationView.cpp" />
+    <ClCompile Include="ui\framework\window\WindowBackdrop.cpp" />
     <ClCompile Include="ui\framework\controls\ListBox.cpp" />
     <ClCompile Include="ui\framework\controls\ListView.cpp" />
     <ClCompile Include="ui\framework\controls\Panel.cpp" />
