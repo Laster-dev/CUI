@@ -241,8 +241,11 @@ bool TimePicker::OnAnimationTick() {
     bool hourAnimating = animateAxis(m_hourPosition, m_hourTarget, 24);
     bool minuteAnimating = animateAxis(m_minutePosition, m_minuteTarget, 60);
 
+    m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
+    bool popupAnimating = m_popupAnim.Tick(deltaSeconds, AnimationSpec{ 0.16f, 0.01f });
+
     ApplyAnimatedSelection();
-    return base || hourAnimating || minuteAnimating;
+    return base || hourAnimating || minuteAnimating || popupAnimating;
 }
 
 bool TimePicker::HasSelfAnimation() const {
@@ -255,6 +258,7 @@ bool TimePicker::HasSelfAnimation() const {
     };
 
     return Control::HasSelfAnimation()
+        || (std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.01f)
         || (UIElement::AreAnimationsEnabled() && axisAnimating(m_hourPosition, m_hourTarget, 24))
         || (UIElement::AreAnimationsEnabled() && axisAnimating(m_minutePosition, m_minuteTarget, 60));
 }
@@ -275,17 +279,21 @@ void TimePicker::OnRender(GraphicsContext& ctx) {
 }
 
 void TimePicker::OnRenderOverlay(GraphicsContext& ctx) {
-    if (!m_isPopupOpen) return;
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
+    if (progress <= 0.001f) return;
 
     Rect popup = GetPopupRect();
-    D2D1_COLOR_F popupBg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f);
-    D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f);
-    D2D1_COLOR_F textPrimary = D2D1::ColorF(0xF2 / 255.0f, 0xF2 / 255.0f, 0xF2 / 255.0f, 1.0f);
-    D2D1_COLOR_F textSecondary = D2D1::ColorF(0x9A / 255.0f, 0x9A / 255.0f, 0x9A / 255.0f, 1.0f);
-    D2D1_COLOR_F headerAccent = D2D1::ColorF(0x56 / 255.0f, 0x9C / 255.0f, 0xD6 / 255.0f, 1.0f);
-    D2D1_COLOR_F overlayFill = D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x30 / 255.0f, 1.0f);
-    D2D1_COLOR_F overlayBorder = D2D1::ColorF(0x4A / 255.0f, 0x4A / 255.0f, 0x4F / 255.0f, 1.0f);
-    D2D1_COLOR_F divider = D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f);
+    float slideY = (1.0f - progress) * -8.0f;
+    popup.y += slideY;
+
+    D2D1_COLOR_F popupBg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, progress);
+    D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, progress);
+    D2D1_COLOR_F textPrimary = D2D1::ColorF(0xF2 / 255.0f, 0xF2 / 255.0f, 0xF2 / 255.0f, progress);
+    D2D1_COLOR_F textSecondary = D2D1::ColorF(0x9A / 255.0f, 0x9A / 255.0f, 0x9A / 255.0f, progress);
+    D2D1_COLOR_F headerAccent = D2D1::ColorF(0x56 / 255.0f, 0x9C / 255.0f, 0xD6 / 255.0f, progress);
+    D2D1_COLOR_F overlayFill = D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x30 / 255.0f, progress);
+    D2D1_COLOR_F overlayBorder = D2D1::ColorF(0x4A / 255.0f, 0x4A / 255.0f, 0x4F / 255.0f, progress);
+    D2D1_COLOR_F divider = D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, progress);
 
     ctx.FillRoundedRect(popup, 6.0f, popupBg);
     ctx.DrawRoundedRect(popup, 6.0f, border, 1.5f);

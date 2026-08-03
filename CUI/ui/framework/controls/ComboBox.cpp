@@ -122,22 +122,28 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
 }
 
 void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
-    if (!m_isDropDownOpen || m_items.empty()) return;
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isDropDownOpen ? 1.0f : 0.0f);
+    if (progress <= 0.001f || m_items.empty()) return;
 
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
 
     float itemHeight = GetProperty("itemHeight").AsFloat(28.0f);
     float menuH = itemHeight * m_items.size();
-    Rect menuRect(m_bounds.x, m_bounds.y + m_bounds.height + 2.0f, m_bounds.width, menuH);
+    
+    float slideY = (1.0f - progress) * -8.0f;
+    Rect menuRect(m_bounds.x, m_bounds.y + m_bounds.height + 2.0f + slideY, m_bounds.width, menuH);
 
     D2D1_COLOR_F dropBg = GetProperty("dropdownBackground").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
     D2D1_COLOR_F selBg = GetProperty("selectedItemBackground").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
 
-    // Draw dropdown popup shadow & background (Topmost Overlay Pass)
+    dropBg.a *= progress;
+    selBg.a *= progress;
+    D2D1_COLOR_F borderClr = D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, progress);
+
     ctx.FillRoundedRect(menuRect, radius, dropBg);
-    ctx.DrawRoundedRect(menuRect, radius, D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 1.0f), 1.0f);
+    ctx.DrawRoundedRect(menuRect, radius, borderClr, 1.0f);
 
     for (size_t i = 0; i < m_items.size(); ++i) {
         Rect itemRect(menuRect.x + 2, menuRect.y + i * itemHeight + 2, menuRect.width - 4, itemHeight - 4);
@@ -148,12 +154,14 @@ void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
         }
 
         D2D1_COLOR_F itemColor = GetProperty("color").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
+        itemColor.a *= progress;
         ctx.DrawText(m_items[i], Rect(itemRect.x + 8, itemRect.y, itemRect.width - 16, itemRect.height), itemColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
 }
 
 UIElement* ComboBox::HitTestOverlay(float x, float y) {
-    if (!m_isDropDownOpen || m_items.empty()) return nullptr;
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isDropDownOpen ? 1.0f : 0.0f);
+    if (progress <= 0.5f || m_items.empty()) return nullptr;
 
     float itemHeight = 28.0f;
     float menuH = itemHeight * m_items.size();
@@ -163,6 +171,25 @@ UIElement* ComboBox::HitTestOverlay(float x, float y) {
         return this;
     }
     return nullptr;
+}
+
+bool ComboBox::OnAnimationTick() {
+    bool animating = false;
+    float dt = UIElement::GetAnimationDeltaSeconds();
+    AnimationSpec spec{ 0.16f, 0.01f };
+
+    m_popupAnim.SetTarget(m_isDropDownOpen ? 1.0f : 0.0f);
+    if (m_popupAnim.Tick(dt, spec)) animating = true;
+
+    m_arrowAnim.SetTarget(m_isDropDownOpen ? 1.0f : 0.0f);
+    if (m_arrowAnim.Tick(dt, spec)) animating = true;
+
+    return animating;
+}
+
+bool ComboBox::HasSelfAnimation() const {
+    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.01f ||
+           std::abs(m_arrowAnim.Target() - m_arrowAnim.Current()) > 0.01f;
 }
 
 UIElement* ComboBox::HitTest(float x, float y) {

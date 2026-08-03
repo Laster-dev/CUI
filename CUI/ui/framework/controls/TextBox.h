@@ -22,7 +22,7 @@ public:
 
     virtual const char* GetClassName() const override { return "TextBox"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
-    virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_IBEAM) : nullptr; }
+    virtual HCURSOR GetCursor() const override;
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;

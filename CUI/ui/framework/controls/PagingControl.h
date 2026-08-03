@@ -15,6 +15,8 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     int GetCurrentPage() const { return GetProperty("currentPage").AsInt(1); }
     void SetCurrentPage(int page);
@@ -35,6 +37,7 @@ private:
     int m_page1Val = 1;
     int m_page2Val = 2;
     int m_page3Val = 3;
+    AnimatedScalar m_pageIndicatorAnim{};
     Event<PagingControl*, int> m_onPageChangedEvent;
 };
 

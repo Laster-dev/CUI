@@ -101,8 +101,8 @@ void ProgressBar::OnRender(GraphicsContext& ctx) {
         float cycleDur = 2.0f;
         float animTime = m_animOffset;
         if (!UIElement::AreAnimationsEnabled()) {
-            // Low performance mode: XP-style discrete frame-by-frame step animation (8 FPS step jumps)
-            animTime = std::floor(m_animOffset * 8.0f) / 8.0f;
+            // Low performance mode: XP-style discrete frame-by-frame step animation (5 FPS step jumps)
+            animTime = std::floor(m_animOffset * 5.0f) / 5.0f;
         }
 
         float tNorm = std::fmod(animTime, cycleDur) / cycleDur;

@@ -56,7 +56,8 @@ static D2D1_COLOR_F HSVToRGB(float h, float s, float v) {
 }
 
 UIElement* ColorPicker::OnHitTestOverlay(float x, float y) {
-    if (!m_isPopupOpen) return nullptr;
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
+    if (progress <= 0.5f) return nullptr;
     float popW = 240.0f;
     float popH = 220.0f;
     Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
@@ -64,6 +65,16 @@ UIElement* ColorPicker::OnHitTestOverlay(float x, float y) {
         return this;
     }
     return nullptr;
+}
+
+bool ColorPicker::OnAnimationTick() {
+    float dt = UIElement::GetAnimationDeltaSeconds();
+    m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
+    return m_popupAnim.Tick(dt, AnimationSpec{ 0.16f, 0.01f });
+}
+
+bool ColorPicker::HasSelfAnimation() const {
+    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.01f;
 }
 
 void ColorPicker::OnMouseDown(Point pt) {
@@ -137,14 +148,16 @@ void ColorPicker::OnRender(GraphicsContext& ctx) {
 }
 
 void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
-    if (!m_isPopupOpen) return;
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
+    if (progress <= 0.001f) return;
 
     float popW = 240.0f;
     float popH = 220.0f;
-    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
+    float slideY = (1.0f - progress) * -8.0f;
+    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f + slideY, popW, popH);
 
-    D2D1_COLOR_F bg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f);
-    D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f);
+    D2D1_COLOR_F bg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, progress);
+    D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, progress);
     D2D1_COLOR_F selColor = GetSelectedColor();
 
     ctx.FillRoundedRect(popRect, 6.0f, bg);

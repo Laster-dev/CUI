@@ -49,6 +49,7 @@ private:
     float m_minutePosition = 30.0f;
     float m_hourTarget = 14.0f;
     float m_minuteTarget = 30.0f;
+    AnimatedScalar m_popupAnim{};
     std::chrono::steady_clock::time_point m_lastAnimTime{};
 
     Event<TimePicker*, int, int> m_onTimeChangedEvent;

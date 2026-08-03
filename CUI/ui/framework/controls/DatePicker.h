@@ -24,6 +24,8 @@ public:
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     bool IsPopupOpen() const { return m_isPopupOpen; }
     void SetPopupOpen(bool open) { m_isPopupOpen = open; }
@@ -43,6 +45,7 @@ private:
     int m_viewStartYear = 2020;
     DatePickerViewMode m_viewMode = DatePickerViewMode::DayGrid;
     bool m_isPopupOpen = false;
+    AnimatedScalar m_popupAnim{};
     Event<DatePicker*, int, int, int> m_onDateChangedEvent;
 };
 

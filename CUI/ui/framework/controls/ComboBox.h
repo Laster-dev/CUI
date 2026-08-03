@@ -19,6 +19,8 @@ public:
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnBlur() override;
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     virtual bool ShouldClipToBounds() const override { return !m_isDropDownOpen; }
     virtual UIElement* HitTest(float x, float y) override;
@@ -40,6 +42,8 @@ private:
     int m_selectedIndex = -1;
     bool m_isDropDownOpen = false;
     int m_hoveredIndex = -1;
+    AnimatedScalar m_popupAnim{};
+    AnimatedScalar m_arrowAnim{};
 
     Event<ComboBox*, int, const std::string&> m_onSelectionChangedEvent;
 };

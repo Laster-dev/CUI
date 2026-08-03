@@ -322,6 +322,17 @@ void TextBox::PushUndoState() {
     m_redoStack.clear();
 }
 
+HCURSOR TextBox::GetCursor() const {
+    if (!IsEnabled()) return nullptr;
+    if (IsPasswordMode() && GetShowRevealButton()) {
+        Rect btnRect = GetRevealButtonRect();
+        if (btnRect.Contains(m_lastMousePos.x, m_lastMousePos.y)) {
+            return LoadCursor(nullptr, IDC_HAND);
+        }
+    }
+    return LoadCursor(nullptr, IDC_IBEAM);
+}
+
 void TextBox::Undo() {
     if (m_undoStack.empty()) return;
 

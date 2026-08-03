@@ -145,14 +145,48 @@ void PagingControl::Arrange(Rect finalRect) {
 void PagingControl::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
-    // Draw total pages text on right end
     float btnW = 32.0f;
     float gap = 6.0f;
     float startX = m_bounds.x + (m_bounds.width - (5 * btnW + 4 * gap + 70.0f)) * 0.5f;
-    Rect infoRect(startX + 5 * (btnW + gap) + 4.0f, m_bounds.y, 65.0f, m_bounds.height);
+    
+    // Draw sliding active page indicator bar under page buttons
+    int current = GetCurrentPage();
+    int total = GetTotalPages();
+    float targetIndex = 1.0f;
+    if (current == m_page1Val) targetIndex = 1.0f;
+    else if (current == m_page2Val) targetIndex = 2.0f;
+    else if (current == m_page3Val) targetIndex = 3.0f;
 
-    std::string info = "共 " + std::to_string(GetTotalPages()) + " 页";
+    float activeIndex = UIElement::AreAnimationsEnabled() ? m_pageIndicatorAnim.Current() : targetIndex;
+    float pillX = startX + activeIndex * (btnW + gap) + 4.0f;
+    float pillY = m_bounds.y + m_bounds.height - 2.0f;
+    Rect pillRect(pillX, pillY, btnW - 8.0f, 2.0f);
+    ctx.FillRoundedRect(pillRect, 1.0f, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+
+    // Draw total pages text on right end
+    Rect infoRect(startX + 5 * (btnW + gap) + 4.0f, m_bounds.y, 65.0f, m_bounds.height);
+    std::string info = "共 " + std::to_string(total) + " 页";
     ctx.DrawText(info, infoRect, D2D1::ColorF(0x88 / 255.0f, 0x88 / 255.0f, 0x88 / 255.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+}
+
+bool PagingControl::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    float dt = UIElement::GetAnimationDeltaSeconds();
+    
+    int current = GetCurrentPage();
+    float targetIndex = 1.0f;
+    if (current == m_page1Val) targetIndex = 1.0f;
+    else if (current == m_page2Val) targetIndex = 2.0f;
+    else if (current == m_page3Val) targetIndex = 3.0f;
+
+    m_pageIndicatorAnim.SetTarget(targetIndex);
+    bool indicatorAnim = m_pageIndicatorAnim.Tick(dt, AnimationSpec{ 0.16f, 0.01f });
+    return base || indicatorAnim;
+}
+
+bool PagingControl::HasSelfAnimation() const {
+    return Control::HasSelfAnimation() ||
+           std::abs(m_pageIndicatorAnim.Target() - m_pageIndicatorAnim.Current()) > 0.01f;
 }
 
 void PagingControl::SetCurrentPage(int page) {
@@ -162,6 +196,7 @@ void PagingControl::SetCurrentPage(int page) {
         SetProperty("currentPage", Value(page));
         UpdatePageButtons();
         m_onPageChangedEvent.Invoke(this, page);
+        MarkRenderContentDirty();
     }
 }
 

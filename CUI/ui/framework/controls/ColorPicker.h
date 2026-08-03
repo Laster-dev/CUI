@@ -18,6 +18,8 @@ public:
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     bool IsPopupOpen() const { return m_isPopupOpen; }
     void SetPopupOpen(bool open) { m_isPopupOpen = open; }
@@ -30,6 +32,7 @@ public:
 private:
     std::vector<D2D1_COLOR_F> m_swatches;
     bool m_isPopupOpen = false;
+    AnimatedScalar m_popupAnim{};
     float m_hue = 200.0f; // 0..360
     float m_sat = 1.0f;   // 0..1
     float m_val = 0.8f;   // 0..1
