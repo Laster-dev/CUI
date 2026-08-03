@@ -97,17 +97,10 @@ void PagingControl::UpdatePageButtons() {
         btn->SetProperty("visibility", Value("Visible"));
         btn->SetText(std::to_string(val));
         bool active = (current == val);
-        if (active) {
-            btn->SetProperty("background", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-            btn->SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
-            btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-            btn->SetProperty("borderThickness", Value(1.0f));
-        } else {
-            btn->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
-            btn->SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
-            btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
-            btn->SetProperty("borderThickness", Value(1.0f));
-        }
+        btn->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
+        btn->SetProperty("color", Value(active ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f) : D2D1::ColorF(0xAA / 255.0f, 0xAA / 255.0f, 0xAA / 255.0f, 1.0f)));
+        btn->SetProperty("borderBrush", Value(active ? D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 0.8f) : D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+        btn->SetProperty("borderThickness", Value(1.0f));
     };
 
     updateBtn(m_btnPage1, m_page1Val);
@@ -180,7 +173,7 @@ bool PagingControl::OnAnimationTick() {
     else if (current == m_page3Val) targetIndex = 3.0f;
 
     m_pageIndicatorAnim.SetTarget(targetIndex);
-    bool indicatorAnim = m_pageIndicatorAnim.Tick(dt, AnimationSpec{ 0.16f, 0.01f });
+    bool indicatorAnim = m_pageIndicatorAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
     return base || indicatorAnim;
 }
 

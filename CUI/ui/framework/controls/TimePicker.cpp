@@ -242,7 +242,7 @@ bool TimePicker::OnAnimationTick() {
     bool minuteAnimating = animateAxis(m_minutePosition, m_minuteTarget, 60);
 
     m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
-    bool popupAnimating = m_popupAnim.Tick(deltaSeconds, AnimationSpec{ 0.16f, 0.01f });
+    bool popupAnimating = m_popupAnim.Tick(deltaSeconds, AnimationSpec{ 0.55f, 0.01f });
 
     ApplyAnimatedSelection();
     return base || hourAnimating || minuteAnimating || popupAnimating;
@@ -283,8 +283,10 @@ void TimePicker::OnRenderOverlay(GraphicsContext& ctx) {
     if (progress <= 0.001f) return;
 
     Rect popup = GetPopupRect();
-    float slideY = (1.0f - progress) * -8.0f;
-    popup.y += slideY;
+    float currentH = (m_isPopupOpen && progress >= 0.98f) ? popup.height : (popup.height * progress);
+    Rect clipRect(popup.x, popup.y, popup.width, currentH);
+
+    ctx.PushClip(clipRect);
 
     D2D1_COLOR_F popupBg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, progress);
     D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, progress);
@@ -367,6 +369,8 @@ void TimePicker::OnRenderOverlay(GraphicsContext& ctx) {
 
     Rect doneRect(popup.x + 12.0f, popup.y + popup.height - 32.0f, popup.width - 24.0f, 20.0f);
     ctx.DrawText("确定", doneRect, textPrimary, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+
+    ctx.PopClip();
 }
 
 } // namespace CUI

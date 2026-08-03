@@ -584,7 +584,10 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         {
             const bool dragging = !m_pressedElement.expired();
             if (OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
-                if (dragging) {
+                if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
+                    m_pendingDirtyRegion.AddRect(m_activeContextMenu->GetBounds().Inflate(4.0f));
+                    InvalidatePendingRenderRegions(true);
+                } else if (dragging) {
                     InvalidatePendingRenderRegions(false);
                 } else {
                     InvalidateAnimatedRegions(true);

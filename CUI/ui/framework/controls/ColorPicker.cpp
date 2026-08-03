@@ -56,8 +56,7 @@ static D2D1_COLOR_F HSVToRGB(float h, float s, float v) {
 }
 
 UIElement* ColorPicker::OnHitTestOverlay(float x, float y) {
-    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
-    if (progress <= 0.5f) return nullptr;
+    if (!m_isPopupOpen) return nullptr;
     float popW = 240.0f;
     float popH = 220.0f;
     Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
@@ -70,11 +69,12 @@ UIElement* ColorPicker::OnHitTestOverlay(float x, float y) {
 bool ColorPicker::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
-    return m_popupAnim.Tick(dt, AnimationSpec{ 0.16f, 0.01f });
+    return m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
 }
 
 bool ColorPicker::HasSelfAnimation() const {
-    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.01f;
+    if (!m_isPopupOpen) return false;
+    return std::abs(1.0f - m_popupAnim.Current()) > 0.01f;
 }
 
 void ColorPicker::OnMouseDown(Point pt) {
@@ -153,11 +153,14 @@ void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
 
     float popW = 240.0f;
     float popH = 220.0f;
-    float slideY = (1.0f - progress) * -8.0f;
-    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f + slideY, popW, popH);
+    float currentH = (m_isPopupOpen && progress >= 0.98f) ? popH : (popH * progress);
+    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
+    Rect clipRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, currentH);
 
-    D2D1_COLOR_F bg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, progress);
-    D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, progress);
+    ctx.PushClip(clipRect);
+
+    D2D1_COLOR_F bg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f);
+    D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f);
     D2D1_COLOR_F selColor = GetSelectedColor();
 
     ctx.FillRoundedRect(popRect, 6.0f, bg);
@@ -214,6 +217,8 @@ void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
     sprintf_s(hexDetail, "RGB(%d, %d, %d)", static_cast<int>(selColor.r * 255), static_cast<int>(selColor.g * 255), static_cast<int>(selColor.b * 255));
     Rect bottomText(popRect.x + 12.0f, popRect.y + 175.0f, popW - 24.0f, 20.0f);
     ctx.DrawText(hexDetail, bottomText, D2D1::ColorF(0xAA / 255.0f, 0xAA / 255.0f, 0xAA / 255.0f), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
+    ctx.PopClip();
 }
 
 } // namespace CUI

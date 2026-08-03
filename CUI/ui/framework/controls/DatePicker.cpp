@@ -87,11 +87,11 @@ UIElement* DatePicker::OnHitTestOverlay(float x, float y) {
 bool DatePicker::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
-    return m_popupAnim.Tick(dt, AnimationSpec{ 0.16f, 0.01f });
+    return m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
 }
 
 bool DatePicker::HasSelfAnimation() const {
-    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.01f;
+    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f;
 }
 
 void DatePicker::OnMouseDown(Point pt) {
@@ -222,14 +222,17 @@ void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
 
     float popW = 240.0f;
     float popH = 240.0f;
-    float slideY = (1.0f - progress) * -8.0f;
-    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f + slideY, popW, popH);
+    float currentH = (m_isPopupOpen && progress >= 0.98f) ? popH : (popH * progress);
+    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
+    Rect clipRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, currentH);
 
-    D2D1_COLOR_F bg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, progress);
-    D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, progress);
-    D2D1_COLOR_F textCol = D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, progress);
-    D2D1_COLOR_F btnCol = D2D1::ColorF(0x56 / 255.0f, 0x9C / 255.0f, 0xD6 / 255.0f, progress);
-    D2D1_COLOR_F selBg = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, progress);
+    ctx.PushClip(clipRect);
+
+    D2D1_COLOR_F bg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f);
+    D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f);
+    D2D1_COLOR_F textCol = D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f);
+    D2D1_COLOR_F btnCol = D2D1::ColorF(0x56 / 255.0f, 0x9C / 255.0f, 0xD6 / 255.0f, 1.0f);
+    D2D1_COLOR_F selBg = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f);
 
     ctx.FillRoundedRect(popRect, 6.0f, bg);
     ctx.DrawRoundedRect(popRect, 6.0f, border, 1.5f);
@@ -327,6 +330,8 @@ void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
             }
         }
     }
+
+    ctx.PopClip();
 }
 
 } // namespace CUI
