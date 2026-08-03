@@ -124,6 +124,12 @@ private:
     float m_dragStartX = 0.0f;
     float m_initialColumnWidth = 0.0f;
 
+    // Column reordering state (拖拽重排列)
+    bool m_isReorderingColumn = false;
+    int m_reorderingColumnIndex = -1;
+    float m_columnDragStartX = 0.0f;
+    float m_columnDragCurrentX = 0.0f;
+
     // Rubber-band selection state (拉框选择)
     bool m_isMouseDown = false;
     Point m_mouseDownPoint;

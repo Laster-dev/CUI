@@ -454,6 +454,33 @@ void ListView::OnRender(GraphicsContext& ctx) {
         ctx.FillRoundedRect(thumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.6f));
     }
 
+    // 5. Column Drag Reordering Indicator Card & Insertion Line
+    if (m_isReorderingColumn && m_reorderingColumnIndex >= 0 && m_reorderingColumnIndex < static_cast<int>(m_columns.size())) {
+        D2D1_COLOR_F accent = ThemeManager::Instance().GetColor("accentColor");
+        
+        float dropX = m_bounds.x - m_scrollX;
+        float currX = m_bounds.x - m_scrollX;
+        for (size_t c = 0; c < m_columns.size(); ++c) {
+            float colMid = currX + m_columns[c].width * 0.5f;
+            if (m_columnDragCurrentX < colMid) {
+                dropX = currX;
+                break;
+            }
+            currX += m_columns[c].width;
+            dropX = currX;
+        }
+
+        // Draw vertical insertion line indicator across full height
+        ctx.DrawLine(Point(dropX, m_bounds.y), Point(dropX, m_bounds.y + m_bounds.height), accent, 3.0f);
+
+        // Draw floating drag card under cursor
+        float dragColW = m_columns[m_reorderingColumnIndex].width;
+        Rect dragCard(m_columnDragCurrentX - dragColW * 0.5f, m_bounds.y + 2.0f, dragColW, m_headerHeight - 4.0f);
+        ctx.FillRoundedRect(dragCard, 4.0f, D2D1::ColorF(accent.r, accent.g, accent.b, 0.45f));
+        ctx.DrawRoundedRect(dragCard, 4.0f, accent, 1.5f);
+        ctx.DrawText(m_columns[m_reorderingColumnIndex].header, dragCard, D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f), font, fontH, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    }
+
     ctx.PopClip();
 }
 
@@ -466,6 +493,8 @@ void ListView::OnMouseDown(Point pt) {
     m_mouseDownPoint = pt;
     m_initialSelectedBeforeDrag = m_selectedIndices;
     m_pendingRowClick = -1;
+    m_isReorderingColumn = false;
+    m_reorderingColumnIndex = -1;
 
     // 1. Check Vertical ScrollBar Track / Thumb Click
     if (m_maxScrollY > 0.0f) {
@@ -478,7 +507,7 @@ void ListView::OnMouseDown(Point pt) {
         }
     }
 
-    // 2. Check Column Resizing Splitters in Header Bar
+    // 2. Check Header Bar: Splitter Resize OR Column Drag Reordering
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
         float currX = m_bounds.x - m_scrollX;
         for (size_t c = 0; c < m_columns.size(); ++c) {
@@ -489,6 +518,11 @@ void ListView::OnMouseDown(Point pt) {
                 m_dragStartX = pt.x;
                 m_initialColumnWidth = m_columns[c].width;
                 return;
+            }
+            if (pt.x >= currX && pt.x < splitterX) {
+                m_reorderingColumnIndex = static_cast<int>(c);
+                m_columnDragStartX = pt.x;
+                m_columnDragCurrentX = pt.x;
             }
             currX += m_columns[c].width;
         }
@@ -525,33 +559,38 @@ void ListView::OnMouseMove(Point pt) {
     if (m_isResizingColumn && m_resizingColumnIndex >= 0 && m_resizingColumnIndex < static_cast<int>(m_columns.size())) {
         float deltaX = pt.x - m_dragStartX;
         float newW = std::max(m_columns[m_resizingColumnIndex].minWidth, m_initialColumnWidth + deltaX);
-        m_columns[m_resizingColumnIndex].width = newW;
+        if (m_columns[m_resizingColumnIndex].width != newW) {
+            m_columns[m_resizingColumnIndex].width = newW;
+            ClampScroll();
+            MarkRenderContentDirty();
+        }
         return;
     }
 
-    // 3. Check if mouse drag exceeds threshold to start Rubber-Band Marquee Selection
-    if (m_isMouseDown && !m_isResizingColumn && !m_isDraggingScrollbar && !m_isRubberBandSelecting) {
+    // 3. Column Reordering Drag
+    if (m_isMouseDown && m_reorderingColumnIndex >= 0 && !m_isResizingColumn && !m_isDraggingScrollbar) {
+        float dx = std::abs(pt.x - m_columnDragStartX);
+        if (dx > 4.0f || m_isReorderingColumn) {
+            m_isReorderingColumn = true;
+            m_columnDragCurrentX = pt.x;
+            MarkRenderContentDirty();
+            return;
+        }
+    }
+
+    // 4. Check if mouse drag exceeds threshold to start Rubber-Band Marquee Selection
+    if (m_isMouseDown && !m_isResizingColumn && !m_isReorderingColumn && !m_isDraggingScrollbar && !m_isRubberBandSelecting) {
         float dx = pt.x - m_mouseDownPoint.x;
         float dy = pt.y - m_mouseDownPoint.y;
         if (std::sqrt(dx * dx + dy * dy) > 4.0f) {
             m_isRubberBandSelecting = true;
-            // Store start in content coordinates (scroll-adjusted)
             m_rubberBandStart.x = m_mouseDownPoint.x - m_bounds.x + m_scrollX;
             m_rubberBandStart.y = m_mouseDownPoint.y - m_bounds.y - m_headerHeight + m_scrollY;
             m_rubberBandScrollOffsetY = m_scrollY;
-
-            // Initialize auto-scroll direction to reduce jitter around midline.
-            float contentTop = m_bounds.y + m_headerHeight;
-            float contentBottom = m_bounds.y + m_bounds.height;
-            float contentH = contentBottom - contentTop;
-            if (contentH > 0.0f) {
-                float midY = contentTop + contentH * 0.5f;
-                m_autoScrollDirY = (pt.y >= midY) ? 1 : -1; // +1 down, -1 up
-            }
         }
     }
 
-    // 4. Rubber-Band Drag Selection
+    // 5. Rubber-Band Drag Selection
     if (m_isRubberBandSelecting) {
         m_rubberBandCurrent = pt;
         m_autoScrollLastMouseX = pt.x;
@@ -561,10 +600,11 @@ void ListView::OnMouseMove(Point pt) {
             ClampScroll();
         }
         UpdateRubberBandSelection();
+        MarkRenderContentDirty();
         return;
     }
 
-    // 5. Hover state on Column Splitter lines
+    // 6. Hover state on Column Splitter lines
     m_hoveredColumnSplitter = -1;
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
         float currX = m_bounds.x - m_scrollX;
@@ -584,10 +624,49 @@ void ListView::OnMouseMove(Point pt) {
 void ListView::OnMouseUp(Point pt) {
     Control::OnMouseUp(pt);
 
+    // Column Reordering Drop Execution
+    if (m_isReorderingColumn && m_reorderingColumnIndex >= 0 && m_reorderingColumnIndex < static_cast<int>(m_columns.size())) {
+        int dropIndex = -1;
+        float currX = m_bounds.x - m_scrollX;
+        for (size_t c = 0; c < m_columns.size(); ++c) {
+            float colMid = currX + m_columns[c].width * 0.5f;
+            if (pt.x < colMid) {
+                dropIndex = static_cast<int>(c);
+                break;
+            }
+            currX += m_columns[c].width;
+        }
+        if (dropIndex == -1) {
+            dropIndex = static_cast<int>(m_columns.size()) - 1;
+        }
+
+        int srcIndex = m_reorderingColumnIndex;
+        if (dropIndex != srcIndex && dropIndex >= 0 && dropIndex < static_cast<int>(m_columns.size())) {
+            ListViewColumn col = m_columns[srcIndex];
+            m_columns.erase(m_columns.begin() + srcIndex);
+            m_columns.insert(m_columns.begin() + dropIndex, col);
+
+            if (!m_virtualMode) {
+                for (auto& row : m_rows) {
+                    if (srcIndex < static_cast<int>(row.size())) {
+                        ListViewCellData cell = row[srcIndex];
+                        row.erase(row.begin() + srcIndex);
+                        if (dropIndex < static_cast<int>(row.size())) {
+                            row.insert(row.begin() + dropIndex, cell);
+                        } else {
+                            row.push_back(cell);
+                        }
+                    }
+                }
+            }
+            MarkRenderContentDirty();
+        }
+    }
+
     int rowCount = static_cast<int>(GetRowCount());
 
     // If mouse was clicked without dragging, perform normal row selection!
-    if (!m_isRubberBandSelecting && !m_isResizingColumn && m_pendingRowClick != -1) {
+    if (!m_isRubberBandSelecting && !m_isResizingColumn && !m_isReorderingColumn && m_pendingRowClick != -1) {
         int clickedRow = m_pendingRowClick;
         bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
         bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
@@ -612,7 +691,7 @@ void ListView::OnMouseUp(Point pt) {
             }
         }
         m_onSelectionChangedEvent.Invoke(this, clickedRow);
-    } else if (!m_isRubberBandSelecting && !m_isResizingColumn && m_pendingRowClick == -1) {
+    } else if (!m_isRubberBandSelecting && !m_isResizingColumn && !m_isReorderingColumn && m_pendingRowClick == -1) {
         // Clicked empty area without dragging -> clear selection
         m_selectedIndices.clear();
         m_anchorIndex = -1;
@@ -621,6 +700,8 @@ void ListView::OnMouseUp(Point pt) {
 
     m_isMouseDown = false;
     m_isResizingColumn = false;
+    m_isReorderingColumn = false;
+    m_reorderingColumnIndex = -1;
     m_isRubberBandSelecting = false;
     m_isDraggingScrollbar = false;
     m_pendingRowClick = -1;
@@ -650,58 +731,36 @@ bool ListView::ApplyAutoScroll() {
     float mouseY = m_autoScrollLastMouseY;
     bool scrolled = false;
 
-    // Normalize speed by real time elapsed since last ApplyAutoScroll().
-    // Otherwise, calling it from WM_MOUSEMOVE (more frequent) makes scrolling too fast.
-    std::uint64_t nowMs = GetTickCount64();
-    float dtScale = 1.0f; // relative to ~15ms WM_TIMER resolution (see Window.cpp comment)
-    if (m_lastAutoScrollMs != 0) {
-        float dtMs = static_cast<float>(nowMs - m_lastAutoScrollMs);
-        dtScale = dtMs / 15.0f;
-    }
-    m_lastAutoScrollMs = nowMs;
-    dtScale = std::clamp(dtScale, 0.25f, 2.0f);
-
-    // Auto-scroll Y - use visible area's midline + hysteresis to avoid jitter.
     float contentTop = m_bounds.y + m_headerHeight;
     float contentBottom = m_bounds.y + m_bounds.height;
-    float contentH = contentBottom - contentTop;
-    if (contentH > 0.0f) {
-        float midY = contentTop + contentH * 0.5f;
-        float deltaY = mouseY - midY; // +: mouse below midline (scroll down), -: mouse above
-        float absDeltaY = std::abs(deltaY);
 
-        // Scale acceleration relative to list height so it doesn't saturate immediately.
-        float speedDivisor = std::max(5.0f, contentH / 12.0f);
-
-        // Hysteresis zone around midline (5% of visible height).
-        // Increase hysteresis to reduce up/down jitter while dragging.
-        float switchZone = std::max(2.0f, contentH * 0.15f);
-
-        int dirY = m_autoScrollDirY;
-        if (absDeltaY >= switchZone) {
-            dirY = (deltaY >= 0.0f) ? 1 : -1;
-            m_autoScrollDirY = dirY;
-        }
-
-        float speed = std::min(100.0f, 2.0f + std::pow(absDeltaY / speedDivisor, 2.0f));
-        float scaledSpeed = std::min(100.0f, speed * dtScale);
-        if (dirY > 0) m_scrollY += scaledSpeed;
-        else m_scrollY -= scaledSpeed;
+    // Auto-scroll Y ONLY when mouse is dragged outside top or bottom edges!
+    if (mouseY < contentTop) {
+        float dist = contentTop - mouseY;
+        float speed = std::min(120.0f, 4.0f + std::pow(dist / 4.0f, 1.8f));
+        m_targetScrollY = (std::max)(0.0f, m_targetScrollY - speed);
+        m_scrollY = m_targetScrollY;
+        m_scrollYAnim.Reset(m_scrollY);
+        scrolled = true;
+    } else if (mouseY > contentBottom) {
+        float dist = mouseY - contentBottom;
+        float speed = std::min(120.0f, 4.0f + std::pow(dist / 4.0f, 1.8f));
+        m_targetScrollY = (std::min)(m_maxScrollY, m_targetScrollY + speed);
+        m_scrollY = m_targetScrollY;
+        m_scrollYAnim.Reset(m_scrollY);
         scrolled = true;
     }
 
-    // Auto-scroll X - keep existing edge-based behavior
+    // Auto-scroll X ONLY when mouse is dragged outside left or right edges!
     if (mouseX < m_bounds.x) {
-        float overDistance = m_bounds.x - mouseX;
-        float speed = std::min(100.0f, 8.0f + std::pow(overDistance / 5.0f, 2.0f));
-        float scaledSpeed = std::min(100.0f, speed * dtScale);
-        m_scrollX -= scaledSpeed;
+        float dist = m_bounds.x - mouseX;
+        float speed = std::min(120.0f, 4.0f + std::pow(dist / 4.0f, 1.8f));
+        m_scrollX = (std::max)(0.0f, m_scrollX - speed);
         scrolled = true;
     } else if (mouseX > m_bounds.x + m_bounds.width) {
-        float overDistance = mouseX - (m_bounds.x + m_bounds.width);
-        float speed = std::min(100.0f, 8.0f + std::pow(overDistance / 5.0f, 2.0f));
-        float scaledSpeed = std::min(100.0f, speed * dtScale);
-        m_scrollX += scaledSpeed;
+        float dist = mouseX - (m_bounds.x + m_bounds.width);
+        float speed = std::min(120.0f, 4.0f + std::pow(dist / 4.0f, 1.8f));
+        m_scrollX = (std::min)(m_maxScrollX, m_scrollX + speed);
         scrolled = true;
     }
 
