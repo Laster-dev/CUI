@@ -73,7 +73,7 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
     float pillW = 30.0f;
-    float pillH = 15.0f;
+    float pillH = 17.0f;
     Rect pillRect(m_bounds.x, m_bounds.y + (m_bounds.height - pillH) * 0.5f, pillW, pillH);
 
     D2D1_COLOR_F onColor = GetProperty("onColor").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
