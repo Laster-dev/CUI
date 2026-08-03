@@ -73,8 +73,7 @@ bool ColorPicker::OnAnimationTick() {
 }
 
 bool ColorPicker::HasSelfAnimation() const {
-    if (!m_isPopupOpen) return false;
-    return std::abs(1.0f - m_popupAnim.Current()) > 0.01f;
+    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f;
 }
 
 void ColorPicker::OnMouseDown(Point pt) {
