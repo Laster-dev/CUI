@@ -2,14 +2,17 @@
 #define NOMINMAX
 #endif
 #include "Splitter.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
 
 Splitter::Splitter() {
     SetProperty("orientation", Value("Vertical"));
-    SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
-    SetProperty("hoverBackground", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+    SetProperty("theme.backgroundToken", Value("cardBorder"));
+    SetProperty("theme.hoverBackgroundToken", Value("accentColor"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBorder")));
+    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("accentColor")));
     SetProperty("width", Value(6.0f));
     SetProperty("height", Value(200.0f));
 }
@@ -141,8 +144,8 @@ void Splitter::OnMouseUp(Point pt) {
 }
 
 void Splitter::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f));
-    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBorder");
+    D2D1_COLOR_F hoverBg = ResolveThemeColor("theme.hoverBackgroundToken", "accentColor");
 
     ctx.FillRect(m_bounds, (m_isHovered || m_isDragging) ? hoverBg : bg);
 }

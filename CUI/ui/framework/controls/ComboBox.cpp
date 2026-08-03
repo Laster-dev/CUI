@@ -9,21 +9,27 @@ std::vector<PropertyMeta> ComboBox::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
     metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    metas.push_back({ "color", "文字颜色 (Color)", "字体文本", "color" });
     metas.push_back({ "itemHeight", "下拉项高度 (ItemHeight)", "下拉控制", "number" });
-    metas.push_back({ "dropdownBackground", "下拉框背景 (DropBg)", "下拉控制", "color" });
-    metas.push_back({ "selectedItemBackground", "选中项背景 (SelItemBg)", "下拉控制", "color" });
     return metas;
 }
 
 ComboBox::ComboBox() {
     SetProperty("placeholder", Value("Select option..."));
+    SetProperty("theme.backgroundToken", Value("inputBackground"));
+    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
+    SetProperty("theme.borderToken", Value("inputBorder"));
+    SetProperty("theme.focusedBorderToken", Value("focusedBorder"));
+    SetProperty("theme.colorToken", Value("textPrimary"));
+    SetProperty("theme.dropdownBackgroundToken", Value("cardBackground"));
+    SetProperty("theme.selectedItemBackgroundToken", Value("selectedBackground"));
     SetProperty("background", Value(ThemeManager::Instance().GetColor("inputBackground")));
     SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
     SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("inputBorder")));
     SetProperty("focusedBorderBrush", Value(ThemeManager::Instance().GetColor("focusedBorder")));
     SetProperty("borderThickness", Value(1.0f));
     SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    SetProperty("dropdownBackground", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    SetProperty("selectedItemBackground", Value(ThemeManager::Instance().GetColor("selectedBackground")));
     SetProperty("fontSize", Value(13.0f));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("padding", Value(Thickness(10, 6, 10, 6)));
@@ -80,7 +86,7 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
     float radius = GetProperty("cornerRadius").AsFloat(3.0f);
     D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetColor("inputBackground"));
     if (m_isDropDownOpen) {
-        bg = BlendColor(bg, GetProperty("hoverBackground").AsColor(bg), 0.8f);
+        bg = BlendColor(bg, ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground"), 0.8f);
     }
 
     if (radius > 0.0f) {
@@ -90,8 +96,8 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
     }
 
     D2D1_COLOR_F borderBrush = (m_isFocused || m_isDropDownOpen)
-        ? GetProperty("focusedBorderBrush").AsColor(ThemeManager::Instance().GetColor("focusedBorder"))
-        : GetProperty("borderBrush").AsColor(ThemeManager::Instance().GetColor("inputBorder"));
+        ? ResolveThemeColor("theme.focusedBorderToken", "focusedBorder")
+        : ResolveThemeColor("theme.borderToken", "inputBorder");
 
     float borderThickness = GetProperty("borderThickness").AsFloat(1.0f);
     if (borderThickness > 0.0f) {
@@ -110,7 +116,7 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
         displayText = GetProperty("placeholder").AsString("Select option...");
     }
 
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
+    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
 
@@ -138,8 +144,8 @@ void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
 
-    D2D1_COLOR_F dropBg = GetProperty("dropdownBackground").AsColor(ThemeManager::Instance().GetColor("cardBackground"));
-    D2D1_COLOR_F selBg = GetProperty("selectedItemBackground").AsColor(ThemeManager::Instance().GetColor("selectedBackground"));
+    D2D1_COLOR_F dropBg = ResolveThemeColor("theme.dropdownBackgroundToken", "cardBackground");
+    D2D1_COLOR_F selBg = ResolveThemeColor("theme.selectedItemBackgroundToken", "selectedBackground");
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
 
     ctx.FillRoundedRect(menuRect, radius, dropBg);
@@ -153,7 +159,7 @@ void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
             ctx.FillRoundedRect(itemRect, 2.0f, selBg);
         }
 
-        D2D1_COLOR_F itemColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
+        D2D1_COLOR_F itemColor = ResolveThemeColor("theme.colorToken", "textPrimary");
         ctx.DrawText(m_items[i], Rect(itemRect.x + 8, itemRect.y, itemRect.width - 16, itemRect.height), itemColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
 

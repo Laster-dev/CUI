@@ -25,6 +25,8 @@ public:
     virtual void OnMouseUp(Point pt) override;
     virtual void OnKeyDown(int vkCode) override;
     virtual void OnMouseWheel(float delta) override;
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     // Items & Data Management
     void AddItem(const std::string& item);
@@ -79,7 +81,9 @@ private:
 
     // Scrollbar state & Virtualization
     float m_scrollY = 0.0f;
+    float m_targetScrollY = 0.0f;
     float m_maxScrollY = 0.0f;
+    AnimatedScalar m_scrollYAnim{ 0.0f };
     bool m_isDraggingScrollbar = false;
     float m_dragStartY = 0.0f;
     float m_dragStartScrollY = 0.0f;

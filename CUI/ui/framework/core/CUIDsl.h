@@ -46,10 +46,23 @@ inline std::string ResolveLegacyThemeTokenForColor(const std::string& colorStr) 
     if (colorStr == "#1E1E1E") return "windowBackground";
     if (colorStr == "#252526" || colorStr == "#2D2D30") return "cardBackground";
     if (colorStr == "#333333" || colorStr == "#3E3E42") return "cardBorder";
-    if (colorStr == "#007ACC" || colorStr == "#0098FF" || colorStr == "#005A9E") return "accentColor";
+    if (colorStr == "#007ACC" || colorStr == "#0098FF" || colorStr == "#005A9E" || colorStr == "#0E639C") return "accentColor";
+    if (colorStr == "#569CD6" || colorStr == "#4EC9B0" || colorStr == "#9CDCFE") return "accentColor";
+    if (colorStr == "#10B981" || colorStr == "#8E44AD" || colorStr == "#D7A400" || colorStr == "#C586C0") return "accentColor";
+    if (colorStr == "#6A9955" || colorStr == "#CE9178" || colorStr == "#DCDCAA") return "accentColor";
+    if (colorStr == "#D13438" || colorStr == "#D16969") return "dangerColor";
     if (colorStr == "#AAAAAA" || colorStr == "#888888") return "textMuted";
-    if (colorStr == "#CCCCCC" || colorStr == "#B5CEA8" || colorStr == "#9CDCFE") return "textSecondary";
-    if (colorStr == "#569CD6" || colorStr == "#4EC9B0") return "accentColor";
+    if (colorStr == "#CCCCCC" || colorStr == "#DBDBDB" || colorStr == "#E5E5E5" || colorStr == "#B5CEA8") return "textSecondary";
+    if (colorStr == "#5A5A5A") return "inputBorder";
+    // Allow direct token names in DSL
+    if (colorStr == "windowBackground" || colorStr == "cardBackground" || colorStr == "cardBorder" ||
+        colorStr == "textPrimary" || colorStr == "textSecondary" || colorStr == "textMuted" ||
+        colorStr == "titleBarBackground" || colorStr == "titleBarText" || colorStr == "accentColor" ||
+        colorStr == "accentForeground" || colorStr == "dangerColor" || colorStr == "paneBackground" ||
+        colorStr == "inputBackground" || colorStr == "inputBorder" || colorStr == "hoverBackground" ||
+        colorStr == "pressedBackground" || colorStr == "focusedBorder" || colorStr == "activityBarBackground") {
+        return colorStr;
+    }
     return "";
 }
 
@@ -115,9 +128,21 @@ public:
         if (!token.empty()) {
             m_element->SetProperty("theme.backgroundToken", Value(token));
             m_element->SetProperty("background", Value(ThemeManager::Instance().GetColor(token)));
+            if (token == "accentColor" || token == "dangerColor" || token == "statusBarBackground") {
+                m_element->SetProperty("theme.colorToken", Value("accentForeground"));
+                m_element->SetProperty("color", Value(ThemeManager::Instance().GetColor("accentForeground")));
+            } else if (token == "inputBorder" || token == "cardBorder" || token == "cardBackground" ||
+                       token == "paneBackground" || token == "hoverBackground" || token == "windowBackground") {
+                m_element->SetProperty("theme.colorToken", Value("textPrimary"));
+                m_element->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+            }
             return *this;
         }
-        m_element->SetProperty("background", Value(colorStr));
+        // Unmapped hex must not bypass the color system — fall back to accent
+        m_element->SetProperty("theme.backgroundToken", Value("accentColor"));
+        m_element->SetProperty("theme.colorToken", Value("accentForeground"));
+        m_element->SetProperty("background", Value(ThemeManager::Instance().GetColor("accentColor")));
+        m_element->SetProperty("color", Value(ThemeManager::Instance().GetColor("accentForeground")));
         return *this;
     }
 

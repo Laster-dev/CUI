@@ -1,4 +1,5 @@
 #include "Button.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
 
@@ -16,19 +17,24 @@ std::vector<PropertyMeta> Button::GetPropertyMetas() const {
     metas.push_back({ "icon", "前置图标 (Icon)", "基本信息", "string" });
     metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    metas.push_back({ "color", "文字颜色 (Color)", "字体文本", "color" });
     return metas;
 }
 
 Button::Button() {
     SetProperty("text", Value("Button"));
     SetProperty("icon", Value(""));
-    SetProperty("background", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("hoverBackground", Value(D2D1::ColorF(0x1C / 255.0f, 0x97 / 255.0f, 0xEA / 255.0f, 1.0f)));
-    SetProperty("pressedBackground", Value(D2D1::ColorF(0x00 / 255.0f, 0x6D / 255.0f, 0xB7 / 255.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("focusedBorderBrush", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
+    SetProperty("theme.backgroundToken", Value("accentColor"));
+    SetProperty("theme.hoverBackgroundToken", Value("accentColor"));
+    SetProperty("theme.pressedBackgroundToken", Value("accentColor"));
+    SetProperty("theme.borderToken", Value("accentColor"));
+    SetProperty("theme.focusedBorderToken", Value("focusedBorder"));
+    SetProperty("theme.colorToken", Value("accentForeground"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetProperty("focusedBorderBrush", Value(ThemeManager::Instance().GetColor("focusedBorder")));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("accentForeground")));
     SetProperty("fontSize", Value(12.0f));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("padding", Value(Thickness(8, 4, 8, 4)));
@@ -114,8 +120,8 @@ bool Button::HasSelfAnimation() const {
 }
 
 void Button::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
-    D2D1_COLOR_F baseBorder = GetProperty("borderBrush").AsColor(D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetColor("accentColor"));
+    D2D1_COLOR_F baseBorder = ResolveThemeColor("theme.borderToken", "accentColor");
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
 
     // 1. Draw Base Button Background
@@ -128,7 +134,8 @@ void Button::OnRender(GraphicsContext& ctx) {
     // 2. Telegram-Style Ripple: Inside Clip, expanding soft circle with fading alpha
     if (m_rippleActive && m_rippleOpacity > 0.0f) {
         ctx.PushClip(m_bounds);
-        D2D1_COLOR_F rippleColor = D2D1::ColorF(1.0f, 1.0f, 1.0f, m_rippleOpacity);
+        D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetColor("accentForeground");
+        rippleColor.a = m_rippleOpacity;
         Rect rippleRect(
             m_rippleCenter.x - m_rippleRadius,
             m_rippleCenter.y - m_rippleRadius,
@@ -156,8 +163,8 @@ void Button::OnRender(GraphicsContext& ctx) {
 
     if (!fullText.empty()) {
         D2D1_COLOR_F textColor = IsEnabled()
-            ? GetProperty("color").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f))
-            : D2D1::ColorF(0x7A / 255.0f, 0x7A / 255.0f, 0x7A / 255.0f, 1.0f);
+            ? ResolveThemeColor("theme.colorToken", "accentForeground")
+            : ThemeManager::Instance().GetColor("textMuted");
         std::string font = GetProperty("fontFamily").AsString("Segoe UI");
         float fontSize = GetProperty("fontSize").AsFloat(12.0f);
         Thickness padding = GetProperty("padding").AsThickness(Thickness(0));

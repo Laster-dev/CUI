@@ -2,13 +2,16 @@
 #define NOMINMAX
 #endif
 #include "CUIWindow.h"
+#include "../style/ThemeManager.h"
 
 namespace CUI {
 
 CUIWindow::CUIWindow(const std::string& title, int width, int height) {
+    auto& theme = ThemeManager::Instance();
     m_rootContainer = std::make_shared<StackPanel>();
     m_rootContainer->SetProperty("orientation", Value("Vertical"));
-    m_rootContainer->SetProperty("background", Value(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f)));
+    m_rootContainer->SetProperty("theme.backgroundToken", Value("windowBackground"));
+    m_rootContainer->SetProperty("background", Value(theme.GetColor("windowBackground")));
 
     SetupTitleBar(title);
 
@@ -24,14 +27,16 @@ CUIWindow::CUIWindow(const std::string& title, int width, int height) {
 }
 
 void CUIWindow::SetupTitleBar(const std::string& title) {
+    auto& theme = ThemeManager::Instance();
     m_titleBar = std::make_shared<Panel>();
     m_titleBar->SetProperty("height", Value(32.0f));
-    m_titleBar->SetProperty("background", Value(D2D1::ColorF(0x18 / 255.0f, 0x18 / 255.0f, 0x18 / 255.0f))); // VS Code TitleBar Dark #181818
+    m_titleBar->SetProperty("theme.backgroundToken", Value("titleBarBackground"));
+    m_titleBar->SetProperty("background", Value(theme.GetColor("titleBarBackground")));
 
-    // App Title Text
     auto txtTitle = std::make_shared<TextBlock>(title);
     txtTitle->SetProperty("fontSize", Value(12.0f));
-    txtTitle->SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f)));
+    txtTitle->SetProperty("theme.colorToken", Value("titleBarText"));
+    txtTitle->SetProperty("color", Value(theme.GetColor("titleBarText")));
     txtTitle->SetProperty("margin", Value("12, 8, 0, 0"));
     m_titleBar->AddChild(txtTitle);
 }

@@ -263,8 +263,8 @@ void ContextMenu::OnRenderOverlay(GraphicsContext& ctx) {
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
 
     // Draw ContextMenu Popup Box (Shadow & Background)
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(ThemeManager::Instance().GetColor("cardBackground"));
-    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(ThemeManager::Instance().GetColor("cardBorder"));
+    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
+    D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
     ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);

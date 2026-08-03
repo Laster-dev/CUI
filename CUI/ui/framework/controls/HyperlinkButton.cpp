@@ -1,3 +1,4 @@
+#include "../style/ThemeManager.h"
 #include "HyperlinkButton.h"
 
 namespace CUI {
@@ -5,8 +6,10 @@ namespace CUI {
 HyperlinkButton::HyperlinkButton() {
     SetProperty("text", Value("HyperlinkButton"));
     SetProperty("navigateUri", Value(""));
-    SetProperty("color", Value(D2D1::ColorF(0x37 / 255.0f, 0x94 / 255.0f, 0xFF / 255.0f, 1.0f))); // VS Code Hyperlink blue
-    SetProperty("hoverColor", Value(D2D1::ColorF(0x60 / 255.0f, 0xAE / 255.0f, 0xFF / 255.0f, 1.0f)));
+    SetProperty("theme.colorToken", Value("accentColor"));
+    SetProperty("theme.hoverColorToken", Value("accentColor"));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetProperty("hoverColor", Value(ThemeManager::Instance().GetColor("accentColor")));
     SetProperty("fontSize", Value(13.0f));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("padding", Value(Thickness(2, 2, 2, 2)));
@@ -45,9 +48,9 @@ void HyperlinkButton::OnRender(GraphicsContext& ctx) {
     std::string text = GetProperty("text").AsString("");
     if (text.empty()) return;
 
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(0x37 / 255.0f, 0x94 / 255.0f, 0xFF / 255.0f, 1.0f));
+    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "accentColor");
     if (m_isHovered) {
-        textColor = GetProperty("hoverColor").AsColor(textColor);
+        textColor = ResolveThemeColor("theme.hoverColorToken", "accentColor");
     }
 
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");

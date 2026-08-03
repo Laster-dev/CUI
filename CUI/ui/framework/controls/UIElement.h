@@ -27,6 +27,11 @@ public:
     virtual const char* GetClassName() const override { return "UIElement"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const;
 
+    // Resolve a paint color exclusively through ThemeManager.
+    // If theme.*Token is set, that token wins; otherwise fallbackToken is used.
+    // Stored RGB properties are never the source of truth.
+    D2D1_COLOR_F ResolveThemeColor(const char* tokenProp, const char* fallbackToken) const;
+
     std::string GetId() const { return m_id; }
     void SetId(const std::string& id) { m_id = id; }
 

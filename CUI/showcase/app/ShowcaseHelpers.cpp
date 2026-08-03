@@ -21,12 +21,18 @@ std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::
 }
 
 std::string ResolveLegacyColorToken(const std::string& color) {
-    if (color == "#569CD6") return "accentColor";
-    if (color == "#4EC9B0") return "accentColor";
-    if (color == "#AAAAAA") return "textMuted";
-    if (color == "#CCCCCC") return "textSecondary";
-    if (color == "#888888") return "textMuted";
-    if (color == "#B5CEA8") return "textSecondary";
+    if (color == "#569CD6" || color == "#4EC9B0" || color == "#007ACC" || color == "#0E639C") return "accentColor";
+    if (color == "#10B981" || color == "#8E44AD" || color == "#D7A400" || color == "#C586C0" || color == "#9CDCFE") return "accentColor";
+    if (color == "#6A9955" || color == "#CE9178" || color == "#DCDCAA") return "accentColor";
+    if (color == "#D13438" || color == "#D16969") return "dangerColor";
+    if (color == "#AAAAAA" || color == "#888888" || color == "#5A5A5A") return "textMuted";
+    if (color == "#CCCCCC" || color == "#DBDBDB" || color == "#E5E5E5" || color == "#B5CEA8") return "textSecondary";
+    // Direct token names
+    if (color == "textPrimary" || color == "textSecondary" || color == "textMuted" ||
+        color == "accentColor" || color == "accentForeground" || color == "dangerColor" ||
+        color == "titleBarText") {
+        return color;
+    }
     return "";
 }
 }
@@ -44,7 +50,7 @@ std::shared_ptr<UIElement> CreateShowcaseText(
     } else if (!mappedToken.empty()) {
         BindThemeToken(text, "theme.colorToken", mappedToken);
     } else {
-        text->SetProperty("color", Value(color));
+        BindThemeToken(text, "theme.colorToken", "textPrimary");
     }
     if (bold) text->SetProperty("fontWeight", Value("Bold"));
     if (!fontFamily.empty()) text->SetProperty("fontFamily", Value(fontFamily));

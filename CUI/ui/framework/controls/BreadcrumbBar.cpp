@@ -10,11 +10,15 @@ namespace CUI {
 
 BreadcrumbBar::BreadcrumbBar() {
     m_pathNodes = { "Home", "Controls", "BreadcrumbBar" };
-    SetProperty("background", Value(ThemeManager::Instance().GetTokens().cardBackground));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetTokens().cardBorder));
+    SetProperty("theme.backgroundToken", Value("cardBackground"));
+    SetProperty("theme.borderToken", Value("cardBorder"));
+    SetProperty("theme.colorToken", Value("textSecondary"));
+    SetProperty("theme.activeColorToken", Value("accentColor"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(ThemeManager::Instance().GetTokens().textSecondary));
-    SetProperty("activeColor", Value(ThemeManager::Instance().GetTokens().accentColor));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("textSecondary")));
+    SetProperty("activeColor", Value(ThemeManager::Instance().GetColor("accentColor")));
     SetProperty("cornerRadius", Value(4.0f));
     SetProperty("width", Value(320.0f));
     SetProperty("height", Value(30.0f));
@@ -22,7 +26,6 @@ BreadcrumbBar::BreadcrumbBar() {
 
 std::vector<PropertyMeta> BreadcrumbBar::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "activeColor", "激活颜色 (ActiveColor)", "导航配置", "color" });
     return metas;
 }
 
@@ -72,8 +75,8 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
     float currX = m_bounds.x + 8.0f;
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontH = GetProperty("fontSize").AsFloat(12.0f);
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetTokens().textSecondary);
-    D2D1_COLOR_F activeColor = GetProperty("activeColor").AsColor(ThemeManager::Instance().GetTokens().accentColor);
+    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textSecondary");
+    D2D1_COLOR_F activeColor = ResolveThemeColor("theme.activeColorToken", "accentColor");
     D2D1_COLOR_F sepColor = ThemeManager::Instance().GetTokens().textMuted;
 
     for (size_t i = 0; i < m_pathNodes.size(); ++i) {

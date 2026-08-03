@@ -5,6 +5,9 @@
 namespace CUI {
 
 ContentDialog::ContentDialog() {
+    SetProperty("theme.backgroundToken", Value("cardBackground"));
+    SetProperty("theme.borderToken", Value("cardBorder"));
+
     m_txtTitle = std::make_shared<TextBlock>(m_titleText);
     m_txtTitle->SetProperty("fontSize", Value(18.0f));
     m_txtTitle->SetProperty("fontWeight", Value("Bold"));
@@ -225,10 +228,10 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
     // Card Outer Drop Shadow with fade
     ctx.FillRoundedRect(Rect(cardX - 6, cardY - 6, cardW + 12, cardH + 12), 12.0f, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.35f * m_animProgress));
 
-    // Card Background (#202020 WinUI Dark Surface)
-    D2D1_COLOR_F cardBg = ThemeManager::Instance().GetColor("cardBackground");
+    // Card Background
+    D2D1_COLOR_F cardBg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
     cardBg.a = m_animProgress;
-    D2D1_COLOR_F cardBorder = ThemeManager::Instance().GetColor("cardBorder");
+    D2D1_COLOR_F cardBorder = ResolveThemeColor("theme.borderToken", "cardBorder");
     cardBorder.a = m_animProgress;
     ctx.FillRoundedRect(m_dialogBounds, 8.0f, cardBg);
     ctx.DrawRoundedRect(m_dialogBounds, 8.0f, cardBorder, 1.0f);

@@ -8,7 +8,11 @@ namespace CUI {
 MenuBar::MenuBar() {
     SetProperty("height", Value(30.0f));
     SetProperty("theme.backgroundToken", Value("titleBarBackground"));
+    SetProperty("theme.hoverBackgroundToken", Value("titleBarBackground"));
+    SetProperty("theme.pressedBackgroundToken", Value("titleBarBackground"));
     SetProperty("background", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
+    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
+    SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
     SetProperty("theme.colorToken", Value("titleBarText"));
     SetProperty("color", Value(ThemeManager::Instance().GetColor("titleBarText")));
 }
@@ -40,13 +44,13 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
-    D2D1_COLOR_F defaultTextColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("titleBarText"));
+    D2D1_COLOR_F defaultTextColor = ResolveThemeColor("theme.colorToken", "titleBarText");
     D2D1_COLOR_F hoverBgColor = lightTheme
-        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.06f)
-        : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.10f);
+        ? D2D1::ColorF(ThemeManager::Instance().GetTokens().cardBorder.r, ThemeManager::Instance().GetTokens().cardBorder.g, ThemeManager::Instance().GetTokens().cardBorder.b, 0.12f)
+        : D2D1::ColorF(ThemeManager::Instance().GetTokens().cardBorder.r, ThemeManager::Instance().GetTokens().cardBorder.g, ThemeManager::Instance().GetTokens().cardBorder.b, 0.18f);
     D2D1_COLOR_F openBgColor = lightTheme
-        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.10f)
-        : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.18f);
+        ? D2D1::ColorF(ThemeManager::Instance().GetTokens().accentColor.r, ThemeManager::Instance().GetTokens().accentColor.g, ThemeManager::Instance().GetTokens().accentColor.b, 0.10f)
+        : D2D1::ColorF(ThemeManager::Instance().GetTokens().accentColor.r, ThemeManager::Instance().GetTokens().accentColor.g, ThemeManager::Instance().GetTokens().accentColor.b, 0.18f);
 
     float curX = m_bounds.x + 6.0f;
 

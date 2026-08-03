@@ -5,14 +5,31 @@
 namespace CUI {
 
 NavigationView::NavigationView() {
-    SetProperty("background", Value(ThemeManager::Instance().GetTokens().windowBackground));
-    SetProperty("paneBackground", Value(ThemeManager::Instance().GetTokens().paneBackground));
-    SetProperty("indicatorColor", Value(ThemeManager::Instance().GetTokens().accentColor));
+    auto& theme = ThemeManager::Instance();
+    SetProperty("theme.backgroundToken", Value("windowBackground"));
+    SetProperty("theme.paneBackgroundToken", Value("paneBackground"));
+    SetProperty("theme.indicatorColorToken", Value("accentColor"));
+    SetProperty("background", Value(theme.GetColor("windowBackground")));
+    SetProperty("paneBackground", Value(theme.GetColor("paneBackground")));
+    SetProperty("indicatorColor", Value(theme.GetColor("accentColor")));
+
+    auto styleChromeButton = [&theme](const std::shared_ptr<Button>& btn) {
+        btn->SetProperty("theme.backgroundToken", Value("cardBackground"));
+        btn->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
+        btn->SetProperty("theme.pressedBackgroundToken", Value("pressedBackground"));
+        btn->SetProperty("theme.colorToken", Value("textPrimary"));
+        btn->SetProperty("theme.borderToken", Value("cardBorder"));
+        btn->SetProperty("background", Value(theme.GetColor("cardBackground")));
+        btn->SetProperty("hoverBackground", Value(theme.GetColor("hoverBackground")));
+        btn->SetProperty("pressedBackground", Value(theme.GetColor("pressedBackground")));
+        btn->SetProperty("color", Value(theme.GetColor("textPrimary")));
+        btn->SetProperty("borderBrush", Value(theme.GetColor("cardBorder")));
+    };
 
     m_btnBack = std::make_shared<Button>("←");
     m_btnBack->SetProperty("width", Value(32.0f));
     m_btnBack->SetProperty("height", Value(32.0f));
-    m_btnBack->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
+    styleChromeButton(m_btnBack);
     m_btnBack->SetProperty("cornerRadius", Value(16.0f));
     m_btnBack->SetProperty("fontSize", Value(14.0f));
     AddChild(m_btnBack);
@@ -20,7 +37,7 @@ NavigationView::NavigationView() {
     m_btnTogglePane = std::make_shared<Button>("☰");
     m_btnTogglePane->SetProperty("width", Value(32.0f));
     m_btnTogglePane->SetProperty("height", Value(32.0f));
-    m_btnTogglePane->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
+    styleChromeButton(m_btnTogglePane);
     m_btnTogglePane->SetProperty("cornerRadius", Value(4.0f));
     m_btnTogglePane->SetProperty("fontSize", Value(14.0f));
     AddChild(m_btnTogglePane);
@@ -133,8 +150,8 @@ void NavigationView::OnRender(GraphicsContext& ctx) {
     float targetW = (m_paneDisplayMode == NavigationViewPaneDisplayMode::Expanded) ? 200.0f : 48.0f;
     float paneW = UIElement::AreAnimationsEnabled() ? m_paneWidthAnim.Current() : targetW;
     Rect paneRect(m_bounds.x, m_bounds.y, paneW, m_bounds.height);
-    D2D1_COLOR_F paneBg = GetProperty("paneBackground").AsColor(ThemeManager::Instance().GetTokens().paneBackground);
-    D2D1_COLOR_F indicatorColor = GetProperty("indicatorColor").AsColor(ThemeManager::Instance().GetTokens().accentColor);
+    D2D1_COLOR_F paneBg = ResolveThemeColor("theme.paneBackgroundToken", "paneBackground");
+    D2D1_COLOR_F indicatorColor = ResolveThemeColor("theme.indicatorColorToken", "accentColor");
     D2D1_COLOR_F borderColor = ThemeManager::Instance().GetTokens().cardBorder;
     D2D1_COLOR_F textPrimaryCol = ThemeManager::Instance().GetTokens().textPrimary;
     D2D1_COLOR_F textSecondaryCol = ThemeManager::Instance().GetTokens().textSecondary;
@@ -157,12 +174,12 @@ void NavigationView::OnRender(GraphicsContext& ctx) {
         bool isHovered = (static_cast<int>(i) == m_hoveredIndex);
 
         if (isSelected) {
-            D2D1_COLOR_F selFill = ThemeManager::Instance().GetTokens().cardBackground;
+            D2D1_COLOR_F selFill = ThemeManager::Instance().GetColor("selectedBackground");
             ctx.FillRoundedRect(r, 4.0f, selFill);
             ctx.DrawRoundedRect(r, 4.0f, borderColor, 1.0f);
         } else if (isHovered) {
             D2D1_COLOR_F hovFill = ThemeManager::Instance().GetTokens().cardBackground;
-            hovFill.a = 0.5f;
+            hovFill.a = 0.65f;
             ctx.FillRoundedRect(r, 4.0f, hovFill);
         }
 

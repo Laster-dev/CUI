@@ -13,7 +13,7 @@ public:
 };
 }
 
-ShowcasePage BuildListViewPage(const ShowcaseContext&) {
+ShowcasePage BuildListViewPage(const ShowcaseContext& ctx) {
     static VirtualListViewSource ds;
     auto target = std::make_shared<CUI::ListView>();
     target->SetProperty("width", CUI::Value(500.0f));
@@ -25,13 +25,7 @@ ShowcasePage BuildListViewPage(const ShowcaseContext&) {
     target->SetVirtualMode(100000, &ds);
     return { "ListView (100k)", CreatePage(
         "ListView 100k 多列虚拟化表单全属性控制台",
-        "支持多列表头、框选（Rubber-band）与 10 万行渲染。",
+        "由 PropertyGrid 反射绑定；颜色仅通过 theme.*Token 走 ThemeManager。",
         CreateDemoSurface({ target }, 0.0f),
-        CreateRightScrollPanel({
-            CreateShowcaseText("表单属性控制表 (ListView)", 12.0f, "#569CD6", true),
-            CreateShowcaseText("行高度 (RowHeight) [px]:", 11.0f, "#AAAAAA"),
-            CUI::DSL::TextField("24").Width(280).Height(26).Build(),
-            CreateShowcaseText("显式宽度 (Width):", 11.0f, "#AAAAAA"),
-            CUI::DSL::TextField("500").Width(280).Height(26).Build()
-        })) };
+        CreatePropertyGrid(ctx, target)) };
 }

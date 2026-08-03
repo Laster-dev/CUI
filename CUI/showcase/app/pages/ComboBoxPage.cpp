@@ -2,6 +2,7 @@
 #include "../ShowcaseHelpers.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/Toast.h"
+#include "framework/style/ThemeManager.h"
 
 using namespace CUI;
 using namespace CUI::DSL;
@@ -15,7 +16,12 @@ ShowcasePage BuildComboBoxPage(const ShowcaseContext& ctx) {
     target->SetProperty("width", Value(240.0f));
 
     auto input = TextField("自定义新主题").Width(280).Height(26).Build();
-    auto addBtn = ElevatedButton("添加选项到下拉菜单").Background("#007ACC").Padding(12, 6, 12, 6).Build();
+    input->SetProperty("theme.colorToken", Value("textPrimary"));
+    input->SetProperty("theme.placeholderColorToken", Value("textMuted"));
+    input->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    input->SetProperty("placeholderColor", Value(ThemeManager::Instance().GetColor("textMuted")));
+
+    auto addBtn = ElevatedButton("添加选项到下拉菜单").Padding(12, 6, 12, 6).Build();
     addBtn->OnClick().Connect([window = ctx.windowRef, target, input](UIElement*) {
         std::string text = input->GetProperty("text").AsString("自定义新主题");
         if (text.empty()) text = "未命名主题";
@@ -23,17 +29,18 @@ ShowcasePage BuildComboBoxPage(const ShowcaseContext& ctx) {
         Toast::Show(window->GetRootElement().get(), "ComboBox", "已添加新选项: " + text, ToastCorner::BottomRight, 1800);
     });
 
+    auto demo = Column(12).Children({
+        CreateDemoSurface({ target }, 0.0f),
+        CreateDemoSurface({
+            CreateShowcaseText("动态添加选项 (走 ThemeManager)", 12.0f, "accentColor", true),
+            input,
+            addBtn
+        }, 8.0f)
+    }).Build();
+
     return { "ComboBox 下拉框", CreatePage(
         "ComboBox 下拉选择框全属性控制台",
-        "支持弹出式下拉菜单与动态在线添加新选项。",
-        CreateDemoSurface({ target }, 0.0f),
-        CreateRightScrollPanel({
-            CreateShowcaseText("下拉框属性控制表 (ComboBox)", 12.0f, "#569CD6", true),
-            CheckboxTile("是否启用 (IsEnabled)").Build(),
-            CreateShowcaseText("添加新选项 (AddItem):", 11.0f, "#AAAAAA"),
-            input,
-            addBtn,
-            CreateShowcaseText("显式宽度 (Width):", 11.0f, "#AAAAAA"),
-            TextField("240").Width(280).Height(26).Build()
-        })) };
+        "由 PropertyGrid 反射绑定；颜色仅通过 theme.*Token 走 ThemeManager。",
+        demo,
+        CreatePropertyGrid(ctx, target)) };
 }

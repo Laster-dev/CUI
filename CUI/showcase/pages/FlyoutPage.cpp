@@ -3,6 +3,7 @@
 #include "../../ui/framework/controls/Button.h"
 #include "../../ui/framework/controls/TextBlock.h"
 #include "../../ui/framework/controls/ComboBox.h"
+#include "../../ui/framework/style/ThemeManager.h"
 
 namespace CUI {
 
@@ -10,11 +11,13 @@ std::shared_ptr<UIElement> CreateFlyoutPage(const ShowcaseContext& ctx) {
     auto title = std::make_shared<TextBlock>("Flyout 弹出框展示页");
     title->SetProperty("fontSize", Value(18.0f));
     title->SetProperty("fontWeight", Value("Bold"));
-    title->SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f)));
+    title->SetProperty("theme.colorToken", Value("textPrimary"));
+    title->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
 
     auto desc = std::make_shared<TextBlock>("WinUI 3 风格 Flyout 弹出窗口，支持 64ms 极速高度展开与折叠收起动画。");
     desc->SetProperty("fontSize", Value(12.0f));
-    desc->SetProperty("color", Value(D2D1::ColorF(0xAA / 255.0f, 0xAA / 255.0f, 0xAA / 255.0f)));
+    desc->SetProperty("theme.colorToken", Value("textMuted"));
+    desc->SetProperty("color", Value(ThemeManager::Instance().GetColor("textMuted")));
 
     auto btnTrigger = std::make_shared<Button>("点击打开 Flyout 弹出框 🚀");
     btnTrigger->SetProperty("width", Value(220.0f));

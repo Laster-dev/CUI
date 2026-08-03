@@ -15,6 +15,7 @@ public:
     void ApplyStyle(UIElement* element);
 
     void LoadDarkTheme();
+    void ReloadFromTheme();
 
 private:
     StyleManager();

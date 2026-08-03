@@ -1,6 +1,7 @@
 #include "UIElement.h"
 #include "../layout/Layout.h"
 #include "../render/CompositionContext.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
@@ -61,17 +62,22 @@ std::vector<PropertyMeta> UIElement::GetPropertyMetas() const {
         { "padding", "内边距 (Padding)", "尺寸布局", "string" },
         { "alignHorizontal", "水平对齐 (AlignH)", "尺寸布局", "enum", { "Stretch", "Start", "Center", "End" } },
         { "alignVertical", "垂直对齐 (AlignV)", "尺寸布局", "enum", { "Stretch", "Start", "Center", "End" } },
-        { "background", "背景颜色 (Background)", "色彩外观", "color" },
-        { "hoverBackground", "悬停背景色 (HoverBg)", "色彩外观", "color" },
-        { "pressedBackground", "按下背景色 (PressedBg)", "色彩外观", "color" },
-        { "disabledBackground", "禁用背景色 (DisabledBg)", "色彩外观", "color" },
-        { "borderBrush", "边框颜色 (BorderBrush)", "色彩外观", "color" },
-        { "borderThickness", "边框粗细 (BorderThickness)", "色彩外观", "number" },
-        { "cornerRadius", "圆角半径 (CornerRadius)", "色彩外观", "number" },
-        { "opacity", "不透明度 (Opacity) [0-1]", "色彩外观", "number" },
+        { "borderThickness", "边框粗细 (BorderThickness)", "外观", "number" },
+        { "cornerRadius", "圆角半径 (CornerRadius)", "外观", "number" },
+        { "opacity", "不透明度 (Opacity) [0-1]", "外观", "number" },
         { "isEnabled", "是否启用 (IsEnabled)", "交互状态", "bool" },
         { "visibility", "显示状态 (Visibility)", "交互状态", "enum", { "Visible", "Hidden", "Collapsed" } }
     };
+}
+
+D2D1_COLOR_F UIElement::ResolveThemeColor(const char* tokenProp, const char* fallbackToken) const {
+    if (tokenProp && HasProperty(tokenProp)) {
+        const std::string token = GetProperty(tokenProp).AsString();
+        if (!token.empty()) {
+            return ThemeManager::Instance().GetColor(token);
+        }
+    }
+    return ThemeManager::Instance().GetColor(fallbackToken ? fallbackToken : "textPrimary");
 }
 
 void UIElement::AddChild(std::shared_ptr<UIElement> child) {
@@ -208,9 +214,11 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
             if (cardY < 4.0f) cardY = 4.0f;
 
             Rect cardRect(cardX, cardY, cardW, cardH);
-            D2D1_COLOR_F bg = D2D1::ColorF(0x2B / 255.0f, 0x2B / 255.0f, 0x2B / 255.0f, 0.95f);
-            D2D1_COLOR_F border = D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 0.90f);
-            D2D1_COLOR_F textColor = D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f, 1.0f);
+            D2D1_COLOR_F bg = ThemeManager::Instance().GetColor("cardBackground");
+            bg.a = 0.95f;
+            D2D1_COLOR_F border = ThemeManager::Instance().GetColor("cardBorder");
+            border.a = 0.90f;
+            D2D1_COLOR_F textColor = ThemeManager::Instance().GetColor("textPrimary");
 
             ctx.FillRoundedRect(cardRect, 4.0f, bg);
             ctx.DrawRoundedRect(cardRect, 4.0f, border, 1.0f);
@@ -228,8 +236,10 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
 void UIElement::OnRender(GraphicsContext& ctx) {
     float radius = GetProperty("cornerRadius").AsFloat(0.0f);
 
-    // Draw background
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0, 0, 0, 0));
+    // Draw background — token is source of truth when bound
+    D2D1_COLOR_F bg = HasProperty("theme.backgroundToken")
+        ? ResolveThemeColor("theme.backgroundToken", "cardBackground")
+        : GetProperty("background").AsColor(D2D1::ColorF(0, 0, 0, 0));
     if (bg.a > 0.0f) {
         if (radius > 0.0f) {
             ctx.FillRoundedRect(m_bounds, radius, bg);
@@ -239,7 +249,9 @@ void UIElement::OnRender(GraphicsContext& ctx) {
     }
 
     // Draw border
-    D2D1_COLOR_F borderBrush = GetProperty("borderBrush").AsColor(D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F borderBrush = HasProperty("theme.borderToken")
+        ? ResolveThemeColor("theme.borderToken", "cardBorder")
+        : GetProperty("borderBrush").AsColor(D2D1::ColorF(0, 0, 0, 0));
     float borderThickness = GetProperty("borderThickness").AsFloat(0.0f);
     if (borderBrush.a > 0.0f && borderThickness > 0.0f) {
         if (radius > 0.0f) {

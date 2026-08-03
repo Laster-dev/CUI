@@ -4,6 +4,7 @@
 #include "../window/WindowBackdrop.h"
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace CUI {
 
@@ -17,9 +18,15 @@ struct ThemeTokens {
     D2D1_COLOR_F titleBarBackground;
     D2D1_COLOR_F titleBarText;
     D2D1_COLOR_F accentColor;
+    D2D1_COLOR_F accentForeground;
+    D2D1_COLOR_F dangerColor;
     D2D1_COLOR_F paneBackground;
     D2D1_COLOR_F inputBackground;
     D2D1_COLOR_F inputBorder;
+    D2D1_COLOR_F hoverBackground;
+    D2D1_COLOR_F pressedBackground;
+    D2D1_COLOR_F focusedBorder;
+    D2D1_COLOR_F activityBarBackground;
 };
 
 class ThemeManager {
@@ -33,6 +40,7 @@ public:
 
     D2D1_COLOR_F GetColor(const std::string& tokenName) const;
     std::string GetColorHex(const std::string& tokenName) const;
+    static const std::vector<std::string>& GetTokenNames();
 
 private:
     ThemeManager();

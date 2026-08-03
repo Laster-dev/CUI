@@ -1,5 +1,6 @@
 #include "VSCodeControls.h"
 #include "../window/Window.h"
+#include "../style/ThemeManager.h"
 
 namespace CUI {
 
@@ -8,10 +9,13 @@ namespace CUI {
 // ==========================================
 TitleBar::TitleBar() {
     SetProperty("height", Value(34.0f));
-    auto bgVal = Value(D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f));
-    SetProperty("background", bgVal);
-    SetProperty("hoverBackground", bgVal);
-    SetProperty("pressedBackground", bgVal);
+    SetProperty("theme.backgroundToken", Value("titleBarBackground"));
+    SetProperty("theme.hoverBackgroundToken", Value("titleBarBackground"));
+    SetProperty("theme.pressedBackgroundToken", Value("titleBarBackground"));
+    SetProperty("theme.colorToken", Value("titleBarText"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
+    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
+    SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
     SetProperty("title", Value("CUI - Visual Studio Code [Direct2D UI Engine]"));
     m_menuBar.SetParent(this);
 
@@ -74,10 +78,13 @@ TitleBar::TitleBar() {
 void TitleBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
+    const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
+
     // Draw app icon
     Rect iconRect(m_bounds.x + 10, m_bounds.y + (m_bounds.height - 18) * 0.5f, 18, 18);
-    ctx.FillRoundedRect(iconRect, 4.0f, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
-    ctx.DrawText("C", iconRect, D2D1::ColorF(1.0f, 1.0f, 1.0f), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    ctx.FillRoundedRect(iconRect, 4.0f, tokens.accentColor);
+    ctx.DrawText("C", iconRect, tokens.titleBarText, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     // Render Real Interactive MenuBar with dynamic content-fit width
     float calcMenuBarW = m_menuBar.GetTotalWidth(ctx);
@@ -121,19 +128,18 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    const bool lightTheme = (curTheme == ThemeMode::Light);
     const D2D1_COLOR_F titleColor = lightTheme
-        ? D2D1::ColorF(0x30 / 255.0f, 0x30 / 255.0f, 0x30 / 255.0f, 1.0f)
-        : D2D1::ColorF(0x99 / 255.0f, 0x99 / 255.0f, 0x99 / 255.0f, 1.0f);
+        ? tokens.titleBarText
+        : tokens.titleBarText;
     const D2D1_COLOR_F chromeTextColor = lightTheme
-        ? D2D1::ColorF(0x24 / 255.0f, 0x24 / 255.0f, 0x24 / 255.0f, 1.0f)
-        : D2D1::ColorF(0xD8 / 255.0f, 0xD8 / 255.0f, 0xD8 / 255.0f, 1.0f);
+        ? tokens.titleBarText
+        : tokens.titleBarText;
     const D2D1_COLOR_F chromeLineColor = lightTheme
-        ? D2D1::ColorF(0x35 / 255.0f, 0x35 / 255.0f, 0x35 / 255.0f, 1.0f)
-        : D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f, 1.0f);
+        ? tokens.titleBarText
+        : tokens.titleBarText;
     const D2D1_COLOR_F subtleChromeBg = lightTheme
-        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, isHoveredInTitle ? 0.07f : 0.04f)
-        : D2D1::ColorF(1.0f, 1.0f, 1.0f, isHoveredInTitle ? 0.14f : 0.08f);
+        ? D2D1::ColorF(tokens.titleBarText.r, tokens.titleBarText.g, tokens.titleBarText.b, isHoveredInTitle ? 0.08f : 0.04f)
+        : D2D1::ColorF(tokens.titleBarText.r, tokens.titleBarText.g, tokens.titleBarText.b, isHoveredInTitle ? 0.14f : 0.08f);
     // Draw title in center
     std::string title = GetProperty("title").AsString();
     ctx.DrawText(title, m_bounds, titleColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -143,17 +149,17 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     bool lowPerfOn = !UIElement::AreAnimationsEnabled();
     bool isLowPerfHover = isHoveredInTitle && lowPerfRect.Contains(hoverX, hoverY);
     D2D1_COLOR_F toggleBg = lowPerfOn
-        ? D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, isLowPerfHover ? 0.92f : 0.82f)
+        ? D2D1::ColorF(tokens.accentColor.r, tokens.accentColor.g, tokens.accentColor.b, isLowPerfHover ? 0.92f : 0.82f)
         : (lightTheme
-            ? D2D1::ColorF(0.0f, 0.0f, 0.0f, isLowPerfHover ? 0.07f : 0.04f)
-            : D2D1::ColorF(1.0f, 1.0f, 1.0f, isLowPerfHover ? 0.14f : 0.08f));
+            ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isLowPerfHover ? 0.34f : 0.22f)
+            : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isLowPerfHover ? 0.20f : 0.10f));
     D2D1_COLOR_F toggleBorder = lowPerfOn
-        ? D2D1::ColorF(0x36 / 255.0f, 0xB2 / 255.0f, 0xFF / 255.0f, 0.95f)
+        ? D2D1::ColorF(tokens.accentColor.r, tokens.accentColor.g, tokens.accentColor.b, 0.95f)
         : (lightTheme
-            ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f)
-            : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f));
+            ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, 0.42f)
+            : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, 0.24f));
     D2D1_COLOR_F toggleText = lowPerfOn
-        ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)
+        ? tokens.accentForeground
         : chromeTextColor;
 
     ctx.FillRoundedRect(lowPerfRect, 8.0f, toggleBg);
@@ -179,11 +185,11 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
 
     std::string bdpText = std::string("材质:") + bdpStr;
     D2D1_COLOR_F bdpBg = lightTheme
-        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, isBdpHover ? 0.07f : 0.04f)
-        : D2D1::ColorF(1.0f, 1.0f, 1.0f, isBdpHover ? 0.14f : 0.08f);
+        ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isBdpHover ? 0.24f : 0.16f)
+        : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isBdpHover ? 0.20f : 0.10f);
     D2D1_COLOR_F bdpBorder = lightTheme
-        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f)
-        : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f);
+        ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, 0.42f)
+        : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, 0.24f);
     D2D1_COLOR_F bdpTextCol = chromeTextColor;
 
     ctx.FillRoundedRect(bdpRect, 8.0f, bdpBg);
@@ -196,11 +202,11 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     const char* themeStr = (curTheme == ThemeMode::Dark) ? "🌙 暗色" : "☀️ 亮色";
 
     D2D1_COLOR_F themeBg = lightTheme
-        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, isThemeHover ? 0.07f : 0.04f)
-        : D2D1::ColorF(1.0f, 1.0f, 1.0f, isThemeHover ? 0.14f : 0.08f);
+        ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isThemeHover ? 0.24f : 0.16f)
+        : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isThemeHover ? 0.20f : 0.10f);
     D2D1_COLOR_F themeBorder = lightTheme
-        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f)
-        : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f);
+        ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, 0.42f)
+        : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, 0.24f);
     D2D1_COLOR_F themeTextCol = chromeTextColor;
 
     ctx.FillRoundedRect(themeRect, 8.0f, themeBg);
@@ -231,10 +237,10 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     Rect closeBtnRect(rightX + btnW * 2, m_bounds.y, btnW, btnH);
     bool isCloseHover = isHoveredInTitle && (hoverX >= rightX + btnW * 2);
     if (isCloseHover) {
-        ctx.FillRect(closeBtnRect, D2D1::ColorF(0xC4 / 255.0f, 0x2B / 255.0f, 0x1C / 255.0f, 1.0f)); // Win11 Hover Red background (#C42B1C)
+        ctx.FillRect(closeBtnRect, tokens.dangerColor);
     }
     // Draw vector cross X icon for close
-    D2D1_COLOR_F closeIconColor = isCloseHover ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : chromeLineColor;
+    D2D1_COLOR_F closeIconColor = isCloseHover ? tokens.accentForeground : chromeLineColor;
     float closeCenterX = rightX + btnW * 2 + 23.0f;
     ctx.DrawLine(Point(closeCenterX - 5.0f, iconCenterY - 5.0f), Point(closeCenterX + 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
     ctx.DrawLine(Point(closeCenterX + 5.0f, iconCenterY - 5.0f), Point(closeCenterX - 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
@@ -243,7 +249,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     ctx.DrawLine(
         Point(m_bounds.x, m_bounds.y + m_bounds.height - 1),
         Point(m_bounds.x + m_bounds.width, m_bounds.y + m_bounds.height - 1),
-        lightTheme ? D2D1::ColorF(0xDB / 255.0f, 0xDB / 255.0f, 0xDB / 255.0f, 1.0f) : D2D1::ColorF(0x2B / 255.0f, 0x2B / 255.0f, 0x2B / 255.0f, 1.0f)
+        tokens.cardBorder
     );
 }
 
@@ -342,7 +348,8 @@ UIElement* TitleBar::HitTest(float x, float y) {
 // ==========================================
 ActivityBar::ActivityBar() {
     SetProperty("width", Value(48.0f));
-    SetProperty("background", Value(D2D1::ColorF(0x33 / 255.0f, 0x33 / 255.0f, 0x33 / 255.0f, 1.0f))); // VS Code Activity bar dark
+    SetProperty("theme.backgroundToken", Value("activityBarBackground"));
+    SetProperty("background", Value(ThemeManager::Instance().GetTokens().activityBarBackground));
 
     m_items = {
         { "[E]", "Explorer" },
@@ -356,6 +363,7 @@ ActivityBar::ActivityBar() {
 void ActivityBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     float itemHeight = 48.0f;
     float y = m_bounds.y;
 
@@ -365,10 +373,10 @@ void ActivityBar::OnRender(GraphicsContext& ctx) {
 
         if (isSelected) {
             // Draw left active indicator blue bar
-            ctx.FillRect(Rect(m_bounds.x, y, 2.0f, itemHeight), D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f));
+            ctx.FillRect(Rect(m_bounds.x, y, 2.0f, itemHeight), tokens.accentColor);
         }
 
-        D2D1_COLOR_F iconColor = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f);
+        D2D1_COLOR_F iconColor = isSelected ? tokens.accentForeground : tokens.textMuted;
         ctx.DrawText(m_items[i].icon, itemRect, iconColor, "Segoe UI", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
 
         y += itemHeight;
@@ -376,10 +384,10 @@ void ActivityBar::OnRender(GraphicsContext& ctx) {
 
     // Draw settings icon at bottom
     Rect gearRect(m_bounds.x, m_bounds.y + m_bounds.height - 48.0f, m_bounds.width, 48.0f);
-    ctx.DrawText("[*]", gearRect, D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f), "Segoe UI", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("[*]", gearRect, tokens.textMuted, "Segoe UI", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // Right border line
-    ctx.DrawLine(Point(m_bounds.x + m_bounds.width - 1, m_bounds.y), Point(m_bounds.x + m_bounds.width - 1, m_bounds.y + m_bounds.height), D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f));
+    ctx.DrawLine(Point(m_bounds.x + m_bounds.width - 1, m_bounds.y), Point(m_bounds.x + m_bounds.width - 1, m_bounds.y + m_bounds.height), tokens.cardBackground);
 }
 
 void ActivityBar::OnMouseDown(Point pt) {
@@ -397,7 +405,8 @@ void ActivityBar::OnMouseDown(Point pt) {
 // ==========================================
 SideBar::SideBar() {
     SetProperty("width", Value(240.0f));
-    SetProperty("background", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f))); // SideBar dark background
+    SetProperty("theme.backgroundToken", Value("sideBarBackground"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("sideBarBackground")));
     SetProperty("title", Value("EXPLORER: CUI PROJECT"));
 
     m_fileTree = {
@@ -427,10 +436,12 @@ SideBar::SideBar() {
 void SideBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
+
     // Section title bar
     std::string title = GetProperty("title").AsString();
     Rect headerRect(m_bounds.x + 16, m_bounds.y + 8, m_bounds.width - 32, 24);
-    ctx.DrawText(title, headerRect, D2D1::ColorF(0xBB / 255.0f, 0xBB / 255.0f, 0xBB / 255.0f), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    ctx.DrawText(title, headerRect, tokens.textSecondary, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     // Draw file tree items
     float itemHeight = 22.0f;
@@ -444,24 +455,24 @@ void SideBar::OnRender(GraphicsContext& ctx) {
 
         bool isSelected = (static_cast<int>(i) == m_selectedIndex);
         if (isSelected) {
-            ctx.FillRect(itemRect, D2D1::ColorF(0x37 / 255.0f, 0x37 / 255.0f, 0x3D / 255.0f));
+            ctx.FillRect(itemRect, tokens.hoverBackground);
         }
 
         float indent = m_bounds.x + 12.0f + item.level * 12.0f;
 
         // Draw icon
-        D2D1_COLOR_F iconColor = item.isFolder ? D2D1::ColorF(0xDC / 255.0f, 0xA6 / 255.0f, 0x62 / 255.0f) : D2D1::ColorF(0x51 / 255.0f, 0x9A / 255.0f, 0xD9 / 255.0f);
+        D2D1_COLOR_F iconColor = item.isFolder ? tokens.textMuted : tokens.accentColor;
         ctx.DrawText(item.icon, Rect(indent, y, 16, itemHeight), iconColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Draw name
-        D2D1_COLOR_F textColor = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f);
+        D2D1_COLOR_F textColor = isSelected ? tokens.textPrimary : tokens.textSecondary;
         ctx.DrawText(item.name, Rect(indent + 18.0f, y, m_bounds.width - indent - 18.0f, itemHeight), textColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         y += itemHeight;
     }
 
     // Right border line
-    ctx.DrawLine(Point(m_bounds.x + m_bounds.width - 1, m_bounds.y), Point(m_bounds.x + m_bounds.width - 1, m_bounds.y + m_bounds.height), D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f));
+    ctx.DrawLine(Point(m_bounds.x + m_bounds.width - 1, m_bounds.y), Point(m_bounds.x + m_bounds.width - 1, m_bounds.y + m_bounds.height), tokens.windowBackground);
 }
 
 void SideBar::OnMouseDown(Point pt) {
@@ -481,7 +492,8 @@ void SideBar::OnMouseDown(Point pt) {
 // ==========================================
 TabBar::TabBar() {
     SetProperty("height", Value(35.0f));
-    SetProperty("background", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f))); // Inactive tabs background
+    SetProperty("theme.backgroundToken", Value("tabBarBackground"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("tabBarBackground")));
 
     m_tabs = {
         { "c", "GraphicsContext.cpp", true },
@@ -497,6 +509,7 @@ void TabBar::AddTab(const std::string& icon, const std::string& title, bool modi
 void TabBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     float tabX = m_bounds.x;
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
@@ -507,29 +520,29 @@ void TabBar::OnRender(GraphicsContext& ctx) {
         float tabW = titleSize.width + 50.0f;
         Rect tabRect(tabX, m_bounds.y, tabW, m_bounds.height);
 
-        D2D1_COLOR_F tabBg = isActive ? D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f) : D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f);
+        D2D1_COLOR_F tabBg = isActive ? tokens.windowBackground : tokens.inputBackground;
         ctx.FillRect(tabRect, tabBg);
 
         if (isActive) {
-            // Active top border blue highlight bar
-            ctx.FillRect(Rect(tabX, m_bounds.y, tabW, 2.0f), D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f));
+            // Active top border highlight bar
+            ctx.FillRect(Rect(tabX, m_bounds.y, tabW, 2.0f), tokens.accentColor);
         }
 
         // Draw icon
-        D2D1_COLOR_F iconColor = (tab.icon == "x") ? D2D1::ColorF(0xE3 / 255.0f, 0x66 / 255.0f, 0x29 / 255.0f) : D2D1::ColorF(0x51 / 255.0f, 0x9A / 255.0f, 0xD9 / 255.0f);
+        D2D1_COLOR_F iconColor = (tab.icon == "x") ? tokens.dangerColor : tokens.accentColor;
         ctx.DrawText(tab.icon, Rect(tabX + 10, m_bounds.y, 16, m_bounds.height), iconColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Draw title
-        D2D1_COLOR_F textColor = isActive ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : D2D1::ColorF(0x96 / 255.0f, 0x96 / 255.0f, 0x96 / 255.0f);
+        D2D1_COLOR_F textColor = isActive ? tokens.textPrimary : tokens.textMuted;
         ctx.DrawText(tab.title, Rect(tabX + 30, m_bounds.y, titleSize.width + 5, m_bounds.height), textColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Draw modified dot or close 'x'
         std::string rightSymbol = tab.isModified ? "o" : "x";
-        D2D1_COLOR_F closeColor = tab.isModified ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f);
+        D2D1_COLOR_F closeColor = tab.isModified ? tokens.textPrimary : tokens.textMuted;
         ctx.DrawText(rightSymbol, Rect(tabX + tabW - 20, m_bounds.y, 16, m_bounds.height), closeColor, "Segoe UI", 10.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Right separator line
-        ctx.DrawLine(Point(tabX + tabW - 1, m_bounds.y), Point(tabX + tabW - 1, m_bounds.y + m_bounds.height), D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f));
+        ctx.DrawLine(Point(tabX + tabW - 1, m_bounds.y), Point(tabX + tabW - 1, m_bounds.y + m_bounds.height), tokens.cardBackground);
 
         tabX += tabW;
     }
@@ -556,7 +569,8 @@ void TabBar::OnMouseDown(Point pt) {
 // 5. EditorView Implementation
 // ==========================================
 EditorView::EditorView() {
-    SetProperty("background", Value(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f, 1.0f))); // Main editor dark background
+    SetProperty("theme.backgroundToken", Value("editorBackground"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("editorBackground")));
 
     m_lines = {
         "// Direct2D High-Performance Render Loop",
@@ -589,11 +603,13 @@ EditorView::EditorView() {
 void EditorView::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
+
     // 1. Breadcrumb bar at top
     Rect breadcrumbRect(m_bounds.x, m_bounds.y, m_bounds.width, 22.0f);
-    ctx.FillRect(breadcrumbRect, D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f));
-    ctx.DrawText("src > framework > render > GraphicsContext.cpp > GraphicsContext::BeginDraw", Rect(m_bounds.x + 12, m_bounds.y, m_bounds.width, 22.0f), D2D1::ColorF(0xA0 / 255.0f, 0xA0 / 255.0f, 0xA0 / 255.0f), "Consolas", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    ctx.DrawLine(Point(m_bounds.x, m_bounds.y + 21), Point(m_bounds.x + m_bounds.width, m_bounds.y + 21), D2D1::ColorF(0x28 / 255.0f, 0x28 / 255.0f, 0x28 / 255.0f));
+    ctx.FillRect(breadcrumbRect, tokens.windowBackground);
+    ctx.DrawText("src > framework > render > GraphicsContext.cpp > GraphicsContext::BeginDraw", Rect(m_bounds.x + 12, m_bounds.y, m_bounds.width, 22.0f), tokens.textMuted, "Consolas", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawLine(Point(m_bounds.x, m_bounds.y + 21), Point(m_bounds.x + m_bounds.width, m_bounds.y + 21), tokens.cardBorder);
 
     // 2. Line Numbers column & Code Area
     float startY = m_bounds.y + 26.0f;
@@ -608,22 +624,22 @@ void EditorView::OnRender(GraphicsContext& ctx) {
 
         // Highlight current line
         if (isCurrentLine) {
-            ctx.FillRect(Rect(m_bounds.x, y, m_bounds.width, lineHeight), D2D1::ColorF(0x28 / 255.0f, 0x28 / 255.0f, 0x28 / 255.0f));
-            ctx.DrawRect(Rect(m_bounds.x, y, m_bounds.width, lineHeight), D2D1::ColorF(0x35 / 255.0f, 0x35 / 255.0f, 0x35 / 255.0f));
+            ctx.FillRect(Rect(m_bounds.x, y, m_bounds.width, lineHeight), tokens.hoverBackground);
+            ctx.DrawRect(Rect(m_bounds.x, y, m_bounds.width, lineHeight), tokens.cardBorder);
         }
 
         // Line number
         std::string lineNoStr = std::to_string(i + 1);
-        D2D1_COLOR_F lineNoColor = isCurrentLine ? D2D1::ColorF(0xC6 / 255.0f, 0xC6 / 255.0f, 0xC6 / 255.0f) : D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f);
+        D2D1_COLOR_F lineNoColor = isCurrentLine ? tokens.textSecondary : tokens.textMuted;
         ctx.DrawText(lineNoStr, Rect(m_bounds.x, y, lineNoW - 8, lineHeight), lineNoColor, "Consolas", 12.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Code text
         const std::string& codeStr = m_lines[i];
-        D2D1_COLOR_F codeColor = D2D1::ColorF(0xD4 / 255.0f, 0xD4 / 255.0f, 0xD4 / 255.0f);
+        D2D1_COLOR_F codeColor = tokens.textPrimary;
         if (!codeStr.empty() && codeStr[0] == '#') {
-            codeColor = D2D1::ColorF(0xC5 / 255.0f, 0x86 / 255.0f, 0xC0 / 255.0f); // Magenta include
+            codeColor = tokens.accentColor;
         } else if (!codeStr.empty() && codeStr.find("//") == 0) {
-            codeColor = D2D1::ColorF(0x6A / 255.0f, 0x99 / 255.0f, 0x55 / 255.0f); // Green comment
+            codeColor = tokens.textMuted;
         }
 
         ctx.DrawText(codeStr, Rect(m_bounds.x + lineNoW + 12, y, m_bounds.width - lineNoW - 12, lineHeight), codeColor, "Consolas", 13.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -631,7 +647,7 @@ void EditorView::OnRender(GraphicsContext& ctx) {
         // Draw cursor line indicator if current line
         if (isCurrentLine) {
             float cursorX = m_bounds.x + lineNoW + 12 + (m_cursorCol - 1) * 7.5f;
-            ctx.FillRect(Rect(cursorX, y + 2, 2.0f, lineHeight - 4), D2D1::ColorF(0xAE / 255.0f, 0xAF / 255.0f, 0xAD / 255.0f));
+            ctx.FillRect(Rect(cursorX, y + 2, 2.0f, lineHeight - 4), tokens.textSecondary);
         }
     }
 }
@@ -653,7 +669,10 @@ void EditorView::OnMouseDown(Point pt) {
 // ==========================================
 StatusBar::StatusBar() {
     SetProperty("height", Value(22.0f));
-    SetProperty("background", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f))); // VS Code StatusBar blue
+    SetProperty("theme.backgroundToken", Value("statusBarBackground"));
+    SetProperty("theme.colorToken", Value("accentForeground"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("statusBarBackground")));
+    SetProperty("color", Value(ThemeManager::Instance().GetTokens().accentForeground));
     SetProperty("branch", Value("main*"));
     SetProperty("status", Value("Ready"));
     SetProperty("line", Value(14));
@@ -663,7 +682,7 @@ StatusBar::StatusBar() {
 void StatusBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
-    D2D1_COLOR_F textColor = D2D1::ColorF(1.0f, 1.0f, 1.0f);
+    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "accentForeground");
 
     // Left items: Git Branch
     std::string branchStr = "[git] " + GetProperty("branch").AsString("main*");

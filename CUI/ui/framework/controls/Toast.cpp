@@ -37,7 +37,7 @@ static std::string ThemeHex(const std::string& tokenName) {
     return ThemeManager::Instance().GetColorHex(tokenName);
 }
 
-static std::string ResolveThemeColor(const UIElement* element, const char* tokenPropName, const std::string& fallback) {
+static std::string ResolveThemeColorHex(const UIElement* element, const char* tokenPropName, const std::string& fallback) {
     if (!element || !element->HasProperty(tokenPropName)) {
         return fallback;
     }
@@ -83,22 +83,21 @@ ToastType Toast::ParseType(const std::string& typeStr, ToastType fallback) {
 void Toast::SetType(ToastType type) {
     m_type = type;
     SetProperty("type", Value(TypeToString(type)));
+    const char* accentToken = "accentColor";
     switch (type) {
-    case ToastType::Success:
-        SetAccent("#10B981");
-        break;
-    case ToastType::Warning:
-        SetAccent("#D7A400");
-        break;
     case ToastType::Error:
-        SetAccent("#D13438");
+        accentToken = "dangerColor";
         break;
+    case ToastType::Success:
+    case ToastType::Warning:
     case ToastType::Info:
     default:
-        SetProperty("theme.accentToken", Value("accentColor"));
-        SetAccent(ThemeHex("accentColor"));
+        accentToken = "accentColor";
         break;
     }
+    m_accent = ThemeHex(accentToken);
+    SetProperty("theme.accentToken", Value(accentToken));
+    SetProperty("accent", Value(m_accent));
 }
 
 Toast::Toast() {
@@ -131,10 +130,12 @@ Toast::Toast() {
     m_txtTitle = std::make_shared<TextBlock>(m_titleText);
     m_txtTitle->SetProperty("fontSize", Value(15.0f));
     m_txtTitle->SetProperty("fontWeight", Value("Bold"));
+    m_txtTitle->SetProperty("theme.colorToken", Value("textPrimary"));
     m_txtTitle->SetProperty("color", Value(m_titleColor));
 
     m_txtMessage = std::make_shared<TextBlock>(m_messageText);
     m_txtMessage->SetProperty("fontSize", Value(12.5f));
+    m_txtMessage->SetProperty("theme.colorToken", Value("textSecondary"));
     m_txtMessage->SetProperty("color", Value(m_messageColor));
 
     AddChild(m_txtTitle);
@@ -149,9 +150,6 @@ std::vector<PropertyMeta> Toast::GetPropertyMetas() const {
     metas.push_back({ "durationMs", "DurationMs", "Toast", "number" });
     metas.push_back({ "autoClose", "AutoClose", "Toast", "bool" });
     metas.push_back({ "closeable", "Closeable", "Toast", "bool" });
-    metas.push_back({ "accent", "Accent", "Toast", "color" });
-    metas.push_back({ "titleColor", "TitleColor", "Toast", "color" });
-    metas.push_back({ "messageColor", "MessageColor", "Toast", "color" });
     metas.push_back({ "offsetX", "OffsetX", "Toast", "number" });
     metas.push_back({ "offsetY", "OffsetY", "Toast", "number" });
     metas.push_back({ "spacing", "StackSpacing", "Toast", "number" });
@@ -161,10 +159,10 @@ std::vector<PropertyMeta> Toast::GetPropertyMetas() const {
 void Toast::SyncMembersFromProperties() {
     m_titleText = GetProperty("title").AsString(m_titleText);
     m_messageText = GetProperty("message").AsString(m_messageText);
-    m_background = ResolveThemeColor(this, "theme.backgroundToken", ColorValueToHex(GetProperty("background"), m_background));
-    m_accent = ResolveThemeColor(this, "theme.accentToken", ColorValueToHex(GetProperty("accent"), m_accent));
-    m_titleColor = ResolveThemeColor(this, "theme.titleColorToken", ColorValueToHex(GetProperty("titleColor"), m_titleColor));
-    m_messageColor = ResolveThemeColor(this, "theme.messageColorToken", ColorValueToHex(GetProperty("messageColor"), m_messageColor));
+    m_background = ResolveThemeColorHex(this, "theme.backgroundToken", ColorValueToHex(GetProperty("background"), m_background));
+    m_accent = ResolveThemeColorHex(this, "theme.accentToken", ColorValueToHex(GetProperty("accent"), m_accent));
+    m_titleColor = ResolveThemeColorHex(this, "theme.titleColorToken", ColorValueToHex(GetProperty("titleColor"), m_titleColor));
+    m_messageColor = ResolveThemeColorHex(this, "theme.messageColorToken", ColorValueToHex(GetProperty("messageColor"), m_messageColor));
     m_width = GetProperty("width").AsFloat(m_width);
     m_offsetX = GetProperty("offsetX").AsFloat(m_offsetX);
     m_offsetY = GetProperty("offsetY").AsFloat(m_offsetY);
@@ -325,7 +323,7 @@ void Toast::RenderContent(GraphicsContext& ctx, const Rect& bounds, float opacit
     const ThemeMode themeMode = ThemeManager::Instance().GetThemeMode();
     const bool lightTheme = themeMode == ThemeMode::Light;
 
-    D2D1_COLOR_F shadow = ColorWithAlpha("#000000", 0.28f * opacity);
+    D2D1_COLOR_F shadow = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.28f * opacity);
     D2D1_COLOR_F bg = ColorWithAlpha(m_background, opacity);
     D2D1_COLOR_F accentClr = ColorWithAlpha(m_accent, opacity);
     D2D1_COLOR_F border = ColorWithAlpha(ThemeHex("cardBorder"), opacity);
@@ -356,10 +354,11 @@ void Toast::RenderContent(GraphicsContext& ctx, const Rect& bounds, float opacit
 
     if (m_closeable) {
         m_closeBtnBounds = GetCloseButtonRect();
-        D2D1_COLOR_F closeBg = ColorWithAlpha(
-            lightTheme ? "#000000" : "#FFFFFF",
-            (m_isHovering ? (lightTheme ? 0.08f : 0.12f) : 0.0f) * opacity
-        );
+        const float closeAlpha = (m_isHovering ? (lightTheme ? 0.08f : 0.12f) : 0.0f) * opacity;
+        D2D1_COLOR_F closeBg = lightTheme
+            ? ThemeManager::Instance().GetColor("textPrimary")
+            : ThemeManager::Instance().GetColor("accentForeground");
+        closeBg.a = closeAlpha;
         if (closeBg.a > 0.01f) {
             ctx.FillRoundedRect(m_closeBtnBounds, 4.0f, closeBg);
         }

@@ -17,12 +17,18 @@ float EaseLine(float t) {
 
 RadioButton::RadioButton() : CheckBox("RadioButton") {
     SetProperty("groupName", Value("DefaultGroup"));
+    SetProperty("theme.backgroundToken", Value("inputBackground"));
+    SetProperty("theme.accentColorToken", Value("accentColor"));
+    SetProperty("theme.colorToken", Value("textSecondary"));
     SetProperty("background", Value(ThemeManager::Instance().GetColor("inputBackground")));
     SetProperty("accentColor", Value(ThemeManager::Instance().GetColor("accentColor")));
 }
 
 RadioButton::RadioButton(const std::string& text) : CheckBox(text) {
     SetProperty("groupName", Value("DefaultGroup"));
+    SetProperty("theme.backgroundToken", Value("inputBackground"));
+    SetProperty("theme.accentColorToken", Value("accentColor"));
+    SetProperty("theme.colorToken", Value("textSecondary"));
     SetProperty("background", Value(ThemeManager::Instance().GetColor("inputBackground")));
     SetProperty("accentColor", Value(ThemeManager::Instance().GetColor("accentColor")));
 }
@@ -97,7 +103,7 @@ void RadioButton::OnRender(GraphicsContext& ctx) {
     float size = 18.0f;
     Rect checkRect(m_bounds.x + padding.left, m_bounds.y + (m_bounds.height - size) * 0.5f, size, size);
 
-    D2D1_COLOR_F accent = GetProperty("accentColor").AsColor(ThemeManager::Instance().GetColor("accentColor"));
+    D2D1_COLOR_F accent = ResolveThemeColor("theme.accentColorToken", "accentColor");
     D2D1_COLOR_F defaultBorder = ThemeManager::Instance().GetColor("inputBorder");
     defaultBorder.a = 0.85f;
     D2D1_COLOR_F hoverBorder = ThemeManager::Instance().GetColor("textPrimary");
@@ -107,7 +113,7 @@ void RadioButton::OnRender(GraphicsContext& ctx) {
 
     D2D1_COLOR_F borderUnchecked = BlendColor(defaultBorder, hoverBorder, (std::min)(1.0f, visualProgress / 0.55f));
     D2D1_COLOR_F border = BlendColor(borderUnchecked, accent, selectionProgress);
-    D2D1_COLOR_F bg = GetAnimatedBackground(GetProperty("background").AsColor(ThemeManager::Instance().GetColor("inputBackground")));
+    D2D1_COLOR_F bg = GetAnimatedBackground(ResolveThemeColor("theme.backgroundToken", "inputBackground"));
 
     ctx.FillRoundedRect(checkRect, size * 0.5f, bg);
     ctx.DrawRoundedRect(checkRect, size * 0.5f, border, 1.4f);
@@ -125,7 +131,7 @@ void RadioButton::OnRender(GraphicsContext& ctx) {
     if (!txt.empty()) {
         float fontSize = GetProperty("fontSize").AsFloat(13.0f);
         std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
-        D2D1_COLOR_F color = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textSecondary"));
+        D2D1_COLOR_F color = ResolveThemeColor("theme.colorToken", "textSecondary");
 
         float textX = checkRect.x + size + 10.0f;
         Rect textRect(textX, m_bounds.y, (std::max)(0.0f, m_bounds.width - (textX - m_bounds.x)), m_bounds.height);

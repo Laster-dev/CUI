@@ -135,8 +135,8 @@ void CollapsePanel::Arrange(Rect finalRect) {
 
 void CollapsePanel::OnRender(GraphicsContext& ctx) {
     // Draw outer container background & border
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
-    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f));
+    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
+    D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
     float radius = GetProperty("cornerRadius").AsFloat(6.0f);
 
     ctx.FillRoundedRect(m_bounds, radius, bg);

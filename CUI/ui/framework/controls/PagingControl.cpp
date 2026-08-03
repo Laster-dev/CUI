@@ -7,9 +7,42 @@
 
 namespace CUI {
 
+namespace {
+void StylePagingButton(std::shared_ptr<Button> btn, bool active) {
+    if (!btn) return;
+    auto& theme = ThemeManager::Instance();
+    if (active) {
+        btn->SetProperty("theme.backgroundToken", Value("accentColor"));
+        btn->SetProperty("theme.hoverBackgroundToken", Value("accentColor"));
+        btn->SetProperty("theme.colorToken", Value("accentForeground"));
+        btn->SetProperty("theme.borderToken", Value("accentColor"));
+        btn->SetProperty("background", Value(theme.GetColor("accentColor")));
+        btn->SetProperty("hoverBackground", Value(theme.GetColor("accentColor")));
+        btn->SetProperty("color", Value(theme.GetColor("accentForeground")));
+        btn->SetProperty("borderBrush", Value(theme.GetColor("accentColor")));
+    } else {
+        btn->SetProperty("theme.backgroundToken", Value("cardBackground"));
+        btn->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
+        btn->SetProperty("theme.colorToken", Value("textSecondary"));
+        btn->SetProperty("theme.borderToken", Value("cardBorder"));
+        btn->SetProperty("background", Value(theme.GetColor("cardBackground")));
+        btn->SetProperty("hoverBackground", Value(theme.GetColor("hoverBackground")));
+        btn->SetProperty("color", Value(theme.GetColor("textSecondary")));
+        btn->SetProperty("borderBrush", Value(theme.GetColor("cardBorder")));
+    }
+    btn->SetProperty("borderThickness", Value(1.0f));
+    btn->SetProperty("cornerRadius", Value(4.0f));
+    btn->SetProperty("fontSize", Value(12.0f));
+    btn->SetProperty("padding", Value(Thickness(0)));
+}
+} // namespace
+
 PagingControl::PagingControl() {
     SetProperty("currentPage", Value(1));
     SetProperty("totalPages", Value(10));
+    SetProperty("theme.colorToken", Value("textMuted"));
+    SetProperty("theme.activeUnderlineColorToken", Value("accentColor"));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("textMuted")));
     SetProperty("width", Value(260.0f));
     SetProperty("height", Value(30.0f));
 
@@ -19,30 +52,11 @@ PagingControl::PagingControl() {
     m_btnPage2 = std::make_shared<Button>("2");
     m_btnPage3 = std::make_shared<Button>("3");
 
-    auto styleBtn = [](std::shared_ptr<Button> btn, bool active) {
-        if (!btn) return;
-        if (active) {
-            btn->SetProperty("background", Value(ThemeManager::Instance().GetTokens().accentColor));
-            btn->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetTokens().accentColor));
-            btn->SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
-            btn->SetProperty("borderBrush", Value(ThemeManager::Instance().GetTokens().accentColor));
-        } else {
-            btn->SetProperty("background", Value(ThemeManager::Instance().GetTokens().cardBackground));
-            btn->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetTokens().cardBackground));
-            btn->SetProperty("color", Value(ThemeManager::Instance().GetTokens().textSecondary));
-            btn->SetProperty("borderBrush", Value(ThemeManager::Instance().GetTokens().cardBorder));
-        }
-        btn->SetProperty("borderThickness", Value(1.0f));
-        btn->SetProperty("cornerRadius", Value(4.0f));
-        btn->SetProperty("fontSize", Value(12.0f));
-        btn->SetProperty("padding", Value(Thickness(0)));
-    };
-
-    styleBtn(m_btnPrev, false);
-    styleBtn(m_btnPage1, true);
-    styleBtn(m_btnPage2, false);
-    styleBtn(m_btnPage3, false);
-    styleBtn(m_btnNext, false);
+    StylePagingButton(m_btnPrev, false);
+    StylePagingButton(m_btnPage1, true);
+    StylePagingButton(m_btnPage2, false);
+    StylePagingButton(m_btnPage3, false);
+    StylePagingButton(m_btnNext, false);
 
     AddChild(m_btnPrev);
     AddChild(m_btnPage1);
@@ -97,16 +111,14 @@ void PagingControl::UpdatePageButtons() {
         }
         btn->SetProperty("visibility", Value("Visible"));
         btn->SetText(std::to_string(val));
-        bool active = (current == val);
-        btn->SetProperty("background", Value(active ? ThemeManager::Instance().GetTokens().accentColor : ThemeManager::Instance().GetTokens().cardBackground));
-        btn->SetProperty("color", Value(active ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f) : ThemeManager::Instance().GetTokens().textSecondary));
-        btn->SetProperty("borderBrush", Value(active ? ThemeManager::Instance().GetTokens().accentColor : ThemeManager::Instance().GetTokens().cardBorder));
-        btn->SetProperty("borderThickness", Value(1.0f));
+        StylePagingButton(btn, current == val);
     };
 
     updateBtn(m_btnPage1, m_page1Val);
     updateBtn(m_btnPage2, m_page2Val);
     updateBtn(m_btnPage3, m_page3Val);
+    StylePagingButton(m_btnPrev, false);
+    StylePagingButton(m_btnNext, false);
 }
 
 std::vector<PropertyMeta> PagingControl::GetPropertyMetas() const {
@@ -142,8 +154,7 @@ void PagingControl::OnRender(GraphicsContext& ctx) {
     float btnW = 32.0f;
     float gap = 6.0f;
     float startX = m_bounds.x + (m_bounds.width - (5 * btnW + 4 * gap + 70.0f)) * 0.5f;
-    
-    // Draw sliding active page indicator bar under page buttons
+
     int current = GetCurrentPage();
     int total = GetTotalPages();
     float targetIndex = 1.0f;
@@ -155,18 +166,18 @@ void PagingControl::OnRender(GraphicsContext& ctx) {
     float pillX = startX + activeIndex * (btnW + gap) + 4.0f;
     float pillY = m_bounds.y + m_bounds.height - 2.0f;
     Rect pillRect(pillX, pillY, btnW - 8.0f, 2.0f);
-    ctx.FillRoundedRect(pillRect, 1.0f, ThemeManager::Instance().GetTokens().accentColor);
+    ctx.FillRoundedRect(pillRect, 1.0f, ResolveThemeColor("theme.activeUnderlineColorToken", "accentColor"));
 
-    // Draw total pages text on right end
     Rect infoRect(startX + 5 * (btnW + gap) + 4.0f, m_bounds.y, 65.0f, m_bounds.height);
     std::string info = "共 " + std::to_string(total) + " 页";
-    ctx.DrawText(info, infoRect, ThemeManager::Instance().GetTokens().textMuted, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    D2D1_COLOR_F infoColor = ResolveThemeColor("theme.colorToken", "textMuted");
+    ctx.DrawText(info, infoRect, infoColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
 bool PagingControl::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
     float dt = UIElement::GetAnimationDeltaSeconds();
-    
+
     int current = GetCurrentPage();
     float targetIndex = 1.0f;
     if (current == m_page1Val) targetIndex = 1.0f;

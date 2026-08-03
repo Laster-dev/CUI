@@ -8,15 +8,16 @@
 namespace CUI {
 
 ColorPicker::ColorPicker() {
-    SetProperty("selectedColor", Value(ThemeManager::Instance().GetTokens().accentColor));
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
+    SetProperty("selectedColor", Value(tokens.accentColor));
     SetProperty("width", Value(220.0f));
     SetProperty("height", Value(32.0f));
 
     m_swatches = {
-        D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f), // VS Blue
+        tokens.accentColor,
         D2D1::ColorF(0x4E / 255.0f, 0xC9 / 255.0f, 0xB0 / 255.0f, 1.0f), // Teal
         D2D1::ColorF(0xCE / 255.0f, 0x91 / 255.0f, 0x78 / 255.0f, 1.0f), // Orange
-        D2D1::ColorF(0xD1 / 255.0f, 0x69 / 255.0f, 0x69 / 255.0f, 1.0f), // Red
+        tokens.dangerColor,
         D2D1::ColorF(0xC5 / 255.0f, 0x86 / 255.0f, 0xC0 / 255.0f, 1.0f), // Purple
         D2D1::ColorF(0x6A / 255.0f, 0x99 / 255.0f, 0x55 / 255.0f, 1.0f)  // Green
     };

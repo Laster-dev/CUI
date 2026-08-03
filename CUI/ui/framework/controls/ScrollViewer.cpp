@@ -3,6 +3,7 @@
 #endif
 #include "ScrollViewer.h"
 #include "../render/CompositionContext.h"
+#include "../style/ThemeManager.h"
 #include <wrl/client.h>
 #include <algorithm>
 #include <cmath>
@@ -58,6 +59,8 @@ void RenderVisibleSubtree(UIElement* element, GraphicsContext& ctx, const Rect& 
 }
 
 ScrollViewer::ScrollViewer() {
+    SetProperty("theme.trackColorToken", Value("cardBorder"));
+    SetProperty("theme.thumbColorToken", Value("textMuted"));
     SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
     QueryPerformanceFrequency(&m_qpcFreq);
     m_scrollAnimator.Reset(0.0f);
@@ -488,11 +491,13 @@ void ScrollViewer::RenderScrollChrome(GraphicsContext& ctx) {
         Rect track = GetScrollbarTrackRect();
         Rect thumb = GetScrollbarThumbRect();
 
+        D2D1_COLOR_F trackBase = ResolveThemeColor("theme.trackColorToken", "cardBorder");
+        D2D1_COLOR_F thumbBase = ResolveThemeColor("theme.thumbColorToken", "textMuted");
         float trackAlpha = m_scrollbarHovered || m_isDraggingThumb ? 0.18f : 0.08f;
-        ctx.FillRoundedRect(track, 4.0f, D2D1::ColorF(1.0f, 1.0f, 1.0f, trackAlpha));
+        ctx.FillRoundedRect(track, 4.0f, D2D1::ColorF(trackBase.r, trackBase.g, trackBase.b, trackAlpha));
 
         float thumbAlpha = m_isDraggingThumb ? 0.75f : (m_scrollbarHovered ? 0.55f : 0.40f);
-        ctx.FillRoundedRect(thumb, 4.0f, D2D1::ColorF(0x79 / 255.0f, 0x79 / 255.0f, 0x79 / 255.0f, thumbAlpha));
+        ctx.FillRoundedRect(thumb, 4.0f, D2D1::ColorF(thumbBase.r, thumbBase.g, thumbBase.b, thumbAlpha));
     }
 }
 

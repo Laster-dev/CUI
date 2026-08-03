@@ -25,6 +25,9 @@ CheckBox::CheckBox() {
     SetProperty("text", Value("CheckBox"));
     SetProperty("checkState", Value("Unchecked"));
     SetProperty("isThreeState", Value(false));
+    SetProperty("theme.backgroundToken", Value("inputBackground"));
+    SetProperty("theme.checkedBackgroundToken", Value("accentColor"));
+    SetProperty("theme.colorToken", Value("textPrimary"));
     SetProperty("background", Value(ThemeManager::Instance().GetColor("inputBackground")));
     SetProperty("checkedBackground", Value(ThemeManager::Instance().GetColor("accentColor")));
     SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
@@ -43,10 +46,8 @@ std::vector<PropertyMeta> CheckBox::GetPropertyMetas() const {
     metas.push_back({ "text", "标签文本 (Text)", "基本信息", "string" });
     metas.push_back({ "checkState", "选中状态 (CheckState)", "复选配置", "enum", { "Unchecked", "Checked", "Indeterminate" } });
     metas.push_back({ "isThreeState", "三态模式 (ThreeState)", "复选配置", "bool" });
-    metas.push_back({ "checkedBackground", "选中背景 (CheckedBg)", "色彩外观", "color" });
     metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    metas.push_back({ "color", "文字颜色 (Color)", "字体文本", "color" });
     return metas;
 }
 
@@ -118,11 +119,11 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     float boxY = m_bounds.y + (m_bounds.height - boxSize) / 2.0f;
     Rect boxRect(m_bounds.x + padding.left, boxY, boxSize, boxSize);
 
-    D2D1_COLOR_F accentBase = GetProperty("checkedBackground").AsColor(ThemeManager::Instance().GetColor("accentColor"));
+    D2D1_COLOR_F accentBase = ResolveThemeColor("theme.checkedBackgroundToken", "accentColor");
     float visualState = m_visualStateAnim.Current();
     D2D1_COLOR_F accentBlue = BlendColor(accentBase, ThemeManager::Instance().GetColor("accentColor"), visualState * 0.35f);
-    D2D1_COLOR_F checkedIconColor = ThemeManager::Instance().GetColor("windowBackground");
-    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    D2D1_COLOR_F checkedIconColor = ThemeManager::Instance().GetColor("accentForeground");
+    D2D1_COLOR_F bg = GetAnimatedBackground(ResolveThemeColor("theme.backgroundToken", "inputBackground"));
     D2D1_COLOR_F border = BlendColor(
         ThemeManager::Instance().GetColor("inputBorder"),
         ThemeManager::Instance().GetColor("focusedBorder"),
@@ -173,7 +174,7 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
         float textX = boxRect.x + boxSize + 10.0f;
         Rect textRect(textX, m_bounds.y, m_bounds.width - (textX - m_bounds.x), m_bounds.height);
 
-        D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
+        D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
         std::string font = GetProperty("fontFamily").AsString("Segoe UI");
         float fontSize = GetProperty("fontSize").AsFloat(13.0f);
 

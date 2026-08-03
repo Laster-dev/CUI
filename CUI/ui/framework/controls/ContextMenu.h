@@ -65,6 +65,7 @@ public:
     void ShowSubMenuAt(Rect parentItemBounds, float windowW = 0.0f, float windowH = 0.0f);
     void Hide();
     bool IsOpen() const { return m_isOpen; }
+    std::shared_ptr<ContextMenu> GetActiveSubMenu() const { return m_activeSubMenu; }
 
     virtual void OnBlur() override { Hide(); }
 

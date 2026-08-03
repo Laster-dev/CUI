@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "TimePicker.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -38,16 +39,20 @@ float WrapPosition(float value, int count) {
 }
 
 TimePicker::TimePicker() {
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     time_t t = time(nullptr);
     tm tmVal = {};
     localtime_s(&tmVal, &t);
     m_hour = tmVal.tm_hour;
     m_minute = tmVal.tm_min;
 
-    SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+    SetProperty("theme.backgroundToken", Value("inputBackground"));
+    SetProperty("theme.borderToken", Value("inputBorder"));
+    SetProperty("theme.colorToken", Value("textPrimary"));
+    SetProperty("background", Value(tokens.inputBackground));
+    SetProperty("borderBrush", Value(tokens.inputBorder));
     SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
+    SetProperty("color", Value(tokens.textPrimary));
     SetProperty("cornerRadius", Value(4.0f));
     SetProperty("width", Value(140.0f));
     SetProperty("height", Value(30.0f));
@@ -269,12 +274,12 @@ void TimePicker::OnRender(GraphicsContext& ctx) {
     std::string text = "🕒 " + GetFormattedTime();
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
     std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f));
+    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
 
     Rect textRect(m_bounds.x + 10.0f, m_bounds.y, m_bounds.width - 34.0f, m_bounds.height);
     ctx.DrawText(text, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     ctx.DrawText("v", Rect(m_bounds.x + m_bounds.width - 22.0f, m_bounds.y, 16.0f, m_bounds.height),
-        D2D1::ColorF(0x88 / 255.0f, 0x88 / 255.0f, 0x88 / 255.0f, 1.0f),
+        ThemeManager::Instance().GetTokens().textMuted,
         "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
@@ -288,14 +293,14 @@ void TimePicker::OnRenderOverlay(GraphicsContext& ctx) {
 
     ctx.PushClip(clipRect);
 
-    D2D1_COLOR_F popupBg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, progress);
-    D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, progress);
-    D2D1_COLOR_F textPrimary = D2D1::ColorF(0xF2 / 255.0f, 0xF2 / 255.0f, 0xF2 / 255.0f, progress);
-    D2D1_COLOR_F textSecondary = D2D1::ColorF(0x9A / 255.0f, 0x9A / 255.0f, 0x9A / 255.0f, progress);
-    D2D1_COLOR_F headerAccent = D2D1::ColorF(0x56 / 255.0f, 0x9C / 255.0f, 0xD6 / 255.0f, progress);
-    D2D1_COLOR_F overlayFill = D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x30 / 255.0f, progress);
-    D2D1_COLOR_F overlayBorder = D2D1::ColorF(0x4A / 255.0f, 0x4A / 255.0f, 0x4F / 255.0f, progress);
-    D2D1_COLOR_F divider = D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, progress);
+    D2D1_COLOR_F popupBg = ThemeManager::Instance().GetTokens().cardBackground; popupBg.a = progress;
+    D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder; border.a = progress;
+    D2D1_COLOR_F textPrimary = ThemeManager::Instance().GetTokens().textPrimary; textPrimary.a = progress;
+    D2D1_COLOR_F textSecondary = ThemeManager::Instance().GetTokens().textMuted; textSecondary.a = progress;
+    D2D1_COLOR_F headerAccent = ThemeManager::Instance().GetTokens().accentColor; headerAccent.a = progress;
+    D2D1_COLOR_F overlayFill = ThemeManager::Instance().GetTokens().inputBackground; overlayFill.a = progress;
+    D2D1_COLOR_F overlayBorder = ThemeManager::Instance().GetTokens().inputBorder; overlayBorder.a = progress;
+    D2D1_COLOR_F divider = ThemeManager::Instance().GetTokens().cardBorder; divider.a = progress;
 
     ctx.FillRoundedRect(popup, 6.0f, popupBg);
     ctx.DrawRoundedRect(popup, 6.0f, border, 1.5f);

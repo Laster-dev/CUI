@@ -15,6 +15,9 @@ Slider::Slider() {
     SetProperty("value", Value(0.0f));
     SetProperty("step", Value(1.0f));
     SetProperty("orientation", Value("Horizontal"));
+    SetProperty("theme.trackColorToken", Value("inputBorder"));
+    SetProperty("theme.activeTrackColorToken", Value("accentColor"));
+    SetProperty("theme.thumbColorToken", Value("textPrimary"));
     SetProperty("trackColor", Value(ThemeManager::Instance().GetColor("inputBorder")));
     SetProperty("activeTrackColor", Value(ThemeManager::Instance().GetColor("accentColor")));
     SetProperty("thumbColor", Value(ThemeManager::Instance().GetColor("textPrimary")));
@@ -30,9 +33,6 @@ std::vector<PropertyMeta> Slider::GetPropertyMetas() const {
     metas.push_back({ "maximum", "最大值 (Maximum)", "滑块配置", "number" });
     metas.push_back({ "step", "步长 (Step)", "滑块配置", "number" });
     metas.push_back({ "orientation", "方向 (Orientation)", "滑块配置", "enum", { "Horizontal", "Vertical" } });
-    metas.push_back({ "activeTrackColor", "激活轨颜色 (ActiveColor)", "色彩外观", "color" });
-    metas.push_back({ "trackColor", "底轨颜色 (TrackColor)", "色彩外观", "color" });
-    metas.push_back({ "thumbColor", "滑块颜色 (ThumbColor)", "色彩外观", "color" });
     return metas;
 }
 
@@ -209,10 +209,9 @@ void Slider::OnRender(GraphicsContext& ctx) {
     Rect track = GetTrackRect();
     Rect thumb = GetThumbRect();
     std::string orient = GetProperty("orientation").AsString("Horizontal");
-    D2D1_COLOR_F trackBg = GetProperty("trackColor").AsColor(ThemeManager::Instance().GetColor("inputBorder"));
-    D2D1_COLOR_F activeBg = GetProperty("activeTrackColor").AsColor(ThemeManager::Instance().GetColor("accentColor"));
-    D2D1_COLOR_F thumbBg = GetProperty("thumbColor").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
-    D2D1_COLOR_F hoverThumb = BlendColor(thumbBg, activeBg, 0.18f);
+    D2D1_COLOR_F trackBg = ResolveThemeColor("theme.trackColorToken", "inputBorder");
+    D2D1_COLOR_F activeBg = ResolveThemeColor("theme.activeTrackColorToken", "accentColor");
+    D2D1_COLOR_F thumbFill = ResolveThemeColor("theme.thumbColorToken", "cardBackground");
 
     // Draw background track
     ctx.FillRoundedRect(track, 2.0f, trackBg);
@@ -230,9 +229,15 @@ void Slider::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    // Draw thumb circle
-    ctx.FillRoundedRect(thumb, thumb.width * 0.5f, m_isHovered || m_isDragging ? hoverThumb : thumbBg);
-    ctx.DrawRoundedRect(thumb, thumb.width * 0.5f, activeBg, 2.0f);
+    // Draw WinUI 3 style thumb circle: Card background (white in light mode) with Accent border ring
+    ctx.FillRoundedRect(thumb, thumb.width * 0.5f, thumbFill);
+    ctx.DrawRoundedRect(thumb, thumb.width * 0.5f, activeBg, m_isHovered || m_isDragging ? 2.5f : 2.0f);
+
+    // Center accent dot
+    float dotRadius = (m_isHovered || m_isDragging) ? 3.5f : 2.5f;
+    Point center(thumb.x + thumb.width * 0.5f, thumb.y + thumb.height * 0.5f);
+    Rect dotRect(center.x - dotRadius, center.y - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
+    ctx.FillRoundedRect(dotRect, dotRadius, activeBg);
 }
 
 } // namespace CUI

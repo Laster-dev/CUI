@@ -21,6 +21,13 @@ float GetChromiumWheelStep(float viewportHeight) {
 }
 
 ListView::ListView() {
+    SetProperty("theme.backgroundToken", Value("windowBackground"));
+    SetProperty("theme.headerBackgroundToken", Value("cardBackground"));
+    SetProperty("theme.borderToken", Value("cardBorder"));
+    SetProperty("theme.gridLineBrushToken", Value("inputBorder"));
+    SetProperty("theme.colorToken", Value("textPrimary"));
+    SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
+    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
     SetProperty("background", Value(ThemeManager::Instance().GetColor("windowBackground")));
     SetProperty("headerBackground", Value(ThemeManager::Instance().GetColor("cardBackground")));
     SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
@@ -33,47 +40,6 @@ ListView::ListView() {
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("width", Value(480.0f));
     SetProperty("height", Value(320.0f));
-    QueryPerformanceFrequency(&m_qpcFreq);
-    m_scrollAnimator.Reset(0.0f);
-}
-
-void ListView::StopSmoothScroll() {
-    m_scrollAnimator.JumpTo(m_scrollY);
-    m_lastAnimQpc = 0;
-}
-
-double ListView::SecondsSinceLastTick() {
-    LARGE_INTEGER now = {};
-    QueryPerformanceCounter(&now);
-
-    if (m_lastAnimQpc == 0 || m_qpcFreq.QuadPart <= 0) {
-        m_lastAnimQpc = now.QuadPart;
-        return 1.0 / 120.0;
-    }
-
-    double dt = static_cast<double>(now.QuadPart - m_lastAnimQpc) / static_cast<double>(m_qpcFreq.QuadPart);
-    m_lastAnimQpc = now.QuadPart;
-    if (dt < 0.0005) dt = 0.0005;
-    if (dt > 0.050) dt = 0.050;
-    return dt;
-}
-
-bool ListView::AdvanceSmoothScroll() {
-    if (m_isDraggingScrollbar || m_isRubberBandSelecting) {
-        StopSmoothScroll();
-        return false;
-    }
-
-    double dt = SecondsSinceLastTick();
-    bool advanced = m_scrollAnimator.Tick(dt, 0.0f, m_maxScrollY);
-    if (!advanced) {
-        m_lastAnimQpc = 0;
-        return false;
-    }
-
-    m_scrollY = m_scrollAnimator.Current();
-    ClampScroll();
-    return true;
 }
 
 HCURSOR ListView::GetCursor() const {
@@ -120,7 +86,8 @@ void ListView::SetRows(const std::vector<std::vector<std::string>>& rowsData) {
     m_selectedIndices.clear();
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
-    m_scrollAnimator.JumpTo(0.0f);
+    m_targetScrollY = 0.0f;
+    m_scrollYAnim.Reset(0.0f);
 }
 
 void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsData) {
@@ -132,7 +99,8 @@ void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsDat
     m_selectedIndices.clear();
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
-    m_scrollAnimator.JumpTo(0.0f);
+    m_targetScrollY = 0.0f;
+    m_scrollYAnim.Reset(0.0f);
 }
 
 void ListView::ClearRows() {
@@ -144,7 +112,8 @@ void ListView::ClearRows() {
     m_selectedIndices.clear();
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
-    m_scrollAnimator.JumpTo(0.0f);
+    m_targetScrollY = 0.0f;
+    m_scrollYAnim.Reset(0.0f);
 }
 
 size_t ListView::GetRowCount() const {
@@ -161,7 +130,8 @@ void ListView::SetVirtualMode(int rowCount, ListViewDataSource* dataSource) {
     m_selectedIndices.clear();
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
-    m_scrollAnimator.JumpTo(0.0f);
+    m_targetScrollY = 0.0f;
+    m_scrollYAnim.Reset(0.0f);
 }
 
 std::string ListView::GetCellText(int row, int col) const {
@@ -238,13 +208,16 @@ Size ListView::Measure(Size availableSize) {
 void ListView::ClampScroll() {
     float totalContentH = m_rowHeight * static_cast<float>(GetRowCount());
     float viewH = m_bounds.height - m_headerHeight - 4.0f;
-    m_maxScrollY = std::max(0.0f, totalContentH - viewH);
-    m_scrollY = std::clamp(m_scrollY, 0.0f, m_maxScrollY);
-    m_scrollAnimator.ClampTo(0.0f, m_maxScrollY);
+    m_maxScrollY = (std::max)(0.0f, totalContentH - viewH);
+    m_targetScrollY = std::clamp(m_targetScrollY, 0.0f, m_maxScrollY);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_scrollY = m_targetScrollY;
+        m_scrollYAnim.Reset(m_scrollY);
+    }
 
     float totalColsW = GetTotalColumnsWidth();
     float viewW = m_bounds.width - 4.0f;
-    m_maxScrollX = std::max(0.0f, totalColsW - viewW);
+    m_maxScrollX = (std::max)(0.0f, totalColsW - viewW);
     m_scrollX = std::clamp(m_scrollX, 0.0f, m_maxScrollX);
 }
 
@@ -348,13 +321,13 @@ void ListView::OnRender(GraphicsContext& ctx) {
     ClampScroll();
 
     float radius = GetProperty("cornerRadius").AsFloat(0.0f);
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(ThemeManager::Instance().GetColor("windowBackground"));
-    D2D1_COLOR_F headerBg = GetProperty("headerBackground").AsColor(ThemeManager::Instance().GetColor("cardBackground"));
-    D2D1_COLOR_F borderClr = GetProperty("borderBrush").AsColor(ThemeManager::Instance().GetColor("cardBorder"));
-    D2D1_COLOR_F gridLineClr = GetProperty("gridLineBrush").AsColor(ThemeManager::Instance().GetColor("inputBorder"));
-    D2D1_COLOR_F textClr = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
-    D2D1_COLOR_F selectedBg = GetProperty("selectedBackground").AsColor(ThemeManager::Instance().GetColor("selectedBackground"));
-    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(ThemeManager::Instance().GetColor("hoverBackground"));
+    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "windowBackground");
+    D2D1_COLOR_F headerBg = ResolveThemeColor("theme.headerBackgroundToken", "cardBackground");
+    D2D1_COLOR_F borderClr = ResolveThemeColor("theme.borderToken", "cardBorder");
+    D2D1_COLOR_F gridLineClr = ResolveThemeColor("theme.gridLineBrushToken", "inputBorder");
+    D2D1_COLOR_F textClr = ResolveThemeColor("theme.colorToken", "textPrimary");
+    D2D1_COLOR_F selectedBg = ResolveThemeColor("theme.selectedBackgroundToken", "selectedBackground");
+    D2D1_COLOR_F hoverBg = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontH = GetProperty("fontSize").AsFloat(12.0f);
 
@@ -486,7 +459,8 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
 void ListView::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
-    StopSmoothScroll();
+    m_targetScrollY = m_scrollY;
+    m_scrollYAnim.Reset(m_scrollY);
 
     m_isMouseDown = true;
     m_mouseDownPoint = pt;
@@ -538,9 +512,11 @@ void ListView::OnMouseMove(Point pt) {
         float scrollableTrackH = trackH - thumbH;
 
         if (scrollableTrackH > 0.0f) {
-            m_scrollY = m_dragStartScrollY + (deltaY / scrollableTrackH) * m_maxScrollY;
+            m_targetScrollY = m_dragStartScrollY + (deltaY / scrollableTrackH) * m_maxScrollY;
             ClampScroll();
-            m_scrollAnimator.JumpTo(m_scrollY);
+            m_scrollY = m_targetScrollY;
+            m_scrollYAnim.Reset(m_scrollY);
+            MarkRenderContentDirty();
         }
         return;
     }
@@ -655,18 +631,16 @@ void ListView::OnMouseWheel(float delta) {
     if (shiftDown) {
         m_scrollX -= delta * 40.0f;
         ClampScroll();
+        MarkRenderContentDirty();
     } else {
+        float scrollStep = m_rowHeight * 2.5f;
+        m_targetScrollY -= delta * scrollStep;
         ClampScroll();
+        m_scrollYAnim.SetTarget(m_targetScrollY);
         if (!UIElement::AreAnimationsEnabled()) {
-            m_scrollY = std::clamp(m_scrollY - delta * GetChromiumWheelStep(m_bounds.height - m_headerHeight), 0.0f, m_maxScrollY);
-            m_scrollAnimator.JumpTo(m_scrollY);
-            return;
-        }
-        m_scrollAnimator.ScrollBy(-delta * GetChromiumWheelStep(m_bounds.height - m_headerHeight), 0.0f, m_maxScrollY);
-        if (m_lastAnimQpc == 0) {
-            LARGE_INTEGER now = {};
-            QueryPerformanceCounter(&now);
-            m_lastAnimQpc = now.QuadPart;
+            m_scrollY = m_targetScrollY;
+            m_scrollYAnim.Reset(m_scrollY);
+            MarkRenderContentDirty();
         }
     }
 }
@@ -788,15 +762,25 @@ void ListView::OnKeyDown(int vkCode) {
 }
 
 bool ListView::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
     if (!UIElement::AreAnimationsEnabled()) {
-        if (m_scrollAnimator.IsActive()) {
-            m_scrollY = m_scrollAnimator.Target();
-            ClampScroll();
-            m_scrollAnimator.JumpTo(m_scrollY);
-        }
-        return false;
+        m_scrollY = m_targetScrollY;
+        m_scrollYAnim.Reset(m_scrollY);
+        return base;
     }
-    return AdvanceSmoothScroll();
+    float dt = UIElement::GetAnimationDeltaSeconds();
+    m_scrollYAnim.SetTarget(m_targetScrollY);
+    bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    if (anim) {
+        m_scrollY = m_scrollYAnim.Current();
+        MarkRenderContentDirty();
+    }
+    return base || anim;
+}
+
+bool ListView::HasSelfAnimation() const {
+    return Control::HasSelfAnimation() ||
+           std::abs(m_scrollYAnim.Target() - m_scrollYAnim.Current()) > 0.001f;
 }
 
 } // namespace CUI

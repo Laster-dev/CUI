@@ -1,4 +1,5 @@
 #include "TextBlock.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
@@ -8,7 +9,6 @@ std::vector<PropertyMeta> TextBlock::GetPropertyMetas() const {
     metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
     metas.push_back({ "fontWeight", "字体粗细 (FontWeight)", "字体文本", "enum", { "Normal", "Bold", "Light" } });
-    metas.push_back({ "color", "文字颜色 (Color)", "字体文本", "color" });
     metas.push_back({ "lineSpacing", "行间距 (LineSpacing)", "高级排版", "number" });
     metas.push_back({ "lineHeight", "固定行高 (LineHeight)", "高级排版", "number" });
     return metas;
@@ -16,7 +16,8 @@ std::vector<PropertyMeta> TextBlock::GetPropertyMetas() const {
 
 TextBlock::TextBlock() {
     SetProperty("text", Value(""));
-    SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
+    SetProperty("theme.colorToken", Value("textSecondary"));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("textSecondary")));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("fontSize", Value(13.0f));
     SetProperty("fontWeight", Value("Normal"));
@@ -62,7 +63,7 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
     std::string text = GetProperty("text").AsString("");
     if (text.empty()) return;
 
-    D2D1_COLOR_F color = GetProperty("color").AsColor(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f));
+    D2D1_COLOR_F color = ResolveThemeColor("theme.colorToken", "textSecondary");
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
     std::string weightStr = GetProperty("fontWeight").AsString("Normal");

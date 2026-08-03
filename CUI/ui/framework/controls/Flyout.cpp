@@ -1,4 +1,5 @@
 #include "Flyout.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
@@ -6,8 +7,10 @@ namespace CUI {
 // ---------------- FlyoutPresenter ----------------
 
 FlyoutPresenter::FlyoutPresenter() {
-    SetProperty("background", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 1.0f)));
+    SetProperty("theme.backgroundToken", Value("cardBackground"));
+    SetProperty("theme.borderToken", Value("cardBorder"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("borderThickness", Value(1.0f));
     SetProperty("cornerRadius", Value(6.0f));
     SetProperty("padding", Value(Thickness(12.0f)));

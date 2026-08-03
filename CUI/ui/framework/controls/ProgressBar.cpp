@@ -18,6 +18,8 @@ ProgressBar::ProgressBar() {
     SetProperty("maximum", Value(100.0f));
     SetProperty("value", Value(0.0f));
     SetProperty("isIndeterminate", Value(false));
+    SetProperty("theme.fillColorToken", Value("accentColor"));
+    SetProperty("theme.trackColorToken", Value("cardBorder"));
     SetProperty("fillColor", Value(ThemeManager::Instance().GetColor("accentColor")));
     SetProperty("trackColor", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("width", Value(200.0f));
@@ -32,8 +34,6 @@ std::vector<PropertyMeta> ProgressBar::GetPropertyMetas() const {
     metas.push_back({ "minimum", "最小值 (Minimum)", "进度配置", "number" });
     metas.push_back({ "maximum", "最大值 (Maximum)", "进度配置", "number" });
     metas.push_back({ "isIndeterminate", "不确定模式 (IsIndeterminate)", "进度配置", "bool" });
-    metas.push_back({ "fillColor", "填充颜色 (FillColor)", "色彩外观", "color" });
-    metas.push_back({ "trackColor", "轨道颜色 (TrackColor)", "色彩外观", "color" });
     return metas;
 }
 
@@ -89,8 +89,8 @@ bool ProgressBar::HasSelfAnimation() const {
 void ProgressBar::OnRender(GraphicsContext& ctx) {
     float defaultRadius = m_bounds.height * 0.5f;
     float radius = GetProperty("cornerRadius").AsFloat(defaultRadius);
-    D2D1_COLOR_F trackBg = GetProperty("trackColor").AsColor(ThemeManager::Instance().GetColor("cardBorder"));
-    D2D1_COLOR_F fillBg = GetProperty("fillColor").AsColor(ThemeManager::Instance().GetColor("accentColor"));
+    D2D1_COLOR_F trackBg = ResolveThemeColor("theme.trackColorToken", "cardBorder");
+    D2D1_COLOR_F fillBg = ResolveThemeColor("theme.fillColorToken", "accentColor");
 
     // Draw Track
     ctx.FillRoundedRect(m_bounds, radius, trackBg);

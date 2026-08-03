@@ -20,7 +20,8 @@ enum class ImageType {
 class Image : public Control {
 public:
     Image();
-    Image(ImageType type, const std::string& text = "", D2D1_COLOR_F color = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+    Image(ImageType type, const std::string& text = "");
+    Image(ImageType type, const std::string& text, D2D1_COLOR_F color);
     virtual ~Image() = default;
 
     virtual const char* GetClassName() const override { return "Image"; }
@@ -45,7 +46,7 @@ public:
 private:
     ImageType m_imageType = ImageType::Avatar;
     std::string m_badgeText = "UI";
-    D2D1_COLOR_F m_badgeColor = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f);
+    D2D1_COLOR_F m_badgeColor{};
 
     // Ultra Fast Hardware Bitmaps & Lock-Free Thread Buffer Sync
     ComPtr<ID2D1Bitmap1> m_d2dBitmap;

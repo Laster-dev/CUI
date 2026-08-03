@@ -9,6 +9,11 @@
 namespace CUI {
 
 TreeView::TreeView() {
+    SetProperty("theme.backgroundToken", Value("cardBackground"));
+    SetProperty("theme.borderToken", Value("cardBorder"));
+    SetProperty("theme.colorToken", Value("textPrimary"));
+    SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
+    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
     SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
     SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("borderThickness", Value(1.0f));
@@ -28,11 +33,8 @@ std::vector<PropertyMeta> TreeView::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
     metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    metas.push_back({ "color", "文字颜色 (Color)", "字体文本", "color" });
     metas.push_back({ "itemHeight", "节点行高 (ItemHeight)", "树形配置", "number" });
     metas.push_back({ "indentWidth", "层级缩进 (IndentWidth)", "树形配置", "number" });
-    metas.push_back({ "selectedBackground", "选中背景色 (SelBg)", "色彩外观", "color" });
-    metas.push_back({ "hoverBackground", "悬停背景色 (HoverBg)", "色彩外观", "color" });
     return metas;
 }
 
@@ -209,8 +211,8 @@ void TreeView::Render(GraphicsContext& ctx) {
 void TreeView::OnRender(GraphicsContext& ctx) {
     // Draw TreeView Container Background & Border (Do not call Control::OnRender to prevent m_isPressed from darkening whole container)
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(ThemeManager::Instance().GetColor("cardBackground"));
-    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(ThemeManager::Instance().GetColor("cardBorder"));
+    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
+    D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
     float borderThick = GetProperty("borderThickness").AsFloat(1.0f);
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
@@ -222,9 +224,9 @@ void TreeView::OnRender(GraphicsContext& ctx) {
     float indentW = GetIndentWidth();
     std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
-    D2D1_COLOR_F selBg = GetProperty("selectedBackground").AsColor(ThemeManager::Instance().GetColor("selectedBackground"));
-    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(ThemeManager::Instance().GetColor("hoverBackground"));
+    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
+    D2D1_COLOR_F selBg = ResolveThemeColor("theme.selectedBackgroundToken", "selectedBackground");
+    D2D1_COLOR_F hoverBg = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
 
     for (size_t i = 0; i < m_visibleItems.size(); ++i) {
         const auto& visItem = m_visibleItems[i];

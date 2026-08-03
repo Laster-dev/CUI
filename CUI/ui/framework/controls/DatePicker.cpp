@@ -9,6 +9,7 @@
 namespace CUI {
 
 DatePicker::DatePicker() {
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     time_t t = time(nullptr);
     tm tmVal = {};
     localtime_s(&tmVal, &t);
@@ -16,10 +17,13 @@ DatePicker::DatePicker() {
     m_month = tmVal.tm_mon + 1;
     m_day = tmVal.tm_mday;
 
-    SetProperty("background", Value(ThemeManager::Instance().GetTokens().inputBackground));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetTokens().inputBorder));
+    SetProperty("theme.backgroundToken", Value("inputBackground"));
+    SetProperty("theme.borderToken", Value("inputBorder"));
+    SetProperty("theme.colorToken", Value("textPrimary"));
+    SetProperty("background", Value(tokens.inputBackground));
+    SetProperty("borderBrush", Value(tokens.inputBorder));
     SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(ThemeManager::Instance().GetTokens().textPrimary));
+    SetProperty("color", Value(tokens.textPrimary));
     SetProperty("cornerRadius", Value(4.0f));
     SetProperty("width", Value(160.0f));
     SetProperty("height", Value(30.0f));
@@ -203,7 +207,7 @@ void DatePicker::OnRender(GraphicsContext& ctx) {
     std::string text = "📅 " + GetFormattedDate();
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
     std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetTokens().textPrimary);
+    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
 
     Rect textRect(m_bounds.x + 8.0f, m_bounds.y, m_bounds.width - 16.0f, m_bounds.height);
     ctx.DrawText(text, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -282,7 +286,7 @@ void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
                 ctx.FillRoundedRect(cellRect, 4.0f, selBg);
             }
 
-            D2D1_COLOR_F dCol = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textCol;
+            D2D1_COLOR_F dCol = isSelected ? ThemeManager::Instance().GetTokens().textPrimary : textCol;
             ctx.DrawText(std::to_string(d), cellRect, dCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
         }
     } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
@@ -301,7 +305,7 @@ void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
                 ctx.FillRoundedRect(cellRect, 4.0f, selBg);
             }
 
-            D2D1_COLOR_F mCol = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textCol;
+            D2D1_COLOR_F mCol = isSelected ? ThemeManager::Instance().GetTokens().textPrimary : textCol;
             ctx.DrawText(monthNames[m - 1], cellRect, mCol, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
         }
     } else if (m_viewMode == DatePickerViewMode::YearGrid) {
@@ -320,7 +324,7 @@ void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
                 ctx.FillRoundedRect(cellRect, 4.0f, selBg);
             }
 
-            D2D1_COLOR_F yCol = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textCol;
+            D2D1_COLOR_F yCol = isSelected ? ThemeManager::Instance().GetTokens().textPrimary : textCol;
             ctx.DrawText(std::to_string(yr), cellRect, yCol, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
         }
     }

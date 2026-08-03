@@ -15,16 +15,23 @@ float EaseTrack(float t) {
 }
 
 ToggleSwitch::ToggleSwitch() {
+    auto& theme = ThemeManager::Instance();
     SetProperty("isOn", Value(false));
     SetProperty("header", Value("开关 (ToggleSwitch)"));
-    SetProperty("onColor", Value(ThemeManager::Instance().GetColor("accentColor")));
-    SetProperty("offColor", Value(ThemeManager::Instance().GetColor("inputBorder")));
-    SetProperty("knobColor", Value(ThemeManager::Instance().GetColor("textPrimary")));
-    D2D1_COLOR_F border = ThemeManager::Instance().GetColor("cardBorder");
-    border.a = 0.75f;
-    SetProperty("borderBrush", Value(border));
-    SetProperty("hoverBackground", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f)));
-    SetProperty("pressedBackground", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.04f)));
+    SetProperty("theme.onColorToken", Value("accentColor"));
+    SetProperty("theme.offColorToken", Value("inputBorder"));
+    SetProperty("theme.knobColorToken", Value("accentForeground"));
+    SetProperty("theme.borderToken", Value("cardBorder"));
+    SetProperty("theme.colorToken", Value("textSecondary"));
+    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
+    SetProperty("theme.pressedBackgroundToken", Value("pressedBackground"));
+    SetProperty("onColor", Value(theme.GetColor("accentColor")));
+    SetProperty("offColor", Value(theme.GetColor("inputBorder")));
+    SetProperty("knobColor", Value(theme.GetColor("accentForeground")));
+    SetProperty("borderBrush", Value(theme.GetColor("cardBorder")));
+    SetProperty("color", Value(theme.GetColor("textSecondary")));
+    SetProperty("hoverBackground", Value(theme.GetColor("hoverBackground")));
+    SetProperty("pressedBackground", Value(theme.GetColor("pressedBackground")));
     SetProperty("width", Value(170.0f));
     SetProperty("height", Value(24.0f));
 }
@@ -33,9 +40,6 @@ std::vector<PropertyMeta> ToggleSwitch::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
     metas.push_back({ "header", "标题文本 (Header)", "开关配置", "string" });
     metas.push_back({ "isOn", "开启状态 (IsOn)", "开关配置", "bool" });
-    metas.push_back({ "onColor", "开启颜色 (OnColor)", "色彩外观", "color" });
-    metas.push_back({ "offColor", "关闭颜色 (OffColor)", "色彩外观", "color" });
-    metas.push_back({ "knobColor", "滑块颜色 (KnobColor)", "色彩外观", "color" });
     return metas;
 }
 
@@ -79,12 +83,11 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     float pillH = 17.0f;
     Rect pillRect(m_bounds.x, m_bounds.y + (m_bounds.height - pillH) * 0.5f, pillW, pillH);
 
-    D2D1_COLOR_F onColor = GetProperty("onColor").AsColor(ThemeManager::Instance().GetColor("accentColor"));
-    D2D1_COLOR_F offColor = GetProperty("offColor").AsColor(ThemeManager::Instance().GetColor("inputBorder"));
-    D2D1_COLOR_F knobColor = GetProperty("knobColor").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
-    D2D1_COLOR_F fallbackBorder = ThemeManager::Instance().GetColor("cardBorder");
-    fallbackBorder.a = 0.75f;
-    D2D1_COLOR_F borderBrush = GetProperty("borderBrush").AsColor(fallbackBorder);
+    D2D1_COLOR_F onColor = ResolveThemeColor("theme.onColorToken", "accentColor");
+    D2D1_COLOR_F offColor = ResolveThemeColor("theme.offColorToken", "inputBorder");
+    D2D1_COLOR_F knobColor = ResolveThemeColor("theme.knobColorToken", "accentForeground");
+    D2D1_COLOR_F borderBrush = ResolveThemeColor("theme.borderToken", "cardBorder");
+    borderBrush.a = (std::min)(borderBrush.a, 0.75f);
 
     float eased = EaseTrack(m_knobPosAnim.Current());
     D2D1_COLOR_F trackBg = BlendColor(offColor, onColor, eased);
@@ -115,7 +118,7 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     if (!header.empty()) {
         float fontSize = GetProperty("fontSize").AsFloat(13.0f);
         std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
-        D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textSecondary"));
+        D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textSecondary");
 
         Rect textRect(pillRect.x + pillW + 10.0f, m_bounds.y, (std::max)(0.0f, m_bounds.width - pillW - 10.0f), m_bounds.height);
         ctx.DrawText(header, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);

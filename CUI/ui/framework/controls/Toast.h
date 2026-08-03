@@ -114,10 +114,10 @@ private:
     float m_offsetY = 0.0f;
     float m_spacing = 12.0f;
 
-    std::string m_background = "#2D2D30";
-    std::string m_accent = "#007ACC";
-    std::string m_titleColor = "#FFFFFF";
-    std::string m_messageColor = "#E5E5E5";
+    std::string m_background;
+    std::string m_accent;
+    std::string m_titleColor;
+    std::string m_messageColor;
 
     std::shared_ptr<TextBlock> m_txtTitle;
     std::shared_ptr<TextBlock> m_txtMessage;

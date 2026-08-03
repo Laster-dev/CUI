@@ -4,6 +4,7 @@
 #include "../../ui/framework/controls/TextBlock.h"
 #include "../../ui/framework/controls/ComboBox.h"
 #include "../../ui/framework/window/Window.h"
+#include "../../ui/framework/style/ThemeManager.h"
 
 namespace CUI {
 
@@ -11,7 +12,8 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
     auto title = std::make_shared<TextBlock>("NavigationView & SystemBackdrop & Theme 导航与材质系统");
     title->SetProperty("fontSize", Value(18.0f));
     title->SetProperty("fontWeight", Value("Bold"));
-    title->SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f)));
+    title->SetProperty("theme.colorToken", Value("textPrimary"));
+    title->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
 
     auto nav = std::make_shared<NavigationView>();
     nav->SetHeader("CUI WinUI 3 Navigation");

@@ -1,4 +1,5 @@
 #include "Control.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
@@ -36,10 +37,21 @@ float Control::GetVisualStateTarget() const {
 }
 
 D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(fallback);
-    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(bg);
-    D2D1_COLOR_F pressedBg = GetProperty("pressedBackground").AsColor(hoverBg);
-    D2D1_COLOR_F disabledBg = GetProperty("disabledBackground").AsColor(D2D1::ColorF(0x28 / 255.0f, 0x28 / 255.0f, 0x28 / 255.0f, 0.6f));
+    D2D1_COLOR_F bg = HasProperty("theme.backgroundToken")
+        ? ResolveThemeColor("theme.backgroundToken", "cardBackground")
+        : GetProperty("background").AsColor(fallback);
+    // If hover/pressed tokens are absent, reuse live bg — never a stale RGB snapshot
+    // from a previous theme (that caused TitleBar to go black on focus after Light switch).
+    D2D1_COLOR_F hoverBg = HasProperty("theme.hoverBackgroundToken")
+        ? ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground")
+        : bg;
+    D2D1_COLOR_F pressedBg = HasProperty("theme.pressedBackgroundToken")
+        ? ResolveThemeColor("theme.pressedBackgroundToken", "pressedBackground")
+        : hoverBg;
+    D2D1_COLOR_F disabledBg = HasProperty("theme.disabledBackgroundToken")
+        ? ResolveThemeColor("theme.disabledBackgroundToken", "hoverBackground")
+        : GetProperty("disabledBackground").AsColor(ThemeManager::Instance().GetColor("hoverBackground"));
+    disabledBg.a = (std::min)(disabledBg.a, 0.6f);
 
     if (!IsEnabled()) return disabledBg;
     float visualState = m_visualStateAnim.Current();
@@ -73,8 +85,14 @@ void Control::OnRender(GraphicsContext& ctx) {
     }
 
     D2D1_COLOR_F borderBrush = IsEnabled()
-        ? GetProperty("borderBrush").AsColor(D2D1::ColorF(0, 0, 0, 0))
-        : D2D1::ColorF(0x3A / 255.0f, 0x3A / 255.0f, 0x3A / 255.0f, 0.5f);
+        ? (HasProperty("theme.borderToken")
+            ? ResolveThemeColor("theme.borderToken", "cardBorder")
+            : GetProperty("borderBrush").AsColor(D2D1::ColorF(0, 0, 0, 0)))
+        : [&]() {
+            D2D1_COLOR_F c = ThemeManager::Instance().GetColor("cardBorder");
+            c.a = 0.5f;
+            return c;
+        }();
     float borderThickness = GetProperty("borderThickness").AsFloat(0.0f);
     if (borderBrush.a > 0.0f && borderThickness > 0.0f) {
         if (radius > 0.0f) {

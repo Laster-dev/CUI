@@ -1,6 +1,7 @@
 #pragma once
 #include "Control.h"
 #include "TextBox.h"
+#include "../style/ThemeManager.h"
 
 namespace CUI {
 
@@ -24,7 +25,7 @@ public:
     bool IsPopupOpen() const { return m_isPopupOpen; }
     void SetPopupOpen(bool open) { m_isPopupOpen = open; }
 
-    D2D1_COLOR_F GetSelectedColor() const { return GetProperty("selectedColor").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)); }
+    D2D1_COLOR_F GetSelectedColor() const { return GetProperty("selectedColor").AsColor(ThemeManager::Instance().GetColor("accentColor")); }
     void SetSelectedColor(D2D1_COLOR_F color);
 
     Event<ColorPicker*, D2D1_COLOR_F>& OnColorChanged() { return m_onColorChangedEvent; }

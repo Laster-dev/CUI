@@ -10,6 +10,11 @@
 namespace CUI {
 
 ListBox::ListBox() {
+    SetProperty("theme.backgroundToken", Value("cardBackground"));
+    SetProperty("theme.borderToken", Value("cardBorder"));
+    SetProperty("theme.colorToken", Value("textPrimary"));
+    SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
+    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
     SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
     SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("borderThickness", Value(1.0f));
@@ -151,8 +156,12 @@ void ListBox::ClampScroll() {
     float contentH = itemH * count;
     float viewH = m_bounds.height - 4.0f;
 
-    m_maxScrollY = std::max(0.0f, contentH - viewH);
-    m_scrollY = std::clamp(m_scrollY, 0.0f, m_maxScrollY);
+    m_maxScrollY = (std::max)(0.0f, contentH - viewH);
+    m_targetScrollY = std::clamp(m_targetScrollY, 0.0f, m_maxScrollY);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_scrollY = m_targetScrollY;
+        m_scrollYAnim.Reset(m_scrollY);
+    }
 }
 
 int ListBox::GetItemIndexFromY(float y) const {
@@ -176,12 +185,13 @@ void ListBox::EnsureVisible(int index) {
     float itemBottom = itemTop + itemH;
     float viewH = m_bounds.height - 4.0f;
 
-    if (itemTop < m_scrollY) {
-        m_scrollY = itemTop;
-    } else if (itemBottom > m_scrollY + viewH) {
-        m_scrollY = itemBottom - viewH;
+    if (itemTop < m_targetScrollY) {
+        m_targetScrollY = itemTop;
+    } else if (itemBottom > m_targetScrollY + viewH) {
+        m_targetScrollY = itemBottom - viewH;
     }
     ClampScroll();
+    m_scrollYAnim.SetTarget(m_targetScrollY);
 }
 
 void ListBox::Render(GraphicsContext& ctx) {
@@ -214,8 +224,8 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     ClampScroll();
 
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(ThemeManager::Instance().GetColor("cardBackground"));
-    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(ThemeManager::Instance().GetColor("cardBorder"));
+    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
+    D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
     float borderThick = GetProperty("borderThickness").AsFloat(1.0f);
 
     // Draw container background and border
@@ -228,9 +238,9 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     float itemH = GetItemHeight();
     float fontH = GetProperty("fontSize").AsFloat(13.0f);
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
-    D2D1_COLOR_F selectedBg = GetProperty("selectedBackground").AsColor(ThemeManager::Instance().GetColor("selectedBackground"));
-    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(ThemeManager::Instance().GetColor("hoverBackground"));
+    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
+    D2D1_COLOR_F selectedBg = ResolveThemeColor("theme.selectedBackgroundToken", "selectedBackground");
+    D2D1_COLOR_F hoverBg = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
 
     float sbWidth = (m_maxScrollY > 0.0f) ? 8.0f : 0.0f;
     float itemW = m_bounds.width - 4.0f - sbWidth;
@@ -346,9 +356,37 @@ void ListBox::OnMouseUp(Point pt) {
 }
 
 void ListBox::OnMouseWheel(float delta) {
-    float scrollStep = GetItemHeight() * 3.0f; // Scroll 3 items per wheel tick
-    m_scrollY -= delta * scrollStep;
+    float scrollStep = GetItemHeight() * 2.5f;
+    m_targetScrollY -= delta * scrollStep;
     ClampScroll();
+    m_scrollYAnim.SetTarget(m_targetScrollY);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_scrollY = m_targetScrollY;
+        m_scrollYAnim.Reset(m_scrollY);
+        MarkRenderContentDirty();
+    }
+}
+
+bool ListBox::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_scrollY = m_targetScrollY;
+        m_scrollYAnim.Reset(m_scrollY);
+        return base;
+    }
+    float dt = UIElement::GetAnimationDeltaSeconds();
+    m_scrollYAnim.SetTarget(m_targetScrollY);
+    bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    if (anim) {
+        m_scrollY = m_scrollYAnim.Current();
+        MarkRenderContentDirty();
+    }
+    return base || anim;
+}
+
+bool ListBox::HasSelfAnimation() const {
+    return Control::HasSelfAnimation() ||
+           std::abs(m_scrollYAnim.Target() - m_scrollYAnim.Current()) > 0.001f;
 }
 
 void ListBox::OnKeyDown(int vkCode) {

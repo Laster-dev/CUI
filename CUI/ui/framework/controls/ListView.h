@@ -56,6 +56,7 @@ public:
     virtual void OnAutoScrollTick() override;
     virtual bool NeedsAutoScrollTick() const override { return m_isRubberBandSelecting; }
     virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     // Columns Management
     void AddColumn(const std::string& header, float width = 120.0f);
@@ -99,9 +100,6 @@ private:
     // Applies auto-scroll based on last mouse position.
     // Does not call ClampScroll() / UpdateRubberBandSelection().
     bool ApplyAutoScroll();
-    void StopSmoothScroll();
-    bool AdvanceSmoothScroll();
-    double SecondsSinceLastTick();
 
     std::string GetCellText(int row, int col) const;
     std::shared_ptr<UIElement> GetCellElement(int row, int col) const;
@@ -148,15 +146,14 @@ private:
 
     // Scroll state
     float m_scrollY = 0.0f;
+    float m_targetScrollY = 0.0f;
     float m_scrollX = 0.0f;
     float m_maxScrollY = 0.0f;
     float m_maxScrollX = 0.0f;
-    ChromiumScrollAnimator m_scrollAnimator;
+    AnimatedScalar m_scrollYAnim{ 0.0f };
     bool m_isDraggingScrollbar = false;
     float m_dragStartY = 0.0f;
     float m_dragStartScrollY = 0.0f;
-    LARGE_INTEGER m_qpcFreq = {};
-    LONGLONG m_lastAnimQpc = 0;
 
     float m_headerHeight = 32.0f;
     float m_rowHeight = 28.0f;

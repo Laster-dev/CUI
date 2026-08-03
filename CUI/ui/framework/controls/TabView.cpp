@@ -9,12 +9,19 @@ namespace CUI {
 namespace {}
 
 TabView::TabView() {
-    SetProperty("background", Value("#1E1E1E"));
-    SetProperty("headerBackground", Value("#252526"));
-    SetProperty("activeTabBackground", Value("#1E1E1E"));
-    SetProperty("inactiveTabBackground", Value("#2D2D2D"));
-    SetProperty("underlineColor", Value(D2D1::ColorF(0x3B / 255.0f, 0x4A / 255.0f, 0x57 / 255.0f, 1.0f)));
-    SetProperty("activeUnderlineColor", Value(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f)));
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
+    SetProperty("theme.backgroundToken", Value("windowBackground"));
+    SetProperty("theme.headerBackgroundToken", Value("paneBackground"));
+    SetProperty("theme.activeTabBackgroundToken", Value("windowBackground"));
+    SetProperty("theme.inactiveTabBackgroundToken", Value("cardBackground"));
+    SetProperty("theme.underlineColorToken", Value("cardBorder"));
+    SetProperty("theme.activeUnderlineColorToken", Value("accentColor"));
+    SetProperty("background", Value(tokens.windowBackground));
+    SetProperty("headerBackground", Value(tokens.paneBackground));
+    SetProperty("activeTabBackground", Value(tokens.windowBackground));
+    SetProperty("inactiveTabBackground", Value(tokens.cardBackground));
+    SetProperty("underlineColor", Value(tokens.cardBorder));
+    SetProperty("activeUnderlineColor", Value(tokens.accentColor));
     SetProperty("minTabWidth", Value(80.0f));
     SetProperty("maxTabWidth", Value(260.0f));
     m_headerLayer.SetCacheable(true);
@@ -313,7 +320,7 @@ void TabView::RenderContentLayer(GraphicsContext& ctx) {
         d2d->GetTransform(&oldTransform);
         d2d->SetTransform(D2D1::Matrix3x2F::Translation(-contentRect.x, -contentRect.y));
 
-        D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f, 1.0f));
+        D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "windowBackground");
         ctx.FillRect(contentRect, bg);
         if (selectedContent) {
             selectedContent->Render(ctx);
@@ -336,7 +343,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
     Rect headerBarRect(m_bounds.x, m_bounds.y, m_bounds.width, headerH);
 
     // Draw TabBar Header background
-    D2D1_COLOR_F headerBg = ThemeManager::Instance().GetTokens().paneBackground;
+    D2D1_COLOR_F headerBg = ResolveThemeColor("theme.headerBackgroundToken", "paneBackground");
     ctx.FillRect(headerBarRect, headerBg);
 
     // Clip tab buttons within header bounds
@@ -344,8 +351,8 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
 
     float tabX = m_bounds.x + 4.0f - m_scrollOffsetXAnim.Current();
 
-    D2D1_COLOR_F defaultActiveTabBg = ThemeManager::Instance().GetTokens().windowBackground;
-    D2D1_COLOR_F defaultInactiveTabBg = ThemeManager::Instance().GetTokens().cardBackground;
+    D2D1_COLOR_F defaultActiveTabBg = ResolveThemeColor("theme.activeTabBackgroundToken", "windowBackground");
+    D2D1_COLOR_F defaultInactiveTabBg = ResolveThemeColor("theme.inactiveTabBackgroundToken", "cardBackground");
     D2D1_COLOR_F defaultActiveTextCol = ThemeManager::Instance().GetTokens().textPrimary;
     D2D1_COLOR_F defaultInactiveTextCol = ThemeManager::Instance().GetTokens().textSecondary;
     D2D1_COLOR_F defaultBorderCol = ThemeManager::Instance().GetTokens().cardBorder;
@@ -357,8 +364,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         float tabW = MeasureTabWidth(ctx, tab);
         Rect tabRect(tabX, m_bounds.y + 4.0f, tabW, headerH - 4.0f);
 
-        D2D1_COLOR_F tabBg = isActive ? GetProperty("activeTabBackground").AsColor(defaultActiveTabBg)
-                                      : GetProperty("inactiveTabBackground").AsColor(defaultInactiveTabBg);
+        D2D1_COLOR_F tabBg = isActive ? defaultActiveTabBg : defaultInactiveTabBg;
 
         // Rounded top corners only; bottom edge stays flush with content.
         ctx.FillRoundedRect(tabRect, 4.0f, tabBg);
@@ -367,8 +373,8 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         float indicatorInset = 6.0f;
         float indicatorWidth = (std::max)(0.0f, tabW - indicatorInset * 2.0f);
         float indicatorY = m_bounds.y + 4.0f;
-        D2D1_COLOR_F underlineColor = GetProperty("underlineColor").AsColor(D2D1::ColorF(0x3B / 255.0f, 0x4A / 255.0f, 0x57 / 255.0f, 1.0f));
-        D2D1_COLOR_F activeUnderlineColor = GetProperty("activeUnderlineColor").AsColor(ThemeManager::Instance().GetTokens().accentColor);
+        D2D1_COLOR_F underlineColor = ResolveThemeColor("theme.underlineColorToken", "cardBorder");
+        D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor("theme.activeUnderlineColorToken", "accentColor");
 
         if (isActive || tab.accentAnim.Current() > 0.01f) {
             ctx.DrawLine(
@@ -411,7 +417,9 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
 
             bool isCloseHover = (m_hoveredCloseIndex == static_cast<int>(i));
             if (isCloseHover) {
-                ctx.FillRoundedRect(closeRect, 3.0f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.15f));
+                D2D1_COLOR_F closeHover = ThemeManager::Instance().GetTokens().cardBorder;
+                closeHover.a = 0.18f;
+                ctx.FillRoundedRect(closeRect, 3.0f, closeHover);
             }
 
             D2D1_COLOR_F closeColor = isCloseHover ? defaultActiveTextCol : defaultInactiveTextCol;
