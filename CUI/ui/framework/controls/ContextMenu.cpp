@@ -77,6 +77,20 @@ void MenuItem::OnMouseDown(Point pt) {
     }
 }
 
+void MenuItem::OnMouseEnter() {
+    Control::OnMouseEnter();
+    if (m_parentMenu) {
+        m_parentMenu->MarkRenderContentDirty();
+    }
+}
+
+void MenuItem::OnMouseLeave() {
+    Control::OnMouseLeave();
+    if (m_parentMenu) {
+        m_parentMenu->MarkRenderContentDirty();
+    }
+}
+
 void MenuItem::ExecuteCommand() {
     if (m_command) {
         m_command();

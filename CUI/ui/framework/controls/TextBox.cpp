@@ -600,6 +600,7 @@ void TextBox::OnMouseDblClick(Point pt) {
 void TextBox::OnFocus() {
     UIElement::OnFocus();
     m_isFocused = true;
+    MarkRenderContentDirty();
 }
 
 void TextBox::OnBlur() {
@@ -611,6 +612,7 @@ void TextBox::OnBlur() {
     m_suppressCharCount = 0;
     m_scrollOffsetX = 0.0f;
     m_scrollOffsetY = 0.0f;
+    MarkRenderContentDirty();
 }
 
 void TextBox::OnMouseDown(Point pt) {
@@ -631,7 +633,6 @@ void TextBox::OnMouseDown(Point pt) {
 
 void TextBox::OnMouseRightClick(Point pt) {
     Control::OnMouseRightClick(pt);
-    OnFocus();
 
     if (!m_contextMenu) {
         auto menu = std::make_shared<ContextMenu>();

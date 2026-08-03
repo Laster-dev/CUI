@@ -19,6 +19,8 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual void OnMouseEnter() override;
+    virtual void OnMouseLeave() override;
 
     bool IsSeparator() const { return m_isSeparator; }
     void SetIsSeparator(bool isSep) { m_isSeparator = isSep; }

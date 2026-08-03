@@ -121,11 +121,13 @@ Size TabView::Measure(Size availableSize) {
 void TabView::Arrange(Rect finalRect) {
     SetBounds(finalRect);
     float headerH = GetHeaderHeight();
-    Rect contentRect(finalRect.x, finalRect.y + headerH, finalRect.width, finalRect.height - headerH);
+    Rect contentRect(finalRect.x, finalRect.y + headerH, finalRect.width, (std::max)(0.0f, finalRect.height - headerH));
+    Size contentAvail(contentRect.width, contentRect.height);
 
-    if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_tabs.size())) {
-        if (m_tabs[m_selectedIndex].content) {
-            m_tabs[m_selectedIndex].content->Arrange(contentRect);
+    for (size_t i = 0; i < m_tabs.size(); ++i) {
+        if (m_tabs[i].content) {
+            m_tabs[i].content->Measure(contentAvail);
+            m_tabs[i].content->Arrange(contentRect);
         }
     }
 
@@ -135,6 +137,7 @@ void TabView::Arrange(Rect finalRect) {
     m_scrollOffsetXAnim.Reset(std::clamp(m_scrollOffsetXAnim.Current(), 0.0f, maxScroll));
     m_headerLayer.SetBounds(GetHeaderRect());
     m_contentLayer.SetBounds(GetContentRect());
+    MarkHeaderDirty();
     MarkContentDirty();
 }
 

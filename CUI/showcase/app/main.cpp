@@ -143,22 +143,25 @@ int main() {
     std::cout << "   CUI Control Gallery - 100% Pure C++ Declarative UI   \n";
     std::cout << "========================================================\n";
 
-    Window window;
-    if (!window.Create("CUI Control Gallery - 全套旧展示页纯 C++ 声明式 Widget 回填版", 1280, 780, false)) {
-        CoUninitialize();
-        return -1;
+    {
+        Window window;
+        if (!window.Create("CUI Control Gallery - 全套旧展示页纯 C++ 声明式 Widget 回填版", 1280, 780, false)) {
+            CoUninitialize();
+            return -1;
+        }
+
+        ShowcaseContext ctx;
+        ctx.windowRef = &window;
+        ctx.streamImage = CreateStreamImage();
+        ctx.toastTemplate = BuildToastTemplate();
+
+        window.SetRootElement(BuildRoot(ctx));
+        window.Show();
+        window.RunMessageLoop();
+
+        StopStreamingThread();
     }
 
-    ShowcaseContext ctx;
-    ctx.windowRef = &window;
-    ctx.streamImage = CreateStreamImage();
-    ctx.toastTemplate = BuildToastTemplate();
-
-    window.SetRootElement(BuildRoot(ctx));
-    window.Show();
-    window.RunMessageLoop();
-
-    StopStreamingThread();
     CoUninitialize();
     return 0;
 }

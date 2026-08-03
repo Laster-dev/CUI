@@ -1138,6 +1138,15 @@ void Window::OnRButtonDown(int x, int y) {
 
     UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
     if (target) {
+        auto focused = LockElement(m_focusedElement);
+        if (focused && focused.get() != target) {
+            focused->OnBlur();
+        }
+        SetFocusedElement(target);
+        if (auto curFocused = LockElement(m_focusedElement)) {
+            curFocused->OnFocus();
+        }
+
         target->OnMouseRightClick(Point(fx, fy));
 
         UIElement* curr = target;
@@ -1146,7 +1155,6 @@ void Window::OnRButtonDown(int x, int y) {
             if (menu) {
                 m_activeContextMenu = menu;
                 m_activeContextMenu->ShowAt(fx, fy, winW, winH);
-                SetFocusedElement(menu.get());
                 break;
             }
             curr = curr->GetParent();
