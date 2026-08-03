@@ -11,6 +11,7 @@
 #include "TimePicker.h"
 #include "ColorPicker.h"
 #include "PagingControl.h"
+#include "../style/ThemeManager.h"
 #include <sstream>
 #include <algorithm>
 #include <cstdio>
@@ -24,6 +25,34 @@ bool TryParseDate(const std::string& value, int& y, int& m, int& d) {
 
 bool TryParseTime(const std::string& value, int& h, int& m) {
     return sscanf_s(value.c_str(), "%d:%d", &h, &m) == 2;
+}
+
+template <typename T>
+std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::string& tokenProp, const std::string& tokenName) {
+    if (!element) {
+        return element;
+    }
+    element->SetProperty(tokenProp, Value(tokenName));
+    if (tokenProp == "theme.backgroundToken") {
+        element->SetProperty("background", Value(ThemeManager::Instance().GetColor(tokenName)));
+    } else if (tokenProp == "theme.borderToken") {
+        element->SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor(tokenName)));
+    } else if (tokenProp == "theme.colorToken") {
+        element->SetProperty("color", Value(ThemeManager::Instance().GetColor(tokenName)));
+    } else if (tokenProp == "theme.focusedBorderToken") {
+        element->SetProperty("focusedBorderBrush", Value(ThemeManager::Instance().GetColor(tokenName)));
+    } else if (tokenProp == "theme.dropdownBackgroundToken") {
+        element->SetProperty("dropdownBackground", Value(ThemeManager::Instance().GetColor(tokenName)));
+    } else if (tokenProp == "theme.selectedItemBackgroundToken") {
+        element->SetProperty("selectedItemBackground", Value(ThemeManager::Instance().GetColor(tokenName)));
+    } else if (tokenProp == "theme.placeholderColorToken") {
+        element->SetProperty("placeholderColor", Value(ThemeManager::Instance().GetColor(tokenName)));
+    } else if (tokenProp == "theme.underlineColorToken") {
+        element->SetProperty("underlineColor", Value(ThemeManager::Instance().GetColor(tokenName)));
+    } else if (tokenProp == "theme.activeUnderlineColorToken") {
+        element->SetProperty("activeUnderlineColor", Value(ThemeManager::Instance().GetColor(tokenName)));
+    }
+    return element;
 }
 
 void ApplyTargetProperty(UIElement* target, const std::string& propName, const Value& value) {
@@ -77,14 +106,17 @@ void ApplyTargetProperty(UIElement* target, const std::string& propName, const V
 }
 
 PropertyGrid::PropertyGrid() {
-    SetProperty("background", Value("#252526"));
-    SetProperty("borderBrush", Value("#333333"));
+    SetProperty("theme.backgroundToken", Value("cardBackground"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    SetProperty("theme.borderToken", Value("cardBorder"));
+    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("borderThickness", Value(1.0f));
 
     m_container = std::make_shared<StackPanel>();
     m_container->SetProperty("orientation", Value("Vertical"));
     m_container->SetProperty("padding", Value(Thickness(12, 12, 12, 12)));
     m_container->SetProperty("gap", Value(8.0f));
+    BindThemeToken(m_container, "theme.backgroundToken", "cardBackground");
     // Prevent last property rows from being clipped if content height is slightly short.
     m_container->SetProperty("clipToBounds", Value(false));
 
@@ -113,7 +145,7 @@ void PropertyGrid::RebuildUI() {
     titleTb->SetProperty("text", Value("自动化属性检查器 (" + className + ")"));
     titleTb->SetProperty("fontSize", Value(12.0f));
     titleTb->SetProperty("fontWeight", Value("Bold"));
-    titleTb->SetProperty("color", Value("#569CD6"));
+    BindThemeToken(titleTb, "theme.colorToken", "accentColor");
     m_container->AddChild(titleTb);
 
     // Call Virtual Reflection Method on UIElement Object
@@ -127,7 +159,7 @@ void PropertyGrid::RebuildUI() {
             catTb->SetProperty("text", Value("[" + currentCategory + "]"));
             catTb->SetProperty("fontSize", Value(11.0f));
             catTb->SetProperty("fontWeight", Value("Bold"));
-            catTb->SetProperty("color", Value("#4EC9B0"));
+            BindThemeToken(catTb, "theme.colorToken", "accentColor");
             catTb->SetProperty("margin", Value(Thickness(0, 6, 0, 2)));
             m_container->AddChild(catTb);
         }
@@ -136,7 +168,7 @@ void PropertyGrid::RebuildUI() {
         auto labelTb = std::make_shared<TextBlock>();
         labelTb->SetProperty("text", Value(meta.displayName + ":"));
         labelTb->SetProperty("fontSize", Value(11.0f));
-        labelTb->SetProperty("color", Value("#AAAAAA"));
+        BindThemeToken(labelTb, "theme.colorToken", "textMuted");
         m_container->AddChild(labelTb);
 
         // Control
@@ -172,6 +204,11 @@ void PropertyGrid::RebuildUI() {
             auto combo = std::make_shared<ComboBox>();
             combo->SetProperty("width", Value(260.0f));
             combo->SetProperty("height", Value(26.0f));
+            BindThemeToken(combo, "theme.backgroundToken", "inputBackground");
+            BindThemeToken(combo, "theme.borderToken", "inputBorder");
+            BindThemeToken(combo, "theme.dropdownBackgroundToken", "cardBackground");
+            BindThemeToken(combo, "theme.selectedItemBackgroundToken", "accentColor");
+            BindThemeToken(combo, "theme.colorToken", "textPrimary");
 
             int selectIdx = 0;
             std::string strVal = currentVal.AsString();
@@ -205,6 +242,10 @@ void PropertyGrid::RebuildUI() {
             auto input = std::make_shared<TextBox>();
             input->SetProperty("width", Value(260.0f));
             input->SetProperty("height", Value(26.0f));
+            BindThemeToken(input, "theme.colorToken", "textPrimary");
+            BindThemeToken(input, "theme.placeholderColorToken", "textMuted");
+            BindThemeToken(input, "theme.underlineColorToken", "cardBorder");
+            BindThemeToken(input, "theme.activeUnderlineColorToken", "accentColor");
 
             std::string displayValStr = "";
             if (!currentVal.IsEmpty()) {

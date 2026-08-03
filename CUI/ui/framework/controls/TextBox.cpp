@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "TextBox.h"
 #include "ContextMenu.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
 #include <cwctype>
@@ -63,10 +64,10 @@ TextBox::TextBox() {
     SetProperty("borderBrush", Value(D2D1::ColorF(0, 0, 0, 0)));
     SetProperty("focusedBorderBrush", Value(D2D1::ColorF(0, 0, 0, 0)));
     SetProperty("borderThickness", Value(0.0f));
-    SetProperty("underlineColor", Value(D2D1::ColorF(0x3B / 255.0f, 0x4A / 255.0f, 0x57 / 255.0f, 1.0f)));
-    SetProperty("activeUnderlineColor", Value(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f)));
-    SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
-    SetProperty("placeholderColor", Value(D2D1::ColorF(0x8B / 255.0f, 0x9A / 255.0f, 0xA8 / 255.0f, 1.0f)));
+    SetProperty("underlineColor", Value(ThemeManager::Instance().GetColor("inputBorder")));
+    SetProperty("activeUnderlineColor", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    SetProperty("placeholderColor", Value(ThemeManager::Instance().GetColor("textMuted")));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("fontSize", Value(13.0f));
     SetProperty("lineSpacing", Value(1.0f));
@@ -446,8 +447,8 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     bool hasFloatingLabel = !placeholder.empty();
     std::string font = GetStringProperty(this, "fontFamily", "FontFamily", "Segoe UI");
     float fontSize = GetFloatProperty(this, "fontSize", "FontSize", 13.0f);
-    D2D1_COLOR_F phBase = GetProperty("placeholderColor").AsColor(D2D1::ColorF(0x8B / 255.0f, 0x9A / 255.0f, 0xA8 / 255.0f, 1.0f));
-    D2D1_COLOR_F phActive = GetProperty("activeUnderlineColor").AsColor(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f));
+    D2D1_COLOR_F phBase = GetProperty("placeholderColor").AsColor(ThemeManager::Instance().GetColor("textMuted"));
+    D2D1_COLOR_F phActive = GetProperty("activeUnderlineColor").AsColor(ThemeManager::Instance().GetColor("accentColor"));
     Rect textRect = GetTextRect();
     float labelProgress = m_labelAnim.Current();
     float focusLineProgress = m_focusLineAnim.Current();
@@ -500,12 +501,12 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         if (ctx.GetTextSelectionBounds(layout.Get(), static_cast<UINT32>(selMin), static_cast<UINT32>(selMax), origin, selRects)) {
             for (const auto& r : selRects) {
                 ctx.FillRect(Rect(r.left, r.top, r.right - r.left, r.bottom - r.top),
-                             D2D1::ColorF(0x26 / 255.0f, 0x4F / 255.0f, 0x78 / 255.0f, 0.8f));
+                             D2D1::ColorF(phActive.r, phActive.g, phActive.b, 0.28f));
             }
         }
     }
 
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
+    D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
     ctx.DrawTextLayout(layout.Get(), layoutRect, textColor);
 
     if (!m_compString.empty()) {
@@ -513,7 +514,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         float compY = compCaret.y + compCaret.height - 2.0f;
         auto compEnd = ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(m_cursorPos + static_cast<int>(m_compString.length())), origin);
         ctx.DrawLine(Point(compCaret.x, compY), Point(compEnd.x, compY),
-                     D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f), 1.5f);
+                     ThemeManager::Instance().GetColor("accentColor"), 1.5f);
     }
 
     int blinkRate = GetProperty("caretBlinkRate").AsInt(500);
@@ -532,15 +533,15 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         float cursorY = caret.y + 2.0f;
         float cursorH = std::max(12.0f, caret.height - 4.0f);
         float cursorWidth = GetProperty("caretWidth").AsFloat(1.5f);
-        D2D1_COLOR_F cursorColor = GetProperty("caretColor").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+        D2D1_COLOR_F cursorColor = GetProperty("caretColor").AsColor(ThemeManager::Instance().GetColor("accentColor"));
 
         ctx.FillRect(Rect(cursorX, cursorY, cursorWidth, cursorH), cursorColor);
     }
 
     ctx.PopClip();
 
-    D2D1_COLOR_F underlineColor = GetProperty("underlineColor").AsColor(D2D1::ColorF(0x3B / 255.0f, 0x4A / 255.0f, 0x57 / 255.0f, 1.0f));
-    D2D1_COLOR_F activeUnderlineColor = GetProperty("activeUnderlineColor").AsColor(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f));
+    D2D1_COLOR_F underlineColor = GetProperty("underlineColor").AsColor(ThemeManager::Instance().GetColor("inputBorder"));
+    D2D1_COLOR_F activeUnderlineColor = GetProperty("activeUnderlineColor").AsColor(ThemeManager::Instance().GetColor("accentColor"));
     float lineY = m_bounds.y + m_bounds.height - 2.0f;
     ctx.DrawLine(Point(m_bounds.x, lineY), Point(m_bounds.x + m_bounds.width, lineY), underlineColor, 1.0f);
 
@@ -554,7 +555,8 @@ void TextBox::OnRender(GraphicsContext& ctx) {
 
     if (IsPasswordMode() && GetShowRevealButton()) {
         Rect btnRect = GetRevealButtonRect();
-        D2D1_COLOR_F eyeColor = D2D1::ColorF(0xC0 / 255.0f, 0xC0 / 255.0f, 0xC0 / 255.0f, 0.85f);
+        D2D1_COLOR_F eyeColor = ThemeManager::Instance().GetColor("textMuted");
+        eyeColor.a = 0.85f;
         float cx = btnRect.x + btnRect.width * 0.5f;
         float cy = btnRect.y + btnRect.height * 0.5f;
 

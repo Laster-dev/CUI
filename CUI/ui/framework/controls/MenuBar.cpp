@@ -1,13 +1,16 @@
 #include "MenuBar.h"
 #include "../window/Window.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
 
 MenuBar::MenuBar() {
     SetProperty("height", Value(30.0f));
-    SetProperty("background", Value("#1F1F1F"));
-    SetProperty("color", Value("#CCCCCC"));
+    SetProperty("theme.backgroundToken", Value("titleBarBackground"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
+    SetProperty("theme.colorToken", Value("titleBarText"));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("titleBarText")));
 }
 
 std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {
@@ -36,9 +39,14 @@ Size MenuBar::Measure(Size availableSize) {
 void MenuBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
-    D2D1_COLOR_F defaultTextColor = D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f);
-    D2D1_COLOR_F hoverBgColor = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f);
-    D2D1_COLOR_F openBgColor = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.18f);
+    const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
+    D2D1_COLOR_F defaultTextColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("titleBarText"));
+    D2D1_COLOR_F hoverBgColor = lightTheme
+        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.06f)
+        : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.10f);
+    D2D1_COLOR_F openBgColor = lightTheme
+        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.10f)
+        : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.18f);
 
     float curX = m_bounds.x + 6.0f;
 

@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "Slider.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
 
@@ -14,9 +15,9 @@ Slider::Slider() {
     SetProperty("value", Value(0.0f));
     SetProperty("step", Value(1.0f));
     SetProperty("orientation", Value("Horizontal"));
-    SetProperty("trackColor", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
-    SetProperty("activeTrackColor", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("thumbColor", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
+    SetProperty("trackColor", Value(ThemeManager::Instance().GetColor("inputBorder")));
+    SetProperty("activeTrackColor", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetProperty("thumbColor", Value(ThemeManager::Instance().GetColor("textPrimary")));
     SetProperty("width", Value(200.0f));
     SetProperty("height", Value(24.0f));
     m_displayValueAnim.Reset(GetValue());
@@ -208,9 +209,10 @@ void Slider::OnRender(GraphicsContext& ctx) {
     Rect track = GetTrackRect();
     Rect thumb = GetThumbRect();
     std::string orient = GetProperty("orientation").AsString("Horizontal");
-    D2D1_COLOR_F trackBg = GetProperty("trackColor").AsColor(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f));
-    D2D1_COLOR_F activeBg = GetProperty("activeTrackColor").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
-    D2D1_COLOR_F thumbBg = GetProperty("thumbColor").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
+    D2D1_COLOR_F trackBg = GetProperty("trackColor").AsColor(ThemeManager::Instance().GetColor("inputBorder"));
+    D2D1_COLOR_F activeBg = GetProperty("activeTrackColor").AsColor(ThemeManager::Instance().GetColor("accentColor"));
+    D2D1_COLOR_F thumbBg = GetProperty("thumbColor").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
+    D2D1_COLOR_F hoverThumb = BlendColor(thumbBg, activeBg, 0.18f);
 
     // Draw background track
     ctx.FillRoundedRect(track, 2.0f, trackBg);
@@ -229,7 +231,7 @@ void Slider::OnRender(GraphicsContext& ctx) {
     }
 
     // Draw thumb circle
-    ctx.FillRoundedRect(thumb, thumb.width * 0.5f, m_isHovered || m_isDragging ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : thumbBg);
+    ctx.FillRoundedRect(thumb, thumb.width * 0.5f, m_isHovered || m_isDragging ? hoverThumb : thumbBg);
     ctx.DrawRoundedRect(thumb, thumb.width * 0.5f, activeBg, 2.0f);
 }
 

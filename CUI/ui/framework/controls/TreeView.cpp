@@ -2,18 +2,19 @@
 #define NOMINMAX
 #endif
 #include "TreeView.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
 
 namespace CUI {
 
 TreeView::TreeView() {
-    SetProperty("background", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("selectedBackground", Value(D2D1::ColorF(0x04 / 255.0f, 0x39 / 255.0f, 0x61 / 255.0f, 1.0f))); // VS Code Selection #043961
-    SetProperty("hoverBackground", Value(D2D1::ColorF(0x2A / 255.0f, 0x2D / 255.0f, 0x2E / 255.0f, 1.0f)));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    SetProperty("selectedBackground", Value(ThemeManager::Instance().GetColor("selectedBackground")));
+    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
     SetProperty("fontSize", Value(13.0f));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("itemHeight", Value(24.0f));
@@ -208,8 +209,8 @@ void TreeView::Render(GraphicsContext& ctx) {
 void TreeView::OnRender(GraphicsContext& ctx) {
     // Draw TreeView Container Background & Border (Do not call Control::OnRender to prevent m_isPressed from darkening whole container)
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
-    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f));
+    D2D1_COLOR_F bg = GetProperty("background").AsColor(ThemeManager::Instance().GetColor("cardBackground"));
+    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(ThemeManager::Instance().GetColor("cardBorder"));
     float borderThick = GetProperty("borderThickness").AsFloat(1.0f);
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
@@ -221,9 +222,9 @@ void TreeView::OnRender(GraphicsContext& ctx) {
     float indentW = GetIndentWidth();
     std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f));
-    D2D1_COLOR_F selBg = GetProperty("selectedBackground").AsColor(D2D1::ColorF(0x04 / 255.0f, 0x39 / 255.0f, 0x61 / 255.0f, 1.0f));
-    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(D2D1::ColorF(0x2A / 255.0f, 0x2D / 255.0f, 0x2E / 255.0f, 1.0f));
+    D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
+    D2D1_COLOR_F selBg = GetProperty("selectedBackground").AsColor(ThemeManager::Instance().GetColor("selectedBackground"));
+    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(ThemeManager::Instance().GetColor("hoverBackground"));
 
     for (size_t i = 0; i < m_visibleItems.size(); ++i) {
         const auto& visItem = m_visibleItems[i];
@@ -252,7 +253,7 @@ void TreeView::OnRender(GraphicsContext& ctx) {
             Rect toggleRect = GetToggleRect(visItem, rowRect);
             float cx = toggleRect.x + toggleRect.width * 0.5f;
             float cy = toggleRect.y + toggleRect.height * 0.5f;
-            D2D1_COLOR_F arrowColor = D2D1::ColorF(0x88 / 255.0f, 0x88 / 255.0f, 0x88 / 255.0f);
+            D2D1_COLOR_F arrowColor = ThemeManager::Instance().GetColor("textMuted");
 
             if (item->isExpanded) {
                 // Down Arrow (Expanded)
@@ -272,13 +273,13 @@ void TreeView::OnRender(GraphicsContext& ctx) {
             iconText = !item->children.empty() ? (item->isExpanded ? "📂" : "📁") : "📄";
         }
         Rect iconRect(currX, rowRect.y, 16.0f, rowRect.height);
-        ctx.DrawText(iconText, iconRect, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f), "Segoe UI Emoji", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(iconText, iconRect, ThemeManager::Instance().GetColor("accentColor"), "Segoe UI Emoji", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         currX += 20.0f;
 
         // Render Header Text
         float textW = (std::max)(0.0f, rowRect.x + rowRect.width - currX - 4.0f);
         Rect textRect(currX, rowRect.y, textW, rowRect.height);
-        ctx.DrawText(item->header, textRect, isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+        ctx.DrawText(item->header, textRect, isSelected ? ThemeManager::Instance().GetColor("textPrimary") : textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
     }
 
     // Scrollbar indicator
@@ -293,7 +294,7 @@ void TreeView::OnRender(GraphicsContext& ctx) {
         float scrollRatio = m_scrollY / maxScroll;
         float thumbY = m_bounds.y + 2.0f + scrollRatio * (trackH - thumbH);
         Rect thumbRect(m_bounds.x + m_bounds.width - 6.0f, thumbY, 4.0f, thumbH);
-        ctx.FillRoundedRect(thumbRect, 2.0f, D2D1::ColorF(0x79 / 255.0f, 0x79 / 255.0f, 0x79 / 255.0f, 0.4f));
+        ctx.FillRoundedRect(thumbRect, 2.0f, D2D1::ColorF(border.r, border.g, border.b, 0.4f));
     }
 }
 

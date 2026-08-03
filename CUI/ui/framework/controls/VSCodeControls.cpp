@@ -85,10 +85,6 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     m_menuBar.Arrange(menuBarRect);
     m_menuBar.OnRender(ctx);
 
-    // Draw title in center
-    std::string title = GetProperty("title").AsString();
-    ctx.DrawText(title, m_bounds, D2D1::ColorF(0x99 / 255.0f, 0x99 / 255.0f, 0x99 / 255.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-
     // Render Windows 11 Native Vector System Action Buttons (Minimize, Maximize, Close)
     float btnW = 46.0f;
     float btnH = m_bounds.height;
@@ -125,19 +121,40 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
         }
     }
 
+    const bool lightTheme = (curTheme == ThemeMode::Light);
+    const D2D1_COLOR_F titleColor = lightTheme
+        ? D2D1::ColorF(0x30 / 255.0f, 0x30 / 255.0f, 0x30 / 255.0f, 1.0f)
+        : D2D1::ColorF(0x99 / 255.0f, 0x99 / 255.0f, 0x99 / 255.0f, 1.0f);
+    const D2D1_COLOR_F chromeTextColor = lightTheme
+        ? D2D1::ColorF(0x24 / 255.0f, 0x24 / 255.0f, 0x24 / 255.0f, 1.0f)
+        : D2D1::ColorF(0xD8 / 255.0f, 0xD8 / 255.0f, 0xD8 / 255.0f, 1.0f);
+    const D2D1_COLOR_F chromeLineColor = lightTheme
+        ? D2D1::ColorF(0x35 / 255.0f, 0x35 / 255.0f, 0x35 / 255.0f, 1.0f)
+        : D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f, 1.0f);
+    const D2D1_COLOR_F subtleChromeBg = lightTheme
+        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, isHoveredInTitle ? 0.07f : 0.04f)
+        : D2D1::ColorF(1.0f, 1.0f, 1.0f, isHoveredInTitle ? 0.14f : 0.08f);
+    // Draw title in center
+    std::string title = GetProperty("title").AsString();
+    ctx.DrawText(title, m_bounds, titleColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+
     // 1. LowPerf / Animation Toggle Button
     Rect lowPerfRect = GetLowPerformanceToggleRect();
     bool lowPerfOn = !UIElement::AreAnimationsEnabled();
     bool isLowPerfHover = isHoveredInTitle && lowPerfRect.Contains(hoverX, hoverY);
     D2D1_COLOR_F toggleBg = lowPerfOn
         ? D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, isLowPerfHover ? 0.92f : 0.82f)
-        : D2D1::ColorF(1.0f, 1.0f, 1.0f, isLowPerfHover ? 0.14f : 0.08f);
+        : (lightTheme
+            ? D2D1::ColorF(0.0f, 0.0f, 0.0f, isLowPerfHover ? 0.07f : 0.04f)
+            : D2D1::ColorF(1.0f, 1.0f, 1.0f, isLowPerfHover ? 0.14f : 0.08f));
     D2D1_COLOR_F toggleBorder = lowPerfOn
         ? D2D1::ColorF(0x36 / 255.0f, 0xB2 / 255.0f, 0xFF / 255.0f, 0.95f)
-        : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f);
+        : (lightTheme
+            ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f)
+            : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f));
     D2D1_COLOR_F toggleText = lowPerfOn
         ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)
-        : D2D1::ColorF(0xD8 / 255.0f, 0xD8 / 255.0f, 0xD8 / 255.0f, 1.0f);
+        : chromeTextColor;
 
     ctx.FillRoundedRect(lowPerfRect, 8.0f, toggleBg);
     ctx.DrawRoundedRect(lowPerfRect, 8.0f, toggleBorder, 1.0f);
@@ -161,9 +178,13 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     else if (curBackdrop == BackdropType::None) bdpStr = "无材质";
 
     std::string bdpText = std::string("材质:") + bdpStr;
-    D2D1_COLOR_F bdpBg = D2D1::ColorF(1.0f, 1.0f, 1.0f, isBdpHover ? 0.14f : 0.08f);
-    D2D1_COLOR_F bdpBorder = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f);
-    D2D1_COLOR_F bdpTextCol = D2D1::ColorF(0xD8 / 255.0f, 0xD8 / 255.0f, 0xD8 / 255.0f, 1.0f);
+    D2D1_COLOR_F bdpBg = lightTheme
+        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, isBdpHover ? 0.07f : 0.04f)
+        : D2D1::ColorF(1.0f, 1.0f, 1.0f, isBdpHover ? 0.14f : 0.08f);
+    D2D1_COLOR_F bdpBorder = lightTheme
+        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f)
+        : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f);
+    D2D1_COLOR_F bdpTextCol = chromeTextColor;
 
     ctx.FillRoundedRect(bdpRect, 8.0f, bdpBg);
     ctx.DrawRoundedRect(bdpRect, 8.0f, bdpBorder, 1.0f);
@@ -174,9 +195,13 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     bool isThemeHover = isHoveredInTitle && themeRect.Contains(hoverX, hoverY);
     const char* themeStr = (curTheme == ThemeMode::Dark) ? "🌙 暗色" : "☀️ 亮色";
 
-    D2D1_COLOR_F themeBg = D2D1::ColorF(1.0f, 1.0f, 1.0f, isThemeHover ? 0.14f : 0.08f);
-    D2D1_COLOR_F themeBorder = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f);
-    D2D1_COLOR_F themeTextCol = D2D1::ColorF(0xD8 / 255.0f, 0xD8 / 255.0f, 0xD8 / 255.0f, 1.0f);
+    D2D1_COLOR_F themeBg = lightTheme
+        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, isThemeHover ? 0.07f : 0.04f)
+        : D2D1::ColorF(1.0f, 1.0f, 1.0f, isThemeHover ? 0.14f : 0.08f);
+    D2D1_COLOR_F themeBorder = lightTheme
+        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.12f)
+        : D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.14f);
+    D2D1_COLOR_F themeTextCol = chromeTextColor;
 
     ctx.FillRoundedRect(themeRect, 8.0f, themeBg);
     ctx.DrawRoundedRect(themeRect, 8.0f, themeBorder, 1.0f);
@@ -186,21 +211,21 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     Rect minBtnRect(rightX, m_bounds.y, btnW, btnH);
     bool isMinHover = isHoveredInTitle && (hoverX >= rightX && hoverX < rightX + btnW);
     if (isMinHover) {
-        ctx.FillRect(minBtnRect, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f)); // Hover grey background
+        ctx.FillRect(minBtnRect, subtleChromeBg);
     }
     // Draw vector line icon for minimize
     float iconCenterY = m_bounds.y + btnH * 0.5f;
-    ctx.DrawLine(Point(rightX + 18.0f, iconCenterY), Point(rightX + 28.0f, iconCenterY), D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f), 1.0f);
+    ctx.DrawLine(Point(rightX + 18.0f, iconCenterY), Point(rightX + 28.0f, iconCenterY), chromeLineColor, 1.0f);
 
     // 2. Maximize / Restore Button ([ ])
     Rect maxBtnRect(rightX + btnW, m_bounds.y, btnW, btnH);
     bool isMaxHover = isHoveredInTitle && (hoverX >= rightX + btnW && hoverX < rightX + btnW * 2);
     if (isMaxHover) {
-        ctx.FillRect(maxBtnRect, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f)); // Hover grey background
+        ctx.FillRect(maxBtnRect, subtleChromeBg);
     }
     // Draw vector square icon for maximize
     Rect maxIconRect(rightX + btnW + 18.0f, iconCenterY - 5.0f, 10.0f, 10.0f);
-    ctx.DrawRect(maxIconRect, D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f), 1.0f);
+    ctx.DrawRect(maxIconRect, chromeLineColor, 1.0f);
 
     // 3. Close Button (X)
     Rect closeBtnRect(rightX + btnW * 2, m_bounds.y, btnW, btnH);
@@ -209,13 +234,17 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
         ctx.FillRect(closeBtnRect, D2D1::ColorF(0xC4 / 255.0f, 0x2B / 255.0f, 0x1C / 255.0f, 1.0f)); // Win11 Hover Red background (#C42B1C)
     }
     // Draw vector cross X icon for close
-    D2D1_COLOR_F closeIconColor = isCloseHover ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f);
+    D2D1_COLOR_F closeIconColor = isCloseHover ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : chromeLineColor;
     float closeCenterX = rightX + btnW * 2 + 23.0f;
     ctx.DrawLine(Point(closeCenterX - 5.0f, iconCenterY - 5.0f), Point(closeCenterX + 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
     ctx.DrawLine(Point(closeCenterX + 5.0f, iconCenterY - 5.0f), Point(closeCenterX - 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
 
     // Bottom border line
-    ctx.DrawLine(Point(m_bounds.x, m_bounds.y + m_bounds.height - 1), Point(m_bounds.x + m_bounds.width, m_bounds.y + m_bounds.height - 1), D2D1::ColorF(0x2B / 255.0f, 0x2B / 255.0f, 0x2B / 255.0f, 1.0f));
+    ctx.DrawLine(
+        Point(m_bounds.x, m_bounds.y + m_bounds.height - 1),
+        Point(m_bounds.x + m_bounds.width, m_bounds.y + m_bounds.height - 1),
+        lightTheme ? D2D1::ColorF(0xDB / 255.0f, 0xDB / 255.0f, 0xDB / 255.0f, 1.0f) : D2D1::ColorF(0x2B / 255.0f, 0x2B / 255.0f, 0x2B / 255.0f, 1.0f)
+    );
 }
 
 void TitleBar::OnMouseDown(Point pt) {

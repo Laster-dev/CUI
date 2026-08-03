@@ -2,12 +2,13 @@
 #define NOMINMAX
 #endif
 #include "ColorPicker.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
 
 ColorPicker::ColorPicker() {
-    SetProperty("selectedColor", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+    SetProperty("selectedColor", Value(ThemeManager::Instance().GetTokens().accentColor));
     SetProperty("width", Value(220.0f));
     SetProperty("height", Value(32.0f));
 
@@ -85,28 +86,11 @@ void ColorPicker::OnMouseDown(Point pt) {
         Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
 
         if (popRect.Contains(pt.x, pt.y)) {
-            // High-Precision Color Canvas Hit-Testing (160x100)
-            Rect canvasRect(popRect.x + 12.0f, popRect.y + 28.0f, 160.0f, 100.0f);
-            if (canvasRect.Contains(pt.x, pt.y)) {
-                m_sat = std::clamp((pt.x - canvasRect.x) / canvasRect.width, 0.0f, 1.0f);
-                m_val = std::clamp(1.0f - (pt.y - canvasRect.y) / canvasRect.height, 0.0f, 1.0f);
-                SetSelectedColor(HSVToRGB(m_hue, m_sat, m_val));
-                return;
-            }
-
-            // Hue Slider Bar Hit-Testing (24x100)
-            Rect hueRect(popRect.x + 184.0f, popRect.y + 28.0f, 20.0f, 100.0f);
-            if (hueRect.Contains(pt.x, pt.y)) {
-                float ratio = std::clamp((pt.y - hueRect.y) / hueRect.height, 0.0f, 1.0f);
-                m_hue = ratio * 360.0f;
-                SetSelectedColor(HSVToRGB(m_hue, m_sat, m_val));
-                return;
-            }
-
-            // Quick Preset Swatches Hit-Testing (Bottom Bar)
+            // Swatch selection
             float boxW = 22.0f;
             float startX = popRect.x + 12.0f;
             float startY = popRect.y + 140.0f;
+
             for (size_t i = 0; i < m_swatches.size(); ++i) {
                 Rect rect(startX + i * (boxW + 6.0f), startY, boxW, boxW);
                 if (rect.Contains(pt.x, pt.y)) {
@@ -114,8 +98,26 @@ void ColorPicker::OnMouseDown(Point pt) {
                     return;
                 }
             }
+
+            // High Precision Saturation / Value Canvas Click
+            Rect canvasRect(popRect.x + 12.0f, popRect.y + 28.0f, 160.0f, 100.0f);
+            if (canvasRect.Contains(pt.x, pt.y)) {
+                float sat = std::clamp((pt.x - canvasRect.x) / canvasRect.width, 0.0f, 1.0f);
+                float val = std::clamp(1.0f - (pt.y - canvasRect.y) / canvasRect.height, 0.0f, 1.0f);
+                SetSelectedColor(HSVToRGB(m_hue, sat, val));
+                return;
+            }
+
+            // Hue Slider Click
+            Rect hueRect(popRect.x + 184.0f, popRect.y + 28.0f, 20.0f, 100.0f);
+            if (hueRect.Contains(pt.x, pt.y)) {
+                m_hue = std::clamp((pt.y - hueRect.y) / hueRect.height, 0.0f, 1.0f) * 360.0f;
+                SetSelectedColor(HSVToRGB(m_hue, 1.0f, 1.0f));
+                return;
+            }
             return;
         }
+
         m_isPopupOpen = false;
     } else {
         if (m_bounds.Contains(pt.x, pt.y)) {
@@ -125,25 +127,18 @@ void ColorPicker::OnMouseDown(Point pt) {
 }
 
 void ColorPicker::OnRender(GraphicsContext& ctx) {
-    // Render main button background & border
-    float radius = GetProperty("cornerRadius").AsFloat(4.0f);
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f));
-    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f));
-    float borderThick = GetProperty("borderThickness").AsFloat(1.0f);
+    Control::OnRender(ctx);
 
-    ctx.FillRoundedRect(m_bounds, radius, bg);
-    ctx.DrawRoundedRect(m_bounds, radius, border, borderThick);
-
-    // Render Color Preview Box + HEX Text
-    Rect previewRect(m_bounds.x + 6.0f, m_bounds.y + 4.0f, 24.0f, m_bounds.height - 8.0f);
     D2D1_COLOR_F selColor = GetSelectedColor();
+
+    Rect previewRect(m_bounds.x + 6.0f, m_bounds.y + 5.0f, 22.0f, 22.0f);
     ctx.FillRoundedRect(previewRect, 3.0f, selColor);
-    ctx.DrawRoundedRect(previewRect, 3.0f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.4f), 1.0f);
+    ctx.DrawRoundedRect(previewRect, 3.0f, ThemeManager::Instance().GetTokens().inputBorder, 1.0f);
 
     char hexBuf[32];
     sprintf_s(hexBuf, "🎨 #%02X%02X%02X", static_cast<int>(selColor.r * 255), static_cast<int>(selColor.g * 255), static_cast<int>(selColor.b * 255));
     Rect textRect(m_bounds.x + 36.0f, m_bounds.y, m_bounds.width - 44.0f, m_bounds.height);
-    ctx.DrawText(hexBuf, textRect, D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(hexBuf, textRect, ThemeManager::Instance().GetTokens().textPrimary, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
 void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
@@ -158,8 +153,11 @@ void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
 
     ctx.PushClip(clipRect);
 
-    D2D1_COLOR_F bg = D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f);
-    D2D1_COLOR_F border = D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f);
+    D2D1_COLOR_F bg = ThemeManager::Instance().GetTokens().cardBackground;
+    D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder;
+    D2D1_COLOR_F textCol = ThemeManager::Instance().GetTokens().textPrimary;
+    D2D1_COLOR_F accentCol = ThemeManager::Instance().GetTokens().accentColor;
+    D2D1_COLOR_F textMutedCol = ThemeManager::Instance().GetTokens().textMuted;
     D2D1_COLOR_F selColor = GetSelectedColor();
 
     ctx.FillRoundedRect(popRect, 6.0f, bg);
@@ -167,11 +165,11 @@ void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
 
     // Title
     Rect headerRect(popRect.x, popRect.y + 4.0f, popW, 20.0f);
-    ctx.DrawText("高精度 HSV 调色盘面板", headerRect, D2D1::ColorF(0x56 / 255.0f, 0x9C / 255.0f, 0xD6 / 255.0f), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    ctx.DrawText("高精度 HSV 调色盘面板", headerRect, accentCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     // Render High Precision Color Canvas (Grid Sampling Saturation / Value)
     Rect canvasRect(popRect.x + 12.0f, popRect.y + 28.0f, 160.0f, 100.0f);
-    ctx.DrawRoundedRect(canvasRect, 2.0f, D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f), 1.0f);
+    ctx.DrawRoundedRect(canvasRect, 2.0f, border, 1.0f);
 
     float stepX = canvasRect.width / 16.0f;
     float stepY = canvasRect.height / 10.0f;
@@ -194,7 +192,7 @@ void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
         Rect hBar(hueRect.x, hueRect.y + i * hueStepH, hueRect.width, hueStepH + 0.5f);
         ctx.FillRect(hBar, hColor);
     }
-    ctx.DrawRect(hueRect, D2D1::ColorF(0x66 / 255.0f, 0x66 / 255.0f, 0x66 / 255.0f));
+    ctx.DrawRect(hueRect, border);
 
     // Render Presets Bar on Bottom
     float boxW = 22.0f;
@@ -205,9 +203,9 @@ void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
         Rect rect(startX + i * (boxW + 6.0f), startY, boxW, boxW);
         ctx.FillRoundedRect(rect, 4.0f, m_swatches[i]);
         if (m_swatches[i].r == selColor.r && m_swatches[i].g == selColor.g && m_swatches[i].b == selColor.b) {
-            ctx.DrawRoundedRect(rect, 4.0f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f), 2.0f);
+            ctx.DrawRoundedRect(rect, 4.0f, textCol, 2.0f);
         } else {
-            ctx.DrawRoundedRect(rect, 4.0f, D2D1::ColorF(0.3f, 0.3f, 0.3f, 1.0f), 1.0f);
+            ctx.DrawRoundedRect(rect, 4.0f, border, 1.0f);
         }
     }
 
@@ -215,7 +213,7 @@ void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
     char hexDetail[64];
     sprintf_s(hexDetail, "RGB(%d, %d, %d)", static_cast<int>(selColor.r * 255), static_cast<int>(selColor.g * 255), static_cast<int>(selColor.b * 255));
     Rect bottomText(popRect.x + 12.0f, popRect.y + 175.0f, popW - 24.0f, 20.0f);
-    ctx.DrawText(hexDetail, bottomText, D2D1::ColorF(0xAA / 255.0f, 0xAA / 255.0f, 0xAA / 255.0f), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(hexDetail, bottomText, textMutedCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     ctx.PopClip();
 }

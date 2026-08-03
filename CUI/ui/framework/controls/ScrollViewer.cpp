@@ -63,6 +63,9 @@ ScrollViewer::ScrollViewer() {
     m_scrollAnimator.Reset(0.0f);
     GetRenderNode().GetLayer().SetCacheable(true);
     m_contentLayer.SetCacheable(true);
+    OnPropertyChanged().Connect([this](const std::string&, const Value&) {
+        MarkContentLayerDirty();
+    });
 }
 
 void ScrollViewer::SetScrollOffsetY(float offset) {

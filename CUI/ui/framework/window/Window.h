@@ -66,6 +66,7 @@ private:
     void RequestFullRepaint();
     void InvalidatePendingRenderRegions(bool fallbackToFullWindow);
     void DrawRenderStatsOverlay();
+    void ApplyVisualState();
 
     HWND m_hwnd = nullptr;
     GraphicsContext m_gfxContext;

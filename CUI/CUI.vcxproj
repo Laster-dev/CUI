@@ -242,6 +242,7 @@
     <ClCompile Include="ui\framework\controls\BreadcrumbBar.cpp" />
     <ClCompile Include="ui\framework\controls\PagingControl.cpp" />
     <ClCompile Include="ui\framework\controls\Splitter.cpp" />
+    <ClCompile Include="ui\framework\style\ThemeManager.cpp" />
     <ClCompile Include="ui\framework\parser\StyleManager.cpp" />
     <ClCompile Include="ui\framework\parser\UIMarkupParser.cpp" />
     <ClCompile Include="ui\framework\window\Window.cpp" />
@@ -302,6 +303,7 @@
     <ClInclude Include="ui\framework\controls\BreadcrumbBar.h" />
     <ClInclude Include="ui\framework\controls\PagingControl.h" />
     <ClInclude Include="ui\framework\controls\Splitter.h" />
+    <ClInclude Include="ui\framework\style\ThemeManager.h" />
     <ClInclude Include="ui\framework\parser\StyleManager.h" />
     <ClInclude Include="ui\framework\parser\UIMarkupParser.h" />
     <ClInclude Include="ui\framework\window\Window.h" />

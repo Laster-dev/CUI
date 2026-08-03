@@ -1,4 +1,5 @@
 #include "TabView.h"
+#include "../style/ThemeManager.h"
 #include "../render/CompositionContext.h"
 #include <algorithm>
 #include <cmath>
@@ -18,6 +19,10 @@ TabView::TabView() {
     SetProperty("maxTabWidth", Value(260.0f));
     m_headerLayer.SetCacheable(true);
     m_contentLayer.SetCacheable(true);
+    OnPropertyChanged().Connect([this](const std::string&, const Value&) {
+        MarkHeaderDirty();
+        MarkContentDirty();
+    });
 }
 
 std::vector<PropertyMeta> TabView::GetPropertyMetas() const {
@@ -331,13 +336,19 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
     Rect headerBarRect(m_bounds.x, m_bounds.y, m_bounds.width, headerH);
 
     // Draw TabBar Header background
-    D2D1_COLOR_F headerBg = GetProperty("headerBackground").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f));
+    D2D1_COLOR_F headerBg = ThemeManager::Instance().GetTokens().paneBackground;
     ctx.FillRect(headerBarRect, headerBg);
 
     // Clip tab buttons within header bounds
     ctx.PushClip(headerBarRect);
 
     float tabX = m_bounds.x + 4.0f - m_scrollOffsetXAnim.Current();
+
+    D2D1_COLOR_F defaultActiveTabBg = ThemeManager::Instance().GetTokens().windowBackground;
+    D2D1_COLOR_F defaultInactiveTabBg = ThemeManager::Instance().GetTokens().cardBackground;
+    D2D1_COLOR_F defaultActiveTextCol = ThemeManager::Instance().GetTokens().textPrimary;
+    D2D1_COLOR_F defaultInactiveTextCol = ThemeManager::Instance().GetTokens().textSecondary;
+    D2D1_COLOR_F defaultBorderCol = ThemeManager::Instance().GetTokens().cardBorder;
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         const auto& tab = m_tabs[i];
@@ -346,8 +357,8 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         float tabW = MeasureTabWidth(ctx, tab);
         Rect tabRect(tabX, m_bounds.y + 4.0f, tabW, headerH - 4.0f);
 
-        D2D1_COLOR_F tabBg = isActive ? GetProperty("activeTabBackground").AsColor(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f))
-                                      : GetProperty("inactiveTabBackground").AsColor(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f));
+        D2D1_COLOR_F tabBg = isActive ? GetProperty("activeTabBackground").AsColor(defaultActiveTabBg)
+                                      : GetProperty("inactiveTabBackground").AsColor(defaultInactiveTabBg);
 
         // Rounded top corners only; bottom edge stays flush with content.
         ctx.FillRoundedRect(tabRect, 4.0f, tabBg);
@@ -357,7 +368,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         float indicatorWidth = (std::max)(0.0f, tabW - indicatorInset * 2.0f);
         float indicatorY = m_bounds.y + 4.0f;
         D2D1_COLOR_F underlineColor = GetProperty("underlineColor").AsColor(D2D1::ColorF(0x3B / 255.0f, 0x4A / 255.0f, 0x57 / 255.0f, 1.0f));
-        D2D1_COLOR_F activeUnderlineColor = GetProperty("activeUnderlineColor").AsColor(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f));
+        D2D1_COLOR_F activeUnderlineColor = GetProperty("activeUnderlineColor").AsColor(ThemeManager::Instance().GetTokens().accentColor);
 
         if (isActive || tab.accentAnim.Current() > 0.01f) {
             ctx.DrawLine(
@@ -384,12 +395,12 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         // Draw Icon if available
         float titleX = tabX + 12.0f;
         if (!tab.icon.empty()) {
-            ctx.DrawText(tab.icon, Rect(titleX, tabRect.y, 16, tabRect.height), D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            ctx.DrawText(tab.icon, Rect(titleX, tabRect.y, 16, tabRect.height), ThemeManager::Instance().GetTokens().accentColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             titleX += 20.0f;
         }
 
         // Draw Title Text
-        D2D1_COLOR_F textColor = isActive ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : D2D1::ColorF(0x99 / 255.0f, 0x99 / 255.0f, 0x99 / 255.0f);
+        D2D1_COLOR_F textColor = isActive ? defaultActiveTextCol : defaultInactiveTextCol;
         ctx.DrawText(tab.title, Rect(titleX, tabRect.y, tabW - (titleX - tabX) - 24.0f, tabRect.height), textColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isActive ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
 
         // Draw Close 'X' Button if closable
@@ -403,7 +414,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
                 ctx.FillRoundedRect(closeRect, 3.0f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.15f));
             }
 
-            D2D1_COLOR_F closeColor = isCloseHover ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : D2D1::ColorF(0x88 / 255.0f, 0x88 / 255.0f, 0x88 / 255.0f);
+            D2D1_COLOR_F closeColor = isCloseHover ? defaultActiveTextCol : defaultInactiveTextCol;
             float cx = closeX + 8.0f;
             float cy = closeY + 8.0f;
             ctx.DrawLine(Point(cx - 3.5f, cy - 3.5f), Point(cx + 3.5f, cy + 3.5f), closeColor, 1.2f);
@@ -416,7 +427,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
     ctx.PopClip();
 
     // Draw TabBar Bottom border line
-    ctx.DrawLine(Point(m_bounds.x, m_bounds.y + headerH - 1), Point(m_bounds.x + m_bounds.width, m_bounds.y + headerH - 1), D2D1::ColorF(0x33 / 255.0f, 0x33 / 255.0f, 0x33 / 255.0f));
+    ctx.DrawLine(Point(m_bounds.x, m_bounds.y + headerH - 1), Point(m_bounds.x + m_bounds.width, m_bounds.y + headerH - 1), defaultBorderCol);
 }
 
 bool TabView::IsPointInHeader(float x, float y) const {

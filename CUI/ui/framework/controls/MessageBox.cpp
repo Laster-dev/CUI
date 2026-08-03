@@ -1,4 +1,5 @@
 #include "MessageBox.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
@@ -7,14 +8,17 @@ ContentDialog::ContentDialog() {
     m_txtTitle = std::make_shared<TextBlock>(m_titleText);
     m_txtTitle->SetProperty("fontSize", Value(18.0f));
     m_txtTitle->SetProperty("fontWeight", Value("Bold"));
-    m_txtTitle->SetProperty("color", Value("#FFFFFF"));
+    m_txtTitle->SetProperty("theme.colorToken", Value("textPrimary"));
+    m_txtTitle->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
 
     m_txtMessage = std::make_shared<TextBlock>(m_messageText);
     m_txtMessage->SetProperty("fontSize", Value(13.0f));
-    m_txtMessage->SetProperty("color", Value("#CCCCCC"));
+    m_txtMessage->SetProperty("theme.colorToken", Value("textSecondary"));
+    m_txtMessage->SetProperty("color", Value(ThemeManager::Instance().GetColor("textSecondary")));
 
     m_btnPrimary = std::make_shared<Button>(m_primaryText);
-    m_btnPrimary->SetProperty("background", Value("#007ACC"));
+    m_btnPrimary->SetProperty("theme.backgroundToken", Value("accentColor"));
+    m_btnPrimary->SetProperty("background", Value(ThemeManager::Instance().GetColor("accentColor")));
     m_btnPrimary->SetProperty("padding", Value(Thickness(16, 6, 16, 6)));
     m_btnPrimary->OnClick().Connect([this](UIElement*) {
         DialogResult res = DialogResult::Primary;
@@ -23,7 +27,8 @@ ContentDialog::ContentDialog() {
     });
 
     m_btnSecondary = std::make_shared<Button>(m_secondaryText);
-    m_btnSecondary->SetProperty("background", Value("#3C3C3C"));
+    m_btnSecondary->SetProperty("theme.backgroundToken", Value("cardBorder"));
+    m_btnSecondary->SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBorder")));
     m_btnSecondary->SetProperty("padding", Value(Thickness(16, 6, 16, 6)));
     m_btnSecondary->OnClick().Connect([this](UIElement*) {
         DialogResult res = DialogResult::Secondary;
@@ -32,7 +37,8 @@ ContentDialog::ContentDialog() {
     });
 
     m_btnClose = std::make_shared<Button>(m_closeText);
-    m_btnClose->SetProperty("background", Value("#2D2D2D"));
+    m_btnClose->SetProperty("theme.backgroundToken", Value("cardBackground"));
+    m_btnClose->SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
     m_btnClose->SetProperty("padding", Value(Thickness(16, 6, 16, 6)));
     m_btnClose->OnClick().Connect([this](UIElement*) {
         DialogResult res = DialogResult::Cancel;
@@ -220,8 +226,12 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
     ctx.FillRoundedRect(Rect(cardX - 6, cardY - 6, cardW + 12, cardH + 12), 12.0f, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.35f * m_animProgress));
 
     // Card Background (#202020 WinUI Dark Surface)
-    ctx.FillRoundedRect(m_dialogBounds, 8.0f, D2D1::ColorF(0x20 / 255.0f, 0x20 / 255.0f, 0x20 / 255.0f, m_animProgress));
-    ctx.DrawRoundedRect(m_dialogBounds, 8.0f, D2D1::ColorF(0x44 / 255.0f, 0x44 / 255.0f, 0x44 / 255.0f, m_animProgress), 1.0f);
+    D2D1_COLOR_F cardBg = ThemeManager::Instance().GetColor("cardBackground");
+    cardBg.a = m_animProgress;
+    D2D1_COLOR_F cardBorder = ThemeManager::Instance().GetColor("cardBorder");
+    cardBorder.a = m_animProgress;
+    ctx.FillRoundedRect(m_dialogBounds, 8.0f, cardBg);
+    ctx.DrawRoundedRect(m_dialogBounds, 8.0f, cardBorder, 1.0f);
 
     // 4. Layout Children inside Centered Card
     float innerX = cardX + 24.0f * scale;

@@ -30,6 +30,7 @@
 #include "../controls/Splitter.h"
 #include "../controls/CollapsePanel.h"
 #include "../controls/MessageBox.h"
+#include "../style/ThemeManager.h"
 
 #include <memory>
 #include <string>
@@ -40,6 +41,17 @@
 namespace CUI {
 class Window;
 namespace DSL {
+
+inline std::string ResolveLegacyThemeTokenForColor(const std::string& colorStr) {
+    if (colorStr == "#1E1E1E") return "windowBackground";
+    if (colorStr == "#252526" || colorStr == "#2D2D30") return "cardBackground";
+    if (colorStr == "#333333" || colorStr == "#3E3E42") return "cardBorder";
+    if (colorStr == "#007ACC" || colorStr == "#0098FF" || colorStr == "#005A9E") return "accentColor";
+    if (colorStr == "#AAAAAA" || colorStr == "#888888") return "textMuted";
+    if (colorStr == "#CCCCCC" || colorStr == "#B5CEA8" || colorStr == "#9CDCFE") return "textSecondary";
+    if (colorStr == "#569CD6" || colorStr == "#4EC9B0") return "accentColor";
+    return "";
+}
 
 template <typename T>
 class ElementBuilder {
@@ -99,6 +111,12 @@ public:
     }
 
     ElementBuilder& Background(const std::string& colorStr) {
+        std::string token = ResolveLegacyThemeTokenForColor(colorStr);
+        if (!token.empty()) {
+            m_element->SetProperty("theme.backgroundToken", Value(token));
+            m_element->SetProperty("background", Value(ThemeManager::Instance().GetColor(token)));
+            return *this;
+        }
         m_element->SetProperty("background", Value(colorStr));
         return *this;
     }
@@ -109,16 +127,34 @@ public:
     }
 
     ElementBuilder& HoverBackground(const std::string& colorStr) {
+        std::string token = ResolveLegacyThemeTokenForColor(colorStr);
+        if (!token.empty()) {
+            m_element->SetProperty("theme.hoverBackgroundToken", Value(token));
+            m_element->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor(token)));
+            return *this;
+        }
         m_element->SetProperty("hoverBackground", Value(colorStr));
         return *this;
     }
 
     ElementBuilder& PressedBackground(const std::string& colorStr) {
+        std::string token = ResolveLegacyThemeTokenForColor(colorStr);
+        if (!token.empty()) {
+            m_element->SetProperty("theme.pressedBackgroundToken", Value(token));
+            m_element->SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor(token)));
+            return *this;
+        }
         m_element->SetProperty("pressedBackground", Value(colorStr));
         return *this;
     }
 
     ElementBuilder& Color(const std::string& colorStr) {
+        std::string token = ResolveLegacyThemeTokenForColor(colorStr);
+        if (!token.empty()) {
+            m_element->SetProperty("theme.colorToken", Value(token));
+            m_element->SetProperty("color", Value(ThemeManager::Instance().GetColor(token)));
+            return *this;
+        }
         m_element->SetProperty("color", Value(colorStr));
         return *this;
     }
@@ -144,6 +180,13 @@ public:
     }
 
     ElementBuilder& Border(const std::string& colorStr, float thickness = 1.0f) {
+        std::string token = ResolveLegacyThemeTokenForColor(colorStr);
+        if (!token.empty()) {
+            m_element->SetProperty("theme.borderToken", Value(token));
+            m_element->SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor(token)));
+            m_element->SetProperty("borderThickness", Value(thickness));
+            return *this;
+        }
         m_element->SetProperty("borderBrush", Value(colorStr));
         m_element->SetProperty("borderThickness", Value(thickness));
         return *this;

@@ -1,4 +1,5 @@
 #include "ComboBox.h"
+#include "../style/ThemeManager.h"
 #include <sstream>
 #include <algorithm>
 
@@ -17,12 +18,12 @@ std::vector<PropertyMeta> ComboBox::GetPropertyMetas() const {
 
 ComboBox::ComboBox() {
     SetProperty("placeholder", Value("Select option..."));
-    SetProperty("background", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
-    SetProperty("hoverBackground", Value(D2D1::ColorF(0x48 / 255.0f, 0x48 / 255.0f, 0x48 / 255.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x33 / 255.0f, 0x33 / 255.0f, 0x33 / 255.0f, 1.0f)));
-    SetProperty("focusedBorderBrush", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("inputBackground")));
+    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
+    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("inputBorder")));
+    SetProperty("focusedBorderBrush", Value(ThemeManager::Instance().GetColor("focusedBorder")));
     SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
     SetProperty("fontSize", Value(13.0f));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("padding", Value(Thickness(10, 6, 10, 6)));
@@ -77,7 +78,7 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
     }
 
     float radius = GetProperty("cornerRadius").AsFloat(3.0f);
-    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f));
+    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetColor("inputBackground"));
     if (m_isDropDownOpen) {
         bg = BlendColor(bg, GetProperty("hoverBackground").AsColor(bg), 0.8f);
     }
@@ -89,8 +90,8 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
     }
 
     D2D1_COLOR_F borderBrush = (m_isFocused || m_isDropDownOpen)
-        ? GetProperty("focusedBorderBrush").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f))
-        : GetProperty("borderBrush").AsColor(D2D1::ColorF(0x33 / 255.0f, 0x33 / 255.0f, 0x33 / 255.0f, 1.0f));
+        ? GetProperty("focusedBorderBrush").AsColor(ThemeManager::Instance().GetColor("focusedBorder"))
+        : GetProperty("borderBrush").AsColor(ThemeManager::Instance().GetColor("inputBorder"));
 
     float borderThickness = GetProperty("borderThickness").AsFloat(1.0f);
     if (borderThickness > 0.0f) {
@@ -109,7 +110,7 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
         displayText = GetProperty("placeholder").AsString("Select option...");
     }
 
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f));
+    D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
 
@@ -118,7 +119,7 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
 
     // Render down arrow "v" icon
     Rect arrowRect(m_bounds.x + m_bounds.width - 24.0f, m_bounds.y, 20.0f, m_bounds.height);
-    ctx.DrawText("v", arrowRect, D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f), font, 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("v", arrowRect, ThemeManager::Instance().GetColor("textSecondary"), font, 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
 void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
@@ -137,12 +138,12 @@ void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontSize = GetProperty("fontSize").AsFloat(13.0f);
 
-    D2D1_COLOR_F dropBg = GetProperty("dropdownBackground").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
-    D2D1_COLOR_F selBg = GetProperty("selectedItemBackground").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+    D2D1_COLOR_F dropBg = GetProperty("dropdownBackground").AsColor(ThemeManager::Instance().GetColor("cardBackground"));
+    D2D1_COLOR_F selBg = GetProperty("selectedItemBackground").AsColor(ThemeManager::Instance().GetColor("selectedBackground"));
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
 
     ctx.FillRoundedRect(menuRect, radius, dropBg);
-    ctx.DrawRoundedRect(menuRect, radius, D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 1.0f), 1.0f);
+    ctx.DrawRoundedRect(menuRect, radius, ThemeManager::Instance().GetColor("cardBorder"), 1.0f);
 
     for (size_t i = 0; i < m_items.size(); ++i) {
         Rect itemRect(menuRect.x + 2, menuRect.y + i * itemHeight + 2, menuRect.width - 4, itemHeight - 4);
@@ -152,7 +153,7 @@ void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
             ctx.FillRoundedRect(itemRect, 2.0f, selBg);
         }
 
-        D2D1_COLOR_F itemColor = GetProperty("color").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
+        D2D1_COLOR_F itemColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
         ctx.DrawText(m_items[i], Rect(itemRect.x + 8, itemRect.y, itemRect.width - 16, itemRect.height), itemColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
 

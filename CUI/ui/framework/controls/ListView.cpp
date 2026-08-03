@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ListView.h"
+#include "../style/ThemeManager.h"
 #include <cmath>
 #include <algorithm>
 #include <sstream>
@@ -20,14 +21,14 @@ float GetChromiumWheelStep(float viewportHeight) {
 }
 
 ListView::ListView() {
-    SetProperty("background", Value(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f, 1.0f))); // VS Code Code Editor Dark #1E1E1E
-    SetProperty("headerBackground", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
-    SetProperty("gridLineBrush", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("windowBackground")));
+    SetProperty("headerBackground", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
+    SetProperty("gridLineBrush", Value(ThemeManager::Instance().GetColor("inputBorder")));
     SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("selectedBackground", Value(D2D1::ColorF(0x04 / 255.0f, 0x39 / 255.0f, 0x61 / 255.0f, 1.0f))); // VS Code Blue Selection
-    SetProperty("hoverBackground", Value(D2D1::ColorF(0x2A / 255.0f, 0x2D / 255.0f, 0x2E / 255.0f, 1.0f)));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    SetProperty("selectedBackground", Value(ThemeManager::Instance().GetColor("selectedBackground")));
+    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
     SetProperty("fontSize", Value(12.0f));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("width", Value(480.0f));
@@ -347,13 +348,13 @@ void ListView::OnRender(GraphicsContext& ctx) {
     ClampScroll();
 
     float radius = GetProperty("cornerRadius").AsFloat(0.0f);
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f, 1.0f));
-    D2D1_COLOR_F headerBg = GetProperty("headerBackground").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
-    D2D1_COLOR_F borderClr = GetProperty("borderBrush").AsColor(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f));
-    D2D1_COLOR_F gridLineClr = GetProperty("gridLineBrush").AsColor(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f));
-    D2D1_COLOR_F textClr = GetProperty("color").AsColor(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f));
-    D2D1_COLOR_F selectedBg = GetProperty("selectedBackground").AsColor(D2D1::ColorF(0x04 / 255.0f, 0x39 / 255.0f, 0x61 / 255.0f, 1.0f));
-    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(D2D1::ColorF(0x2A / 255.0f, 0x2D / 255.0f, 0x2E / 255.0f, 1.0f));
+    D2D1_COLOR_F bg = GetProperty("background").AsColor(ThemeManager::Instance().GetColor("windowBackground"));
+    D2D1_COLOR_F headerBg = GetProperty("headerBackground").AsColor(ThemeManager::Instance().GetColor("cardBackground"));
+    D2D1_COLOR_F borderClr = GetProperty("borderBrush").AsColor(ThemeManager::Instance().GetColor("cardBorder"));
+    D2D1_COLOR_F gridLineClr = GetProperty("gridLineBrush").AsColor(ThemeManager::Instance().GetColor("inputBorder"));
+    D2D1_COLOR_F textClr = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
+    D2D1_COLOR_F selectedBg = GetProperty("selectedBackground").AsColor(ThemeManager::Instance().GetColor("selectedBackground"));
+    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(ThemeManager::Instance().GetColor("hoverBackground"));
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontH = GetProperty("fontSize").AsFloat(12.0f);
 
@@ -375,7 +376,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
         // Header column text
         Rect colTextRect(colHeaderRect.x + 8.0f, colHeaderRect.y, colHeaderRect.width - 16.0f, colHeaderRect.height);
-        ctx.DrawText(col.header, colTextRect, D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(col.header, colTextRect, ThemeManager::Instance().GetColor("textSecondary"), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Header column splitter line
         ctx.DrawLine(Point(currColX + col.width, m_bounds.y + 4.0f), Point(currColX + col.width, m_bounds.y + m_headerHeight - 4.0f), borderClr, 1.0f);
@@ -425,7 +426,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
             } else {
                 std::string cellText = GetCellText(r, static_cast<int>(c));
                 Rect cellRect(cellX + 8.0f, rowY, colW - 16.0f, m_rowHeight);
-                D2D1_COLOR_F cellClr = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textClr;
+                D2D1_COLOR_F cellClr = isSelected ? ThemeManager::Instance().GetColor("textPrimary") : textClr;
                 ctx.DrawText(cellText, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             }
             // Cell Vertical Grid Line
@@ -460,8 +461,9 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
         if (screenBottom > screenTop && screenRight > screenLeft) {
             Rect rubberRect(screenLeft, screenTop, screenRight - screenLeft, screenBottom - screenTop);
-            ctx.FillRect(rubberRect, D2D1::ColorF(0.0f, 0.48f, 0.80f, 0.25f));
-            ctx.DrawRect(rubberRect, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f), 1.0f);
+            D2D1_COLOR_F accent = ThemeManager::Instance().GetColor("accentColor");
+            ctx.FillRect(rubberRect, D2D1::ColorF(accent.r, accent.g, accent.b, 0.25f));
+            ctx.DrawRect(rubberRect, accent, 1.0f);
         }
     }
 
@@ -476,7 +478,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
         float thumbY = trackY + (m_scrollY / m_maxScrollY) * (trackH - thumbH);
 
         Rect thumbRect(trackX, thumbY, 6.0f, thumbH);
-        ctx.FillRoundedRect(thumbRect, 3.0f, D2D1::ColorF(0x66 / 255.0f, 0x66 / 255.0f, 0x66 / 255.0f, 0.6f));
+        ctx.FillRoundedRect(thumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.6f));
     }
 
     ctx.PopClip();

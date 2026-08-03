@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ListBox.h"
+#include "../style/ThemeManager.h"
 #include <cmath>
 #include <algorithm>
 #include <sstream>
@@ -9,12 +10,12 @@
 namespace CUI {
 
 ListBox::ListBox() {
-    SetProperty("background", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("selectedBackground", Value(D2D1::ColorF(0x04 / 255.0f, 0x39 / 255.0f, 0x61 / 255.0f, 1.0f))); // VS Code Selection Blue #043961
-    SetProperty("hoverBackground", Value(D2D1::ColorF(0x2A / 255.0f, 0x2D / 255.0f, 0x2E / 255.0f, 1.0f)));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    SetProperty("selectedBackground", Value(ThemeManager::Instance().GetColor("selectedBackground")));
+    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
     SetProperty("fontSize", Value(13.0f));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("itemHeight", Value(28.0f));
@@ -213,8 +214,8 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     ClampScroll();
 
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
-    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f));
+    D2D1_COLOR_F bg = GetProperty("background").AsColor(ThemeManager::Instance().GetColor("cardBackground"));
+    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(ThemeManager::Instance().GetColor("cardBorder"));
     float borderThick = GetProperty("borderThickness").AsFloat(1.0f);
 
     // Draw container background and border
@@ -227,9 +228,9 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     float itemH = GetItemHeight();
     float fontH = GetProperty("fontSize").AsFloat(13.0f);
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f));
-    D2D1_COLOR_F selectedBg = GetProperty("selectedBackground").AsColor(D2D1::ColorF(0x04 / 255.0f, 0x39 / 255.0f, 0x61 / 255.0f, 1.0f));
-    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(D2D1::ColorF(0x2A / 255.0f, 0x2D / 255.0f, 0x2E / 255.0f, 1.0f));
+    D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
+    D2D1_COLOR_F selectedBg = GetProperty("selectedBackground").AsColor(ThemeManager::Instance().GetColor("selectedBackground"));
+    D2D1_COLOR_F hoverBg = GetProperty("hoverBackground").AsColor(ThemeManager::Instance().GetColor("hoverBackground"));
 
     float sbWidth = (m_maxScrollY > 0.0f) ? 8.0f : 0.0f;
     float itemW = m_bounds.width - 4.0f - sbWidth;
@@ -260,7 +261,7 @@ void ListBox::OnRender(GraphicsContext& ctx) {
             m_itemDatas[i].customElement->Render(ctx);
         } else {
             std::string itemText = GetItemAt(i);
-            D2D1_COLOR_F textClr = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : textColor;
+            D2D1_COLOR_F textClr = isSelected ? ThemeManager::Instance().GetColor("textPrimary") : textColor;
             Rect textRect(itemRect.x + 8.0f, itemRect.y, itemRect.width - 16.0f, itemRect.height);
             ctx.DrawText(itemText, textRect, textClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
@@ -281,8 +282,8 @@ void ListBox::OnRender(GraphicsContext& ctx) {
 
         Rect thumbRect(trackX, thumbY, 6.0f, thumbH);
         D2D1_COLOR_F thumbBg = m_isDraggingScrollbar
-            ? D2D1::ColorF(0x99 / 255.0f, 0x99 / 255.0f, 0x99 / 255.0f, 0.8f)
-            : D2D1::ColorF(0x55 / 255.0f, 0x55 / 255.0f, 0x55 / 255.0f, 0.5f);
+            ? D2D1::ColorF(border.r, border.g, border.b, 0.8f)
+            : D2D1::ColorF(border.r, border.g, border.b, 0.5f);
 
         ctx.FillRoundedRect(thumbRect, 3.0f, thumbBg);
     }

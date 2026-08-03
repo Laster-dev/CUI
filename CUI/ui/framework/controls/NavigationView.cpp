@@ -1,12 +1,13 @@
 #include "NavigationView.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
 
 NavigationView::NavigationView() {
-    SetProperty("background", Value(D2D1::ColorF(0x1E / 255.0f, 0x1E / 255.0f, 0x1E / 255.0f, 1.0f)));
-    SetProperty("paneBackground", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f)));
-    SetProperty("indicatorColor", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+    SetProperty("background", Value(ThemeManager::Instance().GetTokens().windowBackground));
+    SetProperty("paneBackground", Value(ThemeManager::Instance().GetTokens().paneBackground));
+    SetProperty("indicatorColor", Value(ThemeManager::Instance().GetTokens().accentColor));
 
     m_btnBack = std::make_shared<Button>("←");
     m_btnBack->SetProperty("width", Value(32.0f));
@@ -132,17 +133,20 @@ void NavigationView::OnRender(GraphicsContext& ctx) {
     float targetW = (m_paneDisplayMode == NavigationViewPaneDisplayMode::Expanded) ? 200.0f : 48.0f;
     float paneW = UIElement::AreAnimationsEnabled() ? m_paneWidthAnim.Current() : targetW;
     Rect paneRect(m_bounds.x, m_bounds.y, paneW, m_bounds.height);
-    D2D1_COLOR_F paneBg = GetProperty("paneBackground").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
-    D2D1_COLOR_F indicatorColor = GetProperty("indicatorColor").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+    D2D1_COLOR_F paneBg = GetProperty("paneBackground").AsColor(ThemeManager::Instance().GetTokens().paneBackground);
+    D2D1_COLOR_F indicatorColor = GetProperty("indicatorColor").AsColor(ThemeManager::Instance().GetTokens().accentColor);
+    D2D1_COLOR_F borderColor = ThemeManager::Instance().GetTokens().cardBorder;
+    D2D1_COLOR_F textPrimaryCol = ThemeManager::Instance().GetTokens().textPrimary;
+    D2D1_COLOR_F textSecondaryCol = ThemeManager::Instance().GetTokens().textSecondary;
 
     ctx.FillRect(paneRect, paneBg);
-    ctx.DrawLine(Point(m_bounds.x + paneW, m_bounds.y), Point(m_bounds.x + paneW, m_bounds.y + m_bounds.height), D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f));
+    ctx.DrawLine(Point(m_bounds.x + paneW, m_bounds.y), Point(m_bounds.x + paneW, m_bounds.y + m_bounds.height), borderColor);
 
     // Header Title (if expanded)
     if (paneW > 80.0f) {
         Rect headerRect(m_bounds.x + 48.0f, m_bounds.y + 44.0f, paneW - 56.0f, 32.0f);
         ctx.PushClip(headerRect);
-        ctx.DrawText(m_headerText, headerRect, D2D1::ColorF(0xEE / 255.0f, 0xEE / 255.0f, 0xEE / 255.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(m_headerText, headerRect, textPrimaryCol, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
         ctx.PopClip();
     }
 
@@ -153,12 +157,16 @@ void NavigationView::OnRender(GraphicsContext& ctx) {
         bool isHovered = (static_cast<int>(i) == m_hoveredIndex);
 
         if (isSelected) {
-            ctx.FillRoundedRect(r, 4.0f, D2D1::ColorF(0x37 / 255.0f, 0x37 / 255.0f, 0x3D / 255.0f, 1.0f));
+            D2D1_COLOR_F selFill = ThemeManager::Instance().GetTokens().cardBackground;
+            ctx.FillRoundedRect(r, 4.0f, selFill);
+            ctx.DrawRoundedRect(r, 4.0f, borderColor, 1.0f);
         } else if (isHovered) {
-            ctx.FillRoundedRect(r, 4.0f, D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x30 / 255.0f, 1.0f));
+            D2D1_COLOR_F hovFill = ThemeManager::Instance().GetTokens().cardBackground;
+            hovFill.a = 0.5f;
+            ctx.FillRoundedRect(r, 4.0f, hovFill);
         }
 
-        D2D1_COLOR_F textColor = isSelected ? D2D1::ColorF(1.0f, 1.0f, 1.0f) : D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f);
+        D2D1_COLOR_F textColor = isSelected ? textPrimaryCol : textSecondaryCol;
         
         // Icon
         float iconX = r.x + 6.0f;

@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ToggleSwitch.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
 
@@ -16,10 +17,12 @@ float EaseTrack(float t) {
 ToggleSwitch::ToggleSwitch() {
     SetProperty("isOn", Value(false));
     SetProperty("header", Value("开关 (ToggleSwitch)"));
-    SetProperty("onColor", Value(D2D1::ColorF(0x51 / 255.0f, 0xA8 / 255.0f, 0xF7 / 255.0f, 1.0f)));
-    SetProperty("offColor", Value(D2D1::ColorF(0x33 / 255.0f, 0x3B / 255.0f, 0x44 / 255.0f, 1.0f)));
-    SetProperty("knobColor", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x63 / 255.0f, 0x70 / 255.0f, 0x7C / 255.0f, 0.75f)));
+    SetProperty("onColor", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetProperty("offColor", Value(ThemeManager::Instance().GetColor("inputBorder")));
+    SetProperty("knobColor", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    D2D1_COLOR_F border = ThemeManager::Instance().GetColor("cardBorder");
+    border.a = 0.75f;
+    SetProperty("borderBrush", Value(border));
     SetProperty("hoverBackground", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f)));
     SetProperty("pressedBackground", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.04f)));
     SetProperty("width", Value(170.0f));
@@ -76,10 +79,12 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     float pillH = 17.0f;
     Rect pillRect(m_bounds.x, m_bounds.y + (m_bounds.height - pillH) * 0.5f, pillW, pillH);
 
-    D2D1_COLOR_F onColor = GetProperty("onColor").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
-    D2D1_COLOR_F offColor = GetProperty("offColor").AsColor(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f));
-    D2D1_COLOR_F knobColor = GetProperty("knobColor").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f));
-    D2D1_COLOR_F borderBrush = GetProperty("borderBrush").AsColor(D2D1::ColorF(0x63 / 255.0f, 0x70 / 255.0f, 0x7C / 255.0f, 0.75f));
+    D2D1_COLOR_F onColor = GetProperty("onColor").AsColor(ThemeManager::Instance().GetColor("accentColor"));
+    D2D1_COLOR_F offColor = GetProperty("offColor").AsColor(ThemeManager::Instance().GetColor("inputBorder"));
+    D2D1_COLOR_F knobColor = GetProperty("knobColor").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
+    D2D1_COLOR_F fallbackBorder = ThemeManager::Instance().GetColor("cardBorder");
+    fallbackBorder.a = 0.75f;
+    D2D1_COLOR_F borderBrush = GetProperty("borderBrush").AsColor(fallbackBorder);
 
     float eased = EaseTrack(m_knobPosAnim.Current());
     D2D1_COLOR_F trackBg = BlendColor(offColor, onColor, eased);
@@ -110,7 +115,7 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     if (!header.empty()) {
         float fontSize = GetProperty("fontSize").AsFloat(13.0f);
         std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
-        D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f));
+        D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textSecondary"));
 
         Rect textRect(pillRect.x + pillW + 10.0f, m_bounds.y, (std::max)(0.0f, m_bounds.width - pillW - 10.0f), m_bounds.height);
         ctx.DrawText(header, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);

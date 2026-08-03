@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ProgressBar.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
 #include <chrono>
@@ -17,8 +18,8 @@ ProgressBar::ProgressBar() {
     SetProperty("maximum", Value(100.0f));
     SetProperty("value", Value(0.0f));
     SetProperty("isIndeterminate", Value(false));
-    SetProperty("fillColor", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("trackColor", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+    SetProperty("fillColor", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetProperty("trackColor", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("width", Value(200.0f));
     SetProperty("height", Value(3.0f));
     SetProperty("cornerRadius", Value(1.5f));
@@ -88,8 +89,8 @@ bool ProgressBar::HasSelfAnimation() const {
 void ProgressBar::OnRender(GraphicsContext& ctx) {
     float defaultRadius = m_bounds.height * 0.5f;
     float radius = GetProperty("cornerRadius").AsFloat(defaultRadius);
-    D2D1_COLOR_F trackBg = GetProperty("trackColor").AsColor(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f));
-    D2D1_COLOR_F fillBg = GetProperty("fillColor").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+    D2D1_COLOR_F trackBg = GetProperty("trackColor").AsColor(ThemeManager::Instance().GetColor("cardBorder"));
+    D2D1_COLOR_F fillBg = GetProperty("fillColor").AsColor(ThemeManager::Instance().GetColor("accentColor"));
 
     // Draw Track
     ctx.FillRoundedRect(m_bounds, radius, trackBg);

@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "PagingControl.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
@@ -21,15 +22,15 @@ PagingControl::PagingControl() {
     auto styleBtn = [](std::shared_ptr<Button> btn, bool active) {
         if (!btn) return;
         if (active) {
-            btn->SetProperty("background", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-            btn->SetProperty("hoverBackground", Value(D2D1::ColorF(0x1C / 255.0f, 0x97 / 255.0f, 0xEA / 255.0f, 1.0f)));
+            btn->SetProperty("background", Value(ThemeManager::Instance().GetTokens().accentColor));
+            btn->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetTokens().accentColor));
             btn->SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
-            btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+            btn->SetProperty("borderBrush", Value(ThemeManager::Instance().GetTokens().accentColor));
         } else {
-            btn->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
-            btn->SetProperty("hoverBackground", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
-            btn->SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
-            btn->SetProperty("borderBrush", Value(D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+            btn->SetProperty("background", Value(ThemeManager::Instance().GetTokens().cardBackground));
+            btn->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetTokens().cardBackground));
+            btn->SetProperty("color", Value(ThemeManager::Instance().GetTokens().textSecondary));
+            btn->SetProperty("borderBrush", Value(ThemeManager::Instance().GetTokens().cardBorder));
         }
         btn->SetProperty("borderThickness", Value(1.0f));
         btn->SetProperty("cornerRadius", Value(4.0f));
@@ -97,9 +98,9 @@ void PagingControl::UpdatePageButtons() {
         btn->SetProperty("visibility", Value("Visible"));
         btn->SetText(std::to_string(val));
         bool active = (current == val);
-        btn->SetProperty("background", Value(D2D1::ColorF(0x2D / 255.0f, 0x2D / 255.0f, 0x2D / 255.0f, 1.0f)));
-        btn->SetProperty("color", Value(active ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f) : D2D1::ColorF(0xAA / 255.0f, 0xAA / 255.0f, 0xAA / 255.0f, 1.0f)));
-        btn->SetProperty("borderBrush", Value(active ? D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 0.8f) : D2D1::ColorF(0x3E / 255.0f, 0x3E / 255.0f, 0x42 / 255.0f, 1.0f)));
+        btn->SetProperty("background", Value(active ? ThemeManager::Instance().GetTokens().accentColor : ThemeManager::Instance().GetTokens().cardBackground));
+        btn->SetProperty("color", Value(active ? D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f) : ThemeManager::Instance().GetTokens().textSecondary));
+        btn->SetProperty("borderBrush", Value(active ? ThemeManager::Instance().GetTokens().accentColor : ThemeManager::Instance().GetTokens().cardBorder));
         btn->SetProperty("borderThickness", Value(1.0f));
     };
 
@@ -154,12 +155,12 @@ void PagingControl::OnRender(GraphicsContext& ctx) {
     float pillX = startX + activeIndex * (btnW + gap) + 4.0f;
     float pillY = m_bounds.y + m_bounds.height - 2.0f;
     Rect pillRect(pillX, pillY, btnW - 8.0f, 2.0f);
-    ctx.FillRoundedRect(pillRect, 1.0f, D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+    ctx.FillRoundedRect(pillRect, 1.0f, ThemeManager::Instance().GetTokens().accentColor);
 
     // Draw total pages text on right end
     Rect infoRect(startX + 5 * (btnW + gap) + 4.0f, m_bounds.y, 65.0f, m_bounds.height);
     std::string info = "共 " + std::to_string(total) + " 页";
-    ctx.DrawText(info, infoRect, D2D1::ColorF(0x88 / 255.0f, 0x88 / 255.0f, 0x88 / 255.0f), "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(info, infoRect, ThemeManager::Instance().GetTokens().textMuted, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
 bool PagingControl::OnAnimationTick() {

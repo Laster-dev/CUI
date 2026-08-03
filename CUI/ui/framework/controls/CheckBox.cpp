@@ -1,4 +1,5 @@
 #include "CheckBox.h"
+#include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
 
@@ -24,9 +25,9 @@ CheckBox::CheckBox() {
     SetProperty("text", Value("CheckBox"));
     SetProperty("checkState", Value("Unchecked"));
     SetProperty("isThreeState", Value(false));
-    SetProperty("background", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
-    SetProperty("checkedBackground", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("color", Value(D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f)));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("inputBackground")));
+    SetProperty("checkedBackground", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
     SetProperty("fontSize", Value(13.0f));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("padding", Value(Thickness(4, 4, 4, 4)));
@@ -117,14 +118,14 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     float boxY = m_bounds.y + (m_bounds.height - boxSize) / 2.0f;
     Rect boxRect(m_bounds.x + padding.left, boxY, boxSize, boxSize);
 
-    D2D1_COLOR_F accentBase = D2D1::ColorF(0x4C / 255.0f, 0xC2 / 255.0f, 0xFF / 255.0f, 1.0f); // #4CC2FF WinUI Fluent Accent Blue
+    D2D1_COLOR_F accentBase = GetProperty("checkedBackground").AsColor(ThemeManager::Instance().GetColor("accentColor"));
     float visualState = m_visualStateAnim.Current();
-    D2D1_COLOR_F accentBlue = BlendColor(accentBase, D2D1::ColorF(0x78 / 255.0f, 0xD7 / 255.0f, 0xFF / 255.0f, 1.0f), visualState);
-    D2D1_COLOR_F checkedIconColor = D2D1::ColorF(0x00 / 255.0f, 0x00 / 255.0f, 0x00 / 255.0f, 1.0f); // Black check mark
-    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0x20 / 255.0f, 0x20 / 255.0f, 0x20 / 255.0f, 1.0f));
+    D2D1_COLOR_F accentBlue = BlendColor(accentBase, ThemeManager::Instance().GetColor("accentColor"), visualState * 0.35f);
+    D2D1_COLOR_F checkedIconColor = ThemeManager::Instance().GetColor("windowBackground");
+    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetColor("inputBackground"));
     D2D1_COLOR_F border = BlendColor(
-        D2D1::ColorF(0x8E / 255.0f, 0x8E / 255.0f, 0x8E / 255.0f, 0.8f),
-        D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.9f),
+        ThemeManager::Instance().GetColor("inputBorder"),
+        ThemeManager::Instance().GetColor("focusedBorder"),
         (std::min)(1.0f, visualState / 0.55f));
 
     float fillProgress = m_fillAnim.Current();
@@ -172,7 +173,7 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
         float textX = boxRect.x + boxSize + 10.0f;
         Rect textRect(textX, m_bounds.y, m_bounds.width - (textX - m_bounds.x), m_bounds.height);
 
-        D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(1.0f, 1.0f, 1.0f));
+        D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetColor("textPrimary"));
         std::string font = GetProperty("fontFamily").AsString("Segoe UI");
         float fontSize = GetProperty("fontSize").AsFloat(13.0f);
 

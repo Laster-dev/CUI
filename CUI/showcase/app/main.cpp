@@ -22,10 +22,6 @@ static std::shared_ptr<Toast> BuildToastTemplate() {
     toast->SetCloseable(true);
     toast->SetWidth(320.0f);
     toast->SetSpacing(8.0f);
-    toast->SetBackground("#2D2D30");
-    toast->SetAccent("#007ACC");
-    toast->SetTitleColor("#FFFFFF");
-    toast->SetMessageColor("#E5E5E5");
     return toast;
 }
 

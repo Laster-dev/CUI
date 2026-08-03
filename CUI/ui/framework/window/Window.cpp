@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "../style/ThemeManager.h"
 #include "../controls/TextBox.h"
 #include "../controls/ContextMenu.h"
 #include "../controls/VSCodeControls.h"
@@ -77,6 +78,151 @@ Rect GetClientBounds(HWND hwnd) {
         static_cast<float>(rc.bottom - rc.top)
     );
 }
+
+void ApplyThemeToken(UIElement* element, const char* tokenPropName, const char* targetPropName) {
+    if (!element || !element->HasProperty(tokenPropName)) {
+        return;
+    }
+    const std::string tokenName = element->GetProperty(tokenPropName).AsString();
+    if (tokenName.empty()) {
+        return;
+    }
+    element->SetProperty(targetPropName, Value(ThemeManager::Instance().GetColor(tokenName)));
+}
+
+void ApplyThemeToTree(UIElement* element) {
+    if (!element) {
+        return;
+    }
+
+    ApplyThemeToken(element, "theme.backgroundToken", "background");
+    ApplyThemeToken(element, "theme.hoverBackgroundToken", "hoverBackground");
+    ApplyThemeToken(element, "theme.pressedBackgroundToken", "pressedBackground");
+    ApplyThemeToken(element, "theme.borderToken", "borderBrush");
+    ApplyThemeToken(element, "theme.focusedBorderToken", "focusedBorderBrush");
+    ApplyThemeToken(element, "theme.colorToken", "color");
+    ApplyThemeToken(element, "theme.placeholderColorToken", "placeholderColor");
+    ApplyThemeToken(element, "theme.dropdownBackgroundToken", "dropdownBackground");
+    ApplyThemeToken(element, "theme.selectedItemBackgroundToken", "selectedItemBackground");
+    ApplyThemeToken(element, "theme.selectedBackgroundToken", "selectedBackground");
+    ApplyThemeToken(element, "theme.underlineColorToken", "underlineColor");
+    ApplyThemeToken(element, "theme.activeUnderlineColorToken", "activeUnderlineColor");
+
+    const std::string className = element->GetClassName();
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
+    if (className == "TitleBar") {
+        element->SetProperty("background", Value(tokens.titleBarBackground));
+        element->SetProperty("hoverBackground", Value(tokens.titleBarBackground));
+        element->SetProperty("pressedBackground", Value(tokens.titleBarBackground));
+    } else if (className == "MenuBar") {
+        element->SetProperty("background", Value(tokens.titleBarBackground));
+        element->SetProperty("color", Value(tokens.titleBarText));
+    } else if (className == "Button") {
+        if (!element->HasProperty("theme.colorToken")) {
+            element->SetProperty("color", Value(tokens.textPrimary));
+        }
+        if (!element->HasProperty("theme.backgroundToken")) {
+            element->SetProperty("background", Value(tokens.accentColor));
+        }
+        if (!element->HasProperty("theme.borderToken")) {
+            element->SetProperty("borderBrush", Value(tokens.accentColor));
+        }
+    } else if (className == "PropertyGrid") {
+        element->SetProperty("background", Value(tokens.cardBackground));
+        element->SetProperty("borderBrush", Value(tokens.cardBorder));
+    } else if (className == "ContextMenu") {
+        element->SetProperty("background", Value(tokens.cardBackground));
+        element->SetProperty("borderBrush", Value(tokens.cardBorder));
+    } else if (className == "MenuItem") {
+        element->SetProperty("color", Value(tokens.textSecondary));
+    } else if (className == "TextBox") {
+        if (!element->HasProperty("theme.colorToken")) {
+            element->SetProperty("color", Value(tokens.textPrimary));
+        }
+        if (!element->HasProperty("theme.placeholderColorToken")) {
+            element->SetProperty("placeholderColor", Value(tokens.textMuted));
+        }
+        if (!element->HasProperty("theme.activeUnderlineColorToken")) {
+            element->SetProperty("activeUnderlineColor", Value(tokens.accentColor));
+        }
+        if (!element->HasProperty("theme.underlineColorToken")) {
+            element->SetProperty("underlineColor", Value(tokens.cardBorder));
+        }
+    } else if (className == "ComboBox") {
+        if (!element->HasProperty("theme.colorToken")) {
+            element->SetProperty("color", Value(tokens.textPrimary));
+        }
+        if (!element->HasProperty("theme.backgroundToken")) {
+            element->SetProperty("background", Value(tokens.inputBackground));
+        }
+        if (!element->HasProperty("theme.hoverBackgroundToken")) {
+            element->SetProperty("hoverBackground", Value(tokens.cardBackground));
+        }
+        if (!element->HasProperty("theme.borderToken")) {
+            element->SetProperty("borderBrush", Value(tokens.inputBorder));
+        }
+        if (!element->HasProperty("theme.dropdownBackgroundToken")) {
+            element->SetProperty("dropdownBackground", Value(tokens.cardBackground));
+        }
+        if (!element->HasProperty("theme.selectedItemBackgroundToken")) {
+            element->SetProperty("selectedItemBackground", Value(tokens.accentColor));
+        }
+    } else if (className == "CheckBox") {
+        if (!element->HasProperty("theme.colorToken")) {
+            element->SetProperty("color", Value(tokens.textPrimary));
+        }
+        if (!element->HasProperty("theme.backgroundToken")) {
+            element->SetProperty("background", Value(tokens.inputBackground));
+        }
+        if (!element->HasProperty("checkedBackground")) {
+            element->SetProperty("checkedBackground", Value(tokens.accentColor));
+        }
+    } else if (className == "RadioButton") {
+        if (!element->HasProperty("theme.colorToken")) {
+            element->SetProperty("color", Value(tokens.textPrimary));
+        }
+        element->SetProperty("background", Value(tokens.inputBackground));
+        element->SetProperty("accentColor", Value(tokens.accentColor));
+    } else if (className == "ToggleSwitch") {
+        if (!element->HasProperty("theme.colorToken")) {
+            element->SetProperty("color", Value(tokens.textPrimary));
+        }
+        element->SetProperty("onColor", Value(tokens.accentColor));
+        element->SetProperty("offColor", Value(tokens.inputBorder));
+        element->SetProperty("borderBrush", Value(tokens.cardBorder));
+    } else if (className == "Slider") {
+        element->SetProperty("trackColor", Value(tokens.cardBorder));
+        element->SetProperty("activeTrackColor", Value(tokens.accentColor));
+        element->SetProperty("thumbColor", Value(tokens.textPrimary));
+    } else if (className == "CollapsePanel") {
+        element->SetProperty("background", Value(tokens.cardBackground));
+        element->SetProperty("borderBrush", Value(tokens.cardBorder));
+    } else if (className == "ListBox") {
+        element->SetProperty("background", Value(tokens.cardBackground));
+        element->SetProperty("borderBrush", Value(tokens.cardBorder));
+        element->SetProperty("color", Value(tokens.textSecondary));
+        element->SetProperty("selectedBackground", Value(tokens.accentColor));
+        element->SetProperty("hoverBackground", Value(tokens.paneBackground));
+    } else if (className == "ListView") {
+        element->SetProperty("background", Value(tokens.windowBackground));
+        element->SetProperty("headerBackground", Value(tokens.paneBackground));
+        element->SetProperty("borderBrush", Value(tokens.cardBorder));
+        element->SetProperty("gridLineBrush", Value(tokens.inputBorder));
+        element->SetProperty("color", Value(tokens.textSecondary));
+        element->SetProperty("selectedBackground", Value(tokens.accentColor));
+        element->SetProperty("hoverBackground", Value(tokens.paneBackground));
+    } else if (className == "TreeView") {
+        element->SetProperty("background", Value(tokens.cardBackground));
+        element->SetProperty("borderBrush", Value(tokens.cardBorder));
+        element->SetProperty("color", Value(tokens.textSecondary));
+        element->SetProperty("selectedBackground", Value(tokens.accentColor));
+        element->SetProperty("hoverBackground", Value(tokens.paneBackground));
+    }
+
+    for (const auto& child : element->GetChildren()) {
+        ApplyThemeToTree(child.get());
+    }
+}
 }
 
 Window::Window() {
@@ -127,7 +273,7 @@ void Window::RequestFullRepaint() {
     if (m_rootElement) {
         m_pendingDirtyRegion.AddRect(m_rootElement->GetBounds());
     }
-    InvalidateRect(m_hwnd, nullptr, FALSE);
+    RedrawWindow(m_hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
 void Window::InvalidatePendingRenderRegions(bool fallbackToFullWindow) {
@@ -261,14 +407,17 @@ void Window::SetBackdropType(BackdropType type) {
     m_backdropType = type;
     if (m_hwnd) {
         WindowBackdrop::ApplyBackdrop(m_hwnd, type);
+        ApplyVisualState();
         RequestFullRepaint();
     }
 }
 
 void Window::SetThemeMode(ThemeMode theme) {
     m_themeMode = theme;
+    ThemeManager::Instance().SetThemeMode(theme);
     if (m_hwnd) {
         WindowBackdrop::ApplyTheme(m_hwnd, theme);
+        ApplyVisualState();
         RequestFullRepaint();
     }
 }
@@ -377,9 +526,22 @@ void Window::RunMessageLoop() {
 void Window::SetRootElement(std::shared_ptr<UIElement> root) {
     m_rootElement = root;
     if (m_rootElement) {
+        ApplyVisualState();
         m_rootElement->SyncRenderState();
     }
     Relayout();
+}
+
+void Window::ApplyVisualState() {
+    if (m_rootElement) {
+        ApplyThemeToTree(m_rootElement.get());
+        m_rootElement->MarkRenderContentDirty();
+    }
+    if (m_hwnd) {
+        UpdateDwmChrome();
+        m_sceneLayer.Invalidate(RenderLayer::ContentDirty | RenderLayer::StructureDirty | RenderLayer::SizeDirty);
+        RedrawWindow(m_hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
+    }
 }
 
 void Window::Relayout() {
@@ -796,7 +958,7 @@ void Window::OnPaint() {
 
     m_gfxContext.BeginDraw();
 
-    const D2D1_COLOR_F bgColor = D2D1::ColorF(0x1F / 255.0f, 0x1F / 255.0f, 0x1F / 255.0f, 1.0f);
+    const D2D1_COLOR_F bgColor = ThemeManager::Instance().GetTokens().windowBackground;
     const D2D1_COLOR_F sceneClearColor = (m_transparentMode && !IsZoomed(m_hwnd))
         ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)
         : bgColor;
@@ -934,7 +1096,12 @@ void Window::UpdateDwmChrome() {
     DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 
     // Match the app background on Win11's 1px window border.
-    const COLORREF borderColor = RGB(0x1F, 0x1F, 0x1F);
+    const D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().windowBackground;
+    const COLORREF borderColor = RGB(
+        static_cast<int>(border.r * 255.0f),
+        static_cast<int>(border.g * 255.0f),
+        static_cast<int>(border.b * 255.0f)
+    );
     DwmSetWindowAttribute(m_hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
 
     // Register Custom TitleBar Maximize Button Rect with Win11 DWM (DWMWA_CAPTION_BUTTON_BOUNDS = 35)

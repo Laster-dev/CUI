@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "BreadcrumbBar.h"
+#include "../style/ThemeManager.h"
 #include <sstream>
 #include <algorithm>
 
@@ -9,11 +10,11 @@ namespace CUI {
 
 BreadcrumbBar::BreadcrumbBar() {
     m_pathNodes = { "Home", "Controls", "BreadcrumbBar" };
-    SetProperty("background", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f, 1.0f)));
+    SetProperty("background", Value(ThemeManager::Instance().GetTokens().cardBackground));
+    SetProperty("borderBrush", Value(ThemeManager::Instance().GetTokens().cardBorder));
     SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
-    SetProperty("activeColor", Value(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f)));
+    SetProperty("color", Value(ThemeManager::Instance().GetTokens().textSecondary));
+    SetProperty("activeColor", Value(ThemeManager::Instance().GetTokens().accentColor));
     SetProperty("cornerRadius", Value(4.0f));
     SetProperty("width", Value(320.0f));
     SetProperty("height", Value(30.0f));
@@ -71,8 +72,9 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
     float currX = m_bounds.x + 8.0f;
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontH = GetProperty("fontSize").AsFloat(12.0f);
-    D2D1_COLOR_F textColor = GetProperty("color").AsColor(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f));
-    D2D1_COLOR_F activeColor = GetProperty("activeColor").AsColor(D2D1::ColorF(0x00 / 255.0f, 0x7A / 255.0f, 0xCC / 255.0f, 1.0f));
+    D2D1_COLOR_F textColor = GetProperty("color").AsColor(ThemeManager::Instance().GetTokens().textSecondary);
+    D2D1_COLOR_F activeColor = GetProperty("activeColor").AsColor(ThemeManager::Instance().GetTokens().accentColor);
+    D2D1_COLOR_F sepColor = ThemeManager::Instance().GetTokens().textMuted;
 
     for (size_t i = 0; i < m_pathNodes.size(); ++i) {
         bool isLast = (i == m_pathNodes.size() - 1);
@@ -84,7 +86,7 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
 
         if (!isLast) {
             Rect sepRect(currX, m_bounds.y, 12.0f, m_bounds.height);
-            ctx.DrawText(">", sepRect, D2D1::ColorF(0x66 / 255.0f, 0x66 / 255.0f, 0x66 / 255.0f, 1.0f), font, fontH, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            ctx.DrawText(">", sepRect, sepColor, font, fontH, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             currX += 12.0f;
         }
     }

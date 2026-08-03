@@ -1,4 +1,5 @@
 #include "ContextMenu.h"
+#include "../style/ThemeManager.h"
 
 namespace CUI {
 
@@ -6,7 +7,8 @@ MenuItem::MenuItem() {
     SetProperty("text", Value(""));
     SetProperty("icon", Value(""));
     SetProperty("shortcutText", Value(""));
-    SetProperty("color", Value(D2D1::ColorF(0xCC / 255.0f, 0xCC / 255.0f, 0xCC / 255.0f, 1.0f)));
+    SetProperty("theme.colorToken", Value("textSecondary"));
+    SetProperty("color", Value(ThemeManager::Instance().GetColor("textSecondary")));
     SetProperty("fontSize", Value(12.0f));
     SetProperty("fontFamily", Value("Segoe UI"));
     SetProperty("height", Value(26.0f));
@@ -29,13 +31,16 @@ Size MenuItem::Measure(Size availableSize) {
 void MenuItem::OnRender(GraphicsContext& ctx) {
     if (m_isSeparator) {
         float lineY = m_bounds.y + m_bounds.height / 2.0f;
-        ctx.DrawLine(Point(m_bounds.x + 8.0f, lineY), Point(m_bounds.x + m_bounds.width - 8.0f, lineY), D2D1::ColorF(0x3C / 255.0f, 0x3C / 255.0f, 0x3C / 255.0f), 1.0f);
+        ctx.DrawLine(Point(m_bounds.x + 8.0f, lineY), Point(m_bounds.x + m_bounds.width - 8.0f, lineY), ThemeManager::Instance().GetColor("cardBorder"), 1.0f);
         return;
     }
 
     bool enabled = IsEnabled();
+    const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
     if (m_isHovered && enabled) {
-        ctx.FillRoundedRect(m_bounds, 3.0f, D2D1::ColorF(0x04 / 255.0f, 0x39 / 255.0f, 0x61 / 255.0f)); // VS Code Menu Hover Blue #043961
+        D2D1_COLOR_F hover = ThemeManager::Instance().GetColor("accentColor");
+        hover.a = lightTheme ? 0.16f : 0.32f;
+        ctx.FillRoundedRect(m_bounds, 3.0f, hover);
     }
 
     std::string text = GetProperty("text").AsString("");
@@ -45,8 +50,8 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
     float fontSize = GetProperty("fontSize").AsFloat(12.0f);
 
     D2D1_COLOR_F textColor = enabled
-        ? D2D1::ColorF(0xE0 / 255.0f, 0xE0 / 255.0f, 0xE0 / 255.0f)
-        : D2D1::ColorF(0x66 / 255.0f, 0x66 / 255.0f, 0x66 / 255.0f);
+        ? ThemeManager::Instance().GetColor("textPrimary")
+        : ThemeManager::Instance().GetColor("textMuted");
 
     // Draw Icon if available
     float iconW = 24.0f;
@@ -65,7 +70,7 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
         ctx.DrawText(">", arrowRect, textColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     } else if (!shortcut.empty()) {
         Rect shortcutRect(m_bounds.x + m_bounds.width - 125.0f, m_bounds.y, 115.0f, m_bounds.height);
-        D2D1_COLOR_F scColor = enabled ? D2D1::ColorF(0x85 / 255.0f, 0x85 / 255.0f, 0x85 / 255.0f) : textColor;
+        D2D1_COLOR_F scColor = enabled ? ThemeManager::Instance().GetColor("textMuted") : textColor;
         ctx.DrawText(shortcut, shortcutRect, scColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
 }
@@ -104,8 +109,10 @@ void MenuItem::ExecuteCommand() {
 // ---------------- ContextMenu ----------------
 
 ContextMenu::ContextMenu() {
-    SetProperty("background", Value(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 1.0f)));
+    SetProperty("theme.backgroundToken", Value("cardBackground"));
+    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    SetProperty("theme.borderToken", Value("cardBorder"));
+    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("borderThickness", Value(1.0f));
     SetProperty("cornerRadius", Value(4.0f));
 }
@@ -256,8 +263,8 @@ void ContextMenu::OnRenderOverlay(GraphicsContext& ctx) {
     float radius = GetProperty("cornerRadius").AsFloat(4.0f);
 
     // Draw ContextMenu Popup Box (Shadow & Background)
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0x25 / 255.0f, 0x25 / 255.0f, 0x26 / 255.0f, 1.0f));
-    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(D2D1::ColorF(0x45 / 255.0f, 0x45 / 255.0f, 0x45 / 255.0f, 1.0f));
+    D2D1_COLOR_F bg = GetProperty("background").AsColor(ThemeManager::Instance().GetColor("cardBackground"));
+    D2D1_COLOR_F border = GetProperty("borderBrush").AsColor(ThemeManager::Instance().GetColor("cardBorder"));
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
     ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);
