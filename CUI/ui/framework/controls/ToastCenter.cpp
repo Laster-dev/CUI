@@ -38,13 +38,36 @@ std::shared_ptr<Toast> ToastCenter::AddToast(const std::shared_ptr<Toast>& toast
     return toast;
 }
 
-std::shared_ptr<Toast> ToastCenter::ShowToast(const std::string& title, const std::string& message, ToastCorner corner, int durationMs) {
+namespace {
+ToastType AutoDetectTypeFromTitle(const std::string& title, ToastType defaultType) {
+    if (defaultType != ToastType::Info) return defaultType;
+    std::string t = title;
+    std::transform(t.begin(), t.end(), t.begin(), ::tolower);
+    if (t.find("success") != std::string::npos || title.find("成功") != std::string::npos || title.find("完成") != std::string::npos) {
+        return ToastType::Success;
+    }
+    if (t.find("warning") != std::string::npos || t.find("warn") != std::string::npos || title.find("警告") != std::string::npos || title.find("提醒") != std::string::npos) {
+        return ToastType::Warning;
+    }
+    if (t.find("error") != std::string::npos || title.find("错误") != std::string::npos || title.find("失败") != std::string::npos || title.find("异常") != std::string::npos) {
+        return ToastType::Error;
+    }
+    return defaultType;
+}
+}
+
+std::shared_ptr<Toast> ToastCenter::ShowToast(const std::string& title, const std::string& message, ToastType type, ToastCorner corner, int durationMs) {
     auto toast = std::make_shared<Toast>();
     toast->SetTitle(title);
     toast->SetMessage(message);
+    toast->SetType(AutoDetectTypeFromTitle(title, type));
     toast->SetCorner(corner);
     toast->SetDurationMs(durationMs);
     return AddToast(toast);
+}
+
+std::shared_ptr<Toast> ToastCenter::ShowToast(const std::string& title, const std::string& message, ToastCorner corner, int durationMs) {
+    return ShowToast(title, message, ToastType::Info, corner, durationMs);
 }
 
 std::shared_ptr<Toast> ToastCenter::ShowFromTemplate(const UIElement* toastTemplate,
@@ -91,10 +114,14 @@ std::shared_ptr<ToastCenter> ToastCenter::Ensure(UIElement* root) {
     return center;
 }
 
-std::shared_ptr<Toast> ToastCenter::Show(UIElement* root, const std::string& title, const std::string& message, ToastCorner corner, int durationMs) {
+std::shared_ptr<Toast> ToastCenter::Show(UIElement* root, const std::string& title, const std::string& message, ToastType type, ToastCorner corner, int durationMs) {
     auto center = Ensure(root);
     if (!center) return nullptr;
-    return center->ShowToast(title, message, corner, durationMs);
+    return center->ShowToast(title, message, type, corner, durationMs);
+}
+
+std::shared_ptr<Toast> ToastCenter::Show(UIElement* root, const std::string& title, const std::string& message, ToastCorner corner, int durationMs) {
+    return Show(root, title, message, ToastType::Info, corner, durationMs);
 }
 
 void ToastCenter::OnRenderOverlay(GraphicsContext& ctx) {

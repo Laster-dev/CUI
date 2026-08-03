@@ -13,16 +13,16 @@ ShowcasePage BuildToastPage(const ShowcaseContext& ctx) {
         auto center = ToastCenter::Ensure(window->GetRootElement().get());
         count->SetProperty("text", Value("活动通知: " + std::to_string(center ? center->GetActiveCount() : 0)));
     };
-    auto emitToast = [window = ctx.windowRef, log, updateCount](const std::string& title, const std::string& message, ToastCorner corner, int durationMs) {
-        ToastCenter::Show(window->GetRootElement().get(), title, message, corner, durationMs);
+    auto emitToast = [window = ctx.windowRef, log, updateCount](const std::string& title, const std::string& message, ToastType type, ToastCorner corner, int durationMs) {
+        ToastCenter::Show(window->GetRootElement().get(), title, message, type, corner, durationMs);
         log->SetProperty("text", Value("[Toast] " + title + " -> " + message));
         updateCount();
     };
 
-    auto info = ElevatedButton("信息 Info", [emitToast](UIElement*) { emitToast("Info", "信息提示消息", ToastCorner::BottomRight, 2200); }).Background("#007ACC").Padding(14, 8, 14, 8).CornerRadius(4).Build();
-    auto success = ElevatedButton("成功 Success", [emitToast](UIElement*) { emitToast("Success", "操作成功！", ToastCorner::BottomRight, 2200); }).Background("#10B981").Padding(14, 8, 14, 8).CornerRadius(4).Build();
-    auto warn = ElevatedButton("警告 Warning", [emitToast](UIElement*) { emitToast("Warning", "警告提醒消息", ToastCorner::BottomRight, 2200); }).Background("#D7A400").Padding(14, 8, 14, 8).CornerRadius(4).Build();
-    auto error = ElevatedButton("错误 Error", [emitToast](UIElement*) { emitToast("Error", "错误异常消息", ToastCorner::BottomRight, 2200); }).Background("#D13438").Padding(14, 8, 14, 8).CornerRadius(4).Build();
+    auto info = ElevatedButton("信息 Info", [emitToast](UIElement*) { emitToast("Info", "信息提示消息", ToastType::Info, ToastCorner::BottomRight, 2200); }).Background("#007ACC").Padding(14, 8, 14, 8).CornerRadius(4).Build();
+    auto success = ElevatedButton("成功 Success", [emitToast](UIElement*) { emitToast("Success", "操作成功！", ToastType::Success, ToastCorner::BottomRight, 2200); }).Background("#10B981").Padding(14, 8, 14, 8).CornerRadius(4).Build();
+    auto warn = ElevatedButton("警告 Warning", [emitToast](UIElement*) { emitToast("Warning", "警告提醒消息", ToastType::Warning, ToastCorner::BottomRight, 2200); }).Background("#D7A400").Padding(14, 8, 14, 8).CornerRadius(4).Build();
+    auto error = ElevatedButton("错误 Error", [emitToast](UIElement*) { emitToast("Error", "错误异常消息", ToastType::Error, ToastCorner::BottomRight, 2200); }).Background("#D13438").Padding(14, 8, 14, 8).CornerRadius(4).Build();
     auto fromTemplate = ElevatedButton("按模板弹出").Background("#8E44AD").Padding(14, 8, 14, 8).CornerRadius(4).Build();
     fromTemplate->OnClick().Connect([window = ctx.windowRef, tmpl = ctx.toastTemplate, log, updateCount](UIElement*) {
         auto center = ToastCenter::Ensure(window->GetRootElement().get());

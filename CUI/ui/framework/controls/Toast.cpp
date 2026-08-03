@@ -50,11 +50,49 @@ ToastCorner Toast::ParseCorner(const std::string& corner, ToastCorner fallback) 
     return fallback;
 }
 
+const char* Toast::TypeToString(ToastType type) {
+    switch (type) {
+    case ToastType::Success: return "Success";
+    case ToastType::Warning: return "Warning";
+    case ToastType::Error: return "Error";
+    default: return "Info";
+    }
+}
+
+ToastType Toast::ParseType(const std::string& typeStr, ToastType fallback) {
+    if (typeStr == "Success") return ToastType::Success;
+    if (typeStr == "Warning" || typeStr == "Warn") return ToastType::Warning;
+    if (typeStr == "Error") return ToastType::Error;
+    if (typeStr == "Info") return ToastType::Info;
+    return fallback;
+}
+
+void Toast::SetType(ToastType type) {
+    m_type = type;
+    SetProperty("type", Value(TypeToString(type)));
+    switch (type) {
+    case ToastType::Success:
+        SetAccent("#10B981");
+        break;
+    case ToastType::Warning:
+        SetAccent("#D7A400");
+        break;
+    case ToastType::Error:
+        SetAccent("#D13438");
+        break;
+    case ToastType::Info:
+    default:
+        SetAccent("#007ACC");
+        break;
+    }
+}
+
 Toast::Toast() {
     SetProperty("visibility", Value("Visible"));
     SetProperty("opacity", Value(1.0f));
     SetProperty("title", Value(m_titleText));
     SetProperty("message", Value(m_messageText));
+    SetProperty("type", Value("Info"));
     SetProperty("corner", Value("BottomRight"));
     SetProperty("durationMs", Value(m_durationMs));
     SetProperty("autoClose", Value(m_autoClose));
@@ -170,15 +208,30 @@ void Toast::Show() {
     m_state = 1;
     m_stateTime = std::chrono::steady_clock::now();
     m_isHovering = false;
-    m_currentOpacity = 0.0f;
-    m_currentSlideX = 24.0f;
-    m_currentSlideY = 10.0f;
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_state = 2;
+        m_currentOpacity = 1.0f;
+        m_currentSlideX = 0.0f;
+        m_currentSlideY = 0.0f;
+    } else {
+        m_currentOpacity = 0.0f;
+        m_currentSlideX = 24.0f;
+        m_currentSlideY = 10.0f;
+    }
+    MarkRenderContentDirty();
 }
 
 void Toast::Hide() {
     if (m_state == 3 || m_state == 4) return;
     m_state = 4;
     m_stateTime = std::chrono::steady_clock::now();
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_state = 3;
+        m_currentOpacity = 0.0f;
+        m_currentSlideX = 0.0f;
+        m_currentSlideY = 0.0f;
+    }
+    MarkRenderContentDirty();
 }
 
 Size Toast::Measure(Size availableSize) {
@@ -347,24 +400,36 @@ void Toast::OnMouseUp(Point pt) {
 
 bool Toast::OnAnimationTick() {
     if (m_state == 3) return false;
+
+    auto now = std::chrono::steady_clock::now();
+    float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_stateTime).count() / 1000.0f;
+
     if (!UIElement::AreAnimationsEnabled()) {
         if (m_state == 1) {
             m_state = 2;
-            m_stateTime = std::chrono::steady_clock::now();
+            m_stateTime = now;
             m_currentOpacity = 1.0f;
             m_currentSlideX = 0.0f;
             m_currentSlideY = 0.0f;
+        } else if (m_state == 2) {
+            m_currentOpacity = 1.0f;
+            m_currentSlideX = 0.0f;
+            m_currentSlideY = 0.0f;
+            if (m_autoClose && m_durationMs > 0 && !m_isHovering) {
+                if (elapsed * 1000.0f >= static_cast<float>(m_durationMs)) {
+                    Hide();
+                    return true;
+                }
+            }
         } else if (m_state == 4) {
             m_state = 3;
             m_currentOpacity = 0.0f;
             m_currentSlideX = 0.0f;
             m_currentSlideY = 0.0f;
+            return false;
         }
-        return false;
+        return IsOpen();
     }
-
-    auto now = std::chrono::steady_clock::now();
-    float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_stateTime).count() / 1000.0f;
 
     if (m_state == 1) {
         float t = Clamp01(elapsed / 0.22f);
@@ -392,7 +457,7 @@ bool Toast::OnAnimationTick() {
                 return true;
             }
         }
-        return false;
+        return IsOpen();
     }
 
     if (m_state == 4) {
@@ -415,7 +480,16 @@ bool Toast::OnAnimationTick() {
 }
 
 bool Toast::HasSelfAnimation() const {
-    return UIElement::AreAnimationsEnabled() && (m_state == 1 || m_state == 4);
+    return IsOpen();
+}
+
+std::shared_ptr<Toast> Toast::Show(UIElement* root,
+    const std::string& title,
+    const std::string& message,
+    ToastType type,
+    ToastCorner corner,
+    int durationMs) {
+    return ToastCenter::Show(root, title, message, type, corner, durationMs);
 }
 
 std::shared_ptr<Toast> Toast::Show(UIElement* root,

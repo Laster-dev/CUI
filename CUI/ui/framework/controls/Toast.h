@@ -14,6 +14,13 @@ enum class ToastCorner {
     BottomRight
 };
 
+enum class ToastType {
+    Info,
+    Success,
+    Warning,
+    Error
+};
+
 class Toast : public UIElement {
 public:
     Toast();
@@ -24,6 +31,8 @@ public:
 
     void SetTitle(const std::string& title);
     void SetMessage(const std::string& message);
+    void SetType(ToastType type);
+    ToastType GetType() const { return m_type; }
     void SetCorner(ToastCorner corner);
     void SetDurationMs(int durationMs);
     void SetWidth(float width);
@@ -67,7 +76,14 @@ public:
     static std::shared_ptr<Toast> Show(UIElement* root,
         const std::string& title,
         const std::string& message,
+        ToastType type = ToastType::Info,
         ToastCorner corner = ToastCorner::BottomRight,
+        int durationMs = 2500);
+
+    static std::shared_ptr<Toast> Show(UIElement* root,
+        const std::string& title,
+        const std::string& message,
+        ToastCorner corner,
         int durationMs = 2500);
 
     void RenderContent(GraphicsContext& ctx, const Rect& bounds, float opacity, float slideX, float slideY);
@@ -80,9 +96,12 @@ private:
     static D2D1_COLOR_F ColorWithAlpha(const std::string& color, float alpha);
     static ToastCorner ParseCorner(const std::string& corner, ToastCorner fallback = ToastCorner::BottomRight);
     static const char* CornerToString(ToastCorner corner);
+    static ToastType ParseType(const std::string& typeStr, ToastType fallback = ToastType::Info);
+    static const char* TypeToString(ToastType type);
 
     std::string m_titleText = "\xe6\x8f\x90\xe7\xa4\xba";
     std::string m_messageText = "";
+    ToastType m_type = ToastType::Info;
     ToastCorner m_corner = ToastCorner::BottomRight;
     int m_durationMs = 2500;
     bool m_autoClose = true;

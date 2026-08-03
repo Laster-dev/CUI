@@ -24,7 +24,12 @@ public:
     std::shared_ptr<Toast> AddToast(const std::shared_ptr<Toast>& toast);
     std::shared_ptr<Toast> ShowToast(const std::string& title,
         const std::string& message,
+        ToastType type = ToastType::Info,
         ToastCorner corner = ToastCorner::BottomRight,
+        int durationMs = 2500);
+    std::shared_ptr<Toast> ShowToast(const std::string& title,
+        const std::string& message,
+        ToastCorner corner,
         int durationMs = 2500);
     std::shared_ptr<Toast> ShowFromTemplate(const UIElement* toastTemplate,
         const std::string& titleOverride = "",
@@ -36,7 +41,13 @@ public:
     static std::shared_ptr<Toast> Show(UIElement* root,
         const std::string& title,
         const std::string& message,
+        ToastType type = ToastType::Info,
         ToastCorner corner = ToastCorner::BottomRight,
+        int durationMs = 2500);
+    static std::shared_ptr<Toast> Show(UIElement* root,
+        const std::string& title,
+        const std::string& message,
+        ToastCorner corner,
         int durationMs = 2500);
 
 private:
