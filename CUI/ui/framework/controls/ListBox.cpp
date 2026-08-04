@@ -6,6 +6,7 @@
 #include <cmath>
 #include <algorithm>
 #include <sstream>
+#include <windows.h>
 
 namespace CUI {
 
@@ -45,6 +46,9 @@ void ListBox::SetVirtualCount(size_t count) {
     m_virtualCount = count;
     m_itemDatas.clear();
     ClearChildren();
+    ClearSelection();
+    m_caretIndex = -1;
+    m_anchorIndex = -1;
     ClampScroll();
 }
 
@@ -54,6 +58,9 @@ void ListBox::SetVirtualMode(size_t count, ListBoxDataSource* dataSource) {
     m_dataSource = dataSource;
     m_itemDatas.clear();
     ClearChildren();
+    ClearSelection();
+    m_caretIndex = -1;
+    m_anchorIndex = -1;
     ClampScroll();
 }
 
@@ -66,8 +73,11 @@ void ListBox::SetItems(const std::vector<std::string>& items) {
     for (const auto& s : items) {
         m_itemDatas.push_back({ s, nullptr });
     }
-    m_selectedIndex = -1;
+    ClearSelection();
+    m_caretIndex = -1;
+    m_anchorIndex = -1;
     m_scrollY = 0.0f;
+    m_targetScrollY = 0.0f;
 }
 
 void ListBox::ClearItems() {
@@ -76,8 +86,15 @@ void ListBox::ClearItems() {
     m_dataSource = nullptr;
     m_itemDatas.clear();
     ClearChildren();
-    m_selectedIndex = -1;
+    ClearSelection();
+    m_caretIndex = -1;
+    m_anchorIndex = -1;
     m_scrollY = 0.0f;
+    m_targetScrollY = 0.0f;
+}
+
+size_t ListBox::GetItemCount() const {
+    return m_virtualMode ? m_virtualCount : m_itemDatas.size();
 }
 
 std::string ListBox::GetItemAt(size_t index) const {
@@ -96,21 +113,106 @@ std::string ListBox::GetItemAt(size_t index) const {
     return "";
 }
 
+bool ListBox::IsItemSelected(int index) const {
+    if (index < 0 || static_cast<size_t>(index) >= GetItemCount()) return false;
+    return m_selectedIndices.find(index) != m_selectedIndices.end();
+}
+
 void ListBox::SetSelectedIndex(int index) {
-    size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
-    if (index >= -1 && index < static_cast<int>(count)) {
-        if (m_selectedIndex != index) {
-            m_selectedIndex = index;
-            if (m_selectedIndex >= 0) {
-                EnsureVisible(m_selectedIndex);
-                m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetItemAt(m_selectedIndex));
-            }
-        }
+    size_t count = GetItemCount();
+    if (index < -1 || index >= static_cast<int>(count)) return;
+
+    m_selectedIndices.clear();
+    if (index >= 0) {
+        m_selectedIndices.insert(index);
+        m_selectedIndex = index;
+        m_caretIndex = index;
+        m_anchorIndex = index;
+        EnsureVisible(index);
+    } else {
+        m_selectedIndex = -1;
+    }
+    m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
+    MarkRenderContentDirty();
+}
+
+void ListBox::SetCaretIndex(int index) {
+    size_t count = GetItemCount();
+    if (index >= 0 && index < static_cast<int>(count)) {
+        m_caretIndex = index;
+        EnsureVisible(index);
+        MarkRenderContentDirty();
     }
 }
 
+void ListBox::SetItemSelected(int index, bool selected) {
+    size_t count = GetItemCount();
+    if (index < 0 || index >= static_cast<int>(count)) return;
+
+    if (selected) {
+        if (m_selectionMode == ListBoxSelectionMode::Single) {
+            SetSelectedIndex(index);
+            return;
+        }
+        m_selectedIndices.insert(index);
+        m_selectedIndex = index;
+    } else {
+        m_selectedIndices.erase(index);
+        if (m_selectedIndex == index) {
+            m_selectedIndex = m_selectedIndices.empty() ? -1 : *m_selectedIndices.begin();
+        }
+    }
+    m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
+    MarkRenderContentDirty();
+}
+
+void ListBox::SelectAll() {
+    if (m_selectionMode == ListBoxSelectionMode::Single) return;
+    m_selectedIndices.clear();
+    size_t count = GetItemCount();
+    for (size_t i = 0; i < count; ++i) {
+        m_selectedIndices.insert(static_cast<int>(i));
+    }
+    if (count > 0) {
+        m_selectedIndex = 0;
+    }
+    m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
+    MarkRenderContentDirty();
+}
+
+void ListBox::ClearSelection() {
+    m_selectedIndices.clear();
+    m_selectedIndex = -1;
+    m_onSelectionChangedEvent.Invoke(this, -1, "");
+    MarkRenderContentDirty();
+}
+
+void ListBox::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
+    size_t count = GetItemCount();
+    if (count == 0) return;
+
+    fromIdx = std::clamp(fromIdx, 0, static_cast<int>(count) - 1);
+    toIdx = std::clamp(toIdx, 0, static_cast<int>(count) - 1);
+
+    if (!keepExisting) {
+        m_selectedIndices.clear();
+    }
+
+    int start = (std::min)(fromIdx, toIdx);
+    int end = (std::max)(fromIdx, toIdx);
+
+    for (int i = start; i <= end; ++i) {
+        m_selectedIndices.insert(i);
+    }
+    m_selectedIndex = toIdx;
+    m_caretIndex = toIdx;
+    EnsureVisible(toIdx);
+    m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
+    MarkRenderContentDirty();
+}
+
 std::string ListBox::GetSelectedItem() const {
-    if (m_selectedIndex >= 0) {
+    if (m_selectedIndex >= 0 && static_cast<size_t>(m_selectedIndex) < GetItemCount()) {
         return GetItemAt(m_selectedIndex);
     }
     return "";
@@ -122,7 +224,7 @@ UIElement* ListBox::HitTest(float x, float y) {
 
     if (m_bounds.Contains(x, y)) {
         int idx = GetItemIndexFromY(y);
-        size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+        size_t count = GetItemCount();
         if (idx >= 0 && idx < static_cast<int>(count)) {
             if (!m_virtualMode && m_itemDatas[idx].customElement) {
                 float itemH = GetItemHeight();
@@ -152,13 +254,14 @@ Size ListBox::Measure(Size availableSize) {
 
 void ListBox::ClampScroll() {
     float itemH = GetItemHeight();
-    size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+    size_t count = GetItemCount();
     float contentH = itemH * count;
-    float viewH = m_bounds.height - 4.0f;
+    float viewH = (std::max)(0.0f, m_bounds.height - 4.0f);
 
     m_maxScrollY = (std::max)(0.0f, contentH - viewH);
     m_targetScrollY = std::clamp(m_targetScrollY, 0.0f, m_maxScrollY);
-    if (!UIElement::AreAnimationsEnabled()) {
+    m_scrollY = std::clamp(m_scrollY, 0.0f, m_maxScrollY);
+    if (!UIElement::AreAnimationsEnabled() || m_maxScrollY == 0.0f) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
     }
@@ -169,7 +272,7 @@ int ListBox::GetItemIndexFromY(float y) const {
     float itemH = GetItemHeight();
     if (relativeY < 0.0f) return -1;
     int idx = static_cast<int>(relativeY / itemH);
-    size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+    size_t count = GetItemCount();
     if (idx >= 0 && idx < static_cast<int>(count)) {
         return idx;
     }
@@ -177,7 +280,7 @@ int ListBox::GetItemIndexFromY(float y) const {
 }
 
 void ListBox::EnsureVisible(int index) {
-    size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+    size_t count = GetItemCount();
     if (index < 0 || index >= static_cast<int>(count)) return;
 
     float itemH = GetItemHeight();
@@ -241,27 +344,35 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
     D2D1_COLOR_F selectedBg = ResolveThemeColor("theme.selectedBackgroundToken", "selectedBackground");
     D2D1_COLOR_F hoverBg = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
+    D2D1_COLOR_F focusBorderColor = ResolveThemeColor("theme.borderToken", "accentColor");
 
     float sbWidth = (m_maxScrollY > 0.0f) ? 8.0f : 0.0f;
     float itemW = m_bounds.width - 4.0f - sbWidth;
 
-    // Calculate virtualized index range
-    size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+    size_t count = GetItemCount();
     int startIdx = std::max(0, static_cast<int>(m_scrollY / itemH));
     int endIdx = std::min(static_cast<int>(count) - 1, static_cast<int>((m_scrollY + m_bounds.height) / itemH));
+
+    bool isFocused = m_isFocused;
 
     for (int i = startIdx; i <= endIdx; ++i) {
         float itemY = m_bounds.y + 2.0f + i * itemH - m_scrollY;
         Rect itemRect(m_bounds.x + 2.0f, itemY, itemW, itemH);
 
-        bool isSelected = (i == m_selectedIndex);
+        bool isSelected = IsItemSelected(i);
         bool isHovered = (i == m_hoveredIndex);
+        bool isCaret = (i == m_caretIndex);
 
         // Item background highlight
         if (isSelected) {
             ctx.FillRoundedRect(itemRect, 2.0f, selectedBg);
         } else if (isHovered && IsEnabled()) {
             ctx.FillRoundedRect(itemRect, 2.0f, hoverBg);
+        }
+
+        // Draw Caret outline when focused
+        if (isCaret && isFocused) {
+            ctx.DrawRoundedRect(itemRect.Inflate(-1.0f), 2.0f, focusBorderColor, 1.0f);
         }
 
         // Draw custom element OR standard text
@@ -285,7 +396,6 @@ void ListBox::OnRender(GraphicsContext& ctx) {
         float trackY = m_bounds.y + 2.0f;
         float trackH = m_bounds.height - 4.0f;
 
-        size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
         float contentH = itemH * count;
         float thumbH = std::max(20.0f, trackH * (trackH / contentH));
         float thumbY = trackY + (m_scrollY / m_maxScrollY) * (trackH - thumbH);
@@ -314,7 +424,29 @@ void ListBox::OnMouseDown(Point pt) {
     }
 
     int clickedIdx = GetItemIndexFromY(pt.y);
-    if (clickedIdx >= 0) {
+    if (clickedIdx < 0 || static_cast<size_t>(clickedIdx) >= GetItemCount()) return;
+
+    bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+
+    if (m_selectionMode == ListBoxSelectionMode::Extended) {
+        if (shiftDown) {
+            int anchor = (m_anchorIndex >= 0) ? m_anchorIndex : clickedIdx;
+            SelectRange(anchor, clickedIdx, ctrlDown);
+            m_caretIndex = clickedIdx;
+        } else if (ctrlDown) {
+            bool currentSelected = IsItemSelected(clickedIdx);
+            SetItemSelected(clickedIdx, !currentSelected);
+            m_caretIndex = clickedIdx;
+            m_anchorIndex = clickedIdx;
+        } else {
+            SetSelectedIndex(clickedIdx);
+        }
+    } else if (m_selectionMode == ListBoxSelectionMode::Multiple) {
+        bool currentSelected = IsItemSelected(clickedIdx);
+        SetItemSelected(clickedIdx, !currentSelected);
+        m_caretIndex = clickedIdx;
+    } else {
         SetSelectedIndex(clickedIdx);
     }
 }
@@ -323,8 +455,8 @@ void ListBox::OnMouseDblClick(Point pt) {
     Control::OnMouseDblClick(pt);
 
     int clickedIdx = GetItemIndexFromY(pt.y);
-    if (clickedIdx >= 0 && clickedIdx < static_cast<int>(m_itemDatas.size())) {
-        m_onItemDoubleClickedEvent.Invoke(this, clickedIdx, m_itemDatas[clickedIdx].text);
+    if (clickedIdx >= 0 && static_cast<size_t>(clickedIdx) < GetItemCount()) {
+        m_onItemDoubleClickedEvent.Invoke(this, clickedIdx, GetItemAt(clickedIdx));
     }
 }
 
@@ -335,14 +467,21 @@ void ListBox::OnMouseMove(Point pt) {
         float deltaY = pt.y - m_dragStartY;
         float trackH = m_bounds.height - 4.0f;
         float itemH = GetItemHeight();
-        size_t count = m_virtualMode ? m_virtualCount : m_itemDatas.size();
+        size_t count = GetItemCount();
         float contentH = itemH * count;
         float thumbH = std::max(20.0f, trackH * (trackH / contentH));
         float scrollableTrackH = trackH - thumbH;
 
-        if (scrollableTrackH > 0.0f) {
-            m_scrollY = m_dragStartScrollY + (deltaY / scrollableTrackH) * m_maxScrollY;
+        if (scrollableTrackH > 0.0f && m_maxScrollY > 0.0f) {
+            m_targetScrollY = m_dragStartScrollY + (deltaY / scrollableTrackH) * m_maxScrollY;
             ClampScroll();
+            m_scrollY = m_targetScrollY;
+            m_scrollYAnim.Reset(m_scrollY);
+            MarkRenderContentDirty();
+        } else {
+            m_scrollY = 0.0f;
+            m_targetScrollY = 0.0f;
+            m_scrollYAnim.Reset(0.0f);
         }
         return;
     }
@@ -356,6 +495,13 @@ void ListBox::OnMouseUp(Point pt) {
 }
 
 void ListBox::OnMouseWheel(float delta) {
+    if (m_maxScrollY <= 0.0f) {
+        m_scrollY = 0.0f;
+        m_targetScrollY = 0.0f;
+        m_scrollYAnim.Reset(0.0f);
+        MarkRenderContentDirty();
+        return;
+    }
     float scrollStep = GetItemHeight() * 2.5f;
     m_targetScrollY -= delta * scrollStep;
     ClampScroll();
@@ -363,8 +509,8 @@ void ListBox::OnMouseWheel(float delta) {
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
-        MarkRenderContentDirty();
     }
+    MarkRenderContentDirty();
 }
 
 bool ListBox::OnAnimationTick() {
@@ -390,34 +536,100 @@ bool ListBox::HasSelfAnimation() const {
 }
 
 void ListBox::OnKeyDown(int vkCode) {
-    if (m_itemDatas.empty()) return;
+    size_t count = GetItemCount();
+    if (count == 0) return;
 
-    int newIdx = m_selectedIndex;
+    bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+
+    int newCaret = (m_caretIndex >= 0) ? m_caretIndex : 0;
     int visibleCount = static_cast<int>((m_bounds.height - 4.0f) / GetItemHeight());
 
     switch (vkCode) {
     case VK_UP:
-        newIdx = std::max(0, m_selectedIndex - 1);
+        newCaret = std::max(0, newCaret - 1);
         break;
     case VK_DOWN:
-        newIdx = std::min(static_cast<int>(m_itemDatas.size()) - 1, (m_selectedIndex == -1) ? 0 : m_selectedIndex + 1);
+        newCaret = std::min(static_cast<int>(count) - 1, newCaret + 1);
         break;
     case VK_PRIOR: // Page Up
-        newIdx = std::max(0, m_selectedIndex - visibleCount);
+        newCaret = std::max(0, newCaret - visibleCount);
         break;
     case VK_NEXT: // Page Down
-        newIdx = std::min(static_cast<int>(m_itemDatas.size()) - 1, m_selectedIndex + visibleCount);
+        newCaret = std::min(static_cast<int>(count) - 1, newCaret + visibleCount);
         break;
     case VK_HOME:
-        newIdx = 0;
+        newCaret = 0;
         break;
     case VK_END:
-        newIdx = static_cast<int>(m_itemDatas.size()) - 1;
+        newCaret = static_cast<int>(count) - 1;
+        break;
+    case VK_SPACE:
+        if (m_caretIndex >= 0) {
+            if (m_selectionMode == ListBoxSelectionMode::Extended || m_selectionMode == ListBoxSelectionMode::Multiple) {
+                SetItemSelected(m_caretIndex, !IsItemSelected(m_caretIndex));
+            } else {
+                SetSelectedIndex(m_caretIndex);
+            }
+        }
+        return;
+    case 'A':
+        if (ctrlDown && m_selectionMode != ListBoxSelectionMode::Single) {
+            SelectAll();
+            return;
+        }
         break;
     }
 
-    if (newIdx != m_selectedIndex) {
-        SetSelectedIndex(newIdx);
+    if (newCaret != m_caretIndex) {
+        m_caretIndex = newCaret;
+        EnsureVisible(m_caretIndex);
+
+        if (m_selectionMode == ListBoxSelectionMode::Extended) {
+            if (shiftDown) {
+                int anchor = (m_anchorIndex >= 0) ? m_anchorIndex : 0;
+                SelectRange(anchor, m_caretIndex, ctrlDown);
+            } else if (!ctrlDown) {
+                SetSelectedIndex(m_caretIndex);
+            }
+        } else if (m_selectionMode == ListBoxSelectionMode::Single) {
+            SetSelectedIndex(m_caretIndex);
+        }
+        MarkRenderContentDirty();
+    }
+}
+
+void ListBox::OnCharInput(wchar_t ch) {
+    if (ch >= L' ' && ch <= L'~') {
+        PerformTypeSearch(ch);
+    }
+}
+
+void ListBox::PerformTypeSearch(wchar_t ch) {
+    using clock = std::chrono::steady_clock;
+    auto now = clock::now();
+    auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastSearchTime).count();
+    m_lastSearchTime = now;
+
+    if (elapsedMs > 1000) {
+        m_searchBuffer.clear();
+    }
+    m_searchBuffer += static_cast<char>(tolower(static_cast<unsigned char>(ch)));
+
+    size_t count = GetItemCount();
+    if (count == 0) return;
+
+    int startIdx = (m_caretIndex >= 0) ? (m_caretIndex + 1) % static_cast<int>(count) : 0;
+    for (size_t i = 0; i < count; ++i) {
+        int idx = static_cast<int>((startIdx + i) % count);
+        std::string itemText = GetItemAt(idx);
+        std::string lowerText = itemText;
+        std::transform(lowerText.begin(), lowerText.end(), lowerText.begin(), ::tolower);
+
+        if (lowerText.rfind(m_searchBuffer, 0) == 0) {
+            SetSelectedIndex(idx);
+            break;
+        }
     }
 }
 

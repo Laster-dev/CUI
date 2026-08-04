@@ -6,6 +6,7 @@
 #include <cmath>
 #include <algorithm>
 #include <sstream>
+#include <windows.h>
 
 namespace CUI {
 
@@ -85,6 +86,7 @@ void ListView::SetRows(const std::vector<std::vector<std::string>>& rowsData) {
     }
     m_selectedIndices.clear();
     m_anchorIndex = -1;
+    m_caretIndex = -1;
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
@@ -98,6 +100,7 @@ void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsDat
     }
     m_selectedIndices.clear();
     m_anchorIndex = -1;
+    m_caretIndex = -1;
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
@@ -111,6 +114,7 @@ void ListView::ClearRows() {
     m_dataSource = nullptr;
     m_selectedIndices.clear();
     m_anchorIndex = -1;
+    m_caretIndex = -1;
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
@@ -129,6 +133,7 @@ void ListView::SetVirtualMode(int rowCount, ListViewDataSource* dataSource) {
     m_dataSource = dataSource;
     m_selectedIndices.clear();
     m_anchorIndex = -1;
+    m_caretIndex = -1;
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
@@ -161,33 +166,92 @@ std::shared_ptr<UIElement> ListView::GetCellElement(int row, int col) const {
 }
 
 void ListView::SelectAll() {
+    if (m_selectionMode == ListViewSelectionMode::Single) return;
     m_selectedIndices.clear();
     int rowCount = static_cast<int>(GetRowCount());
     for (int i = 0; i < rowCount; ++i) {
         m_selectedIndices.insert(i);
     }
     m_onSelectionChangedEvent.Invoke(this, -1);
+    MarkRenderContentDirty();
 }
 
 void ListView::ClearSelection() {
     m_selectedIndices.clear();
     m_anchorIndex = -1;
+    m_caretIndex = -1;
     m_onSelectionChangedEvent.Invoke(this, -1);
+    MarkRenderContentDirty();
 }
 
 void ListView::SetRowSelected(int rowIndex, bool selected) {
     if (rowIndex >= 0 && rowIndex < static_cast<int>(GetRowCount())) {
         if (selected) {
+            if (m_selectionMode == ListViewSelectionMode::Single) {
+                m_selectedIndices.clear();
+            }
             m_selectedIndices.insert(rowIndex);
+            m_caretIndex = rowIndex;
+            m_anchorIndex = rowIndex;
         } else {
             m_selectedIndices.erase(rowIndex);
         }
         m_onSelectionChangedEvent.Invoke(this, rowIndex);
+        MarkRenderContentDirty();
     }
 }
 
 bool ListView::IsRowSelected(int rowIndex) const {
     return m_selectedIndices.find(rowIndex) != m_selectedIndices.end();
+}
+
+void ListView::SetCaretIndex(int index) {
+    int rowCount = static_cast<int>(GetRowCount());
+    if (index >= 0 && index < rowCount) {
+        m_caretIndex = index;
+        EnsureVisible(index);
+        MarkRenderContentDirty();
+    }
+}
+
+void ListView::EnsureVisible(int rowIndex) {
+    int rowCount = static_cast<int>(GetRowCount());
+    if (rowIndex < 0 || rowIndex >= rowCount) return;
+
+    float rowTop = rowIndex * m_rowHeight;
+    float rowBottom = rowTop + m_rowHeight;
+    float viewH = m_bounds.height - m_headerHeight - 4.0f;
+
+    if (rowTop < m_targetScrollY) {
+        m_targetScrollY = rowTop;
+    } else if (rowBottom > m_targetScrollY + viewH) {
+        m_targetScrollY = rowBottom - viewH;
+    }
+    ClampScroll();
+    m_scrollYAnim.SetTarget(m_targetScrollY);
+}
+
+void ListView::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
+    int rowCount = static_cast<int>(GetRowCount());
+    if (rowCount == 0) return;
+
+    fromIdx = std::clamp(fromIdx, 0, rowCount - 1);
+    toIdx = std::clamp(toIdx, 0, rowCount - 1);
+
+    if (!keepExisting) {
+        m_selectedIndices.clear();
+    }
+
+    int start = (std::min)(fromIdx, toIdx);
+    int end = (std::max)(fromIdx, toIdx);
+
+    for (int r = start; r <= end; ++r) {
+        m_selectedIndices.insert(r);
+    }
+    m_caretIndex = toIdx;
+    EnsureVisible(toIdx);
+    m_onSelectionChangedEvent.Invoke(this, toIdx);
+    MarkRenderContentDirty();
 }
 
 float ListView::GetTotalColumnsWidth() const {
@@ -207,16 +271,17 @@ Size ListView::Measure(Size availableSize) {
 
 void ListView::ClampScroll() {
     float totalContentH = m_rowHeight * static_cast<float>(GetRowCount());
-    float viewH = m_bounds.height - m_headerHeight - 4.0f;
+    float viewH = (std::max)(0.0f, m_bounds.height - m_headerHeight - 4.0f);
     m_maxScrollY = (std::max)(0.0f, totalContentH - viewH);
     m_targetScrollY = std::clamp(m_targetScrollY, 0.0f, m_maxScrollY);
-    if (!UIElement::AreAnimationsEnabled()) {
+    m_scrollY = std::clamp(m_scrollY, 0.0f, m_maxScrollY);
+    if (!UIElement::AreAnimationsEnabled() || m_maxScrollY == 0.0f) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
     }
 
     float totalColsW = GetTotalColumnsWidth();
-    float viewW = m_bounds.width - 4.0f;
+    float viewW = (std::max)(0.0f, m_bounds.width - 4.0f);
     m_maxScrollX = (std::max)(0.0f, totalColsW - viewW);
     m_scrollX = std::clamp(m_scrollX, 0.0f, m_maxScrollX);
 }
@@ -235,40 +300,51 @@ int ListView::GetRowIndexFromY(float y) const {
 void ListView::UpdateRubberBandSelection() {
     if (!m_isRubberBandSelecting) return;
 
-    // m_rubberBandStart is in content coords; m_rubberBandCurrent is screen coords
-    // Convert current mouse to content coordinates
     float currentContentX = m_rubberBandCurrent.x - m_bounds.x + m_scrollX;
     float currentContentY = m_rubberBandCurrent.y - m_bounds.y - m_headerHeight + m_scrollY;
 
-    // Selection rectangle in content coordinates
     float minContentX = std::min(m_rubberBandStart.x, currentContentX);
     float maxContentX = std::max(m_rubberBandStart.x, currentContentX);
     float minContentY = std::min(m_rubberBandStart.y, currentContentY);
     float maxContentY = std::max(m_rubberBandStart.y, currentContentY);
 
-    // Determine row index range from content Y coords
-    int startRow = (minContentY >= 0.0f) ? static_cast<int>(minContentY / m_rowHeight) : 0;
-    int endRow = (maxContentY >= 0.0f) ? static_cast<int>(maxContentY / m_rowHeight) : 0;
-
     int rowCount = static_cast<int>(GetRowCount());
-    startRow = std::clamp(startRow, 0, rowCount - 1);
-    endRow = std::clamp(endRow, 0, rowCount - 1);
+    if (rowCount == 0) return;
+
+    int startRow = std::max(0, static_cast<int>(std::floor(minContentY / m_rowHeight)));
+    int endRow = std::min(rowCount - 1, static_cast<int>(std::ceil(maxContentY / m_rowHeight)) - 1);
+
+    if (maxContentY <= minContentY || startRow > endRow || maxContentY <= 0.0f || minContentY >= (rowCount * m_rowHeight)) {
+        startRow = -1;
+        endRow = -1;
+    }
 
     bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-    if (ctrlDown) {
-        m_selectedIndices = m_initialSelectedBeforeDrag;
-    } else {
-        m_selectedIndices.clear();
-    }
+    std::unordered_set<int> newSelection;
 
-    int r1 = std::min(startRow, endRow);
-    int r2 = std::max(startRow, endRow);
-    for (int r = r1; r <= r2; ++r) {
-        if (r >= 0 && r < rowCount) {
-            m_selectedIndices.insert(r);
+    if (ctrlDown) {
+        newSelection = m_initialSelectedBeforeDrag;
+        if (startRow != -1 && endRow != -1) {
+            for (int r = startRow; r <= endRow; ++r) {
+                if (m_initialSelectedBeforeDrag.count(r)) {
+                    newSelection.erase(r);
+                } else {
+                    newSelection.insert(r);
+                }
+            }
+        }
+    } else {
+        if (startRow != -1 && endRow != -1) {
+            for (int r = startRow; r <= endRow; ++r) {
+                newSelection.insert(r);
+            }
         }
     }
-    m_onSelectionChangedEvent.Invoke(this, -1);
+
+    if (m_selectedIndices != newSelection) {
+        m_selectedIndices = newSelection;
+        m_onSelectionChangedEvent.Invoke(this, -1);
+    }
 }
 
 void ListView::Render(GraphicsContext& ctx) {
@@ -328,6 +404,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F textClr = ResolveThemeColor("theme.colorToken", "textPrimary");
     D2D1_COLOR_F selectedBg = ResolveThemeColor("theme.selectedBackgroundToken", "selectedBackground");
     D2D1_COLOR_F hoverBg = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
+    D2D1_COLOR_F focusBorderColor = ResolveThemeColor("theme.borderToken", "accentColor");
     std::string font = GetProperty("fontFamily").AsString("Segoe UI");
     float fontH = GetProperty("fontSize").AsFloat(12.0f);
 
@@ -367,6 +444,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
     int endRow = std::min(rowCount - 1, static_cast<int>((m_scrollY + contentArea.height) / m_rowHeight));
 
     float totalColsW = GetTotalColumnsWidth();
+    bool isFocused = m_isFocused;
 
     for (int r = startRow; r <= endRow; ++r) {
         float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - m_scrollY;
@@ -374,12 +452,18 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
         bool isSelected = IsRowSelected(r);
         bool isHovered = (r == m_hoveredRowIndex);
+        bool isCaret = (r == m_caretIndex);
 
         // Row background state
         if (isSelected) {
             ctx.FillRect(rowRect, selectedBg);
         } else if (isHovered && IsEnabled()) {
             ctx.FillRect(rowRect, hoverBg);
+        }
+
+        // Focus caret outline
+        if (isCaret && isFocused) {
+            ctx.DrawRect(rowRect.Inflate(-1.0f), focusBorderColor, 1.0f);
         }
 
         // Draw Row Grid Line
@@ -408,25 +492,20 @@ void ListView::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    // 3. Draw Rubber-Band Selection Box (拉框选择虚线框)
+    // 3. Draw Rubber-Band Selection Box
     if (m_isRubberBandSelecting) {
-        // Current mouse in content coords
         float curContentX = m_rubberBandCurrent.x - m_bounds.x + m_scrollX;
         float curContentY = m_rubberBandCurrent.y - m_bounds.y - m_headerHeight + m_scrollY;
 
-        // Visible content Y range
         float visTop = m_scrollY;
         float visBottom = m_scrollY + m_bounds.height - m_headerHeight;
 
-        // Clamp both start & current to visible content range
         float drawTop = std::clamp(std::min(m_rubberBandStart.y, curContentY), visTop, visBottom);
         float drawBottom = std::clamp(std::max(m_rubberBandStart.y, curContentY), visTop, visBottom);
 
-        // Convert to screen Y
         float screenTop = m_bounds.y + m_headerHeight + drawTop - m_scrollY;
         float screenBottom = m_bounds.y + m_headerHeight + drawBottom - m_scrollY;
 
-        // X: clamp to content width
         float drawLeft = std::clamp(std::min(m_rubberBandStart.x, curContentX), 0.0f, GetTotalColumnsWidth());
         float drawRight = std::clamp(std::max(m_rubberBandStart.x, curContentX), 0.0f, GetTotalColumnsWidth());
         float screenLeft = m_bounds.x + drawLeft - m_scrollX;
@@ -434,9 +513,11 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
         if (screenBottom > screenTop && screenRight > screenLeft) {
             Rect rubberRect(screenLeft, screenTop, screenRight - screenLeft, screenBottom - screenTop);
-            D2D1_COLOR_F accent = ThemeManager::Instance().GetColor("accentColor");
-            ctx.FillRect(rubberRect, D2D1::ColorF(accent.r, accent.g, accent.b, 0.25f));
-            ctx.DrawRect(rubberRect, accent, 1.0f);
+            bool dark = ThemeManager::Instance().GetThemeMode() == ThemeMode::Dark;
+            D2D1_COLOR_F fillClr = dark ? D2D1::ColorF(0.0f, 0.60f, 1.0f, 0.15f) : D2D1::ColorF(0.0f, 0.45f, 0.90f, 0.12f);
+            D2D1_COLOR_F strokeClr = dark ? D2D1::ColorF(0.35f, 0.82f, 1.0f, 0.95f) : D2D1::ColorF(0.0f, 0.45f, 0.90f, 0.95f);
+            ctx.FillRect(rubberRect, fillClr);
+            ctx.DrawRect(rubberRect, strokeClr, 1.5f);
         }
     }
 
@@ -470,10 +551,8 @@ void ListView::OnRender(GraphicsContext& ctx) {
             dropX = currX;
         }
 
-        // Draw vertical insertion line indicator across full height
         ctx.DrawLine(Point(dropX, m_bounds.y), Point(dropX, m_bounds.y + m_bounds.height), accent, 3.0f);
 
-        // Draw floating drag card under cursor
         float dragColW = m_columns[m_reorderingColumnIndex].width;
         Rect dragCard(m_columnDragCurrentX - dragColW * 0.5f, m_bounds.y + 2.0f, dragColW, m_headerHeight - 4.0f);
         ctx.FillRoundedRect(dragCard, 4.0f, D2D1::ColorF(accent.r, accent.g, accent.b, 0.45f));
@@ -492,7 +571,6 @@ void ListView::OnMouseDown(Point pt) {
     m_isMouseDown = true;
     m_mouseDownPoint = pt;
     m_initialSelectedBeforeDrag = m_selectedIndices;
-    m_pendingRowClick = -1;
     m_isReorderingColumn = false;
     m_reorderingColumnIndex = -1;
 
@@ -529,9 +607,49 @@ void ListView::OnMouseDown(Point pt) {
         return;
     }
 
-    // Record pending row click
+    // 3. ReactOS LISTVIEW_LButtonDown Logic
     int clickedRow = GetRowIndexFromY(pt.y);
-    m_pendingRowClick = clickedRow;
+    bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+
+    if (clickedRow >= 0 && clickedRow < static_cast<int>(GetRowCount())) {
+        m_pendingRowClick = clickedRow;
+        if (m_selectionMode == ListViewSelectionMode::Single || (!ctrlDown && !shiftDown)) {
+            m_selectedIndices.clear();
+            m_selectedIndices.insert(clickedRow);
+            m_anchorIndex = clickedRow;
+            m_caretIndex = clickedRow;
+        } else if (ctrlDown) {
+            if (IsRowSelected(clickedRow)) {
+                m_selectedIndices.erase(clickedRow);
+            } else {
+                m_selectedIndices.insert(clickedRow);
+            }
+            m_anchorIndex = clickedRow;
+            m_caretIndex = clickedRow;
+        } else if (shiftDown) {
+            int anchor = (m_anchorIndex >= 0) ? m_anchorIndex : clickedRow;
+            SelectRange(anchor, clickedRow, ctrlDown);
+        }
+        m_onSelectionChangedEvent.Invoke(this, clickedRow);
+        MarkRenderContentDirty();
+    } else {
+        // Click on Empty Space / Whitespace -> Start ReactOS Marquee Select
+        m_pendingRowClick = -1;
+        if (!ctrlDown) {
+            m_selectedIndices.clear();
+        }
+        m_caretIndex = -1;
+        m_initialSelectedBeforeDrag = m_selectedIndices;
+
+        m_isRubberBandSelecting = true;
+        m_rubberBandStart.x = pt.x - m_bounds.x + m_scrollX;
+        m_rubberBandStart.y = pt.y - m_bounds.y - m_headerHeight + m_scrollY;
+        m_rubberBandCurrent = pt;
+        m_rubberBandScrollOffsetY = m_scrollY;
+        m_lastAutoScrollTime = std::chrono::steady_clock::now();
+        MarkRenderContentDirty();
+    }
 }
 
 void ListView::OnMouseMove(Point pt) {
@@ -578,7 +696,7 @@ void ListView::OnMouseMove(Point pt) {
         }
     }
 
-    // 4. Check if mouse drag exceeds threshold to start Rubber-Band Marquee Selection
+    // 4. Start Rubber-Band Drag Selection when dragging mouse
     if (m_isMouseDown && !m_isResizingColumn && !m_isReorderingColumn && !m_isDraggingScrollbar && !m_isRubberBandSelecting) {
         float dx = pt.x - m_mouseDownPoint.x;
         float dy = pt.y - m_mouseDownPoint.y;
@@ -587,10 +705,11 @@ void ListView::OnMouseMove(Point pt) {
             m_rubberBandStart.x = m_mouseDownPoint.x - m_bounds.x + m_scrollX;
             m_rubberBandStart.y = m_mouseDownPoint.y - m_bounds.y - m_headerHeight + m_scrollY;
             m_rubberBandScrollOffsetY = m_scrollY;
+            m_lastAutoScrollTime = std::chrono::steady_clock::now();
         }
     }
 
-    // 5. Rubber-Band Drag Selection
+    // 5. Rubber-Band Drag Selection Update (ReactOS LISTVIEW_MouseMove)
     if (m_isRubberBandSelecting) {
         m_rubberBandCurrent = pt;
         m_autoScrollLastMouseX = pt.x;
@@ -604,7 +723,7 @@ void ListView::OnMouseMove(Point pt) {
         return;
     }
 
-    // 6. Hover state on Column Splitter lines
+    // 5. Hover state on Column Splitter lines
     m_hoveredColumnSplitter = -1;
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
         float currX = m_bounds.x - m_scrollX;
@@ -663,41 +782,6 @@ void ListView::OnMouseUp(Point pt) {
         }
     }
 
-    int rowCount = static_cast<int>(GetRowCount());
-
-    // If mouse was clicked without dragging, perform normal row selection!
-    if (!m_isRubberBandSelecting && !m_isResizingColumn && !m_isReorderingColumn && m_pendingRowClick != -1) {
-        int clickedRow = m_pendingRowClick;
-        bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-        bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-
-        if (m_selectionMode == ListViewSelectionMode::Single || (!ctrlDown && !shiftDown)) {
-            m_selectedIndices.clear();
-            m_selectedIndices.insert(clickedRow);
-            m_anchorIndex = clickedRow;
-        } else if (ctrlDown) {
-            if (IsRowSelected(clickedRow)) {
-                m_selectedIndices.erase(clickedRow);
-            } else {
-                m_selectedIndices.insert(clickedRow);
-            }
-            m_anchorIndex = clickedRow;
-        } else if (shiftDown && m_anchorIndex != -1) {
-            m_selectedIndices.clear();
-            int r1 = std::min(m_anchorIndex, clickedRow);
-            int r2 = std::max(m_anchorIndex, clickedRow);
-            for (int r = r1; r <= r2; ++r) {
-                m_selectedIndices.insert(r);
-            }
-        }
-        m_onSelectionChangedEvent.Invoke(this, clickedRow);
-    } else if (!m_isRubberBandSelecting && !m_isResizingColumn && !m_isReorderingColumn && m_pendingRowClick == -1) {
-        // Clicked empty area without dragging -> clear selection
-        m_selectedIndices.clear();
-        m_anchorIndex = -1;
-        m_onSelectionChangedEvent.Invoke(this, -1);
-    }
-
     m_isMouseDown = false;
     m_isResizingColumn = false;
     m_isReorderingColumn = false;
@@ -705,6 +789,7 @@ void ListView::OnMouseUp(Point pt) {
     m_isRubberBandSelecting = false;
     m_isDraggingScrollbar = false;
     m_pendingRowClick = -1;
+    MarkRenderContentDirty();
 }
 
 void ListView::OnMouseWheel(float delta) {
@@ -727,6 +812,16 @@ void ListView::OnMouseWheel(float delta) {
 }
 
 bool ListView::ApplyAutoScroll() {
+    using clock = std::chrono::steady_clock;
+    auto now = clock::now();
+    if (m_lastAutoScrollTime.time_since_epoch().count() == 0) {
+        m_lastAutoScrollTime = now;
+        return false;
+    }
+    float dt = std::chrono::duration<float>(now - m_lastAutoScrollTime).count();
+    dt = std::clamp(dt, 0.0001f, 0.05f);
+    m_lastAutoScrollTime = now;
+
     float mouseX = m_autoScrollLastMouseX;
     float mouseY = m_autoScrollLastMouseY;
     bool scrolled = false;
@@ -734,33 +829,35 @@ bool ListView::ApplyAutoScroll() {
     float contentTop = m_bounds.y + m_headerHeight;
     float contentBottom = m_bounds.y + m_bounds.height;
 
-    // Auto-scroll Y ONLY when mouse is dragged outside top or bottom edges!
     if (mouseY < contentTop) {
         float dist = contentTop - mouseY;
-        float speed = std::min(120.0f, 4.0f + std::pow(dist / 4.0f, 1.8f));
-        m_targetScrollY = (std::max)(0.0f, m_targetScrollY - speed);
+        float speedPerSec = (std::min)(3500.0f, 250.0f + std::pow(dist / 3.0f, 1.6f) * 80.0f);
+        float deltaY = speedPerSec * dt;
+        m_targetScrollY = (std::max)(0.0f, m_targetScrollY - deltaY);
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
         scrolled = true;
     } else if (mouseY > contentBottom) {
         float dist = mouseY - contentBottom;
-        float speed = std::min(120.0f, 4.0f + std::pow(dist / 4.0f, 1.8f));
-        m_targetScrollY = (std::min)(m_maxScrollY, m_targetScrollY + speed);
+        float speedPerSec = (std::min)(3500.0f, 250.0f + std::pow(dist / 3.0f, 1.6f) * 80.0f);
+        float deltaY = speedPerSec * dt;
+        m_targetScrollY = (std::min)(m_maxScrollY, m_targetScrollY + deltaY);
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
         scrolled = true;
     }
 
-    // Auto-scroll X ONLY when mouse is dragged outside left or right edges!
     if (mouseX < m_bounds.x) {
         float dist = m_bounds.x - mouseX;
-        float speed = std::min(120.0f, 4.0f + std::pow(dist / 4.0f, 1.8f));
-        m_scrollX = (std::max)(0.0f, m_scrollX - speed);
+        float speedPerSec = (std::min)(3500.0f, 250.0f + std::pow(dist / 3.0f, 1.6f) * 80.0f);
+        float deltaX = speedPerSec * dt;
+        m_scrollX = (std::max)(0.0f, m_scrollX - deltaX);
         scrolled = true;
     } else if (mouseX > m_bounds.x + m_bounds.width) {
         float dist = mouseX - (m_bounds.x + m_bounds.width);
-        float speed = std::min(120.0f, 4.0f + std::pow(dist / 4.0f, 1.8f));
-        m_scrollX = (std::min)(m_maxScrollX, m_scrollX + speed);
+        float speedPerSec = (std::min)(3500.0f, 250.0f + std::pow(dist / 3.0f, 1.6f) * 80.0f);
+        float deltaX = speedPerSec * dt;
+        m_scrollX = (std::min)(m_maxScrollX, m_scrollX + deltaX);
         scrolled = true;
     }
 
@@ -778,6 +875,7 @@ void ListView::OnAutoScrollTick() {
 
 void ListView::OnKeyDown(int vkCode) {
     bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
 
     if (ctrlDown && vkCode == 'A') {
         SelectAll();
@@ -787,36 +885,60 @@ void ListView::OnKeyDown(int vkCode) {
     int rowCount = static_cast<int>(GetRowCount());
     if (rowCount == 0) return;
 
-    int activeRow = (m_anchorIndex != -1) ? m_anchorIndex : 0;
-    int newRow = activeRow;
+    int newCaret = (m_caretIndex >= 0) ? m_caretIndex : 0;
     int visibleCount = static_cast<int>((m_bounds.height - m_headerHeight - 4.0f) / m_rowHeight);
 
     switch (vkCode) {
     case VK_UP:
-        newRow = std::max(0, activeRow - 1);
+        newCaret = std::max(0, newCaret - 1);
         break;
     case VK_DOWN:
-        newRow = std::min(rowCount - 1, activeRow + 1);
+        newCaret = std::min(rowCount - 1, newCaret + 1);
         break;
     case VK_PRIOR: // Page Up
-        newRow = std::max(0, activeRow - visibleCount);
+        newCaret = std::max(0, newCaret - visibleCount);
         break;
     case VK_NEXT: // Page Down
-        newRow = std::min(rowCount - 1, activeRow + visibleCount);
+        newCaret = std::min(rowCount - 1, newCaret + visibleCount);
         break;
     case VK_HOME:
-        newRow = 0;
+        newCaret = 0;
         break;
     case VK_END:
-        newRow = rowCount - 1;
+        newCaret = rowCount - 1;
         break;
+    case VK_SPACE:
+        if (m_caretIndex >= 0) {
+            if (m_selectionMode == ListViewSelectionMode::Extended || m_selectionMode == ListViewSelectionMode::Multiple) {
+                SetRowSelected(m_caretIndex, !IsRowSelected(m_caretIndex));
+            } else {
+                SetRowSelected(m_caretIndex, true);
+            }
+        }
+        return;
     }
 
-    if (newRow != activeRow) {
-        m_anchorIndex = newRow;
-        m_selectedIndices.clear();
-        m_selectedIndices.insert(newRow);
-        m_onSelectionChangedEvent.Invoke(this, newRow);
+    if (newCaret != m_caretIndex) {
+        m_caretIndex = newCaret;
+        EnsureVisible(m_caretIndex);
+
+        if (m_selectionMode == ListViewSelectionMode::Extended) {
+            if (shiftDown) {
+                int anchor = (m_anchorIndex >= 0) ? m_anchorIndex : 0;
+                SelectRange(anchor, m_caretIndex, ctrlDown);
+            } else if (!ctrlDown) {
+                m_selectedIndices.clear();
+                m_selectedIndices.insert(m_caretIndex);
+                m_anchorIndex = m_caretIndex;
+                m_onSelectionChangedEvent.Invoke(this, m_caretIndex);
+            }
+        } else if (m_selectionMode == ListViewSelectionMode::Single) {
+            m_selectedIndices.clear();
+            m_selectedIndices.insert(m_caretIndex);
+            m_anchorIndex = m_caretIndex;
+            m_onSelectionChangedEvent.Invoke(this, m_caretIndex);
+        }
+        MarkRenderContentDirty();
     }
 }
 

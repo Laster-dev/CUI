@@ -29,15 +29,21 @@ public:
     virtual void Arrange(Rect finalRect) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual void OnKeyDown(int vkCode) override;
+
+    Event<CollapsePanel*, bool>& OnExpandedChanged() { return m_onExpandedChangedEvent; }
 
 private:
     void UpdateContentVisibility();
+    void InvalidateParentLayout();
 
     std::string m_headerText = "折叠面板";
     bool m_isExpanded = true;
     std::shared_ptr<Button> m_headerButton;
     std::shared_ptr<StackPanel> m_contentHost;
     std::shared_ptr<UIElement> m_content;
+
+    Event<CollapsePanel*, bool> m_onExpandedChangedEvent;
 };
 
 } // namespace CUI

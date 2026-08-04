@@ -25,6 +25,7 @@ struct ThemeTokens {
     D2D1_COLOR_F inputBorder;
     D2D1_COLOR_F hoverBackground;
     D2D1_COLOR_F pressedBackground;
+    D2D1_COLOR_F selectedBackground;
     D2D1_COLOR_F focusedBorder;
     D2D1_COLOR_F activityBarBackground;
 };

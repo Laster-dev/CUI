@@ -1,6 +1,7 @@
 #include "CollapsePanel.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
+#include <windows.h>
 
 namespace CUI {
 
@@ -61,9 +62,22 @@ void CollapsePanel::SetHeader(const std::string& header) {
 }
 
 void CollapsePanel::SetExpanded(bool expanded) {
-    m_isExpanded = expanded;
-    SetHeader(m_headerText);
-    UpdateContentVisibility();
+    if (m_isExpanded != expanded) {
+        m_isExpanded = expanded;
+        SetHeader(m_headerText);
+        UpdateContentVisibility();
+        m_onExpandedChangedEvent.Invoke(this, m_isExpanded);
+        InvalidateParentLayout();
+    }
+}
+
+void CollapsePanel::InvalidateParentLayout() {
+    UIElement* p = GetParent();
+    while (p) {
+        p->MarkRenderContentDirty();
+        p = p->GetParent();
+    }
+    MarkRenderContentDirty();
 }
 
 void CollapsePanel::SetContent(std::shared_ptr<UIElement> content) {
@@ -75,6 +89,7 @@ void CollapsePanel::SetContent(std::shared_ptr<UIElement> content) {
         m_contentHost->AddChild(m_content);
     }
     UpdateContentVisibility();
+    InvalidateParentLayout();
 }
 
 void CollapsePanel::UpdateContentVisibility() {
@@ -134,7 +149,6 @@ void CollapsePanel::Arrange(Rect finalRect) {
 }
 
 void CollapsePanel::OnRender(GraphicsContext& ctx) {
-    // Draw outer container background & border
     D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
     D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
     float radius = GetProperty("cornerRadius").AsFloat(6.0f);
@@ -152,6 +166,23 @@ void CollapsePanel::OnMouseDown(Point pt) {
     }
     if (m_isExpanded && m_contentHost && m_contentHost->GetBounds().Contains(pt.x, pt.y)) {
         m_contentHost->OnMouseDown(pt);
+    }
+}
+
+void CollapsePanel::OnKeyDown(int vkCode) {
+    switch (vkCode) {
+    case VK_SPACE:
+    case VK_RETURN:
+        SetExpanded(!m_isExpanded);
+        break;
+    case VK_LEFT:
+    case VK_UP:
+        if (m_isExpanded) SetExpanded(false);
+        break;
+    case VK_RIGHT:
+    case VK_DOWN:
+        if (!m_isExpanded) SetExpanded(true);
+        break;
     }
 }
 

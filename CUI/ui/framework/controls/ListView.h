@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_set>
 #include <functional>
-#include <cstdint>
+#include <chrono>
 
 namespace CUI {
 
@@ -28,7 +28,6 @@ struct ListViewCellData {
 };
 
 // Virtual data source for high-performance 100k+ row ListView
-// Usage: SetVirtualMode(100000, callback) - callback returns cell text per (row, col)
 class ListViewDataSource {
 public:
     virtual ~ListViewDataSource() = default;
@@ -63,7 +62,7 @@ public:
     void ClearColumns();
     const std::vector<ListViewColumn>& GetColumns() const { return m_columns; }
 
-    // In-Memory Data Rows Management (for small-medium datasets)
+    // In-Memory Data Rows Management
     void AddRow(const std::vector<std::string>& rowData);
     void AddRow(const std::vector<ListViewCellData>& rowData);
     void SetRows(const std::vector<std::vector<std::string>>& rowsData);
@@ -71,7 +70,7 @@ public:
     void ClearRows();
     size_t GetRowCount() const;
 
-    // Virtual Mode for 100k+ rows (high performance)
+    // Virtual Mode
     void SetVirtualMode(int rowCount, ListViewDataSource* dataSource);
     // Row Height
     float GetRowHeight() const { return m_rowHeight; }
@@ -87,6 +86,10 @@ public:
     void SetRowSelected(int rowIndex, bool selected);
     bool IsRowSelected(int rowIndex) const;
 
+    int GetCaretIndex() const { return m_caretIndex; }
+    void SetCaretIndex(int index);
+    void EnsureVisible(int rowIndex);
+
     // Events
     Event<ListView*, int>& OnSelectionChanged() { return m_onSelectionChangedEvent; }
     Event<ListView*, int>& OnRowDoubleClicked() { return m_onRowDoubleClickedEvent; }
@@ -97,9 +100,8 @@ private:
     int GetColumnIndexFromX(float x) const;
     void UpdateRubberBandSelection();
     float GetTotalColumnsWidth() const;
-    // Applies auto-scroll based on last mouse position.
-    // Does not call ClampScroll() / UpdateRubberBandSelection().
     bool ApplyAutoScroll();
+    void SelectRange(int fromIdx, int toIdx, bool keepExisting = false);
 
     std::string GetCellText(int row, int col) const;
     std::shared_ptr<UIElement> GetCellElement(int row, int col) const;
@@ -115,6 +117,7 @@ private:
     ListViewSelectionMode m_selectionMode = ListViewSelectionMode::Extended;
     std::unordered_set<int> m_selectedIndices;
     int m_anchorIndex = -1;
+    int m_caretIndex = -1;
     int m_hoveredRowIndex = -1;
     int m_hoveredColumnSplitter = -1;
 
@@ -124,31 +127,28 @@ private:
     float m_dragStartX = 0.0f;
     float m_initialColumnWidth = 0.0f;
 
-    // Column reordering state (拖拽重排列)
+    // Column reordering state
     bool m_isReorderingColumn = false;
     int m_reorderingColumnIndex = -1;
     float m_columnDragStartX = 0.0f;
     float m_columnDragCurrentX = 0.0f;
 
-    // Rubber-band selection state (拉框选择)
+    // Rubber-band selection state
     bool m_isMouseDown = false;
     Point m_mouseDownPoint;
     int m_pendingRowClick = -1;
     std::unordered_set<int> m_initialSelectedBeforeDrag;
 
     bool m_isRubberBandSelecting = false;
-    Point m_rubberBandStart;     // content coordinates (scroll-adjusted)
+    Point m_rubberBandStart;     // content coordinates
     Point m_rubberBandCurrent;   // screen coordinates
-    float m_rubberBandScrollOffsetY = 0.0f; // snap scrollY at drag start
+    float m_rubberBandScrollOffsetY = 0.0f;
 
     // Auto-scroll state
     float m_autoScrollLastMouseX = 0.0f;
     float m_autoScrollLastMouseY = 0.0f;
-    // Used to avoid rapid direction flip (jitter) around the midline.
-    // +1: auto-scroll down, -1: auto-scroll up.
     int m_autoScrollDirY = 1;
-    // Time normalization for ApplyAutoScroll() (timer tick vs mouse-move calls).
-    std::uint64_t m_lastAutoScrollMs = 0;
+    std::chrono::steady_clock::time_point m_lastAutoScrollTime{};
 
     // Scroll state
     float m_scrollY = 0.0f;

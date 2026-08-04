@@ -44,6 +44,7 @@ void ThemeManager::UpdateTokens() {
         m_tokens.inputBorder = Rgb(0x45, 0x45, 0x45);
         m_tokens.hoverBackground = Rgb(0x2A, 0x2D, 0x2E);
         m_tokens.pressedBackground = Rgb(0x32, 0x36, 0x38);
+        m_tokens.selectedBackground = Rgb(0x09, 0x47, 0x71, 0.85f);
         m_tokens.focusedBorder = Rgb(0x00, 0x86, 0xF0);
         m_tokens.activityBarBackground = Rgb(0x33, 0x33, 0x33);
     } else {
@@ -63,6 +64,7 @@ void ThemeManager::UpdateTokens() {
         m_tokens.inputBorder = Rgb(0xD1, 0xD1, 0xD1);
         m_tokens.hoverBackground = Rgb(0xEE, 0xEE, 0xEE);
         m_tokens.pressedBackground = Rgb(0xE0, 0xE0, 0xE0);
+        m_tokens.selectedBackground = Rgb(0x00, 0x60, 0xC0, 0.22f);
         m_tokens.focusedBorder = Rgb(0x00, 0x5F, 0xB8);
         m_tokens.activityBarBackground = Rgb(0xE8, 0xE8, 0xE8);
     }
@@ -79,7 +81,7 @@ D2D1_COLOR_F ThemeManager::GetColor(const std::string& tokenName) const {
     if (tokenName == "titleBarText") return m_tokens.titleBarText;
     if (tokenName == "accentColor") return m_tokens.accentColor;
     if (tokenName == "accentForeground") return m_tokens.accentForeground;
-    if (tokenName == "selectedBackground") return m_tokens.accentColor;
+    if (tokenName == "selectedBackground") return m_tokens.selectedBackground;
     if (tokenName == "dangerColor") return m_tokens.dangerColor;
     if (tokenName == "paneBackground") return m_tokens.paneBackground;
     if (tokenName == "inputBackground") return m_tokens.inputBackground;
