@@ -2,62 +2,197 @@
 #include "../ShowcaseHelpers.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/NavigationView.h"
+#include "framework/controls/NavigationViewItem.h"
 #include "framework/controls/Button.h"
 #include "framework/controls/TextBlock.h"
+#include "framework/controls/ComboBox.h"
 #include "framework/controls/CheckBox.h"
-#include "framework/window/Window.h"
+#include "framework/controls/TextBox.h"
+#include "framework/controls/ToggleSwitch.h"
+#include "framework/controls/ListBox.h"
 
 using namespace CUI;
 using namespace CUI::DSL;
 
+namespace {
+
+std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string& body, int variant) {
+    auto chk = std::make_shared<CheckBox>();
+    chk->SetProperty("text", Value(variant % 2 == 0 ? "启用示例功能" : "允许用户输入"));
+    chk->SetState((variant % 2 == 0) ? CheckState::Checked : CheckState::Unchecked);
+
+    auto toggle = std::make_shared<ToggleSwitch>();
+    toggle->SetHeader(variant % 2 == 0 ? "ToggleSwitch" : "Quick Toggle");
+    toggle->SetIsOn(variant % 2 == 0);
+
+    auto combo = std::make_shared<ComboBox>();
+    combo->SetProperty("width", Value(240.0f));
+    combo->SetProperty("height", Value(32.0f));
+    combo->AddItem(variant % 2 == 0 ? "WinUI-like" : "CUI-custom");
+    combo->AddItem("Dark/Light");
+    combo->AddItem("Accent");
+    combo->SetSelectedIndex(variant % 3);
+
+    auto list = std::make_shared<ListBox>();
+    list->SetProperty("height", Value(120.0f));
+    list->SetProperty("itemHeight", Value(28.0f));
+    list->SetSelectionMode(ListBoxSelectionMode::Single);
+    list->AddItem(variant % 2 == 0 ? "One" : "Alpha");
+    list->AddItem(variant % 2 == 0 ? "Two" : "Beta");
+    list->AddItem(variant % 2 == 0 ? "Three" : "Gamma");
+    list->SetSelectedIndex(0);
+
+    auto input = std::make_shared<TextBox>("Type something...");
+    input->SetProperty("width", Value(360.0f));
+
+    return Column(12).Children({
+        std::make_shared<TextBlock>(title),
+        std::make_shared<TextBlock>(body),
+        chk,
+        toggle,
+        combo,
+        list,
+        input
+    }).Build();
+}
+
+} // namespace
+
 ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
     auto nav = std::make_shared<NavigationView>();
-    nav->SetHeader("CUI WinUI 3 Navigation");
+    nav->SetPaneTitle("CUI");
+    nav->SetHeader("Home");
+    nav->SetAlwaysShowHeader(true);
+    nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
+    nav->SetIsSettingsVisible(true);
 
-    auto pageHome = Column(12).Children({
-        std::make_shared<TextBlock>("🏠 首页 (Home Page)"),
-        std::make_shared<TextBlock>("欢迎使用 CUI WinUI 3 风格 NavigationView 视图控件！")
-    }).Build();
+    auto pageHome = MakePage("Home", "WinUI 3 NavigationView: PaneDisplayMode / DisplayMode / IsPaneOpen 三者分离。", 0);
+    auto pageApps = MakePage("Apps", "MenuItems + FooterMenuItems + SettingsItem 共用单一选中模型。", 1);
+    auto pageDocs = MakePage("Documents", "支持 Header / Separator / 一层层级 MenuItems。", 2);
+    auto pageMusic = MakePage("Music", "LeftCompact / LeftMinimal 下 IsPaneOpen 控制 overlay/inline 行为。", 3);
+    auto pageSettings = MakePage("Settings", "内置 SettingsItem；ItemInvoked → SelectionChanged。", 4);
 
-    auto pageApp = Column(12).Children({
-        std::make_shared<TextBlock>("⚡ 应用 (Apps Page)"),
-        std::make_shared<TextBlock>("点击左上角 ☰ 按钮可自由切换展开/折叠面板。")
-    }).Build();
+    nav->SetContent(pageHome);
 
-    auto pageSettings = Column(12).Children({
-        std::make_shared<TextBlock>("⚙️ 设置 (Settings Page)"),
-        std::make_shared<TextBlock>("支持设置点击菜单项后【自动收起】面板。")
-    }).Build();
+    // MenuItems
+    auto home = std::make_shared<NavigationViewItem>("Home", "🏠");
+    home->SetTag("home");
+    nav->AddMenuItem(home);
 
-    nav->AddItem("home", "首页 (Home)", "🏠", pageHome);
-    nav->AddItem("apps", "应用 (Apps)", "⚡", pageApp);
-    nav->AddItem("settings", "设置 (Settings)", "⚙️", pageSettings);
+    nav->AddMenuItem(std::make_shared<NavigationViewItemHeader>("Library"));
 
-    // Auto-Collapse CheckBox
-    auto chkAutoCollapse = std::make_shared<CheckBox>();
-    chkAutoCollapse->SetProperty("text", Value("点击菜单项后自动收起 (Auto-Collapse)"));
-    chkAutoCollapse->SetState(CheckState::Unchecked);
-    chkAutoCollapse->OnCheckStateChanged().Connect([nav](CheckBox*, CheckState state) {
-        nav->SetAutoCollapse(state == CheckState::Checked);
+    auto apps = std::make_shared<NavigationViewItem>("Apps", "⚡");
+    apps->SetTag("apps");
+    nav->AddMenuItem(apps);
+
+    auto docs = std::make_shared<NavigationViewItem>("Documents", "📄");
+    docs->SetTag("docs");
+    // Hierarchy: parent does not select; expands children.
+    docs->SetSelectsOnInvoked(false);
+    auto docsAll = std::make_shared<NavigationViewItem>("All files", "📁");
+    docsAll->SetTag("docs-all");
+    auto docsRecent = std::make_shared<NavigationViewItem>("Recent", "🕒");
+    docsRecent->SetTag("docs-recent");
+    docs->AddMenuItem(docsAll);
+    docs->AddMenuItem(docsRecent);
+    nav->AddMenuItem(docs);
+
+    nav->AddMenuItem(std::make_shared<NavigationViewItemSeparator>());
+
+    auto music = std::make_shared<NavigationViewItem>("Music", "🎵");
+    music->SetTag("music");
+    nav->AddMenuItem(music);
+
+    // Footer
+    auto account = std::make_shared<NavigationViewItem>("Account", "👤");
+    account->SetTag("account");
+    nav->AddFooterMenuItem(account);
+
+    // AutoSuggest slot
+    auto search = std::make_shared<TextBox>();
+    search->SetProperty("placeholder", Value("Search"));
+    search->SetProperty("height", Value(32.0f));
+    nav->SetAutoSuggestBox(search);
+
+    nav->SetSelectedItem(home.get());
+
+    nav->OnItemInvoked().Connect([nav, pageHome, pageApps, pageDocs, pageMusic, pageSettings,
+                                  docsAll, docsRecent](NavigationView*, const NavigationViewItemInvokedEventArgs& args) {
+        if (!args.InvokedItem) {
+            return;
+        }
+        if (args.IsSettingsInvoked) {
+            nav->SetHeader("Settings");
+            nav->SetContent(pageSettings);
+            return;
+        }
+        const std::string& tag = args.InvokedItem->GetTag();
+        if (tag == "home") {
+            nav->SetHeader("Home");
+            nav->SetContent(pageHome);
+        } else if (tag == "apps") {
+            nav->SetHeader("Apps");
+            nav->SetContent(pageApps);
+        } else if (tag == "docs" || tag == "docs-all" || tag == "docs-recent") {
+            nav->SetHeader("Documents");
+            nav->SetContent(pageDocs);
+        } else if (tag == "music") {
+            nav->SetHeader("Music");
+            nav->SetContent(pageMusic);
+        } else if (tag == "account") {
+            nav->SetHeader("Account");
+            nav->SetContent(MakePage("Account", "FooterMenuItems 与 MenuItems 共享选中。", 5));
+        }
+        (void)docsAll;
+        (void)docsRecent;
     });
 
-    // Manual Toggle Button
-    auto btnToggle = std::make_shared<Button>("☰ 切换展开/折叠 (Toggle Pane)");
+    // PaneDisplayMode switcher
+    auto modeBox = std::make_shared<ComboBox>();
+    modeBox->AddItem("Auto");
+    modeBox->AddItem("Left");
+    modeBox->AddItem("LeftCompact");
+    modeBox->AddItem("LeftMinimal");
+    modeBox->AddItem("Top");
+    modeBox->SetSelectedIndex(0);
+    modeBox->OnSelectionChanged().Connect([nav](ComboBox* box, int index, const std::string&) {
+        static const NavigationViewPaneDisplayMode kModes[] = {
+            NavigationViewPaneDisplayMode::Auto,
+            NavigationViewPaneDisplayMode::Left,
+            NavigationViewPaneDisplayMode::LeftCompact,
+            NavigationViewPaneDisplayMode::LeftMinimal,
+            NavigationViewPaneDisplayMode::Top
+        };
+        if (index >= 0 && index < 5) {
+            nav->SetPaneDisplayMode(kModes[index]);
+        }
+        (void)box;
+    });
+
+    auto chkHeader = std::make_shared<CheckBox>();
+    chkHeader->SetProperty("text", Value("AlwaysShowHeader"));
+    chkHeader->SetState(CheckState::Checked);
+    chkHeader->OnCheckStateChanged().Connect([nav](CheckBox*, CheckState state) {
+        nav->SetAlwaysShowHeader(state == CheckState::Checked);
+    });
+
+    auto btnToggle = std::make_shared<Button>("Toggle Pane");
     btnToggle->OnClick().Connect([nav](UIElement*) {
         nav->TogglePane();
     });
 
-    nav->SetProperty("width", Value(800.0f));
-    nav->SetProperty("height", Value(340.0f));
+    auto modeLabel = std::make_shared<TextBlock>("PaneDisplayMode");
+    nav->SetProperty("width", Value(860.0f));
+    nav->SetProperty("height", Value(420.0f));
 
-    auto demo = Column(16).Children({
-        Row(12).Children({ btnToggle, chkAutoCollapse }).Build(),
+    auto demo = Column(12).Children({
+        Row(12).Children({ modeLabel, modeBox, btnToggle, chkHeader }).Build(),
         nav
     }).Build();
 
     return { "NavigationView 导航", CreatePage(
-        "NavigationView 侧边导航视图与自动收起控制",
-        "整合 WinUI 3 侧边栏导航，支持左上角 ☰ 展开/折叠面板与【自动收起】逻辑。",
+        "WinUI 3 NavigationView",
+        "PaneDisplayMode / DisplayMode / IsPaneOpen 分离；MenuItems · Footer · Settings · Header/Separator · 层级 · Top。",
         demo,
         CreatePropertyGrid(ctx, nav)) };
 }

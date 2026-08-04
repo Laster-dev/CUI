@@ -217,6 +217,7 @@
     <ClCompile Include="ui\framework\controls\ContextMenu.cpp" />
     <ClCompile Include="ui\framework\controls\Flyout.cpp" />
     <ClCompile Include="ui\framework\controls\NavigationView.cpp" />
+    <ClCompile Include="ui\framework\controls\NavigationViewItem.cpp" />
     <ClCompile Include="ui\framework\window\WindowBackdrop.cpp" />
     <ClCompile Include="ui\framework\controls\ListBox.cpp" />
     <ClCompile Include="ui\framework\controls\ListView.cpp" />
@@ -310,6 +311,8 @@
     <ClInclude Include="ui\framework\controls\VSCodeControls.h" />
     <ClInclude Include="ui\framework\controls\PropertyGrid.h" />
     <ClInclude Include="ui\framework\controls\TreeView.h" />
+    <ClInclude Include="ui\framework\controls\NavigationView.h" />
+    <ClInclude Include="ui\framework\controls\NavigationViewItem.h" />
     <ClInclude Include="ui\framework\controls\terminal\AnsiColors.h" />
     <ClInclude Include="ui\framework\controls\terminal\BufferLine.h" />
     <ClInclude Include="ui\framework\controls\terminal\BufferSet.h" />
