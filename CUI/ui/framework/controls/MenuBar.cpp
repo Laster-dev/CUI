@@ -60,7 +60,8 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
         Rect itemRect(curX, m_bounds.y + 3.0f, itemW, m_bounds.height - 6.0f);
         m_menus[i].bounds = itemRect;
 
-        bool isOpen = (static_cast<int>(i) == m_activeOpenIndex);
+        bool isOpen = (static_cast<int>(i) == m_activeOpenIndex) &&
+                      (m_menus[i].dropDownMenu && m_menus[i].dropDownMenu->IsOpen());
         bool isHover = (static_cast<int>(i) == m_hoveredIndex);
 
         if (isOpen) {
@@ -83,6 +84,47 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
     }
 }
 
+void MenuBar::OpenMenu(int index) {
+    if (index < 0 || index >= static_cast<int>(m_menus.size())) return;
+
+    if (m_activeOpenIndex >= 0 && m_activeOpenIndex < static_cast<int>(m_menus.size())) {
+        if (m_menus[m_activeOpenIndex].dropDownMenu) {
+            m_menus[m_activeOpenIndex].dropDownMenu->Hide();
+        }
+    }
+
+    m_activeOpenIndex = index;
+    auto menu = m_menus[index].dropDownMenu;
+    if (menu) {
+        float winW = 1280.0f, winH = 800.0f;
+        UIElement* root = GetParent();
+        while (root && root->GetParent()) {
+            root = root->GetParent();
+        }
+        if (root) {
+            winW = root->GetBounds().width;
+            winH = root->GetBounds().height;
+        }
+
+        menu->ShowAt(m_menus[index].bounds.x, m_bounds.y + m_bounds.height, winW, winH);
+
+        UIElement* curr = this;
+        while (curr) {
+            curr->SetContextMenu(menu);
+            curr = curr->GetParent();
+        }
+    }
+}
+
+void MenuBar::CloseActiveMenu() {
+    if (m_activeOpenIndex >= 0 && m_activeOpenIndex < static_cast<int>(m_menus.size())) {
+        if (m_menus[m_activeOpenIndex].dropDownMenu) {
+            m_menus[m_activeOpenIndex].dropDownMenu->Hide();
+        }
+    }
+    m_activeOpenIndex = -1;
+}
+
 void MenuBar::OnMouseMove(Point pt) {
     int oldHover = m_hoveredIndex;
     m_hoveredIndex = -1;
@@ -96,9 +138,7 @@ void MenuBar::OnMouseMove(Point pt) {
 
     // If a menu is already open, hover over another item opens its dropdown instantly
     if (m_activeOpenIndex >= 0 && m_hoveredIndex >= 0 && m_hoveredIndex != m_activeOpenIndex) {
-        // Force open new hovered menu dropdown
-        m_activeOpenIndex = -1; // Reset to allow OnMouseDown to select new index
-        OnMouseDown(pt);
+        OpenMenu(m_hoveredIndex);
     }
 }
 
@@ -108,7 +148,7 @@ void MenuBar::OnMouseLeave() {
 
 void MenuBar::ResetInteractionState() {
     m_hoveredIndex = -1;
-    m_activeOpenIndex = -1;
+    CloseActiveMenu();
     m_isHovered = false;
     m_isPressed = false;
     m_isFocused = false;
@@ -122,46 +162,13 @@ void MenuBar::OnBlur() {
 void MenuBar::OnMouseDown(Point pt) {
     for (size_t i = 0; i < m_menus.size(); ++i) {
         if (m_menus[i].bounds.Contains(pt.x, pt.y)) {
-            // If clicking same open menu, toggle close it
-            if (m_activeOpenIndex == static_cast<int>(i)) {
-                if (m_menus[i].dropDownMenu) {
-                    m_menus[i].dropDownMenu->Hide();
-                }
-                m_activeOpenIndex = -1;
+            bool isOpen = (m_activeOpenIndex == static_cast<int>(i)) &&
+                          (m_menus[i].dropDownMenu && m_menus[i].dropDownMenu->IsOpen());
+            if (isOpen) {
+                CloseActiveMenu();
                 return;
             }
-
-            // Close previously open menu if any
-            if (m_activeOpenIndex >= 0 && m_activeOpenIndex < static_cast<int>(m_menus.size())) {
-                if (m_menus[m_activeOpenIndex].dropDownMenu) {
-                    m_menus[m_activeOpenIndex].dropDownMenu->Hide();
-                }
-            }
-
-            m_activeOpenIndex = static_cast<int>(i);
-            auto menu = m_menus[i].dropDownMenu;
-            if (menu) {
-                // Find root Window size
-                float winW = 1280.0f, winH = 800.0f;
-                UIElement* root = GetParent();
-                while (root && root->GetParent()) {
-                    root = root->GetParent();
-                }
-                if (root) {
-                    winW = root->GetBounds().width;
-                    winH = root->GetBounds().height;
-                }
-
-                // Popup menu dropdown right below the MenuBar item
-                menu->ShowAt(m_menus[i].bounds.x, m_bounds.y + m_bounds.height, winW, winH);
-                
-                // Find parent element chain to set active ContextMenu
-                UIElement* curr = this;
-                while (curr) {
-                    curr->SetContextMenu(menu);
-                    curr = curr->GetParent();
-                }
-            }
+            OpenMenu(static_cast<int>(i));
             return;
         }
     }

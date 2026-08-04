@@ -1002,14 +1002,34 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_MOUSEMOVE:
         {
             const bool dragging = !m_pressedElement.expired();
-            if (OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
+            Rect oldMenuBounds;
+            if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
+                oldMenuBounds = m_activeContextMenu->GetTotalBounds();
+            }
+
+            bool moved = OnMouseMove(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+
+            Rect newMenuBounds;
+            if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
+                newMenuBounds = m_activeContextMenu->GetTotalBounds();
+            }
+
+            bool menuBoundsChanged = (oldMenuBounds.x != newMenuBounds.x || oldMenuBounds.y != newMenuBounds.y ||
+                                      oldMenuBounds.width != newMenuBounds.width || oldMenuBounds.height != newMenuBounds.height);
+
+            if (moved || menuBoundsChanged || !oldMenuBounds.IsEmpty()) {
+                if (!oldMenuBounds.IsEmpty()) {
+                    m_pendingDirtyRegion.AddRect(oldMenuBounds.Inflate(4.0f));
+                }
+                if (!newMenuBounds.IsEmpty()) {
+                    m_pendingDirtyRegion.AddRect(newMenuBounds.Inflate(4.0f));
+                }
                 if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
-                    m_pendingDirtyRegion.AddRect(m_activeContextMenu->GetBounds().Inflate(4.0f));
                     InvalidatePendingRenderRegions(true);
                 } else if (dragging) {
                     InvalidatePendingRenderRegions(false);
                 } else {
-                    InvalidateAnimatedRegions(true);
+                    InvalidatePendingRenderRegions(true);
                 }
             }
         }
@@ -1465,14 +1485,21 @@ bool Window::OnLButtonDown(int x, int y) {
     }
 
     if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
+        Rect oldMenuBounds = m_activeContextMenu->GetTotalBounds();
         UIElement* menuHit = m_activeContextMenu->HitTestOverlay(fx, fy);
         if (menuHit) {
             menuHit->OnMouseDown(Point(fx, fy));
             m_activeContextMenu = nullptr;
+            if (!oldMenuBounds.IsEmpty()) {
+                m_pendingDirtyRegion.AddRect(oldMenuBounds.Inflate(4.0f));
+            }
             return true;
         } else {
             m_activeContextMenu->Hide();
             m_activeContextMenu = nullptr;
+            if (!oldMenuBounds.IsEmpty()) {
+                m_pendingDirtyRegion.AddRect(oldMenuBounds.Inflate(4.0f));
+            }
             // Clear MenuBar active highlight state when clicking outside
             if (m_rootElement) {
                 std::function<void(UIElement*)> clearMenuBar = [&](UIElement* elem) {

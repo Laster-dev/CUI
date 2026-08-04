@@ -257,6 +257,15 @@ void ContextMenu::Hide() {
     }
 }
 
+Rect ContextMenu::GetTotalBounds() const {
+    if (!m_isOpen) return Rect();
+    Rect r = m_bounds;
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
+        r = r.Union(m_activeSubMenu->GetTotalBounds());
+    }
+    return r;
+}
+
 void ContextMenu::OnRenderOverlay(GraphicsContext& ctx) {
     if (!m_isOpen || m_items.empty()) return;
 

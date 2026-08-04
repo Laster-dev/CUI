@@ -35,6 +35,9 @@ public:
     virtual void OnBlur() override;
 
 private:
+    void OpenMenu(int index);
+    void CloseActiveMenu();
+
     std::vector<MenuBarItem> m_menus;
     int m_hoveredIndex = -1;
     int m_activeOpenIndex = -1;
