@@ -13,13 +13,14 @@ public:
     virtual HCURSOR GetCursor() const override;
 
     virtual Size Measure(Size availableSize) override;
+    virtual UIElement* HitTest(float x, float y) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
 
     std::string GetOrientation() const { return GetProperty("orientation").AsString("Vertical"); }
-    void SetOrientation(const std::string& orient) { SetProperty("orientation", Value(orient)); }
+    void SetOrientation(const std::string& orient);
 
     Event<Splitter*, float>& OnSplitterMoved() { return m_onSplitterMovedEvent; }
 

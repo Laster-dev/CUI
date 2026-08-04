@@ -210,6 +210,9 @@ UIElement* ComboBox::HitTest(float x, float y) {
 }
 
 void ComboBox::OnMouseDown(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     Control::OnMouseDown(pt);
 
     if (m_isDropDownOpen && !m_items.empty()) {

@@ -23,7 +23,7 @@ void NavigationViewItemBase::SetIsSelected(bool selected) {
 
 NavigationViewItemHeader::NavigationViewItemHeader(const std::string& text) {
     m_text = text;
-    SetProperty("theme.colorToken", Value("textSecondary"));
+    SetProperty("theme.colorToken", Value("textPrimary"));
 }
 
 void NavigationViewItemHeader::SetText(const std::string& text) {
@@ -38,7 +38,8 @@ Size NavigationViewItemHeader::Measure(Size availableSize) {
 
 void NavigationViewItemHeader::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
-    const D2D1_COLOR_F color = ResolveThemeColor("theme.colorToken", "textSecondary");
+    // Headers should remain readable in both themes.
+    const D2D1_COLOR_F color = ResolveThemeColor("theme.colorToken", "textPrimary");
     const float indent = 12.0f + m_depth * 12.0f;
     Rect textRect(m_bounds.x + indent, m_bounds.y, (std::max)(0.0f, m_bounds.width - indent - 8.0f), m_bounds.height);
     ctx.PushClip(textRect);
@@ -158,13 +159,17 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
     } else if (m_hovered) {
         fill = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
     }
+    if (HasProperty("chromeBackdropAlpha")) {
+        fill.a *= std::clamp(GetProperty("chromeBackdropAlpha").AsFloat(1.0f), 0.0f, 1.0f);
+    }
     if (fill.a > 0.001f) {
         ctx.FillRoundedRect(m_bounds, radius, fill);
     }
 
-    const D2D1_COLOR_F textColor = showSelected
-        ? ResolveThemeColor("theme.colorToken", "textPrimary")
-        : ResolveThemeColor("theme.secondaryColorToken", "textSecondary");
+    // WinUI NavigationViewItem uses the primary text brush for labels in both
+    // selected and unselected states (weight changes). Never use a washed-out
+    // secondary brush here — light mode made unselected items nearly invisible.
+    const D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
 
     const float indent = m_topMode ? 0.0f : (m_depth * 12.0f);
     float x = m_bounds.x + indent;

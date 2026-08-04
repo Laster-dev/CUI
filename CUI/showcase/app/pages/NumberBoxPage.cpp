@@ -11,5 +11,5 @@ ShowcasePage BuildNumberBoxPage(const ShowcaseContext& ctx) {
         "NumberBox 数字微调框控件",
         "嵌入 ▲/▼ 增减按钮，支持 Step 步长微调、键盘上下键与范围限制。",
         CreateDemoSurface({ target }, 0.0f),
-        CreatePropertyGrid(ctx, target)) };
+        CreatePropertyGrid(ctx, target), target) };
 }

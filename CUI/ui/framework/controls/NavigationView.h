@@ -2,6 +2,8 @@
 #include "Control.h"
 #include "Button.h"
 #include "NavigationViewItem.h"
+#include "ScrollViewer.h"
+#include "Panel.h"
 #include "../animation/AnimationSystem.h"
 #include <memory>
 #include <string>
@@ -133,6 +135,7 @@ public:
     void OnRender(GraphicsContext& ctx) override;
     void OnRenderOverlay(GraphicsContext& ctx) override;
     void OnMouseDown(Point pt) override;
+    void OnMouseWheel(float delta) override;
     bool OnAnimationTick() override;
     bool HasSelfAnimation() const override;
 
@@ -152,11 +155,13 @@ private:
     void StartSelectionIndicatorAnimation(NavigationViewItem* from, NavigationViewItem* to);
 
     void BuildChrome();
+    void EnsureMenuScroll();
     void EnsureSettingsItem();
-    void WireItem(const std::shared_ptr<NavigationViewItemBase>& item);
+    void WireItem(const std::shared_ptr<NavigationViewItemBase>& item, bool intoMenuScroll);
     void CollectVisibleItems(std::vector<NavigationViewItemBase*>& out) const;
     void CollectVisibleFrom(const std::shared_ptr<NavigationViewItemBase>& item,
                             std::vector<NavigationViewItemBase*>& out) const;
+    void SyncMenuHostChildren();
     void EnsurePaneZOrderAboveContent();
 
     void UpdateAdaptiveLayout(float width);
@@ -208,6 +213,8 @@ private:
 
     std::shared_ptr<Button> m_btnBack;
     std::shared_ptr<Button> m_btnToggle;
+    std::shared_ptr<ScrollViewer> m_menuScroll;
+    std::shared_ptr<StackPanel> m_menuHost;
 
     AnimatedScalar m_paneWidthAnim{ DefaultOpenPaneLength };
     bool m_ignoreSelectionEvent = false;

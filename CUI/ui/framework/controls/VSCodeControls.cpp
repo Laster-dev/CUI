@@ -120,11 +120,13 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     // Query current window state
     BackdropType curBackdrop = BackdropType::Mica;
     ThemeMode curTheme = ThemeMode::Dark;
+    bool compositionOk = false;
     if (hwnd) {
         Window* winObj = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
         if (winObj) {
             curBackdrop = winObj->GetBackdropType();
             curTheme = winObj->GetThemeMode();
+            compositionOk = winObj->GetGraphicsContext().UsesCompositionSwapChain();
         }
     }
 
@@ -145,9 +147,16 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     ctx.DrawText(title, m_bounds, titleColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // 1. LowPerf / Animation Toggle Button
-    Rect lowPerfRect = GetLowPerformanceToggleRect();
+    Rect lowPerfHit = GetLowPerformanceToggleRect();
+    constexpr float toggleVisualH = 22.0f;
+    Rect lowPerfRect(
+        lowPerfHit.x,
+        lowPerfHit.y + (lowPerfHit.height - toggleVisualH) * 0.5f,
+        lowPerfHit.width,
+        toggleVisualH
+    );
     bool lowPerfOn = !UIElement::AreAnimationsEnabled();
-    bool isLowPerfHover = isHoveredInTitle && lowPerfRect.Contains(hoverX, hoverY);
+    bool isLowPerfHover = isHoveredInTitle && lowPerfHit.Contains(hoverX, hoverY);
     D2D1_COLOR_F toggleBg = lowPerfOn
         ? D2D1::ColorF(tokens.accentColor.r, tokens.accentColor.g, tokens.accentColor.b, isLowPerfHover ? 0.92f : 0.82f)
         : (lightTheme
@@ -176,14 +185,25 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     );
 
     // 2. Backdrop Toggle Button
-    Rect bdpRect = GetBackdropToggleRect();
-    bool isBdpHover = isHoveredInTitle && bdpRect.Contains(hoverX, hoverY);
+    Rect bdpHit = GetBackdropToggleRect();
+    Rect bdpRect(
+        bdpHit.x,
+        bdpHit.y + (bdpHit.height - toggleVisualH) * 0.5f,
+        bdpHit.width,
+        toggleVisualH
+    );
+    bool isBdpHover = isHoveredInTitle && bdpHit.Contains(hoverX, hoverY);
     const char* bdpStr = "Mica";
     if (curBackdrop == BackdropType::MicaAlt) bdpStr = "MicaAlt";
     else if (curBackdrop == BackdropType::Acrylic) bdpStr = "Acrylic";
     else if (curBackdrop == BackdropType::None) bdpStr = "无材质";
 
+    // If composition swap-chain is unavailable, system backdrop cannot show through
+    // (HWND swap chains ignore alpha). Surface that clearly in the chrome label.
     std::string bdpText = std::string("材质:") + bdpStr;
+    if (curBackdrop != BackdropType::None && !compositionOk) {
+        bdpText += "(无透)";
+    }
     D2D1_COLOR_F bdpBg = lightTheme
         ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isBdpHover ? 0.24f : 0.16f)
         : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isBdpHover ? 0.20f : 0.10f);
@@ -197,8 +217,14 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     ctx.DrawText(bdpText, bdpRect, bdpTextCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
 
     // 3. Theme Toggle Button
-    Rect themeRect = GetThemeToggleRect();
-    bool isThemeHover = isHoveredInTitle && themeRect.Contains(hoverX, hoverY);
+    Rect themeHit = GetThemeToggleRect();
+    Rect themeRect(
+        themeHit.x,
+        themeHit.y + (themeHit.height - toggleVisualH) * 0.5f,
+        themeHit.width,
+        toggleVisualH
+    );
+    bool isThemeHover = isHoveredInTitle && themeHit.Contains(hoverX, hoverY);
     const char* themeStr = (curTheme == ThemeMode::Dark) ? "🌙 暗色" : "☀️ 亮色";
 
     D2D1_COLOR_F themeBg = lightTheme
@@ -255,23 +281,38 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
 
 void TitleBar::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
-    POINT screenPt = {};
-    if (GetCursorPos(&screenPt)) {
-        HWND hwnd = WindowFromPoint(screenPt);
-        if (hwnd) {
-            if (IsLowPerformanceToggleHit(pt.x, pt.y)) {
-                PostMessage(hwnd, WM_APP + 42, 0, 0);
-                return;
-            }
-            if (IsBackdropToggleHit(pt.x, pt.y)) {
-                PostMessage(hwnd, WM_APP + 43, 0, 0);
-                return;
-            }
-            if (IsThemeToggleHit(pt.x, pt.y)) {
-                PostMessage(hwnd, WM_APP + 44, 0, 0);
-                return;
+
+    auto postChromeMessage = [](UINT msg) {
+        HWND hwnd = nullptr;
+        POINT screenPt{};
+        if (GetCursorPos(&screenPt)) {
+            hwnd = WindowFromPoint(screenPt);
+            if (hwnd) {
+                hwnd = GetAncestor(hwnd, GA_ROOT);
             }
         }
+        if (!hwnd) {
+            hwnd = GetForegroundWindow();
+        }
+        if (!hwnd) {
+            hwnd = GetActiveWindow();
+        }
+        if (hwnd) {
+            PostMessageW(hwnd, msg, 0, 0);
+        }
+    };
+
+    if (IsLowPerformanceToggleHit(pt.x, pt.y)) {
+        postChromeMessage(WM_APP + 42);
+        return;
+    }
+    if (IsBackdropToggleHit(pt.x, pt.y)) {
+        postChromeMessage(WM_APP + 43);
+        return;
+    }
+    if (IsThemeToggleHit(pt.x, pt.y)) {
+        postChromeMessage(WM_APP + 44);
+        return;
     }
     m_menuBar.OnMouseDown(pt);
 }
@@ -298,12 +339,11 @@ bool TitleBar::IsMenuBarHit(float x, float y) {
 Rect TitleBar::GetLowPerformanceToggleRect() const {
     constexpr float buttonWidth = 46.0f;
     constexpr float toggleWidth = 60.0f;
-    constexpr float toggleHeight = 22.0f;
     constexpr float toggleGap = 6.0f;
     float rightX = m_bounds.x + m_bounds.width - buttonWidth * 3.0f;
     float x = rightX - toggleGap - toggleWidth;
-    float y = m_bounds.y + (m_bounds.height - toggleHeight) * 0.5f;
-    return Rect(x, y, toggleWidth, toggleHeight);
+    // Full title-bar height so top resize band / caption drag cannot steal clicks.
+    return Rect(x, m_bounds.y, toggleWidth, m_bounds.height);
 }
 
 bool TitleBar::IsLowPerformanceToggleHit(float x, float y) const {
@@ -312,7 +352,7 @@ bool TitleBar::IsLowPerformanceToggleHit(float x, float y) const {
 
 Rect TitleBar::GetBackdropToggleRect() const {
     Rect lowPerfRect = GetLowPerformanceToggleRect();
-    constexpr float toggleWidth = 76.0f;
+    constexpr float toggleWidth = 96.0f;
     constexpr float toggleGap = 6.0f;
     float x = lowPerfRect.x - toggleGap - toggleWidth;
     return Rect(x, lowPerfRect.y, toggleWidth, lowPerfRect.height);

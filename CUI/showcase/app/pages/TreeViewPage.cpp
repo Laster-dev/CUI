@@ -28,5 +28,5 @@ ShowcasePage BuildTreeViewPage(const ShowcaseContext& ctx) {
         "TreeView 树形视图控件 (支持层级折叠/展开与多项交互)",
         "高效层级树结构控件，支持展开/折叠箭头、图标、键盘上下左右导航与属性表实时响应。",
         CreateDemoSurface({ tree }, 0.0f),
-        CreatePropertyGrid(ctx, tree)) };
+        CreatePropertyGrid(ctx, tree), tree) };
 }

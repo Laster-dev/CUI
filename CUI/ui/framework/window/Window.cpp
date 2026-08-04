@@ -91,7 +91,7 @@ void ApplyThemeToken(UIElement* element, const char* tokenPropName, const char* 
     element->SetProperty(targetPropName, Value(ThemeManager::Instance().GetColor(tokenName)));
 }
 
-void ApplyThemeToTree(UIElement* element) {
+void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
     if (!element) {
         return;
     }
@@ -149,6 +149,8 @@ void ApplyThemeToTree(UIElement* element) {
         element->SetProperty("hoverBackground", Value(tokens.titleBarBackground));
         element->SetProperty("pressedBackground", Value(tokens.titleBarBackground));
         element->SetProperty("color", Value(tokens.titleBarText));
+        // Let Mica/Acrylic show through the title bar chrome.
+        element->SetProperty("chromeBackdropAlpha", Value(systemBackdrop ? 0.28f : 1.0f));
     } else if (className == "MenuBar") {
         if (!element->HasProperty("theme.backgroundToken")) {
             element->SetProperty("background", Value(tokens.titleBarBackground));
@@ -390,6 +392,22 @@ void ApplyThemeToTree(UIElement* element) {
         if (!element->HasProperty("theme.indicatorColorToken")) {
             element->SetProperty("indicatorColor", Value(tokens.accentColor));
         }
+        // Transparent host + translucent pane so system backdrop can show through chrome.
+        element->SetProperty("chromeBackdropAlpha", Value(systemBackdrop ? 0.0f : 1.0f));
+        element->SetProperty("paneBackdropAlpha", Value(systemBackdrop ? 0.32f : 1.0f));
+    } else if (className == "NavigationViewItem" || className == "NavigationViewItemHeader") {
+        if (!element->HasProperty("theme.colorToken")) {
+            element->SetProperty("theme.colorToken", Value("textPrimary"));
+        }
+        element->SetProperty("color", Value(tokens.textPrimary));
+        if (element->HasProperty("theme.hoverBackgroundToken")) {
+            element->SetProperty("hoverBackground", Value(tokens.hoverBackground));
+        }
+        if (element->HasProperty("theme.selectedBackgroundToken")) {
+            element->SetProperty("selectedBackground", Value(tokens.selectedBackground));
+        }
+        // Keep item chips translucent so pane mica is not fully covered.
+        element->SetProperty("chromeBackdropAlpha", Value(systemBackdrop ? 0.55f : 1.0f));
     } else if (className == "TextBlock" || className == "HyperlinkButton") {
         if (!element->HasProperty("theme.colorToken")) {
             element->SetProperty("color", Value(className == "HyperlinkButton" ? tokens.accentColor : tokens.textSecondary));
@@ -416,11 +434,11 @@ void ApplyThemeToTree(UIElement* element) {
     }
 
     for (const auto& child : element->GetChildren()) {
-        ApplyThemeToTree(child.get());
+        ApplyThemeToTree(child.get(), systemBackdrop);
     }
 }
 
-void ForceThemeRefresh(UIElement* element, const std::string& refreshStamp) {
+void ForceThemeRefresh(UIElement* element, const std::string& refreshStamp, bool systemBackdrop) {
     if (!element) {
         return;
     }
@@ -429,13 +447,13 @@ void ForceThemeRefresh(UIElement* element, const std::string& refreshStamp) {
 
     if (auto* menu = dynamic_cast<ContextMenu*>(element)) {
         if (auto subMenu = menu->GetActiveSubMenu()) {
-            ApplyThemeToTree(subMenu.get());
-            ForceThemeRefresh(subMenu.get(), refreshStamp);
+            ApplyThemeToTree(subMenu.get(), systemBackdrop);
+            ForceThemeRefresh(subMenu.get(), refreshStamp, systemBackdrop);
         }
     }
 
     for (const auto& child : element->GetChildren()) {
-        ForceThemeRefresh(child.get(), refreshStamp);
+        ForceThemeRefresh(child.get(), refreshStamp, systemBackdrop);
     }
 }
 }
@@ -561,7 +579,6 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
 
 Window::~Window() {
     if (m_hwnd) {
-        KillTimer(m_hwnd, 1);
         DestroyWindow(m_hwnd);
     }
 }
@@ -583,9 +600,16 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     std::wstring wTitle(title.begin(), title.end());
 
-    // Standard OVERLAPPEDWINDOW with DWM non-client frame extension for 100% native OS window animations
+    // DirectComposition host: HWND DXGI swap chains ignore per-pixel alpha, so
+    // system Mica/Acrylic never shows through. Composition swap chains do.
     DWORD dwStyle = WS_OVERLAPPEDWINDOW;
-    DWORD dwExStyle = m_transparentMode ? (WS_EX_LAYERED | WS_EX_APPWINDOW) : 0;
+#ifndef WS_EX_NOREDIRECTIONBITMAP
+#define WS_EX_NOREDIRECTIONBITMAP 0x00200000L
+#endif
+    DWORD dwExStyle = WS_EX_NOREDIRECTIONBITMAP;
+    if (m_transparentMode) {
+        dwExStyle |= (WS_EX_LAYERED | WS_EX_APPWINDOW);
+    }
 
     m_hwnd = CreateWindowEx(
         dwExStyle,
@@ -612,8 +636,6 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     if (!m_gfxContext.Initialize(m_hwnd)) {
         return false;
     }
-
-    SetTimer(m_hwnd, 1, 500, nullptr);
 
     return true;
 }
@@ -749,17 +771,18 @@ void Window::SetRootElement(std::shared_ptr<UIElement> root) {
 }
 
 void Window::ApplyVisualState() {
+    const bool systemBackdrop = (m_backdropType != BackdropType::None);
     if (m_rootElement) {
-        ApplyThemeToTree(m_rootElement.get());
+        ApplyThemeToTree(m_rootElement.get(), systemBackdrop);
         static unsigned long long s_themeRefreshNonce = 0;
         const std::string refreshStamp = std::to_string(++s_themeRefreshNonce);
-        ForceThemeRefresh(m_rootElement.get(), refreshStamp);
+        ForceThemeRefresh(m_rootElement.get(), refreshStamp, systemBackdrop);
     }
     if (m_activeContextMenu) {
-        ApplyThemeToTree(m_activeContextMenu.get());
+        ApplyThemeToTree(m_activeContextMenu.get(), systemBackdrop);
         static unsigned long long s_themeMenuRefreshNonce = 0;
         const std::string refreshStamp = std::to_string(++s_themeMenuRefreshNonce);
-        ForceThemeRefresh(m_activeContextMenu.get(), refreshStamp);
+        ForceThemeRefresh(m_activeContextMenu.get(), refreshStamp, systemBackdrop);
     }
     if (m_hwnd) {
         UpdateDwmChrome();
@@ -859,9 +882,30 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         float winW = static_cast<float>(rc.right);
         float winH = static_cast<float>(rc.bottom);
 
-        // System buttons get first chance. In windowed mode, the top resize band
-        // overlaps their upper pixels; returning HTTOP there prevents Win11 from
-        // seeing HTMAXBUTTON, so Snap Layout hover never appears.
+        // TitleBar chrome toggles / menu must win over resize borders and caption drag.
+        // Prefer direct TitleBar child lookup — tree HitTest can still be wrong if content leaks.
+        if (fy >= 0 && fy <= 40.0f && fx < winW - 135.0f && m_rootElement) {
+            TitleBar* titleBar = nullptr;
+            for (const auto& child : m_rootElement->GetChildren()) {
+                titleBar = dynamic_cast<TitleBar*>(child.get());
+                if (titleBar) break;
+            }
+            if (!titleBar) {
+                if (auto* hit = m_rootElement->HitTest(fx, fy)) {
+                    titleBar = dynamic_cast<TitleBar*>(hit);
+                }
+            }
+            if (titleBar) {
+                if (titleBar->IsLowPerformanceToggleHit(fx, fy) ||
+                    titleBar->IsBackdropToggleHit(fx, fy) ||
+                    titleBar->IsThemeToggleHit(fx, fy) ||
+                    titleBar->IsMenuBarHit(fx, fy)) {
+                    return HTCLIENT;
+                }
+            }
+        }
+
+        // System buttons get first chance after chrome toggles.
         if (fy >= 0 && fy <= 40.0f) {
             if (fx >= winW - 45.0f) {
                 return HTCLOSE;
@@ -953,14 +997,6 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_CUI_TOGGLE_THEME:
         SetThemeMode(m_themeMode == ThemeMode::Dark ? ThemeMode::Light : ThemeMode::Dark);
-        return 0;
-
-    case WM_TIMER:
-        if (wParam == 1) {
-            if (auto focused = LockElement(m_focusedElement)) {
-                RequestFullRepaint();
-            }
-        }
         return 0;
 
     case WM_SIZE:
@@ -1099,15 +1135,19 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         if (auto focused = LockElement(m_focusedElement)) {
-            focused->OnKeyDown(static_cast<int>(wParam));
-            InvalidatePendingRenderRegions(true);
+            if (focused->IsEnabled()) {
+                focused->OnKeyDown(static_cast<int>(wParam));
+                InvalidatePendingRenderRegions(true);
+            }
         }
         return 0;
 
     case WM_CHAR:
         if (auto focused = LockElement(m_focusedElement)) {
-            focused->OnCharInput(static_cast<wchar_t>(wParam));
-            InvalidatePendingRenderRegions(true);
+            if (focused->IsEnabled()) {
+                focused->OnCharInput(static_cast<wchar_t>(wParam));
+                InvalidatePendingRenderRegions(true);
+            }
         }
         return 0;
 
@@ -1201,7 +1241,9 @@ void Window::OnPaint() {
     m_gfxContext.BeginDraw();
 
     const D2D1_COLOR_F bgColor = ThemeManager::Instance().GetTokens().windowBackground;
-    const D2D1_COLOR_F sceneClearColor = (m_transparentMode && !IsZoomed(m_hwnd))
+    const bool systemBackdrop = (m_backdropType != BackdropType::None);
+    // Transparent clear is required for DWM Mica/Acrylic to show through chrome.
+    const D2D1_COLOR_F sceneClearColor = (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd)))
         ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)
         : bgColor;
 
@@ -1262,7 +1304,7 @@ void Window::OnPaint() {
         m_sceneLayer.Validate();
     }
 
-    if (m_transparentMode && !IsZoomed(m_hwnd)) {
+    if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
         m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
     } else {
         m_gfxContext.GetD2DContext()->Clear(bgColor);
@@ -1327,10 +1369,13 @@ void Window::DrawRenderStatsOverlay() {
 void Window::UpdateDwmChrome() {
     if (!m_hwnd) return;
 
-    // Restore: keep a 1px DWM inset for native snap/maximize animations.
-    // Maximized: zero inset so the client fills the window and no white border shows.
+    // System backdrop needs the full client area extended so translucent chrome
+    // can reveal Mica/Acrylic. Otherwise keep a 1px DWM inset for snap animations.
     const bool maximized = IsZoomed(m_hwnd) != FALSE;
-    const MARGINS margins = maximized ? MARGINS{ 0, 0, 0, 0 } : MARGINS{ 1, 1, 1, 1 };
+    const bool systemBackdrop = (m_backdropType != BackdropType::None);
+    const MARGINS margins = maximized
+        ? MARGINS{ 0, 0, 0, 0 }
+        : (systemBackdrop ? MARGINS{ -1, -1, -1, -1 } : MARGINS{ 1, 1, 1, 1 });
     DwmExtendFrameIntoClientArea(m_hwnd, &margins);
 
     // 1. Force Native Windows 11 DWM Rounded Corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33)
@@ -1519,7 +1564,59 @@ bool Window::OnLButtonDown(int x, int y) {
     }
 
     UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
+
+    // TitleBar chrome must win over any leaked content hits in the top band
+    // (ScrollViewer used to let scrolled PropertyGrid children steal these clicks).
+    if (m_rootElement && fy >= 0.0f && fy <= 40.0f) {
+        for (const auto& child : m_rootElement->GetChildren()) {
+            auto* titleBar = dynamic_cast<TitleBar*>(child.get());
+            if (!titleBar) {
+                continue;
+            }
+            if (titleBar->IsLowPerformanceToggleHit(fx, fy)) {
+                PostMessageW(m_hwnd, WM_CUI_TOGGLE_LOW_PERF, 0, 0);
+                return true;
+            }
+            if (titleBar->IsBackdropToggleHit(fx, fy)) {
+                PostMessageW(m_hwnd, WM_CUI_TOGGLE_BACKDROP, 0, 0);
+                return true;
+            }
+            if (titleBar->IsThemeToggleHit(fx, fy)) {
+                PostMessageW(m_hwnd, WM_CUI_TOGGLE_THEME, 0, 0);
+                return true;
+            }
+            if (titleBar->GetBounds().Contains(fx, fy)) {
+                target = titleBar;
+            }
+            break;
+        }
+    }
+
+    // Legacy path when HitTest already returned TitleBar*
+    if (auto* titleBar = dynamic_cast<TitleBar*>(target)) {
+        if (titleBar->IsLowPerformanceToggleHit(fx, fy)) {
+            PostMessageW(m_hwnd, WM_CUI_TOGGLE_LOW_PERF, 0, 0);
+            return true;
+        }
+        if (titleBar->IsBackdropToggleHit(fx, fy)) {
+            PostMessageW(m_hwnd, WM_CUI_TOGGLE_BACKDROP, 0, 0);
+            return true;
+        }
+        if (titleBar->IsThemeToggleHit(fx, fy)) {
+            PostMessageW(m_hwnd, WM_CUI_TOGGLE_THEME, 0, 0);
+            return true;
+        }
+    }
+
     auto focused = LockElement(m_focusedElement);
+    if (target && !target->IsEnabled()) {
+        if (focused) {
+            focused->OnBlur();
+            SetFocusedElement(nullptr);
+        }
+        return true;
+    }
+
     if (focused && focused.get() != target) {
         focused->OnBlur();
     }
@@ -1555,7 +1652,7 @@ void Window::OnLButtonDblClick(int x, int y) {
     float fy = static_cast<float>(y);
 
     UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
-    if (target) {
+    if (target && target->IsEnabled()) {
         target->OnMouseDblClick(Point(fx, fy));
     }
 }

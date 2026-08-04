@@ -10,5 +10,5 @@ ShowcasePage BuildTimePickerPage(const ShowcaseContext& ctx) {
         "TimePicker 时间选择器控件",
         "支持 HH:mm 格式化时间、快捷微调与时间变动回调。",
         CreateDemoSurface({ target }, 0.0f),
-        CreatePropertyGrid(ctx, target)) };
+        CreatePropertyGrid(ctx, target), target) };
 }

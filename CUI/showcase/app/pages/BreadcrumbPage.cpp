@@ -8,5 +8,5 @@ ShowcasePage BuildBreadcrumbPage(const ShowcaseContext& ctx) {
         "BreadcrumbBar 面包屑路径导航控件",
         "支持路径深层多节点、分隔符指示与节点直接点击跳转。",
         CreateDemoSurface({ target }, 0.0f),
-        CreatePropertyGrid(ctx, target)) };
+        CreatePropertyGrid(ctx, target), target) };
 }

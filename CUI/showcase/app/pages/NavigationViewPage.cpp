@@ -194,5 +194,5 @@ ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
         "WinUI 3 NavigationView",
         "PaneDisplayMode / DisplayMode / IsPaneOpen 分离；MenuItems · Footer · Settings · Header/Separator · 层级 · Top。",
         demo,
-        CreatePropertyGrid(ctx, nav)) };
+        CreatePropertyGrid(ctx, nav), nav) };
 }

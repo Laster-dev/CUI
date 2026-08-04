@@ -44,4 +44,5 @@ ShowcasePage BuildStackPanelPage(const ShowcaseContext& ctx);
 ShowcasePage BuildScrollViewerPage(const ShowcaseContext& ctx);
 ShowcasePage BuildFlyoutPage(const ShowcaseContext& ctx);
 ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx);
+ShowcasePage BuildTabViewPage(const ShowcaseContext& ctx);
 ShowcasePage BuildTerminalPage(const ShowcaseContext& ctx);

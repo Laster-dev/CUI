@@ -13,5 +13,5 @@ ShowcasePage BuildCheckBoxPage(const ShowcaseContext& ctx) {
         "CheckBox 复选框全属性控制台",
         "由 PropertyGrid 反射引擎绑定；颜色仅通过 theme.*Token 走 ThemeManager。",
         CreateDemoSurface({ target }, 0.0f),
-        CreatePropertyGrid(ctx, target)) };
+        CreatePropertyGrid(ctx, target), target) };
 }

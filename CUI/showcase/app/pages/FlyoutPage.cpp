@@ -36,5 +36,5 @@ ShowcasePage BuildFlyoutPage(const ShowcaseContext& ctx) {
         "Flyout 弹出框展示页",
         "WinUI 3 风格 Flyout 弹出窗口，支持 64ms 极速高度展开与折叠收起动画。",
         demo,
-        CreatePropertyGrid(ctx, btnTrigger)) };
+        CreatePropertyGrid(ctx, btnTrigger), btnTrigger) };
 }

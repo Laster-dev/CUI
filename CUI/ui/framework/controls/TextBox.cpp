@@ -20,6 +20,7 @@ std::vector<PropertyMeta> TextBox::GetPropertyMetas() const {
     metas.push_back({ "caretBlinkRate", "光标闪烁频率 (BlinkMs)", "光标排版", "number" });
     metas.push_back({ "TextWrapping", "自动换行 (TextWrapping)", "输入控制", "enum", { "NoWrap", "Wrap" } });
     metas.push_back({ "AcceptsReturn", "允许回车 (AcceptsReturn)", "输入控制", "bool" });
+    metas.push_back({ "isReadOnly", "只读 (IsReadOnly)", "输入控制", "bool" });
     return metas;
 }
 
@@ -79,6 +80,7 @@ TextBox::TextBox() {
     SetProperty("height", Value(48.0f));
     SetProperty("AcceptsReturn", Value(false));
     SetProperty("TextWrapping", Value("NoWrap"));
+    SetProperty("isReadOnly", Value(false));
 }
 
 TextBox::TextBox(const std::string& placeholder) : TextBox() {
@@ -282,6 +284,9 @@ void TextBox::EnsureCaretVisible(GraphicsContext& ctx) {
 }
 
 void TextBox::InsertText(const std::wstring& text) {
+    if (IsReadOnly() || !IsEnabled()) {
+        return;
+    }
     if (text.empty()) return;
 
     PushUndoState();
@@ -337,6 +342,7 @@ HCURSOR TextBox::GetCursor() const {
 }
 
 void TextBox::Undo() {
+    if (IsReadOnly() || !IsEnabled()) return;
     if (m_undoStack.empty()) return;
 
     TextBoxUndoState current;
@@ -358,6 +364,7 @@ void TextBox::Undo() {
 }
 
 void TextBox::Redo() {
+    if (IsReadOnly() || !IsEnabled()) return;
     if (m_redoStack.empty()) return;
 
     TextBoxUndoState current;
@@ -396,7 +403,10 @@ bool TextBox::OnAnimationTick() {
 
     bool animating = m_labelAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.22f, 0.01f });
     animating = m_focusLineAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.18f, 0.01f }) || animating;
-    return base || animating;
+    // Keep the animation pump alive while focused so caret blink uses dirty regions
+    // instead of a full-window timer repaint.
+    const bool caretBlink = m_isFocused && IsEnabled();
+    return base || animating || caretBlink;
 }
 
 bool TextBox::HasSelfAnimation() const {
@@ -406,7 +416,8 @@ bool TextBox::HasSelfAnimation() const {
     float focusTarget = m_isFocused ? 1.0f : 0.0f;
     return Control::HasSelfAnimation()
         || std::abs(labelTarget - m_labelAnim.Current()) > 0.01f
-        || std::abs(focusTarget - m_focusLineAnim.Current()) > 0.01f;
+        || std::abs(focusTarget - m_focusLineAnim.Current()) > 0.01f
+        || (m_isFocused && IsEnabled());
 }
 
 void TextBox::SelectAll() {
@@ -417,6 +428,9 @@ void TextBox::SelectAll() {
 }
 
 void TextBox::DeleteSelection() {
+    if (IsReadOnly() || !IsEnabled()) {
+        return;
+    }
     if (!HasSelection()) return;
 
     std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
@@ -436,7 +450,16 @@ void TextBox::DeleteSelection() {
 void TextBox::OnRender(GraphicsContext& ctx) {
     float radius = GetProperty("cornerRadius").AsFloat(0.0f);
     D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0, 0, 0, 0));
-    if (bg.a > 0.0f) {
+    const bool enabled = IsEnabled();
+    if (!enabled) {
+        D2D1_COLOR_F disabledBg = ThemeManager::Instance().GetColor("hoverBackground");
+        disabledBg.a = 0.45f;
+        if (radius > 0.0f) {
+            ctx.FillRoundedRect(m_bounds, radius, disabledBg);
+        } else {
+            ctx.FillRect(m_bounds, disabledBg);
+        }
+    } else if (bg.a > 0.0f) {
         if (radius > 0.0f) {
             ctx.FillRoundedRect(m_bounds, radius, bg);
         } else {
@@ -451,9 +474,13 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     float fontSize = GetFloatProperty(this, "fontSize", "FontSize", 13.0f);
     D2D1_COLOR_F phBase = ResolveThemeColor("theme.placeholderColorToken", "textMuted");
     D2D1_COLOR_F phActive = ResolveThemeColor("theme.activeUnderlineColorToken", "accentColor");
+    if (!enabled) {
+        phBase.a *= 0.55f;
+        phActive = phBase;
+    }
     Rect textRect = GetTextRect();
     float labelProgress = m_labelAnim.Current();
-    float focusLineProgress = m_focusLineAnim.Current();
+    float focusLineProgress = enabled ? m_focusLineAnim.Current() : 0.0f;
     float labelFontSize = fontSize + (11.0f - fontSize) * labelProgress;
     float labelY = m_bounds.y + 16.0f + (4.0f - 16.0f) * labelProgress;
     Rect labelRect(m_bounds.x, labelY, m_bounds.width, 16.0f);
@@ -509,6 +536,10 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     }
 
     D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
+    if (!enabled) {
+        textColor = ResolveThemeColor("theme.placeholderColorToken", "textMuted");
+        textColor.a *= 0.65f;
+    }
     ctx.DrawTextLayout(layout.Get(), layoutRect, textColor);
 
     if (!m_compString.empty()) {
@@ -523,7 +554,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     if (blinkRate <= 0) blinkRate = 500;
     bool cursorBlinkState = ((GetTickCount64() / blinkRate) % 2 == 0);
 
-    if (m_isFocused && cursorBlinkState && IsEnabled()) {
+    if (m_isFocused && cursorBlinkState && enabled) {
         int displayCaretPos = m_cursorPos;
         if (!m_compString.empty()) {
             displayCaretPos += static_cast<int>(m_compString.length());
@@ -544,10 +575,14 @@ void TextBox::OnRender(GraphicsContext& ctx) {
 
     D2D1_COLOR_F underlineColor = ResolveThemeColor("theme.underlineColorToken", "inputBorder");
     D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor("theme.activeUnderlineColorToken", "accentColor");
+    if (!enabled) {
+        underlineColor.a *= 0.4f;
+        activeUnderlineColor = underlineColor;
+    }
     float lineY = m_bounds.y + m_bounds.height - 2.0f;
     ctx.DrawLine(Point(m_bounds.x, lineY), Point(m_bounds.x + m_bounds.width, lineY), underlineColor, 1.0f);
 
-    float focusFactor = std::clamp(focusLineProgress, 0.0f, 1.0f);
+    float focusFactor = enabled ? std::clamp(focusLineProgress, 0.0f, 1.0f) : 0.0f;
     if (focusFactor > 0.01f) {
         float eased = 1.0f - std::pow(1.0f - focusFactor, 2.4f);
         float activeWidth = m_bounds.width * eased;
@@ -620,8 +655,11 @@ void TextBox::OnBlur() {
 }
 
 void TextBox::OnMouseDown(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     Control::OnMouseDown(pt);
-    if (IsPasswordMode() && GetShowRevealButton() && GetRevealButtonRect().Contains(pt.x, pt.y)) {
+    if (IsPasswordMode() && !IsReadOnly() && GetShowRevealButton() && GetRevealButtonRect().Contains(pt.x, pt.y)) {
         SetIsPasswordRevealed(!IsPasswordRevealed());
         return;
     }
@@ -636,34 +674,39 @@ void TextBox::OnMouseDown(Point pt) {
 }
 
 void TextBox::OnMouseRightClick(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     Control::OnMouseRightClick(pt);
 
     if (!m_contextMenu) {
         auto menu = std::make_shared<ContextMenu>();
-        menu->AddItem("撤销 (Undo)", "Ctrl+Z", [this]() { Undo(); });
-        menu->AddItem("重做 (Redo)", "Ctrl+Y", [this]() { Redo(); });
-        menu->AddSeparator();
-        menu->AddItem("剪切 (Cut)", "Ctrl+X", [this]() {
-            if (HasSelection()) {
-                std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
-                int selMin = (std::min)(m_selectionStart, m_selectionEnd);
-                int selMax = (std::max)(m_selectionStart, m_selectionEnd);
-                std::wstring selected = wtext.substr(selMin, selMax - selMin);
-                if (OpenClipboard(nullptr)) {
-                    EmptyClipboard();
-                    size_t bytes = (selected.size() + 1) * sizeof(wchar_t);
-                    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
-                    if (hMem) {
-                        wchar_t* pMem = static_cast<wchar_t*>(GlobalLock(hMem));
-                        memcpy(pMem, selected.c_str(), bytes);
-                        GlobalUnlock(hMem);
-                        SetClipboardData(CF_UNICODETEXT, hMem);
+        if (!IsReadOnly()) {
+            menu->AddItem("撤销 (Undo)", "Ctrl+Z", [this]() { Undo(); });
+            menu->AddItem("重做 (Redo)", "Ctrl+Y", [this]() { Redo(); });
+            menu->AddSeparator();
+            menu->AddItem("剪切 (Cut)", "Ctrl+X", [this]() {
+                if (HasSelection()) {
+                    std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+                    int selMin = (std::min)(m_selectionStart, m_selectionEnd);
+                    int selMax = (std::max)(m_selectionStart, m_selectionEnd);
+                    std::wstring selected = wtext.substr(selMin, selMax - selMin);
+                    if (OpenClipboard(nullptr)) {
+                        EmptyClipboard();
+                        size_t bytes = (selected.size() + 1) * sizeof(wchar_t);
+                        HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+                        if (hMem) {
+                            wchar_t* pMem = static_cast<wchar_t*>(GlobalLock(hMem));
+                            memcpy(pMem, selected.c_str(), bytes);
+                            GlobalUnlock(hMem);
+                            SetClipboardData(CF_UNICODETEXT, hMem);
+                        }
+                        CloseClipboard();
                     }
-                    CloseClipboard();
+                    DeleteSelection();
                 }
-                DeleteSelection();
-            }
-        });
+            });
+        }
         menu->AddItem("复制 (Copy)", "Ctrl+C", [this]() {
             if (HasSelection()) {
                 std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
@@ -684,33 +727,38 @@ void TextBox::OnMouseRightClick(Point pt) {
                 }
             }
         });
-        menu->AddItem("粘贴 (Paste)", "Ctrl+V", [this]() {
-            if (IsClipboardFormatAvailable(CF_UNICODETEXT) && OpenClipboard(nullptr)) {
-                HANDLE hData = GetClipboardData(CF_UNICODETEXT);
-                if (hData) {
-                    const wchar_t* pText = static_cast<const wchar_t*>(GlobalLock(hData));
-                    if (pText) {
-                        std::wstring clipText(pText);
-                        GlobalUnlock(hData);
-                        if (!GetAcceptsReturn()) {
-                            for (wchar_t& ch : clipText) {
-                                if (ch == L'\r' || ch == L'\n') ch = L' ';
+        if (!IsReadOnly()) {
+            menu->AddItem("粘贴 (Paste)", "Ctrl+V", [this]() {
+                if (IsClipboardFormatAvailable(CF_UNICODETEXT) && OpenClipboard(nullptr)) {
+                    HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+                    if (hData) {
+                        const wchar_t* pText = static_cast<const wchar_t*>(GlobalLock(hData));
+                        if (pText) {
+                            std::wstring clipText(pText);
+                            GlobalUnlock(hData);
+                            if (!GetAcceptsReturn()) {
+                                for (wchar_t& ch : clipText) {
+                                    if (ch == L'\r' || ch == L'\n') ch = L' ';
+                                }
                             }
+                            InsertText(clipText);
                         }
-                        InsertText(clipText);
                     }
+                    CloseClipboard();
                 }
-                CloseClipboard();
-            }
-        });
-        menu->AddItem("删除 (Delete)", "", [this]() { DeleteSelection(); });
-        menu->AddSeparator();
+            });
+            menu->AddItem("删除 (Delete)", "", [this]() { DeleteSelection(); });
+            menu->AddSeparator();
+        }
         menu->AddItem("全选 (Select All)", "Ctrl+A", [this]() { SelectAll(); });
         SetContextMenu(menu);
     }
 }
 
 void TextBox::OnMouseMove(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     Control::OnMouseMove(pt);
     if (m_isDraggingSelection && m_isPressed) {
         GraphicsContext ctx;
@@ -744,19 +792,23 @@ void TextBox::OnMouseUp(Point pt) {
 }
 
 void TextBox::OnKeyDown(int vkCode) {
+    if (!IsEnabled()) {
+        return;
+    }
     m_suppressCharCount = 0;
 
     std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
 
     bool isCtrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     bool isShiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    const bool readOnly = IsReadOnly();
 
-    if (isCtrlDown && (vkCode == 'Z' || vkCode == 'z')) {
+    if (!readOnly && isCtrlDown && (vkCode == 'Z' || vkCode == 'z')) {
         Undo();
         return;
     }
 
-    if (isCtrlDown && (vkCode == 'Y' || vkCode == 'y')) {
+    if (!readOnly && isCtrlDown && (vkCode == 'Y' || vkCode == 'y')) {
         Redo();
         return;
     }
@@ -786,6 +838,16 @@ void TextBox::OnKeyDown(int vkCode) {
             }
         }
         return;
+    }
+
+    if (readOnly) {
+        // Navigation / selection still allowed below; block mutating shortcuts.
+        if (isCtrlDown && (vkCode == 'X' || vkCode == 'x' || vkCode == 'V' || vkCode == 'v')) {
+            return;
+        }
+        if (vkCode == VK_BACK || vkCode == VK_DELETE || vkCode == VK_RETURN) {
+            return;
+        }
     }
 
     if (isCtrlDown && (vkCode == 'X' || vkCode == 'x')) {
@@ -969,7 +1031,7 @@ void TextBox::OnKeyDown(int vkCode) {
 
 void TextBox::CommitImeResult(const std::wstring& result) {
     m_compString.clear();
-    if (result.empty()) return;
+    if (result.empty() || !IsEnabled() || IsReadOnly()) return;
 
     InsertText(result);
     // IME commit is also delivered as WM_CHAR; suppress duplicates (e.g. Shift during composition).
@@ -980,6 +1042,9 @@ void TextBox::CommitImeResult(const std::wstring& result) {
 }
 
 void TextBox::OnCharInput(wchar_t ch) {
+    if (!IsEnabled() || IsReadOnly()) {
+        return;
+    }
     if (m_suppressCharCount > 0) {
         m_suppressCharCount--;
         return;

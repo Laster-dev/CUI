@@ -28,6 +28,7 @@ public:
     virtual bool HasSelfAnimation() const override;
     virtual HCURSOR GetCursor() const override;
     virtual void SyncRenderState() override;
+    virtual void MarkRenderContentDirty() override;
     virtual void CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume = true) override;
 
     float GetScrollOffsetY() const { return m_offsetY; }

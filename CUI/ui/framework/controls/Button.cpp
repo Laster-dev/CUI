@@ -74,6 +74,9 @@ Size Button::Measure(Size availableSize) {
 }
 
 void Button::OnMouseDown(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     Control::OnMouseDown(pt);
     if (!UIElement::AreAnimationsEnabled()) {
         m_rippleActive = false;

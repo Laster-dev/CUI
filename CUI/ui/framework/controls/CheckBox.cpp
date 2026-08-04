@@ -183,6 +183,9 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
 }
 
 void CheckBox::OnMouseDown(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     Control::OnMouseDown(pt);
 
     CheckState currentState = GetState();

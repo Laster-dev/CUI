@@ -149,12 +149,18 @@ void Slider::UpdateValueFromPoint(Point pt) {
 }
 
 void Slider::OnMouseDown(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     Control::OnMouseDown(pt);
     m_isDragging = true;
     UpdateValueFromPoint(pt);
 }
 
 void Slider::OnMouseMove(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     Control::OnMouseMove(pt);
     if (m_isDragging) {
         UpdateValueFromPoint(pt);

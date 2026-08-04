@@ -1,6 +1,7 @@
 #include "CollapsePanel.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
+#include <vector>
 #include <windows.h>
 
 namespace CUI {
@@ -72,12 +73,29 @@ void CollapsePanel::SetExpanded(bool expanded) {
 }
 
 void CollapsePanel::InvalidateParentLayout() {
-    UIElement* p = GetParent();
-    while (p) {
-        p->MarkRenderContentDirty();
-        p = p->GetParent();
-    }
     MarkRenderContentDirty();
+
+    // Re-measure/arrange the ancestor chain so collapsed height actually releases space,
+    // and expanded height is picked up without requiring a page switch.
+    std::vector<UIElement*> chain;
+    for (UIElement* p = this; p; p = p->GetParent()) {
+        chain.push_back(p);
+    }
+    if (chain.empty()) {
+        return;
+    }
+
+    UIElement* root = chain.back();
+    const Rect rootBounds = root->GetBounds();
+    if (rootBounds.IsEmpty()) {
+        for (UIElement* p : chain) {
+            p->MarkRenderContentDirty();
+        }
+        return;
+    }
+
+    root->Measure(Size(rootBounds.width, rootBounds.height));
+    root->Arrange(rootBounds);
 }
 
 void CollapsePanel::SetContent(std::shared_ptr<UIElement> content) {
@@ -108,7 +126,8 @@ Size CollapsePanel::Measure(Size availableSize) {
     Size headerSize = m_headerButton ? m_headerButton->Measure(Size(contentW, contentH)) : Size(0, 0);
     Size bodySize(0, 0);
     if (m_isExpanded && m_contentHost) {
-        bodySize = m_contentHost->Measure(Size(contentW, (std::max)(0.0f, contentH - headerSize.height)));
+        // Give body unbounded height so it can report true desired size for ScrollViewer parents.
+        bodySize = m_contentHost->Measure(Size(contentW, 100000.0f));
     }
 
     float width = (std::max)(headerSize.width, bodySize.width) + margin.left + margin.right + padding.left + padding.right;
@@ -141,6 +160,11 @@ void CollapsePanel::Arrange(Rect finalRect) {
         if (m_isExpanded) {
             float contentY = innerY + headerSize.height;
             float contentH = (std::max)(0.0f, innerH - headerSize.height);
+            // Prefer content's desired height when parent gave us exact measured height.
+            Size bodyDesired = m_contentHost->GetDesiredSize();
+            if (bodyDesired.height > 0.0f && bodyDesired.height < contentH) {
+                contentH = bodyDesired.height;
+            }
             m_contentHost->Arrange(Rect(innerX, contentY, innerW, contentH));
         } else {
             m_contentHost->Arrange(Rect(innerX, innerY + headerSize.height, innerW, 0.0f));
@@ -160,8 +184,9 @@ void CollapsePanel::OnRender(GraphicsContext& ctx) {
 }
 
 void CollapsePanel::OnMouseDown(Point pt) {
+    // Header Button already toggles via OnClick — do not double-toggle here.
     if (m_headerButton && m_headerButton->GetBounds().Contains(pt.x, pt.y)) {
-        SetExpanded(!m_isExpanded);
+        m_headerButton->OnMouseDown(pt);
         return;
     }
     if (m_isExpanded && m_contentHost && m_contentHost->GetBounds().Contains(pt.x, pt.y)) {

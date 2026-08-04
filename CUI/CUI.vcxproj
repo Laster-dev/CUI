@@ -191,6 +191,7 @@
     <ClCompile Include="showcase\app\pages\ScrollViewerPage.cpp" />
     <ClCompile Include="showcase\app\pages\FlyoutPage.cpp" />
     <ClCompile Include="showcase\app\pages\NavigationViewPage.cpp" />
+    <ClCompile Include="showcase\app\pages\TabViewPage.cpp" />
     <ClCompile Include="ui\framework\core\Value.cpp" />
     <ClCompile Include="ui\framework\core\Object.cpp" />
     <ClCompile Include="ui\framework\core\Binding.cpp" />

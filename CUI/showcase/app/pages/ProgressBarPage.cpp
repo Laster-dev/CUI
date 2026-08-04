@@ -16,5 +16,5 @@ ShowcasePage BuildProgressBarPage(const ShowcaseContext& ctx) {
             CreateShowcaseText("2. 不确定加载动画模式 (IsIndeterminate):", 12.0f, "#AAAAAA"),
             indeterminate
         }),
-        CreatePropertyGrid(ctx, target)) };
+        CreatePropertyGrid(ctx, target), target) };
 }

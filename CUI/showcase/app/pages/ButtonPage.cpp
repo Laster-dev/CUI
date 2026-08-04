@@ -47,5 +47,5 @@ ShowcasePage BuildButtonPage(const ShowcaseContext& ctx) {
         "Button 按钮控件全属性交互控制台",
         "由 PropertyGrid 自动化反射引擎进行 100% 精准双向绑定控制。",
         demo,
-        CreatePropertyGrid(ctx, target)) };
+        CreatePropertyGrid(ctx, target), target) };
 }

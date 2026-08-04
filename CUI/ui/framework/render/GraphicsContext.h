@@ -6,6 +6,7 @@
 #include <dwrite.h>
 #include <wincodec.h>
 #include <dxgi1_2.h>
+#include <dcomp.h>
 #include <wrl/client.h>
 #include <vector>
 
@@ -30,6 +31,7 @@ public:
     IDWriteFactory* GetDWriteFactory() const { return m_dwriteFactory.Get(); }
     RenderResources& GetResources() { return m_resources; }
     HWND GetHwnd() const { return m_hwnd; }
+    bool UsesCompositionSwapChain() const { return m_usesCompositionSwapChain; }
 
     void PushClip(const Rect& rect);
     void PopClip();
@@ -59,9 +61,7 @@ public:
         float maxHeight = 10000.0f;
         DWRITE_WORD_WRAPPING wrapping = DWRITE_WORD_WRAPPING_NO_WRAP;
         DWRITE_PARAGRAPH_ALIGNMENT paragraphAlignment = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-        // lineSpacing: multiplier of font size (1.0 = default). Ignored when lineHeight > 0.
         float lineSpacing = 1.0f;
-        // lineHeight: uniform line height in DIPs. When > 0, overrides lineSpacing.
         float lineHeight = 0.0f;
     };
 
@@ -95,9 +95,11 @@ public:
 private:
     HRESULT CreateDeviceIndependentResources();
     HRESULT CreateDeviceResources();
+    HRESULT BindSwapChainTarget(float dpiX, float dpiY);
 
     HWND m_hwnd = nullptr;
     float m_dpiScale = 1.0f;
+    bool m_usesCompositionSwapChain = false;
 
     ComPtr<ID2D1Factory1> m_d2dFactory;
     ComPtr<IDWriteFactory> m_dwriteFactory;
@@ -106,6 +108,9 @@ private:
     ComPtr<ID2D1Device> m_d2dDevice;
     ComPtr<ID2D1DeviceContext> m_d2dContext;
     ComPtr<IDXGISwapChain1> m_swapChain;
+    ComPtr<IDCompositionDevice> m_dcompDevice;
+    ComPtr<IDCompositionTarget> m_dcompTarget;
+    ComPtr<IDCompositionVisual> m_dcompVisual;
 
     RenderResources m_resources;
     std::vector<D2D1_RECT_F> m_clipStack;

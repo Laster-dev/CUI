@@ -85,6 +85,20 @@ std::string Value::AsString(const std::string& def) const {
     if (m_type == Type::Bool) return std::get<bool>(m_val) ? "true" : "false";
     if (m_type == Type::Int) return std::to_string(std::get<int>(m_val));
     if (m_type == Type::Float) return std::to_string(std::get<float>(m_val));
+    if (m_type == Type::Color) {
+        D2D1_COLOR_F c = std::get<D2D1_COLOR_F>(m_val);
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(4)
+            << c.r << "," << c.g << "," << c.b << "," << c.a;
+        return oss.str();
+    }
+    if (m_type == Type::Thickness) {
+        Thickness t = std::get<Thickness>(m_val);
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(3)
+            << t.left << "," << t.top << "," << t.right << "," << t.bottom;
+        return oss.str();
+    }
     return def;
 }
 

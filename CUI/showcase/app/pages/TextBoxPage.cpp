@@ -12,5 +12,5 @@ ShowcasePage BuildTextBoxPage(const ShowcaseContext& ctx) {
         "TextBox 输入框控件全属性控制台",
         "支持光标颜色/宽度/闪烁周期自定义、占位词与高级排版。",
         CreateDemoSurface({ target }, 0.0f),
-        CreatePropertyGrid(ctx, target)) };
+        CreatePropertyGrid(ctx, target), target) };
 }

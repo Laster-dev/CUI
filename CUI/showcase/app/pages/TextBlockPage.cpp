@@ -14,7 +14,8 @@ ShowcasePage BuildTextBlockPage(const ShowcaseContext& ctx) {
             },
             0.0f
         ),
-        CreatePropertyGrid(ctx, target)
+        CreatePropertyGrid(ctx, target),
+        target
         )
     };
 }

@@ -21,5 +21,5 @@ ShowcasePage BuildCollapsePage(const ShowcaseContext& ctx) {
         "CollapsePanel 可折叠手风琴面板控件",
         "支持点击标题栏展开/收起子容器、自定义 Header 文本与动画过渡。",
         CreateDemoSurface({ panel1, panel2 }),
-        CreatePropertyGrid(ctx, panel1)) };
+        CreatePropertyGrid(ctx, panel1), panel1) };
 }

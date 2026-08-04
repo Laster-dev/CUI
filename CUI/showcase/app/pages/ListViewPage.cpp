@@ -27,5 +27,5 @@ ShowcasePage BuildListViewPage(const ShowcaseContext& ctx) {
         "ListView 100k 多列虚拟化表单全属性控制台",
         "由 PropertyGrid 反射绑定；颜色仅通过 theme.*Token 走 ThemeManager。",
         CreateDemoSurface({ target }, 0.0f),
-        CreatePropertyGrid(ctx, target)) };
+        CreatePropertyGrid(ctx, target), target) };
 }

@@ -67,6 +67,9 @@ public:
     bool GetShowRevealButton() const { return GetProperty("showRevealButton").AsBool(true); }
     void SetShowRevealButton(bool show) { SetProperty("showRevealButton", Value(show)); }
 
+    bool IsReadOnly() const { return GetProperty("isReadOnly").AsBool(false); }
+    void SetIsReadOnly(bool readOnly) { SetProperty("isReadOnly", Value(readOnly)); }
+
     Event<TextBox*, const std::string&>& OnTextChanged() { return m_onTextChangedEvent; }
 
 protected:

@@ -70,6 +70,9 @@ bool ToggleSwitch::HasSelfAnimation() const {
 }
 
 void ToggleSwitch::OnMouseUp(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     Control::OnMouseUp(pt);
     if (m_bounds.Contains(pt.x, pt.y)) {
         SetIsOn(!IsOn());

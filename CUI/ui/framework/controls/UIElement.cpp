@@ -37,6 +37,8 @@ UIElement::UIElement() {
     SetProperty("minHeight", Value(0.0f));
     SetProperty("margin", Value(Thickness(0)));
     SetProperty("padding", Value(Thickness(0)));
+    SetProperty("opacity", Value(1.0f));
+    SetProperty("isEnabled", Value(true));
     SetProperty("visibility", Value("Visible"));
     SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
     SetProperty("borderBrush", Value(D2D1::ColorF(0, 0, 0, 0)));
@@ -285,6 +287,12 @@ UIElement* UIElement::HitTest(float x, float y) {
     UIElement* overlayHit = HitTestOverlay(x, y);
     if (overlayHit) return overlayHit;
 
+    // Clip hit-testing to bounds when render also clips (prevents scrolled
+    // descendants from capturing clicks in chrome above the viewport).
+    if (ShouldClipToBounds() && !m_bounds.Contains(x, y)) {
+        return nullptr;
+    }
+
     // 2. Check children first (topmost first)
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
         UIElement* hit = (*it)->HitTest(x, y);
@@ -316,6 +324,9 @@ void UIElement::OnMouseLeave() {
 }
 
 void UIElement::OnMouseDown(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     m_isPressed = true;
     m_onMouseDownEvent.Invoke(this, pt);
     MarkRenderContentDirty();
@@ -324,7 +335,7 @@ void UIElement::OnMouseDown(Point pt) {
 void UIElement::OnMouseUp(Point pt) {
     if (m_isPressed) {
         m_isPressed = false;
-        if (m_bounds.Contains(pt.x, pt.y)) {
+        if (IsEnabled() && m_bounds.Contains(pt.x, pt.y)) {
             m_onClickEvent.Invoke(this);
         }
         MarkRenderContentDirty();
@@ -332,6 +343,9 @@ void UIElement::OnMouseUp(Point pt) {
 }
 
 void UIElement::OnMouseMove(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
     float dx = pt.x - m_lastMousePos.x;
     float dy = pt.y - m_lastMousePos.y;
     float distSq = dx * dx + dy * dy;
@@ -347,12 +361,17 @@ void UIElement::OnMouseMove(Point pt) {
 }
 
 void UIElement::OnMouseWheel(float delta) {
+    // Wheel always bubbles so a disabled child does not trap scroll of a parent ScrollViewer.
     if (m_parent) {
         m_parent->OnMouseWheel(delta);
     }
 }
 
 void UIElement::OnKeyDown(int vkCode) {
+    (void)vkCode;
+    if (!IsEnabled()) {
+        return;
+    }
 }
 
 bool UIElement::OnAnimationTick() {

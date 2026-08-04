@@ -92,6 +92,16 @@ public:
         return *this;
     }
 
+    ElementBuilder& MinWidth(float w) {
+        m_element->SetProperty("minWidth", Value(w));
+        return *this;
+    }
+
+    ElementBuilder& MinHeight(float h) {
+        m_element->SetProperty("minHeight", Value(h));
+        return *this;
+    }
+
     ElementBuilder& Size(float w, float h) {
         m_element->SetProperty("width", Value(w));
         m_element->SetProperty("height", Value(h));
@@ -442,7 +452,18 @@ inline ElementBuilder<PagingControl> PagingControlWidget(int current = 1, int to
 
 inline ElementBuilder<Splitter> SplitterWidget(Orientation orientation = Orientation::Horizontal) {
     auto s = ElementBuilder<Splitter>();
-    s->SetProperty("orientation", Value(orientation == Orientation::Horizontal ? "Horizontal" : "Vertical"));
+    // Cross-axis must stay -1 (auto) so parent Stretch makes a full-length bar,
+    // not a thickness×thickness square.
+    if (orientation == Orientation::Horizontal) {
+        s->SetOrientation("Horizontal");
+        s->SetProperty("width", Value(-1.0f));
+        s->SetProperty("height", Value(10.0f));
+    } else {
+        s->SetOrientation("Vertical");
+        s->SetProperty("width", Value(10.0f));
+        s->SetProperty("height", Value(-1.0f));
+    }
+    s->SetProperty("align", Value("Stretch"));
     return s;
 }
 

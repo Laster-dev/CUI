@@ -504,10 +504,14 @@ void ScrollViewer::RenderScrollChrome(GraphicsContext& ctx) {
 void ScrollViewer::SyncRenderState() {
     UIElement::SyncRenderState();
     UpdateContentLayerState();
-    m_contentLayer.Validate();
-    m_contentLayerDirty.Clear();
-    m_pendingViewportScrollPatch = false;
-    m_pendingViewportPatchDeltaY = 0.0f;
+    // Intentionally do NOT Validate()/clear content-layer dirty here.
+    // Clearing before paint discarded theme refreshes and left stale glyphs
+    // (e.g. dark-mode white text composited onto a light pane).
+}
+
+void ScrollViewer::MarkRenderContentDirty() {
+    UIElement::MarkRenderContentDirty();
+    MarkContentLayerDirty();
 }
 
 void ScrollViewer::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume) {
@@ -524,22 +528,26 @@ UIElement* ScrollViewer::HitTest(float x, float y) {
     std::string visStr = GetProperty("visibility").AsString("Visible");
     if (visStr != "Visible") return nullptr;
 
+    // Overlays (e.g. open ComboBox) may extend past the viewport — test first.
+    UIElement* overlayHit = HitTestOverlay(x, y);
+    if (overlayHit) return overlayHit;
+
+    // Match render clipping: scrolled children arranged at y-offset must NOT
+    // receive hits outside the viewport (otherwise they steal TitleBar clicks).
+    if (!m_bounds.Contains(x, y)) {
+        return nullptr;
+    }
+
     if (m_contentHeight > m_bounds.height && GetScrollbarTrackRect().Contains(x, y)) {
         return this;
     }
-
-    UIElement* overlayHit = HitTestOverlay(x, y);
-    if (overlayHit) return overlayHit;
 
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
         UIElement* hit = (*it)->HitTest(x, y);
         if (hit) return hit;
     }
 
-    if (m_bounds.Contains(x, y)) {
-        return this;
-    }
-    return nullptr;
+    return this;
 }
 
 HCURSOR ScrollViewer::GetCursor() const {

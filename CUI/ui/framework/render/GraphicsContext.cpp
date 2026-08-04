@@ -10,6 +10,7 @@
 #pragma comment(lib, "dwrite.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "dcomp.lib")
 #pragma comment(lib, "ole32.lib")
 
 namespace CUI {
@@ -48,6 +49,32 @@ HRESULT GraphicsContext::CreateDeviceIndependentResources() {
     return hr;
 }
 
+HRESULT GraphicsContext::BindSwapChainTarget(float dpiX, float dpiY) {
+    ComPtr<IDXGISurface> dxgiBackBuffer;
+    HRESULT hr = m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer));
+    if (FAILED(hr)) return hr;
+
+    D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1(
+        D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+        dpiX,
+        dpiY
+    );
+
+    ComPtr<ID2D1Bitmap1> d2dTargetBitmap;
+    hr = m_d2dContext->CreateBitmapFromDxgiSurface(
+        dxgiBackBuffer.Get(),
+        &bitmapProperties,
+        &d2dTargetBitmap
+    );
+    if (FAILED(hr)) return hr;
+
+    m_d2dContext->SetTarget(d2dTargetBitmap.Get());
+    m_dpiScale = dpiX / 96.0f;
+    m_d2dContext->SetDpi(dpiX, dpiY);
+    return S_OK;
+}
+
 HRESULT GraphicsContext::CreateDeviceResources() {
     if (!m_hwnd) return E_POINTER;
 
@@ -64,7 +91,6 @@ HRESULT GraphicsContext::CreateDeviceResources() {
         dpiY = static_cast<float>(dpi);
     }
 
-    // Create D3D11 Device
     UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 #ifdef _DEBUG
     creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
@@ -95,7 +121,6 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     );
 
     if (FAILED(hr)) {
-        // Fallback to WARP if hardware fails
         hr = D3D11CreateDevice(
             nullptr,
             D3D_DRIVER_TYPE_WARP,
@@ -130,9 +155,6 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     if (FAILED(hr)) return hr;
 
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-    // Use the current custom-chrome client size explicitly and pair it with
-    // DXGI_SCALING_NONE. Width/height mismatches here show up as real unpainted
-    // bands, so the window proc must keep GetClientRect authoritative.
     swapChainDesc.Width = width;
     swapChainDesc.Height = height;
     swapChainDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -141,43 +163,63 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     swapChainDesc.SampleDesc.Quality = 0;
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.BufferCount = 2;
-    swapChainDesc.Scaling = DXGI_SCALING_NONE;
+    swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-    swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+    swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
 
-    hr = dxgiFactory->CreateSwapChainForHwnd(
+    m_usesCompositionSwapChain = false;
+    hr = dxgiFactory->CreateSwapChainForComposition(
         d3dDevice.Get(),
-        m_hwnd,
         &swapChainDesc,
-        nullptr,
         nullptr,
         &m_swapChain
     );
+    if (SUCCEEDED(hr)) {
+        hr = DCompositionCreateDevice(dxgiDevice.Get(), IID_PPV_ARGS(&m_dcompDevice));
+        if (SUCCEEDED(hr)) {
+            hr = m_dcompDevice->CreateTargetForHwnd(m_hwnd, FALSE, &m_dcompTarget);
+        }
+        if (SUCCEEDED(hr)) {
+            hr = m_dcompDevice->CreateVisual(&m_dcompVisual);
+        }
+        if (SUCCEEDED(hr)) {
+            hr = m_dcompVisual->SetContent(m_swapChain.Get());
+        }
+        if (SUCCEEDED(hr)) {
+            hr = m_dcompTarget->SetRoot(m_dcompVisual.Get());
+        }
+        if (SUCCEEDED(hr)) {
+            hr = m_dcompDevice->Commit();
+        }
+        if (SUCCEEDED(hr)) {
+            m_usesCompositionSwapChain = true;
+        } else {
+            m_dcompVisual.Reset();
+            m_dcompTarget.Reset();
+            m_dcompDevice.Reset();
+            m_swapChain.Reset();
+        }
+    }
+
+    if (!m_usesCompositionSwapChain) {
+        // Fallback: classic HWND swap chain (alpha ignored — Mica will not show through).
+        swapChainDesc.Scaling = DXGI_SCALING_NONE;
+        swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+        hr = dxgiFactory->CreateSwapChainForHwnd(
+            d3dDevice.Get(),
+            m_hwnd,
+            &swapChainDesc,
+            nullptr,
+            nullptr,
+            &m_swapChain
+        );
+        if (FAILED(hr)) return hr;
+    }
+
+    dxgiFactory->MakeWindowAssociation(m_hwnd, DXGI_MWA_NO_ALT_ENTER);
+
+    hr = BindSwapChainTarget(dpiX, dpiY);
     if (FAILED(hr)) return hr;
-
-    ComPtr<IDXGISurface> dxgiBackBuffer;
-    hr = m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer));
-    if (FAILED(hr)) return hr;
-
-    D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1(
-        D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-        dpiX,
-        dpiY
-    );
-
-    ComPtr<ID2D1Bitmap1> d2dTargetBitmap;
-    hr = m_d2dContext->CreateBitmapFromDxgiSurface(
-        dxgiBackBuffer.Get(),
-        &bitmapProperties,
-        &d2dTargetBitmap
-    );
-    if (FAILED(hr)) return hr;
-
-    m_d2dContext->SetTarget(d2dTargetBitmap.Get());
-
-    m_dpiScale = dpiX / 96.0f;
-    m_d2dContext->SetDpi(dpiX, dpiY);
 
     m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
     return S_OK;
@@ -200,14 +242,6 @@ void GraphicsContext::Resize(UINT width, UINT height) {
         return;
     }
 
-    ComPtr<IDXGISurface> dxgiBackBuffer;
-    hr = m_swapChain->GetBuffer(0, IID_PPV_ARGS(&dxgiBackBuffer));
-    if (FAILED(hr)) {
-        ReleaseDeviceResources();
-        CreateDeviceResources();
-        return;
-    }
-
     float dpiX = 96.0f;
     float dpiY = 96.0f;
     UINT dpi = GetDpiForWindow(m_hwnd);
@@ -216,39 +250,32 @@ void GraphicsContext::Resize(UINT width, UINT height) {
         dpiY = static_cast<float>(dpi);
     }
 
-    D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1(
-        D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-        dpiX,
-        dpiY
-    );
-
-    ComPtr<ID2D1Bitmap1> d2dTargetBitmap;
-    hr = m_d2dContext->CreateBitmapFromDxgiSurface(dxgiBackBuffer.Get(), &bitmapProperties, &d2dTargetBitmap);
+    hr = BindSwapChainTarget(dpiX, dpiY);
     if (FAILED(hr)) {
         ReleaseDeviceResources();
         CreateDeviceResources();
         return;
     }
 
-    m_d2dContext->SetTarget(d2dTargetBitmap.Get());
-
-    // ResizeBuffers recreates the surface backing the D2D target. Reapply the
-    // current window DPI here so the first frame after startup/resize uses the
-    // same DIP->pixel mapping as subsequent paints. Without this, the app can
-    // come up slightly blurry until a later resize path fully refreshes the
-    // render target state.
-    m_dpiScale = dpiX / 96.0f;
-    m_d2dContext->SetDpi(dpiX, dpiY);
+    if (m_usesCompositionSwapChain && m_dcompDevice) {
+        m_dcompDevice->Commit();
+    }
 
     m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
 }
 
 void GraphicsContext::ReleaseDeviceResources() {
     m_resources.ReleaseDeviceResources();
+    if (m_d2dContext) {
+        m_d2dContext->SetTarget(nullptr);
+    }
+    m_dcompVisual.Reset();
+    m_dcompTarget.Reset();
+    m_dcompDevice.Reset();
+    m_swapChain.Reset();
     m_d2dContext.Reset();
     m_d2dDevice.Reset();
-    m_swapChain.Reset();
+    m_usesCompositionSwapChain = false;
 }
 
 void GraphicsContext::BeginDraw() {
@@ -272,6 +299,9 @@ HRESULT GraphicsContext::EndDraw() {
     if (m_swapChain) {
         // Pace animation to the compositor refresh rate for smoother scrolling/toast motion.
         m_swapChain->Present(1, 0);
+        if (m_usesCompositionSwapChain && m_dcompDevice) {
+            m_dcompDevice->Commit();
+        }
     }
     return hr;
 }
