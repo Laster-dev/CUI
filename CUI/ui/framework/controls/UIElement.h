@@ -97,6 +97,7 @@ public:
     virtual void OnMouseMove(Point pt);
     virtual void OnMouseWheel(float delta);
     virtual void OnKeyDown(int vkCode);
+    virtual void OnCharInput(wchar_t ch) {}
     virtual void OnAutoScrollTick() {}
     virtual bool NeedsAutoScrollTick() const { return false; }
     // Returns true if any animation still needs frames (smooth scroll, etc.).

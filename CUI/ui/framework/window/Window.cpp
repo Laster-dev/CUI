@@ -1106,10 +1106,8 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_CHAR:
         if (auto focused = LockElement(m_focusedElement)) {
-            if (auto tb = dynamic_cast<TextBox*>(focused.get())) {
-                tb->OnCharInput(static_cast<wchar_t>(wParam));
-                InvalidatePendingRenderRegions(true);
-            }
+            focused->OnCharInput(static_cast<wchar_t>(wParam));
+            InvalidatePendingRenderRegions(true);
         }
         return 0;
 

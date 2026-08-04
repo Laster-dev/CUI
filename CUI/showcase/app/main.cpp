@@ -66,7 +66,8 @@ public:
             BuildStackPanelPage(m_ctx),
             BuildScrollViewerPage(m_ctx),
             BuildFlyoutPage(m_ctx),
-            BuildNavigationViewPage(m_ctx)
+            BuildNavigationViewPage(m_ctx),
+            BuildTerminalPage(m_ctx)
         };
 
         for (const auto& page : pages) {
