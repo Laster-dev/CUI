@@ -100,10 +100,10 @@ public:
         if (win) {
             auto title = CreateShowcaseHeader("Settings", "Theme / Backdrop 配置");
             auto cbBackdrop = std::make_shared<ComboBox>();
-            cbBackdrop->AddItem("Mica");
-            cbBackdrop->AddItem("MicaAlt");
-            cbBackdrop->AddItem("Acrylic");
-            cbBackdrop->AddItem("None");
+            cbBackdrop->AddItem("云母");
+            cbBackdrop->AddItem("沉浸云母");
+            cbBackdrop->AddItem("亚克力");
+            cbBackdrop->AddItem("无材质");
             cbBackdrop->SetSelectedIndex(0);
 
             cbBackdrop->OnSelectionChanged().Connect([win](ComboBox*, int index, const std::string&) {

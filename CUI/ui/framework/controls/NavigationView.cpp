@@ -11,17 +11,12 @@ constexpr float kChromeButton = 40.0f;
 constexpr float kTopNavHeight = 48.0f;
 
 void StyleChromeButton(const std::shared_ptr<Button>& btn) {
-    auto& theme = ThemeManager::Instance();
+    // Tokens only — Button paint resolves via ThemeManager / ResolveThemeColor.
     btn->SetProperty("theme.backgroundToken", Value("cardBackground"));
     btn->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
     btn->SetProperty("theme.pressedBackgroundToken", Value("pressedBackground"));
     btn->SetProperty("theme.colorToken", Value("textPrimary"));
     btn->SetProperty("theme.borderToken", Value("cardBorder"));
-    btn->SetProperty("background", Value(theme.GetColor("cardBackground")));
-    btn->SetProperty("hoverBackground", Value(theme.GetColor("hoverBackground")));
-    btn->SetProperty("pressedBackground", Value(theme.GetColor("pressedBackground")));
-    btn->SetProperty("color", Value(theme.GetColor("textPrimary")));
-    btn->SetProperty("borderBrush", Value(theme.GetColor("cardBorder")));
     btn->SetProperty("width", Value(kChromeButton));
     btn->SetProperty("height", Value(kChromeButton));
     btn->SetProperty("cornerRadius", Value(4.0f));
@@ -30,13 +25,12 @@ void StyleChromeButton(const std::shared_ptr<Button>& btn) {
 }
 
 NavigationView::NavigationView() {
-    auto& theme = ThemeManager::Instance();
     SetProperty("theme.backgroundToken", Value("windowBackground"));
     SetProperty("theme.paneBackgroundToken", Value("paneBackground"));
     SetProperty("theme.indicatorColorToken", Value("accentColor"));
-    SetProperty("background", Value(theme.GetColor("windowBackground")));
-    SetProperty("paneBackground", Value(theme.GetColor("paneBackground")));
-    SetProperty("indicatorColor", Value(theme.GetColor("accentColor")));
+    SetProperty("theme.borderToken", Value("cardBorder"));
+    SetProperty("theme.colorToken", Value("textPrimary"));
+    SetProperty("theme.secondaryColorToken", Value("textSecondary"));
 
     BuildChrome();
     EnsureSettingsItem();
@@ -1085,9 +1079,9 @@ void NavigationView::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
     const D2D1_COLOR_F paneBg = ResolveThemeColor("theme.paneBackgroundToken", "paneBackground");
-    const D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder;
-    const D2D1_COLOR_F textPrimary = ThemeManager::Instance().GetTokens().textPrimary;
-    const D2D1_COLOR_F textSecondary = ThemeManager::Instance().GetTokens().textSecondary;
+    const D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
+    const D2D1_COLOR_F textPrimary = ResolveThemeColor("theme.colorToken", "textPrimary");
+    const D2D1_COLOR_F textSecondary = ResolveThemeColor("theme.secondaryColorToken", "textSecondary");
 
     if (IsTopNavigation()) {
         const Rect top = GetTopNavRect();

@@ -7,23 +7,19 @@
 namespace CUI {
 
 CollapsePanel::CollapsePanel() {
-    SetProperty("theme.backgroundToken", Value("cardBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    // 外壳用 pane 玻璃，避免大块实心 card 盖死材质。
+    SetProperty("theme.backgroundToken", Value("paneBackground"));
     SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("borderThickness", Value(1.0f));
     SetProperty("cornerRadius", Value(6.0f));
     SetProperty("padding", Value(Thickness(0)));
 
     m_headerButton = std::make_shared<Button>();
     m_headerButton->SetProperty("theme.backgroundToken", Value("paneBackground"));
-    m_headerButton->SetProperty("background", Value(ThemeManager::Instance().GetColor("paneBackground")));
-    m_headerButton->SetProperty("theme.hoverBackgroundToken", Value("cardBackground"));
-    m_headerButton->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("cardBackground")));
-    m_headerButton->SetProperty("theme.pressedBackgroundToken", Value("accentColor"));
-    m_headerButton->SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor("accentColor")));
+    m_headerButton->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
+    m_headerButton->SetProperty("theme.pressedBackgroundToken", Value("pressedBackground"));
     m_headerButton->SetProperty("theme.colorToken", Value("textPrimary"));
-    m_headerButton->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    m_headerButton->SetProperty("theme.borderToken", Value("cardBorder"));
     m_headerButton->SetProperty("borderThickness", Value(0.0f));
     m_headerButton->SetProperty("cornerRadius", Value(6.0f));
     m_headerButton->SetProperty("padding", Value(Thickness(12, 10, 12, 10)));
@@ -35,8 +31,8 @@ CollapsePanel::CollapsePanel() {
     m_contentHost->SetProperty("gap", Value(8.0f));
     m_contentHost->SetProperty("padding", Value(Thickness(12, 12, 12, 12)));
     m_contentHost->SetProperty("align", Value("Stretch"));
-    m_contentHost->SetProperty("theme.backgroundToken", Value("cardBackground"));
-    m_contentHost->SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    // 内容宿主透明，露出外层 pane / 底下 SystemBackdrop。
+    m_contentHost->SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
 
     AddChild(m_headerButton);
     AddChild(m_contentHost);
@@ -173,7 +169,7 @@ void CollapsePanel::Arrange(Rect finalRect) {
 }
 
 void CollapsePanel::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
+    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "paneBackground");
     D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
     float radius = GetProperty("cornerRadius").AsFloat(6.0f);
 

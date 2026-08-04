@@ -12,6 +12,7 @@
 #include <imm.h>
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <sstream>
 
 #pragma comment(lib, "imm32.lib")
@@ -65,6 +66,24 @@ bool CoversRect(const Rect& outer, const Rect& inner, float epsilon = 1.0f) {
         && outer.y <= inner.y + epsilon
         && outer.x + outer.width >= inner.x + inner.width - epsilon
         && outer.y + outer.height >= inner.y + inner.height - epsilon;
+}
+
+bool IsOverlayScrimAnimating(UIElement* element) {
+    if (!element) {
+        return false;
+    }
+    if (element->HasSelfAnimation()) {
+        const char* name = element->GetClassName();
+        if (name && std::strcmp(name, "ContentDialog") == 0) {
+            return true;
+        }
+    }
+    for (const auto& child : element->GetChildren()) {
+        if (IsOverlayScrimAnimating(child.get())) {
+            return true;
+        }
+    }
+    return false;
 }
 
 Rect GetClientBounds(HWND hwnd) {
@@ -179,10 +198,9 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
     } else if (className == "PropertyGrid") {
         if (!element->HasProperty("theme.backgroundToken")) {
             element->SetProperty("theme.backgroundToken", Value("paneBackground"));
-            element->SetProperty("background", Value(ThemeManager::Instance().GetColor("paneBackground")));
         }
         if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("borderBrush", Value(tokens.cardBorder));
+            element->SetProperty("theme.borderToken", Value("cardBorder"));
         }
     } else if (className == "ContextMenu") {
         if (!element->HasProperty("theme.backgroundToken")) {
@@ -210,25 +228,25 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
         }
     } else if (className == "ComboBox") {
         if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.textPrimary));
+            element->SetProperty("theme.colorToken", Value("textPrimary"));
         }
         if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.inputBackground));
+            element->SetProperty("theme.backgroundToken", Value("inputBackground"));
         }
         if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("hoverBackground", Value(tokens.hoverBackground));
+            element->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
         }
         if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("borderBrush", Value(tokens.inputBorder));
+            element->SetProperty("theme.borderToken", Value("inputBorder"));
         }
         if (!element->HasProperty("theme.focusedBorderToken")) {
-            element->SetProperty("focusedBorderBrush", Value(tokens.focusedBorder));
+            element->SetProperty("theme.focusedBorderToken", Value("focusedBorder"));
         }
         if (!element->HasProperty("theme.dropdownBackgroundToken")) {
-            element->SetProperty("dropdownBackground", Value(tokens.cardBackground));
+            element->SetProperty("theme.dropdownBackgroundToken", Value("cardBackground"));
         }
         if (!element->HasProperty("theme.selectedItemBackgroundToken")) {
-            element->SetProperty("selectedItemBackground", Value(tokens.accentColor));
+            element->SetProperty("theme.selectedItemBackgroundToken", Value("selectedBackground"));
         }
     } else if (className == "CheckBox") {
         if (!element->HasProperty("theme.colorToken")) {
@@ -274,58 +292,58 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
         }
     } else if (className == "Slider") {
         if (!element->HasProperty("theme.trackColorToken")) {
-            element->SetProperty("trackColor", Value(tokens.cardBorder));
+            element->SetProperty("theme.trackColorToken", Value("cardBorder"));
         }
         if (!element->HasProperty("theme.activeTrackColorToken")) {
-            element->SetProperty("activeTrackColor", Value(tokens.accentColor));
+            element->SetProperty("theme.activeTrackColorToken", Value("accentColor"));
         }
         if (!element->HasProperty("theme.thumbColorToken")) {
-            element->SetProperty("thumbColor", Value(tokens.textPrimary));
+            element->SetProperty("theme.thumbColorToken", Value("accentColor"));
         }
     } else if (className == "CollapsePanel") {
         if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.cardBackground));
+            element->SetProperty("theme.backgroundToken", Value("paneBackground"));
         }
         if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("borderBrush", Value(tokens.cardBorder));
+            element->SetProperty("theme.borderToken", Value("cardBorder"));
         }
     } else if (className == "ListBox") {
         if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.cardBackground));
+            element->SetProperty("theme.backgroundToken", Value("cardBackground"));
         }
         if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("borderBrush", Value(tokens.cardBorder));
+            element->SetProperty("theme.borderToken", Value("cardBorder"));
         }
         if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.textSecondary));
+            element->SetProperty("theme.colorToken", Value("textPrimary"));
         }
         if (!element->HasProperty("theme.selectedBackgroundToken")) {
-            element->SetProperty("selectedBackground", Value(tokens.accentColor));
+            element->SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
         }
         if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("hoverBackground", Value(tokens.hoverBackground));
+            element->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
         }
     } else if (className == "ListView") {
         if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.windowBackground));
+            element->SetProperty("theme.backgroundToken", Value("cardBackground"));
         }
         if (!element->HasProperty("theme.headerBackgroundToken")) {
-            element->SetProperty("headerBackground", Value(tokens.paneBackground));
+            element->SetProperty("theme.headerBackgroundToken", Value("paneBackground"));
         }
         if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("borderBrush", Value(tokens.cardBorder));
+            element->SetProperty("theme.borderToken", Value("cardBorder"));
         }
         if (!element->HasProperty("theme.gridLineBrushToken")) {
-            element->SetProperty("gridLineBrush", Value(tokens.inputBorder));
+            element->SetProperty("theme.gridLineBrushToken", Value("inputBorder"));
         }
         if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.textSecondary));
+            element->SetProperty("theme.colorToken", Value("textPrimary"));
         }
         if (!element->HasProperty("theme.selectedBackgroundToken")) {
-            element->SetProperty("selectedBackground", Value(tokens.accentColor));
+            element->SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
         }
         if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("hoverBackground", Value(tokens.hoverBackground));
+            element->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
         }
     } else if (className == "TabView") {
         if (!element->HasProperty("theme.backgroundToken")) {
@@ -348,19 +366,19 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
         }
     } else if (className == "TreeView") {
         if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.cardBackground));
+            element->SetProperty("theme.backgroundToken", Value("cardBackground"));
         }
         if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("borderBrush", Value(tokens.cardBorder));
+            element->SetProperty("theme.borderToken", Value("cardBorder"));
         }
         if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.textSecondary));
+            element->SetProperty("theme.colorToken", Value("textPrimary"));
         }
         if (!element->HasProperty("theme.selectedBackgroundToken")) {
-            element->SetProperty("selectedBackground", Value(tokens.accentColor));
+            element->SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
         }
         if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("hoverBackground", Value(tokens.hoverBackground));
+            element->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
         }
     } else if (className == "BreadcrumbBar") {
         if (!element->HasProperty("theme.backgroundToken")) {
@@ -625,9 +643,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     if (!m_hwnd) return false;
 
     UpdateDwmChrome();
-    ThemeManager::Instance().SetBackdropType(m_backdropType);
-    WindowBackdrop::ApplyBackdrop(m_hwnd, m_backdropType);
-    WindowBackdrop::ApplyTheme(m_hwnd, m_themeMode);
+    MaterialHost::Apply(m_hwnd, m_backdropType, m_themeMode);
 
     if (m_transparentMode) {
         SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA);
@@ -639,7 +655,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     // Graphics may add WS_EX_NOREDIRECTIONBITMAP for the composition fallback —
     // re-apply DWM alpha/backdrop so the final present path is wired correctly.
-    WindowBackdrop::ApplyBackdrop(m_hwnd, m_backdropType);
+    MaterialHost::Apply(m_hwnd, m_backdropType, m_themeMode);
     UpdateDwmChrome();
 
     return true;
@@ -647,11 +663,16 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
 void Window::SetBackdropType(BackdropType type) {
     m_backdropType = type;
-    ThemeManager::Instance().SetBackdropType(type);
     if (m_hwnd) {
-        WindowBackdrop::ApplyBackdrop(m_hwnd, type);
+        MaterialHost::Apply(m_hwnd, type, m_themeMode);
+        UpdateDwmChrome();
+        // 丢弃层缓存，避免上一种材质的不透明像素残留
+        m_gfxContext.GetResources().ReleaseDeviceResources();
+        m_sceneLayer.ResetCache();
         ApplyVisualState();
         RequestFullRepaint();
+    } else {
+        ThemeManager::Instance().SetBackdropType(type);
     }
 }
 
@@ -660,7 +681,10 @@ void Window::SetThemeMode(ThemeMode theme) {
     ThemeManager::Instance().SetThemeMode(theme);
     StyleManager::Instance().ReloadFromTheme();
     if (m_hwnd) {
-        WindowBackdrop::ApplyTheme(m_hwnd, theme);
+        MaterialHost::Apply(m_hwnd, m_backdropType, theme);
+        // Drop cached brushes/layers so light/dark RGB cannot linger across themes.
+        m_gfxContext.GetResources().ReleaseDeviceResources();
+        m_sceneLayer.ResetCache();
         ApplyVisualState();
         RequestFullRepaint();
     }
@@ -994,12 +1018,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return 0;
 
     case WM_CUI_TOGGLE_BACKDROP:
-        switch (m_backdropType) {
-        case BackdropType::Mica: SetBackdropType(BackdropType::MicaAlt); break;
-        case BackdropType::MicaAlt: SetBackdropType(BackdropType::Acrylic); break;
-        case BackdropType::Acrylic: SetBackdropType(BackdropType::None); break;
-        case BackdropType::None: default: SetBackdropType(BackdropType::Mica); break;
-        }
+        SetBackdropType(WindowBackdrop::Cycle(m_backdropType));
         return 0;
 
     case WM_CUI_TOGGLE_THEME:
@@ -1066,6 +1085,15 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 }
                 if (!newMenuBounds.IsEmpty()) {
                     m_pendingDirtyRegion.AddRect(newMenuBounds.Inflate(4.0f));
+                }
+                // MenuBar 顶栏项高亮也必须刷新，否则快速滑过时上一菜单会「假亮」。
+                if (m_rootElement) {
+                    for (const auto& child : m_rootElement->GetChildren()) {
+                        if (auto* titleBar = dynamic_cast<TitleBar*>(child.get())) {
+                            m_pendingDirtyRegion.AddRect(titleBar->GetBounds().Inflate(2.0f));
+                            break;
+                        }
+                    }
                 }
                 if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
                     InvalidatePendingRenderRegions(true);
@@ -1247,24 +1275,19 @@ void Window::OnPaint() {
 
     m_gfxContext.BeginDraw();
 
-    const D2D1_COLOR_F bgColor = ThemeManager::Instance().GetTokens().windowBackground;
     const bool systemBackdrop = (m_backdropType != BackdropType::None);
     const bool usePerPixelAlpha =
         systemBackdrop
-        && m_gfxContext.SupportsPerPixelAlpha()
-        && !IsZoomed(m_hwnd);
+        && m_gfxContext.SupportsPerPixelAlpha();
     // Transparent clear is required for DWM Mica/Acrylic to show through chrome.
     const D2D1_COLOR_F sceneClearColor = (usePerPixelAlpha || (m_transparentMode && !IsZoomed(m_hwnd)))
         ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)
-        : bgColor;
+        : ThemeManager::Instance().GetColor("windowBackground");
 
-    // ClearType assumes an opaque backdrop and writes junk into the alpha channel.
-    if (auto* d2d = m_gfxContext.GetD2DContext()) {
-        d2d->SetTextAntialiasMode(
-            usePerPixelAlpha ? D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE
-                             : D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE
-        );
-    }
+    const Size sceneSize(viewportBounds.width, viewportBounds.height);
+    const bool sceneSizeChanged =
+        std::abs(m_sceneLayer.GetCacheSurfaceSize().width - sceneSize.width) > 0.5f
+        || std::abs(m_sceneLayer.GetCacheSurfaceSize().height - sceneSize.height) > 0.5f;
 
     auto renderScene = [&]() {
         if (m_rootElement) {
@@ -1276,11 +1299,31 @@ void Window::OnPaint() {
         }
     };
 
-    // When materials are active, draw straight to the composition swap chain so
-    // premul alpha is not lost in an intermediate layer blit.
-    if (usePerPixelAlpha) {
-        m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
-        renderScene();
+    auto renderOverlaysOnly = [&]() {
+        if (m_rootElement) {
+            m_rootElement->RenderOverlay(m_gfxContext);
+        }
+        if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
+            m_activeContextMenu->OnRenderOverlay(m_gfxContext);
+        }
+    };
+
+    // ContentDialog 全窗遮罩动画：底层场景不动，只重绘 overlay，避免整树每帧重绘卡顿。
+    const bool overlayScrimAnimating = IsOverlayScrimAnimating(m_rootElement.get());
+    const bool reuseSceneForOverlayAnim =
+        overlayScrimAnimating
+        && !sceneSizeChanged
+        && m_sceneLayer.IsValid()
+        && m_sceneLayer.GetCacheBitmap() != nullptr;
+
+    if (reuseSceneForOverlayAnim) {
+        if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
+            m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+        } else {
+            m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
+        }
+        m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
+        renderOverlaysOnly();
         DrawRenderStatsOverlay();
         m_gfxContext.EndDraw();
         m_gfxContext.SetCompositionContext(nullptr);
@@ -1290,45 +1333,31 @@ void Window::OnPaint() {
         return;
     }
 
-    const Size sceneSize(viewportBounds.width, viewportBounds.height);
-    const bool sceneSizeChanged =
-        std::abs(m_sceneLayer.GetCacheSurfaceSize().width - sceneSize.width) > 0.5f
-        || std::abs(m_sceneLayer.GetCacheSurfaceSize().height - sceneSize.height) > 0.5f;
     const bool canRestoreScene =
         !fullRepaint
         && !sceneSizeChanged
         && m_sceneLayer.IsValid()
-        && m_sceneLayer.GetCacheBitmap() != nullptr
-        && m_sceneLayer.GetScratchBitmap() != nullptr;
+        && m_sceneLayer.GetCacheBitmap() != nullptr;
 
-    if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, dirtyBounds.IsEmpty() ? viewportBounds : dirtyBounds, sceneClearColor)) {
-        auto* sceneContext = m_gfxContext.GetD2DContext();
-        if (canRestoreScene) {
-            ID2D1Bitmap1* snapshot = m_sceneLayer.GetScratchBitmap();
-            snapshot->CopyFromBitmap(nullptr, m_sceneLayer.GetCacheBitmap(), nullptr);
-            sceneContext->DrawBitmap(
-                snapshot,
-                viewportBounds.ToD2D(),
-                1.0f,
-                D2D1_INTERPOLATION_MODE_LINEAR,
-                nullptr
-            );
-        }
+    // 材质也走场景层局部脏区：不要每帧整窗直绘（下拉/弹窗动画会卡死）。
+    // 场景层本身是 premul alpha，DrawLayer 到 Composition swap chain 可保留透明度。
+    const Rect layerPaintBounds = (canRestoreScene && !dirtyBounds.IsEmpty())
+        ? dirtyBounds.Inflate(1.0f)
+        : viewportBounds;
 
-        if (canRestoreScene && frameDirtyRegion.GetRectCount() > 0) {
-            for (const auto& rect : frameDirtyRegion.GetRects()) {
-                if (rect.IsEmpty()) {
-                    continue;
-                }
-                m_gfxContext.PushClip(rect);
-                if (sceneClearColor.a > 0.0f) {
-                    m_gfxContext.FillRect(rect, sceneClearColor);
-                } else {
-                    sceneContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
-                }
-                renderScene();
-                m_gfxContext.PopClip();
-            }
+    if (m_gfxContext.PushLayerTarget(
+            m_sceneLayer,
+            sceneSize,
+            layerPaintBounds,
+            sceneClearColor,
+            !canRestoreScene)) {
+        if (canRestoreScene && !dirtyBounds.IsEmpty()) {
+            // 只清一次并重绘并集脏区。按多个小矩形循环 renderScene 会在接缝处闪烁（滚动尤其明显）。
+            const Rect patch = dirtyBounds.Inflate(1.0f);
+            m_gfxContext.PushClip(patch);
+            m_gfxContext.ClearRect(patch);
+            renderScene();
+            m_gfxContext.PopClip();
         } else {
             renderScene();
         }
@@ -1340,7 +1369,7 @@ void Window::OnPaint() {
     if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
         m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
     } else {
-        m_gfxContext.GetD2DContext()->Clear(bgColor);
+        m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
     }
     m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
     DrawRenderStatsOverlay();
@@ -1382,11 +1411,12 @@ void Window::DrawRenderStatsOverlay() {
         << "  未命中: " << stats.layerCacheMissCount
         << "  重录: " << stats.layerCacheRerenderCount
         << "  复用: " << stats.layerCacheReuseCount
-        << "  材质: " << (m_gfxContext.SupportsPerPixelAlpha() ? "透" : "无透")
+        << "  材质: " << MaterialHost::DisplayNameZh(m_backdropType)
+        << (m_gfxContext.SupportsPerPixelAlpha() ? "" : "(无透)")
         << "  显示帧率: " << static_cast<int>(std::round(m_overlayFps));
 
     const std::string text = ss.str();
-    Rect panel(12.0f, (std::max)(12.0f, m_rootElement ? (m_rootElement->GetBounds().height - 40.0f) : 12.0f), 760.0f, 28.0f);
+    Rect panel(12.0f, (std::max)(12.0f, m_rootElement ? (m_rootElement->GetBounds().height - 40.0f) : 12.0f), 820.0f, 28.0f);
     m_gfxContext.FillRoundedRect(panel, 6.0f, D2D1::ColorF(0.05f, 0.05f, 0.05f, 0.82f));
     m_gfxContext.DrawRoundedRect(panel, 6.0f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.10f), 1.0f);
     m_gfxContext.DrawText(

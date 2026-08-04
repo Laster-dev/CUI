@@ -1,4 +1,5 @@
 #include "WindowBackdrop.h"
+#include "../style/ThemeManager.h"
 
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
@@ -21,9 +22,9 @@ namespace CUI {
 enum DWM_SYSTEMBACKDROP_TYPE {
     DWMSBT_AUTO = 0,
     DWMSBT_NONE = 1,
-    DWMSBT_MAINWINDOW = 2,      // Mica
-    DWMSBT_TRANSIENTWINDOW = 3, // Acrylic
-    DWMSBT_TABBEDWINDOW = 4     // MicaAlt
+    DWMSBT_MAINWINDOW = 2,      // 云母
+    DWMSBT_TRANSIENTWINDOW = 3, // 亚克力
+    DWMSBT_TABBEDWINDOW = 4     // 沉浸云母
 };
 
 namespace {
@@ -57,7 +58,7 @@ struct WINDOWCOMPOSITIONATTRIBDATA {
 using PFN_SetWindowCompositionAttribute =
     BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
 
-void ApplyAccentPolicy(HWND hwnd, BackdropType type) {
+void ApplyAccentPolicy(HWND hwnd, BackdropType type, bool light) {
     static PFN_SetWindowCompositionAttribute pSet = nullptr;
     static bool resolved = false;
     if (!resolved) {
@@ -73,16 +74,16 @@ void ApplyAccentPolicy(HWND hwnd, BackdropType type) {
     ACCENT_POLICY policy = {};
     switch (type) {
     case BackdropType::Acrylic:
-        // Strong frosted glass — visible even when SystemBackdrop is subtle.
+        // 强磨砂：与「无材质」拉开可见差距（Composition 路径下作补充）
         policy.AccentState = ACCENT_ENABLE_ACRYLICBLURBEHIND;
-        policy.AccentFlags = 2;
-        policy.GradientColor = 0x99000000; // ~60% black tint
+        policy.AccentFlags = 2 | 0x20 | 0x40 | 0x80 | 0x100;
+        policy.GradientColor = light ? 0x66F3F3F3u : 0x991E1E1Eu;
         break;
     case BackdropType::Mica:
     case BackdropType::MicaAlt:
         policy.AccentState = ACCENT_ENABLE_HOSTBACKDROP;
         policy.AccentFlags = 0;
-        policy.GradientColor = 0x00000000;
+        policy.GradientColor = 0;
         break;
     case BackdropType::None:
     default:
@@ -114,9 +115,48 @@ void ApplyAlphaCompositing(HWND hwnd, bool enable) {
     }
 }
 
+void ApplyFrameMargins(HWND hwnd, bool enableBackdrop) {
+    const bool maximized = hwnd && IsZoomed(hwnd) != FALSE;
+    const MARGINS margins = enableBackdrop
+        ? MARGINS{ -1, -1, -1, -1 }
+        : (maximized ? MARGINS{ 0, 0, 0, 0 } : MARGINS{ 1, 1, 1, 1 });
+    DwmExtendFrameIntoClientArea(hwnd, &margins);
+}
+
 } // namespace
 
-bool WindowBackdrop::ApplyBackdrop(HWND hwnd, BackdropType type) {
+const char* MaterialHost::DisplayNameZh(BackdropType type) {
+    switch (type) {
+    case BackdropType::Mica: return "云母";
+    case BackdropType::MicaAlt: return "沉浸云母";
+    case BackdropType::Acrylic: return "亚克力";
+    case BackdropType::None:
+    default: return "无材质";
+    }
+}
+
+BackdropType MaterialHost::Cycle(BackdropType type) {
+    switch (type) {
+    case BackdropType::Mica: return BackdropType::MicaAlt;
+    case BackdropType::MicaAlt: return BackdropType::Acrylic;
+    case BackdropType::Acrylic: return BackdropType::None;
+    case BackdropType::None:
+    default: return BackdropType::Mica;
+    }
+}
+
+bool MaterialHost::Apply(HWND hwnd, BackdropType type, ThemeMode theme) {
+    ThemeManager::Instance().SetBackdropType(type);
+    if (!hwnd) {
+        return false;
+    }
+    ApplyTheme(hwnd, theme);
+    const bool ok = ApplyBackdrop(hwnd, type);
+    ApplyFrameMargins(hwnd, type != BackdropType::None);
+    return ok;
+}
+
+bool MaterialHost::ApplyBackdrop(HWND hwnd, BackdropType type) {
     if (!hwnd) return false;
 
     DWORD backdropValue = DWMSBT_NONE;
@@ -137,14 +177,16 @@ bool WindowBackdrop::ApplyBackdrop(HWND hwnd, BackdropType type) {
     }
 
     const bool enableAlpha = (type != BackdropType::None);
+    const bool light = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
     ApplyAlphaCompositing(hwnd, enableAlpha);
-    ApplyAccentPolicy(hwnd, type);
+    ApplyAccentPolicy(hwnd, type, light);
+    ApplyFrameMargins(hwnd, enableAlpha);
 
     HRESULT hr = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropValue, sizeof(backdropValue));
     return SUCCEEDED(hr);
 }
 
-bool WindowBackdrop::ApplyTheme(HWND hwnd, ThemeMode theme) {
+bool MaterialHost::ApplyTheme(HWND hwnd, ThemeMode theme) {
     if (!hwnd) return false;
 
     BOOL darkMode = (theme == ThemeMode::Dark) ? TRUE : FALSE;

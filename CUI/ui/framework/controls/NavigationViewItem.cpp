@@ -23,7 +23,8 @@ void NavigationViewItemBase::SetIsSelected(bool selected) {
 
 NavigationViewItemHeader::NavigationViewItemHeader(const std::string& text) {
     m_text = text;
-    SetProperty("theme.colorToken", Value("textPrimary"));
+    // Defaults via theme tokens only — paint path resolves through ThemeManager.
+    SetProperty("theme.colorToken", Value("textSecondary"));
 }
 
 void NavigationViewItemHeader::SetText(const std::string& text) {
@@ -38,8 +39,7 @@ Size NavigationViewItemHeader::Measure(Size availableSize) {
 
 void NavigationViewItemHeader::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
-    // Headers should remain readable in both themes.
-    const D2D1_COLOR_F color = ResolveThemeColor("theme.colorToken", "textPrimary");
+    const D2D1_COLOR_F color = ResolveThemeColor("theme.colorToken", "textSecondary");
     const float indent = 12.0f + m_depth * 12.0f;
     Rect textRect(m_bounds.x + indent, m_bounds.y, (std::max)(0.0f, m_bounds.width - indent - 8.0f), m_bounds.height);
     ctx.PushClip(textRect);
@@ -56,7 +56,10 @@ Size NavigationViewItemSeparator::Measure(Size availableSize) {
 
 void NavigationViewItemSeparator::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
-    const D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder;
+    if (!HasProperty("theme.borderToken")) {
+        SetProperty("theme.borderToken", Value("cardBorder"));
+    }
+    const D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
     const float y = m_bounds.y + m_bounds.height * 0.5f;
     const float inset = 12.0f + m_depth * 12.0f;
     ctx.DrawLine(Point(m_bounds.x + inset, y),
@@ -74,16 +77,14 @@ NavigationViewItem::NavigationViewItem(const std::string& content, const std::st
 }
 
 void NavigationViewItem::StyleDefaults() {
-    auto& theme = ThemeManager::Instance();
+    // Bind theme tokens only. Do not bake ColorF snapshots — ThemeManager is
+    // the single color source unless user code overrides a property.
     SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
     SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
     SetProperty("theme.colorToken", Value("textPrimary"));
     SetProperty("theme.secondaryColorToken", Value("textSecondary"));
     SetProperty("theme.indicatorColorToken", Value("accentColor"));
     SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
-    SetProperty("hoverBackground", Value(theme.GetColor("hoverBackground")));
-    SetProperty("selectedBackground", Value(theme.GetColor("selectedBackground")));
-    SetProperty("color", Value(theme.GetColor("textPrimary")));
     SetProperty("cornerRadius", Value(4.0f));
 }
 
@@ -163,18 +164,13 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
         ctx.FillRoundedRect(m_bounds, radius, fill);
     }
 
-    // WinUI NavigationViewItem uses the primary text brush for labels in both
-    // selected and unselected states (weight changes). Never use a washed-out
-    // secondary brush here — light mode made unselected items nearly invisible.
+    // Always resolve through ThemeManager (token → GetColor). User overrides of
+    // theme.colorToken are honored; never use a DIY palette here.
     const D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
 
     const float indent = m_topMode ? 0.0f : (m_depth * 12.0f);
     float x = m_bounds.x + indent;
 
-    // Note: the animated blue selection indicator (the "moving bar") is drawn by
-    // NavigationView (overlay pass) so it can slide smoothly between items.
-
-    // Icon slot (WinUI: 40 DIP).
     Rect iconRect(x, m_bounds.y, kIconSlot, m_bounds.height);
     if (!m_icon.empty()) {
         ctx.DrawText(m_icon, iconRect, textColor, "Segoe UI", 14.0f,
@@ -210,7 +206,6 @@ void NavigationViewItem::OnMouseDown(Point pt) {
         return;
     }
 
-    // Body click: invoke (+ optionally expand when it has children).
     if (HasChildren() && !m_selectsOnInvoked) {
         SetIsExpanded(!m_isExpanded);
     }
@@ -219,14 +214,18 @@ void NavigationViewItem::OnMouseDown(Point pt) {
 
 void NavigationViewItem::OnMouseEnter() {
     Control::OnMouseEnter();
-    m_hovered = true;
-    MarkRenderContentDirty();
+    if (!m_hovered) {
+        m_hovered = true;
+        MarkRenderContentDirty();
+    }
 }
 
 void NavigationViewItem::OnMouseLeave() {
     Control::OnMouseLeave();
-    m_hovered = false;
-    MarkRenderContentDirty();
+    if (m_hovered) {
+        m_hovered = false;
+        MarkRenderContentDirty();
+    }
 }
 
 } // namespace CUI

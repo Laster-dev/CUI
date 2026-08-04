@@ -15,13 +15,7 @@ template <typename T>
 std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::string& tokenProp, const std::string& tokenName) {
     if (element) {
         element->SetProperty(tokenProp, Value(tokenName));
-        if (tokenProp == "theme.backgroundToken") {
-            element->SetProperty("background", Value(ThemeManager::Instance().GetColor(tokenName)));
-        } else if (tokenProp == "theme.borderToken") {
-            element->SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor(tokenName)));
-        } else if (tokenProp == "theme.colorToken") {
-            element->SetProperty("color", Value(ThemeManager::Instance().GetColor(tokenName)));
-        }
+        // 不写死 ColorF：绘制走 ResolveThemeColor / GetColor，材质 alpha 才能实时生效。
     }
     return element;
 }
@@ -206,14 +200,14 @@ std::shared_ptr<UIElement> CreateCodeExampleCollapse(
     codeBox->SetProperty("borderThickness", Value(1.0f));
     codeBox->SetProperty("padding", Value(Thickness(10, 8, 10, 8)));
     codeBox->SetProperty("text", Value(GenerateAutoCodeExample(target)));
-    BindThemeToken(codeBox, "theme.backgroundToken", "cardBackground");
+    BindThemeToken(codeBox, "theme.backgroundToken", "inputBackground");
     BindThemeToken(codeBox, "theme.borderToken", "cardBorder");
 
     auto codeScroll = std::make_shared<ScrollViewer>();
     codeScroll->SetProperty("height", Value(220.0f));
     codeScroll->SetProperty("align", Value("Stretch"));
-    BindThemeToken(codeScroll, "theme.backgroundToken", "cardBackground");
-    BindThemeToken(codeScroll, "theme.borderToken", "cardBorder");
+    // 代码区宿主透明，由 CollapsePanel pane 玻璃托底。
+    codeScroll->SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
     codeScroll->AddChild(codeBox);
 
     auto panel = std::make_shared<CollapsePanel>("示例代码 (Source)");
@@ -237,15 +231,15 @@ std::shared_ptr<UIElement> CreatePage(
         mainColumnBuilder.Add(CreateCodeExampleCollapse(sampleTarget));
     }
     auto mainColumn = mainColumnBuilder.Build();
-    // Surface role: content stays readable while chrome reveals SystemBackdrop.
-    BindThemeToken(mainColumn, "theme.backgroundToken", "cardBackground");
+    // 宿主透明：空隙露出 SystemBackdrop；卡片/DemoSurface 才用 card。
+    BindThemeToken(mainColumn, "theme.backgroundToken", "windowBackground");
 
     // Main content scrolls; flexGrow keeps PropertyGrid visible on the right.
     auto mainScroll = std::make_shared<ScrollViewer>();
     mainScroll->SetProperty("flexGrow", Value(1.0f));
     mainScroll->SetProperty("minWidth", Value(240.0f));
     mainScroll->SetProperty("align", Value("Stretch"));
-    BindThemeToken(mainScroll, "theme.backgroundToken", "cardBackground");
+    BindThemeToken(mainScroll, "theme.backgroundToken", "windowBackground");
     mainScroll->AddChild(mainColumn);
 
     std::shared_ptr<UIElement> right = side;
@@ -256,8 +250,11 @@ std::shared_ptr<UIElement> CreatePage(
         }
     }
 
-    return Row().Children({
+    auto pageRow = Row().Children({
         mainScroll,
         right
     }).Build();
+    // 整页行宿主透明，左右之间的空隙露出 SystemBackdrop。
+    BindThemeToken(pageRow, "theme.backgroundToken", "windowBackground");
+    return pageRow;
 }

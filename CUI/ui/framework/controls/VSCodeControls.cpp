@@ -193,13 +193,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
         toggleVisualH
     );
     bool isBdpHover = isHoveredInTitle && bdpHit.Contains(hoverX, hoverY);
-    const char* bdpStr = "Mica";
-    if (curBackdrop == BackdropType::MicaAlt) bdpStr = "MicaAlt";
-    else if (curBackdrop == BackdropType::Acrylic) bdpStr = "Acrylic";
-    else if (curBackdrop == BackdropType::None) bdpStr = "无材质";
-
-    // If composition swap-chain is unavailable, system backdrop cannot show through
-    // (HWND swap chains ignore alpha). Surface that clearly in the chrome label.
+    const char* bdpStr = WindowBackdrop::DisplayNameZh(curBackdrop);
     std::string bdpText = std::string("材质:") + bdpStr;
     if (curBackdrop != BackdropType::None && !alphaOk) {
         bdpText += "(无透)";
@@ -228,12 +222,12 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     const char* themeStr = (curTheme == ThemeMode::Dark) ? "🌙 暗色" : "☀️ 亮色";
 
     D2D1_COLOR_F themeBg = lightTheme
-        ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isThemeHover ? 0.24f : 0.16f)
+        ? D2D1::ColorF(tokens.accentColor.r, tokens.accentColor.g, tokens.accentColor.b, isThemeHover ? 0.22f : 0.14f)
         : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isThemeHover ? 0.20f : 0.10f);
     D2D1_COLOR_F themeBorder = lightTheme
-        ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, 0.42f)
+        ? D2D1::ColorF(tokens.accentColor.r, tokens.accentColor.g, tokens.accentColor.b, 0.55f)
         : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, 0.24f);
-    D2D1_COLOR_F themeTextCol = chromeTextColor;
+    D2D1_COLOR_F themeTextCol = lightTheme ? tokens.accentColor : chromeTextColor;
 
     ctx.FillRoundedRect(themeRect, 8.0f, themeBg);
     ctx.DrawRoundedRect(themeRect, 8.0f, themeBorder, 1.0f);
@@ -352,7 +346,7 @@ bool TitleBar::IsLowPerformanceToggleHit(float x, float y) const {
 
 Rect TitleBar::GetBackdropToggleRect() const {
     Rect lowPerfRect = GetLowPerformanceToggleRect();
-    constexpr float toggleWidth = 96.0f;
+    constexpr float toggleWidth = 118.0f; // 「材质:沉浸云母」
     constexpr float toggleGap = 6.0f;
     float x = lowPerfRect.x - toggleGap - toggleWidth;
     return Rect(x, lowPerfRect.y, toggleWidth, lowPerfRect.height);

@@ -22,23 +22,18 @@ float GetChromiumWheelStep(float viewportHeight) {
 }
 
 ListView::ListView() {
-    SetProperty("theme.backgroundToken", Value("windowBackground"));
-    SetProperty("theme.headerBackgroundToken", Value("cardBackground"));
+    // 只绑 token；绘制走 ThemeManager。列表表面用 card，勿用 window（材质模式下 window 全透明）。
+    SetProperty("theme.backgroundToken", Value("cardBackground"));
+    SetProperty("theme.headerBackgroundToken", Value("paneBackground"));
     SetProperty("theme.borderToken", Value("cardBorder"));
     SetProperty("theme.gridLineBrushToken", Value("inputBorder"));
     SetProperty("theme.colorToken", Value("textPrimary"));
     SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
     SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("windowBackground")));
-    SetProperty("headerBackground", Value(ThemeManager::Instance().GetColor("cardBackground")));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
-    SetProperty("gridLineBrush", Value(ThemeManager::Instance().GetColor("inputBorder")));
     SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
-    SetProperty("selectedBackground", Value(ThemeManager::Instance().GetColor("selectedBackground")));
-    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
     SetProperty("fontSize", Value(12.0f));
     SetProperty("fontFamily", Value("Segoe UI"));
+    SetProperty("cornerRadius", Value(4.0f));
     SetProperty("width", Value(480.0f));
     SetProperty("height", Value(320.0f));
 }
@@ -397,8 +392,8 @@ void ListView::OnRender(GraphicsContext& ctx) {
     ClampScroll();
 
     float radius = GetProperty("cornerRadius").AsFloat(0.0f);
-    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "windowBackground");
-    D2D1_COLOR_F headerBg = ResolveThemeColor("theme.headerBackgroundToken", "cardBackground");
+    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
+    D2D1_COLOR_F headerBg = ResolveThemeColor("theme.headerBackgroundToken", "paneBackground");
     D2D1_COLOR_F borderClr = ResolveThemeColor("theme.borderToken", "cardBorder");
     D2D1_COLOR_F gridLineClr = ResolveThemeColor("theme.gridLineBrushToken", "inputBorder");
     D2D1_COLOR_F textClr = ResolveThemeColor("theme.colorToken", "textPrimary");

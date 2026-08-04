@@ -10,11 +10,7 @@ MenuBar::MenuBar() {
     SetProperty("theme.backgroundToken", Value("titleBarBackground"));
     SetProperty("theme.hoverBackgroundToken", Value("titleBarBackground"));
     SetProperty("theme.pressedBackgroundToken", Value("titleBarBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
-    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
-    SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
     SetProperty("theme.colorToken", Value("titleBarText"));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("titleBarText")));
 }
 
 std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {
@@ -40,6 +36,35 @@ Size MenuBar::Measure(Size availableSize) {
     return m_desiredSize;
 }
 
+void MenuBar::InvalidateMenuChrome(int indexA, int indexB) {
+    // MenuBar is composed inside TitleBar (not a layout child); always dirty the
+    // full strip so previous open/hover pills cannot linger in the scene cache.
+    if (!m_bounds.IsEmpty()) {
+        MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+    }
+    auto dirtyItem = [&](int index) {
+        if (index < 0 || index >= static_cast<int>(m_menus.size())) {
+            return;
+        }
+        if (!m_menus[index].bounds.IsEmpty()) {
+            MarkRenderRectDirty(m_menus[index].bounds.Inflate(4.0f));
+        }
+    };
+    dirtyItem(indexA);
+    dirtyItem(indexB);
+}
+
+void MenuBar::HideAllMenusExcept(int keepIndex) {
+    for (size_t i = 0; i < m_menus.size(); ++i) {
+        if (static_cast<int>(i) == keepIndex) {
+            continue;
+        }
+        if (m_menus[i].dropDownMenu && m_menus[i].dropDownMenu->IsOpen()) {
+            m_menus[i].dropDownMenu->Hide();
+        }
+    }
+}
+
 void MenuBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
@@ -60,9 +85,10 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
         Rect itemRect(curX, m_bounds.y + 3.0f, itemW, m_bounds.height - 6.0f);
         m_menus[i].bounds = itemRect;
 
-        bool isOpen = (static_cast<int>(i) == m_activeOpenIndex) &&
-                      (m_menus[i].dropDownMenu && m_menus[i].dropDownMenu->IsOpen());
-        bool isHover = (static_cast<int>(i) == m_hoveredIndex);
+        // Open highlight follows active index only — never leave a previous pill lit
+        // because another menu's IsOpen() lagged a frame.
+        const bool isOpen = (static_cast<int>(i) == m_activeOpenIndex);
+        const bool isHover = (static_cast<int>(i) == m_hoveredIndex) && !isOpen;
 
         if (isOpen) {
             ctx.FillRoundedRect(itemRect, 4.0f, openBgColor);
@@ -87,13 +113,13 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
 void MenuBar::OpenMenu(int index) {
     if (index < 0 || index >= static_cast<int>(m_menus.size())) return;
 
-    if (m_activeOpenIndex >= 0 && m_activeOpenIndex < static_cast<int>(m_menus.size())) {
-        if (m_menus[m_activeOpenIndex].dropDownMenu) {
-            m_menus[m_activeOpenIndex].dropDownMenu->Hide();
-        }
-    }
+    const int previousOpen = m_activeOpenIndex;
+    HideAllMenusExcept(index);
 
     m_activeOpenIndex = index;
+    m_hoveredIndex = index;
+    InvalidateMenuChrome(previousOpen, index);
+
     auto menu = m_menus[index].dropDownMenu;
     if (menu) {
         float winW = 1280.0f, winH = 800.0f;
@@ -117,12 +143,10 @@ void MenuBar::OpenMenu(int index) {
 }
 
 void MenuBar::CloseActiveMenu() {
-    if (m_activeOpenIndex >= 0 && m_activeOpenIndex < static_cast<int>(m_menus.size())) {
-        if (m_menus[m_activeOpenIndex].dropDownMenu) {
-            m_menus[m_activeOpenIndex].dropDownMenu->Hide();
-        }
-    }
+    const int previousOpen = m_activeOpenIndex;
+    HideAllMenusExcept(-1);
     m_activeOpenIndex = -1;
+    InvalidateMenuChrome(previousOpen, m_hoveredIndex);
 }
 
 void MenuBar::OnMouseMove(Point pt) {
@@ -136,6 +160,10 @@ void MenuBar::OnMouseMove(Point pt) {
         }
     }
 
+    if (oldHover != m_hoveredIndex) {
+        InvalidateMenuChrome(oldHover, m_hoveredIndex);
+    }
+
     // If a menu is already open, hover over another item opens its dropdown instantly
     if (m_activeOpenIndex >= 0 && m_hoveredIndex >= 0 && m_hoveredIndex != m_activeOpenIndex) {
         OpenMenu(m_hoveredIndex);
@@ -143,15 +171,22 @@ void MenuBar::OnMouseMove(Point pt) {
 }
 
 void MenuBar::OnMouseLeave() {
+    const int oldHover = m_hoveredIndex;
     m_hoveredIndex = -1;
+    if (oldHover >= 0) {
+        InvalidateMenuChrome(oldHover, m_activeOpenIndex);
+    }
 }
 
 void MenuBar::ResetInteractionState() {
+    const int previousOpen = m_activeOpenIndex;
+    const int previousHover = m_hoveredIndex;
     m_hoveredIndex = -1;
     CloseActiveMenu();
     m_isHovered = false;
     m_isPressed = false;
     m_isFocused = false;
+    InvalidateMenuChrome(previousOpen, previousHover);
 }
 
 void MenuBar::OnBlur() {
@@ -162,8 +197,7 @@ void MenuBar::OnBlur() {
 void MenuBar::OnMouseDown(Point pt) {
     for (size_t i = 0; i < m_menus.size(); ++i) {
         if (m_menus[i].bounds.Contains(pt.x, pt.y)) {
-            bool isOpen = (m_activeOpenIndex == static_cast<int>(i)) &&
-                          (m_menus[i].dropDownMenu && m_menus[i].dropDownMenu->IsOpen());
+            const bool isOpen = (m_activeOpenIndex == static_cast<int>(i));
             if (isOpen) {
                 CloseActiveMenu();
                 return;

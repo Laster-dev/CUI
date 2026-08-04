@@ -402,17 +402,33 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         cacheHeight
     );
 
-    if (canPatchViewportCache && ctx.PushLayerTarget(m_contentLayer, cacheSize, visibleWorldRect, D2D1::ColorF(0, 0, 0, 0))) {
-        auto* d2d = ctx.GetD2DContext();
-        ID2D1Bitmap1* snapshot = m_contentLayer.GetScratchBitmap();
-        if (snapshot) {
-            snapshot->CopyFromBitmap(nullptr, m_contentLayer.GetCacheBitmap(), nullptr);
+    if (canPatchViewportCache) {
+        // Snapshot BEFORE PushLayerTarget: once the cache bitmap is the D2D target,
+        // Clear+CopyFromBitmap races and produces torn/jittery scroll frames.
+        ID2D1Bitmap1* cacheBmp = m_contentLayer.GetCacheBitmap();
+        ID2D1Bitmap1* scratchBmp = m_contentLayer.GetScratchBitmap();
+        if (cacheBmp && scratchBmp) {
+            scratchBmp->CopyFromBitmap(nullptr, cacheBmp, nullptr);
         }
 
-        if (snapshot) {
+        if (ctx.PushLayerTarget(
+                m_contentLayer,
+                cacheSize,
+                visibleWorldRect,
+                D2D1::ColorF(0, 0, 0, 0),
+                false)) {
+            auto* d2d = ctx.GetD2DContext();
             const float deltaY = m_pendingViewportPatchDeltaY;
-            Rect shiftedDest(0.0f, -deltaY, cacheSize.width, cacheSize.height);
-            d2d->DrawBitmap(snapshot, shiftedDest.ToD2D(), 1.0f, D2D1_INTERPOLATION_MODE_LINEAR, nullptr);
+
+            if (scratchBmp) {
+                Rect shiftedDest(0.0f, -deltaY, cacheSize.width, cacheSize.height);
+                d2d->DrawBitmap(
+                    scratchBmp,
+                    shiftedDest.ToD2D(),
+                    1.0f,
+                    D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
+                    nullptr);
+            }
 
             Rect exposedRect;
             if (deltaY > 0.0f) {
@@ -422,6 +438,7 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
             }
 
             if (!exposedRect.IsEmpty()) {
+                ctx.ClearRect(exposedRect);
                 ctx.PushClip(exposedRect);
                 D2D1_MATRIX_3X2_F oldTransform{};
                 d2d->GetTransform(&oldTransform);
@@ -438,14 +455,14 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
                 d2d->SetTransform(oldTransform);
                 ctx.PopClip();
             }
-        }
 
-        ctx.PopLayerTarget(m_contentLayer);
-        m_contentLayer.Validate();
-        m_contentLayerDirty.Clear();
-        m_contentLayerCachesFullContent = false;
-        m_pendingViewportScrollPatch = false;
-        m_pendingViewportPatchDeltaY = 0.0f;
+            ctx.PopLayerTarget(m_contentLayer);
+            m_contentLayer.Validate();
+            m_contentLayerDirty.Clear();
+            m_contentLayerCachesFullContent = false;
+            m_pendingViewportScrollPatch = false;
+            m_pendingViewportPatchDeltaY = 0.0f;
+        }
     } else if (needsRerender && ctx.PushLayerTarget(
         m_contentLayer,
         cacheSize,

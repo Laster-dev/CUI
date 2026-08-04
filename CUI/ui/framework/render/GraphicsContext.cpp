@@ -303,7 +303,9 @@ void GraphicsContext::BeginDraw() {
     if (m_d2dContext) {
         m_d2dContext->BeginDraw();
         m_d2dContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-        m_d2dContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+        // ClearType requires an opaque backdrop. Layer caches and material clears
+        // are often transparent — grayscale keeps glyphs readable everywhere.
+        m_d2dContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
     }
 }
 
@@ -429,7 +431,7 @@ ID2D1DeviceContext* GraphicsContext::BeginLayerDraw(RenderLayer& layer) {
     layer.m_cacheContext->BeginDraw();
     layer.m_cacheContext->SetTarget(layer.m_cacheBitmap.Get());
     layer.m_cacheContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-    layer.m_cacheContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+    layer.m_cacheContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
     return layer.m_cacheContext.Get();
 }
 
@@ -461,12 +463,12 @@ void GraphicsContext::DrawLayer(const RenderLayer& layer, const Rect& destRect, 
         layer.m_cacheBitmap.Get(),
         &dest,
         opacity,
-        D2D1_INTERPOLATION_MODE_LINEAR,
+        D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
         src
     );
 }
 
-bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, D2D1_COLOR_F clearColor) {
+bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, D2D1_COLOR_F clearColor, bool clearTarget) {
     if (!EnsureLayerCache(layer, sizeInDips)) {
         return false;
     }
@@ -488,8 +490,29 @@ bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const
         return false;
     }
 
-    layerContext->Clear(clearColor);
+    if (clearTarget) {
+        layerContext->Clear(clearColor);
+    }
     return true;
+}
+
+void GraphicsContext::ClearRect(const Rect& rect) {
+    if (!m_d2dContext || rect.IsEmpty()) {
+        return;
+    }
+    // Expand outward to whole pixels so partial dirty clears never leave 1px stale seams.
+    const D2D1_RECT_F clearRc = D2D1::RectF(
+        std::floor(rect.x),
+        std::floor(rect.y),
+        std::ceil(rect.x + rect.width),
+        std::ceil(rect.y + rect.height)
+    );
+    const D2D1_PRIMITIVE_BLEND oldBlend = m_d2dContext->GetPrimitiveBlend();
+    m_d2dContext->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
+    if (auto brush = m_resources.GetSolidBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f))) {
+        m_d2dContext->FillRectangle(clearRc, brush);
+    }
+    m_d2dContext->SetPrimitiveBlend(oldBlend);
 }
 
 void GraphicsContext::PopLayerTarget(RenderLayer& layer) {

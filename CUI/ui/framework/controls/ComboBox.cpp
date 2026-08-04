@@ -198,6 +198,22 @@ bool ComboBox::HasSelfAnimation() const {
            std::abs(m_arrowAnim.Target() - m_arrowAnim.Current()) > 0.001f;
 }
 
+void ComboBox::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    if (HasSelfAnimation() && !m_bounds.IsEmpty()) {
+        float itemHeight = GetProperty("itemHeight").AsFloat(28.0f);
+        float menuH = itemHeight * static_cast<float>((std::max)(m_items.size(), size_t{ 1 }));
+        Rect menuRect(m_bounds.x, m_bounds.y + m_bounds.height + 2.0f, m_bounds.width, menuH);
+        Rect area = m_bounds.Union(menuRect).Inflate(4.0f);
+        dirtyRect = hasDirty ? dirtyRect.Union(area) : area;
+        hasDirty = true;
+    }
+    for (const auto& child : GetChildren()) {
+        if (child) {
+            child->CollectAnimationBounds(dirtyRect, hasDirty);
+        }
+    }
+}
+
 UIElement* ComboBox::HitTest(float x, float y) {
     std::string visStr = GetProperty("visibility").AsString("Visible");
     if (visStr != "Visible") return nullptr;

@@ -22,7 +22,7 @@ public:
 
     std::shared_ptr<ContextMenu> AddMenu(const std::string& title);
     void ClearMenus() { m_menus.clear(); }
-    void ClearActiveMenu() { m_activeOpenIndex = -1; m_hoveredIndex = -1; }
+    void ClearActiveMenu() { CloseActiveMenu(); m_hoveredIndex = -1; }
     void ResetInteractionState();
 
     float GetTotalWidth(GraphicsContext& ctx);
@@ -37,6 +37,8 @@ public:
 private:
     void OpenMenu(int index);
     void CloseActiveMenu();
+    void HideAllMenusExcept(int keepIndex);
+    void InvalidateMenuChrome(int indexA, int indexB = -1);
 
     std::vector<MenuBarItem> m_menus;
     int m_hoveredIndex = -1;

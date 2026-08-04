@@ -41,8 +41,11 @@ public:
     ID2D1DeviceContext* BeginLayerDraw(RenderLayer& layer);
     void EndLayerDraw(RenderLayer& layer);
     void DrawLayer(const RenderLayer& layer, const Rect& destRect, const Rect* sourceRect = nullptr, float opacity = 1.0f);
-    bool PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, D2D1_COLOR_F clearColor);
+    // clearTarget=false keeps existing layer pixels (dirty-rect patching).
+    bool PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, D2D1_COLOR_F clearColor, bool clearTarget = true);
     void PopLayerTarget(RenderLayer& layer);
+    // Erase pixels in rect (SOURCE_COPY). Needed for transparent material clears under clip.
+    void ClearRect(const Rect& rect);
 
     void DrawRect(const Rect& rect, D2D1_COLOR_F color, float strokeWidth = 1.0f);
     void FillRect(const Rect& rect, D2D1_COLOR_F color);

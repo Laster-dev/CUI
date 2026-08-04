@@ -48,10 +48,10 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
 
     // SystemBackdrop Switcher ComboBox (Mica / MicaAlt / Acrylic / None)
     auto cbBackdrop = std::make_shared<ComboBox>();
-    cbBackdrop->AddItem("Mica (云母材质)");
-    cbBackdrop->AddItem("MicaAlt (沉浸云母)");
-    cbBackdrop->AddItem("Acrylic (亚克力毛玻璃)");
-    cbBackdrop->AddItem("None (无背景材质)");
+    cbBackdrop->AddItem("云母");
+    cbBackdrop->AddItem("沉浸云母");
+    cbBackdrop->AddItem("亚克力");
+    cbBackdrop->AddItem("无材质");
     cbBackdrop->SetSelectedIndex(0);
 
     Window* win = ctx.windowRef;
@@ -82,11 +82,11 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
 
     auto cardBackdrop = ControlCard("SystemBackdrop 材质与明暗主题切换", Column(12.0f).Children({
         Row(12.0f).Children({
-            std::make_shared<TextBlock>("背景材质 (Backdrop):"),
+            std::make_shared<TextBlock>("背景材质:"),
             cbBackdrop
         }).Build(),
         Row(12.0f).Children({
-            std::make_shared<TextBlock>("明暗主题 (Theme):"),
+            std::make_shared<TextBlock>("明暗主题:"),
             btnDark,
             btnLight
         }).Build()

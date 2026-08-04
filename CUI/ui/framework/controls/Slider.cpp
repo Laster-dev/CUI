@@ -17,10 +17,10 @@ Slider::Slider() {
     SetProperty("orientation", Value("Horizontal"));
     SetProperty("theme.trackColorToken", Value("inputBorder"));
     SetProperty("theme.activeTrackColorToken", Value("accentColor"));
-    SetProperty("theme.thumbColorToken", Value("textPrimary"));
+    SetProperty("theme.thumbColorToken", Value("accentColor"));
     SetProperty("trackColor", Value(ThemeManager::Instance().GetColor("inputBorder")));
     SetProperty("activeTrackColor", Value(ThemeManager::Instance().GetColor("accentColor")));
-    SetProperty("thumbColor", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    SetProperty("thumbColor", Value(ThemeManager::Instance().GetColor("accentColor")));
     SetProperty("width", Value(200.0f));
     SetProperty("height", Value(24.0f));
     m_displayValueAnim.Reset(GetValue());

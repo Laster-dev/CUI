@@ -449,7 +449,9 @@ void TextBox::DeleteSelection() {
 
 void TextBox::OnRender(GraphicsContext& ctx) {
     float radius = GetProperty("cornerRadius").AsFloat(0.0f);
-    D2D1_COLOR_F bg = GetProperty("background").AsColor(D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F bg = HasProperty("theme.backgroundToken")
+        ? ResolveThemeColor("theme.backgroundToken", "inputBackground")
+        : GetProperty("background").AsColor(D2D1::ColorF(0, 0, 0, 0));
     const bool enabled = IsEnabled();
     if (!enabled) {
         D2D1_COLOR_F disabledBg = ThemeManager::Instance().GetColor("hoverBackground");

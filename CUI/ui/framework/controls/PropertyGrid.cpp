@@ -173,18 +173,17 @@ void ApplyTargetProperty(UIElement* target, const std::string& propName, const V
 } // namespace
 
 PropertyGrid::PropertyGrid() {
-    SetProperty("theme.backgroundToken", Value("cardBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
+    // 右侧检查器是 chrome 玻璃，不是实心 card —— 否则整列盖死 SystemBackdrop。
+    SetProperty("theme.backgroundToken", Value("paneBackground"));
     SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
     SetProperty("borderThickness", Value(1.0f));
 
     m_container = std::make_shared<StackPanel>();
     m_container->SetProperty("orientation", Value("Vertical"));
     m_container->SetProperty("padding", Value(Thickness(12, 12, 12, 12)));
     m_container->SetProperty("gap", Value(8.0f));
-    BindThemeToken(m_container, "theme.backgroundToken", "cardBackground");
-    // Prevent last property rows from being clipped if content height is slightly short.
+    // 容器本身不铺底，由 PropertyGrid 统一刷 pane 玻璃。
+    m_container->SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
     m_container->SetProperty("clipToBounds", Value(false));
 
     AddChild(m_container);
@@ -212,7 +211,7 @@ void PropertyGrid::RebuildUI() {
     titleTb->SetProperty("text", Value("自动化属性检查器 (" + className + ")"));
     titleTb->SetProperty("fontSize", Value(12.0f));
     titleTb->SetProperty("fontWeight", Value("Bold"));
-    BindThemeToken(titleTb, "theme.colorToken", "accentColor");
+    BindThemeToken(titleTb, "theme.colorToken", "textPrimary");
     m_container->AddChild(titleTb);
 
     // Call Virtual Reflection Method on UIElement Object
@@ -296,7 +295,7 @@ void PropertyGrid::RebuildUI() {
             catTb->SetProperty("text", Value("[" + currentCategory + "]"));
             catTb->SetProperty("fontSize", Value(11.0f));
             catTb->SetProperty("fontWeight", Value("Bold"));
-            BindThemeToken(catTb, "theme.colorToken", "accentColor");
+            BindThemeToken(catTb, "theme.colorToken", "textSecondary");
             catTb->SetProperty("margin", Value(Thickness(0, 6, 0, 2)));
             m_container->AddChild(catTb);
         }
@@ -305,7 +304,7 @@ void PropertyGrid::RebuildUI() {
         auto labelTb = std::make_shared<TextBlock>();
         labelTb->SetProperty("text", Value(meta.displayName + ":"));
         labelTb->SetProperty("fontSize", Value(11.0f));
-        BindThemeToken(labelTb, "theme.colorToken", "textMuted");
+        BindThemeToken(labelTb, "theme.colorToken", "textSecondary");
         m_container->AddChild(labelTb);
 
         // Control
@@ -344,7 +343,7 @@ void PropertyGrid::RebuildUI() {
             BindThemeToken(combo, "theme.backgroundToken", "inputBackground");
             BindThemeToken(combo, "theme.borderToken", "inputBorder");
             BindThemeToken(combo, "theme.dropdownBackgroundToken", "cardBackground");
-            BindThemeToken(combo, "theme.selectedItemBackgroundToken", "accentColor");
+            BindThemeToken(combo, "theme.selectedItemBackgroundToken", "selectedBackground");
             BindThemeToken(combo, "theme.colorToken", "textPrimary");
 
             const bool isThemeToken = (meta.type == "themeToken" || meta.type == "color");
