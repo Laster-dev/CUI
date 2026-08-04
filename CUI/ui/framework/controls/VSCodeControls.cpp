@@ -120,13 +120,13 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     // Query current window state
     BackdropType curBackdrop = BackdropType::Mica;
     ThemeMode curTheme = ThemeMode::Dark;
-    bool compositionOk = false;
+    bool alphaOk = false;
     if (hwnd) {
         Window* winObj = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
         if (winObj) {
             curBackdrop = winObj->GetBackdropType();
             curTheme = winObj->GetThemeMode();
-            compositionOk = winObj->GetGraphicsContext().UsesCompositionSwapChain();
+            alphaOk = winObj->GetGraphicsContext().SupportsPerPixelAlpha();
         }
     }
 
@@ -201,7 +201,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     // If composition swap-chain is unavailable, system backdrop cannot show through
     // (HWND swap chains ignore alpha). Surface that clearly in the chrome label.
     std::string bdpText = std::string("材质:") + bdpStr;
-    if (curBackdrop != BackdropType::None && !compositionOk) {
+    if (curBackdrop != BackdropType::None && !alphaOk) {
         bdpText += "(无透)";
     }
     D2D1_COLOR_F bdpBg = lightTheme

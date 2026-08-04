@@ -165,7 +165,7 @@ std::shared_ptr<UIElement> CreateDemoSurface(
 std::shared_ptr<UIElement> CreateRightPanel(
     std::initializer_list<std::shared_ptr<UIElement>> children) {
     auto panel = Column(10).Width(320).Padding(16).Border(ThemeManager::Instance().GetColorHex("cardBorder"), 1).Children(children).Build();
-    BindThemeToken(panel, "theme.backgroundToken", "cardBackground");
+    BindThemeToken(panel, "theme.backgroundToken", "paneBackground");
     BindThemeToken(panel, "theme.borderToken", "cardBorder");
     return panel;
 }
@@ -176,7 +176,7 @@ std::shared_ptr<UIElement> CreateRightScrollPanel(
     auto scroll = std::make_shared<ScrollViewer>();
     scroll->SetProperty("width", Value(320.0f));
     scroll->SetProperty("borderThickness", Value(1.0f));
-    BindThemeToken(scroll, "theme.backgroundToken", "cardBackground");
+    BindThemeToken(scroll, "theme.backgroundToken", "paneBackground");
     BindThemeToken(scroll, "theme.borderToken", "cardBorder");
     scroll->AddChild(container);
     return scroll;
@@ -237,14 +237,15 @@ std::shared_ptr<UIElement> CreatePage(
         mainColumnBuilder.Add(CreateCodeExampleCollapse(sampleTarget));
     }
     auto mainColumn = mainColumnBuilder.Build();
-    BindThemeToken(mainColumn, "theme.backgroundToken", "windowBackground");
+    // Surface role: content stays readable while chrome reveals SystemBackdrop.
+    BindThemeToken(mainColumn, "theme.backgroundToken", "cardBackground");
 
     // Main content scrolls; flexGrow keeps PropertyGrid visible on the right.
     auto mainScroll = std::make_shared<ScrollViewer>();
     mainScroll->SetProperty("flexGrow", Value(1.0f));
     mainScroll->SetProperty("minWidth", Value(240.0f));
     mainScroll->SetProperty("align", Value("Stretch"));
-    BindThemeToken(mainScroll, "theme.backgroundToken", "windowBackground");
+    BindThemeToken(mainScroll, "theme.backgroundToken", "cardBackground");
     mainScroll->AddChild(mainColumn);
 
     std::shared_ptr<UIElement> right = side;

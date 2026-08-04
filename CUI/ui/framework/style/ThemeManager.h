@@ -8,6 +8,16 @@
 
 namespace CUI {
 
+// WinUI-like material contract:
+// - Chrome: title bar / nav pane / window host — lets SystemBackdrop show through
+// - Surface: cards / inputs / flyouts — readable but still slightly translucent
+// - Solid: text / accents / borders — always opaque
+enum class MaterialRole {
+    Chrome,
+    Surface,
+    Solid
+};
+
 struct ThemeTokens {
     D2D1_COLOR_F windowBackground;
     D2D1_COLOR_F cardBackground;
@@ -37,18 +47,31 @@ public:
     ThemeMode GetThemeMode() const { return m_mode; }
     void SetThemeMode(ThemeMode mode);
 
+    // When true, GetColor() applies chrome/surface alphas so Mica/Acrylic can show.
+    bool IsBackdropActive() const { return m_backdropActive; }
+    void SetBackdropActive(bool active);
+    void SetBackdropType(BackdropType type);
+    BackdropType GetBackdropType() const { return m_backdropType; }
+
     const ThemeTokens& GetTokens() const { return m_tokens; }
 
+    // Preferred paint path — applies material role alpha when backdrop is active.
     D2D1_COLOR_F GetColor(const std::string& tokenName) const;
+    MaterialRole GetMaterialRole(const std::string& tokenName) const;
+
     std::string GetColorHex(const std::string& tokenName) const;
     static const std::vector<std::string>& GetTokenNames();
 
 private:
     ThemeManager();
     void UpdateTokens();
+    D2D1_COLOR_F LookupBaseColor(const std::string& tokenName) const;
+    D2D1_COLOR_F ApplyMaterialRole(const std::string& tokenName, D2D1_COLOR_F base) const;
 
     ThemeMode m_mode = ThemeMode::Dark;
     ThemeTokens m_tokens{};
+    bool m_backdropActive = false;
+    BackdropType m_backdropType = BackdropType::None;
 };
 
 } // namespace CUI

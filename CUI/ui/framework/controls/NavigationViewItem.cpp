@@ -159,9 +159,6 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
     } else if (m_hovered) {
         fill = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
     }
-    if (HasProperty("chromeBackdropAlpha")) {
-        fill.a *= std::clamp(GetProperty("chromeBackdropAlpha").AsFloat(1.0f), 0.0f, 1.0f);
-    }
     if (fill.a > 0.001f) {
         ctx.FillRoundedRect(m_bounds, radius, fill);
     }

@@ -145,15 +145,14 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
         if (!element->HasProperty("theme.colorToken")) {
             element->SetProperty("theme.colorToken", Value("titleBarText"));
         }
-        element->SetProperty("background", Value(tokens.titleBarBackground));
-        element->SetProperty("hoverBackground", Value(tokens.titleBarBackground));
-        element->SetProperty("pressedBackground", Value(tokens.titleBarBackground));
-        element->SetProperty("color", Value(tokens.titleBarText));
-        // Let Mica/Acrylic show through the title bar chrome.
-        element->SetProperty("chromeBackdropAlpha", Value(systemBackdrop ? 0.28f : 1.0f));
+        element->SetProperty("background", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
+        element->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
+        element->SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
+        element->SetProperty("color", Value(ThemeManager::Instance().GetColor("titleBarText")));
     } else if (className == "MenuBar") {
         if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.titleBarBackground));
+            element->SetProperty("theme.backgroundToken", Value("titleBarBackground"));
+            element->SetProperty("background", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
         }
         if (!element->HasProperty("theme.colorToken")) {
             element->SetProperty("color", Value(tokens.titleBarText));
@@ -179,7 +178,8 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
         }
     } else if (className == "PropertyGrid") {
         if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.cardBackground));
+            element->SetProperty("theme.backgroundToken", Value("paneBackground"));
+            element->SetProperty("background", Value(ThemeManager::Instance().GetColor("paneBackground")));
         }
         if (!element->HasProperty("theme.borderToken")) {
             element->SetProperty("borderBrush", Value(tokens.cardBorder));
@@ -392,37 +392,35 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
         if (!element->HasProperty("theme.indicatorColorToken")) {
             element->SetProperty("indicatorColor", Value(tokens.accentColor));
         }
-        // Transparent host + translucent pane so system backdrop can show through chrome.
-        element->SetProperty("chromeBackdropAlpha", Value(systemBackdrop ? 0.0f : 1.0f));
-        element->SetProperty("paneBackdropAlpha", Value(systemBackdrop ? 0.32f : 1.0f));
     } else if (className == "NavigationViewItem" || className == "NavigationViewItemHeader") {
         if (!element->HasProperty("theme.colorToken")) {
             element->SetProperty("theme.colorToken", Value("textPrimary"));
         }
         element->SetProperty("color", Value(tokens.textPrimary));
         if (element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("hoverBackground", Value(tokens.hoverBackground));
+            element->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
         }
         if (element->HasProperty("theme.selectedBackgroundToken")) {
-            element->SetProperty("selectedBackground", Value(tokens.selectedBackground));
+            element->SetProperty("selectedBackground", Value(ThemeManager::Instance().GetColor("selectedBackground")));
         }
-        // Keep item chips translucent so pane mica is not fully covered.
-        element->SetProperty("chromeBackdropAlpha", Value(systemBackdrop ? 0.55f : 1.0f));
     } else if (className == "TextBlock" || className == "HyperlinkButton") {
         if (!element->HasProperty("theme.colorToken")) {
             element->SetProperty("color", Value(className == "HyperlinkButton" ? tokens.accentColor : tokens.textSecondary));
         }
     } else if (className == "ActivityBar") {
         if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.activityBarBackground));
+            element->SetProperty("theme.backgroundToken", Value("activityBarBackground"));
+            element->SetProperty("background", Value(ThemeManager::Instance().GetColor("activityBarBackground")));
         }
     } else if (className == "SideBar" || className == "TabBar") {
         if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.paneBackground));
+            element->SetProperty("theme.backgroundToken", Value("paneBackground"));
+            element->SetProperty("background", Value(ThemeManager::Instance().GetColor("paneBackground")));
         }
     } else if (className == "EditorView") {
         if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.windowBackground));
+            element->SetProperty("theme.backgroundToken", Value("windowBackground"));
+            element->SetProperty("background", Value(ThemeManager::Instance().GetColor("windowBackground")));
         }
     } else if (className == "StatusBar") {
         if (!element->HasProperty("theme.backgroundToken")) {
@@ -593,15 +591,16 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wc.hbrBackground = nullptr;
+    // BLACK_BRUSH zeros alpha on erase for any remaining GDI path.
+    wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
     wc.lpszClassName = L"CUI_WindowClass";
 
     RegisterClassEx(&wc);
 
     std::wstring wTitle(title.begin(), title.end());
 
-    // DirectComposition host: HWND DXGI swap chains ignore per-pixel alpha, so
-    // system Mica/Acrylic never shows through. Composition swap chains do.
+    // DirectComposition host requires WS_EX_NOREDIRECTIONBITMAP so GDI's opaque
+    // redirection surface does not cover premul swap-chain alpha.
     DWORD dwStyle = WS_OVERLAPPEDWINDOW;
 #ifndef WS_EX_NOREDIRECTIONBITMAP
 #define WS_EX_NOREDIRECTIONBITMAP 0x00200000L
@@ -626,6 +625,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     if (!m_hwnd) return false;
 
     UpdateDwmChrome();
+    ThemeManager::Instance().SetBackdropType(m_backdropType);
     WindowBackdrop::ApplyBackdrop(m_hwnd, m_backdropType);
     WindowBackdrop::ApplyTheme(m_hwnd, m_themeMode);
 
@@ -637,11 +637,17 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
         return false;
     }
 
+    // Graphics may add WS_EX_NOREDIRECTIONBITMAP for the composition fallback —
+    // re-apply DWM alpha/backdrop so the final present path is wired correctly.
+    WindowBackdrop::ApplyBackdrop(m_hwnd, m_backdropType);
+    UpdateDwmChrome();
+
     return true;
 }
 
 void Window::SetBackdropType(BackdropType type) {
     m_backdropType = type;
+    ThemeManager::Instance().SetBackdropType(type);
     if (m_hwnd) {
         WindowBackdrop::ApplyBackdrop(m_hwnd, type);
         ApplyVisualState();
@@ -772,6 +778,7 @@ void Window::SetRootElement(std::shared_ptr<UIElement> root) {
 
 void Window::ApplyVisualState() {
     const bool systemBackdrop = (m_backdropType != BackdropType::None);
+    ThemeManager::Instance().SetBackdropType(m_backdropType);
     if (m_rootElement) {
         ApplyThemeToTree(m_rootElement.get(), systemBackdrop);
         static unsigned long long s_themeRefreshNonce = 0;
@@ -1242,10 +1249,46 @@ void Window::OnPaint() {
 
     const D2D1_COLOR_F bgColor = ThemeManager::Instance().GetTokens().windowBackground;
     const bool systemBackdrop = (m_backdropType != BackdropType::None);
+    const bool usePerPixelAlpha =
+        systemBackdrop
+        && m_gfxContext.SupportsPerPixelAlpha()
+        && !IsZoomed(m_hwnd);
     // Transparent clear is required for DWM Mica/Acrylic to show through chrome.
-    const D2D1_COLOR_F sceneClearColor = (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd)))
+    const D2D1_COLOR_F sceneClearColor = (usePerPixelAlpha || (m_transparentMode && !IsZoomed(m_hwnd)))
         ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)
         : bgColor;
+
+    // ClearType assumes an opaque backdrop and writes junk into the alpha channel.
+    if (auto* d2d = m_gfxContext.GetD2DContext()) {
+        d2d->SetTextAntialiasMode(
+            usePerPixelAlpha ? D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE
+                             : D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE
+        );
+    }
+
+    auto renderScene = [&]() {
+        if (m_rootElement) {
+            m_rootElement->Render(m_gfxContext);
+            m_rootElement->RenderOverlay(m_gfxContext);
+        }
+        if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
+            m_activeContextMenu->OnRenderOverlay(m_gfxContext);
+        }
+    };
+
+    // When materials are active, draw straight to the composition swap chain so
+    // premul alpha is not lost in an intermediate layer blit.
+    if (usePerPixelAlpha) {
+        m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
+        renderScene();
+        DrawRenderStatsOverlay();
+        m_gfxContext.EndDraw();
+        m_gfxContext.SetCompositionContext(nullptr);
+        m_compositionContext.EndFrame();
+        m_pendingDirtyRegion.Clear();
+        EndPaint(m_hwnd, &ps);
+        return;
+    }
 
     const Size sceneSize(viewportBounds.width, viewportBounds.height);
     const bool sceneSizeChanged =
@@ -1271,16 +1314,6 @@ void Window::OnPaint() {
                 nullptr
             );
         }
-
-        auto renderScene = [&]() {
-            if (m_rootElement) {
-                m_rootElement->Render(m_gfxContext);
-                m_rootElement->RenderOverlay(m_gfxContext);
-            }
-            if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
-                m_activeContextMenu->OnRenderOverlay(m_gfxContext);
-            }
-        };
 
         if (canRestoreScene && frameDirtyRegion.GetRectCount() > 0) {
             for (const auto& rect : frameDirtyRegion.GetRects()) {
@@ -1349,6 +1382,7 @@ void Window::DrawRenderStatsOverlay() {
         << "  未命中: " << stats.layerCacheMissCount
         << "  重录: " << stats.layerCacheRerenderCount
         << "  复用: " << stats.layerCacheReuseCount
+        << "  材质: " << (m_gfxContext.SupportsPerPixelAlpha() ? "透" : "无透")
         << "  显示帧率: " << static_cast<int>(std::round(m_overlayFps));
 
     const std::string text = ss.str();
@@ -1373,9 +1407,9 @@ void Window::UpdateDwmChrome() {
     // can reveal Mica/Acrylic. Otherwise keep a 1px DWM inset for snap animations.
     const bool maximized = IsZoomed(m_hwnd) != FALSE;
     const bool systemBackdrop = (m_backdropType != BackdropType::None);
-    const MARGINS margins = maximized
-        ? MARGINS{ 0, 0, 0, 0 }
-        : (systemBackdrop ? MARGINS{ -1, -1, -1, -1 } : MARGINS{ 1, 1, 1, 1 });
+    const MARGINS margins = systemBackdrop
+        ? MARGINS{ -1, -1, -1, -1 }
+        : (maximized ? MARGINS{ 0, 0, 0, 0 } : MARGINS{ 1, 1, 1, 1 });
     DwmExtendFrameIntoClientArea(m_hwnd, &margins);
 
     // 1. Force Native Windows 11 DWM Rounded Corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33)

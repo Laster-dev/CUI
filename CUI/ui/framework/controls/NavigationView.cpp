@@ -1084,11 +1084,7 @@ void NavigationView::Arrange(Rect finalRect) {
 void NavigationView::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
-    const D2D1_COLOR_F paneBgBase = ResolveThemeColor("theme.paneBackgroundToken", "paneBackground");
-    D2D1_COLOR_F paneBg = paneBgBase;
-    if (HasProperty("paneBackdropAlpha")) {
-        paneBg.a *= std::clamp(GetProperty("paneBackdropAlpha").AsFloat(1.0f), 0.0f, 1.0f);
-    }
+    const D2D1_COLOR_F paneBg = ResolveThemeColor("theme.paneBackgroundToken", "paneBackground");
     const D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder;
     const D2D1_COLOR_F textPrimary = ThemeManager::Instance().GetTokens().textPrimary;
     const D2D1_COLOR_F textSecondary = ThemeManager::Instance().GetTokens().textSecondary;

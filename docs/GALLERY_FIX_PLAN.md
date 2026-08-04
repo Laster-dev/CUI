@@ -123,14 +123,26 @@ M4  框架差距收敛     G（对照 WinUI 契约清单逐项达标）
 2. 减少无必要整帧；层缓存失效策略与主题切换对齐
 3. 审计无 HWND 的临时 `GraphicsContext` 测字路径
 
-### J. 真正看见 Mica / Acrylic
-1. `backdrop != None` 时根背景 alpha 降低或局部透明
-2. `OnPaint` 清屏使用预乘透明，让 DWM 透出
-3. TitleBar / Pane 区分实心与透出区域（对齐 WinUI）
+### J. 真正看见 Mica / Acrylic（材质契约）
+
+**架构（对齐 WinUI）**
+- SystemBackdrop 垫底（DWM + Composition 预乘透明）
+- 主题色分角色，由 `ThemeManager::GetColor` 统一出 alpha：
+  - **Chrome**：`titleBar` / `pane` / `window`（宿主可全透明）
+  - **Surface**：`card` / `input` / hover（可读、略透）
+  - **Solid**：文字 / 强调色 / 边框（不透明）
+- 禁止再靠控件上散落的 `chromeBackdropAlpha` 手工乘 alpha
+
+**做法**
+1. `ThemeManager::SetBackdropActive` + `MaterialRole`
+2. `Window::SetBackdropType` / `ApplyVisualState` 同步 backdrop 状态
+3. Gallery 内容区用 `cardBackground`（Surface），宿主用透明 chrome
+4. 顶栏按钮若显示 `(无透)` = Composition 失败，需修合成链
 
 **验收**
-- 切换材质后，窗口背后桌面壁纸透过标题栏/侧栏可见（非纯色盖死）
-
+- Mica/Acrylic 时：标题栏与左侧导航能透出壁纸；内容卡片仍可读
+- 切「无材质」：全部恢复不透明实色
+- 不出现 `材质:xxx(无透)`（或仅作失败诊断）
 ---
 
 ## M2 — 属性与 API（回应「为什么要是字符串」）
@@ -172,7 +184,7 @@ textBox->SetAcceptsReturn(true);
 
 | 能力 | 当前 | 目标 |
 |------|------|------|
-| 系统材质 | DWM 调用但被不透明客户区盖住 | 可见 Mica/Acrylic |
+| 系统材质 | DWM + Composition；主题 Chrome/Surface/Solid 角色 | 可见 Mica；全窗统一材质契约 |
 | 控件契约 | IsEnabled/ReadOnly/焦点不一致 | 统一视觉状态机 |
 | 属性模型 | 字符串袋 + 少量封装 | 强类型 API + 反射 metas |
 | 导航/Gallery | 在追 WinUI Gallery | 分类、搜索、代码、属性三栏稳定 |
@@ -189,7 +201,7 @@ textBox->SetAcceptsReturn(true);
 3. [x] **D** IsEnabled 统一门闩  
 4. [x] **H/I** TitleBar 主题/动画热区  
 5. [x] **F0** 去掉焦点定时器整帧  
-6. [x] **J** 材质透出（最小可见版）  
+6. [x] **J** 材质透出（Chrome/Surface/Solid 契约 + Composition）  
 7. [ ] **E** 去糊专项  
 8. [ ] **C** 强类型属性门面 + 示例代码生成改造  
 9. [ ] **F/M3** 性能深挖  

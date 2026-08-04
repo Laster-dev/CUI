@@ -168,6 +168,24 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED;
 
     m_usesCompositionSwapChain = false;
+    m_supportsPerPixelAlpha = false;
+
+#ifndef WS_EX_NOREDIRECTIONBITMAP
+#define WS_EX_NOREDIRECTIONBITMAP 0x00200000L
+#endif
+
+    // HWND flip swap chains do NOT composite per-pixel alpha (PREMULTIPLIED is
+    // unsupported / ignored). Always use Composition + WS_EX_NOREDIRECTIONBITMAP
+    // so translucent chrome can reveal DWM Mica/Acrylic.
+    const LONG_PTR ex = GetWindowLongPtr(m_hwnd, GWL_EXSTYLE);
+    if ((ex & WS_EX_NOREDIRECTIONBITMAP) == 0) {
+        SetWindowLongPtr(m_hwnd, GWL_EXSTYLE, ex | WS_EX_NOREDIRECTIONBITMAP);
+        SetWindowPos(
+            m_hwnd, nullptr, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE
+        );
+    }
+
     hr = dxgiFactory->CreateSwapChainForComposition(
         d3dDevice.Get(),
         &swapChainDesc,
@@ -177,7 +195,7 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     if (SUCCEEDED(hr)) {
         hr = DCompositionCreateDevice(dxgiDevice.Get(), IID_PPV_ARGS(&m_dcompDevice));
         if (SUCCEEDED(hr)) {
-            hr = m_dcompDevice->CreateTargetForHwnd(m_hwnd, FALSE, &m_dcompTarget);
+            hr = m_dcompDevice->CreateTargetForHwnd(m_hwnd, TRUE, &m_dcompTarget);
         }
         if (SUCCEEDED(hr)) {
             hr = m_dcompDevice->CreateVisual(&m_dcompVisual);
@@ -193,6 +211,7 @@ HRESULT GraphicsContext::CreateDeviceResources() {
         }
         if (SUCCEEDED(hr)) {
             m_usesCompositionSwapChain = true;
+            m_supportsPerPixelAlpha = true;
         } else {
             m_dcompVisual.Reset();
             m_dcompTarget.Reset();
@@ -201,8 +220,8 @@ HRESULT GraphicsContext::CreateDeviceResources() {
         }
     }
 
-    if (!m_usesCompositionSwapChain) {
-        // Fallback: classic HWND swap chain (alpha ignored — Mica will not show through).
+    if (!m_swapChain) {
+        // Opaque fallback — material will not show through (label shows 无透).
         swapChainDesc.Scaling = DXGI_SCALING_NONE;
         swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
         hr = dxgiFactory->CreateSwapChainForHwnd(
@@ -214,6 +233,7 @@ HRESULT GraphicsContext::CreateDeviceResources() {
             &m_swapChain
         );
         if (FAILED(hr)) return hr;
+        m_supportsPerPixelAlpha = false;
     }
 
     dxgiFactory->MakeWindowAssociation(m_hwnd, DXGI_MWA_NO_ALT_ENTER);
@@ -276,6 +296,7 @@ void GraphicsContext::ReleaseDeviceResources() {
     m_d2dContext.Reset();
     m_d2dDevice.Reset();
     m_usesCompositionSwapChain = false;
+    m_supportsPerPixelAlpha = false;
 }
 
 void GraphicsContext::BeginDraw() {

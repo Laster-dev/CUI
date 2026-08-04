@@ -32,6 +32,8 @@ public:
     RenderResources& GetResources() { return m_resources; }
     HWND GetHwnd() const { return m_hwnd; }
     bool UsesCompositionSwapChain() const { return m_usesCompositionSwapChain; }
+    // True when the present path keeps per-pixel alpha for DWM Mica/Acrylic.
+    bool SupportsPerPixelAlpha() const { return m_supportsPerPixelAlpha; }
 
     void PushClip(const Rect& rect);
     void PopClip();
@@ -100,6 +102,7 @@ private:
     HWND m_hwnd = nullptr;
     float m_dpiScale = 1.0f;
     bool m_usesCompositionSwapChain = false;
+    bool m_supportsPerPixelAlpha = false;
 
     ComPtr<ID2D1Factory1> m_d2dFactory;
     ComPtr<IDWriteFactory> m_dwriteFactory;

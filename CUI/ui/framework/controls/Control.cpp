@@ -53,13 +53,6 @@ D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
         : GetProperty("disabledBackground").AsColor(ThemeManager::Instance().GetColor("hoverBackground"));
     disabledBg.a = (std::min)(disabledBg.a, 0.6f);
 
-    if (HasProperty("chromeBackdropAlpha")) {
-        const float a = std::clamp(GetProperty("chromeBackdropAlpha").AsFloat(1.0f), 0.0f, 1.0f);
-        bg.a *= a;
-        hoverBg.a *= a;
-        pressedBg.a *= a;
-    }
-
     if (!IsEnabled()) return disabledBg;
     float visualState = m_visualStateAnim.Current();
     if (visualState <= 0.0f) return bg;
