@@ -2,6 +2,7 @@
 #include "UIElement.h"
 #include "Button.h"
 #include "Panel.h"
+#include "../animation/AnimationSystem.h"
 #include <memory>
 #include <string>
 
@@ -30,15 +31,20 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnKeyDown(int vkCode) override;
+    bool OnAnimationTick() override;
+    bool HasSelfAnimation() const override;
 
     Event<CollapsePanel*, bool>& OnExpandedChanged() { return m_onExpandedChangedEvent; }
 
 private:
     void UpdateContentVisibility();
     void InvalidateParentLayout();
+    void SyncHeaderChrome();
 
     std::string m_headerText = "折叠面板";
     bool m_isExpanded = true;
+    AnimatedScalar m_expandAnim{ 1.0f };
+    float m_bodyDesiredHeight = 0.0f;
     std::shared_ptr<Button> m_headerButton;
     std::shared_ptr<StackPanel> m_contentHost;
     std::shared_ptr<UIElement> m_content;

@@ -3,6 +3,7 @@
 #define NOMINMAX
 #endif
 #include "Control.h"
+#include "../animation/AnimationSystem.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -18,6 +19,8 @@ struct TreeViewItem {
     bool isSelected = false;
     TreeViewItem* parent = nullptr;
     std::vector<std::shared_ptr<TreeViewItem>> children;
+    // 0 = fully collapsed, 1 = fully expanded (drives child row fade + chevron).
+    AnimatedScalar expandAnim{ 0.0f };
 };
 
 class TreeView : public Control {
@@ -38,6 +41,8 @@ public:
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseWheel(float delta) override;
     virtual void OnKeyDown(int vkCode) override;
+    bool OnAnimationTick() override;
+    bool HasSelfAnimation() const override;
 
     void ClearItems();
     void AddItem(std::shared_ptr<TreeViewItem> item);
@@ -72,6 +77,7 @@ private:
     void ToggleItem(std::shared_ptr<TreeViewItem> item);
     void SetParentRecursive(const std::shared_ptr<TreeViewItem>& item, TreeViewItem* parent);
     std::shared_ptr<TreeViewItem> FindFirstVisibleSelectable(int startIndex, int direction) const;
+    bool TickExpandAnims(const std::vector<std::shared_ptr<TreeViewItem>>& list, float dt);
 
     float m_indentWidth = 18.0f;
     std::vector<std::shared_ptr<TreeViewItem>> m_items;

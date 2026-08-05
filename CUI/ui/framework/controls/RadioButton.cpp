@@ -161,7 +161,12 @@ void RadioButton::SetChecked(bool checked) {
     m_selectionAnim.SetTarget(target);
     if (!UIElement::AreAnimationsEnabled()) {
         m_selectionAnim.Reset(target);
+    } else {
+        // Siblings unchecked by group exclusion must re-register for ticks,
+        // otherwise the filled dot never animates away (looks like two selected).
+        RequestAnimationTicks();
     }
+    MarkRenderContentDirty();
 }
 
 } // namespace CUI

@@ -138,6 +138,8 @@ void TimePicker::NudgeColumn(int column, int delta) {
         m_minuteTarget = WrapPosition(m_minuteTarget + static_cast<float>(delta), 60);
         SetTime(m_hour, WrapIndex(static_cast<int>(std::round(m_minuteTarget)), 60));
     }
+    RequestAnimationTicks();
+    MarkRenderContentDirty();
 }
 
 void TimePicker::SnapTargetsToSelection() {
@@ -159,16 +161,25 @@ UIElement* TimePicker::OnHitTestOverlay(float x, float y) {
 void TimePicker::OnMouseWheel(float delta) {
     if (!m_isPopupOpen) return;
 
-    POINT screenPt{};
-    if (!GetCursorPos(&screenPt)) return;
-    HWND hwnd = WindowFromPoint(screenPt);
-    if (!hwnd) return;
-
     float logicalX = 0.0f;
     float logicalY = 0.0f;
-    if (!TryGetCursorClientLogical(hwnd, logicalX, logicalY)) return;
+    POINT screenPt{};
+    HWND hwnd = nullptr;
+    if (GetCursorPos(&screenPt)) {
+        hwnd = WindowFromPoint(screenPt);
+    }
+    if (!hwnd || !TryGetCursorClientLogical(hwnd, logicalX, logicalY)) {
+        return;
+    }
 
     int column = HitTestColumn(logicalX, logicalY);
+    // Wheel over popup header/footer: still nudge the nearer column.
+    if (column < 0 && GetPopupRect().Contains(logicalX, logicalY)) {
+        Rect hourWheel = GetWheelRect(0);
+        Rect minuteWheel = GetWheelRect(1);
+        const float midX = (hourWheel.x + hourWheel.width + minuteWheel.x) * 0.5f;
+        column = (logicalX < midX) ? 0 : 1;
+    }
     if (column < 0) return;
 
     NudgeColumn(column, (delta > 0.0f) ? -1 : 1);

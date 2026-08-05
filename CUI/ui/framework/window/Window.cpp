@@ -1088,8 +1088,9 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         Point logicalPt = ClientPointToLogical(pt.x, pt.y);
         float delta = static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) / WHEEL_DELTA;
 
-        UIElement* target = nullptr;
-        if (m_rootElement) {
+        // Same hit order as mouse move/click: popup → overlay → tree.
+        UIElement* target = m_popupHost.HitTest(logicalPt.x, logicalPt.y);
+        if (!target && m_rootElement) {
             target = m_rootElement->HitTestOverlay(logicalPt.x, logicalPt.y);
             if (!target) {
                 target = m_rootElement->HitTest(logicalPt.x, logicalPt.y);

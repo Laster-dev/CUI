@@ -104,12 +104,29 @@ void ContentDialog::Show(std::function<void(DialogResult)> callback) {
     m_animState = 1; // Opening
     m_animStartTime = std::chrono::steady_clock::now();
     m_animProgress = 0.0f;
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_animState = 2;
+        m_animProgress = 1.0f;
+    }
+    RequestAnimationTicks();
+    MarkRenderContentDirty();
 }
 
 void ContentDialog::Hide() {
     if (m_animState == 3 || m_animState == 0) return;
     m_animState = 3; // Closing
     m_animStartTime = std::chrono::steady_clock::now();
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_animState = 0;
+        m_animProgress = 0.0f;
+        m_isOpen = false;
+        if (m_parent) {
+            m_parent->RemoveChildRaw(this);
+        }
+        return;
+    }
+    RequestAnimationTicks();
+    MarkRenderContentDirty();
 }
 
 bool ContentDialog::OnAnimationTick() {
@@ -144,6 +161,8 @@ bool ContentDialog::OnAnimationTick() {
             m_animState = 2; // Opened
             m_animProgress = 1.0f;
         }
+        MarkRenderContentDirty();
+        RequestAnimationTicks();
         return true;
     }
 
@@ -159,6 +178,8 @@ bool ContentDialog::OnAnimationTick() {
             }
             return false;
         }
+        MarkRenderContentDirty();
+        RequestAnimationTicks();
         return true;
     }
 
@@ -287,7 +308,8 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
 }
 
 UIElement* ContentDialog::OnHitTestOverlay(float x, float y) {
-    if (!m_isOpen) return nullptr;
+    // Don't swallow input until the open animation has actually started painting.
+    if (!m_isOpen || m_animProgress <= 0.001f) return nullptr;
 
     if (!m_closeText.empty() && m_btnClose && m_btnClose->GetBounds().Contains(x, y)) return m_btnClose.get();
     if (!m_secondaryText.empty() && m_btnSecondary && m_btnSecondary->GetBounds().Contains(x, y)) return m_btnSecondary.get();
@@ -324,6 +346,14 @@ void ContentDialog::ShowMessageBox(UIElement* root, const std::string& title, co
     dlg->Show(callback);
 
     root->AddChild(dlg);
+    // Match root client so overlay/hit-test have a real window rect immediately.
+    const Rect rootBounds = root->GetBounds();
+    if (!rootBounds.IsEmpty()) {
+        dlg->Arrange(rootBounds);
+    }
+    dlg->RequestAnimationTicks();
+    dlg->MarkRenderContentDirty();
+    root->MarkRenderContentDirty();
 }
 
 } // namespace CUI

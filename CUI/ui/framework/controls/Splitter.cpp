@@ -8,8 +8,8 @@
 namespace CUI {
 
 namespace {
-constexpr float kDefaultThickness = 10.0f;
-constexpr float kHitPad = 4.0f;
+constexpr float kDefaultThickness = 5.0f;
+constexpr float kHitPad = 5.0f;
 }
 
 Splitter::Splitter() {
@@ -191,22 +191,29 @@ void Splitter::OnMouseUp(Point pt) {
 }
 
 void Splitter::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBorder);
-    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::AccentColor);
+    // WinUI GridSplitter: mostly transparent track, thin accent line when active.
+    D2D1_COLOR_F border = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBorder);
+    D2D1_COLOR_F accent = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::AccentColor);
     const bool active = m_isHovered || m_isDragging;
-    ctx.FillRect(m_bounds, active ? hoverBg : bg);
 
-    // Center grip mark so a thick hit strip still reads as a splitter.
-    D2D1_COLOR_F grip = ThemeManager::Instance().GetTokens().textMuted;
-    grip.a = active ? 0.9f : 0.55f;
+    D2D1_COLOR_F track = border;
+    track.a = active ? 0.0f : 0.18f;
+    if (track.a > 0.01f) {
+        ctx.FillRect(m_bounds, track);
+    }
+
     if (IsVerticalSplitter()) {
-        float cx = m_bounds.x + m_bounds.width * 0.5f;
-        float cy = m_bounds.y + m_bounds.height * 0.5f;
-        ctx.FillRoundedRect(Rect(cx - 1.0f, cy - 14.0f, 2.0f, 28.0f), 1.0f, grip);
+        float lineW = active ? 2.0f : 1.0f;
+        float cx = m_bounds.x + (m_bounds.width - lineW) * 0.5f;
+        D2D1_COLOR_F line = active ? accent : border;
+        line.a = active ? 1.0f : 0.45f;
+        ctx.FillRect(Rect(cx, m_bounds.y + 4.0f, lineW, (std::max)(0.0f, m_bounds.height - 8.0f)), line);
     } else {
-        float cx = m_bounds.x + m_bounds.width * 0.5f;
-        float cy = m_bounds.y + m_bounds.height * 0.5f;
-        ctx.FillRoundedRect(Rect(cx - 18.0f, cy - 1.0f, 36.0f, 2.0f), 1.0f, grip);
+        float lineH = active ? 2.0f : 1.0f;
+        float cy = m_bounds.y + (m_bounds.height - lineH) * 0.5f;
+        D2D1_COLOR_F line = active ? accent : border;
+        line.a = active ? 1.0f : 0.45f;
+        ctx.FillRect(Rect(m_bounds.x + 4.0f, cy, (std::max)(0.0f, m_bounds.width - 8.0f), lineH), line);
     }
 }
 

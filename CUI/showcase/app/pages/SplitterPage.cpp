@@ -1,47 +1,88 @@
 #include "PageRegistry.h"
 #include "../ShowcaseHelpers.h"
 #include "framework/core/CUIDsl.h"
+#include "framework/style/ThemeManager.h"
+#include "framework/style/ThemeTokenId.h"
 
+using namespace CUI;
 using namespace CUI::DSL;
 
+namespace {
+template <typename T>
+std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::string& tokenProp, const std::string& tokenName) {
+    if (!element) {
+        return element;
+    }
+    ThemeTokenId id = ThemeTokenIdFromName(tokenName);
+    if (tokenProp == "theme.backgroundToken") {
+        element->SetBackgroundToken(id);
+        element->SetBackground(ThemeManager::Instance().GetColor(tokenName));
+    } else if (tokenProp == "theme.borderToken") {
+        element->SetBorderToken(id);
+        element->SetBorderBrush(ThemeManager::Instance().GetColor(tokenName));
+    } else if (tokenProp == "theme.colorToken") {
+        element->SetColorToken(id);
+    }
+    return element;
+}
+}
+
 ShowcasePage BuildSplitterPage(const ShowcaseContext& ctx) {
-    // Vertical orientation = vertical bar = drag left/right (水平拆分面板).
-    // Horizontal orientation = horizontal bar = drag up/down (垂直拆分面板).
-    auto splitterLR = SplitterWidget(CUI::Orientation::Vertical).Build();
-    auto splitterTB = SplitterWidget(CUI::Orientation::Horizontal).Build();
+    auto splitterLR = SplitterWidget(Orientation::Vertical).Build();
+    auto splitterTB = SplitterWidget(Orientation::Horizontal).Build();
+
+    auto leftPane = Column(6).Width(140).MinWidth(72).Padding(10).Children({
+        CreateShowcaseText("导航", 12.0f, "", true),
+        CreateShowcaseText("• Home", 11.0f, ""),
+        CreateShowcaseText("• Documents", 11.0f, ""),
+        CreateShowcaseText("• Settings", 11.0f, "")
+    }).Build();
+    BindThemeToken(leftPane, "theme.backgroundToken", "paneBackground");
+
+    auto rightPane = Column(6).FlexGrow(1.0f).MinWidth(96).Padding(10).Children({
+        CreateShowcaseText("内容区", 12.0f, "", true),
+        CreateShowcaseText("拖拽中间细分割条调整左右宽度。", 11.0f, "")
+    }).Build();
+    BindThemeToken(rightPane, "theme.backgroundToken", "cardBackground");
+
+    auto topPane = Column(4).Height(88).MinHeight(48).Padding(10).Children({
+        CreateShowcaseText("编辑器", 12.0f, "", true),
+        CreateShowcaseText("int main() { return 0; }", 11.0f, "")
+    }).Build();
+    BindThemeToken(topPane, "theme.backgroundToken", "paneBackground");
+
+    auto bottomPane = Column(4).FlexGrow(1.0f).MinHeight(48).Padding(10).Children({
+        CreateShowcaseText("输出", 12.0f, "", true),
+        CreateShowcaseText("Build succeeded.", 11.0f, "")
+    }).Build();
+    BindThemeToken(bottomPane, "theme.backgroundToken", "cardBackground");
+
+    auto rowSplit = Row().Height(150).CornerRadius(6).Border(ThemeManager::Instance().GetColorHex("cardBorder"), 1).Children({
+        leftPane,
+        splitterLR,
+        rightPane
+    }).Build();
+    BindThemeToken(rowSplit, "theme.backgroundToken", "cardBackground");
+    BindThemeToken(rowSplit, "theme.borderToken", "cardBorder");
+
+    auto colSplit = Column(0).Height(170).CornerRadius(6).Border(ThemeManager::Instance().GetColorHex("cardBorder"), 1).Children({
+        topPane,
+        splitterTB,
+        bottomPane
+    }).Build();
+    BindThemeToken(colSplit, "theme.backgroundToken", "cardBackground");
+    BindThemeToken(colSplit, "theme.borderToken", "cardBorder");
 
     auto demo = CreateDemoSurface({
-        CreateShowcaseText("1. 水平拆分（左右面板，竖向分割条）:", 12.0f, "#AAAAAA"),
-        Row().Height(220).Background("#1E1E1E").CornerRadius(4).Border("#333333", 1).Children({
-            Column(8).Width(220).MinWidth(80).Background("#252526").Padding(12).Children({
-                CreateShowcaseText("[左侧文件树面板]", 12.0f, "#007ACC", true),
-                CreateShowcaseText("• main.cpp", 11.0f, "#CCCCCC"),
-                CreateShowcaseText("• CUIDsl.h / typed setters", 11.0f, "#CCCCCC")
-            }).Build(),
-            splitterLR,
-            Column(8).FlexGrow(1.0f).MinWidth(100).Background("#1E1E1E").Padding(12).Children({
-                CreateShowcaseText("[右侧主编辑区]", 12.0f, "#4EC9B0", true),
-                CreateShowcaseText("拖拽中间竖向 Splitter，左右面板宽度联动。", 11.0f, "#888888")
-            }).Build()
-        }).Build(),
-        CreateShowcaseText("2. 垂直拆分（上下面板，横向分割条）:", 12.0f, "#AAAAAA"),
-        Column(0).Height(280).Background("#1E1E1E").CornerRadius(4).Border("#333333", 1).Children({
-            Column(4).Height(130).MinHeight(60).Background("#252526").Padding(12).Children({
-                CreateShowcaseText("[上方代码编辑视口]", 12.0f, "#D16969", true),
-                CreateShowcaseText("1  #include <iostream>", 11.0f, "#6A9955"),
-                CreateShowcaseText("2  int main() { return 0; }", 11.0f, "#DCDCAA")
-            }).Build(),
-            splitterTB,
-            Column(4).FlexGrow(1.0f).MinHeight(60).Background("#1E1E1E").Padding(12).Children({
-                CreateShowcaseText("[下方集成终端/控制台]", 12.0f, "#CE9178", true),
-                CreateShowcaseText("Build succeeded. 0 Errors, 0 Warnings.", 11.0f, "#4EC9B0")
-            }).Build()
-        }).Build()
+        CreateShowcaseText("水平拆分（左右）", 12.0f, ""),
+        rowSplit,
+        CreateShowcaseText("垂直拆分（上下）", 12.0f, ""),
+        colSplit
     });
 
     return { "Splitter 拆分条", CreatePage(
-        "Splitter / GridSplitter 可拖拽拆分条控件",
-        "Vertical=左右拖；Horizontal=上下拖。按住分割条拖拽即可联动面板尺寸。",
+        "Splitter / GridSplitter",
+        "WinUI 风格细分割条：悬停/拖拽时显示强调色指示线，拖拽即可联动面板尺寸。",
         demo,
         CreatePropertyGrid(ctx, splitterLR),
         splitterLR) };

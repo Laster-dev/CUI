@@ -1,41 +1,50 @@
 #include "CollapsePanel.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
+#include <cmath>
 #include <vector>
 #include <windows.h>
 
 namespace CUI {
 
+namespace {
+float EaseOutCubic(float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    const float inv = 1.0f - t;
+    return 1.0f - inv * inv * inv;
+}
+}
+
 CollapsePanel::CollapsePanel() {
-    // 外壳用 pane 玻璃，避免大块实心 card 盖死材质。
-    SetBackgroundToken(ThemeTokenId::PaneBackground);
+    SetBackgroundToken(ThemeTokenId::CardBackground);
     SetBorderToken(ThemeTokenId::CardBorder);
     SetBorderThickness(1.0f);
     SetCornerRadius(6.0f);
     SetPadding(Thickness(0));
 
     m_headerButton = std::make_shared<Button>();
-    m_headerButton->SetBackgroundToken(ThemeTokenId::PaneBackground);
+    m_headerButton->SetBackgroundToken(ThemeTokenId::CardBackground);
     m_headerButton->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
     m_headerButton->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
     m_headerButton->SetColorToken(ThemeTokenId::TextPrimary);
     m_headerButton->SetBorderToken(ThemeTokenId::CardBorder);
     m_headerButton->SetBorderThickness(0.0f);
-    m_headerButton->SetCornerRadius(6.0f);
+    m_headerButton->SetCornerRadius(0.0f);
     m_headerButton->SetPadding(Thickness(12, 10, 12, 10));
     m_headerButton->SetAlign(Alignment::Stretch);
+    m_headerButton->SetFontSize(13.0f);
     m_headerButton->OnClick().Connect([this](UIElement*) { SetExpanded(!m_isExpanded); });
 
     m_contentHost = std::make_shared<StackPanel>();
     m_contentHost->SetOrientation(Orientation::Vertical);
     m_contentHost->SetGap(8.0f);
-    m_contentHost->SetPadding(Thickness(12, 12, 12, 12));
+    m_contentHost->SetPadding(Thickness(12, 4, 12, 12));
     m_contentHost->SetAlign(Alignment::Stretch);
-    // 内容宿主透明，露出外层 pane / 底下 SystemBackdrop。
     m_contentHost->SetBackground(D2D1::ColorF(0, 0, 0, 0));
 
     AddChild(m_headerButton);
     AddChild(m_contentHost);
+    m_expandAnim.Reset(1.0f);
     SetHeader(m_headerText);
     UpdateContentVisibility();
 }
@@ -51,28 +60,40 @@ std::vector<PropertyMeta> CollapsePanel::GetPropertyMetas() const {
     return metas;
 }
 
+void CollapsePanel::SyncHeaderChrome() {
+    if (!m_headerButton) {
+        return;
+    }
+    // WinUI Expander-like: title + chevron, no emoji / instructional chrome.
+    const char* chevron = (m_expandAnim.Current() > 0.5f) ? "▾  " : "▸  ";
+    m_headerButton->SetText(std::string(chevron) + m_headerText);
+}
+
 void CollapsePanel::SetHeader(const std::string& header) {
     m_headerText = header;
-    if (m_headerButton) {
-        m_headerButton->SetText(m_isExpanded ? "📂 " + header + "  [▲ 点击折叠]" : "📁 " + header + "  [▼ 点击展开]");
-    }
+    SyncHeaderChrome();
 }
 
 void CollapsePanel::SetExpanded(bool expanded) {
-    if (m_isExpanded != expanded) {
-        m_isExpanded = expanded;
-        SetHeader(m_headerText);
-        UpdateContentVisibility();
-        m_onExpandedChangedEvent.Invoke(this, m_isExpanded);
-        InvalidateParentLayout();
+    if (m_isExpanded == expanded) {
+        return;
     }
+    m_isExpanded = expanded;
+    m_expandAnim.SetTarget(expanded ? 1.0f : 0.0f);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_expandAnim.Reset(expanded ? 1.0f : 0.0f);
+    } else {
+        RequestAnimationTicks();
+    }
+    SyncHeaderChrome();
+    UpdateContentVisibility();
+    m_onExpandedChangedEvent.Invoke(this, m_isExpanded);
+    InvalidateParentLayout();
 }
 
 void CollapsePanel::InvalidateParentLayout() {
     MarkRenderContentDirty();
 
-    // Re-measure/arrange the ancestor chain so collapsed height actually releases space,
-    // and expanded height is picked up without requiring a page switch.
     std::vector<UIElement*> chain;
     for (UIElement* p = this; p; p = p->GetParent()) {
         chain.push_back(p);
@@ -107,9 +128,38 @@ void CollapsePanel::SetContent(std::shared_ptr<UIElement> content) {
 }
 
 void CollapsePanel::UpdateContentVisibility() {
-    if (m_contentHost) {
-        m_contentHost->SetVisibility(m_isExpanded ? Visibility::Visible : Visibility::Collapsed);
+    if (!m_contentHost) {
+        return;
     }
+    // Keep host measurable while collapsing so height can animate down.
+    const bool show = m_isExpanded || m_expandAnim.Current() > 0.01f;
+    m_contentHost->SetVisibility(show ? Visibility::Visible : Visibility::Collapsed);
+    m_contentHost->SetOpacity(EaseOutCubic(m_expandAnim.Current()));
+}
+
+bool CollapsePanel::OnAnimationTick() {
+    bool base = UIElement::OnAnimationTick();
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_expandAnim.Reset(m_isExpanded ? 1.0f : 0.0f);
+        UpdateContentVisibility();
+        return base;
+    }
+
+    const bool moving = m_expandAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.32f, 0.01f });
+    if (moving) {
+        SyncHeaderChrome();
+        UpdateContentVisibility();
+        InvalidateParentLayout();
+        RequestAnimationTicks();
+    } else if (!m_isExpanded) {
+        UpdateContentVisibility();
+        InvalidateParentLayout();
+    }
+    return base || moving;
+}
+
+bool CollapsePanel::HasSelfAnimation() const {
+    return m_expandAnim.IsAnimating(0.01f);
 }
 
 Size CollapsePanel::Measure(Size availableSize) {
@@ -121,13 +171,18 @@ Size CollapsePanel::Measure(Size availableSize) {
 
     Size headerSize = m_headerButton ? m_headerButton->Measure(Size(contentW, contentH)) : Size(0, 0);
     Size bodySize(0, 0);
-    if (m_isExpanded && m_contentHost) {
-        // Give body unbounded height so it can report true desired size for ScrollViewer parents.
+    if (m_contentHost && (m_isExpanded || m_expandAnim.Current() > 0.01f)) {
         bodySize = m_contentHost->Measure(Size(contentW, 100000.0f));
+        m_bodyDesiredHeight = bodySize.height;
+    } else {
+        m_bodyDesiredHeight = 0.0f;
     }
 
+    const float eased = EaseOutCubic(m_expandAnim.Current());
+    const float bodyH = m_bodyDesiredHeight * eased;
+
     float width = (std::max)(headerSize.width, bodySize.width) + margin.left + margin.right + padding.left + padding.right;
-    float height = headerSize.height + (m_isExpanded ? bodySize.height : 0.0f) + margin.top + margin.bottom + padding.top + padding.bottom;
+    float height = headerSize.height + bodyH + margin.top + margin.bottom + padding.top + padding.bottom;
 
     float expW = GetWidth();
     float expH = GetHeight();
@@ -153,39 +208,44 @@ void CollapsePanel::Arrange(Rect finalRect) {
     }
 
     if (m_contentHost) {
-        if (m_isExpanded) {
-            float contentY = innerY + headerSize.height;
-            float contentH = (std::max)(0.0f, innerH - headerSize.height);
-            // Prefer content's desired height when parent gave us exact measured height.
-            Size bodyDesired = m_contentHost->GetDesiredSize();
-            if (bodyDesired.height > 0.0f && bodyDesired.height < contentH) {
-                contentH = bodyDesired.height;
-            }
-            m_contentHost->Arrange(Rect(innerX, contentY, innerW, contentH));
+        const float eased = EaseOutCubic(m_expandAnim.Current());
+        float contentY = innerY + headerSize.height;
+        float contentH = (std::max)(0.0f, m_bodyDesiredHeight * eased);
+        if (contentH < 0.5f) {
+            m_contentHost->Arrange(Rect(innerX, contentY, innerW, 0.0f));
         } else {
-            m_contentHost->Arrange(Rect(innerX, innerY + headerSize.height, innerW, 0.0f));
+            m_contentHost->Arrange(Rect(innerX, contentY, innerW, contentH));
         }
     }
 }
 
 void CollapsePanel::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::PaneBackground);
+    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
     D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     float radius = GetCornerRadius();
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
     ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);
 
+    // Hairline under header (Expander chrome).
+    if (m_headerButton) {
+        const Rect hb = m_headerButton->GetBounds();
+        D2D1_COLOR_F line = border;
+        line.a = 0.55f;
+        ctx.DrawLine(Point(m_bounds.x + 1.0f, hb.y + hb.height),
+                     Point(m_bounds.x + m_bounds.width - 1.0f, hb.y + hb.height),
+                     line, 1.0f);
+    }
+
     UIElement::OnRender(ctx);
 }
 
 void CollapsePanel::OnMouseDown(Point pt) {
-    // Header Button already toggles via OnClick — do not double-toggle here.
     if (m_headerButton && m_headerButton->GetBounds().Contains(pt.x, pt.y)) {
         m_headerButton->OnMouseDown(pt);
         return;
     }
-    if (m_isExpanded && m_contentHost && m_contentHost->GetBounds().Contains(pt.x, pt.y)) {
+    if (m_expandAnim.Current() > 0.01f && m_contentHost && m_contentHost->GetBounds().Contains(pt.x, pt.y)) {
         m_contentHost->OnMouseDown(pt);
     }
 }

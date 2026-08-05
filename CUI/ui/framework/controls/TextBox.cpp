@@ -369,8 +369,8 @@ bool TextBox::OnAnimationTick() {
     m_labelAnim.SetTarget(target);
     m_focusLineAnim.SetTarget(focusTarget);
 
-    bool animating = m_labelAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.22f, 0.01f });
-    animating = m_focusLineAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.18f, 0.01f }) || animating;
+    bool animating = m_labelAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.34f, 0.01f });
+    animating = m_focusLineAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.28f, 0.01f }) || animating;
     // Keep the animation pump alive while focused so caret blink uses dirty regions
     // instead of a full-window timer repaint.
     const bool caretBlink = m_isFocused && IsEnabled();
@@ -452,32 +452,36 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         phActive = phBase;
     }
     Rect textRect = GetTextRect();
-    float labelProgress = m_labelAnim.Current();
+    const float labelProgress = std::clamp(m_labelAnim.Current(), 0.0f, 1.0f);
+    // Single Fluent ease-out — avoid dual-draw ghosting of the same placeholder.
+    const float inv = 1.0f - labelProgress;
+    const float labelEased = 1.0f - inv * inv * inv;
     float focusLineProgress = enabled ? m_focusLineAnim.Current() : 0.0f;
-    float labelFontSize = fontSize + (11.0f - fontSize) * labelProgress;
-    float labelY = m_bounds.y + 16.0f + (4.0f - 16.0f) * labelProgress;
+    float labelFontSize = fontSize + (11.0f - fontSize) * labelEased;
+    float labelY = m_bounds.y + 16.0f + (4.0f - 16.0f) * labelEased;
     Rect labelRect(m_bounds.x, labelY, m_bounds.width, 16.0f);
-    D2D1_COLOR_F labelColor = BlendColor(phBase, phActive, m_isFocused ? labelProgress : labelProgress * 0.35f);
+    D2D1_COLOR_F labelColor = BlendColor(phBase, phActive, m_isFocused ? labelEased : labelEased * 0.35f);
 
-    if (hasFloatingLabel) {
+    if (hasFloatingLabel && (labelEased > 0.001f || text.empty())) {
+        // One glyph only: floats from inline position up to the caption band.
+        const float inlineY = m_bounds.y + 15.0f;
+        const float drawY = inlineY + (labelY - inlineY) * labelEased;
+        const float drawSize = fontSize + (labelFontSize - fontSize) * labelEased;
+        Rect drawRect(m_bounds.x, drawY, m_bounds.width, (std::max)(16.0f, m_bounds.height - 18.0f));
+        D2D1_COLOR_F drawColor = labelColor;
+        if (text.empty() && m_compString.empty() && labelEased < 0.001f) {
+            drawColor = phBase;
+        }
         ctx.DrawText(
             placeholder,
-            labelRect,
-            labelColor,
+            drawRect,
+            drawColor,
             font,
-            labelFontSize,
+            drawSize,
             DWRITE_TEXT_ALIGNMENT_LEADING,
             DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-            labelProgress > 0.6f ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL
+            DWRITE_FONT_WEIGHT_NORMAL
         );
-    }
-
-    if (hasFloatingLabel && text.empty() && m_compString.empty() && labelProgress < 0.98f) {
-        float alpha = 1.0f - labelProgress;
-        D2D1_COLOR_F phColor = D2D1::ColorF(phBase.r, phBase.g, phBase.b, phBase.a * alpha);
-        Rect inlinePlaceholderRect(m_bounds.x, m_bounds.y + 15.0f, m_bounds.width, m_bounds.height - 18.0f);
-        ctx.DrawText(placeholder, inlinePlaceholderRect, phColor, font, fontSize,
-                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
     }
 
     std::wstring wtext = GetDisplayedText();

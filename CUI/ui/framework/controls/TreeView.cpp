@@ -70,6 +70,7 @@ std::shared_ptr<TreeViewItem> TreeView::AddItem(const std::string& header, bool 
     auto item = std::make_shared<TreeViewItem>();
     item->header = header;
     item->isExpanded = expanded;
+    item->expandAnim.Reset(expanded ? 1.0f : 0.0f);
     AddItem(item);
     return item;
 }
@@ -94,12 +95,13 @@ void TreeView::RebuildVisibleItems() const {
         for (const auto& item : list) {
             if (!item) continue;
             m_visibleItems.push_back({ item, depth });
-            if (item->isExpanded && !item->children.empty()) {
+            // Keep children visible while collapse anim is running.
+            const bool showChildren = item->isExpanded || item->expandAnim.Current() > 0.01f;
+            if (showChildren && !item->children.empty()) {
                 self(self, item->children, depth + 1);
             }
         }
     };
-
     collect(collect, m_items, 0);
     m_visibleDirty = false;
 }
@@ -155,8 +157,15 @@ Rect TreeView::GetToggleRect(const VisibleItem& visibleItem, const Rect& rowRect
 void TreeView::ToggleItem(std::shared_ptr<TreeViewItem> item) {
     if (!item || item->children.empty()) return;
     item->isExpanded = !item->isExpanded;
+    item->expandAnim.SetTarget(item->isExpanded ? 1.0f : 0.0f);
+    if (!UIElement::AreAnimationsEnabled()) {
+        item->expandAnim.Reset(item->isExpanded ? 1.0f : 0.0f);
+    } else {
+        RequestAnimationTicks();
+    }
     m_visibleDirty = true;
     ClampScroll();
+    MarkRenderContentDirty();
     m_onItemToggledEvent.Invoke(this, item);
 }
 
@@ -171,6 +180,7 @@ void TreeView::SetSelectedItem(std::shared_ptr<TreeViewItem> item) {
             TreeViewItem* p = m_selectedItem->parent;
             while (p) {
                 p->isExpanded = true;
+                p->expandAnim.Reset(1.0f);
                 p = p->parent;
             }
             m_visibleDirty = true;
@@ -246,38 +256,45 @@ void TreeView::OnRender(GraphicsContext& ctx) {
 
         float currX = rowRect.x + visItem.depth * indentW + 4.0f;
 
-        // Render Expand / Collapse Arrow
+        // Render Expand / Collapse Arrow (animated via expandAnim).
         if (!item->children.empty()) {
             Rect toggleRect = GetToggleRect(visItem, rowRect);
-            float cx = toggleRect.x + toggleRect.width * 0.5f;
-            float cy = toggleRect.y + toggleRect.height * 0.5f;
+            const float progress = std::clamp(item->expandAnim.Current(), 0.0f, 1.0f);
             D2D1_COLOR_F arrowColor = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
-
-            if (item->isExpanded) {
-                // Down Arrow (Expanded)
-                ctx.DrawLine(Point(cx - 3.5f, cy - 2.0f), Point(cx, cy + 2.5f), arrowColor, 1.4f);
-                ctx.DrawLine(Point(cx, cy + 2.5f), Point(cx + 3.5f, cy - 2.0f), arrowColor, 1.4f);
-            } else {
-                // Right Arrow (Collapsed)
-                ctx.DrawLine(Point(cx - 2.0f, cy - 3.5f), Point(cx + 2.5f, cy), arrowColor, 1.4f);
-                ctx.DrawLine(Point(cx + 2.5f, cy), Point(cx - 2.0f, cy + 3.5f), arrowColor, 1.4f);
-            }
+            ctx.DrawChevron(
+                toggleRect,
+                arrowColor,
+                progress > 0.5f ? GraphicsContext::ChevronDirection::Down
+                                : GraphicsContext::ChevronDirection::Right,
+                1.6f
+            );
         }
         currX += 16.0f;
 
         // Render Icon (or folder/file glyph fallback)
         std::string iconText = item->icon;
         if (iconText.empty()) {
-            iconText = !item->children.empty() ? (item->isExpanded ? "📂" : "📁") : "📄";
+            iconText = !item->children.empty() ? (item->expandAnim.Current() > 0.5f ? "📂" : "📁") : "📄";
         }
         Rect iconRect(currX, rowRect.y, 16.0f, rowRect.height);
-        ctx.DrawText(iconText, iconRect, ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor), "Segoe UI Emoji", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        // Fade child rows with parent expand progress.
+        float rowAlpha = 1.0f;
+        if (item->parent) {
+            rowAlpha = std::clamp(item->parent->expandAnim.Current(), 0.0f, 1.0f);
+            const float inv = 1.0f - rowAlpha;
+            rowAlpha = 1.0f - inv * inv * inv;
+        }
+        D2D1_COLOR_F iconColor = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+        iconColor.a *= rowAlpha;
+        ctx.DrawText(iconText, iconRect, iconColor, "Segoe UI Emoji", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         currX += 20.0f;
 
         // Render Header Text
         float textW = (std::max)(0.0f, rowRect.x + rowRect.width - currX - 4.0f);
         Rect textRect(currX, rowRect.y, textW, rowRect.height);
-        ctx.DrawText(item->header, textRect, isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+        D2D1_COLOR_F rowText = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor;
+        rowText.a *= rowAlpha;
+        ctx.DrawText(item->header, textRect, rowText, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
     }
 
     // Scrollbar indicator
@@ -406,6 +423,49 @@ void TreeView::OnKeyDown(int vkCode) {
     default:
         break;
     }
+}
+
+bool TreeView::TickExpandAnims(const std::vector<std::shared_ptr<TreeViewItem>>& list, float dt) {
+    bool any = false;
+    for (const auto& item : list) {
+        if (!item) continue;
+        item->expandAnim.SetTarget(item->isExpanded ? 1.0f : 0.0f);
+        if (item->expandAnim.Tick(dt, AnimationSpec{ 0.32f, 0.01f })) {
+            any = true;
+        }
+        if (TickExpandAnims(item->children, dt)) {
+            any = true;
+        }
+    }
+    return any;
+}
+
+bool TreeView::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    if (!UIElement::AreAnimationsEnabled()) {
+        return base;
+    }
+    const float dt = UIElement::GetAnimationDeltaSeconds();
+    const bool moving = TickExpandAnims(m_items, dt);
+    if (moving) {
+        m_visibleDirty = true;
+        ClampScroll();
+        MarkRenderContentDirty();
+        RequestAnimationTicks();
+    }
+    return base || moving;
+}
+
+bool TreeView::HasSelfAnimation() const {
+    auto walk = [](auto self, const std::vector<std::shared_ptr<TreeViewItem>>& list) -> bool {
+        for (const auto& item : list) {
+            if (!item) continue;
+            if (item->expandAnim.IsAnimating(0.01f)) return true;
+            if (self(self, item->children)) return true;
+        }
+        return false;
+    };
+    return Control::HasSelfAnimation() || walk(walk, m_items);
 }
 
 } // namespace CUI
