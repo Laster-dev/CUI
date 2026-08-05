@@ -3,6 +3,7 @@
 #endif
 #include "DatePicker.h"
 #include "../style/ThemeManager.h"
+#include "../window/PopupPlacement.h"
 #include <sstream>
 #include <iomanip>
 
@@ -80,10 +81,11 @@ void DatePicker::SetDate(int y, int m, int d) {
 UIElement* DatePicker::OnHitTestOverlay(float x, float y) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
     if (progress <= 0.5f) return nullptr;
-    float popW = 240.0f;
-    float popH = 240.0f;
-    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
-    if (popRect.Contains(x, y)) {
+    Rect popRect = GetPopupBounds();
+    const float visibleH = popRect.height;
+    const float currentH = (m_isPopupOpen && progress >= 0.98f) ? visibleH : (visibleH * progress);
+    Rect clipRect(popRect.x, popRect.y, popRect.width, currentH);
+    if (clipRect.Contains(x, y)) {
         return this;
     }
     return nullptr;
@@ -103,11 +105,15 @@ void DatePicker::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
 
     if (m_isPopupOpen) {
-        float popW = 240.0f;
-        float popH = 240.0f;
-        Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
+        Rect popRect = GetPopupBounds();
+        float popW = popRect.width;
+        float popH = popRect.height;
 
-        if (popRect.Contains(pt.x, pt.y)) {
+        float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : 1.0f;
+        float currentH = (progress >= 0.98f) ? popH : (popH * progress);
+        Rect clipRect(popRect.x, popRect.y, popW, currentH);
+
+        if (clipRect.Contains(pt.x, pt.y)) {
             // Header button clicks
             Rect btnPrev(popRect.x + 4.0f, popRect.y + 6.0f, 22.0f, 22.0f);
             Rect btnNext(popRect.x + popW - 26.0f, popRect.y + 6.0f, 22.0f, 22.0f);
@@ -125,6 +131,7 @@ void DatePicker::OnMouseDown(Point pt) {
                 } else if (m_viewMode == DatePickerViewMode::YearGrid) {
                     m_viewStartYear -= 12;
                 }
+                m_scrollOffset = 0.0f;
                 return;
             }
             if (btnNext.Contains(pt.x, pt.y)) {
@@ -137,24 +144,65 @@ void DatePicker::OnMouseDown(Point pt) {
                 } else if (m_viewMode == DatePickerViewMode::YearGrid) {
                     m_viewStartYear += 12;
                 }
+                m_scrollOffset = 0.0f;
                 return;
             }
             if (yrRect.Contains(pt.x, pt.y)) {
                 m_viewStartYear = (m_year / 12) * 12;
                 m_viewMode = DatePickerViewMode::YearGrid;
+                m_scrollOffset = 0.0f;
                 return;
             }
             if (moRect.Contains(pt.x, pt.y)) {
                 m_viewMode = DatePickerViewMode::MonthGrid;
+                m_scrollOffset = 0.0f;
                 return;
             }
 
-            // Grid Cell Selection
-            float bodyY = popRect.y + 36.0f;
+            // Grid Cell Selection (supports internal scrolling)
+            constexpr float kBodyYFromTop = 36.0f;
+            constexpr float kPopHDesign = 240.0f;
+            constexpr float kScrollBarW = 10.0f;
+            constexpr float kScrollBarPad = 4.0f;
+
+            float bodyY = popRect.y + kBodyYFromTop;
+
+            // 1) Scrollbar click: update m_scrollOffset (without dismissing popup)
+            const float visibleScrollH = currentH - kBodyYFromTop;
+            if (visibleScrollH > 0.0f) {
+                float contentH = 0.0f;
+                float cellH = 0.0f;
+                if (m_viewMode == DatePickerViewMode::DayGrid) {
+                    int firstWday = GetFirstDayOfWeek(m_year, m_month);
+                    int daysInMonth = GetDaysInMonth(m_year, m_month);
+                    const int idxLast = firstWday + daysInMonth - 1;
+                    const int rows = (idxLast / 7) + 1;
+                    constexpr float kCellH = 26.0f;
+                    cellH = kCellH;
+                    contentH = 20.0f + rows * kCellH;
+                } else {
+                    cellH = (kPopHDesign - 44.0f) / 4.0f;
+                    contentH = 4.0f * cellH; // 3x4
+                }
+
+                const float maxScroll = (std::max)(0.0f, contentH - visibleScrollH);
+                if (maxScroll > 0.001f) {
+                    const float trackX = popRect.x + popW - kScrollBarW - kScrollBarPad;
+                    const Rect trackRect(trackX, bodyY, kScrollBarW, visibleScrollH);
+                    if (trackRect.Contains(pt.x, pt.y)) {
+                        const float ratio = std::clamp((pt.y - bodyY) / visibleScrollH, 0.0f, 1.0f);
+                        m_scrollOffset = ratio * maxScroll;
+                        MarkRenderContentDirty();
+                        return;
+                    }
+                }
+            }
+
+            // 2) Grid cell click (account m_scrollOffset by shifting Y)
             if (m_viewMode == DatePickerViewMode::DayGrid) {
-                float gridY = bodyY + 20.0f;
+                float gridY = bodyY + 20.0f - m_scrollOffset;
                 float cellW = popW / 7.0f;
-                float cellH = 26.0f;
+                constexpr float cellH = 26.0f;
                 int firstWday = GetFirstDayOfWeek(m_year, m_month);
                 int daysInMonth = GetDaysInMonth(m_year, m_month);
 
@@ -168,28 +216,29 @@ void DatePicker::OnMouseDown(Point pt) {
                     SetPopupOpen(false);
                 }
             } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
-                // 3x4 Month Grid
                 float cellW = popW / 3.0f;
-                float cellH = (popH - 44.0f) / 4.0f;
+                const float cellH = (kPopHDesign - 44.0f) / 4.0f;
                 int col = static_cast<int>((pt.x - popRect.x) / cellW);
-                int row = static_cast<int>((pt.y - bodyY) / cellH);
+                int row = static_cast<int>((pt.y - bodyY + m_scrollOffset) / cellH);
                 int selectedMonth = row * 3 + col + 1;
                 if (selectedMonth >= 1 && selectedMonth <= 12) {
                     SetDate(m_year, selectedMonth, m_day);
                     m_viewMode = DatePickerViewMode::DayGrid;
+                    m_scrollOffset = 0.0f;
                     return;
                 }
             } else if (m_viewMode == DatePickerViewMode::YearGrid) {
-                // 3x4 Year Grid (12 years per page)
                 float cellW = popW / 3.0f;
-                float cellH = (popH - 44.0f) / 4.0f;
+                const float cellH = (kPopHDesign - 44.0f) / 4.0f;
                 int col = static_cast<int>((pt.x - popRect.x) / cellW);
-                int row = static_cast<int>((pt.y - bodyY) / cellH);
+                int row = static_cast<int>((pt.y - bodyY + m_scrollOffset) / cellH);
                 int selectedYear = m_viewStartYear + row * 3 + col;
                 SetDate(selectedYear, m_month, m_day);
                 m_viewMode = DatePickerViewMode::MonthGrid;
+                m_scrollOffset = 0.0f;
                 return;
             }
+
             return;
         }
         SetPopupOpen(false);
@@ -199,6 +248,51 @@ void DatePicker::OnMouseDown(Point pt) {
             m_viewMode = DatePickerViewMode::DayGrid;
         }
     }
+}
+
+void DatePicker::OnMouseWheel(float delta) {
+    if (!m_isPopupOpen) return;
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : 1.0f;
+    if (progress <= 0.01f) return;
+
+    Rect popRect = GetPopupBounds();
+    const float visibleH = popRect.height;
+    const float currentH = (progress >= 0.98f) ? visibleH : (visibleH * progress);
+    Rect clipRect(popRect.x, popRect.y, popRect.width, currentH);
+    if (clipRect.height <= 0.0f) return;
+
+    // Scroll region starts at bodyY (fixed header area above).
+    constexpr float kBodyYFromTop = 36.0f;
+    const float visibleScrollH = currentH - kBodyYFromTop;
+    if (visibleScrollH <= 0.0f) return;
+
+    constexpr float kPopHDesign = 240.0f;
+
+    // Compute full scrollable content height (relative to bodyY).
+    float contentH = 0.0f;
+    if (m_viewMode == DatePickerViewMode::DayGrid) {
+        int firstWday = GetFirstDayOfWeek(m_year, m_month);
+        int daysInMonth = GetDaysInMonth(m_year, m_month);
+        const int idxLast = firstWday + daysInMonth - 1;
+        const int rows = (idxLast / 7) + 1; // up to 6
+        constexpr float kCellH = 26.0f;
+        contentH = 20.0f + static_cast<float>(rows) * kCellH; // bodyY->week header/grid gap + grid rows
+    } else {
+        const float cellH = (kPopHDesign - 44.0f) / 4.0f;
+        contentH = 4.0f * cellH;
+    }
+
+    const float maxScroll = (std::max)(0.0f, contentH - visibleScrollH);
+    if (maxScroll <= 0.001f) return;
+
+    // delta > 0 means wheel up => show earlier rows => decrease scrollOffset.
+    const float step = (m_viewMode == DatePickerViewMode::DayGrid) ? 26.0f : ((kPopHDesign - 44.0f) / 4.0f);
+    float next = m_scrollOffset - delta * step;
+    next = (std::clamp)(next, 0.0f, maxScroll);
+    if (std::abs(next - m_scrollOffset) <= 0.001f) return;
+
+    m_scrollOffset = next;
+    MarkRenderContentDirty();
 }
 
 void DatePicker::OnRender(GraphicsContext& ctx) {
@@ -216,6 +310,9 @@ void DatePicker::OnRender(GraphicsContext& ctx) {
 void DatePicker::SetPopupOpen(bool open) {
     if (m_isPopupOpen == open) return;
     m_isPopupOpen = open;
+    if (open) {
+        m_scrollOffset = 0.0f;
+    }
     if (PopupHost* host = PopupHost::Current()) {
         if (open) {
             host->Open(this);
@@ -227,7 +324,9 @@ void DatePicker::SetPopupOpen(bool open) {
 }
 
 Rect DatePicker::GetPopupBounds() const {
-    return Rect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, 240.0f, 240.0f);
+    constexpr float popW = 240.0f;
+    constexpr float popH = 240.0f;
+    return PlacePopupNearAnchor(m_bounds, popW, popH, GetPopupViewportOrDefault(), 4.0f);
 }
 
 bool DatePicker::HitDismissExempt(float x, float y) const {
@@ -239,11 +338,11 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
     if (progress <= 0.001f) return;
 
-    float popW = 240.0f;
-    float popH = 240.0f;
+    Rect popRect = GetPopupBounds();
+    float popW = popRect.width;
+    float popH = popRect.height;
     float currentH = (m_isPopupOpen && progress >= 0.98f) ? popH : (popH * progress);
-    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
-    Rect clipRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, currentH);
+    Rect clipRect(popRect.x, popRect.y, popRect.width, currentH);
 
     ctx.PushClip(clipRect);
 
@@ -280,20 +379,47 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
 
     ctx.DrawLine(Point(popRect.x + 6.0f, popRect.y + 32.0f), Point(popRect.x + popW - 6.0f, popRect.y + 32.0f), border);
 
-    float bodyY = popRect.y + 36.0f;
+    constexpr float kBodyYFromTop = 36.0f;
+    constexpr float kPopHDesign = 240.0f;
+    constexpr float kScrollBarW = 10.0f;
+    constexpr float kScrollBarPad = 4.0f;
+
+    const float bodyY = popRect.y + kBodyYFromTop;
+    const float visibleScrollH = currentH - kBodyYFromTop;
+
+    float contentH = 0.0f;
+    float dayCellH = 26.0f;
+    float monthYearCellH = (kPopHDesign - 44.0f) / 4.0f;
 
     if (m_viewMode == DatePickerViewMode::DayGrid) {
-        // Week Headers
+        int firstWday = GetFirstDayOfWeek(m_year, m_month);
+        int daysInMonth = GetDaysInMonth(m_year, m_month);
+        const int idxLast = firstWday + daysInMonth - 1;
+        const int rows = (idxLast / 7) + 1;
+        contentH = 20.0f + static_cast<float>(rows) * dayCellH;
+    } else {
+        contentH = 4.0f * monthYearCellH;
+    }
+
+    float maxScroll = (std::max)(0.0f, contentH - visibleScrollH);
+    if (maxScroll <= 0.001f) {
+        m_scrollOffset = 0.0f;
+    } else {
+        m_scrollOffset = (std::clamp)(m_scrollOffset, 0.0f, maxScroll);
+    }
+    const float yShift = -m_scrollOffset;
+
+    if (m_viewMode == DatePickerViewMode::DayGrid) {
+        // Week Headers (scrollable)
         const char* weekNames[] = { "日", "一", "二", "三", "四", "五", "六" };
         float cellW = popW / 7.0f;
         for (int w = 0; w < 7; ++w) {
-            Rect wRect(popRect.x + w * cellW, bodyY, cellW, 18.0f);
+            Rect wRect(popRect.x + w * cellW, bodyY + yShift, cellW, 18.0f);
             ctx.DrawText(weekNames[w], wRect, textMutedCol, "Segoe UI", 10.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
 
         // Days Grid
-        float gridY = bodyY + 20.0f;
-        float cellH = 26.0f;
+        float gridY = bodyY + 20.0f + yShift;
         int firstWday = GetFirstDayOfWeek(m_year, m_month);
         int daysInMonth = GetDaysInMonth(m_year, m_month);
 
@@ -301,7 +427,7 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
             int idx = firstWday + d - 1;
             int row = idx / 7;
             int col = idx % 7;
-            Rect cellRect(popRect.x + col * cellW + 2.0f, gridY + row * cellH + 2.0f, cellW - 4.0f, cellH - 4.0f);
+            Rect cellRect(popRect.x + col * cellW + 2.0f, gridY + row * dayCellH + 2.0f, cellW - 4.0f, dayCellH - 4.0f);
 
             bool isSelected = (d == m_day);
             if (isSelected) {
@@ -312,15 +438,15 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
             ctx.DrawText(std::to_string(d), cellRect, dCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
         }
     } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
-        // 3x4 Month Grid
+        // 3x4 Month Grid (scrollable)
         float cellW = popW / 3.0f;
-        float cellH = (popH - 44.0f) / 4.0f;
+        float cellH = monthYearCellH;
         const char* monthNames[] = { "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月" };
 
         for (int m = 1; m <= 12; ++m) {
             int row = (m - 1) / 3;
             int col = (m - 1) % 3;
-            Rect cellRect(popRect.x + col * cellW + 4.0f, bodyY + row * cellH + 4.0f, cellW - 8.0f, cellH - 8.0f);
+            Rect cellRect(popRect.x + col * cellW + 4.0f, bodyY + row * cellH + 4.0f + yShift, cellW - 8.0f, cellH - 8.0f);
 
             bool isSelected = (m == m_month);
             if (isSelected) {
@@ -331,15 +457,15 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
             ctx.DrawText(monthNames[m - 1], cellRect, mCol, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
         }
     } else if (m_viewMode == DatePickerViewMode::YearGrid) {
-        // 3x4 Year Grid (12 years)
+        // 3x4 Year Grid (scrollable)
         float cellW = popW / 3.0f;
-        float cellH = (popH - 44.0f) / 4.0f;
+        float cellH = monthYearCellH;
 
         for (int i = 0; i < 12; ++i) {
             int yr = m_viewStartYear + i;
             int row = i / 3;
             int col = i % 3;
-            Rect cellRect(popRect.x + col * cellW + 4.0f, bodyY + row * cellH + 4.0f, cellW - 8.0f, cellH - 8.0f);
+            Rect cellRect(popRect.x + col * cellW + 4.0f, bodyY + row * cellH + 4.0f + yShift, cellW - 8.0f, cellH - 8.0f);
 
             bool isSelected = (yr == m_year);
             if (isSelected) {
@@ -349,6 +475,25 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
             D2D1_COLOR_F yCol = isSelected ? ThemeManager::Instance().GetTokens().textPrimary : textCol;
             ctx.DrawText(std::to_string(yr), cellRect, yCol, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
         }
+    }
+
+    // Scrollbar
+    if (visibleScrollH > 12.0f && contentH > visibleScrollH + 0.001f) {
+        const float trackX = (std::min)(popRect.x + popW - kScrollBarPad, popRect.x + popW - kScrollBarW);
+        const Rect trackRect(trackX, bodyY, kScrollBarW, visibleScrollH);
+
+        D2D1_COLOR_F trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+        trackColor.a = 0.35f;
+        ctx.DrawRoundedRect(trackRect, 4.0f, trackColor, 1.0f);
+
+        const float thumbH = (std::max)(16.0f, visibleScrollH * visibleScrollH / contentH);
+        const float travel = (visibleScrollH - thumbH);
+        const float thumbY = bodyY + ((maxScroll > 0.001f) ? (m_scrollOffset / maxScroll) * travel : 0.0f);
+
+        Rect thumbRect(trackX + 2.0f, thumbY, kScrollBarW - 4.0f, thumbH);
+        D2D1_COLOR_F thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
+        thumbColor.a = 0.45f;
+        ctx.FillRoundedRect(thumbRect, 4.0f, thumbColor);
     }
 
     ctx.PopClip();

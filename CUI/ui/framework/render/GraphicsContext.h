@@ -103,6 +103,23 @@ private:
     HRESULT CreateDeviceIndependentResources();
     HRESULT CreateDeviceResources();
     HRESULT BindSwapChainTarget(float dpiX, float dpiY);
+    void DrawTextOnTarget(
+        ID2D1RenderTarget* target,
+        const std::wstring& text,
+        const Rect& rect,
+        D2D1_COLOR_F color,
+        const std::string& fontName,
+        float fontSize,
+        DWRITE_TEXT_ALIGNMENT align,
+        DWRITE_PARAGRAPH_ALIGNMENT vAlign,
+        DWRITE_FONT_WEIGHT weight,
+        D2D1_TEXT_ANTIALIAS_MODE antialiasMode);
+    void DrawTextLayoutOnTarget(
+        ID2D1RenderTarget* target,
+        IDWriteTextLayout* layout,
+        const Rect& originRect,
+        D2D1_COLOR_F color,
+        D2D1_TEXT_ANTIALIAS_MODE antialiasMode);
 
     HWND m_hwnd = nullptr;
     float m_dpiScale = 1.0f;

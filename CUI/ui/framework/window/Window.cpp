@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "Dpi.h"
 #include "../style/ThemeManager.h"
 #include "../parser/StyleManager.h"
 #include "../controls/TextBox.h"
@@ -14,6 +15,7 @@
 #include <imm.h>
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <functional>
 #include <sstream>
@@ -100,6 +102,20 @@ Rect GetClientBounds(HWND hwnd) {
         static_cast<float>(rc.right - rc.left),
         static_cast<float>(rc.bottom - rc.top)
     );
+}
+
+Rect PhysicalRectToLogical(const Rect& rect, float dpiScale) {
+    const float scale = (dpiScale > 0.001f) ? dpiScale : 1.0f;
+    return Rect(
+        rect.x / scale,
+        rect.y / scale,
+        rect.width / scale,
+        rect.height / scale
+    );
+}
+
+Rect GetLogicalClientBounds(HWND hwnd, float dpiScale) {
+    return PhysicalRectToLogical(GetClientBounds(hwnd), dpiScale);
 }
 
 // Paint always resolves colors through ResolveThemeColor(Get*Token()), so this
@@ -507,6 +523,7 @@ Window::~Window() {
 }
 
 bool Window::Create(const std::string& title, int width, int height, bool transparentMode) {
+    EnsureProcessDpiAwareness();
     m_transparentMode = transparentMode;
     HINSTANCE hInstance = GetModuleHandle(nullptr);
 
@@ -535,19 +552,30 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
         dwExStyle |= (WS_EX_LAYERED | WS_EX_APPWINDOW);
     }
 
+    // Create() width/height are DIPs (design size). Win32 CreateWindowEx expects
+    // physical outer size under Per-Monitor V2.
+    UINT dpi = GetDpiForSystem();
+    if (dpi == 0) {
+        dpi = 96;
+    }
+    const int physWidth = MulDiv((std::max)(1, width), static_cast<int>(dpi), 96);
+    const int physHeight = MulDiv((std::max)(1, height), static_cast<int>(dpi), 96);
+
     m_hwnd = CreateWindowEx(
         dwExStyle,
         L"CUI_WindowClass",
         wTitle.c_str(),
         dwStyle,
         CW_USEDEFAULT, CW_USEDEFAULT,
-        width, height,
+        physWidth, physHeight,
         nullptr, nullptr,
         hInstance,
         this
     );
 
     if (!m_hwnd) return false;
+
+    m_dpiScale = GetDpiScaleForWindow(m_hwnd);
 
     UpdateDwmChrome();
     MaterialHost::Apply(m_hwnd, m_backdropType, m_themeMode);
@@ -819,17 +847,19 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         POINT clientPt = pt;
         ScreenToClient(m_hwnd, &clientPt);
-        float fx = static_cast<float>(clientPt.x);
-        float fy = static_cast<float>(clientPt.y);
+        Point logicalPt = ClientPointToLogical(clientPt.x, clientPt.y);
+        float fx = logicalPt.x;
+        float fy = logicalPt.y;
 
         RECT rc;
         GetClientRect(m_hwnd, &rc);
-        float winW = static_cast<float>(rc.right);
-        float winH = static_cast<float>(rc.bottom);
+        const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+        float winW = static_cast<float>(rc.right) / scale;
+        float winH = static_cast<float>(rc.bottom) / scale;
 
         // TitleBar chrome toggles / menu must win over resize borders and caption drag.
         // Prefer direct TitleBar child lookup — tree HitTest can still be wrong if content leaks.
-        if (fy >= 0 && fy <= 40.0f && fx < winW - 135.0f && m_rootElement) {
+        if (fy >= 0 && fy <= 40.0f && fx < winW - 138.0f && m_rootElement) {
             TitleBar* titleBar = nullptr;
             for (const auto& child : m_rootElement->GetChildren()) {
                 titleBar = dynamic_cast<TitleBar*>(child.get());
@@ -850,22 +880,23 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             }
         }
 
-        // System buttons get first chance after chrome toggles.
+        // System buttons get first chance after chrome toggles (46 DIP each).
+        constexpr float kCaptionBtnW = 46.0f;
         if (fy >= 0 && fy <= 40.0f) {
-            if (fx >= winW - 45.0f) {
+            if (fx >= winW - kCaptionBtnW) {
                 return HTCLOSE;
             }
-            if (fx >= winW - 90.0f && fx < winW - 45.0f) {
+            if (fx >= winW - kCaptionBtnW * 2.0f && fx < winW - kCaptionBtnW) {
                 return HTMAXBUTTON;
             }
-            if (fx >= winW - 135.0f && fx < winW - 90.0f) {
+            if (fx >= winW - kCaptionBtnW * 3.0f && fx < winW - kCaptionBtnW * 2.0f) {
                 return HTMINBUTTON;
             }
         }
 
         // 2. Resizing border handles (8-direction border resize) - only when NOT maximized
         if (!IsZoomed(m_hwnd)) {
-            int borderThickness = 8;
+            const int borderThickness = (std::max)(1, static_cast<int>(std::lround(8.0f * scale)));
             bool left = (clientPt.x < borderThickness);
             bool right = (clientPt.x >= rc.right - borderThickness);
             bool top = (clientPt.y < borderThickness);
@@ -884,7 +915,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         // 3. Custom TitleBar Hit-Testing & Windows 11 Snap Layouts Integration
         if (fy >= 0 && fy <= 40.0f) {
             // Drag window caption (only when clicking directly on empty TitleBar space, NOT child controls)
-            if (fx < winW - 135.0f && m_rootElement) {
+            if (fx < winW - 138.0f && m_rootElement) {
                 UIElement* hit = m_rootElement->HitTest(fx, fy);
                 if (auto titleBar = dynamic_cast<TitleBar*>(hit)) {
                     if (titleBar->IsLowPerformanceToggleHit(fx, fy) || titleBar->IsBackdropToggleHit(fx, fy) || titleBar->IsThemeToggleHit(fx, fy)) {
@@ -1054,15 +1085,14 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_MOUSEWHEEL: {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         ScreenToClient(m_hwnd, &pt);
+        Point logicalPt = ClientPointToLogical(pt.x, pt.y);
         float delta = static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) / WHEEL_DELTA;
-        float fx = static_cast<float>(pt.x);
-        float fy = static_cast<float>(pt.y);
 
         UIElement* target = nullptr;
         if (m_rootElement) {
-            target = m_rootElement->HitTestOverlay(fx, fy);
+            target = m_rootElement->HitTestOverlay(logicalPt.x, logicalPt.y);
             if (!target) {
-                target = m_rootElement->HitTest(fx, fy);
+                target = m_rootElement->HitTest(logicalPt.x, logicalPt.y);
             }
         }
         if (target) {
@@ -1159,11 +1189,15 @@ void Window::OnPaint() {
     PAINTSTRUCT ps;
     BeginPaint(m_hwnd, &ps);
 
-    Rect paintBounds(
-        static_cast<float>(ps.rcPaint.left),
-        static_cast<float>(ps.rcPaint.top),
-        static_cast<float>(ps.rcPaint.right - ps.rcPaint.left),
-        static_cast<float>(ps.rcPaint.bottom - ps.rcPaint.top)
+    const float dpiScale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+    Rect paintBounds = PhysicalRectToLogical(
+        Rect(
+            static_cast<float>(ps.rcPaint.left),
+            static_cast<float>(ps.rcPaint.top),
+            static_cast<float>(ps.rcPaint.right - ps.rcPaint.left),
+            static_cast<float>(ps.rcPaint.bottom - ps.rcPaint.top)
+        ),
+        dpiScale
     );
     m_gfxContext.SetPaintBounds(paintBounds);
     DirtyRegion frameDirtyRegion = m_pendingDirtyRegion;
@@ -1171,7 +1205,11 @@ void Window::OnPaint() {
         frameDirtyRegion.AddRect(paintBounds);
     }
 
-    Rect viewportBounds = GetClientBounds(m_hwnd);
+    // Layout, hit-testing, and D2D drawing all use DIP coordinates.
+    Rect viewportBounds(0.0f, 0.0f, m_logicalClientSize.width, m_logicalClientSize.height);
+    if (viewportBounds.IsEmpty()) {
+        viewportBounds = GetLogicalClientBounds(m_hwnd, dpiScale);
+    }
     Rect dirtyBounds = frameDirtyRegion.GetBounds();
     bool fullRepaint = frameDirtyRegion.GetRectCount() == 0
         || viewportBounds.IsEmpty()
@@ -1359,44 +1397,39 @@ void Window::UpdateDwmChrome() {
         static_cast<int>(border.b * 255.0f)
     );
     DwmSetWindowAttribute(m_hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
-
-    // Register Custom TitleBar Maximize Button Rect with Win11 DWM (DWMWA_CAPTION_BUTTON_BOUNDS = 35)
-    RECT rc;
-    GetClientRect(m_hwnd, &rc);
-    float winW = static_cast<float>(rc.right);
-    RECT maxBtnRect = {
-        static_cast<LONG>(winW - 90.0f),
-        0,
-        static_cast<LONG>(winW - 45.0f),
-        static_cast<LONG>(40.0f)
-    };
-    DwmSetWindowAttribute(m_hwnd, 35, &maxBtnRect, sizeof(maxBtnRect));
 }
 
 void Window::OnResize(UINT width, UINT height) {
+    m_dpiScale = GetDpiScaleForWindow(m_hwnd);
+    m_logicalClientSize = Size(
+        PhysicalToLogical(static_cast<float>(width), m_hwnd),
+        PhysicalToLogical(static_cast<float>(height), m_hwnd)
+    );
     m_gfxContext.Resize(width, height);
     m_sceneLayer.Invalidate(RenderLayer::ContentDirty | RenderLayer::StructureDirty | RenderLayer::SizeDirty);
     if (m_rootElement) {
         bool isMaximized = IsZoomed(m_hwnd);
-        constexpr float resizeBorder = 8.0f;
+        const float resizeBorder = 8.0f / m_dpiScale;
 
-        // Custom chrome makes the client rect equal to the whole window so DWM
-        // snap/resize behavior works. The bottom few pixels are still the resize
-        // edge, though, and are not a reliable viewport for scrollable content.
-        // Keep them outside the layout rect so ScrollViewer computes max scroll
-        // from the actually visible area instead of hiding the last row under
-        // the resize edge.
         float padLeft = isMaximized ? resizeBorder : 0.0f;
         float padTop = isMaximized ? resizeBorder : 0.0f;
         float padRight = isMaximized ? resizeBorder : 0.0f;
         float padBottom = resizeBorder;
 
-        float layoutW = (std::max)(0.0f, static_cast<float>(width) - padLeft - padRight);
-        float layoutH = (std::max)(0.0f, static_cast<float>(height) - padTop - padBottom);
+        const float layoutW = (std::max)(0.0f, PhysicalToLogical(static_cast<float>(width), m_hwnd) - padLeft - padRight);
+        const float layoutH = (std::max)(0.0f, PhysicalToLogical(static_cast<float>(height), m_hwnd) - padTop - padBottom);
         Size avail(layoutW, layoutH);
         m_rootElement->Measure(avail);
         m_rootElement->Arrange(Rect(padLeft, padTop, layoutW, layoutH));
+        m_popupHost.SetViewport(Rect(padLeft, padTop, layoutW, layoutH));
     }
+}
+
+Point Window::ClientPointToLogical(int x, int y) const {
+    float lx = 0.0f;
+    float ly = 0.0f;
+    ClientPhysicalToLogical(m_hwnd, x, y, lx, ly);
+    return Point(lx, ly);
 }
 
 UIElement* Window::HitTestChrome(float x, float y) const {
@@ -1428,8 +1461,9 @@ bool Window::OnMouseMove(int x, int y) {
         m_trackingMouse = true;
     }
 
-    float fx = static_cast<float>(x);
-    float fy = static_cast<float>(y);
+    Point logicalPt = ClientPointToLogical(x, y);
+    float fx = logicalPt.x;
+    float fy = logicalPt.y;
 
     if (auto pressed = LockElement(m_pressedElement)) {
         pressed->OnMouseMove(Point(fx, fy));
@@ -1480,8 +1514,9 @@ bool Window::OnMouseMove(int x, int y) {
 }
 
 bool Window::OnLButtonDown(int x, int y) {
-    float fx = static_cast<float>(x);
-    float fy = static_cast<float>(y);
+    Point logicalPt = ClientPointToLogical(x, y);
+    float fx = logicalPt.x;
+    float fy = logicalPt.y;
 
     const bool hadContextMenu = m_activeContextMenu && m_activeContextMenu->IsOpen();
     Rect oldMenuBounds = hadContextMenu ? m_activeContextMenu->GetTotalBounds() : Rect();
@@ -1593,8 +1628,9 @@ bool Window::OnLButtonDown(int x, int y) {
 }
 
 void Window::OnLButtonDblClick(int x, int y) {
-    float fx = static_cast<float>(x);
-    float fy = static_cast<float>(y);
+    Point logicalPt = ClientPointToLogical(x, y);
+    float fx = logicalPt.x;
+    float fy = logicalPt.y;
 
     UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
     if (target && target->IsEnabled()) {
@@ -1603,8 +1639,9 @@ void Window::OnLButtonDblClick(int x, int y) {
 }
 
 bool Window::OnLButtonUp(int x, int y) {
-    float fx = static_cast<float>(x);
-    float fy = static_cast<float>(y);
+    Point logicalPt = ClientPointToLogical(x, y);
+    float fx = logicalPt.x;
+    float fy = logicalPt.y;
     bool dirty = false;
 
     if (auto pressed = LockElement(m_pressedElement)) {
@@ -1617,8 +1654,9 @@ bool Window::OnLButtonUp(int x, int y) {
 }
 
 void Window::OnRButtonDown(int x, int y) {
-    float fx = static_cast<float>(x);
-    float fy = static_cast<float>(y);
+    Point logicalPt = ClientPointToLogical(x, y);
+    float fx = logicalPt.x;
+    float fy = logicalPt.y;
 
     if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
         m_activeContextMenu->Hide();
@@ -1627,8 +1665,7 @@ void Window::OnRButtonDown(int x, int y) {
 
     RECT rc;
     GetClientRect(m_hwnd, &rc);
-    float winW = static_cast<float>(rc.right);
-    float winH = static_cast<float>(rc.bottom);
+    (void)rc;
 
     UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
     if (target) {
@@ -1648,7 +1685,7 @@ void Window::OnRButtonDown(int x, int y) {
             auto menu = curr->GetContextMenu();
             if (menu) {
                 m_activeContextMenu = menu;
-                m_activeContextMenu->ShowAt(fx, fy, winW, winH);
+                m_activeContextMenu->ShowAt(fx, fy);
                 break;
             }
             curr = curr->GetParent();

@@ -1,5 +1,6 @@
 #include "VSCodeControls.h"
 #include "../window/Window.h"
+#include "../window/Dpi.h"
 #include "../style/ThemeManager.h"
 
 namespace CUI {
@@ -97,24 +98,15 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     float btnH = m_bounds.height;
     float rightX = m_bounds.x + m_bounds.width - btnW * 3;
 
-    // Detect mouse hover state based on cursor position
-    POINT pt;
-    GetCursorPos(&pt);
+    // Hover uses DIPs — same space as m_bounds / button layout. Raw physical
+    // client pixels would light up the wrong caption button under DPI scaling.
     HWND hwnd = ctx.GetHwnd();
     bool isHoveredInTitle = false;
     float hoverX = -1.0f;
     float hoverY = -1.0f;
 
-    // Check if mouse is within titlebar action buttons
-    RECT windowRc = {};
-    if (hwnd && GetWindowRect(hwnd, &windowRc)) {
-        float clientX = static_cast<float>(pt.x - windowRc.left);
-        float clientY = static_cast<float>(pt.y - windowRc.top);
-        if (clientX >= 0 && clientX <= m_bounds.width && clientY >= 0 && clientY <= m_bounds.height) {
-            isHoveredInTitle = true;
-            hoverX = clientX;
-            hoverY = clientY;
-        }
+    if (hwnd && TryGetCursorClientLogical(hwnd, hoverX, hoverY)) {
+        isHoveredInTitle = m_bounds.Contains(hoverX, hoverY);
     }
 
     // Query current window state

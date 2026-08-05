@@ -122,17 +122,7 @@ void MenuBar::OpenMenu(int index) {
 
     auto menu = m_menus[index].dropDownMenu;
     if (menu) {
-        float winW = 1280.0f, winH = 800.0f;
-        UIElement* root = GetParent();
-        while (root && root->GetParent()) {
-            root = root->GetParent();
-        }
-        if (root) {
-            winW = root->GetBounds().width;
-            winH = root->GetBounds().height;
-        }
-
-        menu->ShowAt(m_menus[index].bounds.x, m_bounds.y + m_bounds.height, winW, winH);
+        menu->ShowAt(m_menus[index].bounds.x, m_bounds.y + m_bounds.height);
 
         UIElement* curr = this;
         while (curr) {

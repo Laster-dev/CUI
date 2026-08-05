@@ -3,6 +3,8 @@
 #endif
 #include "TimePicker.h"
 #include "../style/ThemeManager.h"
+#include "../window/PopupPlacement.h"
+#include "../window/Dpi.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -98,7 +100,7 @@ void TimePicker::SetTime(int h, int m) {
 }
 
 Rect TimePicker::GetPopupRect() const {
-    return Rect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, kPopupWidth, kPopupHeight);
+    return PlacePopupNearAnchor(m_bounds, kPopupWidth, kPopupHeight, GetPopupViewportOrDefault(), 4.0f);
 }
 
 Rect TimePicker::GetWheelRect(int column) const {
@@ -162,10 +164,11 @@ void TimePicker::OnMouseWheel(float delta) {
     HWND hwnd = WindowFromPoint(screenPt);
     if (!hwnd) return;
 
-    POINT clientPt = screenPt;
-    ScreenToClient(hwnd, &clientPt);
+    float logicalX = 0.0f;
+    float logicalY = 0.0f;
+    if (!TryGetCursorClientLogical(hwnd, logicalX, logicalY)) return;
 
-    int column = HitTestColumn(static_cast<float>(clientPt.x), static_cast<float>(clientPt.y));
+    int column = HitTestColumn(logicalX, logicalY);
     if (column < 0) return;
 
     NudgeColumn(column, (delta > 0.0f) ? -1 : 1);

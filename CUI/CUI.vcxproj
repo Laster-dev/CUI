@@ -72,6 +72,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -269,6 +272,8 @@
     <ClCompile Include="ui\framework\parser\StyleManager.cpp" />
     <ClCompile Include="ui\framework\window\Window.cpp" />
     <ClCompile Include="ui\framework\window\PopupHost.cpp" />
+    <ClCompile Include="ui\framework\window\PopupPlacement.cpp" />
+    <ClCompile Include="ui\framework\window\Dpi.cpp" />
     <ClCompile Include="ui\framework\window\CUIWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -355,6 +360,8 @@
     <ClInclude Include="ui\framework\parser\StyleManager.h" />
     <ClInclude Include="ui\framework\window\Window.h" />
     <ClInclude Include="ui\framework\window\PopupHost.h" />
+    <ClInclude Include="ui\framework\window\PopupPlacement.h" />
+    <ClInclude Include="ui\framework\window\Dpi.h" />
     <ClInclude Include="ui\framework\window\CUIWindow.h" />
   </ItemGroup>
   <ItemGroup>

@@ -308,6 +308,13 @@ void ListBox::EnsureVisible(int index) {
     }
     ClampScroll();
     m_scrollYAnim.SetTarget(m_targetScrollY);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_scrollY = m_targetScrollY;
+        m_scrollYAnim.Reset(m_scrollY);
+    } else {
+        RequestAnimationTicks();
+    }
+    MarkRenderContentDirty();
 }
 
 void ListBox::Render(GraphicsContext& ctx) {
@@ -501,16 +508,27 @@ void ListBox::OnMouseWheel(float delta) {
         m_scrollY = 0.0f;
         m_targetScrollY = 0.0f;
         m_scrollYAnim.Reset(0.0f);
-        MarkRenderContentDirty();
+        // Bubble so parent page ScrollViewer can still scroll.
+        UIElement::OnMouseWheel(delta);
         return;
     }
+
+    const float prevTarget = m_targetScrollY;
     float scrollStep = GetItemHeight() * 2.5f;
     m_targetScrollY -= delta * scrollStep;
     ClampScroll();
+    if (std::abs(m_targetScrollY - prevTarget) < 0.001f) {
+        UIElement::OnMouseWheel(delta);
+        return;
+    }
+
     m_scrollYAnim.SetTarget(m_targetScrollY);
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
+    } else {
+        // Same as ScrollViewer: wheel must re-register for AnimationManager ticks.
+        RequestAnimationTicks();
     }
     MarkRenderContentDirty();
 }

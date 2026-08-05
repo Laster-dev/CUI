@@ -48,10 +48,14 @@ public:
     bool TickAnimations();
     void CollectDirty(Rect& dirtyRect, bool& hasDirty) const;
 
+    void SetViewport(const Rect& viewport) { m_viewport = viewport; }
+    const Rect& GetViewport() const { return m_viewport; }
+
     bool HasOpenPopups() const { return !m_open.empty(); }
 
 private:
     std::vector<IPopup*> m_open;
+    Rect m_viewport;
     static PopupHost* s_current;
 };
 

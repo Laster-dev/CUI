@@ -1,5 +1,6 @@
 #include "Flyout.h"
 #include "../style/ThemeManager.h"
+#include "../window/PopupPlacement.h"
 #include <algorithm>
 #include <cmath>
 
@@ -112,28 +113,55 @@ void Flyout::ShowAt(UIElement* target) {
 
     Size available(480.0f, 640.0f);
     m_popupSize = m_presenter->Measure(available);
+    const Rect viewport = GetPopupViewportOrDefault();
 
-    float popupX = targetBounds.x;
-    float popupY = targetBounds.y + targetBounds.height + 6.0f;
-
+    PopupVerticalPlacement vertical = PopupVerticalPlacement::AutoFlip;
     switch (m_placement) {
     case FlyoutPlacement::Top:
-        popupY = targetBounds.y - m_popupSize.height - 6.0f;
-        break;
-    case FlyoutPlacement::Left:
-        popupX = targetBounds.x - m_popupSize.width - 6.0f;
-        popupY = targetBounds.y;
-        break;
-    case FlyoutPlacement::Right:
-        popupX = targetBounds.x + targetBounds.width + 6.0f;
-        popupY = targetBounds.y;
+        vertical = PopupVerticalPlacement::Above;
         break;
     case FlyoutPlacement::Bottom:
+        vertical = PopupVerticalPlacement::Below;
+        break;
+    case FlyoutPlacement::Left:
+    case FlyoutPlacement::Right:
     default:
         break;
     }
 
-    ShowAt(Point(popupX, popupY));
+    if (m_placement == FlyoutPlacement::Left || m_placement == FlyoutPlacement::Right) {
+        float popupX = (m_placement == FlyoutPlacement::Left)
+            ? targetBounds.x - m_popupSize.width - 6.0f
+            : targetBounds.x + targetBounds.width + 6.0f;
+        float popupY = targetBounds.y;
+        constexpr float margin = 4.0f;
+
+        // Clamp flyout size to visible viewport so it never draws/clips outside.
+        const float maxW = (std::max)(0.0f, viewport.width - margin * 2.0f);
+        const float maxH = (std::max)(0.0f, viewport.height - margin * 2.0f);
+        m_popupSize.width = (std::min)(m_popupSize.width, maxW);
+        m_popupSize.height = (std::min)(m_popupSize.height, maxH);
+
+        const float maxX = viewport.x + viewport.width - m_popupSize.width - margin;
+        const float maxY = viewport.y + viewport.height - m_popupSize.height - margin;
+        popupX = std::clamp(popupX, viewport.x + margin, (std::max)(viewport.x + margin, maxX));
+        popupY = std::clamp(popupY, viewport.y + margin, (std::max)(viewport.y + margin, maxY));
+        ShowAt(Point(popupX, popupY));
+        return;
+    }
+
+    Rect placed = PlacePopupNearAnchor(
+        targetBounds,
+        m_popupSize.width,
+        m_popupSize.height,
+        viewport,
+        6.0f,
+        4.0f,
+        vertical);
+    // Keep presenter bounds synced with the clamped placement size.
+    m_popupSize.width = placed.width;
+    m_popupSize.height = placed.height;
+    ShowAt(Point(placed.x, placed.y));
 }
 
 void Flyout::ShowAt(Point pt) {

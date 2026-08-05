@@ -3,6 +3,7 @@
 #endif
 #include "ColorPicker.h"
 #include "../style/ThemeManager.h"
+#include "../window/PopupPlacement.h"
 #include <algorithm>
 
 namespace CUI {
@@ -60,9 +61,7 @@ static D2D1_COLOR_F HSVToRGB(float h, float s, float v) {
 
 UIElement* ColorPicker::OnHitTestOverlay(float x, float y) {
     if (!m_isPopupOpen) return nullptr;
-    float popW = 240.0f;
-    float popH = 220.0f;
-    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
+    Rect popRect = GetPopupBounds();
     if (popRect.Contains(x, y)) {
         return this;
     }
@@ -83,9 +82,9 @@ void ColorPicker::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
 
     if (m_isPopupOpen) {
-        float popW = 240.0f;
-        float popH = 220.0f;
-        Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
+        Rect popRect = GetPopupBounds();
+        float popW = popRect.width;
+        float popH = popRect.height;
 
         if (popRect.Contains(pt.x, pt.y)) {
             // Swatch selection
@@ -157,7 +156,9 @@ void ColorPicker::SetPopupOpen(bool open) {
 }
 
 Rect ColorPicker::GetPopupBounds() const {
-    return Rect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, 240.0f, 220.0f);
+    constexpr float popW = 240.0f;
+    constexpr float popH = 220.0f;
+    return PlacePopupNearAnchor(m_bounds, popW, popH, GetPopupViewportOrDefault(), 4.0f);
 }
 
 bool ColorPicker::HitDismissExempt(float x, float y) const {
@@ -174,11 +175,11 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
     if (progress <= 0.001f) return;
 
-    float popW = 240.0f;
-    float popH = 220.0f;
+    Rect popRect = GetPopupBounds();
+    float popW = popRect.width;
+    float popH = popRect.height;
     float currentH = (m_isPopupOpen && progress >= 0.98f) ? popH : (popH * progress);
-    Rect popRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, popH);
-    Rect clipRect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, popW, currentH);
+    Rect clipRect(popRect.x, popRect.y, popRect.width, currentH);
 
     ctx.PushClip(clipRect);
 

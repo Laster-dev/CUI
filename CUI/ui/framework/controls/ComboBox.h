@@ -27,6 +27,7 @@ public:
     virtual bool ShouldClipToBounds() const override { return !m_isDropDownOpen; }
     virtual UIElement* HitTest(float x, float y) override;
     virtual UIElement* HitTestOverlay(float x, float y) override;
+    virtual void OnMouseWheel(float delta) override;
 
     // IPopup
     virtual bool IsPopupOpen() const override { return m_isDropDownOpen; }
@@ -58,6 +59,9 @@ private:
     int m_selectedIndex = -1;
     bool m_isDropDownOpen = false;
     int m_hoveredIndex = -1;
+    // When dropdown content exceeds the visible height (auto-clamped by placement),
+    // keep an internal scroll offset so users can browse instead of only clipping.
+    float m_scrollOffset = 0.0f;
     AnimatedScalar m_popupAnim{};
     AnimatedScalar m_arrowAnim{};
 

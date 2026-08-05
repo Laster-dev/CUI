@@ -19,6 +19,8 @@ public:
     Window();
     virtual ~Window();
 
+    // width/height are DIPs (design size); converted to physical pixels at Create time.
+    // width/height are DIPs (logical design size); converted to physical for CreateWindowEx.
     bool Create(const std::string& title, int width = 1280, int height = 800, bool transparentMode = false);
     void Show();
     void RunMessageLoop();
@@ -71,8 +73,11 @@ private:
     void InvalidatePendingRenderRegions(bool fallbackToFullWindow);
     void DrawRenderStatsOverlay();
     void ApplyVisualState();
+    Point ClientPointToLogical(int x, int y) const;
 
     HWND m_hwnd = nullptr;
+    float m_dpiScale = 1.0f;
+    Size m_logicalClientSize{ 0.0f, 0.0f };
     GraphicsContext m_gfxContext;
     std::shared_ptr<UIElement> m_rootElement;
 

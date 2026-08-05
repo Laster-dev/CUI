@@ -224,6 +224,13 @@ void ListView::EnsureVisible(int rowIndex) {
     }
     ClampScroll();
     m_scrollYAnim.SetTarget(m_targetScrollY);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_scrollY = m_targetScrollY;
+        m_scrollYAnim.Reset(m_scrollY);
+    } else {
+        RequestAnimationTicks();
+    }
+    MarkRenderContentDirty();
 }
 
 void ListView::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
@@ -791,17 +798,35 @@ void ListView::OnMouseWheel(float delta) {
         m_scrollX -= delta * 40.0f;
         ClampScroll();
         MarkRenderContentDirty();
-    } else {
-        float scrollStep = m_rowHeight * 2.5f;
-        m_targetScrollY -= delta * scrollStep;
-        ClampScroll();
-        m_scrollYAnim.SetTarget(m_targetScrollY);
-        if (!UIElement::AreAnimationsEnabled()) {
-            m_scrollY = m_targetScrollY;
-            m_scrollYAnim.Reset(m_scrollY);
-            MarkRenderContentDirty();
-        }
+        return;
     }
+
+    if (m_maxScrollY <= 0.0f) {
+        // Nothing to scroll — let parent ScrollViewer handle the wheel.
+        UIElement::OnMouseWheel(delta);
+        return;
+    }
+
+    const float prevTarget = m_targetScrollY;
+    float scrollStep = m_rowHeight * 2.5f;
+    m_targetScrollY -= delta * scrollStep;
+    ClampScroll();
+    if (std::abs(m_targetScrollY - prevTarget) < 0.001f) {
+        // At scroll edge — bubble so outer page can still scroll.
+        UIElement::OnMouseWheel(delta);
+        return;
+    }
+
+    m_scrollYAnim.SetTarget(m_targetScrollY);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_scrollY = m_targetScrollY;
+        m_scrollYAnim.Reset(m_scrollY);
+    } else {
+        // Wheel only sets the anim target; without this, ticks stop once
+        // hover/focus visual-state animation ends → intermittent frozen scroll.
+        RequestAnimationTicks();
+    }
+    MarkRenderContentDirty();
 }
 
 bool ListView::ApplyAutoScroll() {

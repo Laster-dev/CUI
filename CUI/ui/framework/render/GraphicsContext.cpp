@@ -303,9 +303,11 @@ void GraphicsContext::BeginDraw() {
     if (m_d2dContext) {
         m_d2dContext->BeginDraw();
         m_d2dContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-        // ClearType requires an opaque backdrop. Layer caches and material clears
-        // are often transparent — grayscale keeps glyphs readable everywhere.
-        m_d2dContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+        // ClearType on opaque swap-chain presents; grayscale when alpha is preserved for Mica.
+        m_d2dContext->SetTextAntialiasMode(
+            m_supportsPerPixelAlpha
+                ? D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE
+                : D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
     }
 }
 
@@ -329,32 +331,70 @@ HRESULT GraphicsContext::EndDraw() {
     return hr;
 }
 
+namespace {
+
+float SnapDipToDevicePixel(float value, float dpiScale) {
+    const float scale = (dpiScale > 0.001f) ? dpiScale : 1.0f;
+    return std::floor(value * scale + 0.5f) / scale;
+}
+
+Rect SnapRectToDevicePixels(const Rect& rect, float dpiScale) {
+    const float scale = (dpiScale > 0.001f) ? dpiScale : 1.0f;
+    const float x0 = std::floor(rect.x * scale + 0.5f);
+    const float y0 = std::floor(rect.y * scale + 0.5f);
+    const float x1 = std::floor((rect.x + rect.width) * scale + 0.5f);
+    const float y1 = std::floor((rect.y + rect.height) * scale + 0.5f);
+    return Rect(
+        x0 / scale,
+        y0 / scale,
+        (std::max)(0.0f, x1 - x0) / scale,
+        (std::max)(0.0f, y1 - y0) / scale
+    );
+}
+
+Rect SnapTextRect(const Rect& rect, float dpiScale) {
+    const float scale = (dpiScale > 0.001f) ? dpiScale : 1.0f;
+    return Rect(
+        SnapDipToDevicePixel(rect.x, dpiScale),
+        SnapDipToDevicePixel(rect.y, dpiScale),
+        std::ceil(rect.width * scale) / scale,
+        std::ceil(rect.height * scale) / scale
+    );
+}
+
+float SnapFontSizeToDevicePixels(float fontSizeDips, float dpiScale) {
+    const float scale = (dpiScale > 0.001f) ? dpiScale : 1.0f;
+    return std::round(fontSizeDips * scale) / scale;
+}
+
+D2D1_RECT_F SnapRectForStroke(const Rect& rect, float strokeWidth, float dpiScale) {
+    const float halfStroke = strokeWidth * 0.5f;
+    return D2D1::RectF(
+        SnapDipToDevicePixel(rect.x, dpiScale) + halfStroke,
+        SnapDipToDevicePixel(rect.y, dpiScale) + halfStroke,
+        SnapDipToDevicePixel(rect.x + rect.width, dpiScale) - halfStroke,
+        SnapDipToDevicePixel(rect.y + rect.height, dpiScale) - halfStroke
+    );
+}
+
+D2D1_RECT_F SnapRectForFill(const Rect& rect, float dpiScale) {
+    return D2D1::RectF(
+        SnapDipToDevicePixel(rect.x, dpiScale),
+        SnapDipToDevicePixel(rect.y, dpiScale),
+        SnapDipToDevicePixel(rect.x + rect.width, dpiScale),
+        SnapDipToDevicePixel(rect.y + rect.height, dpiScale)
+    );
+}
+
+} // namespace
+
 inline float SnapPixel(float val) {
     return std::floor(val + 0.5f);
 }
 
-inline D2D1_RECT_F SnapRectForStroke(const Rect& rect, float strokeWidth) {
-    float halfStroke = strokeWidth * 0.5f;
-    return D2D1::RectF(
-        std::floor(rect.x) + halfStroke,
-        std::floor(rect.y) + halfStroke,
-        std::floor(rect.x + rect.width) - halfStroke,
-        std::floor(rect.y + rect.height) - halfStroke
-    );
-}
-
-inline D2D1_RECT_F SnapRectForFill(const Rect& rect) {
-    return D2D1::RectF(
-        std::floor(rect.x),
-        std::floor(rect.y),
-        std::floor(rect.x + rect.width),
-        std::floor(rect.y + rect.height)
-    );
-}
-
 void GraphicsContext::PushClip(const Rect& rect) {
     if (m_d2dContext) {
-        D2D1_RECT_F d2dRect = SnapRectForFill(rect);
+        D2D1_RECT_F d2dRect = SnapRectForFill(rect, m_dpiScale);
         m_clipStack.push_back(d2dRect);
         m_d2dContext->PushAxisAlignedClip(d2dRect, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     }
@@ -394,13 +434,16 @@ bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
         return false;
     }
 
-    const float width = (std::max)(1.0f, std::ceil(sizeInDips.width));
-    const float height = (std::max)(1.0f, std::ceil(sizeInDips.height));
+    const float widthDips = (std::max)(1.0f, std::ceil(sizeInDips.width));
+    const float heightDips = (std::max)(1.0f, std::ceil(sizeInDips.height));
+    const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+    const UINT32 pixelW = static_cast<UINT32>((std::max)(1.0f, std::ceil(widthDips * scale)));
+    const UINT32 pixelH = static_cast<UINT32>((std::max)(1.0f, std::ceil(heightDips * scale)));
 
     const bool recreate = !layer.m_cacheContext
         || !layer.m_cacheBitmap
-        || std::abs(layer.m_cacheSurfaceSize.width - width) > 0.5f
-        || std::abs(layer.m_cacheSurfaceSize.height - height) > 0.5f;
+        || std::abs(layer.m_cacheSurfaceSize.width - widthDips) > 0.5f
+        || std::abs(layer.m_cacheSurfaceSize.height - heightDips) > 0.5f;
 
     if (!recreate) {
         return true;
@@ -414,7 +457,7 @@ bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
         return false;
     }
 
-    const float dpi = 96.0f * m_dpiScale;
+    const float dpi = 96.0f * scale;
     D2D1_BITMAP_PROPERTIES1 props = D2D1::BitmapProperties1(
         D2D1_BITMAP_OPTIONS_TARGET,
         D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
@@ -423,7 +466,7 @@ bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
     );
 
     hr = layer.m_cacheContext->CreateBitmap(
-        D2D1::SizeU(static_cast<UINT32>(width), static_cast<UINT32>(height)),
+        D2D1::SizeU(pixelW, pixelH),
         nullptr,
         0,
         &props,
@@ -435,7 +478,7 @@ bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
     }
 
     hr = layer.m_cacheContext->CreateBitmap(
-        D2D1::SizeU(static_cast<UINT32>(width), static_cast<UINT32>(height)),
+        D2D1::SizeU(pixelW, pixelH),
         nullptr,
         0,
         &props,
@@ -446,8 +489,9 @@ bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
         return false;
     }
 
+    layer.m_cacheContext->SetDpi(dpi, dpi);
     layer.m_cacheContext->SetTarget(layer.m_cacheBitmap.Get());
-    layer.SetCacheSurfaceSize(Size(width, height));
+    layer.SetCacheSurfaceSize(Size(widthDips, heightDips));
     layer.Invalidate(RenderLayer::SizeDirty | RenderLayer::ContentDirty);
     return true;
 }
@@ -457,10 +501,15 @@ ID2D1DeviceContext* GraphicsContext::BeginLayerDraw(RenderLayer& layer) {
         return nullptr;
     }
 
+    const float dpi = 96.0f * ((m_dpiScale > 0.001f) ? m_dpiScale : 1.0f);
     layer.m_cacheContext->BeginDraw();
     layer.m_cacheContext->SetTarget(layer.m_cacheBitmap.Get());
+    layer.m_cacheContext->SetDpi(dpi, dpi);
     layer.m_cacheContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-    layer.m_cacheContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+    layer.m_cacheContext->SetTextAntialiasMode(
+        m_supportsPerPixelAlpha
+            ? D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE
+            : D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
     return layer.m_cacheContext.Get();
 }
 
@@ -480,7 +529,8 @@ void GraphicsContext::DrawLayer(const RenderLayer& layer, const Rect& destRect, 
         return;
     }
 
-    D2D1_RECT_F dest = destRect.ToD2D();
+    const Rect snappedDest = SnapRectToDevicePixels(destRect, m_dpiScale);
+    D2D1_RECT_F dest = snappedDest.ToD2D();
     const D2D1_RECT_F* src = nullptr;
     D2D1_RECT_F srcRect = {};
     if (sourceRect && !sourceRect->IsEmpty()) {
@@ -572,26 +622,26 @@ void GraphicsContext::PopClip() {
 
 void GraphicsContext::DrawRect(const Rect& rect, D2D1_COLOR_F color, float strokeWidth) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        m_d2dContext->DrawRectangle(SnapRectForStroke(rect, strokeWidth), brush, strokeWidth);
+        m_d2dContext->DrawRectangle(SnapRectForStroke(rect, strokeWidth, m_dpiScale), brush, strokeWidth);
     }
 }
 
 void GraphicsContext::FillRect(const Rect& rect, D2D1_COLOR_F color) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        m_d2dContext->FillRectangle(SnapRectForFill(rect), brush);
+        m_d2dContext->FillRectangle(SnapRectForFill(rect, m_dpiScale), brush);
     }
 }
 
 void GraphicsContext::FillRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(SnapRectForFill(rect), radius, radius);
+        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(SnapRectForFill(rect, m_dpiScale), radius, radius);
         m_d2dContext->FillRoundedRectangle(rr, brush);
     }
 }
 
 void GraphicsContext::DrawRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color, float strokeWidth) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(SnapRectForStroke(rect, strokeWidth), radius, radius);
+        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(SnapRectForStroke(rect, strokeWidth, m_dpiScale), radius, radius);
         m_d2dContext->DrawRoundedRectangle(rr, brush, strokeWidth);
     }
 }
@@ -607,40 +657,106 @@ void GraphicsContext::DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float str
     }
 }
 
+void GraphicsContext::DrawTextOnTarget(
+    ID2D1RenderTarget* target,
+    const std::wstring& text,
+    const Rect& rect,
+    D2D1_COLOR_F color,
+    const std::string& fontName,
+    float fontSize,
+    DWRITE_TEXT_ALIGNMENT align,
+    DWRITE_PARAGRAPH_ALIGNMENT vAlign,
+    DWRITE_FONT_WEIGHT weight,
+    D2D1_TEXT_ANTIALIAS_MODE antialiasMode) {
+
+    if (!target || text.empty()) {
+        return;
+    }
+
+    auto format = m_resources.GetTextFormat(fontName, fontSize, weight);
+    if (!format) {
+        return;
+    }
+
+    ComPtr<ID2D1SolidColorBrush> brush;
+    if (FAILED(target->CreateSolidColorBrush(color, &brush)) || !brush) {
+        return;
+    }
+
+    format->SetTextAlignment(align);
+    format->SetParagraphAlignment(vAlign);
+    format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+
+    DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
+    format->SetTrimming(&trimming, nullptr);
+
+    const D2D1_TEXT_ANTIALIAS_MODE previousMode = target->GetTextAntialiasMode();
+    target->SetTextAntialiasMode(antialiasMode);
+    target->DrawText(
+        text.c_str(),
+        static_cast<UINT32>(text.length()),
+        format,
+        rect.ToD2D(),
+        brush.Get(),
+        D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
+    );
+    target->SetTextAntialiasMode(previousMode);
+}
+
+void GraphicsContext::DrawTextLayoutOnTarget(
+    ID2D1RenderTarget* target,
+    IDWriteTextLayout* layout,
+    const Rect& originRect,
+    D2D1_COLOR_F color,
+    D2D1_TEXT_ANTIALIAS_MODE antialiasMode) {
+
+    if (!target || !layout) {
+        return;
+    }
+
+    ComPtr<ID2D1SolidColorBrush> brush;
+    if (FAILED(target->CreateSolidColorBrush(color, &brush)) || !brush) {
+        return;
+    }
+
+    const D2D1_TEXT_ANTIALIAS_MODE previousMode = target->GetTextAntialiasMode();
+    target->SetTextAntialiasMode(antialiasMode);
+    target->DrawTextLayout(
+        D2D1::Point2F(originRect.x, originRect.y),
+        layout,
+        brush.Get(),
+        D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
+    );
+    target->SetTextAntialiasMode(previousMode);
+}
+
 void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,
                                const std::string& fontName, float fontSize,
                                DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT vAlign,
                                DWRITE_FONT_WEIGHT weight) {
-    if (text.empty()) return;
-
-    auto brush = m_resources.GetSolidBrush(color);
-    auto format = m_resources.GetTextFormat(fontName, fontSize, weight);
-    if (brush && format) {
-        format->SetTextAlignment(align);
-        format->SetParagraphAlignment(vAlign);
-        format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-
-        DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
-        format->SetTrimming(&trimming, nullptr);
-
-        std::wstring wText = Utf8ToUtf16(text);
-        // Ceil size so subpixel measure widths are not floored away — floor(width)
-        // + CHARACTER trimming previously clipped the last glyph ("少最后一个字").
-        Rect snappedRect(
-            std::floor(rect.x),
-            std::floor(rect.y),
-            std::ceil(rect.width),
-            std::ceil(rect.height)
-        );
-        m_d2dContext->DrawText(
-            wText.c_str(),
-            static_cast<UINT32>(wText.length()),
-            format,
-            snappedRect.ToD2D(),
-            brush,
-            D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_NO_SNAP
-        );
+    if (text.empty() || !m_d2dContext) {
+        return;
     }
+
+    // Mica/composition targets keep per-pixel alpha; ClearType is invalid there.
+    // Swap-chain bitmaps are also CANNOT_DRAW, so never sample them for a ClearType blit.
+    const D2D1_TEXT_ANTIALIAS_MODE mode =
+        m_supportsPerPixelAlpha
+            ? D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE
+            : D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE;
+
+    DrawTextOnTarget(
+        m_d2dContext.Get(),
+        Utf8ToUtf16(text),
+        SnapTextRect(rect, m_dpiScale),
+        color,
+        fontName,
+        SnapFontSizeToDevicePixels(fontSize, m_dpiScale),
+        align,
+        vAlign,
+        weight,
+        mode
+    );
 }
 
 Size GraphicsContext::MeasureText(const std::string& text, const std::string& fontName, float fontSize, DWRITE_FONT_WEIGHT weight) {
@@ -754,16 +870,26 @@ ComPtr<IDWriteTextLayout> GraphicsContext::CreateTextLayout(
 }
 
 void GraphicsContext::DrawTextLayout(IDWriteTextLayout* layout, const Rect& originRect, D2D1_COLOR_F color) {
-    if (!layout || !m_d2dContext) return;
+    if (!layout || !m_d2dContext) {
+        return;
+    }
 
-    auto brush = m_resources.GetSolidBrush(color);
-    if (!brush) return;
+    const D2D1_TEXT_ANTIALIAS_MODE mode =
+        m_supportsPerPixelAlpha
+            ? D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE
+            : D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE;
 
-    m_d2dContext->DrawTextLayout(
-        D2D1::Point2F(std::floor(originRect.x), std::floor(originRect.y)),
+    DrawTextLayoutOnTarget(
+        m_d2dContext.Get(),
         layout,
-        brush,
-        D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
+        Rect(
+            SnapDipToDevicePixel(originRect.x, m_dpiScale),
+            SnapDipToDevicePixel(originRect.y, m_dpiScale),
+            originRect.width,
+            originRect.height
+        ),
+        color,
+        mode
     );
 }
 

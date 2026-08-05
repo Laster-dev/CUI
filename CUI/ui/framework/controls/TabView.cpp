@@ -1,6 +1,7 @@
 #include "TabView.h"
 #include "../style/ThemeManager.h"
 #include "../render/CompositionContext.h"
+#include "../window/Dpi.h"
 #include <algorithm>
 #include <cmath>
 #include <windows.h>
@@ -447,10 +448,10 @@ void TabView::OnMouseWheel(float delta) {
     POINT screenPt{};
     if (GetCursorPos(&screenPt)) {
         HWND hwnd = WindowFromPoint(screenPt);
-        if (hwnd) {
-            POINT clientPt = screenPt;
-            ScreenToClient(hwnd, &clientPt);
-            if (IsPointInHeader(static_cast<float>(clientPt.x), static_cast<float>(clientPt.y))) {
+        float logicalX = 0.0f;
+        float logicalY = 0.0f;
+        if (hwnd && TryGetCursorClientLogical(hwnd, logicalX, logicalY)) {
+            if (IsPointInHeader(logicalX, logicalY)) {
                 ScrollHeaderByWheel(delta);
                 return;
             }

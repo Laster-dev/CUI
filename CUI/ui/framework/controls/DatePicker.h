@@ -25,6 +25,7 @@ public:
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual void OnMouseWheel(float delta) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
@@ -53,6 +54,8 @@ private:
     int m_viewStartYear = 2020;
     DatePickerViewMode m_viewMode = DatePickerViewMode::DayGrid;
     bool m_isPopupOpen = false;
+    // When popup content exceeds visible height, allow browsing via internal scrolling.
+    float m_scrollOffset = 0.0f; // layout/DIP coords; shifts the grid area upward
     AnimatedScalar m_popupAnim{};
     Event<DatePicker*, int, int, int> m_onDateChangedEvent;
 };

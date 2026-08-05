@@ -1,8 +1,10 @@
 #include "NavigationView.h"
 #include "../style/ThemeManager.h"
+#include "../window/Dpi.h"
 #include <algorithm>
 #include <cmath>
 #include <unordered_set>
+#include <windows.h>
 
 namespace CUI {
 
@@ -423,7 +425,7 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
         return;
     }
 
-    // Slide new page in; remove old from tree immediately to avoid ghost frames.
+    // Fade new page in; remove old from tree immediately to avoid ghost frames.
     if (m_content) {
         RemoveChild(m_content);
     }
@@ -1067,13 +1069,13 @@ void NavigationView::RelayoutChildren() {
         const float t = std::clamp(m_contentFadeAnim.Current(), 0.0f, 1.0f);
         const float inv = 1.0f - t;
         const float ease = 1.0f - inv * inv * inv;
-        const float slideY = 40.0f * (1.0f - ease);
         if (m_contentNext) {
             m_contentNext->SetOpacity(ease);
             m_contentNext->SetVisibility(Visibility::Visible);
             m_contentNext->Measure(Size(contentRect.width, contentRect.height));
-            m_contentNext->Arrange(Rect(contentRect.x, contentRect.y + slideY,
-                                        contentRect.width, contentRect.height));
+            // Fade only — do NOT slide Arrange by a fractional Y. DrawText snaps
+            // to device pixels, so a moving fractional layout origin makes glyphs jitter.
+            m_contentNext->Arrange(contentRect);
         }
     } else if (m_content) {
         m_content->SetOpacity(1.0f);
@@ -1202,7 +1204,7 @@ void NavigationView::OnRenderOverlay(GraphicsContext& ctx) {
         }
     }
 
-    // Entrance transition uses slide-only (see RelayoutChildren / OnAnimationTick).
+    // Entrance transition uses opacity fade only (see RelayoutChildren / OnAnimationTick).
     // Do not draw a semi-opaque windowBackground veil here: on light + Mica it
     // washes out the entire content host (demo + PropertyGrid) until the ~220ms
     // fade completes, which looks like broken theme colors on page load.
@@ -1224,10 +1226,19 @@ void NavigationView::OnMouseWheel(float delta) {
         Control::OnMouseWheel(delta);
         return;
     }
-    // Prefer the pane ScrollViewer (Chromium smooth scroll + scrollbar).
+    // Scroll the pane menu only when the cursor is over the pane; otherwise let
+    // bubbled wheel reach the content ScrollViewer (showcase page, etc.).
     if (m_menuScroll && m_menuScroll->GetVisibility() == Visibility::Visible) {
-        m_menuScroll->OnMouseWheel(delta);
-        return;
+        POINT screenPt{};
+        if (GetCursorPos(&screenPt)) {
+            HWND hwnd = WindowFromPoint(screenPt);
+            float lx = 0.0f;
+            float ly = 0.0f;
+            if (hwnd && TryGetCursorClientLogical(hwnd, lx, ly) && GetPaneRect().Contains(lx, ly)) {
+                m_menuScroll->OnMouseWheel(delta);
+                return;
+            }
+        }
     }
     Control::OnMouseWheel(delta);
 }
@@ -1245,11 +1256,10 @@ bool NavigationView::OnAnimationTick() {
         const float t = std::clamp(m_contentFadeAnim.Current(), 0.0f, 1.0f);
         const float inv = 1.0f - t;
         const float ease = 1.0f - inv * inv * inv;
-        const float slideY = 40.0f * (1.0f - ease);
         if (m_contentNext) {
             m_contentNext->SetOpacity(ease);
-            m_contentNext->Arrange(Rect(contentRect.x, contentRect.y + slideY,
-                                        contentRect.width, contentRect.height));
+            // Keep layout origin stable; opacity-only entrance avoids text snap jitter.
+            m_contentNext->Arrange(contentRect);
         }
         MarkRenderContentDirty();
     }

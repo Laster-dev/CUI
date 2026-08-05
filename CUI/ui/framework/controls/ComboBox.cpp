@@ -1,14 +1,17 @@
 #include "ComboBox.h"
 #include "../style/ThemeManager.h"
+#include "../window/PopupPlacement.h"
 #include <sstream>
 #include <algorithm>
+#include <cmath>
 
 namespace CUI {
 
 namespace {
 Rect ComboBoxMenuRect(const Rect& bounds, float itemHeight, size_t itemCount) {
     float menuH = itemHeight * static_cast<float>((std::max)(itemCount, size_t{ 1 }));
-    return Rect(bounds.x, bounds.y + bounds.height + 2.0f, bounds.width, menuH);
+    const Rect viewport = GetPopupViewportOrDefault();
+    return PlacePopupNearAnchor(bounds, bounds.width, menuH, viewport, 2.0f);
 }
 } // namespace
 
@@ -156,11 +159,10 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
 
     float itemHeight = GetItemHeight();
     if (itemHeight < 0.0f) itemHeight = 28.0f;
-    float menuH = itemHeight * m_items.size();
+    Rect menuRect = ComboBoxMenuRect(m_bounds, itemHeight, m_items.size());
+    const float menuH = menuRect.height;
     float currentH = (m_isDropDownOpen && progress >= 0.98f) ? menuH : (menuH * progress);
-
-    Rect menuRect(m_bounds.x, m_bounds.y + m_bounds.height + 2.0f, m_bounds.width, menuH);
-    Rect clipRect(m_bounds.x, m_bounds.y + m_bounds.height + 2.0f, m_bounds.width, currentH);
+    Rect clipRect(menuRect.x, menuRect.y, menuRect.width, currentH);
 
     ctx.PushClip(clipRect);
 
@@ -176,7 +178,7 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
     ctx.DrawRoundedRect(menuRect, radius, ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder), 1.0f);
 
     for (size_t i = 0; i < m_items.size(); ++i) {
-        Rect itemRect(menuRect.x + 2, menuRect.y + i * itemHeight + 2, menuRect.width - 4, itemHeight - 4);
+        Rect itemRect(menuRect.x + 2, menuRect.y + i * itemHeight + 2 - m_scrollOffset, menuRect.width - 4, itemHeight - 4);
         bool isSelected = (static_cast<int>(i) == m_selectedIndex);
 
         if (isSelected) {
@@ -185,6 +187,30 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
 
         D2D1_COLOR_F itemColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
         ctx.DrawText(m_items[i], Rect(itemRect.x + 8, itemRect.y, itemRect.width - 16, itemRect.height), itemColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
+
+    // Scrollbar
+    {
+        const float contentH = itemHeight * static_cast<float>(m_items.size());
+        const float maxScroll = (std::max)(0.0f, contentH - menuH);
+        if (maxScroll > 0.001f && menuH > 0.001f) {
+            constexpr float kScrollW = 8.0f;
+            const float trackX = menuRect.x + menuRect.width - kScrollW;
+            const Rect trackRect(trackX, menuRect.y, kScrollW, menuH);
+
+            D2D1_COLOR_F trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+            trackColor.a = 0.35f;
+            ctx.DrawRoundedRect(trackRect, 4.0f, trackColor, 1.0f);
+
+            const float thumbH = (std::max)(16.0f, (menuH * menuH) / contentH);
+            const float travel = (std::max)(0.0f, menuH - thumbH);
+            const float thumbY = trackRect.y + (m_scrollOffset / maxScroll) * travel;
+            Rect thumbRect(trackX + 1.5f, thumbY, kScrollW - 3.0f, thumbH);
+
+            D2D1_COLOR_F thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
+            thumbColor.a = 0.45f;
+            ctx.FillRoundedRect(thumbRect, 4.0f, thumbColor);
+        }
     }
 
     ctx.PopClip();
@@ -200,14 +226,39 @@ UIElement* ComboBox::HitTestOverlay(float x, float y) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isDropDownOpen ? 1.0f : 0.0f);
     if (progress <= 0.5f || m_items.empty()) return nullptr;
 
-    float itemHeight = 28.0f;
-    float menuH = itemHeight * m_items.size();
-    Rect menuRect(m_bounds.x, m_bounds.y + m_bounds.height + 2.0f, m_bounds.width, menuH);
+    float itemHeight = GetItemHeight();
+    if (itemHeight < 0.0f) itemHeight = 28.0f;
+    Rect menuRect = ComboBoxMenuRect(m_bounds, itemHeight, m_items.size());
 
-    if (menuRect.Contains(x, y)) {
+    const float menuH = menuRect.height;
+    float currentH = (m_isDropDownOpen && progress >= 0.98f) ? menuH : (menuH * progress);
+    Rect clipRect(menuRect.x, menuRect.y, menuRect.width, currentH);
+
+    if (clipRect.Contains(x, y)) {
         return this;
     }
     return nullptr;
+}
+
+void ComboBox::OnMouseWheel(float delta) {
+    if (!m_isDropDownOpen || m_items.empty()) return;
+
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : 1.0f;
+    if (progress <= 0.5f) return;
+
+    float itemHeight = GetItemHeight();
+    if (itemHeight < 0.0f) itemHeight = 28.0f;
+
+    Rect menuRect = ComboBoxMenuRect(m_bounds, itemHeight, m_items.size());
+    const float contentH = itemHeight * static_cast<float>(m_items.size());
+    const float visibleH = menuRect.height;
+    const float maxScroll = (std::max)(0.0f, contentH - visibleH);
+    if (maxScroll <= 0.001f) return;
+
+    // delta > 0 => wheel up => scroll towards smaller indices.
+    const float step = itemHeight; // about one row
+    m_scrollOffset = std::clamp(m_scrollOffset - delta * step, 0.0f, maxScroll);
+    MarkRenderContentDirty();
 }
 
 bool ComboBox::OnAnimationTick() {
@@ -268,12 +319,33 @@ void ComboBox::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
 
     if (m_isDropDownOpen && !m_items.empty()) {
-        float itemHeight = 28.0f;
-        float menuH = itemHeight * m_items.size();
-        Rect menuRect(m_bounds.x, m_bounds.y + m_bounds.height + 2.0f, m_bounds.width, menuH);
+        float itemHeight = GetItemHeight();
+        if (itemHeight < 0.0f) itemHeight = 28.0f;
+        Rect menuRect = ComboBoxMenuRect(m_bounds, itemHeight, m_items.size());
 
-        if (menuRect.Contains(pt.x, pt.y)) {
-            int clickedIdx = static_cast<int>((pt.y - menuRect.y) / itemHeight);
+        float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : 1.0f;
+        const float menuH = menuRect.height;
+        float currentH = (m_isDropDownOpen && progress >= 0.98f) ? menuH : (menuH * progress);
+        Rect clipRect(menuRect.x, menuRect.y, menuRect.width, currentH);
+
+        if (clipRect.Contains(pt.x, pt.y)) {
+            // Scrollbar click: jump scroll position without closing the dropdown.
+            constexpr float kScrollW = 8.0f;
+            const Rect scrollRect(menuRect.x + menuRect.width - kScrollW, menuRect.y, kScrollW, currentH);
+            if (scrollRect.Contains(pt.x, pt.y)) {
+                const float contentH = itemHeight * static_cast<float>(m_items.size());
+                const float maxScroll = (std::max)(0.0f, contentH - menuH);
+                if (maxScroll > 0.001f && currentH > 0.001f) {
+                    const float ratio = (std::clamp)((pt.y - menuRect.y) / currentH, 0.0f, 1.0f);
+                    m_scrollOffset = ratio * maxScroll;
+                    MarkRenderContentDirty();
+                }
+                return;
+            }
+
+            // itemRect top = menuRect.y + 2 - m_scrollOffset
+            const float localY = (pt.y - (menuRect.y + 2.0f) + m_scrollOffset);
+            int clickedIdx = static_cast<int>(localY / itemHeight);
             if (clickedIdx >= 0 && clickedIdx < static_cast<int>(m_items.size())) {
                 SetSelectedIndex(clickedIdx);
             }
@@ -292,6 +364,9 @@ void ComboBox::OnBlur() {
 void ComboBox::SetDropDownOpen(bool open) {
     if (m_isDropDownOpen == open) return;
     m_isDropDownOpen = open;
+    if (open) {
+        m_scrollOffset = 0.0f;
+    }
     if (PopupHost* host = PopupHost::Current()) {
         if (open) {
             host->Open(this);

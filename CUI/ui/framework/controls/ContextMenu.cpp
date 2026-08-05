@@ -1,5 +1,8 @@
 #include "ContextMenu.h"
 #include "../style/ThemeManager.h"
+#include "../window/PopupPlacement.h"
+#include <algorithm>
+#include <cmath>
 
 namespace CUI {
 
@@ -94,6 +97,14 @@ void MenuItem::OnMouseLeave() {
     }
 }
 
+void MenuItem::OnMouseWheel(float delta) {
+    // Forward wheel scrolling to the parent menu so nested hit-test returns
+    // a MenuItem target but the menu still scrolls.
+    if (m_parentMenu) {
+        m_parentMenu->OnMouseWheel(delta);
+    }
+}
+
 void MenuItem::ExecuteCommand() {
     if (m_command) {
         m_command();
@@ -149,6 +160,28 @@ void ContextMenu::AddSeparator() {
     AddChild(item);
 }
 
+namespace {
+Rect ResolveMenuViewport(float windowW, float windowH) {
+    if (windowW > 0.0f && windowH > 0.0f) {
+        return Rect(0.0f, 0.0f, windowW, windowH);
+    }
+    return GetPopupViewportOrDefault();
+}
+} // namespace
+
+void ContextMenu::RelayoutItems() {
+    if (m_items.empty()) return;
+
+    const float w = (m_itemWidth > 8.0f) ? (m_itemWidth - 8.0f) : 0.0f;
+    float currentY = m_bounds.y + 4.0f - m_scrollOffset;
+
+    for (auto& item : m_items) {
+        float h = item->IsSeparator() ? 6.0f : 26.0f;
+        item->Arrange(Rect(m_bounds.x + 4.0f, currentY, w, h));
+        currentY += h;
+    }
+}
+
 void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
     m_popupPosition = Point(x, y);
     m_windowWidth = windowW;
@@ -170,7 +203,7 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
         }
     }
     float itemW = maxItemWidth;
-    float totalH = 8.0f; // Padding top/bottom
+    float totalH = 8.0f;
 
     for (auto& item : m_items) {
         if (item->IsSeparator()) {
@@ -180,29 +213,13 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
         }
     }
 
-    // Smart right-edge overflow check: flip to left of cursor
-    float popupX = x;
-    if (windowW > 0.0f && (x + itemW > windowW - 4.0f)) {
-        popupX = x - itemW;
-        if (popupX < 4.0f) popupX = (windowW > itemW + 8.0f) ? (windowW - itemW - 4.0f) : 4.0f;
-    }
+    const Rect viewport = ResolveMenuViewport(windowW, windowH);
+    m_bounds = PlacePopupAtPoint(Point(x, y), itemW, totalH, viewport);
 
-    // Smart bottom-edge overflow check: flip above cursor
-    float popupY = y;
-    if (windowH > 0.0f && (y + totalH > windowH - 4.0f)) {
-        popupY = y - totalH;
-        if (popupY < 4.0f) popupY = (windowH > totalH + 8.0f) ? (windowH - totalH - 4.0f) : 4.0f;
-    }
-
-    m_bounds = Rect(popupX, popupY, itemW, totalH);
-
-    // Arrange items inside calculated bounds
-    float currentY = popupY + 4.0f;
-    for (auto& item : m_items) {
-        float h = item->IsSeparator() ? 6.0f : 26.0f;
-        item->Arrange(Rect(popupX + 4.0f, currentY, itemW - 8.0f, h));
-        currentY += h;
-    }
+    m_itemWidth = itemW;
+    m_contentHeight = totalH;
+    m_scrollOffset = 0.0f;
+    RelayoutItems();
 
     if (PopupHost* host = PopupHost::Current()) {
         host->Open(this);
@@ -215,7 +232,7 @@ void ContextMenu::ShowSubMenuAt(Rect parentItemBounds, float windowW, float wind
     m_isOpen = true;
 
     float itemW = 200.0f;
-    float totalH = 8.0f; // Padding top/bottom
+    float totalH = 8.0f;
 
     for (auto& item : m_items) {
         if (item->IsSeparator()) {
@@ -225,30 +242,14 @@ void ContextMenu::ShowSubMenuAt(Rect parentItemBounds, float windowW, float wind
         }
     }
 
-    // Target right side of parent item by default
-    float popupX = parentItemBounds.x + parentItemBounds.width - 2.0f;
-    // Right-edge overflow check: flip to LEFT of parent item!
-    if (windowW > 0.0f && (popupX + itemW > windowW - 4.0f)) {
-        popupX = parentItemBounds.x - itemW + 2.0f;
-        if (popupX < 4.0f) popupX = 4.0f;
-    }
+    const Rect viewport = ResolveMenuViewport(windowW, windowH);
+    Rect anchor(parentItemBounds.x + parentItemBounds.width - 2.0f, parentItemBounds.y - 4.0f, 0.0f, parentItemBounds.height + 8.0f);
+    m_bounds = PlacePopupNearAnchor(anchor, itemW, totalH, viewport, 2.0f);
 
-    // Target top of parent item by default
-    float popupY = parentItemBounds.y - 4.0f;
-    // Bottom-edge overflow check: flip UPWARDS!
-    if (windowH > 0.0f && (popupY + totalH > windowH - 4.0f)) {
-        popupY = parentItemBounds.y + parentItemBounds.height - totalH + 4.0f;
-        if (popupY < 4.0f) popupY = 4.0f;
-    }
-
-    m_bounds = Rect(popupX, popupY, itemW, totalH);
-
-    float currentY = popupY + 4.0f;
-    for (auto& item : m_items) {
-        float h = item->IsSeparator() ? 6.0f : 26.0f;
-        item->Arrange(Rect(popupX + 4.0f, currentY, itemW - 8.0f, h));
-        currentY += h;
-    }
+    m_itemWidth = itemW;
+    m_contentHeight = totalH;
+    m_scrollOffset = 0.0f;
+    RelayoutItems();
 }
 
 void ContextMenu::Hide() {
@@ -263,6 +264,34 @@ void ContextMenu::Hide() {
             host->Close(this);
         }
     }
+}
+
+void ContextMenu::OnMouseWheel(float delta) {
+    if (!m_isOpen || m_items.empty()) return;
+
+    if (m_contentHeight <= m_bounds.height + 0.001f) return; // no overflow
+
+    const float maxScroll = (std::max)(0.0f, m_contentHeight - m_bounds.height);
+    if (maxScroll <= 0.001f) return;
+
+    // delta > 0 means wheel up -> decrease scrollOffset (show earlier items).
+    const float step = 26.0f;
+    float next = m_scrollOffset - delta * step;
+    next = (std::clamp)(next, 0.0f, maxScroll);
+
+    if (std::abs(next - m_scrollOffset) <= 0.001f) return;
+    m_scrollOffset = next;
+
+    // Re-layout items so RenderPopup + HitTestOverlay stay consistent.
+    RelayoutItems();
+
+    // Scrolling usually invalidates submenu attachment; hide it for correctness.
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
+        m_activeSubMenu->Hide();
+        m_activeSubMenu = nullptr;
+    }
+
+    MarkRenderContentDirty();
 }
 
 Rect ContextMenu::GetTotalBounds() const {
@@ -294,9 +323,37 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
     ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);
 
     // Render Menu Items
+    ctx.PushClip(m_bounds);
     for (auto& item : m_items) {
         item->Render(ctx);
     }
+
+    // Scrollbar (visual only; wheel scrolling supported).
+    {
+        const float contentH = m_contentHeight;
+        const float visibleH = m_bounds.height;
+        const float maxScroll = (std::max)(0.0f, contentH - visibleH);
+        if (maxScroll > 0.001f && visibleH > 0.001f) {
+            constexpr float kScrollW = 8.0f;
+            const float trackX = m_bounds.x + m_bounds.width - kScrollW;
+            Rect trackRect(trackX, m_bounds.y, kScrollW, visibleH);
+
+            D2D1_COLOR_F trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+            trackColor.a = 0.35f;
+            ctx.DrawRoundedRect(trackRect, 4.0f, trackColor, 1.0f);
+
+            const float thumbH = (std::max)(16.0f, (visibleH * visibleH) / contentH);
+            const float travel = (std::max)(0.0f, visibleH - thumbH);
+            const float thumbY = trackRect.y + (m_scrollOffset / maxScroll) * travel;
+
+            Rect thumbRect(trackX + 1.5f, thumbY, kScrollW - 3.0f, thumbH);
+            D2D1_COLOR_F thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
+            thumbColor.a = 0.45f;
+            ctx.FillRoundedRect(thumbRect, 4.0f, thumbColor);
+        }
+    }
+
+    ctx.PopClip();
 
     // Render Active Submenu if open
     if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {

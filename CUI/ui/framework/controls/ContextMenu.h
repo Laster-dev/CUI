@@ -22,6 +22,7 @@ public:
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseEnter() override;
     virtual void OnMouseLeave() override;
+    virtual void OnMouseWheel(float delta) override;
 
     bool IsSeparator() const { return m_isSeparator; }
     void SetIsSeparator(bool isSep) { m_isSeparator = isSep; }
@@ -79,6 +80,7 @@ public:
     virtual void OnLightDismiss() override { Hide(); }
 
     virtual void OnBlur() override { Hide(); }
+    virtual void OnMouseWheel(float delta) override;
 
 private:
     std::vector<std::shared_ptr<MenuItem>> m_items;
@@ -88,6 +90,13 @@ private:
     float m_windowHeight = 0.0f;
     int m_hoveredIndex = -1;
     std::shared_ptr<ContextMenu> m_activeSubMenu = nullptr;
+
+    // Scrolling support when content height exceeds visible height.
+    float m_scrollOffset = 0.0f;     // how much content is shifted up (in layout/DIP coords)
+    float m_contentHeight = 0.0f;   // full, unclamped content height (computed in ShowAt)
+    float m_itemWidth = 0.0f;        // current menu width used by Arrange
+
+    void RelayoutItems();
 };
 
 } // namespace CUI
