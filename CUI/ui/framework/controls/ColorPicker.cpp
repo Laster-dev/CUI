@@ -9,9 +9,9 @@ namespace CUI {
 
 ColorPicker::ColorPicker() {
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
-    SetProperty("selectedColor", Value(tokens.accentColor));
-    SetProperty("width", Value(220.0f));
-    SetProperty("height", Value(32.0f));
+    m_selectedColor = tokens.accentColor;
+    SetWidth(220.0f);
+    SetHeight(32.0f);
 
     m_swatches = {
         tokens.accentColor,
@@ -30,14 +30,15 @@ std::vector<PropertyMeta> ColorPicker::GetPropertyMetas() const {
 }
 
 Size ColorPicker::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(220.0f);
-    float expH = GetProperty("height").AsFloat(32.0f);
+    float expW = GetWidth(); if (expW < 0) expW = 220.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 32.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
 
 void ColorPicker::SetSelectedColor(D2D1_COLOR_F color) {
-    SetProperty("selectedColor", Value(color));
+    m_selectedColor = color;
+    NotifyFieldChanged(PropertyId::SelectedColor, Value(color));
     m_onColorChangedEvent.Invoke(this, color);
 }
 
@@ -119,10 +120,10 @@ void ColorPicker::OnMouseDown(Point pt) {
             return;
         }
 
-        m_isPopupOpen = false;
+        SetPopupOpen(false);
     } else {
         if (m_bounds.Contains(pt.x, pt.y)) {
-            m_isPopupOpen = true;
+            SetPopupOpen(true);
         }
     }
 }
@@ -142,7 +143,34 @@ void ColorPicker::OnRender(GraphicsContext& ctx) {
     ctx.DrawText(hexBuf, textRect, ThemeManager::Instance().GetTokens().textPrimary, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
+void ColorPicker::SetPopupOpen(bool open) {
+    if (m_isPopupOpen == open) return;
+    m_isPopupOpen = open;
+    if (PopupHost* host = PopupHost::Current()) {
+        if (open) {
+            host->Open(this);
+        } else {
+            host->Close(this);
+        }
+    }
+    MarkRenderContentDirty();
+}
+
+Rect ColorPicker::GetPopupBounds() const {
+    return Rect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, 240.0f, 220.0f);
+}
+
+bool ColorPicker::HitDismissExempt(float x, float y) const {
+    if (m_bounds.Contains(x, y)) return true;
+    return GetPopupBounds().Contains(x, y);
+}
+
 void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
+    if (PopupHost::Current() && m_isPopupOpen) return;
+    RenderPopup(ctx);
+}
+
+void ColorPicker::RenderPopup(GraphicsContext& ctx) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
     if (progress <= 0.001f) return;
 

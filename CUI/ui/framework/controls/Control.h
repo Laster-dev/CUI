@@ -20,6 +20,8 @@ public:
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
+    virtual void OnFocus() override;
+    virtual void OnBlur() override;
 
 protected:
     D2D1_COLOR_F GetAnimatedBackground(D2D1_COLOR_F fallback);

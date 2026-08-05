@@ -43,6 +43,14 @@ public:
     void ShowFind(bool show = true);
     bool IsFindVisible() const { return m_findVisible; }
 
+    const std::string& GetShell() const { return m_pendingShell; }
+    void SetShell(const std::string& shellPath) {
+        m_pendingShell = shellPath;
+        MarkRenderContentDirty();
+    }
+
+    const std::string& GetTerminalTitle() const { return m_terminalTitle; }
+
     void CopySelectionToClipboard();
     void PasteFromClipboard();
     void SelectAll();
@@ -100,6 +108,7 @@ private:
     std::unique_ptr<Term::ConPtyBackend> m_ownedBackend;
     Term::ITerminalBackend* m_backend = nullptr;
     std::string m_pendingShell;
+    std::string m_terminalTitle;
     bool m_backendStartAttempted = false;
 
     std::shared_ptr<FindBox> m_findBox;

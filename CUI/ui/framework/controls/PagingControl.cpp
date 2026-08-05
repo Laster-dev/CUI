@@ -12,39 +12,37 @@ void StylePagingButton(std::shared_ptr<Button> btn, bool active) {
     if (!btn) return;
     auto& theme = ThemeManager::Instance();
     if (active) {
-        btn->SetProperty("theme.backgroundToken", Value("accentColor"));
-        btn->SetProperty("theme.hoverBackgroundToken", Value("accentColor"));
-        btn->SetProperty("theme.colorToken", Value("accentForeground"));
-        btn->SetProperty("theme.borderToken", Value("accentColor"));
-        btn->SetProperty("background", Value(theme.GetColor("accentColor")));
-        btn->SetProperty("hoverBackground", Value(theme.GetColor("accentColor")));
-        btn->SetProperty("color", Value(theme.GetColor("accentForeground")));
-        btn->SetProperty("borderBrush", Value(theme.GetColor("accentColor")));
+        btn->SetBackgroundToken(ThemeTokenId::AccentColor);
+        btn->SetHoverBackgroundToken(ThemeTokenId::AccentColor);
+        btn->SetColorToken(ThemeTokenId::AccentForeground);
+        btn->SetBorderToken(ThemeTokenId::AccentColor);
+        btn->SetBackground(theme.GetColor("accentColor"));
+        btn->SetHoverBackground(theme.GetColor("accentColor"));
+        btn->SetColor(theme.GetColor("accentForeground"));
+        btn->SetBorderBrush(theme.GetColor("accentColor"));
     } else {
-        btn->SetProperty("theme.backgroundToken", Value("cardBackground"));
-        btn->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
-        btn->SetProperty("theme.colorToken", Value("textSecondary"));
-        btn->SetProperty("theme.borderToken", Value("cardBorder"));
-        btn->SetProperty("background", Value(theme.GetColor("cardBackground")));
-        btn->SetProperty("hoverBackground", Value(theme.GetColor("hoverBackground")));
-        btn->SetProperty("color", Value(theme.GetColor("textSecondary")));
-        btn->SetProperty("borderBrush", Value(theme.GetColor("cardBorder")));
+        btn->SetBackgroundToken(ThemeTokenId::CardBackground);
+        btn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+        btn->SetColorToken(ThemeTokenId::TextSecondary);
+        btn->SetBorderToken(ThemeTokenId::CardBorder);
+        btn->SetBackground(theme.GetColor("cardBackground"));
+        btn->SetHoverBackground(theme.GetColor("hoverBackground"));
+        btn->SetColor(theme.GetColor("textSecondary"));
+        btn->SetBorderBrush(theme.GetColor("cardBorder"));
     }
-    btn->SetProperty("borderThickness", Value(1.0f));
-    btn->SetProperty("cornerRadius", Value(4.0f));
-    btn->SetProperty("fontSize", Value(12.0f));
-    btn->SetProperty("padding", Value(Thickness(0)));
+    btn->SetBorderThickness(1.0f);
+    btn->SetCornerRadius(4.0f);
+    btn->SetFontSize(12.0f);
+    btn->SetPadding(Thickness(0));
 }
 } // namespace
 
 PagingControl::PagingControl() {
-    SetProperty("currentPage", Value(1));
-    SetProperty("totalPages", Value(10));
-    SetProperty("theme.colorToken", Value("textMuted"));
-    SetProperty("theme.activeUnderlineColorToken", Value("accentColor"));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("textMuted")));
-    SetProperty("width", Value(260.0f));
-    SetProperty("height", Value(30.0f));
+    SetColorToken(ThemeTokenId::TextMuted);
+    SetActiveUnderlineColorToken(ThemeTokenId::AccentColor);
+    SetColor(ThemeManager::Instance().GetColor("textMuted"));
+    SetWidth(260.0f);
+    SetHeight(30.0f);
 
     m_btnPrev = std::make_shared<Button>("<");
     m_btnNext = std::make_shared<Button>(">");
@@ -106,10 +104,10 @@ void PagingControl::UpdatePageButtons() {
     auto updateBtn = [current, total](std::shared_ptr<Button> btn, int val) {
         if (!btn) return;
         if (val > total) {
-            btn->SetProperty("visibility", Value("Collapsed"));
+            btn->SetVisibility(Visibility::Collapsed);
             return;
         }
-        btn->SetProperty("visibility", Value("Visible"));
+        btn->SetVisibility(Visibility::Visible);
         btn->SetText(std::to_string(val));
         StylePagingButton(btn, current == val);
     };
@@ -129,8 +127,9 @@ std::vector<PropertyMeta> PagingControl::GetPropertyMetas() const {
 }
 
 Size PagingControl::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(260.0f);
-    float expH = GetProperty("height").AsFloat(30.0f);
+    (void)availableSize;
+    float expW = GetWidth(); if (expW < 0) expW = 260.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 30.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
@@ -166,11 +165,11 @@ void PagingControl::OnRender(GraphicsContext& ctx) {
     float pillX = startX + activeIndex * (btnW + gap) + 4.0f;
     float pillY = m_bounds.y + m_bounds.height - 2.0f;
     Rect pillRect(pillX, pillY, btnW - 8.0f, 2.0f);
-    ctx.FillRoundedRect(pillRect, 1.0f, ResolveThemeColor("theme.activeUnderlineColorToken", "accentColor"));
+    ctx.FillRoundedRect(pillRect, 1.0f, ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor));
 
     Rect infoRect(startX + 5 * (btnW + gap) + 4.0f, m_bounds.y, 65.0f, m_bounds.height);
     std::string info = "共 " + std::to_string(total) + " 页";
-    D2D1_COLOR_F infoColor = ResolveThemeColor("theme.colorToken", "textMuted");
+    D2D1_COLOR_F infoColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextMuted);
     ctx.DrawText(info, infoRect, infoColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
@@ -198,7 +197,8 @@ void PagingControl::SetCurrentPage(int page) {
     int total = GetTotalPages();
     page = std::clamp(page, 1, total);
     if (GetCurrentPage() != page) {
-        SetProperty("currentPage", Value(page));
+        m_currentPage = page;
+        NotifyFieldChanged(PropertyId::CurrentPage, Value(page));
         UpdatePageButtons();
         m_onPageChangedEvent.Invoke(this, page);
         MarkRenderContentDirty();
@@ -207,7 +207,8 @@ void PagingControl::SetCurrentPage(int page) {
 
 void PagingControl::SetTotalPages(int total) {
     int validTotal = (std::max)(1, total);
-    SetProperty("totalPages", Value(validTotal));
+    m_totalPages = validTotal;
+    NotifyFieldChanged(PropertyId::TotalPages, Value(validTotal));
     if (GetCurrentPage() > validTotal) {
         SetCurrentPage(validTotal);
     } else {

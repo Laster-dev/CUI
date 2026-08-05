@@ -4,8 +4,7 @@
 namespace CUI {
 
 ToastCenter::ToastCenter() {
-    SetProperty("visibility", Value("Visible"));
-    SetProperty("isHitTestVisible", Value(true));
+    SetVisibility(Visibility::Visible);
 }
 
 Size ToastCenter::Measure(Size availableSize) {
@@ -35,6 +34,7 @@ std::shared_ptr<Toast> ToastCenter::AddToast(const std::shared_ptr<Toast>& toast
     if (!toast) return nullptr;
     toast->Show();
     m_toasts.push_back(toast);
+    RequestAnimationTicks();
     return toast;
 }
 
@@ -189,6 +189,9 @@ bool ToastCenter::OnAnimationTick() {
         if (toast && toast->OnAnimationTick()) active = true;
     }
     Compact();
+    if (active) {
+        RequestAnimationTicks();
+    }
     return active;
 }
 

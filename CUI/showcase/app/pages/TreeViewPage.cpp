@@ -21,8 +21,8 @@ ShowcasePage BuildTreeViewPage(const ShowcaseContext& ctx) {
 
     auto tree = std::make_shared<CUI::TreeView>();
     tree->SetItems({ rootDocs, rootFeatures });
-    tree->SetProperty("width", CUI::Value(300.0f));
-    tree->SetProperty("height", CUI::Value(360.0f));
+    tree->SetWidth(300.0f);
+    tree->SetHeight(360.0f);
 
     return { "TreeView 树形图", CreatePage(
         "TreeView 树形视图控件 (支持层级折叠/展开与多项交互)",

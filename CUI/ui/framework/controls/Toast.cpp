@@ -16,32 +16,21 @@ static float EaseOutCubic(float value) {
     return 1.0f - inv * inv * inv;
 }
 
-static std::string ColorValueToHex(const Value& value, const std::string& fallback) {
-    if (value.GetType() == Value::Type::String) {
-        std::string s = value.AsString(fallback);
-        return s.empty() ? fallback : s;
-    }
-    if (value.GetType() == Value::Type::Color) {
-        D2D1_COLOR_F c = value.AsColor();
-        char buf[16];
-        std::snprintf(buf, sizeof(buf), "#%02X%02X%02X",
-            static_cast<int>(Clamp01(c.r) * 255.0f + 0.5f),
-            static_cast<int>(Clamp01(c.g) * 255.0f + 0.5f),
-            static_cast<int>(Clamp01(c.b) * 255.0f + 0.5f));
-        return std::string(buf);
-    }
-    return fallback;
-}
-
 static std::string ThemeHex(const std::string& tokenName) {
-    return ThemeManager::Instance().GetColorHex(tokenName);
+    D2D1_COLOR_F c = ThemeManager::Instance().GetFlatColor(tokenName);
+    char buf[16];
+    sprintf_s(buf, "#%02X%02X%02X",
+        static_cast<int>(Clamp01(c.r) * 255.0f + 0.5f),
+        static_cast<int>(Clamp01(c.g) * 255.0f + 0.5f),
+        static_cast<int>(Clamp01(c.b) * 255.0f + 0.5f));
+    return std::string(buf);
 }
 
-static std::string ResolveThemeColorHex(const UIElement* element, const char* tokenPropName, const std::string& fallback) {
-    if (!element || !element->HasProperty(tokenPropName)) {
+static std::string ResolveThemeColorHex(const UIElement* element, PropertyId tokenPropId, const std::string& fallback) {
+    if (!element || tokenPropId == PropertyId::None || !element->HasProperty(tokenPropId)) {
         return fallback;
     }
-    const std::string tokenName = element->GetProperty(tokenPropName).AsString();
+    const std::string tokenName = element->GetProperty(tokenPropId).AsString();
     return tokenName.empty() ? fallback : ThemeHex(tokenName);
 }
 
@@ -82,7 +71,6 @@ ToastType Toast::ParseType(const std::string& typeStr, ToastType fallback) {
 
 void Toast::SetType(ToastType type) {
     m_type = type;
-    SetProperty("type", Value(TypeToString(type)));
     const char* accentToken = "accentColor";
     switch (type) {
     case ToastType::Error:
@@ -96,8 +84,7 @@ void Toast::SetType(ToastType type) {
         break;
     }
     m_accent = ThemeHex(accentToken);
-    SetProperty("theme.accentToken", Value(accentToken));
-    SetProperty("accent", Value(m_accent));
+    SetAccentColorToken(ThemeTokenIdFromName(accentToken));
 }
 
 Toast::Toast() {
@@ -105,38 +92,25 @@ Toast::Toast() {
     m_accent = ThemeHex("accentColor");
     m_titleColor = ThemeHex("textPrimary");
     m_messageColor = ThemeHex("textSecondary");
-    SetProperty("visibility", Value("Visible"));
-    SetProperty("opacity", Value(1.0f));
-    SetProperty("title", Value(m_titleText));
-    SetProperty("message", Value(m_messageText));
-    SetProperty("type", Value("Info"));
-    SetProperty("corner", Value("BottomRight"));
-    SetProperty("durationMs", Value(m_durationMs));
-    SetProperty("autoClose", Value(m_autoClose));
-    SetProperty("closeable", Value(m_closeable));
-    SetProperty("width", Value(m_width));
-    SetProperty("offsetX", Value(m_offsetX));
-    SetProperty("offsetY", Value(m_offsetY));
-    SetProperty("spacing", Value(m_spacing));
-    SetProperty("theme.backgroundToken", Value("cardBackground"));
-    SetProperty("theme.accentToken", Value("accentColor"));
-    SetProperty("theme.titleColorToken", Value("textPrimary"));
-    SetProperty("theme.messageColorToken", Value("textSecondary"));
-    SetProperty("background", Value(m_background));
-    SetProperty("accent", Value(m_accent));
-    SetProperty("titleColor", Value(m_titleColor));
-    SetProperty("messageColor", Value(m_messageColor));
+    SetVisibility(Visibility::Visible);
+    SetOpacity(1.0f);
+    SetWidth(m_width);
+    SetBackgroundToken(ThemeTokenId::CardBackground);
+    SetAccentColorToken(ThemeTokenId::AccentColor);
+    SetTitleColorToken(ThemeTokenId::TextPrimary);
+    SetMessageColorToken(ThemeTokenId::TextSecondary);
+    SetBackground(m_background);
 
     m_txtTitle = std::make_shared<TextBlock>(m_titleText);
-    m_txtTitle->SetProperty("fontSize", Value(15.0f));
-    m_txtTitle->SetProperty("fontWeight", Value("Bold"));
-    m_txtTitle->SetProperty("theme.colorToken", Value("textPrimary"));
-    m_txtTitle->SetProperty("color", Value(m_titleColor));
+    m_txtTitle->SetFontSize(15.0f);
+    m_txtTitle->SetFontWeight("Bold");
+    m_txtTitle->SetColorToken(ThemeTokenId::TextPrimary);
+    m_txtTitle->SetColor(Value::ParseColor(m_titleColor));
 
     m_txtMessage = std::make_shared<TextBlock>(m_messageText);
-    m_txtMessage->SetProperty("fontSize", Value(12.5f));
-    m_txtMessage->SetProperty("theme.colorToken", Value("textSecondary"));
-    m_txtMessage->SetProperty("color", Value(m_messageColor));
+    m_txtMessage->SetFontSize(12.5f);
+    m_txtMessage->SetColorToken(ThemeTokenId::TextSecondary);
+    m_txtMessage->SetColor(Value::ParseColor(m_messageColor));
 
     AddChild(m_txtTitle);
     AddChild(m_txtMessage);
@@ -157,43 +131,45 @@ std::vector<PropertyMeta> Toast::GetPropertyMetas() const {
 }
 
 void Toast::SyncMembersFromProperties() {
-    m_titleText = GetProperty("title").AsString(m_titleText);
-    m_messageText = GetProperty("message").AsString(m_messageText);
-    m_background = ResolveThemeColorHex(this, "theme.backgroundToken", ColorValueToHex(GetProperty("background"), m_background));
-    m_accent = ResolveThemeColorHex(this, "theme.accentToken", ColorValueToHex(GetProperty("accent"), m_accent));
-    m_titleColor = ResolveThemeColorHex(this, "theme.titleColorToken", ColorValueToHex(GetProperty("titleColor"), m_titleColor));
-    m_messageColor = ResolveThemeColorHex(this, "theme.messageColorToken", ColorValueToHex(GetProperty("messageColor"), m_messageColor));
-    m_width = GetProperty("width").AsFloat(m_width);
-    m_offsetX = GetProperty("offsetX").AsFloat(m_offsetX);
-    m_offsetY = GetProperty("offsetY").AsFloat(m_offsetY);
-    m_spacing = GetProperty("spacing").AsFloat(m_spacing);
-    m_durationMs = GetProperty("durationMs").AsInt(m_durationMs);
-    m_autoClose = GetProperty("autoClose").AsBool(m_autoClose);
-    m_closeable = GetProperty("closeable").AsBool(m_closeable);
-    m_corner = ParseCorner(GetProperty("corner").AsString(CornerToString(m_corner)), m_corner);
+    // Colors may follow a theme token; re-resolve from the token if one is set.
+    m_background = ResolveThemeColorHex(this, PropertyId::BackgroundToken, m_background);
+    m_accent = ResolveThemeColorHex(this, PropertyId::AccentColorToken, m_accent);
+    m_titleColor = ResolveThemeColorHex(this, PropertyId::TitleColorToken, m_titleColor);
+    m_messageColor = ResolveThemeColorHex(this, PropertyId::MessageColorToken, m_messageColor);
+    if (GetWidth() >= 0.0f) {
+        m_width = GetWidth();
+    }
 }
 
 void Toast::UpdateTextElements() {
     SyncMembersFromProperties();
     if (m_txtTitle) {
-        m_txtTitle->SetProperty("text", Value(m_titleText));
-        m_txtTitle->SetProperty("color", Value(m_titleColor));
+        m_txtTitle->SetText(m_titleText);
+        m_txtTitle->SetColor(Value::ParseColor(m_titleColor));
     }
     if (m_txtMessage) {
-        m_txtMessage->SetProperty("text", Value(m_messageText));
-        m_txtMessage->SetProperty("color", Value(m_messageColor));
+        m_txtMessage->SetText(m_messageText);
+        m_txtMessage->SetColor(Value::ParseColor(m_messageColor));
     }
 }
 
 void Toast::ApplyFrom(const UIElement* source) {
     if (!source) return;
-    static const char* keys[] = {
-        "title", "message", "corner", "durationMs", "autoClose", "closeable",
-        "width", "offsetX", "offsetY", "spacing",
-        "background", "accent", "titleColor", "messageColor"
-    };
-    for (const char* key : keys) {
-        if (source->HasProperty(key)) { SetProperty(key, source->GetProperty(key)); }
+    if (const Toast* srcToast = dynamic_cast<const Toast*>(source)) {
+        SetTitle(srcToast->m_titleText);
+        SetMessage(srcToast->m_messageText);
+        SetCorner(srcToast->m_corner);
+        SetDurationMs(srcToast->m_durationMs);
+        SetAutoClose(srcToast->m_autoClose);
+        SetCloseable(srcToast->m_closeable);
+        SetWidth(srcToast->m_width);
+        SetOffsetX(srcToast->m_offsetX);
+        SetOffsetY(srcToast->m_offsetY);
+        SetSpacing(srcToast->m_spacing);
+        SetBackground(srcToast->m_background);
+        SetAccent(srcToast->m_accent);
+        SetTitleColor(srcToast->m_titleColor);
+        SetMessageColor(srcToast->m_messageColor);
     }
     UpdateTextElements();
 }
@@ -204,23 +180,23 @@ D2D1_COLOR_F Toast::ColorWithAlpha(const std::string& color, float alpha) {
     return c;
 }
 
-void Toast::SetTitle(const std::string& title) { SetProperty("title", Value(title)); m_titleText = title; UpdateTextElements(); }
-void Toast::SetMessage(const std::string& message) { SetProperty("message", Value(message)); m_messageText = message; UpdateTextElements(); }
-void Toast::SetCorner(ToastCorner corner) { m_corner = corner; SetProperty("corner", Value(CornerToString(corner))); }
-void Toast::SetDurationMs(int durationMs) { m_durationMs = durationMs; SetProperty("durationMs", Value(durationMs)); }
-void Toast::SetWidth(float width) { m_width = (std::max)(180.0f, width); SetProperty("width", Value(m_width)); }
-void Toast::SetAutoClose(bool enabled) { m_autoClose = enabled; SetProperty("autoClose", Value(enabled)); }
-void Toast::SetBackground(const std::string& color) { m_background = color; SetProperty("theme.backgroundToken", Value("")); SetProperty("background", Value(color)); }
-void Toast::SetAccent(const std::string& color) { m_accent = color; SetProperty("theme.accentToken", Value("")); SetProperty("accent", Value(color)); }
-void Toast::SetTitleColor(const std::string& color) { m_titleColor = color; SetProperty("theme.titleColorToken", Value("")); SetProperty("titleColor", Value(color)); UpdateTextElements(); }
-void Toast::SetMessageColor(const std::string& color) { m_messageColor = color; SetProperty("theme.messageColorToken", Value("")); SetProperty("messageColor", Value(color)); UpdateTextElements(); }
-void Toast::SetOffsetX(float offsetX) { m_offsetX = offsetX; SetProperty("offsetX", Value(offsetX)); }
-void Toast::SetOffsetY(float offsetY) { m_offsetY = offsetY; SetProperty("offsetY", Value(offsetY)); }
-void Toast::SetSpacing(float spacing) { m_spacing = (std::max)(0.0f, spacing); SetProperty("spacing", Value(m_spacing)); }
-void Toast::SetCloseable(bool closeable) { m_closeable = closeable; SetProperty("closeable", Value(closeable)); }
+void Toast::SetTitle(const std::string& title) { m_titleText = title; UpdateTextElements(); }
+void Toast::SetMessage(const std::string& message) { m_messageText = message; UpdateTextElements(); }
+void Toast::SetCorner(ToastCorner corner) { m_corner = corner; }
+void Toast::SetDurationMs(int durationMs) { m_durationMs = durationMs; }
+void Toast::SetWidth(float width) { m_width = (std::max)(180.0f, width); UIElement::SetWidth(m_width); }
+void Toast::SetAutoClose(bool enabled) { m_autoClose = enabled; }
+void Toast::SetBackground(const std::string& color) { m_background = color; SetBackgroundToken(ThemeTokenIdFromName("")); UIElement::SetBackground(Value::ParseColor(color)); }
+void Toast::SetAccent(const std::string& color) { m_accent = color; SetAccentColorToken(ThemeTokenIdFromName("")); }
+void Toast::SetTitleColor(const std::string& color) { m_titleColor = color; SetTitleColorToken(ThemeTokenIdFromName("")); UpdateTextElements(); }
+void Toast::SetMessageColor(const std::string& color) { m_messageColor = color; SetMessageColorToken(ThemeTokenIdFromName("")); UpdateTextElements(); }
+void Toast::SetOffsetX(float offsetX) { m_offsetX = offsetX; }
+void Toast::SetOffsetY(float offsetY) { m_offsetY = offsetY; }
+void Toast::SetSpacing(float spacing) { m_spacing = (std::max)(0.0f, spacing); }
+void Toast::SetCloseable(bool closeable) { m_closeable = closeable; }
 
 ToastCorner Toast::GetCorner() const {
-    return ParseCorner(GetProperty("corner").AsString(CornerToString(m_corner)), m_corner);
+    return m_corner;
 }
 
 void Toast::Show() {
@@ -255,7 +231,7 @@ void Toast::Hide() {
 }
 
 Size Toast::Measure(Size availableSize) {
-    float width = GetProperty("width").AsFloat(m_width);
+    float width = GetWidth(); if (width < 0) width = m_width;
     if (availableSize.width > 0.0f) {
         width = (std::min)(width, availableSize.width);
     }
@@ -272,13 +248,13 @@ void Toast::Arrange(Rect finalRect) {
 Rect Toast::CalculateBounds(const Rect& windowRect, int stackIndex) const {
     const float margin = 18.0f;
     const float height = 92.0f;
-    float width = GetProperty("width").AsFloat(m_width);
+    float width = GetWidth(); if (width < 0) width = m_width;
     width = (std::min)(width, (std::max)(180.0f, windowRect.width - margin * 2.0f));
     width = (std::max)(180.0f, width);
 
-    float offsetX = GetProperty("offsetX").AsFloat(m_offsetX);
-    float offsetY = GetProperty("offsetY").AsFloat(m_offsetY);
-    float spacing = GetProperty("spacing").AsFloat(m_spacing);
+    float offsetX = m_offsetX;
+    float offsetY = m_offsetY;
+    float spacing = m_spacing;
     float stackOffset = stackIndex * (height + spacing);
 
     float x = windowRect.x + margin + offsetX;
@@ -340,14 +316,14 @@ void Toast::RenderContent(GraphicsContext& ctx, const Rect& bounds, float opacit
     float innerW = renderRect.width - (m_closeable ? 44.0f : 28.0f);
 
     if (m_txtTitle) {
-        m_txtTitle->SetProperty("text", Value(m_titleText));
-        m_txtTitle->SetProperty("color", Value(titleClr));
+        m_txtTitle->SetText(m_titleText);
+        m_txtTitle->SetColor(titleClr);
         m_txtTitle->Arrange(Rect(innerX, innerY, innerW, 22.0f));
         m_txtTitle->Render(ctx);
     }
     if (m_txtMessage) {
-        m_txtMessage->SetProperty("text", Value(m_messageText));
-        m_txtMessage->SetProperty("color", Value(messageClr));
+        m_txtMessage->SetText(m_messageText);
+        m_txtMessage->SetColor(messageClr);
         m_txtMessage->Arrange(Rect(innerX, innerY + 26.0f, innerW, 40.0f));
         m_txtMessage->Render(ctx);
     }
@@ -356,8 +332,8 @@ void Toast::RenderContent(GraphicsContext& ctx, const Rect& bounds, float opacit
         m_closeBtnBounds = GetCloseButtonRect();
         const float closeAlpha = (m_isHovering ? (lightTheme ? 0.08f : 0.12f) : 0.0f) * opacity;
         D2D1_COLOR_F closeBg = lightTheme
-            ? ThemeManager::Instance().GetColor("textPrimary")
-            : ThemeManager::Instance().GetColor("accentForeground");
+            ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary)
+            : ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentForeground);
         closeBg.a = closeAlpha;
         if (closeBg.a > 0.01f) {
             ctx.FillRoundedRect(m_closeBtnBounds, 4.0f, closeBg);

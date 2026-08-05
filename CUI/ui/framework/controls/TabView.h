@@ -48,6 +48,18 @@ public:
     Event<TabView*, int>& OnSelectionChanged() { return m_selectionChangedEvent; }
     Event<TabView*, int>& OnTabClosed() { return m_tabClosedEvent; }
 
+    float GetMinTabWidth() const { return m_minTabWidth; }
+    void SetMinTabWidth(float w) {
+        m_minTabWidth = w;
+        MarkRenderContentDirty();
+    }
+
+    float GetMaxTabWidth() const { return m_maxTabWidth; }
+    void SetMaxTabWidth(float w) {
+        m_maxTabWidth = w;
+        MarkRenderContentDirty();
+    }
+
 private:
     bool IsPointInHeader(float x, float y) const;
     void ScrollHeaderByWheel(float delta);
@@ -65,6 +77,8 @@ private:
     UIElement* GetSelectedContent() const;
 
     std::vector<TabViewItem> m_tabs;
+    float m_minTabWidth = 80.0f;
+    float m_maxTabWidth = 260.0f;
     int m_selectedIndex = 0;
     int m_hoveredCloseIndex = -1;
     AnimatedScalar m_scrollOffsetXAnim{};

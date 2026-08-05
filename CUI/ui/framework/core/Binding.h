@@ -1,7 +1,7 @@
 #pragma once
 #include "Object.h"
+#include "PropertyId.h"
 #include <memory>
-#include <string>
 
 namespace CUI {
 
@@ -13,8 +13,8 @@ enum class BindingMode {
 
 class Binding {
 public:
-    Binding(std::shared_ptr<Object> target, std::string targetProperty,
-            std::shared_ptr<Object> source, std::string sourceProperty,
+    Binding(std::shared_ptr<Object> target, PropertyId targetProperty,
+            std::shared_ptr<Object> source, PropertyId sourceProperty,
             BindingMode mode = BindingMode::OneWay);
     ~Binding();
 
@@ -23,9 +23,9 @@ public:
 
 private:
     std::weak_ptr<Object> m_target;
-    std::string m_targetProperty;
+    PropertyId m_targetProperty = PropertyId::None;
     std::weak_ptr<Object> m_source;
-    std::string m_sourceProperty;
+    PropertyId m_sourceProperty = PropertyId::None;
     BindingMode m_mode;
 
     EventId m_sourceConnId = 0;

@@ -588,15 +588,17 @@ void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_C
         format->SetParagraphAlignment(vAlign);
         format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
 
-        DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
+        DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
         format->SetTrimming(&trimming, nullptr);
 
         std::wstring wText = Utf8ToUtf16(text);
+        // Ceil size so subpixel measure widths are not floored away — floor(width)
+        // + CHARACTER trimming previously clipped the last glyph ("少最后一个字").
         Rect snappedRect(
             std::floor(rect.x),
             std::floor(rect.y),
-            std::floor(rect.width),
-            std::floor(rect.height)
+            std::ceil(rect.width),
+            std::ceil(rect.height)
         );
         m_d2dContext->DrawText(
             wText.c_str(),
@@ -604,7 +606,7 @@ void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_C
             format,
             snappedRect.ToD2D(),
             brush,
-            D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
+            D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_NO_SNAP
         );
     }
 }
@@ -650,7 +652,10 @@ Size GraphicsContext::MeasureText(const std::string& text, const std::string& fo
     if (SUCCEEDED(hr)) {
         DWRITE_TEXT_METRICS metrics;
         layout->GetMetrics(&metrics);
-        return Size(metrics.width, metrics.height);
+        // Include trailing whitespace and a 1px overhang slack for glyph side bearings.
+        const float w = (std::max)(metrics.widthIncludingTrailingWhitespace, metrics.width) + 1.0f;
+        const float h = (std::max)(metrics.height, fontSize + 2.0f);
+        return Size(w, h);
     }
 
     return Size(text.length() * fontSize * 0.65f, fontSize + 4);

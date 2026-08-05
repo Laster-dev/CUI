@@ -1,8 +1,10 @@
 #include "UIElement.h"
+#include "../animation/AnimationManager.h"
 #include "../layout/Layout.h"
 #include "../render/CompositionContext.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
+#include <cassert>
 
 namespace CUI {
 
@@ -27,59 +29,59 @@ bool CanCullElementForCurrentPass(const UIElement* element, const GraphicsContex
     const Rect bounds = element->GetBounds();
     return !bounds.IsEmpty() && !ctx.IntersectsPaintBounds(bounds);
 }
-}
+} // namespace
 
 UIElement::UIElement() {
-    // Default properties
-    SetProperty("width", Value(-1.0f)); // -1 means auto
-    SetProperty("height", Value(-1.0f));
-    SetProperty("minWidth", Value(0.0f));
-    SetProperty("minHeight", Value(0.0f));
-    SetProperty("margin", Value(Thickness(0)));
-    SetProperty("padding", Value(Thickness(0)));
-    SetProperty("opacity", Value(1.0f));
-    SetProperty("isEnabled", Value(true));
-    SetProperty("visibility", Value("Visible"));
-    SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0, 0, 0, 0)));
-    SetProperty("borderThickness", Value(0.0f));
-    SetProperty("flexGrow", Value(0.0f));
-    SetProperty("align", Value("Stretch"));
+    // Defaults live in members — no string property bag.
     m_renderNode.SetOwner(this);
     m_renderNode.SetBounds(m_bounds);
-    OnPropertyChanged().Connect([this](const std::string&, const Value&) {
+    OnPropertyIdChanged().Connect([this](PropertyId, const Value&) {
         MarkRenderContentDirty();
     });
 }
 
-std::vector<PropertyMeta> UIElement::GetPropertyMetas() const {
-    return {
-        { "text", "文本内容 (Text)", "基本信息", "string" },
-        { "toolTip", "提示信息 (ToolTip)", "基本信息", "string" },
-        { "width", "宽度 (Width) [-1自适应]", "尺寸布局", "number" },
-        { "height", "高度 (Height) [-1自适应]", "尺寸布局", "number" },
-        { "minWidth", "最小宽度 (MinWidth)", "尺寸布局", "number" },
-        { "minHeight", "最小高度 (MinHeight)", "尺寸布局", "number" },
-        { "margin", "外边距 (Margin)", "尺寸布局", "string" },
-        { "padding", "内边距 (Padding)", "尺寸布局", "string" },
-        { "alignHorizontal", "水平对齐 (AlignH)", "尺寸布局", "enum", { "Stretch", "Start", "Center", "End" } },
-        { "alignVertical", "垂直对齐 (AlignV)", "尺寸布局", "enum", { "Stretch", "Start", "Center", "End" } },
-        { "borderThickness", "边框粗细 (BorderThickness)", "外观", "number" },
-        { "cornerRadius", "圆角半径 (CornerRadius)", "外观", "number" },
-        { "opacity", "不透明度 (Opacity) [0-1]", "外观", "number" },
-        { "isEnabled", "是否启用 (IsEnabled)", "交互状态", "bool" },
-        { "visibility", "显示状态 (Visibility)", "交互状态", "enum", { "Visible", "Hidden", "Collapsed" } }
-    };
-}
-
-D2D1_COLOR_F UIElement::ResolveThemeColor(const char* tokenProp, const char* fallbackToken) const {
-    if (tokenProp && HasProperty(tokenProp)) {
-        const std::string token = GetProperty(tokenProp).AsString();
-        if (!token.empty()) {
-            return ThemeManager::Instance().GetColor(token);
+UIElement::~UIElement() {
+    CancelAnimationTicks();
+    // Detach children so surviving shared_ptrs do not keep a dangling m_parent.
+    // Avoid ClearChildren() — it also marks render dirty during teardown.
+    for (auto& child : m_children) {
+        if (child && child->GetParent() == this) {
+            child->SetParent(nullptr);
         }
     }
-    return ThemeManager::Instance().GetColor(fallbackToken ? fallbackToken : "textPrimary");
+    m_children.clear();
+}
+
+void UIElement::SetParent(UIElement* parent) {
+#ifdef _DEBUG
+    assert(parent != this);
+    if (parent) {
+        for (UIElement* walk = parent->GetParent(); walk; walk = walk->GetParent()) {
+            assert(walk != this && "SetParent would create a cycle");
+        }
+    }
+#endif
+    m_parent = parent;
+}
+
+void UIElement::RequestAnimationTicks() {
+    if (m_animationTicksRegistered) {
+        return;
+    }
+    if (AnimationManager* mgr = AnimationManager::Current()) {
+        mgr->RegisterAnimating(this);
+        m_animationTicksRegistered = true;
+    }
+}
+
+void UIElement::CancelAnimationTicks() {
+    if (!m_animationTicksRegistered) {
+        return;
+    }
+    if (AnimationManager* mgr = AnimationManager::Current()) {
+        mgr->UnregisterAnimating(this);
+    }
+    m_animationTicksRegistered = false;
 }
 
 void UIElement::AddChild(std::shared_ptr<UIElement> child) {
@@ -129,8 +131,7 @@ std::shared_ptr<UIElement> UIElement::FindElementById(const std::string& id) {
 }
 
 Size UIElement::Measure(Size availableSize) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr == "Collapsed") {
+    if (m_visibility == Visibility::Collapsed) {
         m_desiredSize = Size(0, 0);
         return m_desiredSize;
     }
@@ -140,17 +141,11 @@ Size UIElement::Measure(Size availableSize) {
 }
 
 bool UIElement::ShouldClipToBounds() const {
-    // Allow scroll content panels to disable clipping so last items aren't cut off
-    // when content-height measurement is slightly short.
-    if (HasProperty("clipToBounds")) {
-        return GetProperty("clipToBounds").AsBool(true);
-    }
-    return true;
+    return m_clipToBounds;
 }
 
 void UIElement::Arrange(Rect finalRect) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr == "Collapsed") {
+    if (m_visibility == Visibility::Collapsed) {
         SetBounds(Rect(0, 0, 0, 0));
         return;
     }
@@ -160,8 +155,7 @@ void UIElement::Arrange(Rect finalRect) {
 }
 
 void UIElement::Render(GraphicsContext& ctx) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return;
+    if (m_visibility != Visibility::Visible) return;
     if (CanCullElementForCurrentPass(this, ctx)) {
         return;
     }
@@ -187,20 +181,19 @@ void UIElement::Render(GraphicsContext& ctx) {
 }
 
 void UIElement::RenderOverlay(GraphicsContext& ctx) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return;
+    if (m_visibility != Visibility::Visible) return;
 
     OnRenderOverlay(ctx);
 
     if (m_isHovered && m_tooltipVisible) {
-        std::string tip = GetToolTip();
+        const std::string& tip = GetToolTip();
         if (!tip.empty()) {
             std::string font = "Segoe UI";
             float fontSize = 12.0f;
             Size textSize = ctx.MeasureText(tip, font, fontSize);
 
             Thickness padding(8, 5, 8, 5);
-            float cardW = textSize.width + padding.left + padding.right;
+            float cardW = textSize.width + padding.left + padding.right + 2.0f;
             float cardH = textSize.height + padding.top + padding.bottom;
 
             float cardX = m_tooltipAnchorPos.x + 10.0f;
@@ -216,17 +209,15 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
             if (cardY < 4.0f) cardY = 4.0f;
 
             Rect cardRect(cardX, cardY, cardW, cardH);
-            D2D1_COLOR_F bg = ThemeManager::Instance().GetColor("cardBackground");
-            bg.a = 0.95f;
-            D2D1_COLOR_F border = ThemeManager::Instance().GetColor("cardBorder");
-            border.a = 0.90f;
-            D2D1_COLOR_F textColor = ThemeManager::Instance().GetColor("textPrimary");
+            D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+            D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+            D2D1_COLOR_F textColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
 
             ctx.FillRoundedRect(cardRect, 4.0f, bg);
             ctx.DrawRoundedRect(cardRect, 4.0f, border, 1.0f);
 
-            Rect textRect(cardX + padding.left, cardY + padding.top, textSize.width, textSize.height);
-            ctx.DrawText(tip, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            Rect textRect(cardX + padding.left, cardY + padding.top, textSize.width + 2.0f, textSize.height);
+            ctx.DrawText(tip, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
     }
 
@@ -236,12 +227,11 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
 }
 
 void UIElement::OnRender(GraphicsContext& ctx) {
-    float radius = GetProperty("cornerRadius").AsFloat(0.0f);
+    const float radius = m_cornerRadius;
 
-    // Draw background — token is source of truth when bound
-    D2D1_COLOR_F bg = HasProperty("theme.backgroundToken")
-        ? ResolveThemeColor("theme.backgroundToken", "cardBackground")
-        : GetProperty("background").AsColor(D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F bg = (m_backgroundToken != ThemeTokenId::Unset)
+        ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
+        : (m_hasBackgroundColor ? m_backgroundColor : D2D1::ColorF(0, 0, 0, 0));
     if (bg.a > 0.0f) {
         if (radius > 0.0f) {
             ctx.FillRoundedRect(m_bounds, radius, bg);
@@ -250,11 +240,10 @@ void UIElement::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    // Draw border
-    D2D1_COLOR_F borderBrush = HasProperty("theme.borderToken")
-        ? ResolveThemeColor("theme.borderToken", "cardBorder")
-        : GetProperty("borderBrush").AsColor(D2D1::ColorF(0, 0, 0, 0));
-    float borderThickness = GetProperty("borderThickness").AsFloat(0.0f);
+    D2D1_COLOR_F borderBrush = (m_borderToken != ThemeTokenId::Unset)
+        ? ResolveThemeColor(m_borderToken, ThemeTokenId::CardBorder)
+        : (m_hasBorderBrushColor ? m_borderBrushColor : D2D1::ColorF(0, 0, 0, 0));
+    const float borderThickness = m_borderThickness;
     if (borderBrush.a > 0.0f && borderThickness > 0.0f) {
         if (radius > 0.0f) {
             ctx.DrawRoundedRect(m_bounds, radius, borderBrush, borderThickness);
@@ -265,8 +254,7 @@ void UIElement::OnRender(GraphicsContext& ctx) {
 }
 
 UIElement* UIElement::HitTestOverlay(float x, float y) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return nullptr;
+    if (m_visibility != Visibility::Visible) return nullptr;
 
     UIElement* selfOverlay = OnHitTestOverlay(x, y);
     if (selfOverlay) return selfOverlay;
@@ -280,20 +268,15 @@ UIElement* UIElement::HitTestOverlay(float x, float y) {
 }
 
 UIElement* UIElement::HitTest(float x, float y) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return nullptr;
+    if (m_visibility != Visibility::Visible) return nullptr;
 
-    // 1. Prioritize active overlays (open dropdowns, context menus, popups, content dialogs)
     UIElement* overlayHit = HitTestOverlay(x, y);
     if (overlayHit) return overlayHit;
 
-    // Clip hit-testing to bounds when render also clips (prevents scrolled
-    // descendants from capturing clicks in chrome above the viewport).
     if (ShouldClipToBounds() && !m_bounds.Contains(x, y)) {
         return nullptr;
     }
 
-    // 2. Check children first (topmost first)
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
         UIElement* hit = (*it)->HitTest(x, y);
         if (hit) return hit;
@@ -311,6 +294,9 @@ void UIElement::OnMouseEnter() {
     m_tooltipVisible = false;
     m_lastMouseMoveTime = std::chrono::steady_clock::now();
     MarkRenderContentDirty();
+    if (!GetToolTip().empty()) {
+        RequestAnimationTicks();
+    }
 }
 
 void UIElement::OnMouseLeave() {
@@ -361,7 +347,6 @@ void UIElement::OnMouseMove(Point pt) {
 }
 
 void UIElement::OnMouseWheel(float delta) {
-    // Wheel always bubbles so a disabled child does not trap scroll of a parent ScrollViewer.
     if (m_parent) {
         m_parent->OnMouseWheel(delta);
     }
@@ -375,8 +360,7 @@ void UIElement::OnKeyDown(int vkCode) {
 }
 
 bool UIElement::OnAnimationTick() {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") {
+    if (m_visibility != Visibility::Visible) {
         return false;
     }
 
@@ -405,8 +389,7 @@ bool UIElement::OnAnimationTick() {
 }
 
 void UIElement::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") {
+    if (m_visibility != Visibility::Visible) {
         return;
     }
 

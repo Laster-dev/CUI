@@ -1,5 +1,7 @@
 #include "PropertyGrid.h"
 #include "../window/Window.h"
+#include "../core/PropertyDesc.h"
+#include "../core/PropertyId.h"
 #include "TextBox.h"
 #include "CheckBox.h"
 #include "RadioButton.h"
@@ -29,58 +31,72 @@ bool TryParseTime(const std::string& value, int& h, int& m) {
     return sscanf_s(value.c_str(), "%d:%d", &h, &m) == 2;
 }
 
-const char* ColorPropToTokenProp(const std::string& colorProp) {
-    if (colorProp == "background") return "theme.backgroundToken";
-    if (colorProp == "hoverBackground") return "theme.hoverBackgroundToken";
-    if (colorProp == "pressedBackground") return "theme.pressedBackgroundToken";
-    if (colorProp == "disabledBackground") return "theme.disabledBackgroundToken";
-    if (colorProp == "borderBrush") return "theme.borderToken";
-    if (colorProp == "focusedBorderBrush") return "theme.focusedBorderToken";
-    if (colorProp == "color") return "theme.colorToken";
-    if (colorProp == "placeholderColor") return "theme.placeholderColorToken";
-    if (colorProp == "caretColor") return "theme.colorToken";
-    if (colorProp == "dropdownBackground") return "theme.dropdownBackgroundToken";
-    if (colorProp == "selectedItemBackground") return "theme.selectedItemBackgroundToken";
-    if (colorProp == "selectedBackground") return "theme.selectedBackgroundToken";
-    if (colorProp == "checkedBackground") return "theme.checkedBackgroundToken";
-    if (colorProp == "underlineColor") return "theme.underlineColorToken";
-    if (colorProp == "activeUnderlineColor") return "theme.activeUnderlineColorToken";
-    if (colorProp == "fillColor") return "theme.fillColorToken";
-    if (colorProp == "trackColor") return "theme.trackColorToken";
-    if (colorProp == "activeTrackColor") return "theme.activeTrackColorToken";
-    if (colorProp == "thumbColor") return "theme.thumbColorToken";
-    if (colorProp == "onColor") return "theme.onColorToken";
-    if (colorProp == "offColor") return "theme.offColorToken";
-    if (colorProp == "knobColor") return "theme.knobColorToken";
-    if (colorProp == "paneBackground") return "theme.paneBackgroundToken";
-    if (colorProp == "indicatorColor") return "theme.indicatorColorToken";
-    if (colorProp == "accent") return "theme.accentToken";
-    if (colorProp == "accentColor") return "theme.accentColorToken";
-    if (colorProp == "activeColor") return "theme.activeColorToken";
-    if (colorProp == "headerBackground") return "theme.headerBackgroundToken";
-    if (colorProp == "gridLineBrush") return "theme.gridLineBrushToken";
-    if (colorProp == "titleColor") return "theme.titleColorToken";
-    if (colorProp == "messageColor") return "theme.messageColorToken";
-    return nullptr;
-}
-
-void ApplyColorToken(UIElement* target, const std::string& colorProp, const std::string& tokenName) {
-    if (!target || tokenName.empty()) return;
-    if (const char* tokenProp = ColorPropToTokenProp(colorProp)) {
-        target->SetProperty(tokenProp, Value(tokenName));
+PropertyId ColorPropToTokenProp(PropertyId colorProp) {
+    switch (colorProp) {
+    case PropertyId::Background: return PropertyId::BackgroundToken;
+    case PropertyId::HoverBackground: return PropertyId::HoverBackgroundToken;
+    case PropertyId::PressedBackground: return PropertyId::PressedBackgroundToken;
+    case PropertyId::BorderBrush: return PropertyId::BorderToken;
+    case PropertyId::Color: return PropertyId::ColorToken;
+    default: return PropertyId::None;
     }
-    target->SetProperty(colorProp, Value(ThemeManager::Instance().GetColor(tokenName)));
 }
 
-std::string ResolveCurrentColorToken(UIElement* target, const std::string& colorProp) {
+void SetThemeTokenByPropId(UIElement* target, PropertyId tokenId, ThemeTokenId id) {
+    if (!target || tokenId == PropertyId::None) return;
+    switch (tokenId) {
+    case PropertyId::BackgroundToken: target->SetBackgroundToken(id); break;
+    case PropertyId::HoverBackgroundToken: target->SetHoverBackgroundToken(id); break;
+    case PropertyId::PressedBackgroundToken: target->SetPressedBackgroundToken(id); break;
+    case PropertyId::DisabledBackgroundToken: target->SetDisabledBackgroundToken(id); break;
+    case PropertyId::BorderToken: target->SetBorderToken(id); break;
+    case PropertyId::FocusedBorderToken: target->SetFocusedBorderToken(id); break;
+    case PropertyId::ColorToken: target->SetColorToken(id); break;
+    case PropertyId::PlaceholderColorToken: target->SetPlaceholderColorToken(id); break;
+    case PropertyId::DropdownBackgroundToken: target->SetDropdownBackgroundToken(id); break;
+    case PropertyId::SelectedItemBackgroundToken: target->SetSelectedItemBackgroundToken(id); break;
+    case PropertyId::SelectedBackgroundToken: target->SetSelectedBackgroundToken(id); break;
+    case PropertyId::CheckedBackgroundToken: target->SetCheckedBackgroundToken(id); break;
+    case PropertyId::UnderlineColorToken: target->SetUnderlineColorToken(id); break;
+    case PropertyId::ActiveUnderlineColorToken: target->SetActiveUnderlineColorToken(id); break;
+    case PropertyId::FillColorToken: target->SetFillColorToken(id); break;
+    case PropertyId::TrackColorToken: target->SetTrackColorToken(id); break;
+    case PropertyId::ActiveTrackColorToken: target->SetActiveTrackColorToken(id); break;
+    case PropertyId::ThumbColorToken: target->SetThumbColorToken(id); break;
+    case PropertyId::OnColorToken: target->SetOnColorToken(id); break;
+    case PropertyId::OffColorToken: target->SetOffColorToken(id); break;
+    case PropertyId::KnobColorToken: target->SetKnobColorToken(id); break;
+    case PropertyId::PaneBackgroundToken: target->SetPaneBackgroundToken(id); break;
+    case PropertyId::IndicatorColorToken: target->SetIndicatorColorToken(id); break;
+    case PropertyId::AccentColorToken: target->SetAccentColorToken(id); break;
+    case PropertyId::ActiveColorToken: target->SetActiveColorToken(id); break;
+    case PropertyId::HeaderBackgroundToken: target->SetHeaderBackgroundToken(id); break;
+    case PropertyId::GridLineBrushToken: target->SetGridLineBrushToken(id); break;
+    case PropertyId::TitleColorToken: target->SetTitleColorToken(id); break;
+    case PropertyId::MessageColorToken: target->SetMessageColorToken(id); break;
+    case PropertyId::SecondaryColorToken: target->SetSecondaryColorToken(id); break;
+    case PropertyId::CaretColorToken: target->SetCaretColorToken(id); break;
+    case PropertyId::ActiveTabBackgroundToken: target->SetActiveTabBackgroundToken(id); break;
+    case PropertyId::InactiveTabBackgroundToken: target->SetInactiveTabBackgroundToken(id); break;
+    default: break;
+    }
+}
+
+void ApplyColorToken(UIElement* target, PropertyId colorProp, const std::string& tokenName) {
+    if (!target || tokenName.empty()) return;
+    if (PropertyId tokenId = ColorPropToTokenProp(colorProp); tokenId != PropertyId::None) {
+        SetThemeTokenByPropId(target, tokenId, ThemeTokenIdFromName(tokenName));
+    }
+}
+
+std::string ResolveCurrentColorToken(UIElement* target, PropertyId colorProp) {
     if (!target) return "accentColor";
-    if (const char* tokenProp = ColorPropToTokenProp(colorProp)) {
-        if (target->HasProperty(tokenProp)) {
-            std::string token = target->GetProperty(tokenProp).AsString();
+    if (PropertyId tokenId = ColorPropToTokenProp(colorProp); tokenId != PropertyId::None) {
+        if (target->HasProperty(tokenId)) {
+            std::string token = target->GetProperty(tokenId).AsString();
             if (!token.empty()) return token;
         }
     }
-    // Fall back: match current color against theme tokens
     D2D1_COLOR_F current = target->GetProperty(colorProp).AsColor();
     for (const auto& name : ThemeManager::GetTokenNames()) {
         D2D1_COLOR_F t = ThemeManager::Instance().GetColor(name);
@@ -95,96 +111,118 @@ std::string ResolveCurrentColorToken(UIElement* target, const std::string& color
 }
 
 template <typename T>
-std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::string& tokenProp, const std::string& tokenName) {
+std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, PropertyId tokenId, const std::string& tokenName) {
     if (!element) {
         return element;
     }
-    element->SetProperty(tokenProp, Value(tokenName));
-    if (tokenProp == "theme.backgroundToken") {
-        element->SetProperty("background", Value(ThemeManager::Instance().GetColor(tokenName)));
-    } else if (tokenProp == "theme.borderToken") {
-        element->SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor(tokenName)));
-    } else if (tokenProp == "theme.colorToken") {
-        element->SetProperty("color", Value(ThemeManager::Instance().GetColor(tokenName)));
-    } else if (tokenProp == "theme.focusedBorderToken") {
-        element->SetProperty("focusedBorderBrush", Value(ThemeManager::Instance().GetColor(tokenName)));
-    } else if (tokenProp == "theme.dropdownBackgroundToken") {
-        element->SetProperty("dropdownBackground", Value(ThemeManager::Instance().GetColor(tokenName)));
-    } else if (tokenProp == "theme.selectedItemBackgroundToken") {
-        element->SetProperty("selectedItemBackground", Value(ThemeManager::Instance().GetColor(tokenName)));
-    } else if (tokenProp == "theme.placeholderColorToken") {
-        element->SetProperty("placeholderColor", Value(ThemeManager::Instance().GetColor(tokenName)));
-    } else if (tokenProp == "theme.underlineColorToken") {
-        element->SetProperty("underlineColor", Value(ThemeManager::Instance().GetColor(tokenName)));
-    } else if (tokenProp == "theme.activeUnderlineColorToken") {
-        element->SetProperty("activeUnderlineColor", Value(ThemeManager::Instance().GetColor(tokenName)));
-    }
+    SetThemeTokenByPropId(element.get(), tokenId, ThemeTokenIdFromName(tokenName));
     return element;
 }
 
-void ApplyTargetProperty(UIElement* target, const std::string& propName, const Value& value) {
-    if (!target) return;
+void ApplyTargetProperty(UIElement* target, PropertyId propId, const Value& value) {
+    if (!target || propId == PropertyId::None) return;
 
     if (auto tb = dynamic_cast<TextBox*>(target)) {
-        if (propName == "text") { tb->SetText(value.AsString()); return; }
+        if (propId == PropertyId::Text) { tb->SetText(value.AsString()); return; }
     }
     if (auto cb = dynamic_cast<CheckBox*>(target)) {
-        if (propName == "checkState") {
+        if (propId == PropertyId::CheckState) {
             std::string s = value.AsString("Unchecked");
             cb->SetState(s == "Checked" ? CheckState::Checked : (s == "Indeterminate" ? CheckState::Indeterminate : CheckState::Unchecked));
             return;
         }
     }
     if (auto slider = dynamic_cast<Slider*>(target)) {
-        if (propName == "value") { slider->SetValue(value.AsFloat()); return; }
+        if (propId == PropertyId::ControlValue) { slider->SetValue(value.AsFloat()); return; }
     }
     if (auto progress = dynamic_cast<ProgressBar*>(target)) {
-        if (propName == "value") { progress->SetValue(value.AsFloat()); return; }
-        if (propName == "isIndeterminate") { progress->SetIsIndeterminate(value.AsBool()); return; }
+        if (propId == PropertyId::ControlValue) { progress->SetValue(value.AsFloat()); return; }
+        if (propId == PropertyId::IsIndeterminate) { progress->SetIsIndeterminate(value.AsBool()); return; }
     }
     if (auto number = dynamic_cast<NumberBox*>(target)) {
-        if (propName == "value") { number->SetValue(value.AsFloat()); return; }
+        if (propId == PropertyId::ControlValue) { number->SetValue(value.AsFloat()); return; }
     }
     if (auto toggle = dynamic_cast<ToggleSwitch*>(target)) {
-        if (propName == "isOn") { toggle->SetIsOn(value.AsBool()); return; }
+        if (propId == PropertyId::IsOn) { toggle->SetIsOn(value.AsBool()); return; }
     }
     if (auto date = dynamic_cast<DatePicker*>(target)) {
-        if (propName == "dateStr") {
+        if (propId == PropertyId::DateStr) {
             int y = 0, m = 0, d = 0;
             if (TryParseDate(value.AsString(), y, m, d)) { date->SetDate(y, m, d); return; }
         }
     }
     if (auto time = dynamic_cast<TimePicker*>(target)) {
-        if (propName == "timeStr") {
+        if (propId == PropertyId::TimeStr) {
             int h = 0, m = 0;
             if (TryParseTime(value.AsString(), h, m)) { time->SetTime(h, m); return; }
         }
     }
     if (auto color = dynamic_cast<ColorPicker*>(target)) {
-        if (propName == "selectedColor") { color->SetSelectedColor(value.AsColor()); return; }
+        if (propId == PropertyId::SelectedColor) { color->SetSelectedColor(value.AsColor()); return; }
     }
     if (auto paging = dynamic_cast<PagingControl*>(target)) {
-        if (propName == "currentPage") { paging->SetCurrentPage(value.AsInt()); return; }
-        if (propName == "totalPages") { paging->SetTotalPages(value.AsInt()); return; }
+        if (propId == PropertyId::CurrentPage) { paging->SetCurrentPage(value.AsInt()); return; }
+        if (propId == PropertyId::TotalPages) { paging->SetTotalPages(value.AsInt()); return; }
     }
 
-    target->SetProperty(propName, value);
+    if (const PropertyDesc* desc = FindPropertyDescForElement(target, propId)) {
+        if (desc->set) {
+            desc->set(target, value);
+            return;
+        }
+    }
+    target->SetProperty(propId, value);
+}
+
+const char* PropertyKindToMetaType(PropertyKind kind) {
+    switch (kind) {
+    case PropertyKind::Bool: return "bool";
+    case PropertyKind::Int: return "int";
+    case PropertyKind::Float: return "float";
+    case PropertyKind::String: return "string";
+    case PropertyKind::Color: return "color";
+    case PropertyKind::Thickness: return "thickness";
+    case PropertyKind::Enum: return "enum";
+    case PropertyKind::ThemeToken: return "themeToken";
+    default: return "string";
+    }
+}
+
+PropertyMeta MetaFromDesc(const PropertyDesc& desc) {
+    PropertyMeta meta;
+    meta.id = desc.id;
+    meta.displayName = desc.displayName ? desc.displayName : PropertyIdToName(desc.id);
+    meta.category = desc.category ? desc.category : "";
+    meta.type = PropertyKindToMetaType(desc.kind);
+    if (desc.enumOptions) {
+        for (const char* const* p = desc.enumOptions; *p; ++p) {
+            meta.options.emplace_back(*p);
+        }
+    }
+    return meta;
+}
+
+bool MetaListContains(const std::vector<PropertyMeta>& metas, PropertyId id) {
+    for (const auto& m : metas) {
+        if (m.id == id) return true;
+    }
+    return false;
 }
 } // namespace
 
 PropertyGrid::PropertyGrid() {
     // 右侧检查器是 chrome 玻璃，不是实心 card —— 否则整列盖死 SystemBackdrop。
-    SetProperty("theme.backgroundToken", Value("paneBackground"));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("borderThickness", Value(1.0f));
+    SetBackgroundToken(ThemeTokenId::PaneBackground);
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetBorderThickness(1.0f);
 
     m_container = std::make_shared<StackPanel>();
-    m_container->SetProperty("orientation", Value("Vertical"));
-    m_container->SetProperty("padding", Value(Thickness(12, 12, 12, 12)));
-    m_container->SetProperty("gap", Value(8.0f));
+    m_container->SetOrientation(Orientation::Vertical);
+    m_container->SetPadding(Thickness(12, 12, 12, 12));
+    m_container->SetGap(8.0f);
     // 容器本身不铺底，由 PropertyGrid 统一刷 pane 玻璃。
-    m_container->SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
-    m_container->SetProperty("clipToBounds", Value(false));
+    m_container->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    m_container->SetClipToBounds(false);
 
     AddChild(m_container);
 }
@@ -208,70 +246,102 @@ void PropertyGrid::RebuildUI() {
 
     // Add Title
     auto titleTb = std::make_shared<TextBlock>();
-    titleTb->SetProperty("text", Value("自动化属性检查器 (" + className + ")"));
-    titleTb->SetProperty("fontSize", Value(12.0f));
-    titleTb->SetProperty("fontWeight", Value("Bold"));
-    BindThemeToken(titleTb, "theme.colorToken", "textPrimary");
+    titleTb->SetText("自动化属性检查器 (" + className + ")");
+    titleTb->SetFontSize(12.0f);
+    titleTb->SetFontWeight("Bold");
+    BindThemeToken(titleTb, PropertyId::ColorToken, "textPrimary");
     m_container->AddChild(titleTb);
 
-    // Call Virtual Reflection Method on UIElement Object
-    std::vector<PropertyMeta> metas = target->GetPropertyMetas();
+    // Prefer static PropertyDesc tables; fall back to PropertyMeta for compatibility.
+    std::vector<PropertyMeta> metas;
+    PropertyDescSpan descSpan = target->GetPropertyDescs();
+    if (descSpan.count > 0 && descSpan.data) {
+        metas.reserve(descSpan.count);
+        for (size_t i = 0; i < descSpan.count; ++i) {
+            metas.push_back(MetaFromDesc(descSpan.data[i]));
+        }
+        // Keep subclass GetPropertyMetas extras (controls only override metas today).
+        for (const auto& extra : target->GetPropertyMetas()) {
+            if (!MetaListContains(metas, extra.id)) {
+                metas.push_back(extra);
+            }
+        }
+    } else {
+        metas = target->GetPropertyMetas();
+    }
 
     // Root color-system rule: never expose raw RGB color slots in the inspector.
     // Only ColorPicker.selectedColor (data) and theme.*Token bindings are allowed.
     metas.erase(std::remove_if(metas.begin(), metas.end(), [](const PropertyMeta& meta) {
-        return meta.type == "color" && meta.name != "selectedColor";
+        return meta.type == "color" && meta.id != PropertyId::SelectedColor;
     }), metas.end());
 
-    // Inject whatever theme.*Token bindings the control actually owns.
-    static const std::unordered_map<std::string, std::string> kTokenLabels = {
-        { "theme.backgroundToken", "背景 Token" },
-        { "theme.hoverBackgroundToken", "悬停背景 Token" },
-        { "theme.pressedBackgroundToken", "按下背景 Token" },
-        { "theme.disabledBackgroundToken", "禁用背景 Token" },
-        { "theme.borderToken", "边框 Token" },
-        { "theme.focusedBorderToken", "焦点边框 Token" },
-        { "theme.colorToken", "文字 Token" },
-        { "theme.placeholderColorToken", "占位文字 Token" },
-        { "theme.checkedBackgroundToken", "选中背景 Token" },
-        { "theme.fillColorToken", "填充 Token" },
-        { "theme.trackColorToken", "轨道 Token" },
-        { "theme.activeTrackColorToken", "激活轨 Token" },
-        { "theme.thumbColorToken", "滑块 Token" },
-        { "theme.onColorToken", "开启 Token" },
-        { "theme.offColorToken", "关闭 Token" },
-        { "theme.knobColorToken", "旋钮 Token" },
-        { "theme.accentToken", "强调 Token" },
-        { "theme.accentColorToken", "强调色 Token" },
-        { "theme.activeColorToken", "激活 Token" },
-        { "theme.paneBackgroundToken", "面板背景 Token" },
-        { "theme.indicatorColorToken", "指示器 Token" },
-        { "theme.dropdownBackgroundToken", "下拉背景 Token" },
-        { "theme.selectedItemBackgroundToken", "选中项背景 Token" },
-        { "theme.selectedBackgroundToken", "选中背景 Token" },
-        { "theme.headerBackgroundToken", "表头背景 Token" },
-        { "theme.underlineColorToken", "下划线 Token" },
-        { "theme.activeUnderlineColorToken", "激活下划线 Token" },
-        { "theme.titleColorToken", "标题 Token" },
-        { "theme.messageColorToken", "正文 Token" },
-        { "theme.gridLineBrushToken", "网格线 Token" },
+    static const std::unordered_map<PropertyId, std::string> kTokenLabels = {
+        { PropertyId::BackgroundToken, "背景 Token" },
+        { PropertyId::HoverBackgroundToken, "悬停背景 Token" },
+        { PropertyId::PressedBackgroundToken, "按下背景 Token" },
+        { PropertyId::DisabledBackgroundToken, "禁用背景 Token" },
+        { PropertyId::BorderToken, "边框 Token" },
+        { PropertyId::FocusedBorderToken, "焦点边框 Token" },
+        { PropertyId::ColorToken, "文字 Token" },
+        { PropertyId::PlaceholderColorToken, "占位文字 Token" },
+        { PropertyId::CheckedBackgroundToken, "选中背景 Token" },
+        { PropertyId::FillColorToken, "填充 Token" },
+        { PropertyId::TrackColorToken, "轨道 Token" },
+        { PropertyId::ActiveTrackColorToken, "激活轨 Token" },
+        { PropertyId::ThumbColorToken, "滑块 Token" },
+        { PropertyId::OnColorToken, "开启 Token" },
+        { PropertyId::OffColorToken, "关闭 Token" },
+        { PropertyId::KnobColorToken, "旋钮 Token" },
+        { PropertyId::AccentColorToken, "强调色 Token" },
+        { PropertyId::ActiveColorToken, "激活 Token" },
+        { PropertyId::PaneBackgroundToken, "面板背景 Token" },
+        { PropertyId::IndicatorColorToken, "指示器 Token" },
+        { PropertyId::DropdownBackgroundToken, "下拉背景 Token" },
+        { PropertyId::SelectedItemBackgroundToken, "选中项背景 Token" },
+        { PropertyId::SelectedBackgroundToken, "选中背景 Token" },
+        { PropertyId::HeaderBackgroundToken, "表头背景 Token" },
+        { PropertyId::UnderlineColorToken, "下划线 Token" },
+        { PropertyId::ActiveUnderlineColorToken, "激活下划线 Token" },
+        { PropertyId::TitleColorToken, "标题 Token" },
+        { PropertyId::MessageColorToken, "正文 Token" },
+        { PropertyId::GridLineBrushToken, "网格线 Token" },
+        { PropertyId::SecondaryColorToken, "次要文字 Token" },
+        { PropertyId::CaretColorToken, "光标 Token" },
+        { PropertyId::ActiveTabBackgroundToken, "活动标签 Token" },
+        { PropertyId::InactiveTabBackgroundToken, "非活动标签 Token" },
     };
 
-    for (const auto& kv : target->GetAllProperties()) {
-        const std::string& key = kv.first;
-        if (key.rfind("theme.", 0) != 0 || key.find("Token") == std::string::npos) {
-            continue;
-        }
-        bool already = false;
-        for (const auto& meta : metas) {
-            if (meta.name == key) { already = true; break; }
-        }
-        if (already) continue;
-
+    auto injectThemeTokenMeta = [&](PropertyId key) {
+        if (MetaListContains(metas, key)) return;
         auto labelIt = kTokenLabels.find(key);
-        std::string display = labelIt != kTokenLabels.end() ? labelIt->second : key;
-        metas.push_back({ key, display + " (" + key + ")", "主题色彩", "themeToken", ThemeManager::GetTokenNames() });
+        const std::string keyName = PropertyIdToName(key);
+        std::string display = labelIt != kTokenLabels.end() ? labelIt->second : keyName;
+        metas.push_back({ keyName.c_str(), display + " (" + keyName + ")", "主题色彩", "themeToken", ThemeManager::GetTokenNames() });
+    };
+
+    // Prefer ThemeToken PropertyDescs; fall back to SnapshotProperties for owned tokens.
+    bool usedDescThemeTokens = false;
+    if (descSpan.count > 0 && descSpan.data) {
+        for (size_t i = 0; i < descSpan.count; ++i) {
+            const PropertyDesc& d = descSpan.data[i];
+            if (d.kind != PropertyKind::ThemeToken || d.id == PropertyId::None) continue;
+            usedDescThemeTokens = true;
+            if (!target->HasProperty(d.id)) continue;
+            injectThemeTokenMeta(d.id);
+        }
     }
+    if (!usedDescThemeTokens) {
+        for (const auto& kv : target->SnapshotProperties()) {
+            const PropertyDesc* desc = FindPropertyDescById(kv.first);
+            if (!desc || desc->kind != PropertyKind::ThemeToken) continue;
+            injectThemeTokenMeta(kv.first);
+        }
+    }
+
+    metas.erase(std::remove_if(metas.begin(), metas.end(), [&](const PropertyMeta& meta) {
+        return meta.type == "themeToken" && !target->HasProperty(meta.id);
+    }), metas.end());
 
     // Put theme tokens before layout/appearance so color-system bindings are visible first.
     std::stable_sort(metas.begin(), metas.end(), [](const PropertyMeta& a, const PropertyMeta& b) {
@@ -292,39 +362,38 @@ void PropertyGrid::RebuildUI() {
         if (meta.category != currentCategory) {
             currentCategory = meta.category;
             auto catTb = std::make_shared<TextBlock>();
-            catTb->SetProperty("text", Value("[" + currentCategory + "]"));
-            catTb->SetProperty("fontSize", Value(11.0f));
-            catTb->SetProperty("fontWeight", Value("Bold"));
-            BindThemeToken(catTb, "theme.colorToken", "textSecondary");
-            catTb->SetProperty("margin", Value(Thickness(0, 6, 0, 2)));
+            catTb->SetText("[" + currentCategory + "]");
+            catTb->SetFontSize(11.0f);
+            catTb->SetFontWeight("Bold");
+            BindThemeToken(catTb, PropertyId::ColorToken, "textSecondary");
+            catTb->SetMargin(Thickness(0, 6, 0, 2));
             m_container->AddChild(catTb);
         }
 
         // Label
         auto labelTb = std::make_shared<TextBlock>();
-        labelTb->SetProperty("text", Value(meta.displayName + ":"));
-        labelTb->SetProperty("fontSize", Value(11.0f));
-        BindThemeToken(labelTb, "theme.colorToken", "textSecondary");
+        labelTb->SetText(meta.displayName + ":");
+        labelTb->SetFontSize(11.0f);
+        BindThemeToken(labelTb, PropertyId::ColorToken, "textSecondary");
         m_container->AddChild(labelTb);
 
-        // Control
-        Value currentVal = target->GetProperty(meta.name);
+        Value currentVal = target->GetProperty(meta.id);
 
         if (meta.type == "bool") {
             auto chk = std::make_shared<CheckBox>();
-            chk->SetProperty("text", Value("启用/开启"));
-            bool bVal = currentVal.IsEmpty() ? (meta.name == "isEnabled") : currentVal.AsBool();
+            chk->SetText("启用/开启");
+            bool bVal = currentVal.IsEmpty() ? (meta.id == PropertyId::IsEnabled) : currentVal.AsBool();
             chk->SetState(bVal ? CheckState::Checked : CheckState::Unchecked);
 
-            std::string propName = meta.name;
+            PropertyId propId = meta.id;
             std::weak_ptr<UIElement> weakTarget = m_target;
             void* host = m_windowHost;
 
-            chk->OnCheckStateChanged().Connect([this, weakTarget, propName, host](CheckBox*, CheckState st) {
+            chk->OnCheckStateChanged().Connect([this, weakTarget, propId, host](CheckBox*, CheckState st) {
                 if (m_updatingFromTarget) return;
                 auto t = weakTarget.lock();
                 if (t) {
-                    ApplyTargetProperty(t.get(), propName, Value(st == CheckState::Checked));
+                    ApplyTargetProperty(t.get(), propId, Value(st == CheckState::Checked));
                     if (host) {
                         Window* w = reinterpret_cast<Window*>(host);
                         w->Relayout();
@@ -333,18 +402,18 @@ void PropertyGrid::RebuildUI() {
                 }
             });
 
-            m_checkControls[meta.name] = chk;
+            m_checkControls[meta.id] = chk;
             m_container->AddChild(chk);
 
-        } else if (meta.type == "enum" || meta.type == "themeToken" || (meta.type == "color" && meta.name != "selectedColor")) {
+        } else if (meta.type == "enum" || meta.type == "themeToken" || (meta.type == "color" && meta.id != PropertyId::SelectedColor)) {
             auto combo = std::make_shared<ComboBox>();
-            combo->SetProperty("width", Value(260.0f));
-            combo->SetProperty("height", Value(26.0f));
-            BindThemeToken(combo, "theme.backgroundToken", "inputBackground");
-            BindThemeToken(combo, "theme.borderToken", "inputBorder");
-            BindThemeToken(combo, "theme.dropdownBackgroundToken", "cardBackground");
-            BindThemeToken(combo, "theme.selectedItemBackgroundToken", "selectedBackground");
-            BindThemeToken(combo, "theme.colorToken", "textPrimary");
+            combo->SetWidth(260.0f);
+            combo->SetHeight(32.0f);
+            BindThemeToken(combo, PropertyId::BackgroundToken, "inputBackground");
+            BindThemeToken(combo, PropertyId::BorderToken, "inputBorder");
+            BindThemeToken(combo, PropertyId::DropdownBackgroundToken, "cardBackground");
+            BindThemeToken(combo, PropertyId::SelectedItemBackgroundToken, "selectedBackground");
+            BindThemeToken(combo, PropertyId::ColorToken, "textPrimary");
 
             const bool isThemeToken = (meta.type == "themeToken" || meta.type == "color");
             int selectIdx = 0;
@@ -355,7 +424,7 @@ void PropertyGrid::RebuildUI() {
                     currentToken = currentVal.AsString();
                     if (currentToken.empty()) currentToken = "accentColor";
                 } else {
-                    currentToken = ResolveCurrentColorToken(target.get(), meta.name);
+                    currentToken = ResolveCurrentColorToken(target.get(), meta.id);
                 }
                 for (size_t i = 0; i < tokens.size(); ++i) {
                     combo->AddItem(tokens[i]);
@@ -370,52 +439,21 @@ void PropertyGrid::RebuildUI() {
             }
             combo->SetSelectedIndex(selectIdx);
 
-            std::string propName = meta.name;
+            PropertyId propId = meta.id;
             std::string propType = meta.type;
             std::weak_ptr<UIElement> weakTarget = m_target;
             void* host = m_windowHost;
 
-            combo->OnSelectionChanged().Connect([this, weakTarget, propName, propType, host](ComboBox*, int idx, const std::string& opt) {
+            combo->OnSelectionChanged().Connect([this, weakTarget, propId, propType, host](ComboBox*, int idx, const std::string& opt) {
                 if (m_updatingFromTarget) return;
                 auto t = weakTarget.lock();
                 if (t) {
                     if (propType == "themeToken") {
-                        t->SetProperty(propName, Value(opt));
-                        // Mirror into the concrete paint property when mapping is known
-                        if (propName == "theme.backgroundToken") t->SetProperty("background", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.hoverBackgroundToken") t->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.pressedBackgroundToken") t->SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.disabledBackgroundToken") t->SetProperty("disabledBackground", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.borderToken") t->SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.focusedBorderToken") t->SetProperty("focusedBorderBrush", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.colorToken") t->SetProperty("color", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.placeholderColorToken") t->SetProperty("placeholderColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.checkedBackgroundToken") t->SetProperty("checkedBackground", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.fillColorToken") t->SetProperty("fillColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.trackColorToken") t->SetProperty("trackColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.activeTrackColorToken") t->SetProperty("activeTrackColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.thumbColorToken") t->SetProperty("thumbColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.onColorToken") t->SetProperty("onColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.offColorToken") t->SetProperty("offColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.knobColorToken") t->SetProperty("knobColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.accentToken") t->SetProperty("accent", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.accentColorToken") t->SetProperty("accentColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.activeColorToken") t->SetProperty("activeColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.paneBackgroundToken") t->SetProperty("paneBackground", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.indicatorColorToken") t->SetProperty("indicatorColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.dropdownBackgroundToken") t->SetProperty("dropdownBackground", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.selectedItemBackgroundToken") t->SetProperty("selectedItemBackground", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.selectedBackgroundToken") t->SetProperty("selectedBackground", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.headerBackgroundToken") t->SetProperty("headerBackground", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.underlineColorToken") t->SetProperty("underlineColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.activeUnderlineColorToken") t->SetProperty("activeUnderlineColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.titleColorToken") t->SetProperty("titleColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.messageColorToken") t->SetProperty("messageColor", Value(ThemeManager::Instance().GetColor(opt)));
-                        else if (propName == "theme.gridLineBrushToken") t->SetProperty("gridLineBrush", Value(ThemeManager::Instance().GetColor(opt)));
+                        ApplyTargetProperty(t.get(), propId, Value(opt));
                     } else if (propType == "color") {
-                        ApplyColorToken(t.get(), propName, opt);
+                        ApplyColorToken(t.get(), propId, opt);
                     } else {
-                        ApplyTargetProperty(t.get(), propName, Value(opt));
+                        ApplyTargetProperty(t.get(), propId, Value(opt));
                     }
                     if (host) {
                         Window* w = reinterpret_cast<Window*>(host);
@@ -425,53 +463,54 @@ void PropertyGrid::RebuildUI() {
                 }
             });
 
-            m_comboControls[meta.name] = combo;
+            m_comboControls[meta.id] = combo;
             m_container->AddChild(combo);
 
         } else {
             auto input = std::make_shared<TextBox>();
-            input->SetProperty("width", Value(260.0f));
-            input->SetProperty("height", Value(26.0f));
-            BindThemeToken(input, "theme.colorToken", "textPrimary");
-            BindThemeToken(input, "theme.placeholderColorToken", "textMuted");
-            BindThemeToken(input, "theme.underlineColorToken", "cardBorder");
-            BindThemeToken(input, "theme.activeUnderlineColorToken", "accentColor");
+            input->SetWidth(260.0f);
+            input->SetHeight(40.0f);
+            input->SetPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
+            input->SetPlaceholder("");
+            BindThemeToken(input, PropertyId::ColorToken, "textPrimary");
+            BindThemeToken(input, PropertyId::PlaceholderColorToken, "textMuted");
+            BindThemeToken(input, PropertyId::UnderlineColorToken, "cardBorder");
+            BindThemeToken(input, PropertyId::ActiveUnderlineColorToken, "accentColor");
 
             std::string displayValStr = "";
             if (!currentVal.IsEmpty()) {
                 displayValStr = currentVal.AsString();
             } else {
-                if (meta.name == "width" || meta.name == "height") displayValStr = "-1";
-                else if (meta.name == "margin" || meta.name == "padding") displayValStr = "0,0,0,0";
-                else if (meta.name == "borderThickness") displayValStr = "0";
-                else if (meta.name == "cornerRadius") displayValStr = "0";
+                if (meta.id == PropertyId::Width || meta.id == PropertyId::Height) displayValStr = "-1";
+                else if (meta.id == PropertyId::Margin || meta.id == PropertyId::Padding) displayValStr = "0,0,0,0";
+                else if (meta.id == PropertyId::BorderThickness) displayValStr = "0";
+                else if (meta.id == PropertyId::CornerRadius) displayValStr = "0";
             }
             input->SetText(displayValStr);
 
-            std::string propName = meta.name;
+            PropertyId propId = meta.id;
             std::string pType = meta.type;
             std::weak_ptr<UIElement> weakTarget = m_target;
             void* host = m_windowHost;
 
-            input->OnTextChanged().Connect([this, weakTarget, propName, pType, host](TextBox*, const std::string& valStr) {
+            input->OnTextChanged().Connect([this, weakTarget, propId, pType, host](TextBox*, const std::string& valStr) {
                 if (m_updatingFromTarget) return;
                 auto t = weakTarget.lock();
                 if (t) {
                     Value newValue;
-                    if (pType == "number") {
+                    if (pType == "number" || pType == "float") {
                         float f = static_cast<float>(atof(valStr.c_str()));
                         newValue = Value(f);
+                    } else if (pType == "int") {
+                        newValue = Value(atoi(valStr.c_str()));
                     } else if (pType == "color") {
-                        // selectedColor (ColorPicker data) still accepts hex; chrome colors use token combos above
                         newValue = Value(Value::ParseColor(valStr));
+                    } else if (pType == "thickness" || propId == PropertyId::Margin || propId == PropertyId::Padding) {
+                        newValue = Value(Thickness::Parse(valStr));
                     } else {
-                        if (propName == "margin" || propName == "padding") {
-                            newValue = Value(Thickness::Parse(valStr));
-                        } else {
-                            newValue = Value(valStr);
-                        }
+                        newValue = Value(valStr);
                     }
-                    ApplyTargetProperty(t.get(), propName, newValue);
+                    ApplyTargetProperty(t.get(), propId, newValue);
                     if (host) {
                         Window* w = reinterpret_cast<Window*>(host);
                         w->Relayout();
@@ -480,7 +519,7 @@ void PropertyGrid::RebuildUI() {
                 }
             });
 
-            m_inputControls[meta.name] = input;
+            m_inputControls[meta.id] = input;
             m_container->AddChild(input);
         }
     }

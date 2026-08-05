@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include "../window/PopupHost.h"
 #include <ctime>
 
 namespace CUI {
@@ -10,7 +11,7 @@ enum class DatePickerViewMode {
     YearGrid
 };
 
-class DatePicker : public Control {
+class DatePicker : public Control, public IPopup {
 public:
     DatePicker();
     virtual ~DatePicker() = default;
@@ -27,8 +28,15 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    bool IsPopupOpen() const { return m_isPopupOpen; }
-    void SetPopupOpen(bool open) { m_isPopupOpen = open; }
+    // IPopup
+    virtual bool IsPopupOpen() const override { return m_isPopupOpen; }
+    virtual Rect GetPopupBounds() const override;
+    virtual bool HitDismissExempt(float x, float y) const override;
+    virtual UIElement* HitTestPopup(float x, float y) override { return OnHitTestOverlay(x, y); }
+    virtual void RenderPopup(GraphicsContext& ctx) override;
+    virtual void OnLightDismiss() override { SetPopupOpen(false); }
+
+    void SetPopupOpen(bool open);
 
     int GetYear() const { return m_year; }
     int GetMonth() const { return m_month; }

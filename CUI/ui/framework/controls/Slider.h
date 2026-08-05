@@ -21,17 +21,26 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    float GetValue() const { return GetProperty("value").AsFloat(0.0f); }
+    float GetValue() const { return m_value; }
     void SetValue(float val);
 
-    float GetMinimum() const { return GetProperty("minimum").AsFloat(0.0f); }
-    void SetMinimum(float minVal) { SetProperty("minimum", Value(minVal)); }
+    float GetMinimum() const { return m_minimum; }
+    void SetMinimum(float minVal) {
+        m_minimum = minVal;
+        NotifyFieldChanged(PropertyId::Minimum, Value(minVal));
+    }
 
-    float GetMaximum() const { return GetProperty("maximum").AsFloat(100.0f); }
-    void SetMaximum(float maxVal) { SetProperty("maximum", Value(maxVal)); }
+    float GetMaximum() const { return m_maximum; }
+    void SetMaximum(float maxVal) {
+        m_maximum = maxVal;
+        NotifyFieldChanged(PropertyId::Maximum, Value(maxVal));
+    }
 
-    float GetStep() const { return GetProperty("step").AsFloat(1.0f); }
-    void SetStep(float s) { SetProperty("step", Value(s)); }
+    float GetStep() const { return m_step; }
+    void SetStep(float s) {
+        m_step = s;
+        NotifyFieldChanged(PropertyId::Step, Value(s));
+    }
 
     Event<Slider*, float>& OnValueChanged() { return m_onValueChangedEvent; }
 
@@ -41,6 +50,10 @@ private:
     Rect GetTrackRect() const;
     void MarkSliderVisualDirty(const Rect& previousThumb, float previousDisplayValue);
 
+    float m_value = 0.0f;
+    float m_minimum = 0.0f;
+    float m_maximum = 100.0f;
+    float m_step = 1.0f;
     bool m_isDragging = false;
     AnimatedScalar m_displayValueAnim{};
     Event<Slider*, float> m_onValueChangedEvent;

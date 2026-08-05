@@ -32,8 +32,12 @@ public:
     Rect GetThemeToggleRect() const;
     bool IsThemeToggleHit(float x, float y) const;
 
+    void SetTitle(const std::string& title) { m_title = title; }
+    const std::string& GetTitle() const { return m_title; }
+
 private:
     MenuBar m_menuBar;
+    std::string m_title;
 };
 
 // 2. ActivityBar
@@ -77,11 +81,13 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
 
-    void SetTitle(const std::string& title) { SetProperty("title", Value(title)); }
+    void SetTitle(const std::string& title) { m_title = title; }
+    const std::string& GetTitle() const { return m_title; }
 
 private:
     std::vector<TreeItem> m_fileTree;
     int m_selectedIndex = 2;
+    std::string m_title;
 };
 
 // 4. TabBar
@@ -137,6 +143,24 @@ public:
 
     virtual const char* GetClassName() const override { return "StatusBar"; }
     virtual void OnRender(GraphicsContext& ctx) override;
+
+    const std::string& GetBranch() const { return m_branch; }
+    void SetBranch(const std::string& branch) { m_branch = branch; MarkRenderContentDirty(); }
+
+    const std::string& GetStatus() const { return m_status; }
+    void SetStatus(const std::string& status) { m_status = status; MarkRenderContentDirty(); }
+
+    int GetLine() const { return m_line; }
+    void SetLine(int line) { m_line = line; MarkRenderContentDirty(); }
+
+    int GetCol() const { return m_col; }
+    void SetCol(int col) { m_col = col; MarkRenderContentDirty(); }
+
+private:
+    std::string m_branch{ "main*" };
+    std::string m_status{ "Ready" };
+    int m_line = 14;
+    int m_col = 28;
 };
 
 } // namespace CUI

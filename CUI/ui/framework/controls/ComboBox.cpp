@@ -5,6 +5,13 @@
 
 namespace CUI {
 
+namespace {
+Rect ComboBoxMenuRect(const Rect& bounds, float itemHeight, size_t itemCount) {
+    float menuH = itemHeight * static_cast<float>((std::max)(itemCount, size_t{ 1 }));
+    return Rect(bounds.x, bounds.y + bounds.height + 2.0f, bounds.width, menuH);
+}
+} // namespace
+
 std::vector<PropertyMeta> ComboBox::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
     metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
@@ -14,28 +21,39 @@ std::vector<PropertyMeta> ComboBox::GetPropertyMetas() const {
 }
 
 ComboBox::ComboBox() {
-    SetProperty("placeholder", Value("Select option..."));
-    SetProperty("theme.backgroundToken", Value("inputBackground"));
-    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
-    SetProperty("theme.borderToken", Value("inputBorder"));
-    SetProperty("theme.focusedBorderToken", Value("focusedBorder"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("theme.dropdownBackgroundToken", Value("cardBackground"));
-    SetProperty("theme.selectedItemBackgroundToken", Value("selectedBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("inputBackground")));
-    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("inputBorder")));
-    SetProperty("focusedBorderBrush", Value(ThemeManager::Instance().GetColor("focusedBorder")));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
-    SetProperty("dropdownBackground", Value(ThemeManager::Instance().GetColor("cardBackground")));
-    SetProperty("selectedItemBackground", Value(ThemeManager::Instance().GetColor("selectedBackground")));
-    SetProperty("fontSize", Value(13.0f));
-    SetProperty("fontFamily", Value("Segoe UI"));
-    SetProperty("padding", Value(Thickness(10, 6, 10, 6)));
-    SetProperty("cornerRadius", Value(3.0f));
-    SetProperty("width", Value(200.0f));
-    SetProperty("height", Value(32.0f));
+    SetPlaceholder("Select option...");
+    SetBackgroundToken(ThemeTokenId::InputBackground);
+    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    SetBorderToken(ThemeTokenId::InputBorder);
+    SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetDropdownBackgroundToken(ThemeTokenId::CardBackground);
+    SetSelectedItemBackgroundToken(ThemeTokenId::SelectedBackground);
+    SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
+    SetBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
+    SetBorderThickness(1.0f);
+    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    SetFontSize(13.0f);
+    SetFontFamily("Segoe UI");
+    SetPadding(Thickness(10, 6, 10, 6));
+    SetCornerRadius(3.0f);
+    SetWidth(200.0f);
+    SetHeight(32.0f);
+}
+
+void ComboBox::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::Items) { SetItems(val.AsString("")); return; }
+    Control::SetProperty(id, val);
+}
+
+void ComboBox::SetItems(const std::string& itemsCsv) {
+    ClearItems();
+    std::stringstream ss(itemsCsv);
+    std::string item;
+    while (std::getline(ss, item, ',')) {
+        if (!item.empty()) AddItem(item);
+    }
 }
 
 void ComboBox::AddItem(const std::string& item) {
@@ -67,26 +85,18 @@ std::string ComboBox::GetSelectedItem() const {
 }
 
 Size ComboBox::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(200.0f);
-    float expH = GetProperty("height").AsFloat(32.0f);
+    (void)availableSize;
+    const float expW = (GetWidth() >= 0.0f) ? GetWidth() : 200.0f;
+    const float expH = (GetHeight() >= 0.0f) ? GetHeight() : 32.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
 
 void ComboBox::OnRender(GraphicsContext& ctx) {
-    std::string itemsProp = GetProperty("items").AsString("");
-    if (!itemsProp.empty() && m_items.empty()) {
-        std::stringstream ss(itemsProp);
-        std::string item;
-        while (std::getline(ss, item, ',')) {
-            if (!item.empty()) AddItem(item);
-        }
-    }
-
-    float radius = GetProperty("cornerRadius").AsFloat(3.0f);
-    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    float radius = GetCornerRadius();
+    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetFlatColor(ThemeTokenId::InputBackground));
     if (m_isDropDownOpen) {
-        bg = BlendColor(bg, ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground"), 0.8f);
+        bg = BlendColor(bg, ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground), 0.8f);
     }
 
     if (radius > 0.0f) {
@@ -96,10 +106,10 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
     }
 
     D2D1_COLOR_F borderBrush = (m_isFocused || m_isDropDownOpen)
-        ? ResolveThemeColor("theme.focusedBorderToken", "focusedBorder")
-        : ResolveThemeColor("theme.borderToken", "inputBorder");
+        ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
+        : ResolveThemeColor(GetBorderToken(), ThemeTokenId::InputBorder);
 
-    float borderThickness = GetProperty("borderThickness").AsFloat(1.0f);
+    float borderThickness = GetBorderThickness();
     if (borderThickness > 0.0f) {
         if (radius > 0.0f) {
             ctx.DrawRoundedRect(m_bounds, radius, borderBrush, (m_isFocused || m_isDropDownOpen) ? 1.5f : borderThickness);
@@ -108,31 +118,44 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(10, 6, 10, 6));
+    Thickness padding = GetPadding();
 
     // Render current text
     std::string displayText = GetSelectedItem();
     if (displayText.empty()) {
-        displayText = GetProperty("placeholder").AsString("Select option...");
+        displayText = GetPlaceholder();
+        if (displayText.empty()) displayText = "Select option...";
     }
 
-    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    const std::string& font = GetFontFamily();
+    float fontSize = GetFontSize();
 
     Rect textRect(m_bounds.x + padding.left, m_bounds.y + padding.top, m_bounds.width - padding.left - padding.right - 20.0f, m_bounds.height - padding.top - padding.bottom);
     ctx.DrawText(displayText, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // Render down arrow "v" icon
     Rect arrowRect(m_bounds.x + m_bounds.width - 24.0f, m_bounds.y, 20.0f, m_bounds.height);
-    ctx.DrawText("v", arrowRect, ThemeManager::Instance().GetColor("textSecondary"), font, 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("v", arrowRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
-void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
+Rect ComboBox::GetPopupBounds() const {
+    float itemHeight = GetItemHeight();
+    if (itemHeight < 0.0f) itemHeight = 28.0f;
+    return ComboBoxMenuRect(m_bounds, itemHeight, m_items.size());
+}
+
+bool ComboBox::HitDismissExempt(float x, float y) const {
+    if (m_bounds.Contains(x, y)) return true;
+    return GetPopupBounds().Contains(x, y);
+}
+
+void ComboBox::RenderPopup(GraphicsContext& ctx) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isDropDownOpen ? 1.0f : 0.0f);
     if (progress <= 0.001f || m_items.empty()) return;
 
-    float itemHeight = GetProperty("itemHeight").AsFloat(28.0f);
+    float itemHeight = GetItemHeight();
+    if (itemHeight < 0.0f) itemHeight = 28.0f;
     float menuH = itemHeight * m_items.size();
     float currentH = (m_isDropDownOpen && progress >= 0.98f) ? menuH : (menuH * progress);
 
@@ -141,15 +164,16 @@ void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
 
     ctx.PushClip(clipRect);
 
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
+    const std::string& font = GetFontFamily();
+    float fontSize = GetFontSize();
 
-    D2D1_COLOR_F dropBg = ResolveThemeColor("theme.dropdownBackgroundToken", "cardBackground");
-    D2D1_COLOR_F selBg = ResolveThemeColor("theme.selectedItemBackgroundToken", "selectedBackground");
-    float radius = GetProperty("cornerRadius").AsFloat(4.0f);
+    D2D1_COLOR_F dropBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+    D2D1_COLOR_F selBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::SelectedBackground);
+    float radius = GetCornerRadius();
+    if (radius < 0.0f) radius = 4.0f;
 
     ctx.FillRoundedRect(menuRect, radius, dropBg);
-    ctx.DrawRoundedRect(menuRect, radius, ThemeManager::Instance().GetColor("cardBorder"), 1.0f);
+    ctx.DrawRoundedRect(menuRect, radius, ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder), 1.0f);
 
     for (size_t i = 0; i < m_items.size(); ++i) {
         Rect itemRect(menuRect.x + 2, menuRect.y + i * itemHeight + 2, menuRect.width - 4, itemHeight - 4);
@@ -159,11 +183,17 @@ void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
             ctx.FillRoundedRect(itemRect, 2.0f, selBg);
         }
 
-        D2D1_COLOR_F itemColor = ResolveThemeColor("theme.colorToken", "textPrimary");
+        D2D1_COLOR_F itemColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
         ctx.DrawText(m_items[i], Rect(itemRect.x + 8, itemRect.y, itemRect.width - 16, itemRect.height), itemColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
 
     ctx.PopClip();
+}
+
+void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
+    // When open, PopupHost owns paint; keep tree path for close-animation frames.
+    if (PopupHost::Current() && m_isDropDownOpen) return;
+    RenderPopup(ctx);
 }
 
 UIElement* ComboBox::HitTestOverlay(float x, float y) {
@@ -190,6 +220,12 @@ bool ComboBox::OnAnimationTick() {
     m_arrowAnim.SetTarget(m_isDropDownOpen ? 1.0f : 0.0f);
     if (m_arrowAnim.Tick(dt, spec)) animating = true;
 
+    // Keep Control visual-state transitions alive while this node is subscribed.
+    if (Control::OnAnimationTick()) animating = true;
+
+    if (animating) {
+        RequestAnimationTicks();
+    }
     return animating;
 }
 
@@ -200,7 +236,8 @@ bool ComboBox::HasSelfAnimation() const {
 
 void ComboBox::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
     if (HasSelfAnimation() && !m_bounds.IsEmpty()) {
-        float itemHeight = GetProperty("itemHeight").AsFloat(28.0f);
+        float itemHeight = GetItemHeight();
+        if (itemHeight < 0.0f) itemHeight = 28.0f;
         float menuH = itemHeight * static_cast<float>((std::max)(m_items.size(), size_t{ 1 }));
         Rect menuRect(m_bounds.x, m_bounds.y + m_bounds.height + 2.0f, m_bounds.width, menuH);
         Rect area = m_bounds.Union(menuRect).Inflate(4.0f);
@@ -215,8 +252,7 @@ void ComboBox::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
 }
 
 UIElement* ComboBox::HitTest(float x, float y) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return nullptr;
+    if (GetVisibility() != Visibility::Visible) return nullptr;
 
     if (m_bounds.Contains(x, y)) {
         return this;
@@ -242,15 +278,29 @@ void ComboBox::OnMouseDown(Point pt) {
                 SetSelectedIndex(clickedIdx);
             }
         }
-        m_isDropDownOpen = false;
+        SetDropDownOpen(false);
     } else {
-        m_isDropDownOpen = true;
+        SetDropDownOpen(true);
     }
 }
 
 void ComboBox::OnBlur() {
     Control::OnBlur();
-    m_isDropDownOpen = false;
+    SetDropDownOpen(false);
+}
+
+void ComboBox::SetDropDownOpen(bool open) {
+    if (m_isDropDownOpen == open) return;
+    m_isDropDownOpen = open;
+    if (PopupHost* host = PopupHost::Current()) {
+        if (open) {
+            host->Open(this);
+        } else {
+            host->Close(this);
+        }
+    }
+    RequestAnimationTicks();
+    MarkRenderContentDirty();
 }
 
 } // namespace CUI

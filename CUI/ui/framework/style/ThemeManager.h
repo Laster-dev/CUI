@@ -2,6 +2,7 @@
 
 #include "../core/Value.h"
 #include "../window/WindowBackdrop.h"
+#include "ThemeTokenId.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -10,8 +11,10 @@ namespace CUI {
 
 // WinUI-like material contract:
 // - Chrome: title bar / nav pane / window host — lets SystemBackdrop show through
-// - Surface: cards / inputs / flyouts — readable but still slightly translucent
+// - Surface: page cards / inputs in the document — readable but slightly translucent
 // - Solid: text / accents / borders — always opaque
+// Popups (menu / flyout / combobox dropdown / tooltip) must NOT use Surface —
+// call GetFlatColor() so they stay fully opaque over the backdrop.
 enum class MaterialRole {
     Chrome,
     Surface,
@@ -56,8 +59,14 @@ public:
     const ThemeTokens& GetTokens() const { return m_tokens; }
 
     // Preferred paint path — applies material role alpha when backdrop is active.
+    D2D1_COLOR_F GetColor(ThemeTokenId id) const;
+    // Deprecated: prefer GetColor(ThemeTokenId). Kept for markup / ThemeTokenIdFromName bridges.
     D2D1_COLOR_F GetColor(const std::string& tokenName) const;
+    // Menus / flyouts / dropdowns / tooltips — never translucent under SystemBackdrop.
+    D2D1_COLOR_F GetFlatColor(ThemeTokenId id) const;
+    D2D1_COLOR_F GetFlatColor(const std::string& tokenName) const;
     MaterialRole GetMaterialRole(const std::string& tokenName) const;
+    MaterialRole GetMaterialRole(ThemeTokenId id) const;
 
     std::string GetColorHex(const std::string& tokenName) const;
     static const std::vector<std::string>& GetTokenNames();
@@ -66,7 +75,9 @@ private:
     ThemeManager();
     void UpdateTokens();
     D2D1_COLOR_F LookupBaseColor(const std::string& tokenName) const;
+    D2D1_COLOR_F LookupBaseColor(ThemeTokenId id) const;
     D2D1_COLOR_F ApplyMaterialRole(const std::string& tokenName, D2D1_COLOR_F base) const;
+    D2D1_COLOR_F ApplyMaterialRole(ThemeTokenId id, D2D1_COLOR_F base) const;
 
     ThemeMode m_mode = ThemeMode::Dark;
     ThemeTokens m_tokens{};

@@ -13,16 +13,16 @@ constexpr float kHitPad = 4.0f;
 }
 
 Splitter::Splitter() {
-    SetProperty("orientation", Value("Vertical"));
-    SetProperty("theme.backgroundToken", Value("cardBorder"));
-    SetProperty("theme.hoverBackgroundToken", Value("accentColor"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBorder")));
-    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetOrientation(Orientation::Vertical);
+    SetBackgroundToken(ThemeTokenId::CardBorder);
+    SetHoverBackgroundToken(ThemeTokenId::AccentColor);
+    SetBackground(ThemeManager::Instance().GetColor("cardBorder"));
+    SetHoverBackground(ThemeManager::Instance().GetColor("accentColor"));
     // Vertical bar: fixed width, stretch height (-1). Never set both to thickness
     // or Measure/Arrange produce a 10x10 square.
-    SetProperty("width", Value(kDefaultThickness));
-    SetProperty("height", Value(-1.0f));
-    SetProperty("align", Value("Stretch"));
+    SetWidth(kDefaultThickness);
+    SetHeight(-1.0f);
+    SetAlign(Alignment::Stretch);
 }
 
 std::vector<PropertyMeta> Splitter::GetPropertyMetas() const {
@@ -33,29 +33,28 @@ std::vector<PropertyMeta> Splitter::GetPropertyMetas() const {
 
 HCURSOR Splitter::GetCursor() const {
     if (!IsEnabled()) return nullptr;
-    std::string orient = GetOrientation();
-    return LoadCursor(nullptr, (orient == "Vertical") ? IDC_SIZEWE : IDC_SIZENS);
+    return LoadCursor(nullptr, IsVerticalSplitter() ? IDC_SIZEWE : IDC_SIZENS);
 }
 
 void Splitter::SetOrientation(const std::string& orient) {
     const bool vertical = (orient == "Vertical");
-    SetProperty("orientation", Value(vertical ? "Vertical" : "Horizontal"));
+    UIElement::SetOrientation(vertical ? Orientation::Vertical : Orientation::Horizontal);
     if (vertical) {
-        SetProperty("width", Value(kDefaultThickness));
-        SetProperty("height", Value(-1.0f));
+        SetWidth(kDefaultThickness);
+        SetHeight(-1.0f);
     } else {
-        SetProperty("width", Value(-1.0f));
-        SetProperty("height", Value(kDefaultThickness));
+        SetWidth(-1.0f);
+        SetHeight(kDefaultThickness);
     }
-    SetProperty("align", Value("Stretch"));
+    SetAlign(Alignment::Stretch);
 }
 
 Size Splitter::Measure(Size availableSize) {
-    std::string orient = GetOrientation();
-    float width = GetProperty("width").AsFloat(-1.0f);
-    float height = GetProperty("height").AsFloat(-1.0f);
+    (void)availableSize;
+    float width = GetWidth();
+    float height = GetHeight();
 
-    if (orient == "Vertical") {
+    if (IsVerticalSplitter()) {
         // Thick in X; cross-axis (-1) lets StackPanel Stretch fill row height.
         if (width < 0.0f) width = kDefaultThickness;
         if (height < 0.0f) height = 0.0f;
@@ -71,11 +70,10 @@ Size Splitter::Measure(Size availableSize) {
 
 UIElement* Splitter::HitTest(float x, float y) {
     if (!IsEnabled()) return nullptr;
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return nullptr;
+    if (GetVisibility() != Visibility::Visible) return nullptr;
 
     Rect hit = m_bounds;
-    if (GetOrientation() == "Vertical") {
+    if (IsVerticalSplitter()) {
         hit.x -= kHitPad;
         hit.width += kHitPad * 2.0f;
     } else {
@@ -100,8 +98,8 @@ void Splitter::OnMouseMove(Point pt) {
     if (!IsEnabled() || !m_isDragging) {
         return;
     }
-    std::string orient = GetOrientation();
-    float delta = (orient == "Vertical") ? (pt.x - m_dragStartPt.x) : (pt.y - m_dragStartPt.y);
+    const bool vertical = IsVerticalSplitter();
+    float delta = vertical ? (pt.x - m_dragStartPt.x) : (pt.y - m_dragStartPt.y);
     if (std::abs(delta) < 0.001f) {
         return;
     }
@@ -117,23 +115,23 @@ void Splitter::OnMouseMove(Point pt) {
             std::shared_ptr<UIElement> nextElem;
 
             for (size_t prev = i; prev-- > 0;) {
-                if (siblings[prev] && siblings[prev]->GetProperty("visibility").AsString("Visible") != "Collapsed") {
+                if (siblings[prev] && siblings[prev]->GetVisibility() != Visibility::Collapsed) {
                     prevElem = siblings[prev];
                     break;
                 }
             }
 
             for (size_t next = i + 1; next < siblings.size(); ++next) {
-                if (siblings[next] && siblings[next]->GetProperty("visibility").AsString("Visible") != "Collapsed") {
+                if (siblings[next] && siblings[next]->GetVisibility() != Visibility::Collapsed) {
                     nextElem = siblings[next];
                     break;
                 }
             }
 
             if (prevElem && nextElem) {
-                if (orient == "Vertical") {
-                    float prevMin = std::max(40.0f, prevElem->GetProperty("minWidth").AsFloat(0.0f));
-                    float nextMin = std::max(40.0f, nextElem->GetProperty("minWidth").AsFloat(0.0f));
+                if (vertical) {
+                    float prevMin = std::max(40.0f, prevElem->GetMinWidth());
+                    float nextMin = std::max(40.0f, nextElem->GetMinWidth());
                     float prevWidth = prevElem->GetBounds().width;
                     float nextWidth = nextElem->GetBounds().width;
                     float minDelta = prevMin - prevWidth;
@@ -144,12 +142,12 @@ void Splitter::OnMouseMove(Point pt) {
                     }
                     float appliedDelta = std::clamp(delta, minDelta, maxDelta);
                     if (std::abs(appliedDelta) > 0.001f) {
-                        prevElem->SetProperty("width", Value(prevWidth + appliedDelta));
-                        nextElem->SetProperty("width", Value(nextWidth - appliedDelta));
+                        prevElem->SetWidth(prevWidth + appliedDelta);
+                        nextElem->SetWidth(nextWidth - appliedDelta);
                     }
                 } else {
-                    float prevMin = std::max(40.0f, prevElem->GetProperty("minHeight").AsFloat(0.0f));
-                    float nextMin = std::max(40.0f, nextElem->GetProperty("minHeight").AsFloat(0.0f));
+                    float prevMin = std::max(40.0f, prevElem->GetMinHeight());
+                    float nextMin = std::max(40.0f, nextElem->GetMinHeight());
                     float prevHeight = prevElem->GetBounds().height;
                     float nextHeight = nextElem->GetBounds().height;
                     float minDelta = prevMin - prevHeight;
@@ -160,17 +158,17 @@ void Splitter::OnMouseMove(Point pt) {
                     }
                     float appliedDelta = std::clamp(delta, minDelta, maxDelta);
                     if (std::abs(appliedDelta) > 0.001f) {
-                        prevElem->SetProperty("height", Value(prevHeight + appliedDelta));
-                        nextElem->SetProperty("height", Value(nextHeight - appliedDelta));
+                        prevElem->SetHeight(prevHeight + appliedDelta);
+                        nextElem->SetHeight(nextHeight - appliedDelta);
                     }
                 }
             } else if (prevElem) {
-                if (orient == "Vertical") {
+                if (vertical) {
                     float newW = std::max(40.0f, prevElem->GetBounds().width + delta);
-                    prevElem->SetProperty("width", Value(newW));
+                    prevElem->SetWidth(newW);
                 } else {
                     float newH = std::max(40.0f, prevElem->GetBounds().height + delta);
-                    prevElem->SetProperty("height", Value(newH));
+                    prevElem->SetHeight(newH);
                 }
             }
             break;
@@ -193,15 +191,15 @@ void Splitter::OnMouseUp(Point pt) {
 }
 
 void Splitter::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBorder");
-    D2D1_COLOR_F hoverBg = ResolveThemeColor("theme.hoverBackgroundToken", "accentColor");
+    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBorder);
+    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::AccentColor);
     const bool active = m_isHovered || m_isDragging;
     ctx.FillRect(m_bounds, active ? hoverBg : bg);
 
     // Center grip mark so a thick hit strip still reads as a splitter.
     D2D1_COLOR_F grip = ThemeManager::Instance().GetTokens().textMuted;
     grip.a = active ? 0.9f : 0.55f;
-    if (GetOrientation() == "Vertical") {
+    if (IsVerticalSplitter()) {
         float cx = m_bounds.x + m_bounds.width * 0.5f;
         float cy = m_bounds.y + m_bounds.height * 0.5f;
         ctx.FillRoundedRect(Rect(cx - 1.0f, cy - 14.0f, 2.0f, 28.0f), 1.0f, grip);

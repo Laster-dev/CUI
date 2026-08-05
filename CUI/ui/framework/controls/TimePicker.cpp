@@ -46,22 +46,21 @@ TimePicker::TimePicker() {
     m_hour = tmVal.tm_hour;
     m_minute = tmVal.tm_min;
 
-    SetProperty("theme.backgroundToken", Value("inputBackground"));
-    SetProperty("theme.borderToken", Value("inputBorder"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("background", Value(tokens.inputBackground));
-    SetProperty("borderBrush", Value(tokens.inputBorder));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(tokens.textPrimary));
-    SetProperty("cornerRadius", Value(4.0f));
-    SetProperty("width", Value(140.0f));
-    SetProperty("height", Value(30.0f));
+    SetBackgroundToken(ThemeTokenId::InputBackground);
+    SetBorderToken(ThemeTokenId::InputBorder);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetBackground(tokens.inputBackground);
+    SetBorderBrush(tokens.inputBorder);
+    SetBorderThickness(1.0f);
+    SetColor(tokens.textPrimary);
+    SetCornerRadius(4.0f);
+    SetWidth(140.0f);
+    SetHeight(30.0f);
 
     m_hourPosition = static_cast<float>(m_hour);
     m_minutePosition = static_cast<float>(m_minute);
     m_hourTarget = m_hourPosition;
     m_minuteTarget = m_minutePosition;
-    SetProperty("timeStr", Value(GetFormattedTime()));
 }
 
 std::vector<PropertyMeta> TimePicker::GetPropertyMetas() const {
@@ -71,8 +70,8 @@ std::vector<PropertyMeta> TimePicker::GetPropertyMetas() const {
 }
 
 Size TimePicker::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(140.0f);
-    float expH = GetProperty("height").AsFloat(30.0f);
+    float expW = GetWidth(); if (expW < 0) expW = 140.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 30.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
@@ -92,7 +91,7 @@ void TimePicker::SetTime(int h, int m) {
 
     m_hour = nextHour;
     m_minute = nextMinute;
-    SetProperty("timeStr", Value(GetFormattedTime()));
+    NotifyFieldChanged(PropertyId::TimeStr, Value(GetFormattedTime()));
     if (changed) {
         m_onTimeChangedEvent.Invoke(this, m_hour, m_minute);
     }
@@ -177,7 +176,7 @@ void TimePicker::OnMouseDown(Point pt) {
 
     if (!m_isPopupOpen) {
         if (m_bounds.Contains(pt.x, pt.y)) {
-            m_isPopupOpen = true;
+            SetPopupOpen(true);
             SnapTargetsToSelection();
             m_hourPosition = m_hourTarget;
             m_minutePosition = m_minuteTarget;
@@ -187,13 +186,13 @@ void TimePicker::OnMouseDown(Point pt) {
 
     Rect popup = GetPopupRect();
     if (!popup.Contains(pt.x, pt.y)) {
-        m_isPopupOpen = false;
+        SetPopupOpen(false);
         return;
     }
 
     Rect doneRect(popup.x + 12.0f, popup.y + popup.height - 36.0f, popup.width - 24.0f, 30.0f);
     if (doneRect.Contains(pt.x, pt.y)) {
-        m_isPopupOpen = false;
+        SetPopupOpen(false);
         return;
     }
 
@@ -272,9 +271,9 @@ void TimePicker::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
     std::string text = "🕒 " + GetFormattedTime();
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-    std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
-    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
+    float fontSize = GetFontSize();
+    std::string fontFamily = GetFontFamily();
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
 
     Rect textRect(m_bounds.x + 10.0f, m_bounds.y, m_bounds.width - 34.0f, m_bounds.height);
     ctx.DrawText(text, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -283,7 +282,34 @@ void TimePicker::OnRender(GraphicsContext& ctx) {
         "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
+void TimePicker::SetPopupOpen(bool open) {
+    if (m_isPopupOpen == open) return;
+    m_isPopupOpen = open;
+    if (PopupHost* host = PopupHost::Current()) {
+        if (open) {
+            host->Open(this);
+        } else {
+            host->Close(this);
+        }
+    }
+    MarkRenderContentDirty();
+}
+
+Rect TimePicker::GetPopupBounds() const {
+    return GetPopupRect();
+}
+
+bool TimePicker::HitDismissExempt(float x, float y) const {
+    if (m_bounds.Contains(x, y)) return true;
+    return GetPopupRect().Contains(x, y);
+}
+
 void TimePicker::OnRenderOverlay(GraphicsContext& ctx) {
+    if (PopupHost::Current() && m_isPopupOpen) return;
+    RenderPopup(ctx);
+}
+
+void TimePicker::RenderPopup(GraphicsContext& ctx) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
     if (progress <= 0.001f) return;
 

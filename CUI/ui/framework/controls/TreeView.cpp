@@ -9,24 +9,22 @@
 namespace CUI {
 
 TreeView::TreeView() {
-    SetProperty("theme.backgroundToken", Value("cardBackground"));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
-    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
-    SetProperty("selectedBackground", Value(ThemeManager::Instance().GetColor("selectedBackground")));
-    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
-    SetProperty("fontSize", Value(13.0f));
-    SetProperty("fontFamily", Value("Segoe UI"));
-    SetProperty("itemHeight", Value(24.0f));
-    SetProperty("indentWidth", Value(18.0f));
-    SetProperty("cornerRadius", Value(4.0f));
-    SetProperty("width", Value(260.0f));
-    SetProperty("height", Value(340.0f));
+    SetBackgroundToken(ThemeTokenId::CardBackground);
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
+    SetBorderThickness(1.0f);
+    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
+    SetFontSize(13.0f);
+    SetFontFamily("Segoe UI");
+    SetItemHeight(24.0f);
+    SetCornerRadius(4.0f);
+    SetWidth(260.0f);
+    SetHeight(340.0f);
 }
 
 std::vector<PropertyMeta> TreeView::GetPropertyMetas() const {
@@ -184,15 +182,14 @@ void TreeView::SetSelectedItem(std::shared_ptr<TreeViewItem> item) {
 }
 
 Size TreeView::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(260.0f);
-    float expH = GetProperty("height").AsFloat(340.0f);
+    float expW = GetWidth(); if (expW < 0) expW = 260.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 340.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
 
 UIElement* TreeView::HitTest(float x, float y) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return nullptr;
+    if (GetVisibility() != Visibility::Visible) return nullptr;
     if (m_bounds.Contains(x, y)) {
         return this;
     }
@@ -200,8 +197,7 @@ UIElement* TreeView::HitTest(float x, float y) {
 }
 
 void TreeView::Render(GraphicsContext& ctx) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return;
+    if (GetVisibility() != Visibility::Visible) return;
 
     ctx.PushClip(m_bounds);
     OnRender(ctx);
@@ -210,10 +206,10 @@ void TreeView::Render(GraphicsContext& ctx) {
 
 void TreeView::OnRender(GraphicsContext& ctx) {
     // Draw TreeView Container Background & Border (Do not call Control::OnRender to prevent m_isPressed from darkening whole container)
-    float radius = GetProperty("cornerRadius").AsFloat(4.0f);
-    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
-    D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
-    float borderThick = GetProperty("borderThickness").AsFloat(1.0f);
+    float radius = GetCornerRadius();
+    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    float borderThick = GetBorderThickness();
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
     ctx.DrawRoundedRect(m_bounds, radius, border, borderThick);
@@ -222,11 +218,11 @@ void TreeView::OnRender(GraphicsContext& ctx) {
 
     float itemH = GetItemHeight();
     float indentW = GetIndentWidth();
-    std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
-    D2D1_COLOR_F selBg = ResolveThemeColor("theme.selectedBackgroundToken", "selectedBackground");
-    D2D1_COLOR_F hoverBg = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
+    std::string fontFamily = GetFontFamily();
+    float fontSize = GetFontSize();
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    D2D1_COLOR_F selBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
+    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
 
     for (size_t i = 0; i < m_visibleItems.size(); ++i) {
         const auto& visItem = m_visibleItems[i];
@@ -255,7 +251,7 @@ void TreeView::OnRender(GraphicsContext& ctx) {
             Rect toggleRect = GetToggleRect(visItem, rowRect);
             float cx = toggleRect.x + toggleRect.width * 0.5f;
             float cy = toggleRect.y + toggleRect.height * 0.5f;
-            D2D1_COLOR_F arrowColor = ThemeManager::Instance().GetColor("textMuted");
+            D2D1_COLOR_F arrowColor = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
 
             if (item->isExpanded) {
                 // Down Arrow (Expanded)
@@ -275,13 +271,13 @@ void TreeView::OnRender(GraphicsContext& ctx) {
             iconText = !item->children.empty() ? (item->isExpanded ? "📂" : "📁") : "📄";
         }
         Rect iconRect(currX, rowRect.y, 16.0f, rowRect.height);
-        ctx.DrawText(iconText, iconRect, ThemeManager::Instance().GetColor("accentColor"), "Segoe UI Emoji", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(iconText, iconRect, ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor), "Segoe UI Emoji", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         currX += 20.0f;
 
         // Render Header Text
         float textW = (std::max)(0.0f, rowRect.x + rowRect.width - currX - 4.0f);
         Rect textRect(currX, rowRect.y, textW, rowRect.height);
-        ctx.DrawText(item->header, textRect, isSelected ? ThemeManager::Instance().GetColor("textPrimary") : textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+        ctx.DrawText(item->header, textRect, isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
     }
 
     // Scrollbar indicator

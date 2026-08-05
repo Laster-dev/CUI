@@ -15,25 +15,24 @@ std::vector<PropertyMeta> TextBlock::GetPropertyMetas() const {
 }
 
 TextBlock::TextBlock() {
-    SetProperty("text", Value(""));
-    SetProperty("theme.colorToken", Value("textSecondary"));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("textSecondary")));
-    SetProperty("fontFamily", Value("Segoe UI"));
-    SetProperty("fontSize", Value(13.0f));
-    SetProperty("fontWeight", Value("Normal"));
-    SetProperty("textAlign", Value("Left"));
-    SetProperty("verticalAlign", Value("Center"));
+    SetText("");
+    SetColorToken(ThemeTokenId::TextSecondary);
+    SetColor(ThemeManager::Instance().GetColor("textSecondary"));
+    SetFontFamily("Segoe UI");
+    SetFontSize(13.0f);
+    SetFontWeight("Normal");
 }
 
 TextBlock::TextBlock(const std::string& text) : TextBlock() {
-    SetProperty("text", Value(text));
+    SetText(text);
 }
 
 Size TextBlock::Measure(Size availableSize) {
-    std::string text = GetProperty("text").AsString("");
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-    std::string weightStr = GetProperty("fontWeight").AsString("Normal");
+    (void)availableSize;
+    const std::string& text = GetText();
+    const std::string& font = GetFontFamily();
+    float fontSize = GetFontSize();
+    const std::string& weightStr = GetFontWeight();
 
     DWRITE_FONT_WEIGHT weight = (weightStr == "Bold") ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
 
@@ -41,14 +40,14 @@ Size TextBlock::Measure(Size availableSize) {
     GraphicsContext ctx;
     Size measured = ctx.MeasureText(text, font, fontSize, weight);
 
-    Thickness margin = GetProperty("margin").AsThickness(Thickness(0));
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness margin = GetMargin();
+    Thickness padding = GetPadding();
 
     float w = measured.width + margin.left + margin.right + padding.left + padding.right;
     float h = measured.height + margin.top + margin.bottom + padding.top + padding.bottom;
 
-    float expW = GetProperty("width").AsFloat(-1.0f);
-    float expH = GetProperty("height").AsFloat(-1.0f);
+    float expW = GetWidth();
+    float expH = GetHeight();
 
     if (expW >= 0.0f) w = expW;
     if (expH >= 0.0f) h = expH;
@@ -60,15 +59,15 @@ Size TextBlock::Measure(Size availableSize) {
 void TextBlock::OnRender(GraphicsContext& ctx) {
     UIElement::OnRender(ctx);
 
-    std::string text = GetProperty("text").AsString("");
+    const std::string& text = GetText();
     if (text.empty()) return;
 
-    D2D1_COLOR_F color = ResolveThemeColor("theme.colorToken", "textSecondary");
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-    std::string weightStr = GetProperty("fontWeight").AsString("Normal");
-    std::string alignStr = GetProperty("textAlign").AsString("Left");
-    std::string vAlignStr = GetProperty("verticalAlign").AsString("Center");
+    D2D1_COLOR_F color = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+    const std::string& font = GetFontFamily();
+    float fontSize = GetFontSize();
+    const std::string& weightStr = GetFontWeight();
+    const std::string& alignStr = GetTextAlign();
+    const std::string& vAlignStr = GetVerticalAlign();
 
     DWRITE_FONT_WEIGHT weight = (weightStr == "Bold") ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
 
@@ -80,7 +79,7 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
     if (vAlignStr == "Top") vAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
     else if (vAlignStr == "Bottom") vAlign = DWRITE_PARAGRAPH_ALIGNMENT_FAR;
 
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness padding = GetPadding();
     Rect textRect(
         m_bounds.x + padding.left,
         m_bounds.y + padding.top,

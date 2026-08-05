@@ -13,17 +13,17 @@ ShowcasePage BuildComboBoxPage(const ShowcaseContext& ctx) {
     target->AddItem("WinUI 3 Light");
     target->AddItem("Monokai Pro");
     target->SetSelectedIndex(0);
-    target->SetProperty("width", Value(240.0f));
+    target->SetWidth(240.0f);
 
-    auto input = TextField("自定义新主题").Width(280).Height(26).Build();
-    input->SetProperty("theme.colorToken", Value("textPrimary"));
-    input->SetProperty("theme.placeholderColorToken", Value("textMuted"));
-    input->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
-    input->SetProperty("placeholderColor", Value(ThemeManager::Instance().GetColor("textMuted")));
+    auto input = TextField("自定义新主题").Width(280).Height(48).Build();
+    input->SetColorToken(ThemeTokenId::TextPrimary);
+    input->SetPlaceholderColorToken(ThemeTokenId::TextMuted);
+    input->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
 
     auto addBtn = ElevatedButton("添加选项到下拉菜单").Padding(12, 6, 12, 6).Build();
     addBtn->OnClick().Connect([window = ctx.windowRef, target, input](UIElement*) {
-        std::string text = input->GetProperty("text").AsString("自定义新主题");
+        std::string text = input->GetText();
+        if (text.empty()) text = "自定义新主题";
         if (text.empty()) text = "未命名主题";
         target->AddItem(text);
         Toast::Show(window->GetRootElement().get(), "ComboBox", "已添加新选项: " + text, ToastCorner::BottomRight, 1800);

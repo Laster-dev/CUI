@@ -10,6 +10,10 @@ public:
     virtual ~Panel() = default;
 
     virtual const char* GetClassName() const override { return "Panel"; }
+
+    // Content measure/arrange (margin/padding/explicit size handled by LayoutEngine).
+    virtual Size MeasureOverride(Size availableSize);
+    virtual void ArrangeOverride(Rect finalRect);
 };
 
 class StackPanel : public Panel {
@@ -19,6 +23,9 @@ public:
     virtual ~StackPanel() = default;
 
     virtual const char* GetClassName() const override { return "StackPanel"; }
+
+    Size MeasureOverride(Size availableSize) override;
+    void ArrangeOverride(Rect finalRect) override;
 };
 
 class Canvas : public Panel {
@@ -27,6 +34,9 @@ public:
     virtual ~Canvas() = default;
 
     virtual const char* GetClassName() const override { return "Canvas"; }
+
+    Size MeasureOverride(Size availableSize) override;
+    void ArrangeOverride(Rect finalRect) override;
 };
 
 class Grid : public Panel {
@@ -35,6 +45,9 @@ public:
     virtual ~Grid() = default;
 
     virtual const char* GetClassName() const override { return "Grid"; }
+
+    Size MeasureOverride(Size availableSize) override;
+    void ArrangeOverride(Rect finalRect) override;
 
     void AddColumnDefinition(const ColumnDefinition& col) { m_columns.push_back(col); }
     void AddRowDefinition(const RowDefinition& row) { m_rows.push_back(row); }
@@ -60,6 +73,9 @@ public:
     virtual ~WrapPanel() = default;
 
     virtual const char* GetClassName() const override { return "WrapPanel"; }
+
+    Size MeasureOverride(Size availableSize) override;
+    void ArrangeOverride(Rect finalRect) override;
 };
 
 class DockPanel : public Panel {
@@ -68,6 +84,9 @@ public:
     virtual ~DockPanel() = default;
 
     virtual const char* GetClassName() const override { return "DockPanel"; }
+
+    Size MeasureOverride(Size availableSize) override;
+    void ArrangeOverride(Rect finalRect) override;
 };
 
 class UniformGrid : public Panel {
@@ -77,6 +96,9 @@ public:
     virtual ~UniformGrid() = default;
 
     virtual const char* GetClassName() const override { return "UniformGrid"; }
+
+    Size MeasureOverride(Size availableSize) override;
+    void ArrangeOverride(Rect finalRect) override;
 };
 
 } // namespace CUI

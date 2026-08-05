@@ -21,7 +21,7 @@ float GetChromiumWheelStep(float viewportHeight) {
 }
 
 float GetVisualBottom(UIElement* element) {
-    if (!element || element->GetProperty("visibility").AsString("Visible") != "Visible") {
+    if (!element || element->GetVisibility() != Visibility::Visible) {
         return 0.0f;
     }
 
@@ -43,8 +43,8 @@ void RenderVisibleSubtree(UIElement* element, GraphicsContext& ctx, const Rect& 
         return;
     }
 
-    const std::string visibility = element->GetProperty("visibility").AsString("Visible");
-    if (visibility != "Visible") {
+    const Visibility visibility = element->GetVisibility();
+    if (visibility != Visibility::Visible) {
         return;
     }
 
@@ -59,14 +59,14 @@ void RenderVisibleSubtree(UIElement* element, GraphicsContext& ctx, const Rect& 
 }
 
 ScrollViewer::ScrollViewer() {
-    SetProperty("theme.trackColorToken", Value("cardBorder"));
-    SetProperty("theme.thumbColorToken", Value("textMuted"));
-    SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
+    SetTrackColorToken(ThemeTokenId::CardBorder);
+    SetThumbColorToken(ThemeTokenId::TextMuted);
+    SetBackground(D2D1::ColorF(0, 0, 0, 0));
     QueryPerformanceFrequency(&m_qpcFreq);
     m_scrollAnimator.Reset(0.0f);
     GetRenderNode().GetLayer().SetCacheable(true);
     m_contentLayer.SetCacheable(true);
-    OnPropertyChanged().Connect([this](const std::string&, const Value&) {
+    OnPropertyIdChanged().Connect([this](PropertyId, const Value&) {
         MarkContentLayerDirty();
     });
 }
@@ -143,12 +143,11 @@ double ScrollViewer::SecondsSinceLastTick() {
 }
 
 float ScrollViewer::MeasureContentHeight(float contentWidth) {
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness padding = GetPadding();
     float height = 0.0f;
     Size avail(std::max(0.0f, contentWidth), 100000.0f);
     for (auto& child : GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
         Size dSize = child->Measure(avail);
         height = std::max(height, dSize.height);
     }
@@ -158,7 +157,7 @@ float ScrollViewer::MeasureContentHeight(float contentWidth) {
 }
 
 void ScrollViewer::RefreshContentMetrics(float viewportWidth, float viewportHeight) {
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness padding = GetPadding();
     float innerWidth = std::max(0.0f, viewportWidth - padding.left - padding.right);
 
     // First measure without a scrollbar. If it overflows, measure once more with
@@ -172,7 +171,7 @@ void ScrollViewer::RefreshContentMetrics(float viewportWidth, float viewportHeig
 }
 
 void ScrollViewer::PositionChildren() {
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness padding = GetPadding();
     float innerWidth = std::max(0.0f, m_bounds.width - padding.left - padding.right);
     float reserve = GetScrollbarReserve();
     float childWidth = std::max(0.0f, innerWidth - reserve);
@@ -182,15 +181,13 @@ void ScrollViewer::PositionChildren() {
     // and inertial animation run at frame rate.
     float naturalHeight = 0.0f;
     for (auto& child : GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
         naturalHeight = std::max(naturalHeight, child->GetDesiredSize().height);
     }
     float childHeight = std::max(viewportContentHeight, naturalHeight);
 
     for (auto& child : GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
         Rect childRect(
             m_bounds.x + padding.left,
             m_bounds.y + padding.top - m_offsetY,
@@ -202,8 +199,7 @@ void ScrollViewer::PositionChildren() {
 
     float visualBottom = 0.0f;
     for (auto& child : GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
         visualBottom = (std::max)(visualBottom, GetVisualBottom(child.get()));
     }
 
@@ -226,7 +222,7 @@ Rect ScrollViewer::GetViewportRect() const {
 }
 
 Rect ScrollViewer::GetContentViewportRect() const {
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness padding = GetPadding();
     float reserve = GetScrollbarReserve();
     return Rect(
         m_bounds.x + padding.left,
@@ -307,11 +303,11 @@ void ScrollViewer::MarkScrollVisualDirty(float previousOffset) {
 }
 
 Size ScrollViewer::Measure(Size availableSize) {
-    Thickness margin = GetProperty("margin").AsThickness(Thickness(0));
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness margin = GetMargin();
+    Thickness padding = GetPadding();
 
-    float expW = GetProperty("width").AsFloat(-1.0f);
-    float expH = GetProperty("height").AsFloat(-1.0f);
+    float expW = GetWidth();
+    float expH = GetHeight();
 
     // Use the control's own width when explicit — NOT the parent's full available width.
     // Measuring with the window width was underestimating wrapped content for a 320px panel.
@@ -325,7 +321,7 @@ Size ScrollViewer::Measure(Size availableSize) {
 
 void ScrollViewer::Arrange(Rect finalRect) {
     SetBounds(finalRect);
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness padding = GetPadding();
     float reserve = GetScrollbarReserve();
     float contentWidth = std::max(
         0.0f,
@@ -339,8 +335,7 @@ void ScrollViewer::Arrange(Rect finalRect) {
 }
 
 void ScrollViewer::Render(GraphicsContext& ctx) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return;
+    if (GetVisibility() != Visibility::Visible) return;
 
     ctx.PushClip(m_bounds);
     OnRender(ctx);
@@ -508,8 +503,8 @@ void ScrollViewer::RenderScrollChrome(GraphicsContext& ctx) {
         Rect track = GetScrollbarTrackRect();
         Rect thumb = GetScrollbarThumbRect();
 
-        D2D1_COLOR_F trackBase = ResolveThemeColor("theme.trackColorToken", "cardBorder");
-        D2D1_COLOR_F thumbBase = ResolveThemeColor("theme.thumbColorToken", "textMuted");
+        D2D1_COLOR_F trackBase = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
+        D2D1_COLOR_F thumbBase = ResolveThemeColor(GetThumbColorToken(), ThemeTokenId::TextMuted);
         float trackAlpha = m_scrollbarHovered || m_isDraggingThumb ? 0.18f : 0.08f;
         ctx.FillRoundedRect(track, 4.0f, D2D1::ColorF(trackBase.r, trackBase.g, trackBase.b, trackAlpha));
 
@@ -542,8 +537,7 @@ void ScrollViewer::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consu
 }
 
 UIElement* ScrollViewer::HitTest(float x, float y) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return nullptr;
+    if (GetVisibility() != Visibility::Visible) return nullptr;
 
     // Overlays (e.g. open ComboBox) may extend past the viewport — test first.
     UIElement* overlayHit = HitTestOverlay(x, y);
@@ -663,6 +657,7 @@ void ScrollViewer::OnMouseWheel(float delta) {
         QueryPerformanceCounter(&now);
         m_lastAnimQpc = now.QuadPart;
     }
+    RequestAnimationTicks();
 }
 
 bool ScrollViewer::AdvanceSmoothScroll() {
@@ -704,6 +699,9 @@ bool ScrollViewer::OnAnimationTick() {
         return childAnimating;
     }
     bool selfAnimating = AdvanceSmoothScroll();
+    if (selfAnimating) {
+        RequestAnimationTicks();
+    }
     return childAnimating || selfAnimating;
 }
 

@@ -16,7 +16,7 @@ ShowcasePage BuildSplitterPage(const ShowcaseContext& ctx) {
             Column(8).Width(220).MinWidth(80).Background("#252526").Padding(12).Children({
                 CreateShowcaseText("[左侧文件树面板]", 12.0f, "#007ACC", true),
                 CreateShowcaseText("• main.cpp", 11.0f, "#CCCCCC"),
-                CreateShowcaseText("• gallery_layout.xml", 11.0f, "#CCCCCC")
+                CreateShowcaseText("• CUIDsl.h / typed setters", 11.0f, "#CCCCCC")
             }).Build(),
             splitterLR,
             Column(8).FlexGrow(1.0f).MinWidth(100).Background("#1E1E1E").Padding(12).Children({

@@ -289,7 +289,7 @@ public:
 
     std::shared_ptr<UIElement> build(BuildContext& context) override {
         auto titleBar = std::make_shared<TitleBar>();
-        titleBar->SetProperty("title", Value("CUI Control Gallery | Flutter 风格 C++ 声明式 Widget Showcase"));
+        titleBar->SetTitle("CUI Control Gallery | Flutter 风格 C++ 声明式 Widget Showcase");
 
         auto toastCenter = std::make_shared<ToastCenter>();
         toastCenter->SetId("toastCenter");

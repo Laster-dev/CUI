@@ -49,8 +49,10 @@ void StyleManager::ApplyStyle(UIElement* element) {
         auto it = m_styles.find(styleClass);
         if (it != m_styles.end()) {
             for (const auto& kv : it->second) {
-                if (!element->HasProperty(kv.first)) {
-                    element->SetProperty(kv.first, kv.second);
+                PropertyId propId = PropertyIdFromName(kv.first);
+                if (propId == PropertyId::None) continue;
+                if (!element->HasProperty(propId)) {
+                    element->SetProperty(propId, kv.second);
                 }
             }
         }

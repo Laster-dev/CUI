@@ -4,38 +4,36 @@
 namespace CUI {
 
 HyperlinkButton::HyperlinkButton() {
-    SetProperty("text", Value("HyperlinkButton"));
-    SetProperty("navigateUri", Value(""));
-    SetProperty("theme.colorToken", Value("accentColor"));
-    SetProperty("theme.hoverColorToken", Value("accentColor"));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("accentColor")));
-    SetProperty("hoverColor", Value(ThemeManager::Instance().GetColor("accentColor")));
-    SetProperty("fontSize", Value(13.0f));
-    SetProperty("fontFamily", Value("Segoe UI"));
-    SetProperty("padding", Value(Thickness(2, 2, 2, 2)));
+    SetText("HyperlinkButton");
+    SetColorToken(ThemeTokenId::AccentColor);
+    SetColor(ThemeManager::Instance().GetColor("accentColor"));
+    SetFontSize(13.0f);
+    SetFontFamily("Segoe UI");
+    SetPadding(Thickness(2, 2, 2, 2));
 }
 
 HyperlinkButton::HyperlinkButton(const std::string& text, const std::string& uri) : HyperlinkButton() {
-    SetProperty("text", Value(text));
-    SetProperty("navigateUri", Value(uri));
+    SetText(text);
+    SetNavigateUri(uri);
 }
 
 Size HyperlinkButton::Measure(Size availableSize) {
-    std::string text = GetProperty("text").AsString("");
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
+    (void)availableSize;
+    const std::string& text = GetText();
+    const std::string& font = GetFontFamily();
+    float fontSize = GetFontSize();
 
     GraphicsContext ctx;
     Size measured = ctx.MeasureText(text, font, fontSize);
 
-    Thickness margin = GetProperty("margin").AsThickness(Thickness(0));
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness margin = GetMargin();
+    Thickness padding = GetPadding();
 
     float w = measured.width + margin.left + margin.right + padding.left + padding.right;
     float h = measured.height + margin.top + margin.bottom + padding.top + padding.bottom;
 
-    float expW = GetProperty("width").AsFloat(-1.0f);
-    float expH = GetProperty("height").AsFloat(-1.0f);
+    float expW = GetWidth();
+    float expH = GetHeight();
 
     if (expW >= 0.0f) w = expW;
     if (expH >= 0.0f) h = expH;
@@ -45,18 +43,19 @@ Size HyperlinkButton::Measure(Size availableSize) {
 }
 
 void HyperlinkButton::OnRender(GraphicsContext& ctx) {
-    std::string text = GetProperty("text").AsString("");
+    const std::string& text = GetText();
     if (text.empty()) return;
 
-    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "accentColor");
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentColor);
     if (m_isHovered) {
-        textColor = ResolveThemeColor("theme.hoverColorToken", "accentColor");
+        // No dedicated hoverColor token member — reuse color token / accent fallback.
+        textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentColor);
     }
 
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
+    const std::string& font = GetFontFamily();
+    float fontSize = GetFontSize();
 
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness padding = GetPadding();
     Rect textRect(
         m_bounds.x + padding.left,
         m_bounds.y + padding.top,

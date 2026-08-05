@@ -3,6 +3,7 @@
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/Toast.h"
 #include "framework/style/ThemeManager.h"
+#include "framework/style/ThemeTokenId.h"
 
 using namespace CUI;
 using namespace CUI::DSL;
@@ -13,11 +14,21 @@ std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::
     if (!element) {
         return element;
     }
-    element->SetProperty(tokenProp, Value(tokenName));
+    ThemeTokenId id = ThemeTokenIdFromName(tokenName);
     if (tokenProp == "theme.backgroundToken") {
-        element->SetProperty("background", Value(ThemeManager::Instance().GetColor(tokenName)));
+        element->SetBackgroundToken(id);
+        element->SetBackground(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.borderToken") {
-        element->SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor(tokenName)));
+        element->SetBorderToken(id);
+        element->SetBorderBrush(ThemeManager::Instance().GetColor(tokenName));
+    } else if (tokenProp == "theme.hoverBackgroundToken") {
+        element->SetHoverBackgroundToken(id);
+    } else if (tokenProp == "theme.pressedBackgroundToken") {
+        element->SetPressedBackgroundToken(id);
+    } else if (tokenProp == "theme.colorToken") {
+        element->SetColorToken(id);
+    } else if (tokenProp == "theme.focusedBorderToken") {
+        element->SetFocusedBorderToken(id);
     }
     return element;
 }
@@ -27,7 +38,7 @@ ShowcasePage BuildButtonPage(const ShowcaseContext& ctx) {
     auto target = ElevatedButton("交互测试按钮").Background("#007ACC").HoverBackground("#0098FF").PressedBackground("#005A9E").FontSize(14).Padding(16, 8, 16, 8).CornerRadius(4).Build();
     auto log = CreateShowcaseText("[就绪] 点击目标按钮触发 OnClick 点击事件...", 12.0f, "#B5CEA8", false, "Consolas");
     target->OnClick().Connect([window = ctx.windowRef, log](UIElement*) {
-        log->SetProperty("text", Value("[事件] OnClick 已触发，按钮交互链路正常。"));
+        log->SetText("[事件] OnClick 已触发，按钮交互链路正常。");
         Toast::Show(window->GetRootElement().get(), "Button", "按钮点击触发 OnClick 事件！", ToastCorner::BottomRight, 2200);
     });
 

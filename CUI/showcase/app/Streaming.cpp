@@ -15,8 +15,8 @@ std::shared_ptr<Image> g_streamImage = nullptr;
 
 std::shared_ptr<Image> CreateStreamImage() {
     auto image = std::make_shared<Image>();
-    image->SetProperty("width", Value(420.0f));
-    image->SetProperty("height", Value(240.0f));
+    image->SetWidth(420.0f);
+    image->SetHeight(240.0f);
     return image;
 }
 

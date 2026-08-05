@@ -17,21 +17,34 @@ public:
     virtual void Arrange(Rect finalRect) override;
     virtual void OnKeyDown(int vkCode) override;
 
-    float GetValue() const { return GetProperty("value").AsFloat(0.0f); }
+    float GetValue() const { return m_value; }
     void SetValue(float val);
 
-    float GetStep() const { return GetProperty("step").AsFloat(1.0f); }
-    void SetStep(float s) { SetProperty("step", Value(s)); }
+    float GetStep() const { return m_step; }
+    void SetStep(float s) {
+        m_step = s;
+        NotifyFieldChanged(PropertyId::Step, Value(s));
+    }
 
-    float GetMinimum() const { return GetProperty("minimum").AsFloat(-100000.0f); }
-    void SetMinimum(float minVal) { SetProperty("minimum", Value(minVal)); }
+    float GetMinimum() const { return m_minimum; }
+    void SetMinimum(float minVal) {
+        m_minimum = minVal;
+        NotifyFieldChanged(PropertyId::Minimum, Value(minVal));
+    }
 
-    float GetMaximum() const { return GetProperty("maximum").AsFloat(100000.0f); }
-    void SetMaximum(float maxVal) { SetProperty("maximum", Value(maxVal)); }
+    float GetMaximum() const { return m_maximum; }
+    void SetMaximum(float maxVal) {
+        m_maximum = maxVal;
+        NotifyFieldChanged(PropertyId::Maximum, Value(maxVal));
+    }
 
     Event<NumberBox*, float>& OnValueChanged() { return m_onValueChangedEvent; }
 
 private:
+    float m_value = 0.0f;
+    float m_minimum = -100000.0f;
+    float m_maximum = 100000.0f;
+    float m_step = 1.0f;
     std::shared_ptr<TextBox> m_inputBox;
     std::shared_ptr<Button> m_btnUp;
     std::shared_ptr<Button> m_btnDown;

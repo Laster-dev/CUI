@@ -10,10 +10,10 @@ namespace CUI {
 
 std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) {
     auto title = std::make_shared<TextBlock>("NavigationView & SystemBackdrop & Theme 导航与材质系统");
-    title->SetProperty("fontSize", Value(18.0f));
-    title->SetProperty("fontWeight", Value("Bold"));
-    title->SetProperty("theme.colorToken", Value("textPrimary"));
-    title->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    title->SetFontSize(18.0f);
+    title->SetFontWeight("Bold");
+    title->SetColorToken(ThemeTokenId::TextPrimary);
+    title->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
 
     auto nav = std::make_shared<NavigationView>();
     nav->SetHeader("CUI WinUI 3 Navigation");
@@ -92,8 +92,8 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
         }).Build()
     }).Build());
 
-    nav->SetProperty("width", Value(800.0f));
-    nav->SetProperty("height", Value(340.0f));
+    nav->SetWidth(800.0f);
+    nav->SetHeight(340.0f);
 
     return Column(16.0f).Children({
         title,

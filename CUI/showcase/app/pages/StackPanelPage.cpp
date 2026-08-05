@@ -14,7 +14,7 @@ ShowcasePage BuildStackPanelPage(const ShowcaseContext&) {
     combo->AddItem("Horizontal");
     combo->AddItem("Vertical");
     combo->SetSelectedIndex(0);
-    combo->SetProperty("width", Value(280.0f));
+    combo->SetWidth(280.0f);
     return { "StackPanel 线性布局", CreatePage(
         "StackPanel 线性布局控制台",
         "实时修改布局方向 (Orientation) 与 元素间距 (Gap)。",

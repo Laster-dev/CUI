@@ -9,19 +9,19 @@ namespace CUI {
 
 std::shared_ptr<UIElement> CreateFlyoutPage(const ShowcaseContext& ctx) {
     auto title = std::make_shared<TextBlock>("Flyout 弹出框展示页");
-    title->SetProperty("fontSize", Value(18.0f));
-    title->SetProperty("fontWeight", Value("Bold"));
-    title->SetProperty("theme.colorToken", Value("textPrimary"));
-    title->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    title->SetFontSize(18.0f);
+    title->SetFontWeight("Bold");
+    title->SetColorToken(ThemeTokenId::TextPrimary);
+    title->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
 
     auto desc = std::make_shared<TextBlock>("WinUI 3 风格 Flyout 弹出窗口，支持 64ms 极速高度展开与折叠收起动画。");
-    desc->SetProperty("fontSize", Value(12.0f));
-    desc->SetProperty("theme.colorToken", Value("textMuted"));
-    desc->SetProperty("color", Value(ThemeManager::Instance().GetColor("textMuted")));
+    desc->SetFontSize(12.0f);
+    desc->SetColorToken(ThemeTokenId::TextMuted);
+    desc->SetColor(ThemeManager::Instance().GetColor("textMuted"));
 
     auto btnTrigger = std::make_shared<Button>("点击打开 Flyout 弹出框 🚀");
-    btnTrigger->SetProperty("width", Value(220.0f));
-    btnTrigger->SetProperty("height", Value(36.0f));
+    btnTrigger->SetWidth(220.0f);
+    btnTrigger->SetHeight(36.0f);
 
     auto flyoutContent = Column(8.0f).Children({
         std::make_shared<TextBlock>("💡 这是 Flyout 内部内容"),

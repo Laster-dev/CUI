@@ -1,19 +1,18 @@
 #include "Flyout.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
+#include <cmath>
 
 namespace CUI {
 
 // ---------------- FlyoutPresenter ----------------
 
 FlyoutPresenter::FlyoutPresenter() {
-    SetProperty("theme.backgroundToken", Value("cardBackground"));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("cornerRadius", Value(6.0f));
-    SetProperty("padding", Value(Thickness(12.0f)));
+    SetBackgroundToken(ThemeTokenId::CardBackground);
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetBorderThickness(1.0f);
+    SetCornerRadius(8.0f);
+    SetPadding(Thickness(14.0f));
 }
 
 void FlyoutPresenter::SetContent(std::shared_ptr<UIElement> content) {
@@ -27,7 +26,7 @@ void FlyoutPresenter::SetContent(std::shared_ptr<UIElement> content) {
 }
 
 Size FlyoutPresenter::Measure(Size availableSize) {
-    Thickness pad = GetProperty("padding").AsThickness(Thickness(12.0f));
+    Thickness pad = GetPadding();
     float innerW = (std::max)(0.0f, availableSize.width - pad.left - pad.right);
     float innerH = (std::max)(0.0f, availableSize.height - pad.top - pad.bottom);
 
@@ -36,13 +35,16 @@ Size FlyoutPresenter::Measure(Size availableSize) {
         contentSize = m_content->Measure(Size(innerW, innerH));
     }
 
-    m_desiredSize = Size(contentSize.width + pad.left + pad.right, contentSize.height + pad.top + pad.bottom);
+    // Minimum readable flyout surface
+    float w = (std::max)(contentSize.width + pad.left + pad.right, 160.0f);
+    float h = (std::max)(contentSize.height + pad.top + pad.bottom, 48.0f);
+    m_desiredSize = Size(w, h);
     return m_desiredSize;
 }
 
 void FlyoutPresenter::Arrange(Rect finalRect) {
     SetBounds(finalRect);
-    Thickness pad = GetProperty("padding").AsThickness(Thickness(12.0f));
+    Thickness pad = GetPadding();
     Rect contentRect(
         finalRect.x + pad.left,
         finalRect.y + pad.top,
@@ -55,11 +57,29 @@ void FlyoutPresenter::Arrange(Rect finalRect) {
     }
 }
 
+void FlyoutPresenter::OnRender(GraphicsContext& ctx) {
+    // Popups stay fully opaque — never borrow Surface/Mica alpha.
+    float radius = GetCornerRadius();
+    D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+    D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+
+    if (radius > 0.0f) {
+        ctx.FillRoundedRect(m_bounds, radius, bg);
+        ctx.DrawRoundedRect(m_bounds, radius, border, GetBorderThickness() > 0.0f ? GetBorderThickness() : 1.0f);
+    } else {
+        ctx.FillRect(m_bounds, bg);
+        ctx.DrawRect(m_bounds, border, 1.0f);
+    }
+}
+
 // ---------------- Flyout ----------------
 
 Flyout::Flyout() {
+    // Presenter is overlay-only — not a layout child (avoids eating Column space
+    // and having Arrange overwrite ShowAt coordinates on every Relayout).
     m_presenter = std::make_shared<FlyoutPresenter>();
-    AddChild(m_presenter);
+    SetVisibility(Visibility::Visible);
+    SetClipToBounds(false);
 }
 
 Flyout::Flyout(std::shared_ptr<UIElement> content) : Flyout() {
@@ -72,34 +92,44 @@ void Flyout::SetContent(std::shared_ptr<UIElement> content) {
     }
 }
 
+Size Flyout::Measure(Size availableSize) {
+    (void)availableSize;
+    // Zero-size host in document flow; popup is overlay-only.
+    m_desiredSize = Size(0.0f, 0.0f);
+    return m_desiredSize;
+}
+
+void Flyout::Arrange(Rect finalRect) {
+    // Keep a 0x0 bounds at the flow position so HitTest does not claim space,
+    // but never re-layout the presenter here (ShowAt owns that).
+    SetBounds(Rect(finalRect.x, finalRect.y, 0.0f, 0.0f));
+}
+
 void Flyout::ShowAt(UIElement* target) {
-    if (!target) return;
+    if (!target || !m_presenter) return;
+    m_anchor = target;
     Rect targetBounds = target->GetBounds();
 
-    Size available(280.0f, 200.0f);
-    if (m_presenter) {
-        m_popupSize = m_presenter->Measure(available);
-    }
+    Size available(480.0f, 640.0f);
+    m_popupSize = m_presenter->Measure(available);
 
     float popupX = targetBounds.x;
-    float popupY = targetBounds.y + targetBounds.height + 4.0f;
+    float popupY = targetBounds.y + targetBounds.height + 6.0f;
 
     switch (m_placement) {
     case FlyoutPlacement::Top:
-        popupY = targetBounds.y - m_popupSize.height - 4.0f;
+        popupY = targetBounds.y - m_popupSize.height - 6.0f;
         break;
     case FlyoutPlacement::Left:
-        popupX = targetBounds.x - m_popupSize.width - 4.0f;
+        popupX = targetBounds.x - m_popupSize.width - 6.0f;
         popupY = targetBounds.y;
         break;
     case FlyoutPlacement::Right:
-        popupX = targetBounds.x + targetBounds.width + 4.0f;
+        popupX = targetBounds.x + targetBounds.width + 6.0f;
         popupY = targetBounds.y;
         break;
     case FlyoutPlacement::Bottom:
     default:
-        popupX = targetBounds.x;
-        popupY = targetBounds.y + targetBounds.height + 4.0f;
         break;
     }
 
@@ -108,25 +138,68 @@ void Flyout::ShowAt(UIElement* target) {
 
 void Flyout::ShowAt(Point pt) {
     m_popupPos = pt;
+    if (m_popupSize.width <= 0.0f || m_popupSize.height <= 0.0f) {
+        if (m_presenter) {
+            m_popupSize = m_presenter->Measure(Size(480.0f, 640.0f));
+        }
+    }
     if (m_presenter) {
         m_presenter->Arrange(Rect(pt.x, pt.y, m_popupSize.width, m_popupSize.height));
     }
     m_isOpen = true;
+    m_popupAnim.SetTarget(1.0f);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_popupAnim.Reset(1.0f);
+    }
+    if (PopupHost* host = PopupHost::Current()) {
+        host->Open(this);
+    }
+    RequestAnimationTicks();
     MarkRenderContentDirty();
 }
 
 void Flyout::Hide() {
+    if (!m_isOpen && m_popupAnim.Current() <= 0.001f) return;
     m_isOpen = false;
+    m_popupAnim.SetTarget(0.0f);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_popupAnim.Reset(0.0f);
+    }
+    if (PopupHost* host = PopupHost::Current()) {
+        host->Close(this);
+    }
+    RequestAnimationTicks();
     MarkRenderContentDirty();
 }
 
+Rect Flyout::GetPopupBounds() const {
+    if (m_popupSize.width <= 0.0f || m_popupSize.height <= 0.0f) return Rect();
+    return Rect(m_popupPos.x, m_popupPos.y, m_popupSize.width, m_popupSize.height);
+}
+
+bool Flyout::HitDismissExempt(float x, float y) const {
+    if (!m_isOpen && m_popupAnim.Current() <= 0.001f) return false;
+    if (GetPopupBounds().Contains(x, y)) return true;
+    if (m_anchor && m_anchor->GetBounds().Contains(x, y)) return true;
+    return false;
+}
+
 void Flyout::OnRenderOverlay(GraphicsContext& ctx) {
+    // When open, PopupHost owns paint; keep tree path for close-animation frames.
+    if (PopupHost::Current() && m_isOpen) return;
+    RenderPopup(ctx);
+}
+
+void Flyout::RenderPopup(GraphicsContext& ctx) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isOpen ? 1.0f : 0.0f);
     if (progress <= 0.001f || !m_presenter) return;
 
-    float currentH = (m_isOpen && progress >= 0.98f) ? m_popupSize.height : (m_popupSize.height * progress);
-    Rect fullRect(m_popupPos.x, m_popupPos.y, m_popupSize.width, m_popupSize.height);
+    float currentH = m_popupSize.height * (std::clamp)(progress, 0.0f, 1.0f);
+    if (currentH < 1.0f) return;
+
     Rect clipRect(m_popupPos.x, m_popupPos.y, m_popupSize.width, currentH);
+    // Keep presenter bounds synced (Relayout must not have moved it).
+    m_presenter->Arrange(Rect(m_popupPos.x, m_popupPos.y, m_popupSize.width, m_popupSize.height));
 
     ctx.PushClip(clipRect);
     m_presenter->Render(ctx);
@@ -137,9 +210,10 @@ UIElement* Flyout::HitTestOverlay(float x, float y) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isOpen ? 1.0f : 0.0f);
     if (progress <= 0.5f || !m_isOpen || !m_presenter) return nullptr;
 
-    Rect popRect(m_popupPos.x, m_popupPos.y, m_popupSize.width, m_popupSize.height);
+    Rect popRect = GetPopupBounds();
     if (popRect.Contains(x, y)) {
-        return m_presenter->HitTest(x, y);
+        UIElement* hit = m_presenter->HitTest(x, y);
+        return hit ? hit : m_presenter.get();
     }
     return nullptr;
 }
@@ -147,11 +221,28 @@ UIElement* Flyout::HitTestOverlay(float x, float y) {
 bool Flyout::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isOpen ? 1.0f : 0.0f);
-    return m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.22f, 0.01f });
+    if (m_presenter) {
+        animating = m_presenter->OnAnimationTick() || animating;
+    }
+    if (animating) {
+        RequestAnimationTicks();
+    }
+    return animating;
 }
 
 bool Flyout::HasSelfAnimation() const {
     return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f;
+}
+
+void Flyout::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    if (HasSelfAnimation() || m_isOpen || m_popupAnim.Current() > 0.001f) {
+        Rect area = GetPopupBounds().Inflate(6.0f);
+        if (!area.IsEmpty()) {
+            dirtyRect = hasDirty ? dirtyRect.Union(area) : area;
+            hasDirty = true;
+        }
+    }
 }
 
 } // namespace CUI

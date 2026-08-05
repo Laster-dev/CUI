@@ -17,19 +17,39 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    float GetValue() const { return GetProperty("value").AsFloat(0.0f); }
-    void SetValue(float val) { SetProperty("value", Value(val)); }
+    float GetValue() const { return m_value; }
+    void SetValue(float val) {
+        m_value = val;
+        NotifyFieldChanged(PropertyId::ControlValue, Value(val));
+        RequestAnimationTicks();
+    }
 
-    float GetMinimum() const { return GetProperty("minimum").AsFloat(0.0f); }
-    void SetMinimum(float minVal) { SetProperty("minimum", Value(minVal)); }
+    float GetMinimum() const { return m_minimum; }
+    void SetMinimum(float minVal) {
+        m_minimum = minVal;
+        NotifyFieldChanged(PropertyId::Minimum, Value(minVal));
+    }
 
-    float GetMaximum() const { return GetProperty("maximum").AsFloat(100.0f); }
-    void SetMaximum(float maxVal) { SetProperty("maximum", Value(maxVal)); }
+    float GetMaximum() const { return m_maximum; }
+    void SetMaximum(float maxVal) {
+        m_maximum = maxVal;
+        NotifyFieldChanged(PropertyId::Maximum, Value(maxVal));
+    }
 
-    bool IsIndeterminate() const { return GetProperty("isIndeterminate").AsBool(false); }
-    void SetIsIndeterminate(bool ind) { SetProperty("isIndeterminate", Value(ind)); }
+    bool IsIndeterminate() const { return m_isIndeterminate; }
+    void SetIsIndeterminate(bool ind) {
+        m_isIndeterminate = ind;
+        NotifyFieldChanged(PropertyId::IsIndeterminate, Value(ind));
+        if (ind) {
+            RequestAnimationTicks();
+        }
+    }
 
 private:
+    float m_value = 0.0f;
+    float m_minimum = 0.0f;
+    float m_maximum = 100.0f;
+    bool m_isIndeterminate = false;
     float m_animOffset = 0.0f;
     float m_displayValue = 0.0f;
     std::chrono::steady_clock::time_point m_lastTickTime{};

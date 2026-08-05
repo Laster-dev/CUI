@@ -11,11 +11,11 @@ ShowcasePage BuildToastPage(const ShowcaseContext& ctx) {
     auto count = CreateShowcaseText("活动通知: 0", 12.0f, "#9CDCFE", false, "Consolas");
     auto updateCount = [window = ctx.windowRef, count]() {
         auto center = ToastCenter::Ensure(window->GetRootElement().get());
-        count->SetProperty("text", Value("活动通知: " + std::to_string(center ? center->GetActiveCount() : 0)));
+        count->SetText("活动通知: " + std::to_string(center ? center->GetActiveCount() : 0));
     };
     auto emitToast = [window = ctx.windowRef, log, updateCount](const std::string& title, const std::string& message, ToastType type, ToastCorner corner, int durationMs) {
         ToastCenter::Show(window->GetRootElement().get(), title, message, type, corner, durationMs);
-        log->SetProperty("text", Value("[Toast] " + title + " -> " + message));
+        log->SetText("[Toast] " + title + " -> " + message);
         updateCount();
     };
 
@@ -27,14 +27,14 @@ ShowcasePage BuildToastPage(const ShowcaseContext& ctx) {
     fromTemplate->OnClick().Connect([window = ctx.windowRef, tmpl = ctx.toastTemplate, log, updateCount](UIElement*) {
         auto center = ToastCenter::Ensure(window->GetRootElement().get());
         if (center) center->ShowFromTemplate(tmpl.get(), "Template Toast", "这是声明式 Widget 版本模板通知");
-        log->SetProperty("text", Value("[Toast] 已按模板生成一条通知。"));
+        log->SetText("[Toast] 已按模板生成一条通知。");
         updateCount();
     });
     auto dismiss = ElevatedButton("全部关闭").Background("#5A5A5A").Padding(14, 8, 14, 8).CornerRadius(4).Build();
     dismiss->OnClick().Connect([window = ctx.windowRef, log, updateCount](UIElement*) {
         auto center = ToastCenter::Ensure(window->GetRootElement().get());
         if (center) center->DismissAll();
-        log->SetProperty("text", Value("[Toast] 已请求关闭全部通知。"));
+        log->SetText("[Toast] 已请求关闭全部通知。");
         updateCount();
     });
 

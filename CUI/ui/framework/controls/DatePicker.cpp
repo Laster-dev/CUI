@@ -17,16 +17,16 @@ DatePicker::DatePicker() {
     m_month = tmVal.tm_mon + 1;
     m_day = tmVal.tm_mday;
 
-    SetProperty("theme.backgroundToken", Value("inputBackground"));
-    SetProperty("theme.borderToken", Value("inputBorder"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("background", Value(tokens.inputBackground));
-    SetProperty("borderBrush", Value(tokens.inputBorder));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(tokens.textPrimary));
-    SetProperty("cornerRadius", Value(4.0f));
-    SetProperty("width", Value(160.0f));
-    SetProperty("height", Value(30.0f));
+    SetBackgroundToken(ThemeTokenId::InputBackground);
+    SetBorderToken(ThemeTokenId::InputBorder);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetBackground(tokens.inputBackground);
+    SetBorderBrush(tokens.inputBorder);
+    SetBorderThickness(1.0f);
+    SetColor(tokens.textPrimary);
+    SetCornerRadius(4.0f);
+    SetWidth(160.0f);
+    SetHeight(30.0f);
 }
 
 std::vector<PropertyMeta> DatePicker::GetPropertyMetas() const {
@@ -36,8 +36,8 @@ std::vector<PropertyMeta> DatePicker::GetPropertyMetas() const {
 }
 
 Size DatePicker::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(160.0f);
-    float expH = GetProperty("height").AsFloat(30.0f);
+    float expW = GetWidth(); if (expW < 0) expW = 160.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 30.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
@@ -73,7 +73,7 @@ void DatePicker::SetDate(int y, int m, int d) {
     m_month = std::clamp(m, 1, 12);
     int daysInMonth = GetDaysInMonth(m_year, m_month);
     m_day = std::clamp(d, 1, daysInMonth);
-    SetProperty("dateStr", Value(GetFormattedDate()));
+    NotifyFieldChanged(PropertyId::DateStr, Value(GetFormattedDate()));
     m_onDateChangedEvent.Invoke(this, m_year, m_month, m_day);
 }
 
@@ -165,7 +165,7 @@ void DatePicker::OnMouseDown(Point pt) {
 
                 if (day >= 1 && day <= daysInMonth) {
                     SetDate(m_year, m_month, day);
-                    m_isPopupOpen = false;
+                    SetPopupOpen(false);
                 }
             } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
                 // 3x4 Month Grid
@@ -192,10 +192,10 @@ void DatePicker::OnMouseDown(Point pt) {
             }
             return;
         }
-        m_isPopupOpen = false;
+        SetPopupOpen(false);
     } else {
         if (m_bounds.Contains(pt.x, pt.y)) {
-            m_isPopupOpen = true;
+            SetPopupOpen(true);
             m_viewMode = DatePickerViewMode::DayGrid;
         }
     }
@@ -205,15 +205,37 @@ void DatePicker::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
     std::string text = "📅 " + GetFormattedDate();
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-    std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
-    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
+    float fontSize = GetFontSize();
+    std::string fontFamily = GetFontFamily();
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
 
     Rect textRect(m_bounds.x + 8.0f, m_bounds.y, m_bounds.width - 16.0f, m_bounds.height);
     ctx.DrawText(text, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
-void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
+void DatePicker::SetPopupOpen(bool open) {
+    if (m_isPopupOpen == open) return;
+    m_isPopupOpen = open;
+    if (PopupHost* host = PopupHost::Current()) {
+        if (open) {
+            host->Open(this);
+        } else {
+            host->Close(this);
+        }
+    }
+    MarkRenderContentDirty();
+}
+
+Rect DatePicker::GetPopupBounds() const {
+    return Rect(m_bounds.x, m_bounds.y + m_bounds.height + 4.0f, 240.0f, 240.0f);
+}
+
+bool DatePicker::HitDismissExempt(float x, float y) const {
+    if (m_bounds.Contains(x, y)) return true;
+    return GetPopupBounds().Contains(x, y);
+}
+
+void DatePicker::RenderPopup(GraphicsContext& ctx) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
     if (progress <= 0.001f) return;
 
@@ -330,6 +352,11 @@ void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
     }
 
     ctx.PopClip();
+}
+
+void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
+    if (PopupHost::Current() && m_isPopupOpen) return;
+    RenderPopup(ctx);
 }
 
 } // namespace CUI

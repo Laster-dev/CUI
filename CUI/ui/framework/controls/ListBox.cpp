@@ -11,23 +11,27 @@
 namespace CUI {
 
 ListBox::ListBox() {
-    SetProperty("theme.backgroundToken", Value("cardBackground"));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
-    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
-    SetProperty("selectedBackground", Value(ThemeManager::Instance().GetColor("selectedBackground")));
-    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
-    SetProperty("fontSize", Value(13.0f));
-    SetProperty("fontFamily", Value("Segoe UI"));
-    SetProperty("itemHeight", Value(28.0f));
-    SetProperty("cornerRadius", Value(4.0f));
-    SetProperty("width", Value(240.0f));
-    SetProperty("height", Value(300.0f));
+    SetBackgroundToken(ThemeTokenId::CardBackground);
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
+    SetBorderThickness(1.0f);
+    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
+    SetFontSize(13.0f);
+    SetFontFamily("Segoe UI");
+    SetItemHeight(28.0f);
+    SetCornerRadius(4.0f);
+    SetWidth(240.0f);
+    SetHeight(300.0f);
+}
+
+void ListBox::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::Items) { SetItems(val.AsString("")); return; }
+    Control::SetProperty(id, val);
 }
 
 void ListBox::AddItem(const std::string& item) {
@@ -78,6 +82,16 @@ void ListBox::SetItems(const std::vector<std::string>& items) {
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
+}
+
+void ListBox::SetItems(const std::string& itemsCsv) {
+    std::vector<std::string> items;
+    std::stringstream ss(itemsCsv);
+    std::string item;
+    while (std::getline(ss, item, ',')) {
+        if (!item.empty()) items.push_back(item);
+    }
+    SetItems(items);
 }
 
 void ListBox::ClearItems() {
@@ -219,8 +233,7 @@ std::string ListBox::GetSelectedItem() const {
 }
 
 UIElement* ListBox::HitTest(float x, float y) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return nullptr;
+    if (GetVisibility() != Visibility::Visible) return nullptr;
 
     if (m_bounds.Contains(x, y)) {
         int idx = GetItemIndexFromY(y);
@@ -246,8 +259,8 @@ UIElement* ListBox::HitTest(float x, float y) {
 }
 
 Size ListBox::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(240.0f);
-    float expH = GetProperty("height").AsFloat(300.0f);
+    float expW = GetWidth(); if (expW < 0) expW = 240.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 300.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
@@ -298,8 +311,7 @@ void ListBox::EnsureVisible(int index) {
 }
 
 void ListBox::Render(GraphicsContext& ctx) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return;
+    if (GetVisibility() != Visibility::Visible) return;
 
     bool clip = ShouldClipToBounds();
     if (clip) {
@@ -314,22 +326,12 @@ void ListBox::Render(GraphicsContext& ctx) {
 }
 
 void ListBox::OnRender(GraphicsContext& ctx) {
-    // 1. Support items property parsing from XML DSL
-    std::string itemsProp = GetProperty("items").AsString("");
-    if (!m_virtualMode && !itemsProp.empty() && m_itemDatas.empty()) {
-        std::stringstream ss(itemsProp);
-        std::string item;
-        while (std::getline(ss, item, ',')) {
-            if (!item.empty()) AddItem(item);
-        }
-    }
-
     ClampScroll();
 
-    float radius = GetProperty("cornerRadius").AsFloat(4.0f);
-    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
-    D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
-    float borderThick = GetProperty("borderThickness").AsFloat(1.0f);
+    float radius = GetCornerRadius();
+    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    float borderThick = GetBorderThickness();
 
     // Draw container background and border
     ctx.FillRoundedRect(m_bounds, radius, bg);
@@ -339,12 +341,12 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     ctx.PushClip(Rect(m_bounds.x + 1, m_bounds.y + 1, m_bounds.width - 2, m_bounds.height - 2));
 
     float itemH = GetItemHeight();
-    float fontH = GetProperty("fontSize").AsFloat(13.0f);
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
-    D2D1_COLOR_F selectedBg = ResolveThemeColor("theme.selectedBackgroundToken", "selectedBackground");
-    D2D1_COLOR_F hoverBg = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
-    D2D1_COLOR_F focusBorderColor = ResolveThemeColor("theme.borderToken", "accentColor");
+    float fontH = GetFontSize();
+    std::string font = GetFontFamily();
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    D2D1_COLOR_F selectedBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
+    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    D2D1_COLOR_F focusBorderColor = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
 
     float sbWidth = (m_maxScrollY > 0.0f) ? 8.0f : 0.0f;
     float itemW = m_bounds.width - 4.0f - sbWidth;
@@ -382,7 +384,7 @@ void ListBox::OnRender(GraphicsContext& ctx) {
             m_itemDatas[i].customElement->Render(ctx);
         } else {
             std::string itemText = GetItemAt(i);
-            D2D1_COLOR_F textClr = isSelected ? ThemeManager::Instance().GetColor("textPrimary") : textColor;
+            D2D1_COLOR_F textClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor;
             Rect textRect(itemRect.x + 8.0f, itemRect.y, itemRect.width - 16.0f, itemRect.height);
             ctx.DrawText(itemText, textRect, textClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }

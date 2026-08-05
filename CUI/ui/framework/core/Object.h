@@ -1,9 +1,10 @@
 #pragma once
 #include "Value.h"
 #include "Event.h"
-#include <unordered_map>
-#include <string>
+#include "PropertyId.h"
 #include <memory>
+#include <utility>
+#include <vector>
 
 namespace CUI {
 
@@ -14,16 +15,20 @@ public:
 
     virtual const char* GetClassName() const { return "Object"; }
 
-    void SetProperty(const std::string& name, const Value& val);
-    Value GetProperty(const std::string& name) const;
-    bool HasProperty(const std::string& name) const;
-    const std::unordered_map<std::string, Value>& GetAllProperties() const { return m_properties; }
+    virtual void SetProperty(PropertyId id, const Value& val);
+    virtual Value GetProperty(PropertyId id) const;
+    virtual bool HasProperty(PropertyId id) const;
+    virtual std::vector<std::pair<PropertyId, Value>> SnapshotProperties() const { return {}; }
 
-    Event<const std::string&, const Value&>& OnPropertyChanged() { return m_propertyChangedEvent; }
+    Event<PropertyId, const Value&>& OnPropertyIdChanged() { return m_propertyIdChangedEvent; }
+
+protected:
+    void NotifyPropertyIdChanged(PropertyId id, const Value& val) {
+        m_propertyIdChangedEvent.Invoke(id, val);
+    }
 
 private:
-    std::unordered_map<std::string, Value> m_properties;
-    Event<const std::string&, const Value&> m_propertyChangedEvent;
+    Event<PropertyId, const Value&> m_propertyIdChangedEvent;
 };
 
 } // namespace CUI

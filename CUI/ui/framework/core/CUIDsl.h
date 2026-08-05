@@ -83,28 +83,28 @@ public:
     }
 
     ElementBuilder& Width(float w) {
-        m_element->SetProperty("width", Value(w));
+        m_element->SetWidth(w);
         return *this;
     }
 
     ElementBuilder& Height(float h) {
-        m_element->SetProperty("height", Value(h));
+        m_element->SetHeight(h);
         return *this;
     }
 
     ElementBuilder& MinWidth(float w) {
-        m_element->SetProperty("minWidth", Value(w));
+        m_element->SetMinWidth(w);
         return *this;
     }
 
     ElementBuilder& MinHeight(float h) {
-        m_element->SetProperty("minHeight", Value(h));
+        m_element->SetMinHeight(h);
         return *this;
     }
 
     ElementBuilder& Size(float w, float h) {
-        m_element->SetProperty("width", Value(w));
-        m_element->SetProperty("height", Value(h));
+        m_element->SetWidth(w);
+        m_element->SetHeight(h);
         return *this;
     }
 
@@ -129,101 +129,93 @@ public:
     }
 
     ElementBuilder& FlexGrow(float flex) {
-        m_element->SetProperty("flexGrow", Value(flex));
+        m_element->SetFlexGrow(flex);
         return *this;
     }
 
     ElementBuilder& Background(const std::string& colorStr) {
         std::string token = ResolveLegacyThemeTokenForColor(colorStr);
         if (!token.empty()) {
-            m_element->SetProperty("theme.backgroundToken", Value(token));
-            m_element->SetProperty("background", Value(ThemeManager::Instance().GetColor(token)));
+            ThemeTokenId id = ThemeTokenIdFromName(token);
+            m_element->SetBackgroundToken(id);
             if (token == "accentColor" || token == "dangerColor" || token == "statusBarBackground") {
-                m_element->SetProperty("theme.colorToken", Value("accentForeground"));
-                m_element->SetProperty("color", Value(ThemeManager::Instance().GetColor("accentForeground")));
+                m_element->SetColorToken(ThemeTokenId::AccentForeground);
             } else if (token == "inputBorder" || token == "cardBorder" || token == "cardBackground" ||
                        token == "paneBackground" || token == "hoverBackground" || token == "windowBackground") {
-                m_element->SetProperty("theme.colorToken", Value("textPrimary"));
-                m_element->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+                m_element->SetColorToken(ThemeTokenId::TextPrimary);
             }
             return *this;
         }
         // Unmapped hex must not bypass the color system — fall back to accent
-        m_element->SetProperty("theme.backgroundToken", Value("accentColor"));
-        m_element->SetProperty("theme.colorToken", Value("accentForeground"));
-        m_element->SetProperty("background", Value(ThemeManager::Instance().GetColor("accentColor")));
-        m_element->SetProperty("color", Value(ThemeManager::Instance().GetColor("accentForeground")));
+        m_element->SetBackgroundToken(ThemeTokenId::AccentColor);
+        m_element->SetColorToken(ThemeTokenId::AccentForeground);
         return *this;
     }
 
     ElementBuilder& Background(D2D1_COLOR_F color) {
-        m_element->SetProperty("background", Value(color));
+        m_element->SetBackground(color);
         return *this;
     }
 
     ElementBuilder& HoverBackground(const std::string& colorStr) {
         std::string token = ResolveLegacyThemeTokenForColor(colorStr);
         if (!token.empty()) {
-            m_element->SetProperty("theme.hoverBackgroundToken", Value(token));
-            m_element->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor(token)));
+            m_element->SetHoverBackgroundToken(ThemeTokenIdFromName(token));
             return *this;
         }
-        m_element->SetProperty("hoverBackground", Value(colorStr));
+        m_element->SetHoverBackground(Value::ParseColor(colorStr));
         return *this;
     }
 
     ElementBuilder& PressedBackground(const std::string& colorStr) {
         std::string token = ResolveLegacyThemeTokenForColor(colorStr);
         if (!token.empty()) {
-            m_element->SetProperty("theme.pressedBackgroundToken", Value(token));
-            m_element->SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor(token)));
+            m_element->SetPressedBackgroundToken(ThemeTokenIdFromName(token));
             return *this;
         }
-        m_element->SetProperty("pressedBackground", Value(colorStr));
+        m_element->SetPressedBackground(Value::ParseColor(colorStr));
         return *this;
     }
 
     ElementBuilder& Color(const std::string& colorStr) {
         std::string token = ResolveLegacyThemeTokenForColor(colorStr);
         if (!token.empty()) {
-            m_element->SetProperty("theme.colorToken", Value(token));
-            m_element->SetProperty("color", Value(ThemeManager::Instance().GetColor(token)));
+            m_element->SetColorToken(ThemeTokenIdFromName(token));
             return *this;
         }
-        m_element->SetProperty("color", Value(colorStr));
+        m_element->SetColor(Value::ParseColor(colorStr));
         return *this;
     }
 
     ElementBuilder& Color(D2D1_COLOR_F color) {
-        m_element->SetProperty("color", Value(color));
+        m_element->SetColor(color);
         return *this;
     }
 
     ElementBuilder& FontSize(float size) {
-        m_element->SetProperty("fontSize", Value(size));
+        m_element->SetFontSize(size);
         return *this;
     }
 
     ElementBuilder& FontFamily(const std::string& family) {
-        m_element->SetProperty("fontFamily", Value(family));
+        m_element->SetFontFamily(family);
         return *this;
     }
 
     ElementBuilder& CornerRadius(float r) {
-        m_element->SetProperty("cornerRadius", Value(r));
+        m_element->SetCornerRadius(r);
         return *this;
     }
 
     ElementBuilder& Border(const std::string& colorStr, float thickness = 1.0f) {
         std::string token = ResolveLegacyThemeTokenForColor(colorStr);
         if (!token.empty()) {
-            m_element->SetProperty("theme.borderToken", Value(token));
-            m_element->SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor(token)));
-            m_element->SetProperty("borderThickness", Value(thickness));
+            m_element->SetBorderToken(ThemeTokenIdFromName(token));
+            m_element->SetBorderThickness(thickness);
             return *this;
         }
-        m_element->SetProperty("borderBrush", Value(colorStr));
-        m_element->SetProperty("borderThickness", Value(thickness));
+        m_element->SetBorderBrush(Value::ParseColor(colorStr));
+        m_element->SetBorderThickness(thickness);
         return *this;
     }
 
@@ -233,7 +225,9 @@ public:
     }
 
     ElementBuilder& Visibility(const std::string& vis) {
-        m_element->SetProperty("visibility", Value(vis));
+        if (vis == "Hidden") m_element->SetVisibility(CUI::Visibility::Hidden);
+        else if (vis == "Collapsed") m_element->SetVisibility(CUI::Visibility::Collapsed);
+        else m_element->SetVisibility(CUI::Visibility::Visible);
         return *this;
     }
 
@@ -252,22 +246,26 @@ public:
 
     // Control Specific Extension Methods
     ElementBuilder& Text(const std::string& text) {
-        m_element->SetProperty("text", Value(text));
+        m_element->SetText(text);
         return *this;
     }
 
     ElementBuilder& Icon(const std::string& icon) {
-        m_element->SetProperty("icon", Value(icon));
+        m_element->SetIcon(icon);
         return *this;
     }
 
     ElementBuilder& Orientation(const std::string& orient) {
-        m_element->SetProperty("orientation", Value(orient));
+        if (orient == "Horizontal" || orient == "Row") {
+            m_element->SetOrientation(CUI::Orientation::Horizontal);
+        } else {
+            m_element->SetOrientation(CUI::Orientation::Vertical);
+        }
         return *this;
     }
 
     ElementBuilder& Gap(float gap) {
-        m_element->SetProperty("gap", Value(gap));
+        m_element->SetGap(gap);
         return *this;
     }
 
@@ -362,8 +360,8 @@ inline ElementBuilder<DockPanel> DockPanelWidget() {
 
 inline ElementBuilder<UniformGrid> UniformGridWidget(int rows = 2, int cols = 2) {
     auto u = ElementBuilder<UniformGrid>();
-    u->SetProperty("rows", Value(rows));
-    u->SetProperty("columns", Value(cols));
+    u->SetRows(rows);
+    u->SetColumns(cols);
     return u;
 }
 
@@ -379,7 +377,7 @@ inline ElementBuilder<Panel> Expanded(std::shared_ptr<UIElement> child, float fl
         // slot. The wrapper participates in the parent flex layout, and the
         // child must also flex inside that wrapper; otherwise it keeps its old
         // desired height and can paint past the actual viewport.
-        child->SetProperty("flexGrow", Value(1.0f));
+        child->SetFlexGrow(1.0f);
         p.Add(child);
     }
     return p;
@@ -456,14 +454,14 @@ inline ElementBuilder<Splitter> SplitterWidget(Orientation orientation = Orienta
     // not a thickness×thickness square.
     if (orientation == Orientation::Horizontal) {
         s->SetOrientation("Horizontal");
-        s->SetProperty("width", Value(-1.0f));
-        s->SetProperty("height", Value(10.0f));
+        s->SetWidth(-1.0f);
+        s->SetHeight(10.0f);
     } else {
         s->SetOrientation("Vertical");
-        s->SetProperty("width", Value(10.0f));
-        s->SetProperty("height", Value(-1.0f));
+        s->SetWidth(10.0f);
+        s->SetHeight(-1.0f);
     }
-    s->SetProperty("align", Value("Stretch"));
+    s->SetAlign(Alignment::Stretch);
     return s;
 }
 

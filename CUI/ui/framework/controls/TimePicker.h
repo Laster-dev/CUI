@@ -1,10 +1,11 @@
 #pragma once
 #include "Control.h"
+#include "../window/PopupHost.h"
 #include <chrono>
 
 namespace CUI {
 
-class TimePicker : public Control {
+class TimePicker : public Control, public IPopup {
 public:
     TimePicker();
     virtual ~TimePicker() = default;
@@ -22,8 +23,15 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    bool IsPopupOpen() const { return m_isPopupOpen; }
-    void SetPopupOpen(bool open) { m_isPopupOpen = open; }
+    // IPopup
+    virtual bool IsPopupOpen() const override { return m_isPopupOpen; }
+    virtual Rect GetPopupBounds() const override;
+    virtual bool HitDismissExempt(float x, float y) const override;
+    virtual UIElement* HitTestPopup(float x, float y) override { return OnHitTestOverlay(x, y); }
+    virtual void RenderPopup(GraphicsContext& ctx) override;
+    virtual void OnLightDismiss() override { SetPopupOpen(false); }
+
+    void SetPopupOpen(bool open);
 
     int GetHour() const { return m_hour; }
     int GetMinute() const { return m_minute; }

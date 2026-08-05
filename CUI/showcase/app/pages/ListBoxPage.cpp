@@ -3,8 +3,8 @@
 
 ShowcasePage BuildListBoxPage(const ShowcaseContext& ctx) {
     auto target = std::make_shared<CUI::ListBox>();
-    target->SetProperty("width", CUI::Value(340.0f));
-    target->SetProperty("height", CUI::Value(280.0f));
+    target->SetWidth(340.0f);
+    target->SetHeight(280.0f);
     target->SetVirtualCount(100000);
     target->SetSelectedIndex(0);
     return { "ListBox (100k)", CreatePage(

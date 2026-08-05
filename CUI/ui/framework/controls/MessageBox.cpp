@@ -5,24 +5,24 @@
 namespace CUI {
 
 ContentDialog::ContentDialog() {
-    SetProperty("theme.backgroundToken", Value("cardBackground"));
-    SetProperty("theme.borderToken", Value("cardBorder"));
+    SetBackgroundToken(ThemeTokenId::CardBackground);
+    SetBorderToken(ThemeTokenId::CardBorder);
 
     m_txtTitle = std::make_shared<TextBlock>(m_titleText);
-    m_txtTitle->SetProperty("fontSize", Value(18.0f));
-    m_txtTitle->SetProperty("fontWeight", Value("Bold"));
-    m_txtTitle->SetProperty("theme.colorToken", Value("textPrimary"));
-    m_txtTitle->SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
+    m_txtTitle->SetFontSize(18.0f);
+    m_txtTitle->SetFontWeight("Bold");
+    m_txtTitle->SetColorToken(ThemeTokenId::TextPrimary);
+    m_txtTitle->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
 
     m_txtMessage = std::make_shared<TextBlock>(m_messageText);
-    m_txtMessage->SetProperty("fontSize", Value(13.0f));
-    m_txtMessage->SetProperty("theme.colorToken", Value("textSecondary"));
-    m_txtMessage->SetProperty("color", Value(ThemeManager::Instance().GetColor("textSecondary")));
+    m_txtMessage->SetFontSize(13.0f);
+    m_txtMessage->SetColorToken(ThemeTokenId::TextSecondary);
+    m_txtMessage->SetColor(ThemeManager::Instance().GetColor("textSecondary"));
 
     m_btnPrimary = std::make_shared<Button>(m_primaryText);
-    m_btnPrimary->SetProperty("theme.backgroundToken", Value("accentColor"));
-    m_btnPrimary->SetProperty("background", Value(ThemeManager::Instance().GetColor("accentColor")));
-    m_btnPrimary->SetProperty("padding", Value(Thickness(16, 6, 16, 6)));
+    m_btnPrimary->SetBackgroundToken(ThemeTokenId::AccentColor);
+    m_btnPrimary->SetBackground(ThemeManager::Instance().GetColor("accentColor"));
+    m_btnPrimary->SetPadding(Thickness(16, 6, 16, 6));
     m_btnPrimary->OnClick().Connect([this](UIElement*) {
         DialogResult res = DialogResult::Primary;
         Hide();
@@ -30,9 +30,9 @@ ContentDialog::ContentDialog() {
     });
 
     m_btnSecondary = std::make_shared<Button>(m_secondaryText);
-    m_btnSecondary->SetProperty("theme.backgroundToken", Value("cardBorder"));
-    m_btnSecondary->SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBorder")));
-    m_btnSecondary->SetProperty("padding", Value(Thickness(16, 6, 16, 6)));
+    m_btnSecondary->SetBackgroundToken(ThemeTokenId::CardBorder);
+    m_btnSecondary->SetBackground(ThemeManager::Instance().GetColor("cardBorder"));
+    m_btnSecondary->SetPadding(Thickness(16, 6, 16, 6));
     m_btnSecondary->OnClick().Connect([this](UIElement*) {
         DialogResult res = DialogResult::Secondary;
         Hide();
@@ -40,9 +40,9 @@ ContentDialog::ContentDialog() {
     });
 
     m_btnClose = std::make_shared<Button>(m_closeText);
-    m_btnClose->SetProperty("theme.backgroundToken", Value("cardBackground"));
-    m_btnClose->SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
-    m_btnClose->SetProperty("padding", Value(Thickness(16, 6, 16, 6)));
+    m_btnClose->SetBackgroundToken(ThemeTokenId::CardBackground);
+    m_btnClose->SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    m_btnClose->SetPadding(Thickness(16, 6, 16, 6));
     m_btnClose->OnClick().Connect([this](UIElement*) {
         DialogResult res = DialogResult::Cancel;
         Hide();
@@ -58,27 +58,27 @@ ContentDialog::ContentDialog() {
 
 void ContentDialog::SetTitle(const std::string& title) {
     m_titleText = title;
-    if (m_txtTitle) m_txtTitle->SetProperty("text", Value(title));
+    if (m_txtTitle) m_txtTitle->SetText(title);
 }
 
 void ContentDialog::SetMessage(const std::string& message) {
     m_messageText = message;
-    if (m_txtMessage) m_txtMessage->SetProperty("text", Value(message));
+    if (m_txtMessage) m_txtMessage->SetText(message);
 }
 
 void ContentDialog::SetPrimaryButtonText(const std::string& text) {
     m_primaryText = text;
-    if (m_btnPrimary) m_btnPrimary->SetProperty("text", Value(text));
+    if (m_btnPrimary) m_btnPrimary->SetText(text);
 }
 
 void ContentDialog::SetSecondaryButtonText(const std::string& text) {
     m_secondaryText = text;
-    if (m_btnSecondary) m_btnSecondary->SetProperty("text", Value(text));
+    if (m_btnSecondary) m_btnSecondary->SetText(text);
 }
 
 void ContentDialog::SetCloseButtonText(const std::string& text) {
     m_closeText = text;
-    if (m_btnClose) m_btnClose->SetProperty("text", Value(text));
+    if (m_btnClose) m_btnClose->SetText(text);
 }
 
 static float Clamp01(float value) {
@@ -229,9 +229,9 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
     ctx.FillRoundedRect(Rect(cardX - 6, cardY - 6, cardW + 12, cardH + 12), 12.0f, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.35f * m_animProgress));
 
     // Card Background
-    D2D1_COLOR_F cardBg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
+    D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
     cardBg.a = m_animProgress;
-    D2D1_COLOR_F cardBorder = ResolveThemeColor("theme.borderToken", "cardBorder");
+    D2D1_COLOR_F cardBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     cardBorder.a = m_animProgress;
     ctx.FillRoundedRect(m_dialogBounds, 8.0f, cardBg);
     ctx.DrawRoundedRect(m_dialogBounds, 8.0f, cardBorder, 1.0f);

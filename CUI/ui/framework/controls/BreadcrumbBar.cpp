@@ -10,18 +10,17 @@ namespace CUI {
 
 BreadcrumbBar::BreadcrumbBar() {
     m_pathNodes = { "Home", "Controls", "BreadcrumbBar" };
-    SetProperty("theme.backgroundToken", Value("cardBackground"));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("theme.colorToken", Value("textSecondary"));
-    SetProperty("theme.activeColorToken", Value("accentColor"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("textSecondary")));
-    SetProperty("activeColor", Value(ThemeManager::Instance().GetColor("accentColor")));
-    SetProperty("cornerRadius", Value(4.0f));
-    SetProperty("width", Value(320.0f));
-    SetProperty("height", Value(30.0f));
+    SetBackgroundToken(ThemeTokenId::CardBackground);
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetColorToken(ThemeTokenId::TextSecondary);
+    SetActiveColorToken(ThemeTokenId::AccentColor);
+    SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
+    SetBorderThickness(1.0f);
+    SetColor(ThemeManager::Instance().GetColor("textSecondary"));
+    SetCornerRadius(4.0f);
+    SetWidth(320.0f);
+    SetHeight(30.0f);
 }
 
 std::vector<PropertyMeta> BreadcrumbBar::GetPropertyMetas() const {
@@ -30,8 +29,9 @@ std::vector<PropertyMeta> BreadcrumbBar::GetPropertyMetas() const {
 }
 
 Size BreadcrumbBar::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(320.0f);
-    float expH = GetProperty("height").AsFloat(30.0f);
+    (void)availableSize;
+    float expW = GetWidth(); if (expW < 0) expW = 320.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 30.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
@@ -54,8 +54,8 @@ void BreadcrumbBar::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
     GraphicsContext ctx;
     float currX = m_bounds.x + 8.0f;
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontH = GetProperty("fontSize").AsFloat(12.0f);
+    const std::string& font = GetFontFamily();
+    float fontH = GetFontSize();
 
     for (size_t i = 0; i < m_pathNodes.size(); ++i) {
         Size sz = ctx.MeasureText(m_pathNodes[i], font, fontH);
@@ -73,10 +73,10 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
     float currX = m_bounds.x + 8.0f;
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontH = GetProperty("fontSize").AsFloat(12.0f);
-    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textSecondary");
-    D2D1_COLOR_F activeColor = ResolveThemeColor("theme.activeColorToken", "accentColor");
+    const std::string& font = GetFontFamily();
+    float fontH = GetFontSize();
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+    D2D1_COLOR_F activeColor = ResolveThemeColor(GetActiveColorToken(), ThemeTokenId::AccentColor);
     D2D1_COLOR_F sepColor = ThemeManager::Instance().GetTokens().textMuted;
 
     for (size_t i = 0; i < m_pathNodes.size(); ++i) {

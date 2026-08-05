@@ -11,59 +11,55 @@ namespace CUI {
 
 NumberBox::NumberBox() {
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
-    SetProperty("value", Value(0.0f));
-    SetProperty("minimum", Value(-100000.0f));
-    SetProperty("maximum", Value(100000.0f));
-    SetProperty("step", Value(1.0f));
-    SetProperty("width", Value(120.0f));
-    SetProperty("height", Value(28.0f));
+    SetWidth(120.0f);
+    SetHeight(28.0f);
 
-    SetProperty("theme.backgroundToken", Value("inputBackground"));
-    SetProperty("theme.borderToken", Value("inputBorder"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("background", Value(tokens.inputBackground));
-    SetProperty("borderBrush", Value(tokens.inputBorder));
-    SetProperty("color", Value(tokens.textPrimary));
-    SetProperty("borderThickness", Value(1.0f));
+    SetBackgroundToken(ThemeTokenId::InputBackground);
+    SetBorderToken(ThemeTokenId::InputBorder);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetBackground(tokens.inputBackground);
+    SetBorderBrush(tokens.inputBorder);
+    SetColor(tokens.textPrimary);
+    SetBorderThickness(1.0f);
 
     m_inputBox = std::make_shared<TextBox>();
     m_inputBox->SetText("0");
-    m_inputBox->SetProperty("theme.backgroundToken", Value("inputBackground"));
-    m_inputBox->SetProperty("theme.borderToken", Value("inputBorder"));
-    m_inputBox->SetProperty("theme.colorToken", Value("textPrimary"));
-    m_inputBox->SetProperty("background", Value(tokens.inputBackground));
-    m_inputBox->SetProperty("borderBrush", Value(tokens.inputBorder));
-    m_inputBox->SetProperty("color", Value(tokens.textPrimary));
-    m_inputBox->SetProperty("borderThickness", Value(0.0f));
-    m_inputBox->SetProperty("cornerRadius", Value(0.0f));
+    m_inputBox->SetBackgroundToken(ThemeTokenId::InputBackground);
+    m_inputBox->SetBorderToken(ThemeTokenId::InputBorder);
+    m_inputBox->SetColorToken(ThemeTokenId::TextPrimary);
+    m_inputBox->SetBackground(tokens.inputBackground);
+    m_inputBox->SetBorderBrush(tokens.inputBorder);
+    m_inputBox->SetColor(tokens.textPrimary);
+    m_inputBox->SetBorderThickness(0.0f);
+    m_inputBox->SetCornerRadius(0.0f);
 
     m_btnUp = std::make_shared<Button>("▲");
-    m_btnUp->SetProperty("fontSize", Value(8.0f));
-    m_btnUp->SetProperty("theme.backgroundToken", Value("cardBackground"));
-    m_btnUp->SetProperty("theme.hoverBackgroundToken", Value("cardBackground"));
-    m_btnUp->SetProperty("theme.borderToken", Value("cardBorder"));
-    m_btnUp->SetProperty("theme.colorToken", Value("textSecondary"));
-    m_btnUp->SetProperty("background", Value(tokens.cardBackground));
-    m_btnUp->SetProperty("hoverBackground", Value(tokens.cardBackground));
-    m_btnUp->SetProperty("borderBrush", Value(tokens.cardBorder));
-    m_btnUp->SetProperty("color", Value(tokens.textSecondary));
-    m_btnUp->SetProperty("padding", Value(Thickness(0)));
-    m_btnUp->SetProperty("borderThickness", Value(0.0f));
-    m_btnUp->SetProperty("cornerRadius", Value(0.0f));
+    m_btnUp->SetFontSize(8.0f);
+    m_btnUp->SetBackgroundToken(ThemeTokenId::CardBackground);
+    m_btnUp->SetHoverBackgroundToken(ThemeTokenId::CardBackground);
+    m_btnUp->SetBorderToken(ThemeTokenId::CardBorder);
+    m_btnUp->SetColorToken(ThemeTokenId::TextSecondary);
+    m_btnUp->SetBackground(tokens.cardBackground);
+    m_btnUp->SetHoverBackground(tokens.cardBackground);
+    m_btnUp->SetBorderBrush(tokens.cardBorder);
+    m_btnUp->SetColor(tokens.textSecondary);
+    m_btnUp->SetPadding(Thickness(0));
+    m_btnUp->SetBorderThickness(0.0f);
+    m_btnUp->SetCornerRadius(0.0f);
 
     m_btnDown = std::make_shared<Button>("▼");
-    m_btnDown->SetProperty("fontSize", Value(8.0f));
-    m_btnDown->SetProperty("theme.backgroundToken", Value("cardBackground"));
-    m_btnDown->SetProperty("theme.hoverBackgroundToken", Value("cardBackground"));
-    m_btnDown->SetProperty("theme.borderToken", Value("cardBorder"));
-    m_btnDown->SetProperty("theme.colorToken", Value("textSecondary"));
-    m_btnDown->SetProperty("background", Value(tokens.cardBackground));
-    m_btnDown->SetProperty("hoverBackground", Value(tokens.cardBackground));
-    m_btnDown->SetProperty("borderBrush", Value(tokens.cardBorder));
-    m_btnDown->SetProperty("color", Value(tokens.textSecondary));
-    m_btnDown->SetProperty("padding", Value(Thickness(0)));
-    m_btnDown->SetProperty("borderThickness", Value(0.0f));
-    m_btnDown->SetProperty("cornerRadius", Value(0.0f));
+    m_btnDown->SetFontSize(8.0f);
+    m_btnDown->SetBackgroundToken(ThemeTokenId::CardBackground);
+    m_btnDown->SetHoverBackgroundToken(ThemeTokenId::CardBackground);
+    m_btnDown->SetBorderToken(ThemeTokenId::CardBorder);
+    m_btnDown->SetColorToken(ThemeTokenId::TextSecondary);
+    m_btnDown->SetBackground(tokens.cardBackground);
+    m_btnDown->SetHoverBackground(tokens.cardBackground);
+    m_btnDown->SetBorderBrush(tokens.cardBorder);
+    m_btnDown->SetColor(tokens.textSecondary);
+    m_btnDown->SetPadding(Thickness(0));
+    m_btnDown->SetBorderThickness(0.0f);
+    m_btnDown->SetCornerRadius(0.0f);
 
     AddChild(m_inputBox);
     AddChild(m_btnUp);
@@ -88,15 +84,16 @@ std::vector<PropertyMeta> NumberBox::GetPropertyMetas() const {
 }
 
 Size NumberBox::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(120.0f);
-    float expH = GetProperty("height").AsFloat(28.0f);
+    (void)availableSize;
+    float expW = GetWidth(); if (expW < 0) expW = 120.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 28.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
 
 void NumberBox::Arrange(Rect finalRect) {
     m_bounds = finalRect;
-    float borderThick = GetProperty("borderThickness").AsFloat(1.0f);
+    float borderThick = GetBorderThickness();
     float innerX = finalRect.x + borderThick;
     float innerY = finalRect.y + borderThick;
     float innerW = (std::max)(0.0f, finalRect.width - borderThick * 2.0f);
@@ -111,10 +108,11 @@ void NumberBox::Arrange(Rect finalRect) {
 }
 
 void NumberBox::SetValue(float val) {
-    float minV = GetProperty("minimum").AsFloat(-100000.0f);
-    float maxV = GetProperty("maximum").AsFloat(100000.0f);
+    float minV = GetMinimum();
+    float maxV = GetMaximum();
     float clamped = std::clamp(val, minV, maxV);
-    SetProperty("value", Value(clamped));
+    m_value = clamped;
+    NotifyFieldChanged(PropertyId::ControlValue, Value(clamped));
 
     std::stringstream ss;
     ss << std::fixed << std::setprecision(1) << clamped;

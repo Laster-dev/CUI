@@ -7,11 +7,11 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildCanvasPage(const ShowcaseContext&) {
     auto target = std::make_shared<Canvas>();
-    target->SetProperty("width", Value(460.0f));
-    target->SetProperty("height", Value(240.0f));
+    target->SetWidth(460.0f);
+    target->SetHeight(240.0f);
     auto button = ElevatedButton("绝对坐标定位元素").Background("#007ACC").Padding(14, 8, 14, 8).Build();
-    button->SetProperty("Canvas.Left", Value(40.0f));
-    button->SetProperty("Canvas.Top", Value(50.0f));
+    button->SetCanvasLeft(40.0f);
+    button->SetCanvasTop(50.0f);
     target->AddChild(button);
     return { "Canvas 画布", CreatePage(
         "Canvas 绝对定位画布控制台",

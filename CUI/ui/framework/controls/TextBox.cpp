@@ -26,26 +26,6 @@ std::vector<PropertyMeta> TextBox::GetPropertyMetas() const {
 
 namespace {
 
-bool GetBoolProperty(const Control* control, const char* primary, const char* alternate, bool def) {
-    std::string primaryVal = control->GetProperty(primary).AsString("");
-    if (!primaryVal.empty()) return control->GetProperty(primary).AsBool(def);
-    return control->GetProperty(alternate).AsBool(def);
-}
-
-std::string GetStringProperty(const Control* control, const char* primary, const char* alternate, const std::string& def) {
-    std::string primaryVal = control->GetProperty(primary).AsString("");
-    if (!primaryVal.empty()) return primaryVal;
-    std::string alternateVal = control->GetProperty(alternate).AsString("");
-    if (!alternateVal.empty()) return alternateVal;
-    return def;
-}
-
-float GetFloatProperty(const Control* control, const char* primary, const char* alternate, float def) {
-    if (control->HasProperty(primary)) return control->GetProperty(primary).AsFloat(def);
-    if (control->HasProperty(alternate)) return control->GetProperty(alternate).AsFloat(def);
-    return def;
-}
-
 std::wstring BuildDisplayText(const std::wstring& wtext, int cursorPos, const std::wstring& compString) {
     if (compString.empty()) return wtext;
     int safePos = std::clamp(cursorPos, 0, static_cast<int>(wtext.length()));
@@ -55,36 +35,27 @@ std::wstring BuildDisplayText(const std::wstring& wtext, int cursorPos, const st
 } // namespace
 
 TextBox::TextBox() {
-    SetProperty("text", Value(""));
-    SetProperty("placeholder", Value(""));
-    SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
-    SetProperty("hoverBackground", Value(D2D1::ColorF(0, 0, 0, 0)));
-    SetProperty("borderBrush", Value(D2D1::ColorF(0, 0, 0, 0)));
-    SetProperty("focusedBorderBrush", Value(D2D1::ColorF(0, 0, 0, 0)));
-    SetProperty("borderThickness", Value(0.0f));
-    SetProperty("theme.underlineColorToken", Value("inputBorder"));
-    SetProperty("theme.activeUnderlineColorToken", Value("accentColor"));
-    SetProperty("theme.caretColorToken", Value("accentColor"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("theme.placeholderColorToken", Value("textMuted"));
-    SetProperty("underlineColor", Value(ThemeManager::Instance().GetColor("inputBorder")));
-    SetProperty("activeUnderlineColor", Value(ThemeManager::Instance().GetColor("accentColor")));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
-    SetProperty("placeholderColor", Value(ThemeManager::Instance().GetColor("textMuted")));
-    SetProperty("fontFamily", Value("Segoe UI"));
-    SetProperty("fontSize", Value(13.0f));
-    SetProperty("lineSpacing", Value(1.0f));
-    SetProperty("lineHeight", Value(0.0f));
-    SetProperty("padding", Value(Thickness(0, 18, 0, 8)));
-    SetProperty("width", Value(260.0f));
-    SetProperty("height", Value(48.0f));
-    SetProperty("AcceptsReturn", Value(false));
-    SetProperty("TextWrapping", Value("NoWrap"));
-    SetProperty("isReadOnly", Value(false));
+    SetText("");
+    SetPlaceholder("");
+    SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
+    SetBorderThickness(0.0f);
+    SetUnderlineColorToken(ThemeTokenId::InputBorder);
+    SetActiveUnderlineColorToken(ThemeTokenId::AccentColor);
+    SetCaretColorToken(ThemeTokenId::AccentColor);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetPlaceholderColorToken(ThemeTokenId::TextMuted);
+    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    SetFontFamily("Segoe UI");
+    SetFontSize(13.0f);
+    SetPadding(Thickness(0, 18, 0, 8));
+    SetWidth(260.0f);
+    SetHeight(48.0f);
 }
 
 TextBox::TextBox(const std::string& placeholder) : TextBox() {
-    SetProperty("placeholder", Value(placeholder));
+    SetPlaceholder(placeholder);
 }
 
 void TextBox::SetCompositionString(const std::wstring& compStr) {
@@ -97,21 +68,17 @@ void TextBox::SetCompositionString(const std::wstring& compStr) {
 }
 
 void TextBox::SetText(const std::string& text) {
-    if (GetText() != text) {
-        SetProperty("text", Value(text));
-        m_textLayoutCache.Clear();
-        m_onTextChangedEvent.Invoke(this, text);
+    if (GetText() == text) {
+        return;
     }
-}
-
-bool TextBox::GetAcceptsReturn() const {
-    return GetBoolProperty(this, "AcceptsReturn", "acceptsReturn", false);
-}
-
-bool TextBox::IsTextWrapping() const {
-    std::string wrap = GetStringProperty(this, "TextWrapping", "textWrapping", "NoWrap");
-    std::transform(wrap.begin(), wrap.end(), wrap.begin(), ::tolower);
-    return wrap == "wrap";
+    UIElement::SetText(text);
+    m_textLayoutCache.Clear();
+    const int len = static_cast<int>(Utf8ToUtf16(text).length());
+    if (m_cursorPos > len) m_cursorPos = len;
+    if (m_cursorPos < 0) m_cursorPos = 0;
+    m_selectionStart = m_cursorPos;
+    m_selectionEnd = m_cursorPos;
+    m_onTextChangedEvent.Invoke(this, text);
 }
 
 bool TextBox::IsMultiline() const {
@@ -135,10 +102,10 @@ Rect TextBox::GetRevealButtonRect() const {
 }
 
 Rect TextBox::GetTextRect() const {
-    std::string placeholder = GetProperty("placeholder").AsString("");
+    std::string placeholder = GetPlaceholder();
     bool hasFloatingLabel = !placeholder.empty();
     Thickness padding = hasFloatingLabel
-        ? GetProperty("padding").AsThickness(Thickness(0, 18, 0, 8))
+        ? GetPadding()
         : Thickness(0, 6, 0, 6);
     float extraTop = hasFloatingLabel ? ((1.0f - m_labelAnim.Current()) * 8.0f) : 0.0f;
     float rightMargin = (IsPasswordMode() && GetShowRevealButton()) ? 32.0f : 0.0f;
@@ -193,11 +160,11 @@ Microsoft::WRL::ComPtr<IDWriteTextLayout> TextBox::BuildTextLayout(GraphicsConte
     options.paragraphAlignment = IsMultiline()
         ? DWRITE_PARAGRAPH_ALIGNMENT_NEAR
         : DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
-    options.lineSpacing = GetFloatProperty(this, "lineSpacing", "LineSpacing", 1.0f);
-    options.lineHeight = GetFloatProperty(this, "lineHeight", "LineHeight", 0.0f);
+    options.lineSpacing = GetLineSpacing();
+    options.lineHeight = GetLineHeight();
 
-    float fontSize = GetFloatProperty(this, "fontSize", "FontSize", 13.0f);
-    std::string fontFamily = GetStringProperty(this, "fontFamily", "FontFamily", "Segoe UI");
+    float fontSize = GetFontSize();
+    const std::string& fontFamily = GetFontFamily();
     TextLayoutCache::Key key;
     key.text = wtext;
     key.fontName = fontFamily;
@@ -291,7 +258,7 @@ void TextBox::InsertText(const std::wstring& text) {
 
     PushUndoState();
 
-    std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+    std::wstring wtext = Utf8ToUtf16(GetText());
     if (HasSelection()) {
         int selMin = (std::min)(m_selectionStart, m_selectionEnd);
         int selMax = (std::max)(m_selectionStart, m_selectionEnd);
@@ -319,7 +286,7 @@ void TextBox::PushUndoState() {
     if (m_undoing) return;
 
     TextBoxUndoState state;
-    state.text = GetProperty("text").AsString();
+    state.text = GetText();
     state.cursorPos = m_cursorPos;
     state.selectionStart = m_selectionStart;
     state.selectionEnd = m_selectionEnd;
@@ -346,7 +313,7 @@ void TextBox::Undo() {
     if (m_undoStack.empty()) return;
 
     TextBoxUndoState current;
-    current.text = GetProperty("text").AsString();
+    current.text = GetText();
     current.cursorPos = m_cursorPos;
     current.selectionStart = m_selectionStart;
     current.selectionEnd = m_selectionEnd;
@@ -356,7 +323,7 @@ void TextBox::Undo() {
     m_undoStack.pop_back();
 
     m_undoing = true;
-    SetProperty("text", Value(prev.text));
+    SetText(prev.text);
     m_undoing = false;
     m_cursorPos = prev.cursorPos;
     m_selectionStart = prev.selectionStart;
@@ -368,7 +335,7 @@ void TextBox::Redo() {
     if (m_redoStack.empty()) return;
 
     TextBoxUndoState current;
-    current.text = GetProperty("text").AsString();
+    current.text = GetText();
     current.cursorPos = m_cursorPos;
     current.selectionStart = m_selectionStart;
     current.selectionEnd = m_selectionEnd;
@@ -378,7 +345,7 @@ void TextBox::Redo() {
     m_redoStack.pop_back();
 
     m_undoing = true;
-    SetProperty("text", Value(next.text));
+    SetText(next.text);
     m_undoing = false;
     m_cursorPos = next.cursorPos;
     m_selectionStart = next.selectionStart;
@@ -386,16 +353,17 @@ void TextBox::Redo() {
 }
 
 Size TextBox::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(260.0f);
-    float expH = GetProperty("height").AsFloat(48.0f);
+    (void)availableSize;
+    const float expW = (GetWidth() >= 0.0f) ? GetWidth() : 260.0f;
+    const float expH = (GetHeight() >= 0.0f) ? GetHeight() : 48.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
 
 bool TextBox::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
-    bool hasFloatingLabel = !GetProperty("placeholder").AsString("").empty();
-    bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetProperty("text").AsString("").empty() || !m_compString.empty());
+    bool hasFloatingLabel = !GetPlaceholder().empty();
+    bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetText().empty() || !m_compString.empty());
     float target = shouldFloat ? 1.0f : 0.0f;
     float focusTarget = m_isFocused ? 1.0f : 0.0f;
     m_labelAnim.SetTarget(target);
@@ -406,12 +374,15 @@ bool TextBox::OnAnimationTick() {
     // Keep the animation pump alive while focused so caret blink uses dirty regions
     // instead of a full-window timer repaint.
     const bool caretBlink = m_isFocused && IsEnabled();
+    if (animating || caretBlink) {
+        RequestAnimationTicks();
+    }
     return base || animating || caretBlink;
 }
 
 bool TextBox::HasSelfAnimation() const {
-    bool hasFloatingLabel = !GetProperty("placeholder").AsString("").empty();
-    bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetProperty("text").AsString("").empty() || !m_compString.empty());
+    bool hasFloatingLabel = !GetPlaceholder().empty();
+    bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetText().empty() || !m_compString.empty());
     float labelTarget = shouldFloat ? 1.0f : 0.0f;
     float focusTarget = m_isFocused ? 1.0f : 0.0f;
     return Control::HasSelfAnimation()
@@ -421,7 +392,7 @@ bool TextBox::HasSelfAnimation() const {
 }
 
 void TextBox::SelectAll() {
-    std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+    std::wstring wtext = Utf8ToUtf16(GetText());
     m_selectionStart = 0;
     m_selectionEnd = static_cast<int>(wtext.length());
     m_cursorPos = m_selectionEnd;
@@ -433,7 +404,7 @@ void TextBox::DeleteSelection() {
     }
     if (!HasSelection()) return;
 
-    std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+    std::wstring wtext = Utf8ToUtf16(GetText());
     int selMin = (std::min)(m_selectionStart, m_selectionEnd);
     int selMax = (std::max)(m_selectionStart, m_selectionEnd);
 
@@ -448,13 +419,13 @@ void TextBox::DeleteSelection() {
 }
 
 void TextBox::OnRender(GraphicsContext& ctx) {
-    float radius = GetProperty("cornerRadius").AsFloat(0.0f);
-    D2D1_COLOR_F bg = HasProperty("theme.backgroundToken")
-        ? ResolveThemeColor("theme.backgroundToken", "inputBackground")
-        : GetProperty("background").AsColor(D2D1::ColorF(0, 0, 0, 0));
+    float radius = GetCornerRadius();
+    D2D1_COLOR_F bg = GetBackgroundToken() != ThemeTokenId::Unset
+        ? ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground)
+        : (m_hasBackgroundColor ? m_backgroundColor : D2D1::ColorF(0, 0, 0, 0));
     const bool enabled = IsEnabled();
     if (!enabled) {
-        D2D1_COLOR_F disabledBg = ThemeManager::Instance().GetColor("hoverBackground");
+        D2D1_COLOR_F disabledBg = ThemeManager::Instance().GetColor(ThemeTokenId::HoverBackground);
         disabledBg.a = 0.45f;
         if (radius > 0.0f) {
             ctx.FillRoundedRect(m_bounds, radius, disabledBg);
@@ -469,13 +440,13 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    std::string text = GetProperty("text").AsString("");
-    std::string placeholder = GetProperty("placeholder").AsString("Enter text...");
+    std::string text = GetText();
+    std::string placeholder = GetPlaceholder();
     bool hasFloatingLabel = !placeholder.empty();
-    std::string font = GetStringProperty(this, "fontFamily", "FontFamily", "Segoe UI");
-    float fontSize = GetFloatProperty(this, "fontSize", "FontSize", 13.0f);
-    D2D1_COLOR_F phBase = ResolveThemeColor("theme.placeholderColorToken", "textMuted");
-    D2D1_COLOR_F phActive = ResolveThemeColor("theme.activeUnderlineColorToken", "accentColor");
+    const std::string& font = GetFontFamily();
+    float fontSize = GetFontSize();
+    D2D1_COLOR_F phBase = ResolveThemeColor(GetPlaceholderColorToken(), ThemeTokenId::TextMuted);
+    D2D1_COLOR_F phActive = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
     if (!enabled) {
         phBase.a *= 0.55f;
         phActive = phBase;
@@ -537,9 +508,9 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     if (!enabled) {
-        textColor = ResolveThemeColor("theme.placeholderColorToken", "textMuted");
+        textColor = ResolveThemeColor(GetPlaceholderColorToken(), ThemeTokenId::TextMuted);
         textColor.a *= 0.65f;
     }
     ctx.DrawTextLayout(layout.Get(), layoutRect, textColor);
@@ -549,10 +520,10 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         float compY = compCaret.y + compCaret.height - 2.0f;
         auto compEnd = ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(m_cursorPos + static_cast<int>(m_compString.length())), origin);
         ctx.DrawLine(Point(compCaret.x, compY), Point(compEnd.x, compY),
-                     ThemeManager::Instance().GetColor("accentColor"), 1.5f);
+                     ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor), 1.5f);
     }
 
-    int blinkRate = GetProperty("caretBlinkRate").AsInt(500);
+    int blinkRate = GetCaretBlinkRate();
     if (blinkRate <= 0) blinkRate = 500;
     bool cursorBlinkState = ((GetTickCount64() / blinkRate) % 2 == 0);
 
@@ -567,16 +538,16 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         float cursorX = caret.x;
         float cursorY = caret.y + 2.0f;
         float cursorH = std::max(12.0f, caret.height - 4.0f);
-        float cursorWidth = GetProperty("caretWidth").AsFloat(1.5f);
-        D2D1_COLOR_F cursorColor = ResolveThemeColor("theme.caretColorToken", "accentColor");
+        float cursorWidth = GetCaretWidth();
+        D2D1_COLOR_F cursorColor = ResolveThemeColor(GetCaretColorToken(), ThemeTokenId::AccentColor);
 
         ctx.FillRect(Rect(cursorX, cursorY, cursorWidth, cursorH), cursorColor);
     }
 
     ctx.PopClip();
 
-    D2D1_COLOR_F underlineColor = ResolveThemeColor("theme.underlineColorToken", "inputBorder");
-    D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor("theme.activeUnderlineColorToken", "accentColor");
+    D2D1_COLOR_F underlineColor = ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::InputBorder);
+    D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
     if (!enabled) {
         underlineColor.a *= 0.4f;
         activeUnderlineColor = underlineColor;
@@ -594,7 +565,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
 
     if (IsPasswordMode() && GetShowRevealButton()) {
         Rect btnRect = GetRevealButtonRect();
-        D2D1_COLOR_F eyeColor = ThemeManager::Instance().GetColor("textMuted");
+        D2D1_COLOR_F eyeColor = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
         eyeColor.a = 0.85f;
         float cx = btnRect.x + btnRect.width * 0.5f;
         float cy = btnRect.y + btnRect.height * 0.5f;
@@ -613,7 +584,7 @@ void TextBox::OnMouseDblClick(Point pt) {
     Control::OnMouseDown(pt);
     m_isFocused = true;
 
-    std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+    std::wstring wtext = Utf8ToUtf16(GetText());
     if (wtext.empty()) return;
 
     GraphicsContext ctx;
@@ -641,6 +612,7 @@ void TextBox::OnMouseDblClick(Point pt) {
 void TextBox::OnFocus() {
     UIElement::OnFocus();
     m_isFocused = true;
+    RequestAnimationTicks();
     MarkRenderContentDirty();
 }
 
@@ -653,6 +625,7 @@ void TextBox::OnBlur() {
     m_suppressCharCount = 0;
     m_scrollOffsetX = 0.0f;
     m_scrollOffsetY = 0.0f;
+    RequestAnimationTicks();
     MarkRenderContentDirty();
 }
 
@@ -689,7 +662,7 @@ void TextBox::OnMouseRightClick(Point pt) {
             menu->AddSeparator();
             menu->AddItem("剪切 (Cut)", "Ctrl+X", [this]() {
                 if (HasSelection()) {
-                    std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+                    std::wstring wtext = Utf8ToUtf16(GetText());
                     int selMin = (std::min)(m_selectionStart, m_selectionEnd);
                     int selMax = (std::max)(m_selectionStart, m_selectionEnd);
                     std::wstring selected = wtext.substr(selMin, selMax - selMin);
@@ -711,7 +684,7 @@ void TextBox::OnMouseRightClick(Point pt) {
         }
         menu->AddItem("复制 (Copy)", "Ctrl+C", [this]() {
             if (HasSelection()) {
-                std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+                std::wstring wtext = Utf8ToUtf16(GetText());
                 int selMin = (std::min)(m_selectionStart, m_selectionEnd);
                 int selMax = (std::max)(m_selectionStart, m_selectionEnd);
                 std::wstring selected = wtext.substr(selMin, selMax - selMin);
@@ -774,7 +747,7 @@ void TextBox::OnMouseMove(Point pt) {
                 m_scrollOffsetX -= scrollStep;
             }
             std::wstring wtext = BuildDisplayText(
-                Utf8ToUtf16(GetProperty("text").AsString("")),
+                Utf8ToUtf16(GetText()),
                 m_cursorPos,
                 m_compString
             );
@@ -799,7 +772,7 @@ void TextBox::OnKeyDown(int vkCode) {
     }
     m_suppressCharCount = 0;
 
-    std::wstring wtext = Utf8ToUtf16(GetProperty("text").AsString());
+    std::wstring wtext = Utf8ToUtf16(GetText());
 
     bool isCtrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     bool isShiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
@@ -871,7 +844,7 @@ void TextBox::OnKeyDown(int vkCode) {
                 CloseClipboard();
             }
             DeleteSelection();
-            wtext = Utf8ToUtf16(GetProperty("text").AsString());
+            wtext = Utf8ToUtf16(GetText());
         }
         return;
     }

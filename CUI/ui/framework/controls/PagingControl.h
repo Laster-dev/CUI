@@ -18,10 +18,10 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    int GetCurrentPage() const { return GetProperty("currentPage").AsInt(1); }
+    int GetCurrentPage() const { return m_currentPage; }
     void SetCurrentPage(int page);
 
-    int GetTotalPages() const { return GetProperty("totalPages").AsInt(10); }
+    int GetTotalPages() const { return m_totalPages; }
     void SetTotalPages(int total);
 
     Event<PagingControl*, int>& OnPageChanged() { return m_onPageChangedEvent; }
@@ -29,6 +29,8 @@ public:
 private:
     void UpdatePageButtons();
 
+    int m_currentPage = 1;
+    int m_totalPages = 10;
     std::shared_ptr<Button> m_btnPrev;
     std::shared_ptr<Button> m_btnNext;
     std::shared_ptr<Button> m_btnPage1;

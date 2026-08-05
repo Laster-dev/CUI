@@ -25,15 +25,20 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    CheckState GetState() const;
+    CheckState GetState() const { return m_state; }
     void SetState(CheckState state);
 
-    bool IsThreeState() const { return GetProperty("isThreeState").AsBool(false); }
-    void SetIsThreeState(bool threeState) { SetProperty("isThreeState", Value(threeState)); }
+    bool IsThreeState() const { return m_isThreeState; }
+    void SetIsThreeState(bool threeState) {
+        m_isThreeState = threeState;
+        NotifyFieldChanged(PropertyId::IsThreeState, Value(threeState));
+    }
 
     Event<CheckBox*, CheckState>& OnCheckStateChanged() { return m_onCheckStateChangedEvent; }
 
 private:
+    CheckState m_state = CheckState::Unchecked;
+    bool m_isThreeState = false;
     AnimatedScalar m_fillAnim{};
     AnimatedScalar m_checkAnim{};
     AnimatedScalar m_indeterminateAnim{};

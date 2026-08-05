@@ -37,10 +37,13 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
+    void SetProperty(PropertyId id, const Value& val) override;
+
     // Items & Data Management
     void AddItem(const std::string& item);
     void AddItem(std::shared_ptr<UIElement> customElement);
     void SetItems(const std::vector<std::string>& items);
+    void SetItems(const std::string& itemsCsv);
     void ClearItems();
 
     virtual UIElement* HitTest(float x, float y) override;
@@ -64,10 +67,6 @@ public:
 
     int GetCaretIndex() const { return m_caretIndex; }
     void SetCaretIndex(int index);
-
-    // Item height & Virtualization
-    float GetItemHeight() const { return GetProperty("itemHeight").AsFloat(28.0f); }
-    void SetItemHeight(float h) { SetProperty("itemHeight", Value(h)); }
 
     // Virtual Mode (0 memory allocation for 100k/1M items)
     void SetVirtualCount(size_t count);

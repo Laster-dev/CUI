@@ -9,15 +9,15 @@ namespace CUI {
 CUIWindow::CUIWindow(const std::string& title, int width, int height) {
     auto& theme = ThemeManager::Instance();
     m_rootContainer = std::make_shared<StackPanel>();
-    m_rootContainer->SetProperty("orientation", Value("Vertical"));
-    m_rootContainer->SetProperty("theme.backgroundToken", Value("windowBackground"));
-    m_rootContainer->SetProperty("background", Value(theme.GetColor("windowBackground")));
+    m_rootContainer->SetOrientation(Orientation::Vertical);
+    m_rootContainer->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    m_rootContainer->SetBackground(theme.GetColor("windowBackground"));
 
     SetupTitleBar(title);
 
     m_contentContainer = std::make_shared<Panel>();
-    m_contentContainer->SetProperty("flexGrow", Value(1.0f));
-    m_contentContainer->SetProperty("align", Value("Stretch"));
+    m_contentContainer->SetFlexGrow(1.0f);
+    m_contentContainer->SetAlign(Alignment::Stretch);
 
     m_rootContainer->AddChild(m_titleBar);
     m_rootContainer->AddChild(m_contentContainer);
@@ -29,15 +29,15 @@ CUIWindow::CUIWindow(const std::string& title, int width, int height) {
 void CUIWindow::SetupTitleBar(const std::string& title) {
     auto& theme = ThemeManager::Instance();
     m_titleBar = std::make_shared<Panel>();
-    m_titleBar->SetProperty("height", Value(32.0f));
-    m_titleBar->SetProperty("theme.backgroundToken", Value("titleBarBackground"));
-    m_titleBar->SetProperty("background", Value(theme.GetColor("titleBarBackground")));
+    m_titleBar->SetHeight(32.0f);
+    m_titleBar->SetBackgroundToken(ThemeTokenId::TitleBarBackground);
+    m_titleBar->SetBackground(theme.GetColor("titleBarBackground"));
 
     auto txtTitle = std::make_shared<TextBlock>(title);
-    txtTitle->SetProperty("fontSize", Value(12.0f));
-    txtTitle->SetProperty("theme.colorToken", Value("titleBarText"));
-    txtTitle->SetProperty("color", Value(theme.GetColor("titleBarText")));
-    txtTitle->SetProperty("margin", Value("12, 8, 0, 0"));
+    txtTitle->SetFontSize(12.0f);
+    txtTitle->SetColorToken(ThemeTokenId::TitleBarText);
+    txtTitle->SetColor(theme.GetColor("titleBarText"));
+    txtTitle->SetMargin(Thickness(12, 8, 0, 0));
     m_titleBar->AddChild(txtTitle);
 }
 

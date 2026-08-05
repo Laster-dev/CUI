@@ -13,7 +13,7 @@
 |----|----------|----------|--------|
 | A | Splitter 横向/纵向写反 | Showcase 标签与 `Orientation` 映射颠倒；Width/Height 也反了 | P0 |
 | B | 示例代码不能复制 | 代码框 `isEnabled=false`，禁用后无法拖选；无真正 ReadOnly | P0 |
-| C | 属性全是字符串 `SetProperty("x", …)` | Object 属性袋是运行时 string map；缺编译期强类型 API 层 | P1 |
+| C | 属性全是字符串 `SetProperty("x", …)` | 热路径曾走 string map；应改为成员字段真源 + PropertyDesc 冷路径 + ThemeTokenId | P1 |
 | D | 所有控件 `IsEnabled` 无效 | 多处绕过 `Control` 输入门闩；HitTest/OnClick 未统一拦截 | P0 |
 | E | 界面整体糊 | DPI 已开启，但整帧重绘/层缓存/分数坐标路径仍会导致发糊感 | P1 |
 | F | 非常卡 | 焦点定时器整帧重绘；主题/滚动层 thrash；动画脏区过大 | P0 |
@@ -29,7 +29,7 @@
 ```
 M0  止血（本周）     A B D H I F(局部)
 M1  观感与材质       E J + 导航/代码区体验
-M2  属性与 API       C（强类型属性门面 + PropertyGrid 双向同步）
+M2  属性与 API       C（成员字段真源 + PropertyDesc + ThemeTokenId；废除字符串袋）
 M3  性能与绘制架构   F 深挖（脏区、层、定时器、滚动）
 M4  框架差距收敛     G（对照 WinUI 契约清单逐项达标）
 ```
@@ -147,31 +147,48 @@ M4  框架差距收敛     G（对照 WinUI 契约清单逐项达标）
 
 ## M2 — 属性与 API（回应「为什么要是字符串」）
 
-### C. 分层改造（不一次拆光）
+### C. 成员字段真源（废除「强类型门面仍写回字符串袋」） — **已完成（架构）**
 
-**现状**
-- 运行时：`Object::SetProperty(string, Value)` 属性袋（反射/主题/PropertyGrid 依赖它）
-- 部分控件已有薄封装：`SetText` / `SetIsEnabled`
+> **明确废止旧方案**：不再采用「调用方写 `SetXxx`，内部仍落到 `SetProperty` / `unordered_map` 属性袋」的假强类型。字符串袋不是过渡层，是要删掉的目标。
 
-**目标形态（WinUI 风格门面）**
+**已落地（2026-08）**
+- 热路径成员字段 + typed Measure/Arrange；布局虚函数路径
+- `PropertyDesc` / `PropertyId` 绑定；PropertyGrid 优先 `GetPropertyDescs()`；`GetPropertyMetas` 弃用并由 descs 生成
+- `ThemeTokenId` 主题取色；`SetProperty` 仅弃用桥接、无 bag；`PopupHost` 统一弹出层
+
+**目标架构**
+1. **热路径真源**：布局 / 绘制相关状态只存在于 `UIElement`（及控件）**成员字段**；每帧读写走字段，不查表、不查字符串。
+2. **冷路径反射**：PropertyGrid / 工具链用静态 `PropertyDesc` **函数指针表**（getter/setter 直连成员），不依赖运行时 string map。
+3. **主题色**：`ThemeTokenId` 枚举 + `ThemeManager::GetColor(id)`；禁止每帧按字符串 token 查找。
+4. **Object 字符串属性袋删除**：`unordered_map` 属性袋下线；遗留的 `SetProperty(string, …)` 仅作**弃用桥接**——解析名字后写到对应成员，**不再写入任何 bag**。
+
+**目标形态**
 ```cpp
-button->SetIsEnabled(false);
-textBox->SetAcceptsReturn(true);
-// 内部仍可落到 SetProperty，但调用方不再手写字符串
+button->SetIsEnabled(false);           // 写成员字段
+textBox->SetAcceptsReturn(true);       // 写成员字段
+ThemeManager::GetColor(ThemeTokenId::CardBackground);  // 枚举，非字符串
+// 禁止：内部再 SetProperty / 落到 unordered_map
 ```
 
 **步骤**
-1. 为常用属性补齐强类型 getter/setter（IsEnabled, AcceptsReturn, Orientation…）
-2. Showcase / 示例代码生成器优先输出强类型 API
-3. PropertyGrid 继续走 metas + 属性袋（框架内部）
-4. 文档明确：字符串 `SetProperty` = 框架/工具链；应用代码用强类型
+1. 常用热属性落到 `UIElement`/控件成员 + 强类型 getter/setter
+2. 为 PropertyGrid 注册静态 `PropertyDesc` 表（函数指针 ↔ 成员），双向同步走冷路径
+3. 主题路径切到 `ThemeTokenId`；清除 per-frame 字符串 token 查找
+4. 删除 Object 字符串属性袋；弃用 `SetProperty(string)` 仅桥接到成员
+5. Showcase / 示例代码生成器只输出强类型 API
 
 **验收**
-- Gallery 示例代码不再满屏 `SetProperty("..." )`；改为 `SetXxx(...)`
+- Gallery 示例代码不再满屏 `SetProperty("...")`；改为 `SetXxx(...)`
+- 热路径布局/绘制不读 string map；PropertyGrid 仍可通过 PropertyDesc 编辑属性
+- 主题取色走 `GetColor(ThemeTokenId)`；无每帧字符串 token lookup
+- Object 侧无 `unordered_map` 属性袋残留
 
 ---
 
 ## M3 — 性能与绘制架构
+
+**架构已完成片段**：`PopupHost`；typed measure / layout virtual；主题 id；binding `PropertyId`；`SetProperty` bag purge（见 M2）。  
+**仍待深挖**：脏区默认路径、ScrollViewer 层、导航/属性面板 ClearChildren、低性能模式。
 
 1. 脏区绘制成为默认；整帧仅用于 resize/主题/首次显示
 2. ScrollViewer 层：主题切换必失效；滚动优先 blit patch
@@ -186,7 +203,7 @@ textBox->SetAcceptsReturn(true);
 |------|------|------|
 | 系统材质 | DWM + Composition；主题 Chrome/Surface/Solid 角色 | 可见 Mica；全窗统一材质契约 |
 | 控件契约 | IsEnabled/ReadOnly/焦点不一致 | 统一视觉状态机 |
-| 属性模型 | 字符串袋 + 少量封装 | 强类型 API + 反射 metas |
+| 属性模型 | ~~字符串袋~~ → 成员字段 + PropertyDesc + ThemeTokenId + PropertyId（已落地） | 子类 PropertyMeta → PropertyDesc 收尾；示例只出强类型 API |
 | 导航/Gallery | 在追 WinUI Gallery | 分类、搜索、代码、属性三栏稳定 |
 | 绘制 | 易整帧、层缓存易脏 | 局部脏区 + 稳定 60/120Hz |
 | 输入 | 多路径绕过 | 单一命中/捕获/手势管道 |
@@ -203,8 +220,8 @@ textBox->SetAcceptsReturn(true);
 5. [x] **F0** 去掉焦点定时器整帧  
 6. [x] **J** 材质透出（Chrome/Surface/Solid 契约 + Composition）  
 7. [ ] **E** 去糊专项  
-8. [ ] **C** 强类型属性门面 + 示例代码生成改造  
-9. [ ] **F/M3** 性能深挖  
+8. [x] **C / M2** 成员字段真源 + PropertyDesc + ThemeTokenId + PropertyId；SetProperty bag purge；PopupHost；typed measure / layout virtual  
+9. [ ] **F/M3** 性能深挖（架构片段已合入；脏区/层/定时器仍待）  
 10. [ ] **M4** 逐项对齐 WinUI 契约  
 
 每完成一项：更新本文件对应复选框，并在 PR/提交说明写清验收方式。

@@ -18,12 +18,16 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    std::string GetGroupName() const { return GetProperty("groupName").AsString(""); }
-    void SetGroupName(const std::string& group) { SetProperty("groupName", Value(group)); }
+    const std::string& GetGroupName() const { return m_groupName; }
+    void SetGroupName(const std::string& group) {
+        m_groupName = group;
+        MarkRenderContentDirty();
+    }
 
 private:
     void SetChecked(bool checked);
     void UncheckSiblingsInGroup();
+    std::string m_groupName{ "DefaultGroup" };
     AnimatedScalar m_selectionAnim{};
 };
 

@@ -15,8 +15,14 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
 
-    std::string GetNavigateUri() const { return GetProperty("navigateUri").AsString(); }
-    void SetNavigateUri(const std::string& uri) { SetProperty("navigateUri", Value(uri)); }
+    const std::string& GetNavigateUri() const { return m_navigateUri; }
+    void SetNavigateUri(const std::string& uri) {
+        m_navigateUri = uri;
+        MarkRenderContentDirty();
+    }
+
+private:
+    std::string m_navigateUri;
 };
 
 } // namespace CUI

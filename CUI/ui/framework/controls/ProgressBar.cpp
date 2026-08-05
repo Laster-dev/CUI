@@ -14,17 +14,11 @@ static float WinUI3EaseInOut(float t) {
 }
 
 ProgressBar::ProgressBar() {
-    SetProperty("minimum", Value(0.0f));
-    SetProperty("maximum", Value(100.0f));
-    SetProperty("value", Value(0.0f));
-    SetProperty("isIndeterminate", Value(false));
-    SetProperty("theme.fillColorToken", Value("accentColor"));
-    SetProperty("theme.trackColorToken", Value("cardBorder"));
-    SetProperty("fillColor", Value(ThemeManager::Instance().GetColor("accentColor")));
-    SetProperty("trackColor", Value(ThemeManager::Instance().GetColor("cardBorder")));
-    SetProperty("width", Value(200.0f));
-    SetProperty("height", Value(3.0f));
-    SetProperty("cornerRadius", Value(1.5f));
+    SetFillColorToken(ThemeTokenId::AccentColor);
+    SetTrackColorToken(ThemeTokenId::CardBorder);
+    SetWidth(200.0f);
+    SetHeight(3.0f);
+    SetCornerRadius(1.5f);
     m_displayValue = GetValue();
 }
 
@@ -38,8 +32,9 @@ std::vector<PropertyMeta> ProgressBar::GetPropertyMetas() const {
 }
 
 Size ProgressBar::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(200.0f);
-    float expH = GetProperty("height").AsFloat(3.0f);
+    (void)availableSize;
+    float expW = GetWidth(); if (expW < 0) expW = 200.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 3.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
@@ -61,6 +56,7 @@ bool ProgressBar::OnAnimationTick() {
         if (m_animOffset > 10000.0f) {
             m_animOffset = std::fmod(m_animOffset, 2.0f);
         }
+        RequestAnimationTicks();
         return true;
     }
 
@@ -77,6 +73,7 @@ bool ProgressBar::OnAnimationTick() {
     }
     float smoothing = 1.0f - std::exp(-12.0f * deltaSeconds);
     m_displayValue += delta * smoothing;
+    RequestAnimationTicks();
     return true;
 }
 
@@ -87,10 +84,10 @@ bool ProgressBar::HasSelfAnimation() const {
 }
 
 void ProgressBar::OnRender(GraphicsContext& ctx) {
-    float defaultRadius = m_bounds.height * 0.5f;
-    float radius = GetProperty("cornerRadius").AsFloat(defaultRadius);
-    D2D1_COLOR_F trackBg = ResolveThemeColor("theme.trackColorToken", "cardBorder");
-    D2D1_COLOR_F fillBg = ResolveThemeColor("theme.fillColorToken", "accentColor");
+    float radius = GetCornerRadius();
+    if (radius < 0.0f) radius = m_bounds.height * 0.5f;
+    D2D1_COLOR_F trackBg = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
+    D2D1_COLOR_F fillBg = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
 
     // Draw Track
     ctx.FillRoundedRect(m_bounds, radius, trackBg);

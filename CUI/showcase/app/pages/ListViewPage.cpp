@@ -16,8 +16,8 @@ public:
 ShowcasePage BuildListViewPage(const ShowcaseContext& ctx) {
     static VirtualListViewSource ds;
     auto target = std::make_shared<CUI::ListView>();
-    target->SetProperty("width", CUI::Value(500.0f));
-    target->SetProperty("height", CUI::Value(280.0f));
+    target->SetWidth(500.0f);
+    target->SetHeight(280.0f);
     target->AddColumn("ID", 60.0f);
     target->AddColumn("名称", 220.0f);
     target->AddColumn("状态", 120.0f);

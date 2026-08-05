@@ -195,6 +195,7 @@
     <ClCompile Include="ui\framework\core\Value.cpp" />
     <ClCompile Include="ui\framework\core\Object.cpp" />
     <ClCompile Include="ui\framework\core\Binding.cpp" />
+    <ClCompile Include="ui\framework\core\PropertyId.cpp" />
     <ClCompile Include="ui\framework\animation\AnimationManager.cpp" />
     <ClCompile Include="ui\framework\animation\AnimationSystem.cpp" />
     <ClCompile Include="ui\framework\render\RenderResources.cpp" />
@@ -206,6 +207,8 @@
     <ClCompile Include="ui\framework\text\TextLayoutCache.cpp" />
     <ClCompile Include="ui\framework\layout\Layout.cpp" />
     <ClCompile Include="ui\framework\controls\UIElement.cpp" />
+    <ClCompile Include="ui\framework\controls\UIElementPropertyBridge.cpp" />
+    <ClCompile Include="ui\framework\style\ThemeTokenId.cpp" />
     <ClCompile Include="ui\framework\controls\Control.cpp" />
     <ClCompile Include="ui\framework\controls\TextBlock.cpp" />
     <ClCompile Include="ui\framework\controls\Button.cpp" />
@@ -264,8 +267,8 @@
     <ClCompile Include="ui\framework\controls\Splitter.cpp" />
     <ClCompile Include="ui\framework\style\ThemeManager.cpp" />
     <ClCompile Include="ui\framework\parser\StyleManager.cpp" />
-    <ClCompile Include="ui\framework\parser\UIMarkupParser.cpp" />
     <ClCompile Include="ui\framework\window\Window.cpp" />
+    <ClCompile Include="ui\framework\window\PopupHost.cpp" />
     <ClCompile Include="ui\framework\window\CUIWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -277,6 +280,8 @@
     <ClInclude Include="ui\framework\core\Event.h" />
     <ClInclude Include="ui\framework\core\Object.h" />
     <ClInclude Include="ui\framework\core\Binding.h" />
+    <ClInclude Include="ui\framework\core\PropertyId.h" />
+    <ClInclude Include="ui\framework\core\PropertyDesc.h" />
     <ClInclude Include="ui\framework\core\CUIDsl.h" />
     <ClInclude Include="ui\framework\animation\AnimationManager.h" />
     <ClInclude Include="ui\framework\animation\AnimationSystem.h" />
@@ -348,13 +353,9 @@
     <ClInclude Include="ui\framework\controls\Splitter.h" />
     <ClInclude Include="ui\framework\style\ThemeManager.h" />
     <ClInclude Include="ui\framework\parser\StyleManager.h" />
-    <ClInclude Include="ui\framework\parser\UIMarkupParser.h" />
     <ClInclude Include="ui\framework\window\Window.h" />
+    <ClInclude Include="ui\framework\window\PopupHost.h" />
     <ClInclude Include="ui\framework\window\CUIWindow.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Xml Include="showcase\assets\gallery_layout.xml" />
-    <Xml Include="showcase\assets\vscode_layout.xml" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

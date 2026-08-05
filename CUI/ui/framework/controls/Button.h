@@ -19,8 +19,8 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    void SetText(const std::string& text) { SetProperty("text", Value(text)); }
-    std::string GetText() const { return GetProperty("text").AsString(); }
+    void SetText(const std::string& text) { UIElement::SetText(text); }
+    const std::string& GetText() const { return UIElement::GetText(); }
 
 private:
     Point m_rippleCenter{};

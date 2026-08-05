@@ -22,23 +22,20 @@ Point LerpPoint(const Point& a, const Point& b, float t) {
 }
 
 CheckBox::CheckBox() {
-    SetProperty("text", Value("CheckBox"));
-    SetProperty("checkState", Value("Unchecked"));
-    SetProperty("isThreeState", Value(false));
-    SetProperty("theme.backgroundToken", Value("inputBackground"));
-    SetProperty("theme.checkedBackgroundToken", Value("accentColor"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("inputBackground")));
-    SetProperty("checkedBackground", Value(ThemeManager::Instance().GetColor("accentColor")));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("textPrimary")));
-    SetProperty("fontSize", Value(13.0f));
-    SetProperty("fontFamily", Value("Segoe UI"));
-    SetProperty("padding", Value(Thickness(4, 4, 4, 4)));
-    SetProperty("cornerRadius", Value(3.0f));
+    SetText("CheckBox");
+    SetBackgroundToken(ThemeTokenId::InputBackground);
+    SetCheckedBackgroundToken(ThemeTokenId::AccentColor);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    SetFontSize(13.0f);
+    SetFontFamily("Segoe UI");
+    SetPadding(Thickness(4, 4, 4, 4));
+    SetCornerRadius(3.0f);
 }
 
 CheckBox::CheckBox(const std::string& text) : CheckBox() {
-    SetProperty("text", Value(text));
+    SetText(text);
 }
 
 std::vector<PropertyMeta> CheckBox::GetPropertyMetas() const {
@@ -51,33 +48,27 @@ std::vector<PropertyMeta> CheckBox::GetPropertyMetas() const {
     return metas;
 }
 
-CheckState CheckBox::GetState() const {
-    std::string s = GetProperty("checkState").AsString("Unchecked");
-    if (s == "Checked") return CheckState::Checked;
-    if (s == "Indeterminate") return CheckState::Indeterminate;
-    return CheckState::Unchecked;
-}
-
 void CheckBox::SetState(CheckState state) {
     std::string s = "Unchecked";
     if (state == CheckState::Checked) s = "Checked";
     else if (state == CheckState::Indeterminate) s = "Indeterminate";
 
-    SetProperty("checkState", Value(s));
-    SetProperty("isChecked", Value(state == CheckState::Checked));
+    m_state = state;
+    NotifyFieldChanged(PropertyId::CheckState, Value(s));
     m_onCheckStateChangedEvent.Invoke(this, state);
 }
 
 Size CheckBox::Measure(Size availableSize) {
-    std::string text = GetProperty("text").AsString("");
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(13.0f);
+    (void)availableSize;
+    const std::string& text = GetText();
+    const std::string& font = GetFontFamily();
+    float fontSize = GetFontSize();
 
     GraphicsContext ctx;
     Size textSize = ctx.MeasureText(text, font, fontSize);
 
-    Thickness margin = GetProperty("margin").AsThickness(Thickness(0));
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness margin = GetMargin();
+    Thickness padding = GetPadding();
 
     float boxW = 16.0f;
     float gap = 8.0f;
@@ -85,8 +76,8 @@ Size CheckBox::Measure(Size availableSize) {
     float w = boxW + gap + textSize.width + margin.left + margin.right + padding.left + padding.right;
     float h = (std::max)(16.0f, textSize.height) + margin.top + margin.bottom + padding.top + padding.bottom;
 
-    float expW = GetProperty("width").AsFloat(-1.0f);
-    float expH = GetProperty("height").AsFloat(-1.0f);
+    float expW = GetWidth();
+    float expH = GetHeight();
 
     if (expW >= 0.0f) w = expW;
     if (expH >= 0.0f) h = expH;
@@ -96,8 +87,8 @@ Size CheckBox::Measure(Size availableSize) {
 }
 
 void CheckBox::OnRender(GraphicsContext& ctx) {
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
-    float radius = GetProperty("cornerRadius").AsFloat(4.0f);
+    Thickness padding = GetPadding();
+    float radius = GetCornerRadius();
 
     CheckState state = GetState();
     float fillTarget = state == CheckState::Unchecked ? 0.0f : 1.0f;
@@ -119,14 +110,14 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     float boxY = m_bounds.y + (m_bounds.height - boxSize) / 2.0f;
     Rect boxRect(m_bounds.x + padding.left, boxY, boxSize, boxSize);
 
-    D2D1_COLOR_F accentBase = ResolveThemeColor("theme.checkedBackgroundToken", "accentColor");
+    D2D1_COLOR_F accentBase = ResolveThemeColor(GetCheckedBackgroundToken(), ThemeTokenId::AccentColor);
     float visualState = m_visualStateAnim.Current();
-    D2D1_COLOR_F accentBlue = BlendColor(accentBase, ThemeManager::Instance().GetColor("accentColor"), visualState * 0.35f);
-    D2D1_COLOR_F checkedIconColor = ThemeManager::Instance().GetColor("accentForeground");
-    D2D1_COLOR_F bg = GetAnimatedBackground(ResolveThemeColor("theme.backgroundToken", "inputBackground"));
+    D2D1_COLOR_F accentBlue = BlendColor(accentBase, ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor), visualState * 0.35f);
+    D2D1_COLOR_F checkedIconColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentForeground);
+    D2D1_COLOR_F bg = GetAnimatedBackground(ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground));
     D2D1_COLOR_F border = BlendColor(
-        ThemeManager::Instance().GetColor("inputBorder"),
-        ThemeManager::Instance().GetColor("focusedBorder"),
+        ThemeManager::Instance().GetFlatColor(ThemeTokenId::InputBorder),
+        ThemeManager::Instance().GetFlatColor(ThemeTokenId::FocusedBorder),
         (std::min)(1.0f, visualState / 0.55f));
 
     float fillProgress = m_fillAnim.Current();
@@ -169,14 +160,14 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     }
 
     // Draw Label Text
-    std::string text = GetProperty("text").AsString("");
+    const std::string& text = GetText();
     if (!text.empty()) {
         float textX = boxRect.x + boxSize + 10.0f;
         Rect textRect(textX, m_bounds.y, m_bounds.width - (textX - m_bounds.x), m_bounds.height);
 
-        D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
-        std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-        float fontSize = GetProperty("fontSize").AsFloat(13.0f);
+        D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+        const std::string& font = GetFontFamily();
+        float fontSize = GetFontSize();
 
         ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }

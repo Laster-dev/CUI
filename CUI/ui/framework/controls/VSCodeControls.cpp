@@ -8,15 +8,15 @@ namespace CUI {
 // 1. TitleBar Implementation
 // ==========================================
 TitleBar::TitleBar() {
-    SetProperty("height", Value(34.0f));
-    SetProperty("theme.backgroundToken", Value("titleBarBackground"));
-    SetProperty("theme.hoverBackgroundToken", Value("titleBarBackground"));
-    SetProperty("theme.pressedBackgroundToken", Value("titleBarBackground"));
-    SetProperty("theme.colorToken", Value("titleBarText"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
-    SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
-    SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
-    SetProperty("title", Value("CUI - Visual Studio Code [Direct2D UI Engine]"));
+    SetHeight(34.0f);
+    SetBackgroundToken(ThemeTokenId::TitleBarBackground);
+    SetHoverBackgroundToken(ThemeTokenId::TitleBarBackground);
+    SetPressedBackgroundToken(ThemeTokenId::TitleBarBackground);
+    SetColorToken(ThemeTokenId::TitleBarText);
+    SetBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
+    SetHoverBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
+    SetPressedBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
+    SetTitle("CUI - Visual Studio Code [Direct2D UI Engine]");
     m_menuBar.SetParent(this);
 
     // Populate real interactive MenuBar dropdown menus
@@ -143,7 +143,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
         ? D2D1::ColorF(tokens.titleBarText.r, tokens.titleBarText.g, tokens.titleBarText.b, isHoveredInTitle ? 0.08f : 0.04f)
         : D2D1::ColorF(tokens.titleBarText.r, tokens.titleBarText.g, tokens.titleBarText.b, isHoveredInTitle ? 0.14f : 0.08f);
     // Draw title in center
-    std::string title = GetProperty("title").AsString();
+    const std::string& title = GetTitle();
     ctx.DrawText(title, m_bounds, titleColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // 1. LowPerf / Animation Toggle Button
@@ -381,9 +381,9 @@ UIElement* TitleBar::HitTest(float x, float y) {
 // 2. ActivityBar Implementation
 // ==========================================
 ActivityBar::ActivityBar() {
-    SetProperty("width", Value(48.0f));
-    SetProperty("theme.backgroundToken", Value("activityBarBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetTokens().activityBarBackground));
+    SetWidth(48.0f);
+    SetBackgroundToken(ThemeTokenId::ActivityBarBackground);
+    SetBackground(ThemeManager::Instance().GetTokens().activityBarBackground);
 
     m_items = {
         { "[E]", "Explorer" },
@@ -438,10 +438,10 @@ void ActivityBar::OnMouseDown(Point pt) {
 // 3. SideBar Implementation
 // ==========================================
 SideBar::SideBar() {
-    SetProperty("width", Value(240.0f));
-    SetProperty("theme.backgroundToken", Value("sideBarBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("sideBarBackground")));
-    SetProperty("title", Value("EXPLORER: CUI PROJECT"));
+    SetWidth(240.0f);
+    SetBackgroundToken(ThemeTokenId::SideBarBackground);
+    SetBackground(ThemeManager::Instance().GetColor("sideBarBackground"));
+    SetTitle("EXPLORER: CUI PROJECT");
 
     m_fileTree = {
         { ">", "CUI", 0, true, true },
@@ -456,13 +456,12 @@ SideBar::SideBar() {
         { "#", "layout", 2, true, true },
         { "c", "Layout.h", 3, false, false },
         { "#", "parser", 2, true, true },
-        { "c", "UIMarkupParser.h", 3, false, false },
+        { "c", "StyleManager.h", 3, false, false },
         { "#", "controls", 2, true, true },
         { "c", "UIElement.h", 3, false, false },
         { "c", "VSCodeControls.h", 3, false, false },
         { "v", "showcase", 1, true, true },
-        { "v", "assets", 2, true, true },
-        { "x", "vscode_layout.xml", 3, false, false },
+        { "c", "ShowcaseHelpers.cpp", 2, false, false },
         { "c", "main.cpp", 2, false, false }
     };
 }
@@ -473,7 +472,7 @@ void SideBar::OnRender(GraphicsContext& ctx) {
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
 
     // Section title bar
-    std::string title = GetProperty("title").AsString();
+    const std::string& title = GetTitle();
     Rect headerRect(m_bounds.x + 16, m_bounds.y + 8, m_bounds.width - 32, 24);
     ctx.DrawText(title, headerRect, tokens.textSecondary, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
@@ -525,13 +524,13 @@ void SideBar::OnMouseDown(Point pt) {
 // 4. TabBar Implementation
 // ==========================================
 TabBar::TabBar() {
-    SetProperty("height", Value(35.0f));
-    SetProperty("theme.backgroundToken", Value("tabBarBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("tabBarBackground")));
+    SetHeight(35.0f);
+    SetBackgroundToken(ThemeTokenId::TabBarBackground);
+    SetBackground(ThemeManager::Instance().GetColor("tabBarBackground"));
 
     m_tabs = {
         { "c", "GraphicsContext.cpp", true },
-        { "x", "vscode_layout.xml", false },
+        { "c", "ShowcaseHelpers.cpp", false },
         { "c", "main.cpp", false }
     };
 }
@@ -603,8 +602,8 @@ void TabBar::OnMouseDown(Point pt) {
 // 5. EditorView Implementation
 // ==========================================
 EditorView::EditorView() {
-    SetProperty("theme.backgroundToken", Value("editorBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("editorBackground")));
+    SetBackgroundToken(ThemeTokenId::EditorBackground);
+    SetBackground(ThemeManager::Instance().GetColor("editorBackground"));
 
     m_lines = {
         "// Direct2D High-Performance Render Loop",
@@ -702,32 +701,28 @@ void EditorView::OnMouseDown(Point pt) {
 // 6. StatusBar Implementation
 // ==========================================
 StatusBar::StatusBar() {
-    SetProperty("height", Value(22.0f));
-    SetProperty("theme.backgroundToken", Value("statusBarBackground"));
-    SetProperty("theme.colorToken", Value("accentForeground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("statusBarBackground")));
-    SetProperty("color", Value(ThemeManager::Instance().GetTokens().accentForeground));
-    SetProperty("branch", Value("main*"));
-    SetProperty("status", Value("Ready"));
-    SetProperty("line", Value(14));
-    SetProperty("col", Value(28));
+    SetHeight(22.0f);
+    SetBackgroundToken(ThemeTokenId::StatusBarBackground);
+    SetColorToken(ThemeTokenId::AccentForeground);
+    SetBackground(ThemeManager::Instance().GetColor("statusBarBackground"));
+    SetColor(ThemeManager::Instance().GetTokens().accentForeground);
 }
 
 void StatusBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
-    D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "accentForeground");
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground);
 
     // Left items: Git Branch
-    std::string branchStr = "[git] " + GetProperty("branch").AsString("main*");
+    std::string branchStr = "[git] " + GetBranch();
     ctx.DrawText(branchStr, Rect(m_bounds.x + 10, m_bounds.y, 120, m_bounds.height), textColor, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // Errors & Warnings
     ctx.DrawText("(x) 0  (!) 0", Rect(m_bounds.x + 130, m_bounds.y, 100, m_bounds.height), textColor, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // Right items: Ln, Col, Spaces, UTF-8, C++
-    int line = GetProperty("line").AsInt(14);
-    int col = GetProperty("col").AsInt(28);
+    int line = GetLine();
+    int col = GetCol();
     std::string posStr = "Ln " + std::to_string(line) + ", Col " + std::to_string(col);
 
     float rightX = m_bounds.x + m_bounds.width - 320;

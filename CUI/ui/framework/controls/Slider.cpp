@@ -10,19 +10,12 @@ namespace CUI {
 namespace {}
 
 Slider::Slider() {
-    SetProperty("minimum", Value(0.0f));
-    SetProperty("maximum", Value(100.0f));
-    SetProperty("value", Value(0.0f));
-    SetProperty("step", Value(1.0f));
-    SetProperty("orientation", Value("Horizontal"));
-    SetProperty("theme.trackColorToken", Value("inputBorder"));
-    SetProperty("theme.activeTrackColorToken", Value("accentColor"));
-    SetProperty("theme.thumbColorToken", Value("accentColor"));
-    SetProperty("trackColor", Value(ThemeManager::Instance().GetColor("inputBorder")));
-    SetProperty("activeTrackColor", Value(ThemeManager::Instance().GetColor("accentColor")));
-    SetProperty("thumbColor", Value(ThemeManager::Instance().GetColor("accentColor")));
-    SetProperty("width", Value(200.0f));
-    SetProperty("height", Value(24.0f));
+    SetOrientation(Orientation::Horizontal);
+    SetTrackColorToken(ThemeTokenId::InputBorder);
+    SetActiveTrackColorToken(ThemeTokenId::AccentColor);
+    SetThumbColorToken(ThemeTokenId::AccentColor);
+    SetWidth(200.0f);
+    SetHeight(24.0f);
     m_displayValueAnim.Reset(GetValue());
 }
 
@@ -37,15 +30,16 @@ std::vector<PropertyMeta> Slider::GetPropertyMetas() const {
 }
 
 Size Slider::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(200.0f);
-    float expH = GetProperty("height").AsFloat(24.0f);
+    (void)availableSize;
+    float expW = GetWidth(); if (expW < 0) expW = 200.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 24.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
 
 Rect Slider::GetTrackRect() const {
-    std::string orient = GetProperty("orientation").AsString("Horizontal");
-    if (orient == "Horizontal") {
+    const bool horizontal = GetOrientation() != Orientation::Vertical;
+    if (horizontal) {
         float trackH = 4.0f;
         float y = m_bounds.y + (m_bounds.height - trackH) * 0.5f;
         return Rect(m_bounds.x + 8.0f, y, (std::max)(0.0f, m_bounds.width - 16.0f), trackH);
@@ -63,9 +57,9 @@ Rect Slider::GetThumbRect() const {
     float val = std::clamp(m_displayValueAnim.Current(), minVal, maxVal);
     float ratio = (maxVal > minVal) ? (val - minVal) / (maxVal - minVal) : 0.0f;
 
-    std::string orient = GetProperty("orientation").AsString("Horizontal");
+    const bool horizontal = GetOrientation() != Orientation::Vertical;
     float thumbR = 8.0f;
-    if (orient == "Horizontal") {
+    if (horizontal) {
         float cx = track.x + ratio * track.width;
         float cy = track.y + track.height * 0.5f;
         return Rect(cx - thumbR, cy - thumbR, thumbR * 2.0f, thumbR * 2.0f);
@@ -80,11 +74,11 @@ void Slider::MarkSliderVisualDirty(const Rect& previousThumb, float previousDisp
     const Rect currentThumb = GetThumbRect();
     Rect dirty = previousThumb.Union(currentThumb).Inflate(4.0f);
 
-    std::string orient = GetProperty("orientation").AsString("Horizontal");
+    const bool horizontal = GetOrientation() != Orientation::Vertical;
     Rect track = GetTrackRect();
     float previousFillExtent = 0.0f;
     float currentFillExtent = 0.0f;
-    if (orient == "Horizontal") {
+    if (horizontal) {
         previousFillExtent = previousThumb.x + previousThumb.width * 0.5f;
         currentFillExtent = currentThumb.x + currentThumb.width * 0.5f;
         float left = (std::min)(previousFillExtent, currentFillExtent);
@@ -119,7 +113,8 @@ void Slider::SetValue(float val) {
     if (std::abs(GetValue() - val) > 0.0001f) {
         const Rect previousThumb = GetThumbRect();
         const float previousDisplayValue = m_displayValueAnim.Current();
-        SetProperty("value", Value(val));
+        m_value = val;
+        NotifyFieldChanged(PropertyId::ControlValue, Value(val));
         if (m_isDragging) {
             m_displayValueAnim.Reset(val);
         }
@@ -132,10 +127,10 @@ void Slider::UpdateValueFromPoint(Point pt) {
     Rect track = GetTrackRect();
     float minVal = GetMinimum();
     float maxVal = GetMaximum();
-    std::string orient = GetProperty("orientation").AsString("Horizontal");
+    bool horizontal = GetOrientation() != Orientation::Vertical;
 
     float ratio = 0.0f;
-    if (orient == "Horizontal") {
+    if (horizontal) {
         if (track.width > 0.0f) {
             ratio = (pt.x - track.x) / track.width;
         }
@@ -214,16 +209,16 @@ void Slider::OnRender(GraphicsContext& ctx) {
 
     Rect track = GetTrackRect();
     Rect thumb = GetThumbRect();
-    std::string orient = GetProperty("orientation").AsString("Horizontal");
-    D2D1_COLOR_F trackBg = ResolveThemeColor("theme.trackColorToken", "inputBorder");
-    D2D1_COLOR_F activeBg = ResolveThemeColor("theme.activeTrackColorToken", "accentColor");
-    D2D1_COLOR_F thumbFill = ResolveThemeColor("theme.thumbColorToken", "cardBackground");
+    const bool horizontal = GetOrientation() != Orientation::Vertical;
+    D2D1_COLOR_F trackBg = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::InputBorder);
+    D2D1_COLOR_F activeBg = ResolveThemeColor(GetActiveTrackColorToken(), ThemeTokenId::AccentColor);
+    D2D1_COLOR_F thumbFill = ResolveThemeColor(GetThumbColorToken(), ThemeTokenId::CardBackground);
 
     // Draw background track
     ctx.FillRoundedRect(track, 2.0f, trackBg);
 
     // Draw active track
-    if (orient == "Horizontal") {
+    if (horizontal) {
         float fillW = thumb.x + thumb.width * 0.5f - track.x;
         if (fillW > 0.0f) {
             ctx.FillRoundedRect(Rect(track.x, track.y, fillW, track.height), 2.0f, activeBg);

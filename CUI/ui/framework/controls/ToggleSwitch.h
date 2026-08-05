@@ -18,15 +18,20 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    bool IsOn() const { return GetProperty("isOn").AsBool(false); }
+    bool IsOn() const { return m_isOn; }
     void SetIsOn(bool on);
 
-    std::string GetHeader() const { return GetProperty("header").AsString(""); }
-    void SetHeader(const std::string& header) { SetProperty("header", Value(header)); }
+    const std::string& GetHeader() const { return m_header; }
+    void SetHeader(const std::string& header) {
+        m_header = header;
+        MarkRenderContentDirty();
+    }
 
     Event<ToggleSwitch*, bool>& OnToggled() { return m_onToggledEvent; }
 
 private:
+    bool m_isOn = false;
+    std::string m_header{ "开关 (ToggleSwitch)" };
     AnimatedScalar m_knobPosAnim{}; // 0.0 for Off, 1.0 for On
     Event<ToggleSwitch*, bool> m_onToggledEvent;
 };

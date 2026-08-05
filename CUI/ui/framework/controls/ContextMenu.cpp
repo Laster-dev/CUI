@@ -4,18 +4,16 @@
 namespace CUI {
 
 MenuItem::MenuItem() {
-    SetProperty("text", Value(""));
-    SetProperty("icon", Value(""));
-    SetProperty("shortcutText", Value(""));
-    SetProperty("theme.colorToken", Value("textSecondary"));
-    SetProperty("color", Value(ThemeManager::Instance().GetColor("textSecondary")));
-    SetProperty("fontSize", Value(12.0f));
-    SetProperty("fontFamily", Value("Segoe UI"));
-    SetProperty("height", Value(26.0f));
+    SetText("");
+    SetColorToken(ThemeTokenId::TextSecondary);
+    SetColor(ThemeManager::Instance().GetColor("textSecondary"));
+    SetFontSize(12.0f);
+    SetFontFamily("Segoe UI");
+    SetHeight(26.0f);
 }
 
 MenuItem::MenuItem(const std::string& text, std::function<void()> onClick) : MenuItem() {
-    SetProperty("text", Value(text));
+    SetText(text);
     m_command = onClick;
 }
 
@@ -31,27 +29,27 @@ Size MenuItem::Measure(Size availableSize) {
 void MenuItem::OnRender(GraphicsContext& ctx) {
     if (m_isSeparator) {
         float lineY = m_bounds.y + m_bounds.height / 2.0f;
-        ctx.DrawLine(Point(m_bounds.x + 8.0f, lineY), Point(m_bounds.x + m_bounds.width - 8.0f, lineY), ThemeManager::Instance().GetColor("cardBorder"), 1.0f);
+        ctx.DrawLine(Point(m_bounds.x + 8.0f, lineY), Point(m_bounds.x + m_bounds.width - 8.0f, lineY), ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder), 1.0f);
         return;
     }
 
     bool enabled = IsEnabled();
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
     if (m_isHovered && enabled) {
-        D2D1_COLOR_F hover = ThemeManager::Instance().GetColor("accentColor");
+        D2D1_COLOR_F hover = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
         hover.a = lightTheme ? 0.16f : 0.32f;
         ctx.FillRoundedRect(m_bounds, 3.0f, hover);
     }
 
-    std::string text = GetProperty("text").AsString("");
+    std::string text = GetText();
     std::string icon = GetIcon();
     std::string shortcut = GetShortcutText();
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontSize = GetProperty("fontSize").AsFloat(12.0f);
+    std::string font = GetFontFamily();
+    float fontSize = GetFontSize();
 
     D2D1_COLOR_F textColor = enabled
-        ? ThemeManager::Instance().GetColor("textPrimary")
-        : ThemeManager::Instance().GetColor("textMuted");
+        ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary)
+        : ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
 
     // Draw Icon if available
     float iconW = 24.0f;
@@ -70,7 +68,7 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
         ctx.DrawText(">", arrowRect, textColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     } else if (!shortcut.empty()) {
         Rect shortcutRect(m_bounds.x + m_bounds.width - 125.0f, m_bounds.y, 115.0f, m_bounds.height);
-        D2D1_COLOR_F scColor = enabled ? ThemeManager::Instance().GetColor("textMuted") : textColor;
+        D2D1_COLOR_F scColor = enabled ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted) : textColor;
         ctx.DrawText(shortcut, shortcutRect, scColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
 }
@@ -109,12 +107,12 @@ void MenuItem::ExecuteCommand() {
 // ---------------- ContextMenu ----------------
 
 ContextMenu::ContextMenu() {
-    SetProperty("theme.backgroundToken", Value("cardBackground"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("cardBackground")));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("borderBrush", Value(ThemeManager::Instance().GetColor("cardBorder")));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("cornerRadius", Value(4.0f));
+    SetBackgroundToken(ThemeTokenId::CardBackground);
+    SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
+    SetBorderThickness(1.0f);
+    SetCornerRadius(4.0f);
 }
 
 std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, std::function<void()> onClick) {
@@ -161,7 +159,7 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
     float maxItemWidth = 220.0f;
     for (auto& item : m_items) {
         if (!item->IsSeparator()) {
-            std::string t = item->GetProperty("text").AsString();
+            std::string t = item->GetText();
             std::string sc = item->GetShortcutText();
             float tLen = static_cast<float>(t.length()) * 7.5f;
             float scLen = static_cast<float>(sc.length()) * 7.5f;
@@ -204,6 +202,10 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
         float h = item->IsSeparator() ? 6.0f : 26.0f;
         item->Arrange(Rect(popupX + 4.0f, currentY, itemW - 8.0f, h));
         currentY += h;
+    }
+
+    if (PopupHost* host = PopupHost::Current()) {
+        host->Open(this);
     }
 }
 
@@ -250,10 +252,16 @@ void ContextMenu::ShowSubMenuAt(Rect parentItemBounds, float windowW, float wind
 }
 
 void ContextMenu::Hide() {
+    const bool wasOpen = m_isOpen;
     m_isOpen = false;
     if (m_activeSubMenu) {
         m_activeSubMenu->Hide();
         m_activeSubMenu = nullptr;
+    }
+    if (wasOpen) {
+        if (PopupHost* host = PopupHost::Current()) {
+            host->Close(this);
+        }
     }
 }
 
@@ -267,13 +275,20 @@ Rect ContextMenu::GetTotalBounds() const {
 }
 
 void ContextMenu::OnRenderOverlay(GraphicsContext& ctx) {
+    // ContextMenu is typically not in the visual tree; PopupHost paints via RenderPopup.
+    // Keep this as a fallback when no host is active.
+    if (PopupHost::Current() && m_isOpen) return;
+    RenderPopup(ctx);
+}
+
+void ContextMenu::RenderPopup(GraphicsContext& ctx) {
     if (!m_isOpen || m_items.empty()) return;
 
-    float radius = GetProperty("cornerRadius").AsFloat(4.0f);
+    float radius = GetCornerRadius();
 
     // Draw ContextMenu Popup Box (Shadow & Background)
-    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
-    D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
+    D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+    D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
     ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);
@@ -285,8 +300,12 @@ void ContextMenu::OnRenderOverlay(GraphicsContext& ctx) {
 
     // Render Active Submenu if open
     if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
-        m_activeSubMenu->OnRenderOverlay(ctx);
+        m_activeSubMenu->RenderPopup(ctx);
     }
+}
+
+bool ContextMenu::HitDismissExempt(float x, float y) const {
+    return GetTotalBounds().Contains(x, y);
 }
 
 UIElement* ContextMenu::HitTestOverlay(float x, float y) {

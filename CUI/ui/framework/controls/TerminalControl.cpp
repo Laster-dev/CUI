@@ -142,7 +142,8 @@ void TerminalControl::InitTerminal(const std::string& shellPath) {
     };
     m_terminal->ScrollChanged = [this]() { MarkViewportDirty(); };
     m_terminal->TitleChanged = [this](const std::string& title) {
-        SetProperty("terminalTitle", Value(title));
+        m_terminalTitle = title;
+        MarkRenderContentDirty();
     };
     m_terminal->ThemeChanged = [this]() {
         m_renderer->ApplyTheme(m_terminal->Options().Theme);
@@ -160,16 +161,15 @@ void TerminalControl::InitTerminal(const std::string& shellPath) {
         return true;
     };
 
-    SetProperty("shell", Value(shellPath));
-    SetProperty("fontFamily", Value(Term::TerminalOptions::DefaultFontFamily()));
-    SetProperty("fontSize", Value(m_terminal->Options().FontSize));
-    SetProperty("background", Value(m_terminal->Options().Theme.Background.ToD2D()));
-    SetProperty("color", Value(m_terminal->Options().Theme.Foreground.ToD2D()));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("cornerRadius", Value(4.0f));
-    SetProperty("width", Value(680.0f));
-    SetProperty("height", Value(420.0f));
+    SetFontFamily(Term::TerminalOptions::DefaultFontFamily());
+    SetFontSize(m_terminal->Options().FontSize);
+    SetBackground(m_terminal->Options().Theme.Background.ToD2D());
+    SetColor(m_terminal->Options().Theme.Foreground.ToD2D());
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetBorderThickness(1.0f);
+    SetCornerRadius(4.0f);
+    SetWidth(680.0f);
+    SetHeight(420.0f);
 
     BuildFindBar();
     BuildContextMenu();
@@ -193,9 +193,9 @@ HCURSOR TerminalControl::GetCursor() const {
 
 void TerminalControl::BuildFindBar() {
     m_findBox = std::make_shared<FindBox>(this);
-    m_findBox->SetProperty("visibility", Value("Collapsed"));
-    m_findBox->SetProperty("width", Value(220.0f));
-    m_findBox->SetProperty("height", Value(26.0f));
+    m_findBox->SetVisibility(Visibility::Collapsed);
+    m_findBox->SetWidth(220.0f);
+    m_findBox->SetHeight(26.0f);
     AddChild(m_findBox);
 }
 
@@ -255,8 +255,8 @@ void TerminalControl::WriteInput(const std::string& text) {
 void TerminalControl::ApplyTheme(const Term::TerminalTheme& theme) {
     m_terminal->Options().Theme = theme;
     m_renderer->ApplyTheme(theme);
-    SetProperty("background", Value(theme.Background.ToD2D()));
-    SetProperty("color", Value(theme.Foreground.ToD2D()));
+    SetBackground(theme.Background.ToD2D());
+    SetColor(theme.Foreground.ToD2D());
     MarkViewportDirty();
 }
 
@@ -268,7 +268,7 @@ void TerminalControl::Zoom(int deltaSteps) {
         return;
     }
     options.FontSize = next;
-    SetProperty("fontSize", Value(next));
+    SetFontSize(next);
     m_renderer->UpdateFont(options.FontFamily, options.FontSize);
     m_lastCols = -1;
     m_lastRows = -1;
@@ -278,7 +278,7 @@ void TerminalControl::Zoom(int deltaSteps) {
 void TerminalControl::ShowFind(bool show) {
     m_findVisible = show;
     if (m_findBox) {
-        m_findBox->SetProperty("visibility", Value(show ? "Visible" : "Collapsed"));
+        m_findBox->SetVisibility(show ? Visibility::Visible : Visibility::Collapsed);
         if (show) {
             m_findBox->SelectAll();
         }
@@ -337,8 +337,8 @@ void TerminalControl::SelectAll() {
 
 Size TerminalControl::Measure(Size availableSize) {
     (void)availableSize;
-    const float expW = GetProperty("width").AsFloat(680.0f);
-    const float expH = GetProperty("height").AsFloat(420.0f);
+    float expW = GetWidth(); if (expW < 0) expW = 680.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 420.0f;
     m_desiredSize = Size(expW, expH);
 
     if (m_findBox) {
@@ -444,7 +444,7 @@ void TerminalControl::RecalculateSize(GraphicsContext& ctx) {
 
     if (m_backend == nullptr && !m_backendStartAttempted) {
         m_backendStartAttempted = true;
-        const std::string shell = GetProperty("shell").AsString(m_pendingShell);
+        const std::string& shell = GetShell();
         AttachConPty(shell.empty() ? std::string("cmd.exe") : shell);
     }
 
@@ -579,10 +579,10 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
         m_outputPending.store(remaining || m_terminal->HasPendingOutput());
     }
 
-    const float radius = GetProperty("cornerRadius").AsFloat(4.0f);
+    const float radius = GetCornerRadius();
     const D2D1_COLOR_F bg = m_terminal->Options().Theme.Background.ToD2D();
-    const D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
-    const float borderThick = GetProperty("borderThickness").AsFloat(1.0f);
+    const D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    const float borderThick = GetBorderThickness();
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
     if (borderThick > 0.0f) {

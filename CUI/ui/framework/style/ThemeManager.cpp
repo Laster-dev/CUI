@@ -92,41 +92,87 @@ void ThemeManager::UpdateTokens() {
 }
 
 MaterialRole ThemeManager::GetMaterialRole(const std::string& tokenName) const {
-    if (tokenName == "windowBackground" ||
-        tokenName == "editorBackground" ||
-        tokenName == "titleBarBackground" ||
-        tokenName == "paneBackground" ||
-        tokenName == "sideBarBackground" ||
-        tokenName == "activityBarBackground" ||
-        tokenName == "tabBarBackground") {
-        return MaterialRole::Chrome;
-    }
-
-    if (tokenName == "cardBackground" ||
-        tokenName == "inputBackground" ||
-        tokenName == "hoverBackground" ||
-        tokenName == "pressedBackground" ||
-        tokenName == "selectedBackground" ||
-        tokenName == "statusBarBackground") {
-        return MaterialRole::Surface;
-    }
-
-    return MaterialRole::Solid;
+    return GetMaterialRole(ThemeTokenIdFromName(tokenName));
 }
 
 D2D1_COLOR_F ThemeManager::ApplyMaterialRole(const std::string& tokenName, D2D1_COLOR_F base) const {
+    return ApplyMaterialRole(ThemeTokenIdFromName(tokenName), base);
+}
+
+D2D1_COLOR_F ThemeManager::LookupBaseColor(const std::string& tokenName) const {
+    return LookupBaseColor(ThemeTokenIdFromName(tokenName));
+}
+
+D2D1_COLOR_F ThemeManager::GetColor(const std::string& tokenName) const {
+    return GetColor(ThemeTokenIdFromName(tokenName));
+}
+
+D2D1_COLOR_F ThemeManager::LookupBaseColor(ThemeTokenId id) const {
+    switch (id) {
+    case ThemeTokenId::WindowBackground: return m_tokens.windowBackground;
+    case ThemeTokenId::CardBackground: return m_tokens.cardBackground;
+    case ThemeTokenId::CardBorder: return m_tokens.cardBorder;
+    case ThemeTokenId::TextPrimary: return m_tokens.textPrimary;
+    case ThemeTokenId::TextSecondary: return m_tokens.textSecondary;
+    case ThemeTokenId::TextMuted: return m_tokens.textMuted;
+    case ThemeTokenId::TitleBarBackground: return m_tokens.titleBarBackground;
+    case ThemeTokenId::TitleBarText: return m_tokens.titleBarText;
+    case ThemeTokenId::AccentColor: return m_tokens.accentColor;
+    case ThemeTokenId::AccentForeground: return m_tokens.accentForeground;
+    case ThemeTokenId::SelectedBackground: return m_tokens.selectedBackground;
+    case ThemeTokenId::DangerColor: return m_tokens.dangerColor;
+    case ThemeTokenId::PaneBackground: return m_tokens.paneBackground;
+    case ThemeTokenId::InputBackground: return m_tokens.inputBackground;
+    case ThemeTokenId::InputBorder: return m_tokens.inputBorder;
+    case ThemeTokenId::HoverBackground: return m_tokens.hoverBackground;
+    case ThemeTokenId::PressedBackground: return m_tokens.pressedBackground;
+    case ThemeTokenId::FocusedBorder: return m_tokens.focusedBorder;
+    case ThemeTokenId::ActivityBarBackground: return m_tokens.activityBarBackground;
+    case ThemeTokenId::SideBarBackground: return m_tokens.paneBackground;
+    case ThemeTokenId::EditorBackground: return m_tokens.windowBackground;
+    case ThemeTokenId::StatusBarBackground: return m_tokens.accentColor;
+    case ThemeTokenId::TabBarBackground: return m_tokens.paneBackground;
+    case ThemeTokenId::Unset:
+    case ThemeTokenId::Count:
+    default:
+        return D2D1::ColorF(1.0f, 0.0f, 1.0f, 1.0f);
+    }
+}
+
+MaterialRole ThemeManager::GetMaterialRole(ThemeTokenId id) const {
+    switch (id) {
+    case ThemeTokenId::WindowBackground:
+    case ThemeTokenId::EditorBackground:
+    case ThemeTokenId::TitleBarBackground:
+    case ThemeTokenId::PaneBackground:
+    case ThemeTokenId::SideBarBackground:
+    case ThemeTokenId::ActivityBarBackground:
+    case ThemeTokenId::TabBarBackground:
+        return MaterialRole::Chrome;
+    case ThemeTokenId::CardBackground:
+    case ThemeTokenId::InputBackground:
+    case ThemeTokenId::HoverBackground:
+    case ThemeTokenId::PressedBackground:
+    case ThemeTokenId::SelectedBackground:
+    case ThemeTokenId::StatusBarBackground:
+        return MaterialRole::Surface;
+    default:
+        return MaterialRole::Solid;
+    }
+}
+
+D2D1_COLOR_F ThemeManager::ApplyMaterialRole(ThemeTokenId id, D2D1_COLOR_F base) const {
     if (!m_backdropActive || m_backdropType == BackdropType::None) {
         return base;
     }
 
-    const MaterialRole role = GetMaterialRole(tokenName);
+    const MaterialRole role = GetMaterialRole(id);
     const bool light = (m_mode == ThemeMode::Light);
     const bool acrylic = (m_backdropType == BackdropType::Acrylic);
     const bool micaAlt = (m_backdropType == BackdropType::MicaAlt);
 
     if (role == MaterialRole::Chrome) {
-        // 宿主画布全透明 —— 页面/编辑器空隙必须露出 DWM，否则材质永远看不见。
-        if (tokenName == "windowBackground" || tokenName == "editorBackground") {
+        if (id == ThemeTokenId::WindowBackground || id == ThemeTokenId::EditorBackground) {
             base.a = 0.0f;
             return base;
         }
@@ -142,11 +188,10 @@ D2D1_COLOR_F ThemeManager::ApplyMaterialRole(const std::string& tokenName, D2D1_
             }
             const float titleA = acrylic ? 0.12f : (micaAlt ? 0.16f : 0.22f);
             const float paneA = acrylic ? 0.14f : (micaAlt ? 0.18f : 0.24f);
-            base.a = (tokenName == "titleBarBackground") ? titleA : paneA;
+            base.a = (id == ThemeTokenId::TitleBarBackground) ? titleA : paneA;
             return base;
         }
 
-        // 深色玻璃：必须足够透，否则在深色壁纸上像「死黑底」
         if (micaAlt) {
             base.r = 0.10f; base.g = 0.10f; base.b = 0.12f;
         } else if (acrylic) {
@@ -156,34 +201,33 @@ D2D1_COLOR_F ThemeManager::ApplyMaterialRole(const std::string& tokenName, D2D1_
         }
         const float titleA = acrylic ? 0.16f : (micaAlt ? 0.20f : 0.26f);
         const float paneA = acrylic ? 0.18f : (micaAlt ? 0.22f : 0.28f);
-        base.a = (tokenName == "titleBarBackground") ? titleA : paneA;
+        base.a = (id == ThemeTokenId::TitleBarBackground) ? titleA : paneA;
         return base;
     }
 
     if (role == MaterialRole::Surface) {
-        if (tokenName == "selectedBackground" ||
-            tokenName == "hoverBackground" ||
-            tokenName == "pressedBackground") {
+        if (id == ThemeTokenId::SelectedBackground ||
+            id == ThemeTokenId::HoverBackground ||
+            id == ThemeTokenId::PressedBackground) {
             return base;
         }
         if (light) {
             base.r = 1.0f;
             base.g = 1.0f;
             base.b = 1.0f;
-            if (tokenName == "statusBarBackground") {
+            if (id == ThemeTokenId::StatusBarBackground) {
                 base.a = 0.72f;
-            } else if (tokenName == "inputBackground") {
+            } else if (id == ThemeTokenId::InputBackground) {
                 base.a = acrylic ? 0.55f : 0.70f;
             } else {
-                // Demo / 卡片：能透出底下云母色调
                 base.a = acrylic ? 0.55f : 0.68f;
             }
             return base;
         }
 
-        if (tokenName == "statusBarBackground") {
+        if (id == ThemeTokenId::StatusBarBackground) {
             base.a = 0.65f;
-        } else if (tokenName == "inputBackground") {
+        } else if (id == ThemeTokenId::InputBackground) {
             base.r = 0.18f; base.g = 0.18f; base.b = 0.18f;
             base.a = acrylic ? 0.45f : 0.58f;
         } else {
@@ -196,37 +240,24 @@ D2D1_COLOR_F ThemeManager::ApplyMaterialRole(const std::string& tokenName, D2D1_
     return base;
 }
 
-D2D1_COLOR_F ThemeManager::LookupBaseColor(const std::string& tokenName) const {
-    if (tokenName == "windowBackground") return m_tokens.windowBackground;
-    if (tokenName == "cardBackground") return m_tokens.cardBackground;
-    if (tokenName == "cardBorder") return m_tokens.cardBorder;
-    if (tokenName == "textPrimary") return m_tokens.textPrimary;
-    if (tokenName == "textSecondary") return m_tokens.textSecondary;
-    if (tokenName == "textMuted") return m_tokens.textMuted;
-    if (tokenName == "titleBarBackground") return m_tokens.titleBarBackground;
-    if (tokenName == "titleBarText") return m_tokens.titleBarText;
-    if (tokenName == "accentColor") return m_tokens.accentColor;
-    if (tokenName == "accentForeground") return m_tokens.accentForeground;
-    if (tokenName == "selectedBackground") return m_tokens.selectedBackground;
-    if (tokenName == "dangerColor") return m_tokens.dangerColor;
-    if (tokenName == "paneBackground") return m_tokens.paneBackground;
-    if (tokenName == "inputBackground") return m_tokens.inputBackground;
-    if (tokenName == "inputBorder") return m_tokens.inputBorder;
-    if (tokenName == "hoverBackground") return m_tokens.hoverBackground;
-    if (tokenName == "pressedBackground") return m_tokens.pressedBackground;
-    if (tokenName == "focusedBorder") return m_tokens.focusedBorder;
-    if (tokenName == "activityBarBackground") return m_tokens.activityBarBackground;
-    if (tokenName == "sideBarBackground") return m_tokens.paneBackground;
-    if (tokenName == "editorBackground") return m_tokens.windowBackground;
-    if (tokenName == "statusBarBackground") return m_tokens.accentColor;
-    if (tokenName == "tabBarBackground") return m_tokens.paneBackground;
-
-    assert(!"Unknown theme color token");
-    return D2D1::ColorF(1.0f, 0.0f, 1.0f, 1.0f);
+D2D1_COLOR_F ThemeManager::GetColor(ThemeTokenId id) const {
+    if (id == ThemeTokenId::Unset) {
+        return D2D1::ColorF(1.0f, 0.0f, 1.0f, 1.0f);
+    }
+    return ApplyMaterialRole(id, LookupBaseColor(id));
 }
 
-D2D1_COLOR_F ThemeManager::GetColor(const std::string& tokenName) const {
-    return ApplyMaterialRole(tokenName, LookupBaseColor(tokenName));
+D2D1_COLOR_F ThemeManager::GetFlatColor(ThemeTokenId id) const {
+    if (id == ThemeTokenId::Unset) {
+        return D2D1::ColorF(1.0f, 0.0f, 1.0f, 1.0f);
+    }
+    D2D1_COLOR_F c = LookupBaseColor(id);
+    c.a = 1.0f;
+    return c;
+}
+
+D2D1_COLOR_F ThemeManager::GetFlatColor(const std::string& tokenName) const {
+    return GetFlatColor(ThemeTokenIdFromName(tokenName));
 }
 
 std::string ThemeManager::GetColorHex(const std::string& tokenName) const {

@@ -48,10 +48,11 @@ public:
     std::shared_ptr<TreeViewItem> GetSelectedItem() const { return m_selectedItem; }
     void SetSelectedItem(std::shared_ptr<TreeViewItem> item);
 
-    float GetItemHeight() const { return GetProperty("itemHeight").AsFloat(24.0f); }
-    void SetItemHeight(float h) { SetProperty("itemHeight", Value(h)); }
-    float GetIndentWidth() const { return GetProperty("indentWidth").AsFloat(18.0f); }
-    void SetIndentWidth(float w) { SetProperty("indentWidth", Value(w)); }
+    float GetIndentWidth() const { return m_indentWidth; }
+    void SetIndentWidth(float w) {
+        m_indentWidth = w;
+        MarkRenderContentDirty();
+    }
 
     Event<TreeView*, std::shared_ptr<TreeViewItem>>& OnSelectionChanged() { return m_onSelectionChangedEvent; }
     Event<TreeView*, std::shared_ptr<TreeViewItem>>& OnItemToggled() { return m_onItemToggledEvent; }
@@ -72,6 +73,7 @@ private:
     void SetParentRecursive(const std::shared_ptr<TreeViewItem>& item, TreeViewItem* parent);
     std::shared_ptr<TreeViewItem> FindFirstVisibleSelectable(int startIndex, int direction) const;
 
+    float m_indentWidth = 18.0f;
     std::vector<std::shared_ptr<TreeViewItem>> m_items;
     std::shared_ptr<TreeViewItem> m_selectedItem;
     mutable std::vector<VisibleItem> m_visibleItems;

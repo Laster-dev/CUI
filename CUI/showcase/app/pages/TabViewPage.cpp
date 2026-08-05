@@ -9,8 +9,8 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildTabViewPage(const ShowcaseContext& ctx) {
     auto tabView = std::make_shared<TabView>();
-    tabView->SetProperty("width", Value(520.0f));
-    tabView->SetProperty("height", Value(280.0f));
+    tabView->SetWidth(520.0f);
+    tabView->SetHeight(280.0f);
 
     auto page1 = Column(8).Padding(16).Children({
         std::make_shared<TextBlock>("Tab 1 — 首页"),

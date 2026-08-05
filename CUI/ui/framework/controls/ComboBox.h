@@ -1,11 +1,12 @@
 #pragma once
 #include "Control.h"
+#include "../window/PopupHost.h"
 #include <vector>
 #include <string>
 
 namespace CUI {
 
-class ComboBox : public Control {
+class ComboBox : public Control, public IPopup {
 public:
     ComboBox();
     virtual ~ComboBox() = default;
@@ -27,14 +28,28 @@ public:
     virtual UIElement* HitTest(float x, float y) override;
     virtual UIElement* HitTestOverlay(float x, float y) override;
 
+    // IPopup
+    virtual bool IsPopupOpen() const override { return m_isDropDownOpen; }
+    virtual Rect GetPopupBounds() const override;
+    virtual bool HitDismissExempt(float x, float y) const override;
+    virtual UIElement* HitTestPopup(float x, float y) override { return HitTestOverlay(x, y); }
+    virtual void RenderPopup(GraphicsContext& ctx) override;
+    virtual void OnLightDismiss() override { SetDropDownOpen(false); }
+
+    void SetProperty(PropertyId id, const Value& val) override;
+
     void AddItem(const std::string& item);
     void ClearItems();
+    void SetItems(const std::string& itemsCsv);
     const std::vector<std::string>& GetItems() const { return m_items; }
 
     int GetSelectedIndex() const { return m_selectedIndex; }
     void SetSelectedIndex(int index);
 
     std::string GetSelectedItem() const;
+
+    void SetDropDownOpen(bool open);
+    bool IsDropDownOpen() const { return m_isDropDownOpen; }
 
     Event<ComboBox*, int, const std::string&>& OnSelectionChanged() { return m_onSelectionChangedEvent; }
 

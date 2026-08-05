@@ -16,21 +16,17 @@ float EaseLine(float t) {
 }
 
 RadioButton::RadioButton() : CheckBox("RadioButton") {
-    SetProperty("groupName", Value("DefaultGroup"));
-    SetProperty("theme.backgroundToken", Value("inputBackground"));
-    SetProperty("theme.accentColorToken", Value("accentColor"));
-    SetProperty("theme.colorToken", Value("textSecondary"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("inputBackground")));
-    SetProperty("accentColor", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetBackgroundToken(ThemeTokenId::InputBackground);
+    SetAccentColorToken(ThemeTokenId::AccentColor);
+    SetColorToken(ThemeTokenId::TextSecondary);
+    SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
 }
 
 RadioButton::RadioButton(const std::string& text) : CheckBox(text) {
-    SetProperty("groupName", Value("DefaultGroup"));
-    SetProperty("theme.backgroundToken", Value("inputBackground"));
-    SetProperty("theme.accentColorToken", Value("accentColor"));
-    SetProperty("theme.colorToken", Value("textSecondary"));
-    SetProperty("background", Value(ThemeManager::Instance().GetColor("inputBackground")));
-    SetProperty("accentColor", Value(ThemeManager::Instance().GetColor("accentColor")));
+    SetBackgroundToken(ThemeTokenId::InputBackground);
+    SetAccentColorToken(ThemeTokenId::AccentColor);
+    SetColorToken(ThemeTokenId::TextSecondary);
+    SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
 }
 
 std::vector<PropertyMeta> RadioButton::GetPropertyMetas() const {
@@ -99,21 +95,21 @@ void RadioButton::OnRender(GraphicsContext& ctx) {
         m_visualStateAnim.Reset(m_visualStateTarget);
     }
 
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(4, 4, 4, 4));
+    Thickness padding = GetPadding();
     float size = 18.0f;
     Rect checkRect(m_bounds.x + padding.left, m_bounds.y + (m_bounds.height - size) * 0.5f, size, size);
 
-    D2D1_COLOR_F accent = ResolveThemeColor("theme.accentColorToken", "accentColor");
-    D2D1_COLOR_F defaultBorder = ThemeManager::Instance().GetColor("inputBorder");
+    D2D1_COLOR_F accent = ResolveThemeColor(GetAccentColorToken(), ThemeTokenId::AccentColor);
+    D2D1_COLOR_F defaultBorder = ThemeManager::Instance().GetColor(ThemeTokenId::InputBorder);
     defaultBorder.a = 0.85f;
-    D2D1_COLOR_F hoverBorder = ThemeManager::Instance().GetColor("textPrimary");
+    D2D1_COLOR_F hoverBorder = ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary);
 
     float selectionProgress = std::clamp(m_selectionAnim.Current(), 0.0f, 1.0f);
     float visualProgress = m_visualStateAnim.Current();
 
     D2D1_COLOR_F borderUnchecked = BlendColor(defaultBorder, hoverBorder, (std::min)(1.0f, visualProgress / 0.55f));
     D2D1_COLOR_F border = BlendColor(borderUnchecked, accent, selectionProgress);
-    D2D1_COLOR_F bg = GetAnimatedBackground(ResolveThemeColor("theme.backgroundToken", "inputBackground"));
+    D2D1_COLOR_F bg = GetAnimatedBackground(ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground));
 
     ctx.FillRoundedRect(checkRect, size * 0.5f, bg);
     ctx.DrawRoundedRect(checkRect, size * 0.5f, border, 1.4f);
@@ -127,11 +123,11 @@ void RadioButton::OnRender(GraphicsContext& ctx) {
         ctx.FillRoundedRect(Rect(dotX, dotY, diameter, diameter), diameter * 0.5f, accent);
     }
 
-    std::string txt = GetProperty("text").AsString("");
+    std::string txt = GetText();
     if (!txt.empty()) {
-        float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-        std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
-        D2D1_COLOR_F color = ResolveThemeColor("theme.colorToken", "textSecondary");
+        float fontSize = GetFontSize();
+        std::string fontFamily = GetFontFamily();
+        D2D1_COLOR_F color = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
 
         float textX = checkRect.x + size + 10.0f;
         Rect textRect(textX, m_bounds.y, (std::max)(0.0f, m_bounds.width - (textX - m_bounds.x)), m_bounds.height);

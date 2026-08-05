@@ -16,24 +16,19 @@ float EaseTrack(float t) {
 
 ToggleSwitch::ToggleSwitch() {
     auto& theme = ThemeManager::Instance();
-    SetProperty("isOn", Value(false));
-    SetProperty("header", Value("开关 (ToggleSwitch)"));
-    SetProperty("theme.onColorToken", Value("accentColor"));
-    SetProperty("theme.offColorToken", Value("inputBorder"));
-    SetProperty("theme.knobColorToken", Value("accentForeground"));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("theme.colorToken", Value("textSecondary"));
-    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
-    SetProperty("theme.pressedBackgroundToken", Value("pressedBackground"));
-    SetProperty("onColor", Value(theme.GetColor("accentColor")));
-    SetProperty("offColor", Value(theme.GetColor("inputBorder")));
-    SetProperty("knobColor", Value(theme.GetColor("accentForeground")));
-    SetProperty("borderBrush", Value(theme.GetColor("cardBorder")));
-    SetProperty("color", Value(theme.GetColor("textSecondary")));
-    SetProperty("hoverBackground", Value(theme.GetColor("hoverBackground")));
-    SetProperty("pressedBackground", Value(theme.GetColor("pressedBackground")));
-    SetProperty("width", Value(170.0f));
-    SetProperty("height", Value(24.0f));
+    SetOnColorToken(ThemeTokenId::AccentColor);
+    SetOffColorToken(ThemeTokenId::InputBorder);
+    SetKnobColorToken(ThemeTokenId::AccentForeground);
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetColorToken(ThemeTokenId::TextSecondary);
+    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    SetBorderBrush(theme.GetColor("cardBorder"));
+    SetColor(theme.GetColor("textSecondary"));
+    SetHoverBackground(theme.GetColor("hoverBackground"));
+    SetPressedBackground(theme.GetColor("pressedBackground"));
+    SetWidth(170.0f);
+    SetHeight(24.0f);
 }
 
 std::vector<PropertyMeta> ToggleSwitch::GetPropertyMetas() const {
@@ -44,15 +39,17 @@ std::vector<PropertyMeta> ToggleSwitch::GetPropertyMetas() const {
 }
 
 Size ToggleSwitch::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(180.0f);
-    float expH = GetProperty("height").AsFloat(24.0f);
+    (void)availableSize;
+    float expW = GetWidth(); if (expW < 0) expW = 180.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 24.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
 
 void ToggleSwitch::SetIsOn(bool on) {
-    if (IsOn() != on) {
-        SetProperty("isOn", Value(on));
+    if (m_isOn != on) {
+        m_isOn = on;
+        NotifyFieldChanged(PropertyId::IsOn, Value(on));
         m_onToggledEvent.Invoke(this, on);
     }
 }
@@ -86,10 +83,10 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     float pillH = 17.0f;
     Rect pillRect(m_bounds.x, m_bounds.y + (m_bounds.height - pillH) * 0.5f, pillW, pillH);
 
-    D2D1_COLOR_F onColor = ResolveThemeColor("theme.onColorToken", "accentColor");
-    D2D1_COLOR_F offColor = ResolveThemeColor("theme.offColorToken", "inputBorder");
-    D2D1_COLOR_F knobColor = ResolveThemeColor("theme.knobColorToken", "accentForeground");
-    D2D1_COLOR_F borderBrush = ResolveThemeColor("theme.borderToken", "cardBorder");
+    D2D1_COLOR_F onColor = ResolveThemeColor(GetOnColorToken(), ThemeTokenId::AccentColor);
+    D2D1_COLOR_F offColor = ResolveThemeColor(GetOffColorToken(), ThemeTokenId::InputBorder);
+    D2D1_COLOR_F knobColor = ResolveThemeColor(GetKnobColorToken(), ThemeTokenId::AccentForeground);
+    D2D1_COLOR_F borderBrush = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     borderBrush.a = (std::min)(borderBrush.a, 0.75f);
 
     float eased = EaseTrack(m_knobPosAnim.Current());
@@ -119,9 +116,9 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
 
     std::string header = GetHeader();
     if (!header.empty()) {
-        float fontSize = GetProperty("fontSize").AsFloat(13.0f);
-        std::string fontFamily = GetProperty("fontFamily").AsString("Segoe UI");
-        D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textSecondary");
+        float fontSize = GetFontSize();
+        const std::string& fontFamily = GetFontFamily();
+        D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
 
         Rect textRect(pillRect.x + pillW + 10.0f, m_bounds.y, (std::max)(0.0f, m_bounds.width - pillW - 10.0f), m_bounds.height);
         ctx.DrawText(header, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);

@@ -10,23 +10,16 @@ namespace {}
 
 TabView::TabView() {
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
-    SetProperty("theme.backgroundToken", Value("windowBackground"));
-    SetProperty("theme.headerBackgroundToken", Value("paneBackground"));
-    SetProperty("theme.activeTabBackgroundToken", Value("windowBackground"));
-    SetProperty("theme.inactiveTabBackgroundToken", Value("cardBackground"));
-    SetProperty("theme.underlineColorToken", Value("cardBorder"));
-    SetProperty("theme.activeUnderlineColorToken", Value("accentColor"));
-    SetProperty("background", Value(tokens.windowBackground));
-    SetProperty("headerBackground", Value(tokens.paneBackground));
-    SetProperty("activeTabBackground", Value(tokens.windowBackground));
-    SetProperty("inactiveTabBackground", Value(tokens.cardBackground));
-    SetProperty("underlineColor", Value(tokens.cardBorder));
-    SetProperty("activeUnderlineColor", Value(tokens.accentColor));
-    SetProperty("minTabWidth", Value(80.0f));
-    SetProperty("maxTabWidth", Value(260.0f));
+    SetBackgroundToken(ThemeTokenId::WindowBackground);
+    SetHeaderBackgroundToken(ThemeTokenId::PaneBackground);
+    SetActiveTabBackgroundToken(ThemeTokenId::WindowBackground);
+    SetInactiveTabBackgroundToken(ThemeTokenId::CardBackground);
+    SetUnderlineColorToken(ThemeTokenId::CardBorder);
+    SetActiveUnderlineColorToken(ThemeTokenId::AccentColor);
+    SetBackground(tokens.windowBackground);
     m_headerLayer.SetCacheable(true);
     m_contentLayer.SetCacheable(true);
-    OnPropertyChanged().Connect([this](const std::string&, const Value&) {
+    OnPropertyIdChanged().Connect([this](PropertyId, const Value&) {
         MarkHeaderDirty();
         MarkContentDirty();
     });
@@ -50,7 +43,7 @@ void TabView::AddTab(const std::string& title, std::shared_ptr<UIElement> conten
         AddChild(content);
         int addedIndex = static_cast<int>(m_tabs.size());
         if (addedIndex != m_selectedIndex) {
-            content->SetProperty("visibility", Value("Collapsed"));
+            content->SetVisibility(Visibility::Collapsed);
         }
     }
 
@@ -101,11 +94,11 @@ void TabView::SetSelectedIndex(int index) {
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         if (m_tabs[i].content) {
             if (static_cast<int>(i) == m_selectedIndex) {
-                m_tabs[i].content->SetProperty("visibility", Value("Visible"));
+                m_tabs[i].content->SetVisibility(Visibility::Visible);
                 m_tabs[i].content->Measure(contentAvail);
                 m_tabs[i].content->Arrange(contentRect);
             } else {
-                m_tabs[i].content->SetProperty("visibility", Value("Collapsed"));
+                m_tabs[i].content->SetVisibility(Visibility::Collapsed);
             }
         }
     }
@@ -158,8 +151,8 @@ float TabView::GetHeaderHeight() const {
 }
 
 float TabView::MeasureTabWidth(GraphicsContext& ctx, const TabViewItem& tab) const {
-    float minW = GetProperty("minTabWidth").AsFloat(80.0f);
-    float maxW = GetProperty("maxTabWidth").AsFloat(260.0f);
+    float minW = GetMinTabWidth();
+    float maxW = GetMaxTabWidth();
 
     float width = 24.0f;
     if (!tab.icon.empty()) {
@@ -240,8 +233,7 @@ UIElement* TabView::GetSelectedContent() const {
 }
 
 void TabView::Render(GraphicsContext& ctx) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return;
+    if (GetVisibility() != Visibility::Visible) return;
 
     ctx.PushClip(m_bounds);
     OnRender(ctx);
@@ -320,7 +312,7 @@ void TabView::RenderContentLayer(GraphicsContext& ctx) {
         d2d->GetTransform(&oldTransform);
         d2d->SetTransform(D2D1::Matrix3x2F::Translation(-contentRect.x, -contentRect.y));
 
-        D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "windowBackground");
+        D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::WindowBackground);
         ctx.FillRect(contentRect, bg);
         if (selectedContent) {
             selectedContent->Render(ctx);
@@ -343,7 +335,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
     Rect headerBarRect(m_bounds.x, m_bounds.y, m_bounds.width, headerH);
 
     // Draw TabBar Header background
-    D2D1_COLOR_F headerBg = ResolveThemeColor("theme.headerBackgroundToken", "paneBackground");
+    D2D1_COLOR_F headerBg = ResolveThemeColor(GetHeaderBackgroundToken(), ThemeTokenId::PaneBackground);
     ctx.FillRect(headerBarRect, headerBg);
 
     // Clip tab buttons within header bounds
@@ -351,8 +343,8 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
 
     float tabX = m_bounds.x + 4.0f - m_scrollOffsetXAnim.Current();
 
-    D2D1_COLOR_F defaultActiveTabBg = ResolveThemeColor("theme.activeTabBackgroundToken", "windowBackground");
-    D2D1_COLOR_F defaultInactiveTabBg = ResolveThemeColor("theme.inactiveTabBackgroundToken", "cardBackground");
+    D2D1_COLOR_F defaultActiveTabBg = ResolveThemeColor(GetActiveTabBackgroundToken(), ThemeTokenId::WindowBackground);
+    D2D1_COLOR_F defaultInactiveTabBg = ResolveThemeColor(GetInactiveTabBackgroundToken(), ThemeTokenId::CardBackground);
     D2D1_COLOR_F defaultActiveTextCol = ThemeManager::Instance().GetTokens().textPrimary;
     D2D1_COLOR_F defaultInactiveTextCol = ThemeManager::Instance().GetTokens().textSecondary;
     D2D1_COLOR_F defaultBorderCol = ThemeManager::Instance().GetTokens().cardBorder;
@@ -373,8 +365,8 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         float indicatorInset = 6.0f;
         float indicatorWidth = (std::max)(0.0f, tabW - indicatorInset * 2.0f);
         float indicatorY = m_bounds.y + 4.0f;
-        D2D1_COLOR_F underlineColor = ResolveThemeColor("theme.underlineColorToken", "cardBorder");
-        D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor("theme.activeUnderlineColorToken", "accentColor");
+        D2D1_COLOR_F underlineColor = ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::CardBorder);
+        D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
 
         if (isActive || tab.accentAnim.Current() > 0.01f) {
             ctx.DrawLine(
@@ -469,8 +461,7 @@ void TabView::OnMouseWheel(float delta) {
 }
 
 UIElement* TabView::HitTest(float x, float y) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible" || !m_bounds.Contains(x, y)) {
+    if (GetVisibility() != Visibility::Visible || !m_bounds.Contains(x, y)) {
         return nullptr;
     }
 

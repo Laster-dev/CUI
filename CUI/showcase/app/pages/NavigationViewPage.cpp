@@ -18,7 +18,7 @@ namespace {
 
 std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string& body, int variant) {
     auto chk = std::make_shared<CheckBox>();
-    chk->SetProperty("text", Value(variant % 2 == 0 ? "启用示例功能" : "允许用户输入"));
+    chk->SetText(variant % 2 == 0 ? "启用示例功能" : "允许用户输入");
     chk->SetState((variant % 2 == 0) ? CheckState::Checked : CheckState::Unchecked);
 
     auto toggle = std::make_shared<ToggleSwitch>();
@@ -26,16 +26,16 @@ std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string&
     toggle->SetIsOn(variant % 2 == 0);
 
     auto combo = std::make_shared<ComboBox>();
-    combo->SetProperty("width", Value(240.0f));
-    combo->SetProperty("height", Value(32.0f));
+    combo->SetWidth(240.0f);
+    combo->SetHeight(32.0f);
     combo->AddItem(variant % 2 == 0 ? "WinUI-like" : "CUI-custom");
     combo->AddItem("Dark/Light");
     combo->AddItem("Accent");
     combo->SetSelectedIndex(variant % 3);
 
     auto list = std::make_shared<ListBox>();
-    list->SetProperty("height", Value(120.0f));
-    list->SetProperty("itemHeight", Value(28.0f));
+    list->SetHeight(120.0f);
+    list->SetItemHeight(28.0f);
     list->SetSelectionMode(ListBoxSelectionMode::Single);
     list->AddItem(variant % 2 == 0 ? "One" : "Alpha");
     list->AddItem(variant % 2 == 0 ? "Two" : "Beta");
@@ -43,7 +43,7 @@ std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string&
     list->SetSelectedIndex(0);
 
     auto input = std::make_shared<TextBox>("Type something...");
-    input->SetProperty("width", Value(360.0f));
+    input->SetWidth(360.0f);
 
     return Column(12).Children({
         std::make_shared<TextBlock>(title),
@@ -110,8 +110,8 @@ ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
 
     // AutoSuggest slot
     auto search = std::make_shared<TextBox>();
-    search->SetProperty("placeholder", Value("Search"));
-    search->SetProperty("height", Value(32.0f));
+    search->SetPlaceholder("Search");
+    search->SetHeight(32.0f);
     nav->SetAutoSuggestBox(search);
 
     nav->SetSelectedItem(home.get());
@@ -170,7 +170,7 @@ ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
     });
 
     auto chkHeader = std::make_shared<CheckBox>();
-    chkHeader->SetProperty("text", Value("AlwaysShowHeader"));
+    chkHeader->SetText("AlwaysShowHeader");
     chkHeader->SetState(CheckState::Checked);
     chkHeader->OnCheckStateChanged().Connect([nav](CheckBox*, CheckState state) {
         nav->SetAlwaysShowHeader(state == CheckState::Checked);
@@ -182,8 +182,8 @@ ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
     });
 
     auto modeLabel = std::make_shared<TextBlock>("PaneDisplayMode");
-    nav->SetProperty("width", Value(860.0f));
-    nav->SetProperty("height", Value(420.0f));
+    nav->SetWidth(860.0f);
+    nav->SetHeight(420.0f);
 
     auto demo = Column(12).Children({
         Row(12).Children({ modeLabel, modeBox, btnToggle, chkHeader }).Build(),

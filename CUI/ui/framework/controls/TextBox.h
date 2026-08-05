@@ -47,15 +47,18 @@ public:
     bool HasSelection() const { return m_selectionStart != m_selectionEnd; }
     void DeleteSelection();
 
-    std::string GetText() const { return GetProperty("text").AsString(); }
+    const std::string& GetText() const { return UIElement::GetText(); }
     void SetText(const std::string& text);
 
-    std::string GetPlaceholder() const { return GetProperty("placeholder").AsString(); }
-    void SetPlaceholder(const std::string& ph) { SetProperty("placeholder", Value(ph)); }
+    const std::string& GetPlaceholder() const { return UIElement::GetPlaceholder(); }
+    void SetPlaceholder(const std::string& ph) { UIElement::SetPlaceholder(ph); }
 
     virtual std::wstring GetDisplayedText() const;
-    bool IsPasswordMode() const { return GetProperty("isPasswordMode").AsBool(false); }
-    void SetIsPasswordMode(bool isPass) { SetProperty("isPasswordMode", Value(isPass)); }
+    bool IsPasswordMode() const { return m_isPasswordMode; }
+    void SetIsPasswordMode(bool isPass) {
+        m_isPasswordMode = isPass;
+        MarkRenderContentDirty();
+    }
 
     wchar_t GetPasswordChar() const {
         return L'•';
@@ -64,11 +67,51 @@ public:
     bool IsPasswordRevealed() const { return m_isPasswordRevealed; }
     void SetIsPasswordRevealed(bool revealed) { m_isPasswordRevealed = revealed; MarkRenderContentDirty(); }
 
-    bool GetShowRevealButton() const { return GetProperty("showRevealButton").AsBool(true); }
-    void SetShowRevealButton(bool show) { SetProperty("showRevealButton", Value(show)); }
+    bool GetShowRevealButton() const { return m_showRevealButton; }
+    void SetShowRevealButton(bool show) {
+        m_showRevealButton = show;
+        MarkRenderContentDirty();
+    }
 
-    bool IsReadOnly() const { return GetProperty("isReadOnly").AsBool(false); }
-    void SetIsReadOnly(bool readOnly) { SetProperty("isReadOnly", Value(readOnly)); }
+    bool IsReadOnly() const { return m_isReadOnly; }
+    void SetIsReadOnly(bool readOnly) {
+        m_isReadOnly = readOnly;
+        MarkRenderContentDirty();
+    }
+
+    void SetAcceptsReturn(bool accepts) {
+        m_acceptsReturn = accepts;
+        MarkRenderContentDirty();
+    }
+
+    void SetTextWrapping(bool wrap) {
+        m_textWrapping = wrap;
+        MarkRenderContentDirty();
+    }
+
+    float GetLineSpacing() const { return m_lineSpacing; }
+    void SetLineSpacing(float spacing) {
+        m_lineSpacing = spacing;
+        MarkRenderContentDirty();
+    }
+
+    float GetLineHeight() const { return m_lineHeight; }
+    void SetLineHeight(float height) {
+        m_lineHeight = height;
+        MarkRenderContentDirty();
+    }
+
+    int GetCaretBlinkRate() const { return m_caretBlinkRate; }
+    void SetCaretBlinkRate(int ms) {
+        m_caretBlinkRate = ms;
+        MarkRenderContentDirty();
+    }
+
+    float GetCaretWidth() const { return m_caretWidth; }
+    void SetCaretWidth(float width) {
+        m_caretWidth = width;
+        MarkRenderContentDirty();
+    }
 
     Event<TextBox*, const std::string&>& OnTextChanged() { return m_onTextChangedEvent; }
 
@@ -76,8 +119,8 @@ protected:
     Rect GetRevealButtonRect() const;
 
 private:
-    bool GetAcceptsReturn() const;
-    bool IsTextWrapping() const;
+    bool GetAcceptsReturn() const { return m_acceptsReturn; }
+    bool IsTextWrapping() const { return m_textWrapping; }
     bool IsMultiline() const;
 
     Rect GetTextRect() const;
@@ -106,6 +149,15 @@ private:
     std::wstring m_compString;
     int m_suppressCharCount = 0;
     bool m_isPasswordRevealed = false;
+    bool m_isPasswordMode = false;
+    bool m_showRevealButton = true;
+    bool m_isReadOnly = false;
+    bool m_acceptsReturn = false;
+    bool m_textWrapping = false;
+    float m_lineSpacing = 1.0f;
+    float m_lineHeight = 0.0f;
+    int m_caretBlinkRate = 500;
+    float m_caretWidth = 1.5f;
     AnimatedScalar m_labelAnim{};
     AnimatedScalar m_focusLineAnim{};
 

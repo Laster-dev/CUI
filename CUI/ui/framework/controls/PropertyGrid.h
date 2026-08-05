@@ -28,9 +28,9 @@ private:
     std::weak_ptr<UIElement> m_target;
     void* m_windowHost = nullptr;
     std::shared_ptr<StackPanel> m_container;
-    std::map<std::string, std::shared_ptr<TextBox>> m_inputControls;
-    std::map<std::string, std::shared_ptr<CheckBox>> m_checkControls;
-    std::map<std::string, std::shared_ptr<ComboBox>> m_comboControls;
+    std::map<PropertyId, std::shared_ptr<TextBox>> m_inputControls;
+    std::map<PropertyId, std::shared_ptr<CheckBox>> m_checkControls;
+    std::map<PropertyId, std::shared_ptr<ComboBox>> m_comboControls;
     bool m_updatingFromTarget = false;
 };
 

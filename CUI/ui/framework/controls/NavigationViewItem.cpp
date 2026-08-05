@@ -24,7 +24,7 @@ void NavigationViewItemBase::SetIsSelected(bool selected) {
 NavigationViewItemHeader::NavigationViewItemHeader(const std::string& text) {
     m_text = text;
     // Defaults via theme tokens only — paint path resolves through ThemeManager.
-    SetProperty("theme.colorToken", Value("textSecondary"));
+    SetColorToken(ThemeTokenId::TextSecondary);
 }
 
 void NavigationViewItemHeader::SetText(const std::string& text) {
@@ -39,7 +39,7 @@ Size NavigationViewItemHeader::Measure(Size availableSize) {
 
 void NavigationViewItemHeader::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
-    const D2D1_COLOR_F color = ResolveThemeColor("theme.colorToken", "textSecondary");
+    const D2D1_COLOR_F color = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
     const float indent = 12.0f + m_depth * 12.0f;
     Rect textRect(m_bounds.x + indent, m_bounds.y, (std::max)(0.0f, m_bounds.width - indent - 8.0f), m_bounds.height);
     ctx.PushClip(textRect);
@@ -56,10 +56,10 @@ Size NavigationViewItemSeparator::Measure(Size availableSize) {
 
 void NavigationViewItemSeparator::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
-    if (!HasProperty("theme.borderToken")) {
-        SetProperty("theme.borderToken", Value("cardBorder"));
+    if (GetBorderToken() == ThemeTokenId::Unset) {
+        SetBorderToken(ThemeTokenId::CardBorder);
     }
-    const D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
+    const D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     const float y = m_bounds.y + m_bounds.height * 0.5f;
     const float inset = 12.0f + m_depth * 12.0f;
     ctx.DrawLine(Point(m_bounds.x + inset, y),
@@ -79,13 +79,13 @@ NavigationViewItem::NavigationViewItem(const std::string& content, const std::st
 void NavigationViewItem::StyleDefaults() {
     // Bind theme tokens only. Do not bake ColorF snapshots — ThemeManager is
     // the single color source unless user code overrides a property.
-    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
-    SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("theme.secondaryColorToken", Value("textSecondary"));
-    SetProperty("theme.indicatorColorToken", Value("accentColor"));
-    SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
-    SetProperty("cornerRadius", Value(4.0f));
+    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetSecondaryColorToken(ThemeTokenId::TextSecondary);
+    SetIndicatorColorToken(ThemeTokenId::AccentColor);
+    SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    SetCornerRadius(4.0f);
 }
 
 void NavigationViewItem::SetContent(const std::string& content) {
@@ -152,13 +152,13 @@ bool NavigationViewItem::HitChevron(Point pt) const {
 void NavigationViewItem::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
-    const float radius = GetProperty("cornerRadius").AsFloat(4.0f);
+    const float radius = GetCornerRadius();
     const bool showSelected = m_isSelected || m_isChildSelected;
     D2D1_COLOR_F fill = D2D1::ColorF(0, 0, 0, 0);
     if (showSelected) {
-        fill = ResolveThemeColor("theme.selectedBackgroundToken", "selectedBackground");
+        fill = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
     } else if (m_hovered) {
-        fill = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
+        fill = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
     }
     if (fill.a > 0.001f) {
         ctx.FillRoundedRect(m_bounds, radius, fill);
@@ -166,7 +166,7 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
 
     // Always resolve through ThemeManager (token → GetColor). User overrides of
     // theme.colorToken are honored; never use a DIY palette here.
-    const D2D1_COLOR_F textColor = ResolveThemeColor("theme.colorToken", "textPrimary");
+    const D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
 
     const float indent = m_topMode ? 0.0f : (m_depth * 12.0f);
     float x = m_bounds.x + indent;

@@ -2,10 +2,11 @@
 #include "Control.h"
 #include "TextBox.h"
 #include "../style/ThemeManager.h"
+#include "../window/PopupHost.h"
 
 namespace CUI {
 
-class ColorPicker : public Control {
+class ColorPicker : public Control, public IPopup {
 public:
     ColorPicker();
     virtual ~ColorPicker() = default;
@@ -22,15 +23,23 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    bool IsPopupOpen() const { return m_isPopupOpen; }
-    void SetPopupOpen(bool open) { m_isPopupOpen = open; }
+    // IPopup
+    virtual bool IsPopupOpen() const override { return m_isPopupOpen; }
+    virtual Rect GetPopupBounds() const override;
+    virtual bool HitDismissExempt(float x, float y) const override;
+    virtual UIElement* HitTestPopup(float x, float y) override { return OnHitTestOverlay(x, y); }
+    virtual void RenderPopup(GraphicsContext& ctx) override;
+    virtual void OnLightDismiss() override { SetPopupOpen(false); }
 
-    D2D1_COLOR_F GetSelectedColor() const { return GetProperty("selectedColor").AsColor(ThemeManager::Instance().GetColor("accentColor")); }
+    void SetPopupOpen(bool open);
+
+    D2D1_COLOR_F GetSelectedColor() const { return m_selectedColor; }
     void SetSelectedColor(D2D1_COLOR_F color);
 
     Event<ColorPicker*, D2D1_COLOR_F>& OnColorChanged() { return m_onColorChangedEvent; }
 
 private:
+    D2D1_COLOR_F m_selectedColor{ 0, 0, 0, 1 };
     std::vector<D2D1_COLOR_F> m_swatches;
     bool m_isPopupOpen = false;
     AnimatedScalar m_popupAnim{};

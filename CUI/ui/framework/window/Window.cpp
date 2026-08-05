@@ -7,12 +7,15 @@
 #include "../controls/DatePicker.h"
 #include "../controls/TimePicker.h"
 #include "../controls/ColorPicker.h"
+#include "../controls/ComboBox.h"
+#include "../controls/Flyout.h"
 #include <windowsx.h>
 #include <dwmapi.h>
 #include <imm.h>
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <functional>
 #include <sstream>
 
 #pragma comment(lib, "imm32.lib")
@@ -99,353 +102,247 @@ Rect GetClientBounds(HWND hwnd) {
     );
 }
 
-void ApplyThemeToken(UIElement* element, const char* tokenPropName, const char* targetPropName) {
-    if (!element || !element->HasProperty(tokenPropName)) {
-        return;
-    }
-    const std::string tokenName = element->GetProperty(tokenPropName).AsString();
-    if (tokenName.empty()) {
-        return;
-    }
-    element->SetProperty(targetPropName, Value(ThemeManager::Instance().GetColor(tokenName)));
-}
-
+// Paint always resolves colors through ResolveThemeColor(Get*Token()), so this
+// walk only needs to seed sensible default tokens where a control hasn't set
+// its own — no legacy ColorF/string mirroring required.
 void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
     if (!element) {
         return;
     }
 
-    ApplyThemeToken(element, "theme.backgroundToken", "background");
-    ApplyThemeToken(element, "theme.hoverBackgroundToken", "hoverBackground");
-    ApplyThemeToken(element, "theme.pressedBackgroundToken", "pressedBackground");
-    ApplyThemeToken(element, "theme.borderToken", "borderBrush");
-    ApplyThemeToken(element, "theme.focusedBorderToken", "focusedBorderBrush");
-    ApplyThemeToken(element, "theme.colorToken", "color");
-    ApplyThemeToken(element, "theme.placeholderColorToken", "placeholderColor");
-    ApplyThemeToken(element, "theme.dropdownBackgroundToken", "dropdownBackground");
-    ApplyThemeToken(element, "theme.selectedItemBackgroundToken", "selectedItemBackground");
-    ApplyThemeToken(element, "theme.selectedBackgroundToken", "selectedBackground");
-    ApplyThemeToken(element, "theme.headerBackgroundToken", "headerBackground");
-    ApplyThemeToken(element, "theme.activeTabBackgroundToken", "activeTabBackground");
-    ApplyThemeToken(element, "theme.inactiveTabBackgroundToken", "inactiveTabBackground");
-    ApplyThemeToken(element, "theme.underlineColorToken", "underlineColor");
-    ApplyThemeToken(element, "theme.activeUnderlineColorToken", "activeUnderlineColor");
-    ApplyThemeToken(element, "theme.disabledBackgroundToken", "disabledBackground");
-    ApplyThemeToken(element, "theme.activeColorToken", "activeColor");
-    ApplyThemeToken(element, "theme.fillColorToken", "fillColor");
-    ApplyThemeToken(element, "theme.trackColorToken", "trackColor");
-    ApplyThemeToken(element, "theme.activeTrackColorToken", "activeTrackColor");
-    ApplyThemeToken(element, "theme.thumbColorToken", "thumbColor");
-    ApplyThemeToken(element, "theme.onColorToken", "onColor");
-    ApplyThemeToken(element, "theme.offColorToken", "offColor");
-    ApplyThemeToken(element, "theme.knobColorToken", "knobColor");
-    ApplyThemeToken(element, "theme.paneBackgroundToken", "paneBackground");
-    ApplyThemeToken(element, "theme.indicatorColorToken", "indicatorColor");
-    ApplyThemeToken(element, "theme.accentToken", "accent");
-    ApplyThemeToken(element, "theme.accentColorToken", "accentColor");
-    ApplyThemeToken(element, "theme.checkedBackgroundToken", "checkedBackground");
-    ApplyThemeToken(element, "theme.gridLineBrushToken", "gridLineBrush");
-    ApplyThemeToken(element, "theme.titleColorToken", "titleColor");
-    ApplyThemeToken(element, "theme.messageColorToken", "messageColor");
-
     const std::string className = element->GetClassName();
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     if (className == "TitleBar") {
         // Keep chrome fill stable across hover/focus; always sync from titleBarBackground.
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("titleBarBackground"));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::TitleBarBackground);
         }
-        if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("theme.hoverBackgroundToken", Value("titleBarBackground"));
+        if (element->GetHoverBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetHoverBackgroundToken(ThemeTokenId::TitleBarBackground);
         }
-        if (!element->HasProperty("theme.pressedBackgroundToken")) {
-            element->SetProperty("theme.pressedBackgroundToken", Value("titleBarBackground"));
+        if (element->GetPressedBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetPressedBackgroundToken(ThemeTokenId::TitleBarBackground);
         }
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("theme.colorToken", Value("titleBarText"));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColorToken(ThemeTokenId::TitleBarText);
         }
-        element->SetProperty("background", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
-        element->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
-        element->SetProperty("pressedBackground", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
-        element->SetProperty("color", Value(ThemeManager::Instance().GetColor("titleBarText")));
+        element->SetBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
+        element->SetHoverBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
+        element->SetPressedBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
+        element->SetColor(ThemeManager::Instance().GetColor("titleBarText"));
     } else if (className == "MenuBar") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("titleBarBackground"));
-            element->SetProperty("background", Value(ThemeManager::Instance().GetColor("titleBarBackground")));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::TitleBarBackground);
+            element->SetBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
         }
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.titleBarText));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColor(tokens.titleBarText);
         }
     } else if (className == "Button") {
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.accentForeground));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColor(tokens.accentForeground);
         }
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.accentColor));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackground(tokens.accentColor);
         }
-        if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("hoverBackground", Value(tokens.accentColor));
+        if (element->GetHoverBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetHoverBackground(tokens.accentColor);
         }
-        if (!element->HasProperty("theme.pressedBackgroundToken")) {
-            element->SetProperty("pressedBackground", Value(tokens.accentColor));
+        if (element->GetPressedBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetPressedBackground(tokens.accentColor);
         }
-        if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("borderBrush", Value(tokens.accentColor));
-        }
-        if (!element->HasProperty("theme.focusedBorderToken")) {
-            element->SetProperty("focusedBorderBrush", Value(tokens.focusedBorder));
+        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+            element->SetBorderBrush(tokens.accentColor);
         }
     } else if (className == "PropertyGrid") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("paneBackground"));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::PaneBackground);
         }
-        if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("theme.borderToken", Value("cardBorder"));
+        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+            element->SetBorderToken(ThemeTokenId::CardBorder);
         }
     } else if (className == "ContextMenu") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.cardBackground));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackground(tokens.cardBackground);
         }
-        if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("borderBrush", Value(tokens.cardBorder));
+        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+            element->SetBorderBrush(tokens.cardBorder);
         }
     } else if (className == "MenuItem") {
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.textSecondary));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColor(tokens.textSecondary);
         }
     } else if (className == "TextBox") {
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.textPrimary));
-        }
-        if (!element->HasProperty("theme.placeholderColorToken")) {
-            element->SetProperty("placeholderColor", Value(tokens.textMuted));
-        }
-        if (!element->HasProperty("theme.activeUnderlineColorToken")) {
-            element->SetProperty("activeUnderlineColor", Value(tokens.accentColor));
-        }
-        if (!element->HasProperty("theme.underlineColorToken")) {
-            element->SetProperty("underlineColor", Value(tokens.cardBorder));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColor(tokens.textPrimary);
         }
     } else if (className == "ComboBox") {
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("theme.colorToken", Value("textPrimary"));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColorToken(ThemeTokenId::TextPrimary);
         }
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("inputBackground"));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::InputBackground);
         }
-        if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
+        if (element->GetHoverBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
         }
-        if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("theme.borderToken", Value("inputBorder"));
+        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+            element->SetBorderToken(ThemeTokenId::InputBorder);
         }
-        if (!element->HasProperty("theme.focusedBorderToken")) {
-            element->SetProperty("theme.focusedBorderToken", Value("focusedBorder"));
+        if (element->GetFocusedBorderToken() == ThemeTokenId::Unset) {
+            element->SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
         }
-        if (!element->HasProperty("theme.dropdownBackgroundToken")) {
-            element->SetProperty("theme.dropdownBackgroundToken", Value("cardBackground"));
+        if (element->GetDropdownBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetDropdownBackgroundToken(ThemeTokenId::CardBackground);
         }
-        if (!element->HasProperty("theme.selectedItemBackgroundToken")) {
-            element->SetProperty("theme.selectedItemBackgroundToken", Value("selectedBackground"));
+        if (element->GetSelectedItemBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetSelectedItemBackgroundToken(ThemeTokenId::SelectedBackground);
         }
     } else if (className == "CheckBox") {
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.textPrimary));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColor(tokens.textPrimary);
         }
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.inputBackground));
-        }
-        if (!element->HasProperty("theme.checkedBackgroundToken") && !element->HasProperty("checkedBackground")) {
-            element->SetProperty("checkedBackground", Value(tokens.accentColor));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackground(tokens.inputBackground);
         }
     } else if (className == "RadioButton") {
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.textPrimary));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColor(tokens.textPrimary);
         }
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.inputBackground));
-        }
-        if (!element->HasProperty("theme.accentColorToken")) {
-            element->SetProperty("accentColor", Value(tokens.accentColor));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackground(tokens.inputBackground);
         }
     } else if (className == "ToggleSwitch") {
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.textPrimary));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColor(tokens.textPrimary);
         }
-        if (!element->HasProperty("theme.onColorToken")) {
-            element->SetProperty("onColor", Value(tokens.accentColor));
+        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+            element->SetBorderBrush(tokens.cardBorder);
         }
-        if (!element->HasProperty("theme.offColorToken")) {
-            element->SetProperty("offColor", Value(tokens.inputBorder));
+        if (element->GetHoverBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetHoverBackground(tokens.hoverBackground);
         }
-        if (!element->HasProperty("theme.knobColorToken")) {
-            element->SetProperty("knobColor", Value(tokens.accentForeground));
-        }
-        if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("borderBrush", Value(tokens.cardBorder));
-        }
-        if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("hoverBackground", Value(tokens.hoverBackground));
-        }
-        if (!element->HasProperty("theme.pressedBackgroundToken")) {
-            element->SetProperty("pressedBackground", Value(tokens.pressedBackground));
+        if (element->GetPressedBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetPressedBackground(tokens.pressedBackground);
         }
     } else if (className == "Slider") {
-        if (!element->HasProperty("theme.trackColorToken")) {
-            element->SetProperty("theme.trackColorToken", Value("cardBorder"));
+        if (element->GetTrackColorToken() == ThemeTokenId::Unset) {
+            element->SetTrackColorToken(ThemeTokenId::CardBorder);
         }
-        if (!element->HasProperty("theme.activeTrackColorToken")) {
-            element->SetProperty("theme.activeTrackColorToken", Value("accentColor"));
+        if (element->GetActiveTrackColorToken() == ThemeTokenId::Unset) {
+            element->SetActiveTrackColorToken(ThemeTokenId::AccentColor);
         }
-        if (!element->HasProperty("theme.thumbColorToken")) {
-            element->SetProperty("theme.thumbColorToken", Value("accentColor"));
+        if (element->GetThumbColorToken() == ThemeTokenId::Unset) {
+            element->SetThumbColorToken(ThemeTokenId::AccentColor);
         }
     } else if (className == "CollapsePanel") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("paneBackground"));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::PaneBackground);
         }
-        if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("theme.borderToken", Value("cardBorder"));
+        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+            element->SetBorderToken(ThemeTokenId::CardBorder);
         }
     } else if (className == "ListBox") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("cardBackground"));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::CardBackground);
         }
-        if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("theme.borderToken", Value("cardBorder"));
+        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+            element->SetBorderToken(ThemeTokenId::CardBorder);
         }
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("theme.colorToken", Value("textPrimary"));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColorToken(ThemeTokenId::TextPrimary);
         }
-        if (!element->HasProperty("theme.selectedBackgroundToken")) {
-            element->SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
+        if (element->GetSelectedBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
         }
-        if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
+        if (element->GetHoverBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
         }
     } else if (className == "ListView") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("cardBackground"));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::CardBackground);
         }
-        if (!element->HasProperty("theme.headerBackgroundToken")) {
-            element->SetProperty("theme.headerBackgroundToken", Value("paneBackground"));
+        if (element->GetHeaderBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetHeaderBackgroundToken(ThemeTokenId::PaneBackground);
         }
-        if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("theme.borderToken", Value("cardBorder"));
+        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+            element->SetBorderToken(ThemeTokenId::CardBorder);
         }
-        if (!element->HasProperty("theme.gridLineBrushToken")) {
-            element->SetProperty("theme.gridLineBrushToken", Value("inputBorder"));
+        if (element->GetGridLineBrushToken() == ThemeTokenId::Unset) {
+            element->SetGridLineBrushToken(ThemeTokenId::InputBorder);
         }
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("theme.colorToken", Value("textPrimary"));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColorToken(ThemeTokenId::TextPrimary);
         }
-        if (!element->HasProperty("theme.selectedBackgroundToken")) {
-            element->SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
+        if (element->GetSelectedBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
         }
-        if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
+        if (element->GetHoverBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
         }
     } else if (className == "TabView") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.windowBackground));
-        }
-        if (!element->HasProperty("theme.headerBackgroundToken")) {
-            element->SetProperty("headerBackground", Value(tokens.paneBackground));
-        }
-        if (!element->HasProperty("theme.activeTabBackgroundToken")) {
-            element->SetProperty("activeTabBackground", Value(tokens.windowBackground));
-        }
-        if (!element->HasProperty("theme.inactiveTabBackgroundToken")) {
-            element->SetProperty("inactiveTabBackground", Value(tokens.cardBackground));
-        }
-        if (!element->HasProperty("theme.underlineColorToken")) {
-            element->SetProperty("underlineColor", Value(tokens.cardBorder));
-        }
-        if (!element->HasProperty("theme.activeUnderlineColorToken")) {
-            element->SetProperty("activeUnderlineColor", Value(tokens.accentColor));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackground(tokens.windowBackground);
         }
     } else if (className == "TreeView") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("cardBackground"));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::CardBackground);
         }
-        if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("theme.borderToken", Value("cardBorder"));
+        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+            element->SetBorderToken(ThemeTokenId::CardBorder);
         }
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("theme.colorToken", Value("textPrimary"));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColorToken(ThemeTokenId::TextPrimary);
         }
-        if (!element->HasProperty("theme.selectedBackgroundToken")) {
-            element->SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
+        if (element->GetSelectedBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
         }
-        if (!element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
+        if (element->GetHoverBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
         }
     } else if (className == "BreadcrumbBar") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.cardBackground));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackground(tokens.cardBackground);
         }
-        if (!element->HasProperty("theme.borderToken")) {
-            element->SetProperty("borderBrush", Value(tokens.cardBorder));
+        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+            element->SetBorderBrush(tokens.cardBorder);
         }
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.textSecondary));
-        }
-        if (!element->HasProperty("theme.activeColorToken")) {
-            element->SetProperty("activeColor", Value(tokens.accentColor));
-        }
-    } else if (className == "ProgressBar") {
-        if (!element->HasProperty("theme.fillColorToken")) {
-            element->SetProperty("fillColor", Value(tokens.accentColor));
-        }
-        if (!element->HasProperty("theme.trackColorToken")) {
-            element->SetProperty("trackColor", Value(tokens.cardBorder));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColor(tokens.textSecondary);
         }
     } else if (className == "NavigationView") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.windowBackground));
-        }
-        if (!element->HasProperty("theme.paneBackgroundToken")) {
-            element->SetProperty("paneBackground", Value(tokens.paneBackground));
-        }
-        if (!element->HasProperty("theme.indicatorColorToken")) {
-            element->SetProperty("indicatorColor", Value(tokens.accentColor));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackground(tokens.windowBackground);
         }
     } else if (className == "NavigationViewItem" || className == "NavigationViewItemHeader") {
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("theme.colorToken", Value("textPrimary"));
-        }
-        element->SetProperty("color", Value(tokens.textPrimary));
-        if (element->HasProperty("theme.hoverBackgroundToken")) {
-            element->SetProperty("hoverBackground", Value(ThemeManager::Instance().GetColor("hoverBackground")));
-        }
-        if (element->HasProperty("theme.selectedBackgroundToken")) {
-            element->SetProperty("selectedBackground", Value(ThemeManager::Instance().GetColor("selectedBackground")));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColorToken(ThemeTokenId::TextPrimary);
         }
     } else if (className == "TextBlock" || className == "HyperlinkButton") {
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(className == "HyperlinkButton" ? tokens.accentColor : tokens.textSecondary));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColor(className == "HyperlinkButton" ? tokens.accentColor : tokens.textSecondary);
         }
     } else if (className == "ActivityBar") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("activityBarBackground"));
-            element->SetProperty("background", Value(ThemeManager::Instance().GetColor("activityBarBackground")));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::ActivityBarBackground);
+            element->SetBackground(ThemeManager::Instance().GetColor("activityBarBackground"));
         }
     } else if (className == "SideBar" || className == "TabBar") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("paneBackground"));
-            element->SetProperty("background", Value(ThemeManager::Instance().GetColor("paneBackground")));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::PaneBackground);
+            element->SetBackground(ThemeManager::Instance().GetColor("paneBackground"));
         }
     } else if (className == "EditorView") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("theme.backgroundToken", Value("windowBackground"));
-            element->SetProperty("background", Value(ThemeManager::Instance().GetColor("windowBackground")));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackgroundToken(ThemeTokenId::WindowBackground);
+            element->SetBackground(ThemeManager::Instance().GetColor("windowBackground"));
         }
     } else if (className == "StatusBar") {
-        if (!element->HasProperty("theme.backgroundToken")) {
-            element->SetProperty("background", Value(tokens.accentColor));
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+            element->SetBackground(tokens.accentColor);
         }
-        if (!element->HasProperty("theme.colorToken")) {
-            element->SetProperty("color", Value(tokens.accentForeground));
+        if (element->GetColorToken() == ThemeTokenId::Unset) {
+            element->SetColor(tokens.accentForeground);
         }
     }
 
@@ -459,7 +356,9 @@ void ForceThemeRefresh(UIElement* element, const std::string& refreshStamp, bool
         return;
     }
 
-    element->SetProperty("theme.refreshNonce", Value(refreshStamp));
+    // Force render cache invalidation across the tree instead of mirroring a
+    // nonce through the string property bridge (nothing reads that string).
+    element->MarkRenderContentDirty();
 
     if (auto* menu = dynamic_cast<ContextMenu*>(element)) {
         if (auto subMenu = menu->GetActiveSubMenu()) {
@@ -570,6 +469,7 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
     Rect dirtyRect;
     bool hasDirty = false;
     m_rootElement->CollectAnimationBounds(dirtyRect, hasDirty);
+    m_popupHost.CollectDirty(dirtyRect, hasDirty);
 
     if (m_hasLastAnimationDirtyRect) {
         dirtyRect = hasDirty ? dirtyRect.Union(m_lastAnimationDirtyRect) : m_lastAnimationDirtyRect;
@@ -594,6 +494,13 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
 }
 
 Window::~Window() {
+    if (AnimationManager::Current() == &m_animationManager) {
+        AnimationManager::SetCurrent(nullptr);
+    }
+    if (PopupHost::Current() == &m_popupHost) {
+        PopupHost::SetCurrent(nullptr);
+    }
+    m_popupHost.CloseAll();
     if (m_hwnd) {
         DestroyWindow(m_hwnd);
     }
@@ -658,6 +565,8 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     MaterialHost::Apply(m_hwnd, m_backdropType, m_themeMode);
     UpdateDwmChrome();
 
+    PopupHost::SetCurrent(&m_popupHost);
+    AnimationManager::SetCurrent(&m_animationManager);
     return true;
 }
 
@@ -751,14 +660,19 @@ void Window::RunMessageLoop() {
         const double targetFps = m_lowPerformanceMode ? 8.0 : static_cast<double>((std::max)(30.0f, refreshHz));
         const auto targetFrame = std::chrono::duration<double>(1.0 / targetFps);
         m_animationManager.SetTargetFrameSeconds(static_cast<float>(targetFrame.count()));
-        const bool shouldProbeAnimation = hadMessage || animationActive;
+        const bool frameRequested = m_animationManager.ConsumeFrameRequest();
+        const bool shouldProbeAnimation = hadMessage || animationActive
+            || m_animationManager.HasAnimating() || frameRequested;
         const bool frameDue = !animationActive || (now - lastFrameTime) >= targetFrame;
         bool animating = animationActive;
         bool didAnimationTick = false;
         if (shouldProbeAnimation && frameDue && m_rootElement) {
             m_animationManager.BeginFrame(now, animationActive);
             UIElement::SetAnimationDeltaSeconds(m_animationManager.GetDeltaSeconds());
-            animating = m_rootElement->OnAnimationTick();
+            animating = m_animationManager.Tick();
+            if (m_popupHost.TickAnimations()) {
+                animating = true;
+            }
             if (auto focused = LockElement(m_focusedElement)) {
                 if (focused->NeedsAutoScrollTick()) {
                     focused->OnAutoScrollTick();
@@ -1095,13 +1009,8 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         }
                     }
                 }
-                if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
-                    InvalidatePendingRenderRegions(true);
-                } else if (dragging) {
-                    InvalidatePendingRenderRegions(false);
-                } else {
-                    InvalidatePendingRenderRegions(true);
-                }
+                // Dirty rects come from MarkRenderContentDirty / menu bounds — no full-window fallback.
+                InvalidatePendingRenderRegions(false);
             }
         }
         return 0;
@@ -1158,7 +1067,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         }
         if (target) {
             target->OnMouseWheel(delta);
-            InvalidatePendingRenderRegions(true);
+            InvalidatePendingRenderRegions(false);
         }
         return 0;
     }
@@ -1233,7 +1142,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (auto hovered = LockElement(m_hoveredElement)) {
             hovered->OnMouseLeave();
             m_hoveredElement.reset();
-            InvalidatePendingRenderRegions(true);
+            InvalidatePendingRenderRegions(false);
         }
         m_trackingMouse = false;
         return 0;
@@ -1282,7 +1191,7 @@ void Window::OnPaint() {
     // Transparent clear is required for DWM Mica/Acrylic to show through chrome.
     const D2D1_COLOR_F sceneClearColor = (usePerPixelAlpha || (m_transparentMode && !IsZoomed(m_hwnd)))
         ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)
-        : ThemeManager::Instance().GetColor("windowBackground");
+        : ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
 
     const Size sceneSize(viewportBounds.width, viewportBounds.height);
     const bool sceneSizeChanged =
@@ -1294,18 +1203,14 @@ void Window::OnPaint() {
             m_rootElement->Render(m_gfxContext);
             m_rootElement->RenderOverlay(m_gfxContext);
         }
-        if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
-            m_activeContextMenu->OnRenderOverlay(m_gfxContext);
-        }
+        m_popupHost.Render(m_gfxContext);
     };
 
     auto renderOverlaysOnly = [&]() {
         if (m_rootElement) {
             m_rootElement->RenderOverlay(m_gfxContext);
         }
-        if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
-            m_activeContextMenu->OnRenderOverlay(m_gfxContext);
-        }
+        m_popupHost.Render(m_gfxContext);
     };
 
     // ContentDialog 全窗遮罩动画：底层场景不动，只重绘 overlay，避免整树每帧重绘卡顿。
@@ -1494,6 +1399,27 @@ void Window::OnResize(UINT width, UINT height) {
     }
 }
 
+UIElement* Window::HitTestChrome(float x, float y) const {
+    // TitleBar caption band must win over leaked document hits (e.g. scrolled content).
+    if (!m_rootElement || y < 0.0f || y > 40.0f) {
+        return nullptr;
+    }
+    for (const auto& child : m_rootElement->GetChildren()) {
+        auto* titleBar = dynamic_cast<TitleBar*>(child.get());
+        if (!titleBar) {
+            continue;
+        }
+        if (UIElement* hit = titleBar->HitTest(x, y)) {
+            return hit;
+        }
+        if (titleBar->GetBounds().Contains(x, y)) {
+            return titleBar;
+        }
+        break;
+    }
+    return nullptr;
+}
+
 bool Window::OnMouseMove(int x, int y) {
     bool dirty = false;
     if (!m_trackingMouse) {
@@ -1505,46 +1431,24 @@ bool Window::OnMouseMove(int x, int y) {
     float fx = static_cast<float>(x);
     float fy = static_cast<float>(y);
 
-    if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
-        UIElement* itemHover = m_activeContextMenu->HitTestOverlay(fx, fy);
-        if (!itemHover && m_rootElement) {
-            // Check if hovering over MenuBar items while dropdown is active
-            UIElement* rootHit = m_rootElement->HitTest(fx, fy);
-            if (rootHit) {
-                itemHover = rootHit;
-            }
-        }
-
-        auto hovered = LockElement(m_hoveredElement);
-        if (itemHover != hovered.get()) {
-            if (hovered) hovered->OnMouseLeave();
-            SetHoveredElement(itemHover);
-            hovered = LockElement(m_hoveredElement);
-            if (hovered) hovered->OnMouseEnter();
-            dirty = true;
-        }
-        if (hovered) {
-            hovered->OnMouseMove(Point(fx, fy));
-            // Keep m_activeContextMenu synchronized if MenuBar opened a new dropdown
-            UIElement* curr = hovered.get();
-            while (curr) {
-                auto menu = curr->GetContextMenu();
-                if (menu && menu->IsOpen()) {
-                    m_activeContextMenu = menu;
-                    break;
-                }
-                curr = curr->GetParent();
-            }
-        }
-        return dirty || NeedsContinuousMouseRedraw(hovered.get());
-    }
-
     if (auto pressed = LockElement(m_pressedElement)) {
         pressed->OnMouseMove(Point(fx, fy));
         return true;
     }
 
-    UIElement* newHover = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
+    // Same hit order as LButtonDown (no dismiss): popup → chrome → overlay → tree.
+    // ContextMenu hover goes through PopupHost only — not a second HitTestOverlay path.
+    UIElement* newHover = m_popupHost.HitTest(fx, fy);
+    if (!newHover) {
+        newHover = HitTestChrome(fx, fy);
+    }
+    if (!newHover && m_rootElement) {
+        newHover = m_rootElement->HitTestOverlay(fx, fy);
+    }
+    if (!newHover && m_rootElement) {
+        newHover = m_rootElement->HitTest(fx, fy);
+    }
+
     auto hovered = LockElement(m_hoveredElement);
     if (newHover != hovered.get()) {
         if (hovered) {
@@ -1561,6 +1465,16 @@ bool Window::OnMouseMove(int x, int y) {
     if (hovered) {
         hovered->OnMouseMove(Point(fx, fy));
         dirty = dirty || NeedsContinuousMouseRedraw(hovered.get());
+        // Keep m_activeContextMenu synchronized if MenuBar opened a new dropdown
+        UIElement* curr = hovered.get();
+        while (curr) {
+            auto menu = curr->GetContextMenu();
+            if (menu && menu->IsOpen()) {
+                m_activeContextMenu = menu;
+                break;
+            }
+            curr = curr->GetParent();
+        }
     }
     return dirty;
 }
@@ -1569,45 +1483,72 @@ bool Window::OnLButtonDown(int x, int y) {
     float fx = static_cast<float>(x);
     float fy = static_cast<float>(y);
 
-    if (m_rootElement) {
-        UIElement* overlayHit = m_rootElement->HitTestOverlay(fx, fy);
-        if (overlayHit) {
-            SetPressedElement(overlayHit);
-            SetCapture(m_hwnd);
-            overlayHit->OnMouseDown(Point(fx, fy));
-            return true;
-        } else {
-            // Clicked outside any overlay popups -> close open DatePicker/TimePicker/ColorPicker popups
-            std::function<void(UIElement*)> closePopups = [&](UIElement* elem) {
-                if (!elem) return;
-                if (auto dp = dynamic_cast<DatePicker*>(elem)) dp->SetPopupOpen(false);
-                if (auto tp = dynamic_cast<TimePicker*>(elem)) tp->SetPopupOpen(false);
-                if (auto cp = dynamic_cast<ColorPicker*>(elem)) cp->SetPopupOpen(false);
-                for (auto& child : elem->GetChildren()) {
-                    closePopups(child.get());
-                }
-            };
-            closePopups(m_rootElement.get());
+    const bool hadContextMenu = m_activeContextMenu && m_activeContextMenu->IsOpen();
+    Rect oldMenuBounds = hadContextMenu ? m_activeContextMenu->GetTotalBounds() : Rect();
+
+    auto noteClosedContextMenu = [&]() {
+        if (m_activeContextMenu && !m_activeContextMenu->IsOpen()) {
+            m_activeContextMenu = nullptr;
+            if (!oldMenuBounds.IsEmpty()) {
+                m_pendingDirtyRegion.AddRect(oldMenuBounds.Inflate(4.0f));
+            }
         }
+    };
+
+    auto syncActiveContextMenuFrom = [&](UIElement* from) {
+        UIElement* curr = from;
+        while (curr) {
+            auto menu = curr->GetContextMenu();
+            if (menu && menu->IsOpen()) {
+                m_activeContextMenu = menu;
+                break;
+            }
+            curr = curr->GetParent();
+        }
+    };
+
+    auto pressElement = [&](UIElement* el) {
+        SetPressedElement(el);
+        SetCapture(m_hwnd);
+        el->OnMouseDown(Point(fx, fy));
+        noteClosedContextMenu();
+        syncActiveContextMenuFrom(el);
+    };
+
+    auto applyFocus = [&](UIElement* target) -> bool {
+        auto focused = LockElement(m_focusedElement);
+        if (target && !target->IsEnabled()) {
+            if (focused) {
+                focused->OnBlur();
+                SetFocusedElement(nullptr);
+            }
+            return false;
+        }
+        if (focused && focused.get() != target) {
+            focused->OnBlur();
+        }
+        SetFocusedElement(target);
+        focused = LockElement(m_focusedElement);
+        if (focused) {
+            focused->OnFocus();
+        }
+        return target != nullptr;
+    };
+
+    // 1. PopupHost (ContextMenu / Flyout / pickers) — exclusive; do not also tree-hit.
+    if (UIElement* popupHit = m_popupHost.HitTest(fx, fy)) {
+        pressElement(popupHit);
+        return true;
     }
 
-    if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
-        Rect oldMenuBounds = m_activeContextMenu->GetTotalBounds();
-        UIElement* menuHit = m_activeContextMenu->HitTestOverlay(fx, fy);
-        if (menuHit) {
-            menuHit->OnMouseDown(Point(fx, fy));
+    // 2. Light-dismiss any open popup when the click is outside.
+    if (m_popupHost.DismissIfOutside(fx, fy)) {
+        if (hadContextMenu && (!m_activeContextMenu || !m_activeContextMenu->IsOpen())) {
             m_activeContextMenu = nullptr;
             if (!oldMenuBounds.IsEmpty()) {
                 m_pendingDirtyRegion.AddRect(oldMenuBounds.Inflate(4.0f));
             }
-            return true;
-        } else {
-            m_activeContextMenu->Hide();
-            m_activeContextMenu = nullptr;
-            if (!oldMenuBounds.IsEmpty()) {
-                m_pendingDirtyRegion.AddRect(oldMenuBounds.Inflate(4.0f));
-            }
-            // Clear MenuBar active highlight state when clicking outside
+            // Clear MenuBar active highlight state when context menu is dismissed
             if (m_rootElement) {
                 std::function<void(UIElement*)> clearMenuBar = [&](UIElement* elem) {
                     if (!elem) return;
@@ -1627,86 +1568,26 @@ bool Window::OnLButtonDown(int x, int y) {
         }
     }
 
-    UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
-
-    // TitleBar chrome must win over any leaked content hits in the top band
-    // (ScrollViewer used to let scrolled PropertyGrid children steal these clicks).
-    if (m_rootElement && fy >= 0.0f && fy <= 40.0f) {
-        for (const auto& child : m_rootElement->GetChildren()) {
-            auto* titleBar = dynamic_cast<TitleBar*>(child.get());
-            if (!titleBar) {
-                continue;
-            }
-            if (titleBar->IsLowPerformanceToggleHit(fx, fy)) {
-                PostMessageW(m_hwnd, WM_CUI_TOGGLE_LOW_PERF, 0, 0);
-                return true;
-            }
-            if (titleBar->IsBackdropToggleHit(fx, fy)) {
-                PostMessageW(m_hwnd, WM_CUI_TOGGLE_BACKDROP, 0, 0);
-                return true;
-            }
-            if (titleBar->IsThemeToggleHit(fx, fy)) {
-                PostMessageW(m_hwnd, WM_CUI_TOGGLE_THEME, 0, 0);
-                return true;
-            }
-            if (titleBar->GetBounds().Contains(fx, fy)) {
-                target = titleBar;
-            }
-            break;
-        }
-    }
-
-    // Legacy path when HitTest already returned TitleBar*
-    if (auto* titleBar = dynamic_cast<TitleBar*>(target)) {
-        if (titleBar->IsLowPerformanceToggleHit(fx, fy)) {
-            PostMessageW(m_hwnd, WM_CUI_TOGGLE_LOW_PERF, 0, 0);
-            return true;
-        }
-        if (titleBar->IsBackdropToggleHit(fx, fy)) {
-            PostMessageW(m_hwnd, WM_CUI_TOGGLE_BACKDROP, 0, 0);
-            return true;
-        }
-        if (titleBar->IsThemeToggleHit(fx, fy)) {
-            PostMessageW(m_hwnd, WM_CUI_TOGGLE_THEME, 0, 0);
-            return true;
-        }
-    }
-
-    auto focused = LockElement(m_focusedElement);
-    if (target && !target->IsEnabled()) {
-        if (focused) {
-            focused->OnBlur();
-            SetFocusedElement(nullptr);
+    // 3. Chrome / TitleBar band (toggles handled inside TitleBar::OnMouseDown).
+    if (UIElement* chromeHit = HitTestChrome(fx, fy)) {
+        if (applyFocus(chromeHit)) {
+            pressElement(chromeHit);
         }
         return true;
     }
 
-    if (focused && focused.get() != target) {
-        focused->OnBlur();
-    }
-    SetFocusedElement(target);
-    focused = LockElement(m_focusedElement);
-    if (focused) {
-        focused->OnFocus();
+    // 4. Non-popup overlays still on the visual tree.
+    if (m_rootElement) {
+        if (UIElement* overlayHit = m_rootElement->HitTestOverlay(fx, fy)) {
+            pressElement(overlayHit);
+            return true;
+        }
     }
 
-    if (target) {
-        SetPressedElement(target);
-        SetCapture(m_hwnd);
-        if (auto pressed = LockElement(m_pressedElement)) {
-            pressed->OnMouseDown(Point(fx, fy));
-        }
-
-        // Check if target or ancestor activated a ContextMenu
-        UIElement* curr = target;
-        while (curr) {
-            auto menu = curr->GetContextMenu();
-            if (menu && menu->IsOpen()) {
-                m_activeContextMenu = menu;
-                break;
-            }
-            curr = curr->GetParent();
-        }
+    // 5. Document tree.
+    UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
+    if (applyFocus(target) && target) {
+        pressElement(target);
     }
     return target != nullptr || m_activeContextMenu != nullptr;
 }

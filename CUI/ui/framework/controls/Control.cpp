@@ -5,8 +5,10 @@
 namespace CUI {
 
 Control::Control() {
-    SetProperty("hoverBackground", Value(D2D1::ColorF(0, 0, 0, 0)));
-    SetProperty("pressedBackground", Value(D2D1::ColorF(0, 0, 0, 0)));
+    m_hoverBackgroundColor = D2D1::ColorF(0, 0, 0, 0);
+    m_pressedBackgroundColor = D2D1::ColorF(0, 0, 0, 0);
+    m_hasHoverBackgroundColor = true;
+    m_hasPressedBackgroundColor = true;
 }
 
 D2D1_COLOR_F Control::BlendColor(D2D1_COLOR_F from, D2D1_COLOR_F to, float t) const {
@@ -37,20 +39,20 @@ float Control::GetVisualStateTarget() const {
 }
 
 D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
-    D2D1_COLOR_F bg = HasProperty("theme.backgroundToken")
-        ? ResolveThemeColor("theme.backgroundToken", "cardBackground")
-        : GetProperty("background").AsColor(fallback);
+    D2D1_COLOR_F bg = (m_backgroundToken != ThemeTokenId::Unset)
+        ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
+        : (m_hasBackgroundColor ? m_backgroundColor : fallback);
     // If hover/pressed tokens are absent, reuse live bg — never a stale RGB snapshot
     // from a previous theme (that caused TitleBar to go black on focus after Light switch).
-    D2D1_COLOR_F hoverBg = HasProperty("theme.hoverBackgroundToken")
-        ? ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground")
+    D2D1_COLOR_F hoverBg = (m_hoverBackgroundToken != ThemeTokenId::Unset)
+        ? ResolveThemeColor(m_hoverBackgroundToken, ThemeTokenId::HoverBackground)
         : bg;
-    D2D1_COLOR_F pressedBg = HasProperty("theme.pressedBackgroundToken")
-        ? ResolveThemeColor("theme.pressedBackgroundToken", "pressedBackground")
+    D2D1_COLOR_F pressedBg = (m_pressedBackgroundToken != ThemeTokenId::Unset)
+        ? ResolveThemeColor(m_pressedBackgroundToken, ThemeTokenId::PressedBackground)
         : hoverBg;
-    D2D1_COLOR_F disabledBg = HasProperty("theme.disabledBackgroundToken")
-        ? ResolveThemeColor("theme.disabledBackgroundToken", "hoverBackground")
-        : GetProperty("disabledBackground").AsColor(ThemeManager::Instance().GetColor("hoverBackground"));
+    D2D1_COLOR_F disabledBg = (m_disabledBackgroundToken != ThemeTokenId::Unset)
+        ? ResolveThemeColor(m_disabledBackgroundToken, ThemeTokenId::HoverBackground)
+        : ThemeManager::Instance().GetColor(ThemeTokenId::HoverBackground);
     disabledBg.a = (std::min)(disabledBg.a, 0.6f);
 
     if (!IsEnabled()) return disabledBg;
@@ -65,6 +67,9 @@ bool Control::OnAnimationTick() {
     UpdateVisualStateTarget();
     m_visualStateAnim.SetTarget(m_visualStateTarget);
     const bool selfAnimating = m_visualStateAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.28f, 0.01f });
+    if (selfAnimating) {
+        RequestAnimationTicks();
+    }
     return childAnimating || selfAnimating;
 }
 
@@ -73,7 +78,7 @@ bool Control::HasSelfAnimation() const {
 }
 
 void Control::OnRender(GraphicsContext& ctx) {
-    float radius = GetProperty("cornerRadius").AsFloat(0.0f);
+    float radius = GetCornerRadius();
     D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0, 0, 0, 0));
 
     if (bg.a > 0.0f) {
@@ -85,15 +90,15 @@ void Control::OnRender(GraphicsContext& ctx) {
     }
 
     D2D1_COLOR_F borderBrush = IsEnabled()
-        ? (HasProperty("theme.borderToken")
-            ? ResolveThemeColor("theme.borderToken", "cardBorder")
-            : GetProperty("borderBrush").AsColor(D2D1::ColorF(0, 0, 0, 0)))
+        ? ((m_borderToken != ThemeTokenId::Unset)
+            ? ResolveThemeColor(m_borderToken, ThemeTokenId::CardBorder)
+            : (m_hasBorderBrushColor ? m_borderBrushColor : D2D1::ColorF(0, 0, 0, 0)))
         : [&]() {
-            D2D1_COLOR_F c = ThemeManager::Instance().GetColor("cardBorder");
+            D2D1_COLOR_F c = ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder);
             c.a = 0.5f;
             return c;
         }();
-    float borderThickness = GetProperty("borderThickness").AsFloat(0.0f);
+    float borderThickness = GetBorderThickness();
     if (borderBrush.a > 0.0f && borderThickness > 0.0f) {
         if (radius > 0.0f) {
             ctx.DrawRoundedRect(m_bounds, radius, borderBrush, borderThickness);
@@ -107,28 +112,41 @@ void Control::OnMouseEnter() {
     if (!IsEnabled()) return;
     UIElement::OnMouseEnter();
     UpdateVisualStateTarget();
+    RequestAnimationTicks();
 }
 
 void Control::OnMouseLeave() {
     UIElement::OnMouseLeave();
     UpdateVisualStateTarget();
+    RequestAnimationTicks();
 }
 
 void Control::OnMouseDown(Point pt) {
     if (!IsEnabled()) return;
     UIElement::OnMouseDown(pt);
     UpdateVisualStateTarget();
+    RequestAnimationTicks();
 }
 
 void Control::OnMouseUp(Point pt) {
-    if (!IsEnabled()) return;
     UIElement::OnMouseUp(pt);
     UpdateVisualStateTarget();
+    RequestAnimationTicks();
 }
 
 void Control::OnMouseMove(Point pt) {
-    if (!IsEnabled()) return;
     UIElement::OnMouseMove(pt);
+}
+void Control::OnFocus() {
+    UIElement::OnFocus();
+    UpdateVisualStateTarget();
+    RequestAnimationTicks();
+}
+
+void Control::OnBlur() {
+    UIElement::OnBlur();
+    UpdateVisualStateTarget();
+    RequestAnimationTicks();
 }
 
 } // namespace CUI

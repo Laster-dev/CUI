@@ -8,31 +8,31 @@ namespace CUI {
 
 CollapsePanel::CollapsePanel() {
     // 外壳用 pane 玻璃，避免大块实心 card 盖死材质。
-    SetProperty("theme.backgroundToken", Value("paneBackground"));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("cornerRadius", Value(6.0f));
-    SetProperty("padding", Value(Thickness(0)));
+    SetBackgroundToken(ThemeTokenId::PaneBackground);
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetBorderThickness(1.0f);
+    SetCornerRadius(6.0f);
+    SetPadding(Thickness(0));
 
     m_headerButton = std::make_shared<Button>();
-    m_headerButton->SetProperty("theme.backgroundToken", Value("paneBackground"));
-    m_headerButton->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
-    m_headerButton->SetProperty("theme.pressedBackgroundToken", Value("pressedBackground"));
-    m_headerButton->SetProperty("theme.colorToken", Value("textPrimary"));
-    m_headerButton->SetProperty("theme.borderToken", Value("cardBorder"));
-    m_headerButton->SetProperty("borderThickness", Value(0.0f));
-    m_headerButton->SetProperty("cornerRadius", Value(6.0f));
-    m_headerButton->SetProperty("padding", Value(Thickness(12, 10, 12, 10)));
-    m_headerButton->SetProperty("align", Value("Stretch"));
+    m_headerButton->SetBackgroundToken(ThemeTokenId::PaneBackground);
+    m_headerButton->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    m_headerButton->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    m_headerButton->SetColorToken(ThemeTokenId::TextPrimary);
+    m_headerButton->SetBorderToken(ThemeTokenId::CardBorder);
+    m_headerButton->SetBorderThickness(0.0f);
+    m_headerButton->SetCornerRadius(6.0f);
+    m_headerButton->SetPadding(Thickness(12, 10, 12, 10));
+    m_headerButton->SetAlign(Alignment::Stretch);
     m_headerButton->OnClick().Connect([this](UIElement*) { SetExpanded(!m_isExpanded); });
 
     m_contentHost = std::make_shared<StackPanel>();
-    m_contentHost->SetProperty("orientation", Value("Vertical"));
-    m_contentHost->SetProperty("gap", Value(8.0f));
-    m_contentHost->SetProperty("padding", Value(Thickness(12, 12, 12, 12)));
-    m_contentHost->SetProperty("align", Value("Stretch"));
+    m_contentHost->SetOrientation(Orientation::Vertical);
+    m_contentHost->SetGap(8.0f);
+    m_contentHost->SetPadding(Thickness(12, 12, 12, 12));
+    m_contentHost->SetAlign(Alignment::Stretch);
     // 内容宿主透明，露出外层 pane / 底下 SystemBackdrop。
-    m_contentHost->SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
+    m_contentHost->SetBackground(D2D1::ColorF(0, 0, 0, 0));
 
     AddChild(m_headerButton);
     AddChild(m_contentHost);
@@ -54,7 +54,7 @@ std::vector<PropertyMeta> CollapsePanel::GetPropertyMetas() const {
 void CollapsePanel::SetHeader(const std::string& header) {
     m_headerText = header;
     if (m_headerButton) {
-        m_headerButton->SetProperty("text", Value(m_isExpanded ? "📂 " + header + "  [▲ 点击折叠]" : "📁 " + header + "  [▼ 点击展开]"));
+        m_headerButton->SetText(m_isExpanded ? "📂 " + header + "  [▲ 点击折叠]" : "📁 " + header + "  [▼ 点击展开]");
     }
 }
 
@@ -108,13 +108,13 @@ void CollapsePanel::SetContent(std::shared_ptr<UIElement> content) {
 
 void CollapsePanel::UpdateContentVisibility() {
     if (m_contentHost) {
-        m_contentHost->SetProperty("visibility", Value(m_isExpanded ? "Visible" : "Collapsed"));
+        m_contentHost->SetVisibility(m_isExpanded ? Visibility::Visible : Visibility::Collapsed);
     }
 }
 
 Size CollapsePanel::Measure(Size availableSize) {
-    Thickness margin = GetProperty("margin").AsThickness(Thickness(0));
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness margin = GetMargin();
+    Thickness padding = GetPadding();
 
     float contentW = (std::max)(0.0f, availableSize.width - margin.left - margin.right - padding.left - padding.right);
     float contentH = (std::max)(0.0f, availableSize.height - margin.top - margin.bottom - padding.top - padding.bottom);
@@ -129,8 +129,8 @@ Size CollapsePanel::Measure(Size availableSize) {
     float width = (std::max)(headerSize.width, bodySize.width) + margin.left + margin.right + padding.left + padding.right;
     float height = headerSize.height + (m_isExpanded ? bodySize.height : 0.0f) + margin.top + margin.bottom + padding.top + padding.bottom;
 
-    float expW = GetProperty("width").AsFloat(-1.0f);
-    float expH = GetProperty("height").AsFloat(-1.0f);
+    float expW = GetWidth();
+    float expH = GetHeight();
     if (expW >= 0.0f) width = expW;
     if (expH >= 0.0f) height = expH;
 
@@ -141,7 +141,7 @@ Size CollapsePanel::Measure(Size availableSize) {
 void CollapsePanel::Arrange(Rect finalRect) {
     m_bounds = finalRect;
 
-    Thickness padding = GetProperty("padding").AsThickness(Thickness(0));
+    Thickness padding = GetPadding();
     float innerX = finalRect.x + padding.left;
     float innerY = finalRect.y + padding.top;
     float innerW = (std::max)(0.0f, finalRect.width - padding.left - padding.right);
@@ -169,9 +169,9 @@ void CollapsePanel::Arrange(Rect finalRect) {
 }
 
 void CollapsePanel::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "paneBackground");
-    D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
-    float radius = GetProperty("cornerRadius").AsFloat(6.0f);
+    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::PaneBackground);
+    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    float radius = GetCornerRadius();
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
     ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);

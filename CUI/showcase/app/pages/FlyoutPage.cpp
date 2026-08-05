@@ -9,16 +9,19 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildFlyoutPage(const ShowcaseContext& ctx) {
-    auto btnTrigger = std::make_shared<Button>("点击打开 Flyout 弹出框 🚀");
-    btnTrigger->SetProperty("width", Value(220.0f));
-    btnTrigger->SetProperty("height", Value(36.0f));
+    auto btnTrigger = std::make_shared<Button>("打开 Flyout");
+    btnTrigger->SetWidth(160.0f);
+    btnTrigger->SetHeight(36.0f);
+    btnTrigger->SetCornerRadius(4.0f);
 
-    auto flyoutContent = Column(8).Children({
-        std::make_shared<TextBlock>("💡 这是 Flyout 内部内容"),
-        std::make_shared<TextBlock>("纯 C++ 声明式框架构建，无模糊残影。")
+    auto flyoutContent = Column(10).Children({
+        CreateShowcaseText("Flyout 内容", 14.0f, "textPrimary", true),
+        CreateShowcaseText("点击外部或再次点击按钮可关闭。", 12.0f, "textSecondary", false),
+        ElevatedButton("操作按钮").Padding(12, 6, 12, 6).Build()
     }).Build();
 
     auto flyout = std::make_shared<Flyout>(flyoutContent);
+    flyout->SetPlacement(FlyoutPlacement::Bottom);
 
     btnTrigger->OnClick().Connect([flyout, btnTrigger](UIElement*) {
         if (flyout->IsOpen()) {
@@ -33,8 +36,8 @@ ShowcasePage BuildFlyoutPage(const ShowcaseContext& ctx) {
     }).Build();
 
     return { "Flyout 弹出框", CreatePage(
-        "Flyout 弹出框展示页",
-        "WinUI 3 风格 Flyout 弹出窗口，支持 64ms 极速高度展开与折叠收起动画。",
+        "Flyout 弹出框",
+        "浮层不参与文档流布局；背景始终不透明，不受系统材质 alpha 影响。点击外部关闭。",
         demo,
         CreatePropertyGrid(ctx, btnTrigger), btnTrigger) };
 }

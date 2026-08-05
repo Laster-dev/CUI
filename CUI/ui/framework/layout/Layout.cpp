@@ -25,13 +25,13 @@ GridLength GridLength::Parse(const std::string& str) {
 Size LayoutEngine::MeasureElement(UIElement* element, Size availableSize) {
     if (!element) return Size(0, 0);
 
-    Thickness margin = element->GetProperty("margin").AsThickness(Thickness(0));
-    Thickness padding = element->GetProperty("padding").AsThickness(Thickness(0));
+    Thickness margin = element->GetMargin();
+    Thickness padding = element->GetPadding();
 
-    float explicitWidth = element->GetProperty("width").AsFloat(-1.0f);
-    float explicitHeight = element->GetProperty("height").AsFloat(-1.0f);
-    float minWidth = element->GetProperty("minWidth").AsFloat(0.0f);
-    float minHeight = element->GetProperty("minHeight").AsFloat(0.0f);
+    float explicitWidth = element->GetWidth();
+    float explicitHeight = element->GetHeight();
+    float minWidth = element->GetMinWidth();
+    float minHeight = element->GetMinHeight();
 
     Size contentAvailable(
         availableSize.width - margin.left - margin.right - padding.left - padding.right,
@@ -42,25 +42,12 @@ Size LayoutEngine::MeasureElement(UIElement* element, Size availableSize) {
 
     Size contentSize(0, 0);
 
-    const auto& children = element->GetChildren();
-    if (!children.empty()) {
-        std::string className = element->GetClassName();
-        if (className == "Canvas") {
-            contentSize = MeasureCanvas(element, contentAvailable);
-        } else if (className == "Grid") {
-            contentSize = MeasureGrid(element, contentAvailable);
-        } else if (className == "WrapPanel") {
-            contentSize = MeasureWrapPanel(element, contentAvailable);
-        } else if (className == "DockPanel") {
-            contentSize = MeasureDockPanel(element, contentAvailable);
-        } else if (className == "UniformGrid") {
-            contentSize = MeasureUniformGrid(element, contentAvailable);
-        } else {
-            std::string orientStr = element->GetProperty("orientation").AsString("Vertical");
-            Orientation orient = (orientStr == "Horizontal" || orientStr == "Row") ? Orientation::Horizontal : Orientation::Vertical;
-            float gap = element->GetProperty("gap").AsFloat(0.0f);
-            contentSize = MeasureFlexPanel(element, contentAvailable, orient, Alignment::Start, gap);
-        }
+    if (auto* panel = dynamic_cast<Panel*>(element)) {
+        contentSize = panel->MeasureOverride(contentAvailable);
+    } else if (!element->GetChildren().empty()) {
+        Orientation orient = element->GetOrientation();
+        float gap = element->GetGap();
+        contentSize = MeasureFlexPanel(element, contentAvailable, orient, Alignment::Start, gap);
     }
 
     float finalW = (explicitWidth >= 0.0f) ? explicitWidth : contentSize.width + padding.left + padding.right;
@@ -75,11 +62,8 @@ Size LayoutEngine::MeasureElement(UIElement* element, Size availableSize) {
 void LayoutEngine::ArrangeElement(UIElement* element, Rect finalRect) {
     if (!element) return;
 
-    const auto& children = element->GetChildren();
-    if (children.empty()) return;
-
-    Thickness margin = element->GetProperty("margin").AsThickness(Thickness(0));
-    Thickness padding = element->GetProperty("padding").AsThickness(Thickness(0));
+    Thickness margin = element->GetMargin();
+    Thickness padding = element->GetPadding();
 
     Rect contentRect(
         finalRect.x + margin.left + padding.left,
@@ -90,21 +74,11 @@ void LayoutEngine::ArrangeElement(UIElement* element, Rect finalRect) {
     if (contentRect.width < 0) contentRect.width = 0;
     if (contentRect.height < 0) contentRect.height = 0;
 
-    std::string className = element->GetClassName();
-    if (className == "Canvas") {
-        ArrangeCanvas(element, contentRect);
-    } else if (className == "Grid") {
-        ArrangeGrid(element, contentRect);
-    } else if (className == "WrapPanel") {
-        ArrangeWrapPanel(element, contentRect);
-    } else if (className == "DockPanel") {
-        ArrangeDockPanel(element, contentRect);
-    } else if (className == "UniformGrid") {
-        ArrangeUniformGrid(element, contentRect);
-    } else {
-        std::string orientStr = element->GetProperty("orientation").AsString("Vertical");
-        Orientation orient = (orientStr == "Horizontal" || orientStr == "Row") ? Orientation::Horizontal : Orientation::Vertical;
-        float gap = element->GetProperty("gap").AsFloat(0.0f);
+    if (auto* panel = dynamic_cast<Panel*>(element)) {
+        panel->ArrangeOverride(contentRect);
+    } else if (!element->GetChildren().empty()) {
+        Orientation orient = element->GetOrientation();
+        float gap = element->GetGap();
         ArrangeFlexPanel(element, contentRect, orient, Alignment::Start, gap);
     }
 }
@@ -116,8 +90,7 @@ Size LayoutEngine::MeasureFlexPanel(UIElement* panel, Size availableSize, Orient
     const auto& children = panel->GetChildren();
     bool first = true;
     for (auto& child : children) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
 
         Size childDesired = child->Measure(availableSize);
 
@@ -154,20 +127,19 @@ void LayoutEngine::ArrangeFlexPanel(UIElement* panel, Rect finalRect, Orientatio
     float usedMain = 0.0f;
 
     for (auto& child : children) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
 
         Size dSize = child->GetDesiredSize();
-        float flex = child->GetProperty("flexGrow").AsFloat(0.0f);
+        float flex = child->GetFlexGrow();
         float explicitMain = (orientation == Orientation::Horizontal)
-            ? child->GetProperty("width").AsFloat(-1.0f)
-            : child->GetProperty("height").AsFloat(-1.0f);
+            ? child->GetWidth()
+            : child->GetHeight();
         float baseMain = explicitMain >= 0.0f
             ? explicitMain
             : ((orientation == Orientation::Horizontal) ? dSize.width : dSize.height);
         float minMain = (orientation == Orientation::Horizontal)
-            ? child->GetProperty("minWidth").AsFloat(0.0f)
-            : child->GetProperty("minHeight").AsFloat(0.0f);
+            ? child->GetMinWidth()
+            : child->GetMinHeight();
 
         visibleChildren.push_back(child.get());
         mainSizes.push_back(std::max(baseMain, minMain));
@@ -224,7 +196,7 @@ void LayoutEngine::ArrangeFlexPanel(UIElement* panel, Rect finalRect, Orientatio
     for (size_t i = 0; i < visibleChildren.size(); ++i) {
         UIElement* child = visibleChildren[i];
         Size dSize = child->GetDesiredSize();
-        float expCross = (orientation == Orientation::Horizontal) ? child->GetProperty("height").AsFloat(-1.0f) : child->GetProperty("width").AsFloat(-1.0f);
+        float expCross = (orientation == Orientation::Horizontal) ? child->GetHeight() : child->GetWidth();
 
         float childCrossSize = (orientation == Orientation::Horizontal) ? dSize.height : dSize.width;
         if (expCross >= 0.0f) {
@@ -232,26 +204,24 @@ void LayoutEngine::ArrangeFlexPanel(UIElement* panel, Rect finalRect, Orientatio
         }
         float childCrossPos = crossStart;
 
-        std::string childAlign = child->GetProperty("align").AsString("");
-        std::string childAlignH = child->GetProperty("alignHorizontal").AsString("");
-        std::string childAlignV = child->GetProperty("alignVertical").AsString("");
-
-        std::string crossAlign = "Stretch";
+        Alignment crossAlign = Alignment::Stretch;
         if (orientation == Orientation::Horizontal) {
-            if (!childAlignV.empty()) crossAlign = childAlignV;
-            else if (!childAlign.empty()) crossAlign = childAlign;
+            Alignment av = child->GetAlignVertical();
+            Alignment a = child->GetAlign();
+            crossAlign = (av != Alignment::Stretch) ? av : a;
         } else {
-            if (!childAlignH.empty()) crossAlign = childAlignH;
-            else if (!childAlign.empty()) crossAlign = childAlign;
+            Alignment ah = child->GetAlignHorizontal();
+            Alignment a = child->GetAlign();
+            crossAlign = (ah != Alignment::Stretch) ? ah : a;
         }
 
-        if (expCross >= 0.0f || crossAlign == "Center" || crossAlign == "Start" || crossAlign == "End") {
-            if (crossAlign == "Center") {
+        if (expCross >= 0.0f || crossAlign == Alignment::Center || crossAlign == Alignment::Start || crossAlign == Alignment::End) {
+            if (crossAlign == Alignment::Center) {
                 childCrossPos = crossStart + (crossSize - childCrossSize) / 2.0f;
-            } else if (crossAlign == "End") {
+            } else if (crossAlign == Alignment::End) {
                 childCrossPos = crossStart + crossSize - childCrossSize;
             }
-        } else if (crossAlign == "Stretch") {
+        } else if (crossAlign == Alignment::Stretch) {
             childCrossSize = crossSize;
         }
 
@@ -274,8 +244,7 @@ void LayoutEngine::ArrangeFlexPanel(UIElement* panel, Rect finalRect, Orientatio
 Size LayoutEngine::MeasureCanvas(UIElement* panel, Size availableSize) {
     Size infiniteSize(100000.0f, 100000.0f);
     for (auto& child : panel->GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
 
         child->Measure(infiniteSize);
     }
@@ -284,27 +253,26 @@ Size LayoutEngine::MeasureCanvas(UIElement* panel, Size availableSize) {
 
 void LayoutEngine::ArrangeCanvas(UIElement* panel, Rect finalRect) {
     for (auto& child : panel->GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
 
         Size dSize = child->GetDesiredSize();
         float x = finalRect.x;
         float y = finalRect.y;
 
-        float left = child->GetProperty("Canvas.Left").AsFloat(-999999.0f);
-        float top = child->GetProperty("Canvas.Top").AsFloat(-999999.0f);
-        float right = child->GetProperty("Canvas.Right").AsFloat(-999999.0f);
-        float bottom = child->GetProperty("Canvas.Bottom").AsFloat(-999999.0f);
+        float left = child->GetCanvasLeft();
+        float top = child->GetCanvasTop();
+        float right = child->GetCanvasRight();
+        float bottom = child->GetCanvasBottom();
 
-        if (left != -999999.0f) {
+        if (left != UIElement::kAttachedUnset) {
             x = finalRect.x + left;
-        } else if (right != -999999.0f) {
+        } else if (right != UIElement::kAttachedUnset) {
             x = finalRect.x + finalRect.width - dSize.width - right;
         }
 
-        if (top != -999999.0f) {
+        if (top != UIElement::kAttachedUnset) {
             y = finalRect.y + top;
-        } else if (bottom != -999999.0f) {
+        } else if (bottom != UIElement::kAttachedUnset) {
             y = finalRect.y + finalRect.height - dSize.height - bottom;
         }
 
@@ -357,11 +325,10 @@ Size LayoutEngine::MeasureGrid(UIElement* panel, Size availableSize) {
 
     // 3. Measure children to solve Auto / Star
     for (auto& child : grid->GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
 
-        int cIdx = (std::min)(child->GetProperty("Grid.Column").AsInt(0), (int)colCount - 1);
-        int rIdx = (std::min)(child->GetProperty("Grid.Row").AsInt(0), (int)rowCount - 1);
+        int cIdx = (std::min)(child->GetGridColumn(), (int)colCount - 1);
+        int rIdx = (std::min)(child->GetGridRow(), (int)rowCount - 1);
 
         Size childAvail(availableSize.width, availableSize.height);
         if (localCols[cIdx].width.unitType == GridUnitType::Pixel) childAvail.width = localCols[cIdx].actualWidth;
@@ -432,9 +399,8 @@ void LayoutEngine::ArrangeGrid(UIElement* panel, Rect finalRect) {
 
     // Re-measure auto columns from children
     for (auto& child : grid->GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
-        int cIdx = (std::min)(child->GetProperty("Grid.Column").AsInt(0), (int)colCount - 1);
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
+        int cIdx = (std::min)(child->GetGridColumn(), (int)colCount - 1);
         if (localCols[cIdx].width.unitType == GridUnitType::Auto) {
             localCols[cIdx].actualWidth = (std::max)(localCols[cIdx].actualWidth, child->GetDesiredSize().width);
         }
@@ -459,9 +425,8 @@ void LayoutEngine::ArrangeGrid(UIElement* panel, Rect finalRect) {
     }
 
     for (auto& child : grid->GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
-        int rIdx = (std::min)(child->GetProperty("Grid.Row").AsInt(0), (int)rowCount - 1);
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
+        int rIdx = (std::min)(child->GetGridRow(), (int)rowCount - 1);
         if (localRows[rIdx].height.unitType == GridUnitType::Auto) {
             localRows[rIdx].actualHeight = (std::max)(localRows[rIdx].actualHeight, child->GetDesiredSize().height);
         }
@@ -493,13 +458,12 @@ void LayoutEngine::ArrangeGrid(UIElement* panel, Rect finalRect) {
 
     // Arrange Children
     for (auto& child : grid->GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
 
-        int cIdx = (std::min)(child->GetProperty("Grid.Column").AsInt(0), (int)colCount - 1);
-        int rIdx = (std::min)(child->GetProperty("Grid.Row").AsInt(0), (int)rowCount - 1);
-        int cSpan = (std::min)(child->GetProperty("Grid.ColumnSpan").AsInt(1), (int)(colCount - cIdx));
-        int rSpan = (std::min)(child->GetProperty("Grid.RowSpan").AsInt(1), (int)(rowCount - rIdx));
+        int cIdx = (std::min)(child->GetGridColumn(), (int)colCount - 1);
+        int rIdx = (std::min)(child->GetGridRow(), (int)rowCount - 1);
+        int cSpan = (std::min)(child->GetGridColumnSpan(), (int)(colCount - cIdx));
+        int rSpan = (std::min)(child->GetGridRowSpan(), (int)(rowCount - rIdx));
 
         float cellX = localCols[cIdx].position;
         float cellY = localRows[rIdx].position;
@@ -516,11 +480,11 @@ void LayoutEngine::ArrangeGrid(UIElement* panel, Rect finalRect) {
 // WrapPanel Layout Implementation
 // ----------------------------------------------------------------------
 Size LayoutEngine::MeasureWrapPanel(UIElement* panel, Size availableSize) {
-    std::string orientStr = panel->GetProperty("orientation").AsString("Horizontal");
-    Orientation orientation = (orientStr == "Vertical") ? Orientation::Vertical : Orientation::Horizontal;
+    Orientation orientation = panel->GetOrientation();
+    if (orientation != Orientation::Vertical) orientation = Orientation::Horizontal;
 
-    float itemWidth = panel->GetProperty("itemWidth").AsFloat(-1.0f);
-    float itemHeight = panel->GetProperty("itemHeight").AsFloat(-1.0f);
+    float itemWidth = panel->GetItemWidth();
+    float itemHeight = panel->GetItemHeight();
 
     float totalWidth = 0.0f;
     float totalHeight = 0.0f;
@@ -530,8 +494,7 @@ Size LayoutEngine::MeasureWrapPanel(UIElement* panel, Size availableSize) {
     float maxMain = (orientation == Orientation::Horizontal) ? availableSize.width : availableSize.height;
 
     for (auto& child : panel->GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
 
         Size dSize = child->Measure(availableSize);
         float w = (itemWidth > 0) ? itemWidth : dSize.width;
@@ -569,11 +532,11 @@ Size LayoutEngine::MeasureWrapPanel(UIElement* panel, Size availableSize) {
 }
 
 void LayoutEngine::ArrangeWrapPanel(UIElement* panel, Rect finalRect) {
-    std::string orientStr = panel->GetProperty("orientation").AsString("Horizontal");
-    Orientation orientation = (orientStr == "Vertical") ? Orientation::Vertical : Orientation::Horizontal;
+    Orientation orientation = panel->GetOrientation();
+    if (orientation != Orientation::Vertical) orientation = Orientation::Horizontal;
 
-    float itemWidth = panel->GetProperty("itemWidth").AsFloat(-1.0f);
-    float itemHeight = panel->GetProperty("itemHeight").AsFloat(-1.0f);
+    float itemWidth = panel->GetItemWidth();
+    float itemHeight = panel->GetItemHeight();
 
     float curMain = (orientation == Orientation::Horizontal) ? finalRect.x : finalRect.y;
     float curCross = (orientation == Orientation::Horizontal) ? finalRect.y : finalRect.x;
@@ -582,8 +545,7 @@ void LayoutEngine::ArrangeWrapPanel(UIElement* panel, Rect finalRect) {
     float lineCrossSize = 0.0f;
 
     for (auto& child : panel->GetChildren()) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
 
         Size dSize = child->GetDesiredSize();
         float w = (itemWidth > 0) ? itemWidth : dSize.width;
@@ -621,17 +583,16 @@ Size LayoutEngine::MeasureDockPanel(UIElement* panel, Size availableSize) {
     float maxChildHeight = 0.0f;
 
     const auto& children = panel->GetChildren();
-    bool lastChildFill = panel->GetProperty("lastChildFill").AsBool(true);
+    bool lastChildFill = panel->GetLastChildFill();
 
     size_t visibleCount = 0;
     for (auto& c : children) {
-        if (c->GetProperty("visibility").AsString("Visible") != "Collapsed") visibleCount++;
+        if (c->GetVisibility() != Visibility::Collapsed) visibleCount++;
     }
 
     size_t count = 0;
     for (auto& child : children) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
         count++;
 
         Size remaining(
@@ -641,16 +602,16 @@ Size LayoutEngine::MeasureDockPanel(UIElement* panel, Size availableSize) {
 
         Size dSize = child->Measure(remaining);
 
-        std::string dockStr = child->GetProperty("DockPanel.Dock").AsString("Left");
+        Dock dock = child->GetDock();
 
         if (count == visibleCount && lastChildFill) {
             maxChildWidth = (std::max)(maxChildWidth, usedWidth + dSize.width);
             maxChildHeight = (std::max)(maxChildHeight, usedHeight + dSize.height);
         } else {
-            if (dockStr == "Left" || dockStr == "Right") {
+            if (dock == Dock::Left || dock == Dock::Right) {
                 usedWidth += dSize.width;
                 maxChildHeight = (std::max)(maxChildHeight, usedHeight + dSize.height);
-            } else if (dockStr == "Top" || dockStr == "Bottom") {
+            } else if (dock == Dock::Top || dock == Dock::Bottom) {
                 usedHeight += dSize.height;
                 maxChildWidth = (std::max)(maxChildWidth, usedWidth + dSize.width);
             }
@@ -667,17 +628,16 @@ void LayoutEngine::ArrangeDockPanel(UIElement* panel, Rect finalRect) {
     float height = finalRect.height;
 
     const auto& children = panel->GetChildren();
-    bool lastChildFill = panel->GetProperty("lastChildFill").AsBool(true);
+    bool lastChildFill = panel->GetLastChildFill();
 
     size_t visibleCount = 0;
     for (auto& c : children) {
-        if (c->GetProperty("visibility").AsString("Visible") != "Collapsed") visibleCount++;
+        if (c->GetVisibility() != Visibility::Collapsed) visibleCount++;
     }
 
     size_t count = 0;
     for (auto& child : children) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
         count++;
 
         Size dSize = child->GetDesiredSize();
@@ -687,22 +647,22 @@ void LayoutEngine::ArrangeDockPanel(UIElement* panel, Rect finalRect) {
             break;
         }
 
-        std::string dockStr = child->GetProperty("DockPanel.Dock").AsString("Left");
-        if (dockStr == "Left") {
+        Dock dock = child->GetDock();
+        if (dock == Dock::Left) {
             float childW = (std::min)(width, dSize.width);
             child->Arrange(Rect(x, y, childW, height));
             x += childW;
             width -= childW;
-        } else if (dockStr == "Right") {
+        } else if (dock == Dock::Right) {
             float childW = (std::min)(width, dSize.width);
             child->Arrange(Rect(x + width - childW, y, childW, height));
             width -= childW;
-        } else if (dockStr == "Top") {
+        } else if (dock == Dock::Top) {
             float childH = (std::min)(height, dSize.height);
             child->Arrange(Rect(x, y, width, childH));
             y += childH;
             height -= childH;
-        } else if (dockStr == "Bottom") {
+        } else if (dock == Dock::Bottom) {
             float childH = (std::min)(height, dSize.height);
             child->Arrange(Rect(x, y + height - childH, width, childH));
             height -= childH;
@@ -717,12 +677,12 @@ Size LayoutEngine::MeasureUniformGrid(UIElement* panel, Size availableSize) {
     const auto& children = panel->GetChildren();
     int visibleCount = 0;
     for (auto& c : children) {
-        if (c->GetProperty("visibility").AsString("Visible") != "Collapsed") visibleCount++;
+        if (c->GetVisibility() != Visibility::Collapsed) visibleCount++;
     }
     if (visibleCount == 0) return Size(0, 0);
 
-    int rows = panel->GetProperty("rows").AsInt(0);
-    int cols = panel->GetProperty("columns").AsInt(0);
+    int rows = panel->GetRows();
+    int cols = panel->GetColumns();
 
     if (rows <= 0 && cols <= 0) {
         rows = static_cast<int>(std::ceil(std::sqrt(visibleCount)));
@@ -737,8 +697,7 @@ Size LayoutEngine::MeasureUniformGrid(UIElement* panel, Size availableSize) {
     float maxW = 0.0f, maxH = 0.0f;
 
     for (auto& child : children) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
 
         Size dSize = child->Measure(childAvail);
         maxW = (std::max)(maxW, dSize.width);
@@ -752,12 +711,12 @@ void LayoutEngine::ArrangeUniformGrid(UIElement* panel, Rect finalRect) {
     const auto& children = panel->GetChildren();
     int visibleCount = 0;
     for (auto& c : children) {
-        if (c->GetProperty("visibility").AsString("Visible") != "Collapsed") visibleCount++;
+        if (c->GetVisibility() != Visibility::Collapsed) visibleCount++;
     }
     if (visibleCount == 0) return;
 
-    int rows = panel->GetProperty("rows").AsInt(0);
-    int cols = panel->GetProperty("columns").AsInt(0);
+    int rows = panel->GetRows();
+    int cols = panel->GetColumns();
 
     if (rows <= 0 && cols <= 0) {
         rows = static_cast<int>(std::ceil(std::sqrt(visibleCount)));
@@ -773,8 +732,7 @@ void LayoutEngine::ArrangeUniformGrid(UIElement* panel, Rect finalRect) {
 
     int index = 0;
     for (auto& child : children) {
-        std::string vis = child->GetProperty("visibility").AsString("Visible");
-        if (vis == "Collapsed") continue;
+        if (child->GetVisibility() == Visibility::Collapsed) continue;
 
         int r = index / cols;
         int c = index % cols;

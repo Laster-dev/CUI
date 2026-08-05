@@ -12,25 +12,25 @@ constexpr float kTopNavHeight = 48.0f;
 
 void StyleChromeButton(const std::shared_ptr<Button>& btn) {
     // Tokens only — Button paint resolves via ThemeManager / ResolveThemeColor.
-    btn->SetProperty("theme.backgroundToken", Value("cardBackground"));
-    btn->SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
-    btn->SetProperty("theme.pressedBackgroundToken", Value("pressedBackground"));
-    btn->SetProperty("theme.colorToken", Value("textPrimary"));
-    btn->SetProperty("theme.borderToken", Value("cardBorder"));
-    btn->SetProperty("width", Value(kChromeButton));
-    btn->SetProperty("height", Value(kChromeButton));
-    btn->SetProperty("cornerRadius", Value(4.0f));
-    btn->SetProperty("fontSize", Value(14.0f));
+    btn->SetBackgroundToken(ThemeTokenId::CardBackground);
+    btn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    btn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    btn->SetColorToken(ThemeTokenId::TextPrimary);
+    btn->SetBorderToken(ThemeTokenId::CardBorder);
+    btn->SetWidth(kChromeButton);
+    btn->SetHeight(kChromeButton);
+    btn->SetCornerRadius(4.0f);
+    btn->SetFontSize(14.0f);
 }
 }
 
 NavigationView::NavigationView() {
-    SetProperty("theme.backgroundToken", Value("windowBackground"));
-    SetProperty("theme.paneBackgroundToken", Value("paneBackground"));
-    SetProperty("theme.indicatorColorToken", Value("accentColor"));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("theme.secondaryColorToken", Value("textSecondary"));
+    SetBackgroundToken(ThemeTokenId::WindowBackground);
+    SetPaneBackgroundToken(ThemeTokenId::PaneBackground);
+    SetIndicatorColorToken(ThemeTokenId::AccentColor);
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetSecondaryColorToken(ThemeTokenId::TextSecondary);
 
     BuildChrome();
     EnsureSettingsItem();
@@ -49,7 +49,7 @@ std::vector<PropertyMeta> NavigationView::GetPropertyMetas() const {
 void NavigationView::BuildChrome() {
     m_btnBack = std::make_shared<Button>("←");
     StyleChromeButton(m_btnBack);
-    m_btnBack->SetProperty("cornerRadius", Value(20.0f));
+    m_btnBack->SetCornerRadius(20.0f);
     AddChild(m_btnBack);
     m_btnBack->OnClick().Connect([this](UIElement*) {
         if (IsOverlayMode() && m_isPaneOpen) {
@@ -77,12 +77,12 @@ void NavigationView::EnsureMenuScroll() {
     }
 
     m_menuHost = std::make_shared<StackPanel>(Orientation::Vertical);
-    m_menuHost->SetProperty("gap", Value(2.0f));
-    m_menuHost->SetProperty("orientation", Value("Vertical"));
-    m_menuHost->SetProperty("align", Value("Stretch"));
+    m_menuHost->SetGap(2.0f);
+    m_menuHost->SetOrientation(Orientation::Vertical);
+    m_menuHost->SetAlign(Alignment::Stretch);
 
     m_menuScroll = std::make_shared<ScrollViewer>();
-    m_menuScroll->SetProperty("background", Value(D2D1::ColorF(0, 0, 0, 0)));
+    m_menuScroll->SetBackground(D2D1::ColorF(0, 0, 0, 0));
     m_menuScroll->AddChild(m_menuHost);
     AddChild(m_menuScroll);
 }
@@ -267,7 +267,7 @@ void NavigationView::SyncMenuHostChildren() {
     auto walkAll = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> void {
         if (!node) return;
         const bool show = visibleSet.count(node.get()) > 0;
-        node->SetProperty("visibility", Value(show ? "Visible" : "Collapsed"));
+        node->SetVisibility(show ? Visibility::Visible : Visibility::Collapsed);
         if (auto* nvi = dynamic_cast<NavigationViewItem*>(node.get())) {
             for (auto& child : nvi->MenuItems()) {
                 self(self, child);
@@ -316,7 +316,7 @@ void NavigationView::SyncMenuHostChildren() {
 void NavigationView::SetIsSettingsVisible(bool visible) {
     m_settingsVisible = visible;
     if (m_settingsItem) {
-        m_settingsItem->SetProperty("visibility", Value(visible ? "Visible" : "Collapsed"));
+        m_settingsItem->SetVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
     }
     RelayoutChildren();
 }
@@ -354,14 +354,12 @@ void NavigationView::TogglePane() {
 
 void NavigationView::SetOpenPaneLength(float length) {
     m_openPaneLength = (std::max)(0.0f, length);
-    SetProperty("openPaneLength", Value(m_openPaneLength));
     m_paneWidthAnim.SetTarget(TargetPaneWidth());
     RelayoutChildren();
 }
 
 void NavigationView::SetCompactPaneLength(float length) {
     m_compactPaneLength = (std::max)(0.0f, length);
-    SetProperty("compactPaneLength", Value(m_compactPaneLength));
     m_paneWidthAnim.SetTarget(TargetPaneWidth());
     RelayoutChildren();
 }
@@ -422,7 +420,6 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
 
 void NavigationView::SetHeader(const std::string& header) {
     m_header = header;
-    SetProperty("header", Value(header));
     RelayoutChildren();
     MarkRenderContentDirty();
 }
@@ -435,7 +432,6 @@ void NavigationView::SetAlwaysShowHeader(bool always) {
 
 void NavigationView::SetPaneTitle(const std::string& title) {
     m_paneTitle = title;
-    SetProperty("paneTitle", Value(title));
     MarkRenderContentDirty();
 }
 
@@ -866,7 +862,7 @@ void NavigationView::RelayoutChildren() {
     // Hide entire menu tree first; visible list re-shows what should paint.
     auto hideTree = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> void {
         if (!node) return;
-        node->SetProperty("visibility", Value("Collapsed"));
+        node->SetVisibility(Visibility::Collapsed);
         if (auto* nvi = dynamic_cast<NavigationViewItem*>(node.get())) {
             for (auto& child : nvi->MenuItems()) {
                 self(self, child);
@@ -876,7 +872,7 @@ void NavigationView::RelayoutChildren() {
     for (auto& item : m_menuItems) hideTree(hideTree, item);
     for (auto& item : m_footerItems) hideTree(hideTree, item);
     if (m_settingsItem) {
-        m_settingsItem->SetProperty("visibility", Value("Collapsed"));
+        m_settingsItem->SetVisibility(Visibility::Collapsed);
     }
 
     const bool showBack = ShouldShowBackButton();
@@ -884,12 +880,12 @@ void NavigationView::RelayoutChildren() {
     const bool compactList = IsCompactList();
 
     if (m_btnBack) {
-        m_btnBack->SetProperty("visibility", Value(showBack ? "Visible" : "Collapsed"));
+        m_btnBack->SetVisibility(showBack ? Visibility::Visible : Visibility::Collapsed);
     }
     if (m_btnToggle) {
         // Toggle hidden in Top mode and Forced Left-Expanded (optional: still show).
         const bool showToggle = !top && m_paneDisplayMode != NavigationViewPaneDisplayMode::Left;
-        m_btnToggle->SetProperty("visibility", Value(showToggle ? "Visible" : "Collapsed"));
+        m_btnToggle->SetVisibility(showToggle ? Visibility::Visible : Visibility::Collapsed);
     }
 
     if (top) {
@@ -905,7 +901,7 @@ void NavigationView::RelayoutChildren() {
             m_btnToggle->Arrange(Rect(0, 0, 0, 0));
         }
         if (m_menuScroll) {
-            m_menuScroll->SetProperty("visibility", Value("Collapsed"));
+            m_menuScroll->SetVisibility(Visibility::Collapsed);
         }
 
         // Ensure menu items are direct children for Top hit-test (outside collapsed ScrollViewer).
@@ -934,17 +930,17 @@ void NavigationView::RelayoutChildren() {
                 dynamic_cast<NavigationViewItem*>(base)
                     ? dynamic_cast<NavigationViewItem*>(base)->GetContent().size() * 8.0f
                     : 40));
-            base->SetProperty("visibility", Value("Visible"));
+            base->SetVisibility(Visibility::Visible);
             base->Measure(Size(itemW, kTopNavHeight - 8.0f));
             base->Arrange(Rect(x, yRow, itemW, kTopNavHeight - 8.0f));
             x += itemW + 4.0f;
         }
 
         if (m_autoSuggestBox) {
-            m_autoSuggestBox->SetProperty("visibility", Value("Collapsed"));
+            m_autoSuggestBox->SetVisibility(Visibility::Collapsed);
         }
         if (m_paneFooter) {
-            m_paneFooter->SetProperty("visibility", Value("Collapsed"));
+            m_paneFooter->SetVisibility(Visibility::Collapsed);
         }
     } else {
         EnsureMenuScroll();
@@ -958,7 +954,7 @@ void NavigationView::RelayoutChildren() {
             m_btnBack->Measure(Size(kChromeButton, kChromeButton));
             m_btnBack->Arrange(Rect(x, y, kChromeButton, kChromeButton));
         }
-        if (m_btnToggle && m_btnToggle->GetProperty("visibility").AsString("Visible") == "Visible") {
+        if (m_btnToggle && m_btnToggle->GetVisibility() == Visibility::Visible) {
             const float toggleX = showBack ? (x + kChromeButton + 4.0f) : x;
             if (compactList || pane.width < m_compactPaneLength + 8.0f) {
                 float ty = y;
@@ -978,13 +974,13 @@ void NavigationView::RelayoutChildren() {
         }
 
         if (m_autoSuggestBox && !compactList && pane.width > 80.0f) {
-            m_autoSuggestBox->SetProperty("visibility", Value("Visible"));
+            m_autoSuggestBox->SetVisibility(Visibility::Visible);
             const float boxH = 32.0f;
             m_autoSuggestBox->Measure(Size(pane.width - 16.0f, boxH));
             m_autoSuggestBox->Arrange(Rect(pane.x + 8.0f, y, pane.width - 16.0f, boxH));
             y += boxH + 8.0f;
         } else if (m_autoSuggestBox) {
-            m_autoSuggestBox->SetProperty("visibility", Value("Collapsed"));
+            m_autoSuggestBox->SetVisibility(Visibility::Collapsed);
         }
 
         const float itemW = (std::max)(36.0f, pane.width - 8.0f);
@@ -992,24 +988,24 @@ void NavigationView::RelayoutChildren() {
         // Footer + settings pinned to bottom (outside scroll viewport).
         float footerY = pane.y + pane.height - 4.0f;
         if (m_paneFooter && !compactList && pane.width > 80.0f) {
-            m_paneFooter->SetProperty("visibility", Value("Visible"));
+            m_paneFooter->SetVisibility(Visibility::Visible);
             m_paneFooter->Measure(Size(pane.width - 16.0f, 40.0f));
             const float fh = m_paneFooter->GetDesiredSize().height;
             footerY -= fh;
             m_paneFooter->Arrange(Rect(pane.x + 8.0f, footerY, pane.width - 16.0f, fh));
             footerY -= 4.0f;
         } else if (m_paneFooter) {
-            m_paneFooter->SetProperty("visibility", Value("Collapsed"));
+            m_paneFooter->SetVisibility(Visibility::Collapsed);
         }
 
         if (m_settingsVisible && m_settingsItem) {
-            m_settingsItem->SetProperty("visibility", Value(pane.width > 0.5f ? "Visible" : "Collapsed"));
+            m_settingsItem->SetVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
             m_settingsItem->Measure(Size(itemW, 40.0f));
             footerY -= m_settingsItem->GetDesiredSize().height;
             m_settingsItem->Arrange(Rect(pane.x + 4.0f, footerY, itemW, m_settingsItem->GetDesiredSize().height));
             footerY -= 2.0f;
         } else if (m_settingsItem) {
-            m_settingsItem->SetProperty("visibility", Value("Collapsed"));
+            m_settingsItem->SetVisibility(Visibility::Collapsed);
         }
 
         std::vector<NavigationViewItemBase*> footerVisible;
@@ -1018,7 +1014,7 @@ void NavigationView::RelayoutChildren() {
         }
         for (int i = static_cast<int>(footerVisible.size()) - 1; i >= 0; --i) {
             auto* base = footerVisible[static_cast<size_t>(i)];
-            base->SetProperty("visibility", Value(pane.width > 0.5f ? "Visible" : "Collapsed"));
+            base->SetVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
             base->Measure(Size(itemW, 40.0f));
             footerY -= base->GetDesiredSize().height;
             base->Arrange(Rect(pane.x + 4.0f, footerY, itemW, base->GetDesiredSize().height));
@@ -1031,7 +1027,7 @@ void NavigationView::RelayoutChildren() {
         const float menuBottomY = (std::max)(menuTopY, footerY - 4.0f);
         const float menuH = (std::max)(0.0f, menuBottomY - menuTopY);
         if (m_menuScroll) {
-            m_menuScroll->SetProperty("visibility", Value(pane.width > 0.5f ? "Visible" : "Collapsed"));
+            m_menuScroll->SetVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
             m_menuScroll->Measure(Size(pane.width - 4.0f, menuH));
             m_menuScroll->Arrange(Rect(pane.x + 2.0f, menuTopY, pane.width - 4.0f, menuH));
         }
@@ -1047,13 +1043,13 @@ void NavigationView::RelayoutChildren() {
         const float ease = 1.0f - inv * inv * inv;
         const float slideY = 40.0f * (1.0f - ease);
         if (m_contentNext) {
-            m_contentNext->SetProperty("visibility", Value("Visible"));
+            m_contentNext->SetVisibility(Visibility::Visible);
             m_contentNext->Measure(Size(contentRect.width, contentRect.height));
             m_contentNext->Arrange(Rect(contentRect.x, contentRect.y + slideY,
                                         contentRect.width, contentRect.height));
         }
     } else if (m_content) {
-        m_content->SetProperty("visibility", Value("Visible"));
+        m_content->SetVisibility(Visibility::Visible);
         m_content->Measure(Size(contentRect.width, contentRect.height));
         m_content->Arrange(contentRect);
     }
@@ -1078,10 +1074,10 @@ void NavigationView::Arrange(Rect finalRect) {
 void NavigationView::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
-    const D2D1_COLOR_F paneBg = ResolveThemeColor("theme.paneBackgroundToken", "paneBackground");
-    const D2D1_COLOR_F border = ResolveThemeColor("theme.borderToken", "cardBorder");
-    const D2D1_COLOR_F textPrimary = ResolveThemeColor("theme.colorToken", "textPrimary");
-    const D2D1_COLOR_F textSecondary = ResolveThemeColor("theme.secondaryColorToken", "textSecondary");
+    const D2D1_COLOR_F paneBg = ResolveThemeColor(GetPaneBackgroundToken(), ThemeTokenId::PaneBackground);
+    const D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    const D2D1_COLOR_F textPrimary = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    const D2D1_COLOR_F textSecondary = ResolveThemeColor(GetSecondaryColorToken(), ThemeTokenId::TextSecondary);
 
     if (IsTopNavigation()) {
         const Rect top = GetTopNavRect();
@@ -1142,7 +1138,7 @@ void NavigationView::OnRenderOverlay(GraphicsContext& ctx) {
     Control::OnRenderOverlay(ctx);
 
     if (m_selectedItem || m_selectionIndicatorTo) {
-        const D2D1_COLOR_F indicator = ResolveThemeColor("theme.indicatorColorToken", "accentColor");
+        const D2D1_COLOR_F indicator = ResolveThemeColor(GetIndicatorColorToken(), ThemeTokenId::AccentColor);
         const Rect fromRect = GetIndicatorRectForItem(m_selectionIndicatorFrom ? m_selectionIndicatorFrom : m_selectedItem);
         const Rect toRect = GetIndicatorRectForItem(m_selectionIndicatorTo ? m_selectionIndicatorTo : m_selectedItem);
         if (!toRect.IsEmpty()) {
@@ -1181,7 +1177,7 @@ void NavigationView::OnRenderOverlay(GraphicsContext& ctx) {
         const float t = std::clamp(m_contentFadeAnim.Current(), 0.0f, 1.0f);
         const float inv = 1.0f - t;
         const float ease = 1.0f - inv * inv * inv;
-        D2D1_COLOR_F veil = ResolveThemeColor("theme.backgroundToken", "windowBackground");
+        D2D1_COLOR_F veil = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::WindowBackground);
         veil.a = (1.0f - ease) * 0.90f;
         if (veil.a > 0.01f) {
             const Rect area = GetContentAreaRect();
@@ -1211,7 +1207,7 @@ void NavigationView::OnMouseWheel(float delta) {
         return;
     }
     // Prefer the pane ScrollViewer (Chromium smooth scroll + scrollbar).
-    if (m_menuScroll && m_menuScroll->GetProperty("visibility").AsString("Visible") == "Visible") {
+    if (m_menuScroll && m_menuScroll->GetVisibility() == Visibility::Visible) {
         m_menuScroll->OnMouseWheel(delta);
         return;
     }

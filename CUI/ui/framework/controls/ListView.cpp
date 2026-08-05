@@ -23,19 +23,19 @@ float GetChromiumWheelStep(float viewportHeight) {
 
 ListView::ListView() {
     // 只绑 token；绘制走 ThemeManager。列表表面用 card，勿用 window（材质模式下 window 全透明）。
-    SetProperty("theme.backgroundToken", Value("cardBackground"));
-    SetProperty("theme.headerBackgroundToken", Value("paneBackground"));
-    SetProperty("theme.borderToken", Value("cardBorder"));
-    SetProperty("theme.gridLineBrushToken", Value("inputBorder"));
-    SetProperty("theme.colorToken", Value("textPrimary"));
-    SetProperty("theme.selectedBackgroundToken", Value("selectedBackground"));
-    SetProperty("theme.hoverBackgroundToken", Value("hoverBackground"));
-    SetProperty("borderThickness", Value(1.0f));
-    SetProperty("fontSize", Value(12.0f));
-    SetProperty("fontFamily", Value("Segoe UI"));
-    SetProperty("cornerRadius", Value(4.0f));
-    SetProperty("width", Value(480.0f));
-    SetProperty("height", Value(320.0f));
+    SetBackgroundToken(ThemeTokenId::CardBackground);
+    SetHeaderBackgroundToken(ThemeTokenId::PaneBackground);
+    SetBorderToken(ThemeTokenId::CardBorder);
+    SetGridLineBrushToken(ThemeTokenId::InputBorder);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    SetBorderThickness(1.0f);
+    SetFontSize(12.0f);
+    SetFontFamily("Segoe UI");
+    SetCornerRadius(4.0f);
+    SetWidth(480.0f);
+    SetHeight(320.0f);
 }
 
 HCURSOR ListView::GetCursor() const {
@@ -258,8 +258,8 @@ float ListView::GetTotalColumnsWidth() const {
 }
 
 Size ListView::Measure(Size availableSize) {
-    float expW = GetProperty("width").AsFloat(480.0f);
-    float expH = GetProperty("height").AsFloat(320.0f);
+    float expW = GetWidth(); if (expW < 0) expW = 480.0f;
+    float expH = GetHeight(); if (expH < 0) expH = 320.0f;
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
@@ -343,8 +343,7 @@ void ListView::UpdateRubberBandSelection() {
 }
 
 void ListView::Render(GraphicsContext& ctx) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return;
+    if (GetVisibility() != Visibility::Visible) return;
 
     bool clip = ShouldClipToBounds();
     if (clip) {
@@ -359,8 +358,7 @@ void ListView::Render(GraphicsContext& ctx) {
 }
 
 UIElement* ListView::HitTest(float x, float y) {
-    std::string visStr = GetProperty("visibility").AsString("Visible");
-    if (visStr != "Visible") return nullptr;
+    if (GetVisibility() != Visibility::Visible) return nullptr;
 
     if (m_bounds.Contains(x, y)) {
         int r = GetRowIndexFromY(y);
@@ -391,17 +389,17 @@ UIElement* ListView::HitTest(float x, float y) {
 void ListView::OnRender(GraphicsContext& ctx) {
     ClampScroll();
 
-    float radius = GetProperty("cornerRadius").AsFloat(0.0f);
-    D2D1_COLOR_F bg = ResolveThemeColor("theme.backgroundToken", "cardBackground");
-    D2D1_COLOR_F headerBg = ResolveThemeColor("theme.headerBackgroundToken", "paneBackground");
-    D2D1_COLOR_F borderClr = ResolveThemeColor("theme.borderToken", "cardBorder");
-    D2D1_COLOR_F gridLineClr = ResolveThemeColor("theme.gridLineBrushToken", "inputBorder");
-    D2D1_COLOR_F textClr = ResolveThemeColor("theme.colorToken", "textPrimary");
-    D2D1_COLOR_F selectedBg = ResolveThemeColor("theme.selectedBackgroundToken", "selectedBackground");
-    D2D1_COLOR_F hoverBg = ResolveThemeColor("theme.hoverBackgroundToken", "hoverBackground");
-    D2D1_COLOR_F focusBorderColor = ResolveThemeColor("theme.borderToken", "accentColor");
-    std::string font = GetProperty("fontFamily").AsString("Segoe UI");
-    float fontH = GetProperty("fontSize").AsFloat(12.0f);
+    float radius = GetCornerRadius();
+    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    D2D1_COLOR_F headerBg = ResolveThemeColor(GetHeaderBackgroundToken(), ThemeTokenId::PaneBackground);
+    D2D1_COLOR_F borderClr = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    D2D1_COLOR_F gridLineClr = ResolveThemeColor(GetGridLineBrushToken(), ThemeTokenId::InputBorder);
+    D2D1_COLOR_F textClr = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    D2D1_COLOR_F selectedBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
+    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    D2D1_COLOR_F focusBorderColor = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
+    std::string font = GetFontFamily();
+    float fontH = GetFontSize();
 
     // Draw container outer box
     ctx.FillRect(m_bounds, bg);
@@ -421,7 +419,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
         // Header column text
         Rect colTextRect(colHeaderRect.x + 8.0f, colHeaderRect.y, colHeaderRect.width - 16.0f, colHeaderRect.height);
-        ctx.DrawText(col.header, colTextRect, ThemeManager::Instance().GetColor("textSecondary"), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(col.header, colTextRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Header column splitter line
         ctx.DrawLine(Point(currColX + col.width, m_bounds.y + 4.0f), Point(currColX + col.width, m_bounds.y + m_headerHeight - 4.0f), borderClr, 1.0f);
@@ -478,7 +476,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
             } else {
                 std::string cellText = GetCellText(r, static_cast<int>(c));
                 Rect cellRect(cellX + 8.0f, rowY, colW - 16.0f, m_rowHeight);
-                D2D1_COLOR_F cellClr = isSelected ? ThemeManager::Instance().GetColor("textPrimary") : textClr;
+                D2D1_COLOR_F cellClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textClr;
                 ctx.DrawText(cellText, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             }
             // Cell Vertical Grid Line
@@ -532,7 +530,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
     // 5. Column Drag Reordering Indicator Card & Insertion Line
     if (m_isReorderingColumn && m_reorderingColumnIndex >= 0 && m_reorderingColumnIndex < static_cast<int>(m_columns.size())) {
-        D2D1_COLOR_F accent = ThemeManager::Instance().GetColor("accentColor");
+        D2D1_COLOR_F accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
         
         float dropX = m_bounds.x - m_scrollX;
         float currX = m_bounds.x - m_scrollX;

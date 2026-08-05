@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include "../window/PopupHost.h"
 #include <vector>
 #include <string>
 #include <functional>
@@ -25,11 +26,11 @@ public:
     bool IsSeparator() const { return m_isSeparator; }
     void SetIsSeparator(bool isSep) { m_isSeparator = isSep; }
 
-    std::string GetShortcutText() const { return GetProperty("shortcutText").AsString(); }
-    void SetShortcutText(const std::string& shortcut) { SetProperty("shortcutText", Value(shortcut)); }
-
-    std::string GetIcon() const { return GetProperty("icon").AsString(); }
-    void SetIcon(const std::string& icon) { SetProperty("icon", Value(icon)); }
+    const std::string& GetShortcutText() const { return m_shortcutText; }
+    void SetShortcutText(const std::string& shortcut) {
+        m_shortcutText = shortcut;
+        MarkRenderContentDirty();
+    }
 
     std::shared_ptr<ContextMenu> GetSubMenu() const { return m_subMenu; }
     void SetSubMenu(std::shared_ptr<ContextMenu> subMenu) { m_subMenu = subMenu; }
@@ -40,12 +41,13 @@ public:
 
 private:
     bool m_isSeparator = false;
+    std::string m_shortcutText;
     std::function<void()> m_command;
     ContextMenu* m_parentMenu = nullptr;
     std::shared_ptr<ContextMenu> m_subMenu = nullptr;
 };
 
-class ContextMenu : public UIElement {
+class ContextMenu : public UIElement, public IPopup {
 public:
     ContextMenu();
     virtual ~ContextMenu() = default;
@@ -67,6 +69,14 @@ public:
     bool IsOpen() const { return m_isOpen; }
     Rect GetTotalBounds() const;
     std::shared_ptr<ContextMenu> GetActiveSubMenu() const { return m_activeSubMenu; }
+
+    // IPopup
+    virtual bool IsPopupOpen() const override { return m_isOpen; }
+    virtual Rect GetPopupBounds() const override { return GetTotalBounds(); }
+    virtual bool HitDismissExempt(float x, float y) const override;
+    virtual UIElement* HitTestPopup(float x, float y) override { return HitTestOverlay(x, y); }
+    virtual void RenderPopup(GraphicsContext& ctx) override;
+    virtual void OnLightDismiss() override { Hide(); }
 
     virtual void OnBlur() override { Hide(); }
 
