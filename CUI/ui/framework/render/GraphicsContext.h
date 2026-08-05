@@ -37,6 +37,8 @@ public:
 
     void PushClip(const Rect& rect);
     void PopClip();
+    void PushOpacity(float opacity);
+    void PopOpacity();
     bool EnsureLayerCache(RenderLayer& layer, Size sizeInDips);
     ID2D1DeviceContext* BeginLayerDraw(RenderLayer& layer);
     void EndLayerDraw(RenderLayer& layer);
@@ -120,12 +122,14 @@ private:
 
     RenderResources m_resources;
     std::vector<D2D1_RECT_F> m_clipStack;
+    std::vector<float> m_opacityStack;
     Rect m_paintBounds;
 
     struct TargetState {
         ComPtr<ID2D1DeviceContext> context;
         Rect paintBounds;
         std::vector<D2D1_RECT_F> clipStack;
+        std::vector<float> opacityStack;
     };
     std::vector<TargetState> m_targetStack;
     CompositionContext* m_compositionContext = nullptr;

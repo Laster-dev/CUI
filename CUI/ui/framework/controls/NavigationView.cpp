@@ -87,15 +87,33 @@ void NavigationView::EnsureMenuScroll() {
     AddChild(m_menuScroll);
 }
 
-void NavigationView::EnsurePaneZOrderAboveContent() {
-    if (!m_content) {
-        return;
+void NavigationView::EnsureAnimationsScheduled() {
+    RequestAnimationTicks();
+}
+
+void NavigationView::EnsureContentZOrder() {
+    // Content must stay at the back of the child list so pane chrome wins hit-testing.
+    // (AddChild appends — without this, page content can steal clicks from nav items.)
+    auto sendToBack = [this](const std::shared_ptr<UIElement>& node) {
+        if (!node) {
+            return;
+        }
+        auto it = std::find(m_children.begin(), m_children.end(), node);
+        if (it == m_children.end()) {
+            return;
+        }
+        m_children.erase(it);
+        m_children.insert(m_children.begin(), node);
+    };
+
+    if (m_contentAnimating && m_contentNext) {
+        sendToBack(m_contentNext);
+    }
+    if (m_content) {
+        sendToBack(m_content);
     }
 
-    // In overlay modes the pane visually covers the content.
-    // Because UIElement mouse hit-test checks children from topmost (last-added) first,
-    // swapping content after selection can accidentally place content above the pane,
-    // making the right half of an item unclickable (only left rail works).
+    // Overlay pane must paint and hit-test above content.
     if (!(IsOverlayMode() && m_isPaneOpen)) {
         return;
     }
@@ -121,11 +139,11 @@ void NavigationView::EnsurePaneZOrderAboveContent() {
     seen.reserve(paneNodes.size() * 2);
     for (auto& node : paneNodes) {
         if (!node) continue;
-        if (node.get() == m_content.get()) continue;
+        if (node.get() == m_content.get() || node.get() == m_contentNext.get()) continue;
         if (!seen.insert(node.get()).second) continue;
 
         RemoveChild(node);
-        AddChild(node); // move pane nodes above content in z-order
+        AddChild(node);
     }
 }
 
@@ -337,9 +355,10 @@ void NavigationView::SetIsPaneOpen(bool open) {
     }
     m_isPaneOpen = open;
     m_paneWidthAnim.SetTarget(TargetPaneWidth());
+    EnsureAnimationsScheduled();
     UpdateChildCompactFlags();
     RelayoutChildren();
-    EnsurePaneZOrderAboveContent();
+    EnsureContentZOrder();
     MarkRenderContentDirty();
     if (open) {
         m_paneOpened.Invoke(this);
@@ -398,7 +417,8 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
             AddChild(m_content);
         }
         RelayoutChildren();
-        EnsurePaneZOrderAboveContent();
+        EnsureContentZOrder();
+        MarkRenderRectDirty(GetContentAreaRect());
         MarkRenderContentDirty();
         return;
     }
@@ -411,10 +431,13 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
     m_contentAnimating = true;
     m_contentFadeAnim.Reset(0.0f);
     m_contentFadeAnim.SetTarget(1.0f);
+    m_contentNext->SetOpacity(0.0f);
 
     AddChild(m_contentNext);
     RelayoutChildren();
-    EnsurePaneZOrderAboveContent();
+    EnsureContentZOrder();
+    EnsureAnimationsScheduled();
+    MarkRenderRectDirty(GetContentAreaRect());
     MarkRenderContentDirty();
 }
 
@@ -519,6 +542,7 @@ void NavigationView::StartSelectionIndicatorAnimation(NavigationViewItem* from, 
     m_selectionIndicatorTo = to;
     m_selectionIndicatorAnim.Reset(0.0f);
     m_selectionIndicatorAnim.SetTarget(1.0f);
+    EnsureAnimationsScheduled();
 }
 
 void NavigationView::SelectByTag(const std::string& tag) {
@@ -705,6 +729,9 @@ void NavigationView::UpdateAdaptiveLayout(float width) {
 
     m_paneWidthAnim.SetTarget(TargetPaneWidth());
     UpdateChildCompactFlags();
+    if (std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f) {
+        EnsureAnimationsScheduled();
+    }
 }
 
 void NavigationView::ApplyDisplayMode(NavigationViewDisplayMode mode, bool forceEvent) {
@@ -1038,17 +1065,18 @@ void NavigationView::RelayoutChildren() {
     const Rect contentRect = GetContentAreaRect();
     if (m_contentAnimating) {
         const float t = std::clamp(m_contentFadeAnim.Current(), 0.0f, 1.0f);
-        // WinUI EntranceThemeTransition-like: EaseOutCubic + slight upward settle.
         const float inv = 1.0f - t;
         const float ease = 1.0f - inv * inv * inv;
         const float slideY = 40.0f * (1.0f - ease);
         if (m_contentNext) {
+            m_contentNext->SetOpacity(ease);
             m_contentNext->SetVisibility(Visibility::Visible);
             m_contentNext->Measure(Size(contentRect.width, contentRect.height));
             m_contentNext->Arrange(Rect(contentRect.x, contentRect.y + slideY,
                                         contentRect.width, contentRect.height));
         }
     } else if (m_content) {
+        m_content->SetOpacity(1.0f);
         m_content->SetVisibility(Visibility::Visible);
         m_content->Measure(Size(contentRect.width, contentRect.height));
         m_content->Arrange(contentRect);
@@ -1067,6 +1095,8 @@ void NavigationView::Arrange(Rect finalRect) {
     m_paneWidthAnim.SetTarget(TargetPaneWidth());
     if (!UIElement::AreAnimationsEnabled()) {
         m_paneWidthAnim.Reset(TargetPaneWidth());
+    } else if (std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f) {
+        EnsureAnimationsScheduled();
     }
     RelayoutChildren();
 }
@@ -1172,22 +1202,10 @@ void NavigationView::OnRenderOverlay(GraphicsContext& ctx) {
         }
     }
 
-    // EntranceThemeTransition veil: fade overlay away to reveal incoming page.
-    if (m_contentAnimating) {
-        const float t = std::clamp(m_contentFadeAnim.Current(), 0.0f, 1.0f);
-        const float inv = 1.0f - t;
-        const float ease = 1.0f - inv * inv * inv;
-        D2D1_COLOR_F veil = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::WindowBackground);
-        veil.a = (1.0f - ease) * 0.90f;
-        if (veil.a > 0.01f) {
-            const Rect area = GetContentAreaRect();
-            if (!area.IsEmpty()) {
-                ctx.PushClip(area);
-                ctx.FillRect(area, veil);
-                ctx.PopClip();
-            }
-        }
-    }
+    // Entrance transition uses slide-only (see RelayoutChildren / OnAnimationTick).
+    // Do not draw a semi-opaque windowBackground veil here: on light + Mica it
+    // washes out the entire content host (demo + PropertyGrid) until the ~220ms
+    // fade completes, which looks like broken theme colors on page load.
 }
 
 void NavigationView::OnMouseDown(Point pt) {
@@ -1223,13 +1241,13 @@ bool NavigationView::OnAnimationTick() {
     const bool contentAnim = m_contentAnimating && m_contentFadeAnim.Tick(dt, AnimationSpec{ 0.22f, 0.001f });
 
     if (contentAnim) {
-        // Only re-arrange content host during entrance transition (avoid full pane rebuild).
         const Rect contentRect = GetContentAreaRect();
         const float t = std::clamp(m_contentFadeAnim.Current(), 0.0f, 1.0f);
         const float inv = 1.0f - t;
         const float ease = 1.0f - inv * inv * inv;
         const float slideY = 40.0f * (1.0f - ease);
         if (m_contentNext) {
+            m_contentNext->SetOpacity(ease);
             m_contentNext->Arrange(Rect(contentRect.x, contentRect.y + slideY,
                                         contentRect.width, contentRect.height));
         }
@@ -1240,15 +1258,26 @@ bool NavigationView::OnAnimationTick() {
         m_contentNext.reset();
         m_contentAnimating = false;
         m_contentFadeAnim.Reset(1.0f);
+        if (m_content) {
+            m_content->SetOpacity(1.0f);
+        }
         RelayoutChildren();
-        EnsurePaneZOrderAboveContent();
+        EnsureContentZOrder();
         MarkRenderContentDirty();
     }
     if (widthAnim) {
         RelayoutChildren();
         MarkRenderContentDirty();
     }
-    return base || widthAnim || indicatorAnim || contentAnim || m_contentAnimating;
+
+    const bool stillAnimating = base || widthAnim || indicatorAnim || contentAnim || m_contentAnimating
+        || std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f
+        || m_selectionIndicatorAnim.IsAnimating(0.001f)
+        || m_contentFadeAnim.IsAnimating(0.001f);
+    if (stillAnimating) {
+        EnsureAnimationsScheduled();
+    }
+    return stillAnimating;
 }
 
 bool NavigationView::HasSelfAnimation() const {

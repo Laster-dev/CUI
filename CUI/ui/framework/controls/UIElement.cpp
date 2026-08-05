@@ -156,8 +156,14 @@ void UIElement::Arrange(Rect finalRect) {
 
 void UIElement::Render(GraphicsContext& ctx) {
     if (m_visibility != Visibility::Visible) return;
+    if (m_opacity <= 0.001f) return;
     if (CanCullElementForCurrentPass(this, ctx)) {
         return;
+    }
+
+    const bool useOpacity = m_opacity < 0.999f;
+    if (useOpacity) {
+        ctx.PushOpacity(m_opacity);
     }
 
     bool clip = ShouldClipToBounds();
@@ -177,6 +183,10 @@ void UIElement::Render(GraphicsContext& ctx) {
 
     if (clip) {
         ctx.PopClip();
+    }
+
+    if (useOpacity) {
+        ctx.PopOpacity();
     }
 }
 

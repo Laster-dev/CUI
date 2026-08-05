@@ -360,6 +360,35 @@ void GraphicsContext::PushClip(const Rect& rect) {
     }
 }
 
+void GraphicsContext::PushOpacity(float opacity) {
+    if (!m_d2dContext) {
+        return;
+    }
+    opacity = std::clamp(opacity, 0.0f, 1.0f);
+    if (opacity >= 0.999f) {
+        return;
+    }
+    D2D1_LAYER_PARAMETERS layerParams = D2D1::LayerParameters(
+        D2D1::InfiniteRect(),
+        nullptr,
+        D2D1_ANTIALIAS_MODE_PER_PRIMITIVE,
+        D2D1::IdentityMatrix(),
+        opacity,
+        nullptr,
+        D2D1_LAYER_OPTIONS_NONE
+    );
+    m_d2dContext->PushLayer(layerParams, nullptr);
+    m_opacityStack.push_back(opacity);
+}
+
+void GraphicsContext::PopOpacity() {
+    if (!m_d2dContext || m_opacityStack.empty()) {
+        return;
+    }
+    m_opacityStack.pop_back();
+    m_d2dContext->PopLayer();
+}
+
 bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
     if (!m_d2dDevice) {
         return false;
@@ -477,11 +506,13 @@ bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const
     state.context = m_d2dContext;
     state.paintBounds = m_paintBounds;
     state.clipStack = m_clipStack;
+    state.opacityStack = m_opacityStack;
     m_targetStack.push_back(std::move(state));
 
     m_d2dContext = layer.m_cacheContext;
     m_paintBounds = paintBounds;
     m_clipStack.clear();
+    m_opacityStack.clear();
     m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
 
     auto* layerContext = BeginLayerDraw(layer);
@@ -528,6 +559,7 @@ void GraphicsContext::PopLayerTarget(RenderLayer& layer) {
     m_d2dContext = state.context;
     m_paintBounds = state.paintBounds;
     m_clipStack = std::move(state.clipStack);
+    m_opacityStack = std::move(state.opacityStack);
     m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
 }
 

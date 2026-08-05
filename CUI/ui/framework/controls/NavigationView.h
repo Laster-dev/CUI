@@ -162,7 +162,8 @@ private:
     void CollectVisibleFrom(const std::shared_ptr<NavigationViewItemBase>& item,
                             std::vector<NavigationViewItemBase*>& out) const;
     void SyncMenuHostChildren();
-    void EnsurePaneZOrderAboveContent();
+    void EnsureContentZOrder();
+    void EnsureAnimationsScheduled();
 
     void UpdateAdaptiveLayout(float width);
     void ApplyDisplayMode(NavigationViewDisplayMode mode, bool forceEvent);
