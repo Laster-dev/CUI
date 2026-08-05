@@ -280,9 +280,12 @@ void TimePicker::OnRender(GraphicsContext& ctx) {
 
     Rect textRect(m_bounds.x + 10.0f, m_bounds.y, m_bounds.width - 34.0f, m_bounds.height);
     ctx.DrawText(text, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    ctx.DrawText("v", Rect(m_bounds.x + m_bounds.width - 22.0f, m_bounds.y, 16.0f, m_bounds.height),
+    ctx.DrawChevron(
+        Rect(m_bounds.x + m_bounds.width - 22.0f, m_bounds.y, 16.0f, m_bounds.height),
         ThemeManager::Instance().GetTokens().textMuted,
-        "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        m_isPopupOpen ? GraphicsContext::ChevronDirection::Up : GraphicsContext::ChevronDirection::Down,
+        1.7f
+    );
 }
 
 void TimePicker::SetPopupOpen(bool open) {

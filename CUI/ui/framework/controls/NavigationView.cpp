@@ -19,10 +19,12 @@ void StyleChromeButton(const std::shared_ptr<Button>& btn) {
     btn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
     btn->SetColorToken(ThemeTokenId::TextPrimary);
     btn->SetBorderToken(ThemeTokenId::CardBorder);
+    btn->SetBorderThickness(0.0f);
     btn->SetWidth(kChromeButton);
     btn->SetHeight(kChromeButton);
     btn->SetCornerRadius(4.0f);
-    btn->SetFontSize(14.0f);
+    btn->SetFontSize(16.0f);
+    btn->SetPadding(Thickness(0, 0, 0, 0));
 }
 }
 

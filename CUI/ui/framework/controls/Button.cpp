@@ -86,6 +86,8 @@ void Button::OnMouseDown(Point pt) {
     m_rippleRadius = 4.0f;
     m_rippleOpacity = 0.35f; // Soft translucent Telegram ripple
     m_rippleActive = true;
+    RequestAnimationTicks();
+    MarkRenderContentDirty();
 }
 
 bool Button::OnAnimationTick() {
@@ -114,6 +116,7 @@ bool Button::OnAnimationTick() {
         m_rippleOpacity = 0.0f;
     }
 
+    MarkRenderContentDirty();
     return true;
 }
 
@@ -133,10 +136,11 @@ void Button::OnRender(GraphicsContext& ctx) {
         ctx.FillRect(m_bounds, bg);
     }
 
-    // 2. Telegram-Style Ripple: Inside Clip, expanding soft circle with fading alpha
+    // Telegram-Style Ripple: soft expanding circle. Use TextPrimary so chrome /
+    // secondary buttons (CardBackground) stay visible — AccentForeground can vanish there.
     if (m_rippleActive && m_rippleOpacity > 0.0f) {
         ctx.PushClip(m_bounds);
-        D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentForeground);
+        D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
         rippleColor.a = m_rippleOpacity;
         Rect rippleRect(
             m_rippleCenter.x - m_rippleRadius,

@@ -657,6 +657,46 @@ void GraphicsContext::DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float str
     }
 }
 
+void GraphicsContext::DrawChevron(const Rect& bounds, D2D1_COLOR_F color, ChevronDirection direction, float strokeWidth) {
+    if (bounds.IsEmpty() || !m_d2dContext) {
+        return;
+    }
+    const float cx = bounds.x + bounds.width * 0.5f;
+    const float cy = bounds.y + bounds.height * 0.5f;
+    // Keep the V readable; scale with the smaller side of the slot.
+    const float extent = (std::min)(bounds.width, bounds.height) * 0.28f;
+    const float arm = extent * 1.15f;
+
+    Point a{};
+    Point tip{};
+    Point c{};
+    switch (direction) {
+    case ChevronDirection::Up:
+        a = Point(cx - arm, cy + extent * 0.55f);
+        tip = Point(cx, cy - extent * 0.55f);
+        c = Point(cx + arm, cy + extent * 0.55f);
+        break;
+    case ChevronDirection::Left:
+        a = Point(cx + extent * 0.55f, cy - arm);
+        tip = Point(cx - extent * 0.55f, cy);
+        c = Point(cx + extent * 0.55f, cy + arm);
+        break;
+    case ChevronDirection::Right:
+        a = Point(cx - extent * 0.55f, cy - arm);
+        tip = Point(cx + extent * 0.55f, cy);
+        c = Point(cx - extent * 0.55f, cy + arm);
+        break;
+    case ChevronDirection::Down:
+    default:
+        a = Point(cx - arm, cy - extent * 0.55f);
+        tip = Point(cx, cy + extent * 0.55f);
+        c = Point(cx + arm, cy - extent * 0.55f);
+        break;
+    }
+    DrawLine(a, tip, color, strokeWidth);
+    DrawLine(tip, c, color, strokeWidth);
+}
+
 void GraphicsContext::DrawTextOnTarget(
     ID2D1RenderTarget* target,
     const std::wstring& text,

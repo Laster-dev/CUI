@@ -54,6 +54,10 @@ public:
     void FillRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color);
     void DrawRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color, float strokeWidth = 1.0f);
     void DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth = 1.0f);
+
+    enum class ChevronDirection { Down, Up, Left, Right };
+    // Vector chevron (two strokes). Prefer this over glyph characters under DPI scaling.
+    void DrawChevron(const Rect& bounds, D2D1_COLOR_F color, ChevronDirection direction, float strokeWidth = 1.6f);
     void DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,
                   const std::string& fontName = "Segoe UI", float fontSize = 13.0f,
                   DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING,

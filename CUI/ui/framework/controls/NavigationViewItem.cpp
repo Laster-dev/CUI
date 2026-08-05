@@ -2,6 +2,7 @@
 #include "NavigationView.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
+#include <cmath>
 
 namespace CUI {
 
@@ -10,7 +11,13 @@ constexpr float kItemHeight = 40.0f;
 constexpr float kHeaderHeight = 28.0f;
 constexpr float kSeparatorHeight = 9.0f;
 constexpr float kIconSlot = 40.0f;
-constexpr float kChevronSize = 16.0f;
+constexpr float kChevronSize = 22.0f;
+
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
 }
 
 void NavigationViewItemBase::SetIsSelected(bool selected) {
@@ -164,6 +171,21 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
         ctx.FillRoundedRect(m_bounds, radius, fill);
     }
 
+    // Telegram-style ripple (same feel as Button).
+    if (m_rippleActive && m_rippleOpacity > 0.0f) {
+        ctx.PushClip(m_bounds);
+        D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+        rippleColor.a = m_rippleOpacity;
+        Rect rippleRect(
+            m_rippleCenter.x - m_rippleRadius,
+            m_rippleCenter.y - m_rippleRadius,
+            m_rippleRadius * 2.0f,
+            m_rippleRadius * 2.0f
+        );
+        ctx.FillRoundedRect(rippleRect, m_rippleRadius, rippleColor);
+        ctx.PopClip();
+    }
+
     // Always resolve through ThemeManager (token → GetColor). User overrides of
     // theme.colorToken are honored; never use a DIY palette here.
     const D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
@@ -180,7 +202,7 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
 
     if (!m_compact) {
         const Rect chevron = GetChevronRect();
-        const float rightPad = chevron.IsEmpty() ? 8.0f : (kChevronSize + 16.0f);
+        const float rightPad = chevron.IsEmpty() ? 8.0f : (kChevronSize + 12.0f);
         Rect textRect(x, m_bounds.y, (std::max)(0.0f, m_bounds.x + m_bounds.width - x - rightPad), m_bounds.height);
         ctx.PushClip(textRect);
         ctx.DrawText(m_content, textRect, textColor, "Segoe UI", 14.0f,
@@ -189,10 +211,28 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
         ctx.PopClip();
 
         if (!chevron.IsEmpty()) {
-            ctx.DrawText(m_isExpanded ? "▾" : "▸", chevron, textColor, "Segoe UI", 11.0f,
-                         DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            ctx.DrawChevron(
+                chevron,
+                textColor,
+                m_isExpanded ? GraphicsContext::ChevronDirection::Down
+                             : GraphicsContext::ChevronDirection::Right,
+                2.0f
+            );
         }
     }
+}
+
+void NavigationViewItem::StartRipple(Point pt) {
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_rippleActive = false;
+        m_rippleOpacity = 0.0f;
+        return;
+    }
+    m_rippleCenter = pt;
+    m_rippleRadius = 4.0f;
+    m_rippleOpacity = 0.28f;
+    m_rippleActive = true;
+    RequestAnimationTicks();
 }
 
 void NavigationViewItem::OnMouseDown(Point pt) {
@@ -200,6 +240,8 @@ void NavigationViewItem::OnMouseDown(Point pt) {
     if (!IsEnabled()) {
         return;
     }
+
+    StartRipple(pt);
 
     if (HitChevron(pt)) {
         SetIsExpanded(!m_isExpanded);
@@ -210,6 +252,39 @@ void NavigationViewItem::OnMouseDown(Point pt) {
         SetIsExpanded(!m_isExpanded);
     }
     m_invoked.Invoke(this);
+}
+
+bool NavigationViewItem::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_rippleActive = false;
+        m_rippleOpacity = 0.0f;
+        return base;
+    }
+    if (!m_rippleActive) {
+        return base;
+    }
+
+    float cornerX = (m_rippleCenter.x - m_bounds.x > m_bounds.width * 0.5f) ? m_bounds.x : (m_bounds.x + m_bounds.width);
+    float cornerY = (m_rippleCenter.y - m_bounds.y > m_bounds.height * 0.5f) ? m_bounds.y : (m_bounds.y + m_bounds.height);
+    float dx = m_rippleCenter.x - cornerX;
+    float dy = m_rippleCenter.y - cornerY;
+    float maxRadius = std::sqrt(dx * dx + dy * dy);
+
+    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.11f) + 72.0f * UIElement::GetAnimationDeltaSeconds();
+    m_rippleOpacity *= std::pow(0.95f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
+
+    if (m_rippleOpacity <= 0.01f || m_rippleRadius >= maxRadius - 0.2f) {
+        m_rippleActive = false;
+        m_rippleOpacity = 0.0f;
+    }
+
+    MarkRenderContentDirty();
+    return true;
+}
+
+bool NavigationViewItem::HasSelfAnimation() const {
+    return Control::HasSelfAnimation() || m_rippleActive;
 }
 
 void NavigationViewItem::OnMouseEnter() {

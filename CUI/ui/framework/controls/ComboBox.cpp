@@ -137,9 +137,15 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
     Rect textRect(m_bounds.x + padding.left, m_bounds.y + padding.top, m_bounds.width - padding.left - padding.right - 20.0f, m_bounds.height - padding.top - padding.bottom);
     ctx.DrawText(displayText, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-    // Render down arrow "v" icon
+    // Vector chevron: down when closed, up when open (ignore glyph fonts / DPI blur).
     Rect arrowRect(m_bounds.x + m_bounds.width - 24.0f, m_bounds.y, 20.0f, m_bounds.height);
-    ctx.DrawText("v", arrowRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    const bool open = m_isDropDownOpen || m_arrowAnim.Current() > 0.5f;
+    ctx.DrawChevron(
+        arrowRect,
+        ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary),
+        open ? GraphicsContext::ChevronDirection::Up : GraphicsContext::ChevronDirection::Down,
+        1.7f
+    );
 }
 
 Rect ComboBox::GetPopupBounds() const {
