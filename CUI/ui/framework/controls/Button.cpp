@@ -121,7 +121,7 @@ bool Button::OnAnimationTick() {
         m_rippleOpacity = 0.0f;
     }
 
-    // HasSelfAnimation already feeds CollectAnimationBounds; avoid content-dirty bubble.
+    MarkRenderRectDirty(m_bounds);
     return true;
 }
 

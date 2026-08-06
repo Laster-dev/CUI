@@ -1121,8 +1121,9 @@ void NavigationView::RelayoutChildren() {
         const float menuH = (std::max)(0.0f, menuBottomY - menuTopY);
         if (m_menuScroll) {
             m_menuScroll->SetVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
-            m_menuScroll->Measure(Size(pane.width - 4.0f, menuH));
-            m_menuScroll->Arrange(Rect(pane.x + 2.0f, menuTopY, pane.width - 4.0f, menuH));
+            // Use full pane width so the overlay scrollbar sits on the right edge.
+            m_menuScroll->Measure(Size(pane.width, menuH));
+            m_menuScroll->Arrange(Rect(pane.x, menuTopY, pane.width, menuH));
         }
     }
 

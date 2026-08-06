@@ -177,6 +177,11 @@ bool ContentDialog::OnAnimationTick() {
         if (t >= 1.0f) {
             m_animState = 2; // Opened
             m_animProgress = 1.0f;
+            // Refresh scene once after open freeze so any under-scrim ripples
+            // that ticked during the animation are not left mid-frame.
+            if (m_parent) {
+                m_parent->MarkRenderRectDirty(m_parent->GetBounds());
+            }
         }
         RequestAnimationTicks();
         return true;
@@ -209,18 +214,11 @@ bool ContentDialog::HasSelfAnimation() const {
 }
 
 void ContentDialog::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
-    if (HasSelfAnimation()) {
-        Rect windowRect = m_bounds;
-        const UIElement* root = this;
-        while (root->GetParent()) {
-            root = root->GetParent();
-        }
-        if (root) {
-            windowRect = root->GetBounds();
-        }
-        dirtyRect = hasDirty ? dirtyRect.Union(windowRect) : windowRect;
-        hasDirty = true;
-    }
+    // Do NOT contribute a fullscreen dirty rect — that forced the scene path to
+    // either full-repaint or skip all under-scrim patches. Overlay paints are
+    // driven by Window::InvalidateAnimatedRegions when IsModalOverlayOpen.
+    (void)dirtyRect;
+    (void)hasDirty;
 }
 
 Size ContentDialog::Measure(Size availableSize) {
@@ -229,6 +227,14 @@ Size ContentDialog::Measure(Size availableSize) {
 
 void ContentDialog::Arrange(Rect finalRect) {
     m_bounds = finalRect;
+}
+
+void ContentDialog::Render(GraphicsContext& ctx) {
+    (void)ctx;
+}
+
+void ContentDialog::OnRender(GraphicsContext& ctx) {
+    (void)ctx;
 }
 
 void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {

@@ -88,7 +88,7 @@ private:
     float m_pendingViewportPatchDeltaY = 0.0f;
 
     // Leave enough inset so thumb is outside the window's ~8px resize border.
-    static constexpr float kScrollbarInset = 18.0f;
+    static constexpr float kScrollbarInset = 3.0f;
     static constexpr float kScrollbarWidth = 8.0f;
     // Extra scrollable space so the last row isn't glued to the bottom edge.
     static constexpr float kContentBottomPad = 20.0f;

@@ -88,9 +88,10 @@ bool IsOverlayScrimAnimating(UIElement* element) {
     if (!element) {
         return false;
     }
-    // Freeze the scene under any open ContentDialog (open/close/idle) so the
-    // scrim is never baked into the scene cache (that caused open flash + stutter).
-    if (element->IsModalOverlayOpen()) {
+    // Only freeze the scene during ContentDialog open/close animation.
+    // Freezing for the whole modal lifetime left under-scrim button ripples stuck
+    // (ticks advanced, but dirty rects were discarded without updating the cache).
+    if (element->HasSelfAnimation() && element->IsModalOverlayOpen()) {
         return true;
     }
     for (const auto& child : element->GetChildren()) {
@@ -502,20 +503,27 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
         hasDirty = true;
     }
 
-    if (!hasDirty) {
-        return;
-    }
+    if (hasDirty) {
+        Rect expandedDirtyRect = dirtyRect.Inflate(2.0f);
+        m_pendingDirtyRegion.AddRect(expandedDirtyRect);
+        InvalidatePendingRenderRegions(false);
 
-    Rect expandedDirtyRect = dirtyRect.Inflate(2.0f);
-    m_pendingDirtyRegion.AddRect(expandedDirtyRect);
-    InvalidatePendingRenderRegions(false);
-
-    if (animationStillActive) {
-        m_lastAnimationDirtyRect = expandedDirtyRect;
-        m_hasLastAnimationDirtyRect = true;
-    } else {
+        if (animationStillActive) {
+            m_lastAnimationDirtyRect = expandedDirtyRect;
+            m_hasLastAnimationDirtyRect = true;
+        } else {
+            m_lastAnimationDirtyRect = Rect();
+            m_hasLastAnimationDirtyRect = false;
+        }
+    } else if (!animationStillActive) {
         m_lastAnimationDirtyRect = Rect();
         m_hasLastAnimationDirtyRect = false;
+    }
+
+    // ContentDialog fade is overlay-only and does not contribute scene dirty.
+    // Still force a full-client paint so the scrim/card composite updates.
+    if (IsOverlayScrimAnimating(m_rootElement.get())) {
+        InvalidateRect(m_hwnd, nullptr, FALSE);
     }
 }
 
@@ -1271,7 +1279,10 @@ void Window::OnPaint() {
         m_popupHost.Render(m_gfxContext);
     };
 
-    // ContentDialog 全窗遮罩：底层场景冻结，只重绘 overlay。
+    // ContentDialog open/close: keep compositing overlay separately so the scrim
+    // is never baked into the scene cache. Still patch under-scrim dirty rects
+    // (button ripples, etc.) — skipping viewport-covering rects from the dialog
+    // itself, which only need an overlay redraw.
     const bool overlayScrimAnimating = IsOverlayScrimAnimating(m_rootElement.get());
     const bool reuseSceneForOverlayAnim =
         overlayScrimAnimating
@@ -1280,6 +1291,35 @@ void Window::OnPaint() {
         && m_sceneLayer.GetCacheBitmap() != nullptr;
 
     if (reuseSceneForOverlayAnim) {
+        const auto& dirtyRects = frameDirtyRegion.GetRects();
+        bool patchedScene = false;
+        for (const Rect& rect : dirtyRects) {
+            if (rect.IsEmpty() || CoversRect(rect, viewportBounds)) {
+                continue;
+            }
+            const Rect patch = rect.Inflate(1.0f);
+            if (!patchedScene) {
+                if (!m_gfxContext.PushLayerTarget(
+                        m_sceneLayer,
+                        sceneSize,
+                        viewportBounds,
+                        sceneClearColor,
+                        false)) {
+                    break;
+                }
+                patchedScene = true;
+            }
+            m_gfxContext.SetPaintBounds(patch);
+            m_gfxContext.PushClip(patch);
+            m_gfxContext.ClearRect(patch);
+            renderScene();
+            m_gfxContext.PopClip();
+        }
+        if (patchedScene) {
+            m_gfxContext.PopLayerTarget(m_sceneLayer);
+            m_sceneLayer.Validate();
+        }
+
         if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
             m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
         } else {

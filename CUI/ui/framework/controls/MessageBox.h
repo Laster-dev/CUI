@@ -37,6 +37,9 @@ public:
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;
+    // Overlay-only: never paint dialog chrome/children into the scene layer.
+    virtual void Render(GraphicsContext& ctx) override;
+    virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* HitTestOverlay(float x, float y) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
