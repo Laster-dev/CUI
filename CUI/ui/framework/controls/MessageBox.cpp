@@ -108,8 +108,9 @@ void ContentDialog::Show(std::function<void(DialogResult)> callback) {
         m_animState = 2;
         m_animProgress = 1.0f;
     }
+    // CollectAnimationBounds covers the overlay; avoid MarkRenderContentDirty which
+    // forces a full-scene rebuild and makes the dialog flash on open.
     RequestAnimationTicks();
-    MarkRenderContentDirty();
 }
 
 void ContentDialog::Hide() {
@@ -121,12 +122,13 @@ void ContentDialog::Hide() {
         m_animProgress = 0.0f;
         m_isOpen = false;
         if (m_parent) {
-            m_parent->RemoveChildRaw(this);
+            UIElement* parent = m_parent;
+            parent->RemoveChildQuiet(std::static_pointer_cast<UIElement>(shared_from_this()));
+            parent->MarkRenderRectDirty(parent->GetBounds());
         }
         return;
     }
     RequestAnimationTicks();
-    MarkRenderContentDirty();
 }
 
 bool ContentDialog::OnAnimationTick() {
@@ -144,7 +146,10 @@ bool ContentDialog::OnAnimationTick() {
             m_animProgress = 0.0f;
             m_isOpen = false;
             if (m_parent) {
-                m_parent->RemoveChildRaw(this);
+                // Quiet remove: avoid full-scene dirty flash when dialog finishes closing.
+                UIElement* parent = m_parent;
+                parent->RemoveChildQuiet(std::static_pointer_cast<UIElement>(shared_from_this()));
+                parent->MarkRenderRectDirty(parent->GetBounds());
             }
             return false;
         }
@@ -161,7 +166,6 @@ bool ContentDialog::OnAnimationTick() {
             m_animState = 2; // Opened
             m_animProgress = 1.0f;
         }
-        MarkRenderContentDirty();
         RequestAnimationTicks();
         return true;
     }
@@ -174,11 +178,13 @@ bool ContentDialog::OnAnimationTick() {
             m_animProgress = 0.0f;
             m_isOpen = false;
             if (m_parent) {
-                m_parent->RemoveChildRaw(this);
+                // Quiet remove: avoid full-scene dirty flash when dialog finishes closing.
+                UIElement* parent = m_parent;
+                parent->RemoveChildQuiet(std::static_pointer_cast<UIElement>(shared_from_this()));
+                parent->MarkRenderRectDirty(parent->GetBounds());
             }
             return false;
         }
-        MarkRenderContentDirty();
         RequestAnimationTicks();
         return true;
     }
@@ -230,14 +236,15 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
     float backdropAlpha = 0.40f * m_animProgress;
     ctx.FillRect(windowRect, D2D1::ColorF(0.0f, 0.0f, 0.0f, backdropAlpha));
 
-    // 3. WinUI 3 Fluent PopupThemeTransition:
-    // Entrance: Scale down slightly from 1.03f -> 1.0f (or slight zoom out pop-in)
-    // Exit: Scale slightly from 1.0f -> 1.03f (fade out)
     float baseW = (std::min)(480.0f, windowRect.width - 40.0f);
     float baseH = 220.0f;
 
-    // WinUI 3 Scale transition: 1.03f when starting -> 1.0f when settled
-    float scale = 1.03f - 0.03f * m_animProgress;
+    // Fade in only — avoid 1.03→1.0 scale pop which reads as a flash with the scrim.
+    float scale = 1.0f;
+    if (m_animState == 3) {
+        // Slight ease-out scale on close only.
+        scale = 1.0f + 0.02f * (1.0f - m_animProgress);
+    }
 
     float cardW = baseW * scale;
     float cardH = baseH * scale;
@@ -246,10 +253,7 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
 
     m_dialogBounds = Rect(cardX, cardY, cardW, cardH);
 
-    // Card Outer Drop Shadow with fade
-    ctx.FillRoundedRect(Rect(cardX - 6, cardY - 6, cardW + 12, cardH + 12), 12.0f, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.35f * m_animProgress));
-
-    // Card Background
+    // Card background + single-line border (no thick shadow “black frame”).
     D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
     cardBg.a = m_animProgress;
     D2D1_COLOR_F cardBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
@@ -345,15 +349,13 @@ void ContentDialog::ShowMessageBox(UIElement* root, const std::string& title, co
     dlg->SetCloseButtonText("Cancel");
     dlg->Show(callback);
 
-    root->AddChild(dlg);
-    // Match root client so overlay/hit-test have a real window rect immediately.
+    // Quiet add: AddChild() marks the whole scene dirty and flashes under the overlay.
+    root->AddChildQuiet(dlg);
     const Rect rootBounds = root->GetBounds();
     if (!rootBounds.IsEmpty()) {
         dlg->Arrange(rootBounds);
     }
     dlg->RequestAnimationTicks();
-    dlg->MarkRenderContentDirty();
-    root->MarkRenderContentDirty();
 }
 
 } // namespace CUI

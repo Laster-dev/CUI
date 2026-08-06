@@ -1,4 +1,5 @@
 #pragma once
+#include "UIElement.h"
 #include <algorithm>
 #include <cmath>
 
@@ -13,6 +14,10 @@ public:
     void NotifyActivity() {
         m_idleSeconds = 0.0f;
         m_targetOpacity = 1.0f;
+        // Low-performance mode disables animation ticks that would fade opacity in.
+        if (!UIElement::AreAnimationsEnabled()) {
+            m_opacity = 1.0f;
+        }
     }
 
     void SetPointerOver(bool over) {
@@ -44,6 +49,27 @@ public:
     bool Tick(float dt) {
         dt = std::clamp(dt, 0.0f, 0.05f);
         const bool hold = m_pointerOver || m_dragging;
+
+        if (!UIElement::AreAnimationsEnabled()) {
+            // Instant show/hide — no exponential fade (animation system is off).
+            if (hold) {
+                m_idleSeconds = 0.0f;
+                m_targetOpacity = 1.0f;
+                m_opacity = 1.0f;
+                return false;
+            }
+            if (m_targetOpacity > 0.01f) {
+                m_idleSeconds += dt;
+                if (m_idleSeconds >= kIdleHideSeconds) {
+                    m_targetOpacity = 0.0f;
+                    m_opacity = 0.0f;
+                    return false;
+                }
+            }
+            m_opacity = m_targetOpacity;
+            return m_targetOpacity > 0.01f && m_idleSeconds < kIdleHideSeconds;
+        }
+
         if (hold) {
             m_idleSeconds = 0.0f;
             m_targetOpacity = 1.0f;
@@ -70,6 +96,10 @@ public:
     }
 
     bool NeedsTicks() const {
+        if (!UIElement::AreAnimationsEnabled()) {
+            const bool hold = m_pointerOver || m_dragging;
+            return m_targetOpacity > 0.01f && !hold && m_idleSeconds < kIdleHideSeconds;
+        }
         if (std::abs(m_opacity - m_targetOpacity) > 0.005f) {
             return true;
         }

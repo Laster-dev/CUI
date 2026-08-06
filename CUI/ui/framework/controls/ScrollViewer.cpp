@@ -733,6 +733,8 @@ bool ScrollViewer::AdvanceSmoothScroll() {
 
 bool ScrollViewer::OnAnimationTick() {
     bool childAnimating = UIElement::OnAnimationTick();
+    const float dt = UIElement::GetAnimationDeltaSeconds();
+
     if (!UIElement::AreAnimationsEnabled()) {
         if (m_scrollAnimator.IsActive()) {
             float previousOffset = m_offsetY;
@@ -744,11 +746,21 @@ bool ScrollViewer::OnAnimationTick() {
                 MarkScrollVisualDirty(previousOffset);
             }
         }
-        return childAnimating;
+        // Still drive auto-hide (instant snap) when animations are disabled.
+        const float prevOpacity = m_scrollbarAutoHide.Opacity();
+        const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
+        if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
+            MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+        }
+        if (hideAnimating) {
+            RequestAnimationTicks();
+        }
+        return childAnimating || hideAnimating;
     }
+
     bool selfAnimating = AdvanceSmoothScroll();
     const float prevOpacity = m_scrollbarAutoHide.Opacity();
-    const bool hideAnimating = m_scrollbarAutoHide.Tick(UIElement::GetAnimationDeltaSeconds());
+    const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
     if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
         MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
     }
