@@ -36,6 +36,8 @@ public:
     bool SupportsPerPixelAlpha() const { return m_supportsPerPixelAlpha; }
 
     void PushClip(const Rect& rect);
+    // Geometry clip matching FillRoundedRect corners (for ripples, etc.).
+    void PushRoundedClip(const Rect& rect, float radius);
     void PopClip();
     void PushOpacity(float opacity);
     void PopOpacity();
@@ -143,6 +145,7 @@ private:
 
     RenderResources m_resources;
     std::vector<D2D1_RECT_F> m_clipStack;
+    std::vector<bool> m_clipIsLayer; // true = PushLayer (rounded), false = axis-aligned
     std::vector<float> m_opacityStack;
     Rect m_paintBounds;
 
@@ -150,6 +153,7 @@ private:
         ComPtr<ID2D1DeviceContext> context;
         Rect paintBounds;
         std::vector<D2D1_RECT_F> clipStack;
+        std::vector<bool> clipIsLayer;
         std::vector<float> opacityStack;
     };
     std::vector<TargetState> m_targetStack;

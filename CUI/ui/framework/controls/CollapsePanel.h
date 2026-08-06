@@ -1,6 +1,5 @@
 #pragma once
 #include "UIElement.h"
-#include "Button.h"
 #include "Panel.h"
 #include "../animation/AnimationSystem.h"
 #include <memory>
@@ -8,6 +7,7 @@
 
 namespace CUI {
 
+// Self-contained accordion card: native header chrome (no Button child).
 class CollapsePanel : public UIElement {
 public:
     CollapsePanel();
@@ -31,8 +31,15 @@ public:
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;
+    virtual void Render(GraphicsContext& ctx) override;
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual UIElement* HitTest(float x, float y) override;
+
+    virtual void OnMouseEnter() override;
+    virtual void OnMouseLeave() override;
+    virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual void OnMouseUp(Point pt) override;
     virtual void OnKeyDown(int vkCode) override;
     bool OnAnimationTick() override;
     bool HasSelfAnimation() const override;
@@ -40,17 +47,22 @@ public:
     Event<CollapsePanel*, bool>& OnExpandedChanged() { return m_onExpandedChangedEvent; }
 
 private:
+    float GetHeaderHeight() const;
+    Rect GetHeaderRect() const;
+    bool IsPointInHeader(Point pt) const;
     void UpdateContentVisibility();
     void InvalidateParentLayout();
-    void SyncHeaderChrome();
+    void SetHeaderHovered(bool hovered);
+    void DrawHeader(GraphicsContext& ctx);
     void DrawAnimatedChevron(GraphicsContext& ctx, const Rect& bounds, float progress);
 
     std::string m_headerText = "折叠面板";
     std::string m_subtitleText;
     bool m_isExpanded = true;
+    bool m_headerHovered = false;
+    bool m_headerPressed = false;
     AnimatedScalar m_expandAnim{ 1.0f };
     float m_bodyDesiredHeight = 0.0f;
-    std::shared_ptr<Button> m_headerButton;
     std::shared_ptr<StackPanel> m_contentHost;
     std::shared_ptr<UIElement> m_content;
 

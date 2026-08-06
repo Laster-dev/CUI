@@ -184,7 +184,8 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
 
     // Telegram-style ripple (same feel as Button).
     if (m_rippleActive && m_rippleOpacity > 0.0f) {
-        ctx.PushClip(highlight.IsEmpty() ? m_bounds : highlight);
+        const Rect clipRect = highlight.IsEmpty() ? m_bounds : highlight;
+        ctx.PushRoundedClip(clipRect, radius);
         D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
         rippleColor.a = m_rippleOpacity;
         Rect rippleRect(

@@ -396,8 +396,43 @@ void GraphicsContext::PushClip(const Rect& rect) {
     if (m_d2dContext) {
         D2D1_RECT_F d2dRect = SnapRectForFill(rect, m_dpiScale);
         m_clipStack.push_back(d2dRect);
+        m_clipIsLayer.push_back(false);
         m_d2dContext->PushAxisAlignedClip(d2dRect, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
     }
+}
+
+void GraphicsContext::PushRoundedClip(const Rect& rect, float radius) {
+    if (!m_d2dContext) {
+        return;
+    }
+    if (radius <= 0.01f || !m_d2dFactory) {
+        PushClip(rect);
+        return;
+    }
+
+    const D2D1_RECT_F d2dRect = SnapRectForFill(rect, m_dpiScale);
+    const float maxR = (std::min)((d2dRect.right - d2dRect.left) * 0.5f, (d2dRect.bottom - d2dRect.top) * 0.5f);
+    radius = (std::min)(radius, (std::max)(0.0f, maxR));
+
+    ComPtr<ID2D1RoundedRectangleGeometry> geometry;
+    const D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(d2dRect, radius, radius);
+    if (FAILED(m_d2dFactory->CreateRoundedRectangleGeometry(rr, &geometry)) || !geometry) {
+        PushClip(rect);
+        return;
+    }
+
+    D2D1_LAYER_PARAMETERS layerParams = D2D1::LayerParameters(
+        D2D1::InfiniteRect(),
+        geometry.Get(),
+        D2D1_ANTIALIAS_MODE_PER_PRIMITIVE,
+        D2D1::IdentityMatrix(),
+        1.0f,
+        nullptr,
+        D2D1_LAYER_OPTIONS_NONE
+    );
+    m_d2dContext->PushLayer(layerParams, nullptr);
+    m_clipStack.push_back(d2dRect);
+    m_clipIsLayer.push_back(true);
 }
 
 void GraphicsContext::PushOpacity(float opacity) {
@@ -556,12 +591,14 @@ bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const
     state.context = m_d2dContext;
     state.paintBounds = m_paintBounds;
     state.clipStack = m_clipStack;
+    state.clipIsLayer = m_clipIsLayer;
     state.opacityStack = m_opacityStack;
     m_targetStack.push_back(std::move(state));
 
     m_d2dContext = layer.m_cacheContext;
     m_paintBounds = paintBounds;
     m_clipStack.clear();
+    m_clipIsLayer.clear();
     m_opacityStack.clear();
     m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
 
@@ -609,14 +646,24 @@ void GraphicsContext::PopLayerTarget(RenderLayer& layer) {
     m_d2dContext = state.context;
     m_paintBounds = state.paintBounds;
     m_clipStack = std::move(state.clipStack);
+    m_clipIsLayer = std::move(state.clipIsLayer);
     m_opacityStack = std::move(state.opacityStack);
     m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
 }
 
 void GraphicsContext::PopClip() {
-    if (m_d2dContext && !m_clipStack.empty()) {
+    if (!m_d2dContext || m_clipStack.empty()) {
+        return;
+    }
+    const bool isLayer = !m_clipIsLayer.empty() && m_clipIsLayer.back();
+    if (!m_clipIsLayer.empty()) {
+        m_clipIsLayer.pop_back();
+    }
+    m_clipStack.pop_back();
+    if (isLayer) {
+        m_d2dContext->PopLayer();
+    } else {
         m_d2dContext->PopAxisAlignedClip();
-        m_clipStack.pop_back();
     }
 }
 

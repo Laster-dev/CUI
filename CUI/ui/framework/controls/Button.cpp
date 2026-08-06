@@ -144,7 +144,7 @@ void Button::OnRender(GraphicsContext& ctx) {
     // Telegram-Style Ripple: soft expanding circle. Use TextPrimary so chrome /
     // secondary buttons (CardBackground) stay visible — AccentForeground can vanish there.
     if (m_rippleActive && m_rippleOpacity > 0.0f) {
-        ctx.PushClip(m_bounds);
+        ctx.PushRoundedClip(m_bounds, radius);
         D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
         rippleColor.a = m_rippleOpacity;
         Rect rippleRect(

@@ -13,7 +13,17 @@ float EaseOutCubic(float t) {
     const float inv = 1.0f - t;
     return 1.0f - inv * inv * inv;
 }
+
+D2D1_COLOR_F Blend(D2D1_COLOR_F a, D2D1_COLOR_F b, float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    return D2D1::ColorF(
+        a.r + (b.r - a.r) * t,
+        a.g + (b.g - a.g) * t,
+        a.b + (b.b - a.b) * t,
+        a.a + (b.a - a.a) * t
+    );
 }
+} // namespace
 
 CollapsePanel::CollapsePanel() {
     SetBackgroundToken(ThemeTokenId::CardBackground);
@@ -21,19 +31,7 @@ CollapsePanel::CollapsePanel() {
     SetBorderThickness(1.0f);
     SetCornerRadius(8.0f);
     SetPadding(Thickness(0));
-
-    m_headerButton = std::make_shared<Button>();
-    m_headerButton->SetBackgroundToken(ThemeTokenId::CardBackground);
-    m_headerButton->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    m_headerButton->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    m_headerButton->SetColorToken(ThemeTokenId::TextPrimary);
-    m_headerButton->SetBorderToken(ThemeTokenId::CardBorder);
-    m_headerButton->SetBorderThickness(0.0f);
-    m_headerButton->SetCornerRadius(8.0f);
-    m_headerButton->SetPadding(Thickness(16, 12, 16, 12));
-    m_headerButton->SetAlign(Alignment::Stretch);
-    m_headerButton->SetText(""); // Managed custom drawing in CollapsePanel::OnRender
-    m_headerButton->OnClick().Connect([this](UIElement*) { SetExpanded(!m_isExpanded); });
+    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
 
     m_contentHost = std::make_shared<StackPanel>();
     m_contentHost->SetOrientation(Orientation::Vertical);
@@ -42,10 +40,8 @@ CollapsePanel::CollapsePanel() {
     m_contentHost->SetAlign(Alignment::Stretch);
     m_contentHost->SetBackground(D2D1::ColorF(0, 0, 0, 0));
 
-    AddChild(m_headerButton);
     AddChild(m_contentHost);
     m_expandAnim.Reset(1.0f);
-    SetHeader(m_headerText);
     UpdateContentVisibility();
 }
 
@@ -61,20 +57,39 @@ std::vector<PropertyMeta> CollapsePanel::GetPropertyMetas() const {
     return metas;
 }
 
-void CollapsePanel::SyncHeaderChrome() {
-    // Header text rendering handled directly in OnRender
-    MarkRenderContentDirty();
+float CollapsePanel::GetHeaderHeight() const {
+    return m_subtitleText.empty() ? 44.0f : 56.0f;
+}
+
+Rect CollapsePanel::GetHeaderRect() const {
+    Thickness padding = GetPadding();
+    return Rect(
+        m_bounds.x + padding.left,
+        m_bounds.y + padding.top,
+        (std::max)(0.0f, m_bounds.width - padding.left - padding.right),
+        GetHeaderHeight()
+    );
+}
+
+bool CollapsePanel::IsPointInHeader(Point pt) const {
+    return GetHeaderRect().Contains(pt.x, pt.y);
 }
 
 void CollapsePanel::SetHeader(const std::string& header) {
+    if (m_headerText == header) {
+        return;
+    }
     m_headerText = header;
-    SyncHeaderChrome();
+    MarkRenderRectDirty(GetHeaderRect().Inflate(2.0f));
     InvalidateParentLayout();
 }
 
 void CollapsePanel::SetSubtitle(const std::string& subtitle) {
+    if (m_subtitleText == subtitle) {
+        return;
+    }
     m_subtitleText = subtitle;
-    SyncHeaderChrome();
+    MarkRenderContentDirty();
     InvalidateParentLayout();
 }
 
@@ -89,7 +104,6 @@ void CollapsePanel::SetExpanded(bool expanded) {
     } else {
         RequestAnimationTicks();
     }
-    SyncHeaderChrome();
     UpdateContentVisibility();
     m_onExpandedChangedEvent.Invoke(this, m_isExpanded);
     InvalidateParentLayout();
@@ -137,7 +151,15 @@ void CollapsePanel::UpdateContentVisibility() {
     }
     const bool show = m_isExpanded || m_expandAnim.Current() > 0.01f;
     m_contentHost->SetVisibility(show ? Visibility::Visible : Visibility::Collapsed);
-    m_contentHost->SetOpacity(EaseOutCubic(m_expandAnim.Current()));
+    m_contentHost->SetOpacity(1.0f);
+}
+
+void CollapsePanel::SetHeaderHovered(bool hovered) {
+    if (m_headerHovered == hovered) {
+        return;
+    }
+    m_headerHovered = hovered;
+    MarkRenderRectDirty(GetHeaderRect().Inflate(2.0f));
 }
 
 bool CollapsePanel::OnAnimationTick() {
@@ -150,7 +172,6 @@ bool CollapsePanel::OnAnimationTick() {
 
     const bool moving = m_expandAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.32f, 0.01f });
     if (moving) {
-        SyncHeaderChrome();
         UpdateContentVisibility();
         InvalidateParentLayout();
         RequestAnimationTicks();
@@ -170,13 +191,7 @@ Size CollapsePanel::Measure(Size availableSize) {
     Thickness padding = GetPadding();
 
     float contentW = (std::max)(0.0f, availableSize.width - margin.left - margin.right - padding.left - padding.right);
-    float contentH = (std::max)(0.0f, availableSize.height - margin.top - margin.bottom - padding.top - padding.bottom);
-
-    float headerH = m_subtitleText.empty() ? 44.0f : 56.0f;
-    if (m_headerButton) {
-        Size headerSize = m_headerButton->Measure(Size(contentW, headerH));
-        headerH = (std::max)(headerH, headerSize.height);
-    }
+    const float headerH = GetHeaderHeight();
 
     Size bodySize(0, 0);
     if (m_contentHost && (m_isExpanded || m_expandAnim.Current() > 0.01f)) {
@@ -208,110 +223,74 @@ void CollapsePanel::Arrange(Rect finalRect) {
     float innerX = finalRect.x + padding.left;
     float innerY = finalRect.y + padding.top;
     float innerW = (std::max)(0.0f, finalRect.width - padding.left - padding.right);
-
-    float headerH = m_subtitleText.empty() ? 44.0f : 56.0f;
-    if (m_headerButton) {
-        m_headerButton->Arrange(Rect(innerX, innerY, innerW, headerH));
-    }
+    const float headerH = GetHeaderHeight();
 
     if (m_contentHost) {
-        const float eased = EaseOutCubic(m_expandAnim.Current());
+        // Full content height; panel bounds + clip reveal during expand/collapse.
         float contentY = innerY + headerH;
-        float contentH = (std::max)(0.0f, m_bodyDesiredHeight * eased);
-        if (contentH < 0.5f) {
+        if (m_bodyDesiredHeight > 0.5f && m_expandAnim.Current() > 0.01f) {
+            m_contentHost->Arrange(Rect(innerX, contentY, innerW, m_bodyDesiredHeight));
+        } else {
             m_contentHost->Arrange(Rect(innerX, contentY, innerW, 0.0f));
-        } else {
-            m_contentHost->Arrange(Rect(innerX, contentY, innerW, contentH));
         }
     }
 }
 
-void CollapsePanel::DrawAnimatedChevron(GraphicsContext& ctx, const Rect& bounds, float progress) {
-    float cx = bounds.x + bounds.width * 0.5f;
-    float cy = bounds.y + bounds.height * 0.5f;
-    float arm = 4.5f;
-
-    const float eased = EaseOutCubic(progress);
-    float wingY = cy - 2.0f + 4.0f * eased;
-    float tipY = cy + 2.5f - 5.0f * eased;
-
-    Point pLeft(cx - arm, wingY);
-    Point pTip(cx, tipY);
-    Point pRight(cx + arm, wingY);
-
-    D2D1_COLOR_F chevronColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextSecondary);
-    if (m_headerButton && m_headerButton->IsHovered()) {
-        chevronColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+UIElement* CollapsePanel::HitTest(float x, float y) {
+    if (GetVisibility() != Visibility::Visible || !IsEnabled()) {
+        return nullptr;
+    }
+    if (!m_bounds.Contains(x, y)) {
+        return nullptr;
     }
 
-    ctx.DrawLine(pLeft, pTip, chevronColor, 1.6f);
-    ctx.DrawLine(pTip, pRight, chevronColor, 1.6f);
+    // Body content first when expanded.
+    if (m_expandAnim.Current() > 0.01f && m_contentHost
+        && m_contentHost->GetVisibility() == Visibility::Visible) {
+        if (UIElement* hit = m_contentHost->HitTest(x, y)) {
+            return hit;
+        }
+    }
+
+    // Header / chrome belongs to this control.
+    return this;
 }
 
-void CollapsePanel::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
-    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
-    float radius = GetCornerRadius();
+void CollapsePanel::OnMouseEnter() {
+    UIElement::OnMouseEnter();
+}
 
-    // 1. Fill base card background
-    ctx.FillRoundedRect(m_bounds, radius, bg);
+void CollapsePanel::OnMouseLeave() {
+    UIElement::OnMouseLeave();
+    m_headerPressed = false;
+    SetHeaderHovered(false);
+}
 
-    // 2. Render children (m_headerButton hover background + m_contentHost)
-    UIElement::OnRender(ctx);
-
-    // 3. Render card border
-    ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);
-
-    // 4. Render Header typography & animated vector Chevron over header button
-    if (m_headerButton) {
-        const Rect hb = m_headerButton->GetBounds();
-
-        D2D1_COLOR_F textPrimary = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
-        D2D1_COLOR_F textSecondary = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextSecondary);
-
-        float textX = hb.x + 16.0f;
-        float chevronW = 36.0f;
-        float textW = (std::max)(0.0f, hb.width - 32.0f - chevronW);
-
-        if (m_subtitleText.empty()) {
-            Rect titleRect(textX, hb.y, textW, hb.height);
-            ctx.DrawText(m_headerText, titleRect, textPrimary, "微软雅黑", 13.5f,
-                         DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-        } else {
-            Rect titleRect(textX, hb.y + 7.0f, textW, 20.0f);
-            ctx.DrawText(m_headerText, titleRect, textPrimary, "微软雅黑", 13.5f,
-                         DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-
-            Rect subtitleRect(textX, hb.y + 27.0f, textW, 18.0f);
-            ctx.DrawText(m_subtitleText, subtitleRect, textSecondary, "微软雅黑", 12.0f,
-                         DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
-        }
-
-        // Animated Chevron Icon on far right
-        Rect chevronBounds(hb.x + hb.width - 32.0f, hb.y, 24.0f, hb.height);
-        DrawAnimatedChevron(ctx, chevronBounds, m_expandAnim.Current());
-
-        // Hairline line between header & body (fades in/out)
-        const float animProgress = m_expandAnim.Current();
-        if (animProgress > 0.01f) {
-            D2D1_COLOR_F line = border;
-            line.a *= std::clamp(animProgress * 0.7f, 0.0f, 1.0f);
-            float lineY = hb.y + hb.height;
-            ctx.DrawLine(Point(m_bounds.x + 1.0f, lineY),
-                         Point(m_bounds.x + m_bounds.width - 1.0f, lineY),
-                         line, 1.0f);
-        }
-    }
+void CollapsePanel::OnMouseMove(Point pt) {
+    UIElement::OnMouseMove(pt);
+    SetHeaderHovered(IsPointInHeader(pt));
 }
 
 void CollapsePanel::OnMouseDown(Point pt) {
-    if (m_headerButton && m_headerButton->GetBounds().Contains(pt.x, pt.y)) {
-        m_headerButton->OnMouseDown(pt);
+    if (!IsEnabled()) {
         return;
     }
-    if (m_expandAnim.Current() > 0.01f && m_contentHost && m_contentHost->GetBounds().Contains(pt.x, pt.y)) {
-        m_contentHost->OnMouseDown(pt);
+    UIElement::OnMouseDown(pt);
+    if (IsPointInHeader(pt)) {
+        m_headerPressed = true;
+        SetHeaderHovered(true);
+        MarkRenderRectDirty(GetHeaderRect().Inflate(2.0f));
     }
+}
+
+void CollapsePanel::OnMouseUp(Point pt) {
+    const bool wasPressed = m_headerPressed;
+    m_headerPressed = false;
+    UIElement::OnMouseUp(pt);
+    if (wasPressed && IsPointInHeader(pt) && IsEnabled()) {
+        SetExpanded(!m_isExpanded);
+    }
+    MarkRenderRectDirty(GetHeaderRect().Inflate(2.0f));
 }
 
 void CollapsePanel::OnKeyDown(int vkCode) {
@@ -329,6 +308,129 @@ void CollapsePanel::OnKeyDown(int vkCode) {
         if (!m_isExpanded) SetExpanded(true);
         break;
     }
+}
+
+void CollapsePanel::DrawAnimatedChevron(GraphicsContext& ctx, const Rect& bounds, float progress) {
+    float cx = bounds.x + bounds.width * 0.5f;
+    float cy = bounds.y + bounds.height * 0.5f;
+    float arm = 4.5f;
+
+    const float eased = EaseOutCubic(progress);
+    float wingY = cy - 2.0f + 4.0f * eased;
+    float tipY = cy + 2.5f - 5.0f * eased;
+
+    Point pLeft(cx - arm, wingY);
+    Point pTip(cx, tipY);
+    Point pRight(cx + arm, wingY);
+
+    D2D1_COLOR_F chevronColor = ThemeManager::Instance().GetFlatColor(
+        (m_headerHovered || m_headerPressed) ? ThemeTokenId::TextPrimary : ThemeTokenId::TextSecondary);
+
+    ctx.DrawLine(pLeft, pTip, chevronColor, 1.6f);
+    ctx.DrawLine(pTip, pRight, chevronColor, 1.6f);
+}
+
+void CollapsePanel::DrawHeader(GraphicsContext& ctx) {
+    const Rect header = GetHeaderRect();
+    if (header.IsEmpty()) {
+        return;
+    }
+
+    const float radius = GetCornerRadius();
+    D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+
+    // Header interaction wash — same surface as the card, not a separate Button.
+    if (m_headerPressed || m_headerHovered) {
+        D2D1_COLOR_F wash = Blend(cardBg, hoverBg, m_headerPressed ? 0.85f : 0.65f);
+        // Round only the top when expanded; full round when collapsed (header == card).
+        const bool collapsedVisual = m_expandAnim.Current() < 0.02f;
+        if (collapsedVisual) {
+            ctx.FillRoundedRect(header, radius, wash);
+        } else {
+            ctx.FillRoundedRect(header, radius, wash);
+            // Square off the bottom of the header so it meets the body cleanly.
+            ctx.FillRect(Rect(header.x, header.y + header.height - radius, header.width, radius), wash);
+        }
+    }
+
+    D2D1_COLOR_F textPrimary = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+    D2D1_COLOR_F textSecondary = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextSecondary);
+
+    float textX = header.x + 16.0f;
+    float chevronW = 36.0f;
+    float textW = (std::max)(0.0f, header.width - 32.0f - chevronW);
+
+    if (m_subtitleText.empty()) {
+        Rect titleRect(textX, header.y, textW, header.height);
+        ctx.DrawText(m_headerText, titleRect, textPrimary, GetFontFamily(), 13.5f,
+                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+    } else {
+        Rect titleRect(textX, header.y + 7.0f, textW, 20.0f);
+        ctx.DrawText(m_headerText, titleRect, textPrimary, GetFontFamily(), 13.5f,
+                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+
+        Rect subtitleRect(textX, header.y + 27.0f, textW, 18.0f);
+        ctx.DrawText(m_subtitleText, subtitleRect, textSecondary, GetFontFamily(), 12.0f,
+                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+    }
+
+    Rect chevronBounds(header.x + header.width - 32.0f, header.y, 24.0f, header.height);
+    DrawAnimatedChevron(ctx, chevronBounds, m_expandAnim.Current());
+
+    const float animProgress = m_expandAnim.Current();
+    if (animProgress > 0.01f) {
+        D2D1_COLOR_F line = border;
+        line.a *= std::clamp(animProgress * 0.7f, 0.0f, 1.0f);
+        float lineY = header.y + header.height;
+        ctx.DrawLine(Point(m_bounds.x + 1.0f, lineY),
+                     Point(m_bounds.x + m_bounds.width - 1.0f, lineY),
+                     line, 1.0f);
+    }
+}
+
+void CollapsePanel::Render(GraphicsContext& ctx) {
+    if (GetVisibility() != Visibility::Visible) {
+        return;
+    }
+    if (GetOpacity() <= 0.001f) {
+        return;
+    }
+
+    const float radius = GetCornerRadius();
+    if (radius > 0.01f) {
+        ctx.PushRoundedClip(m_bounds, radius);
+    } else {
+        ctx.PushClip(m_bounds);
+    }
+
+    const bool useOpacity = GetOpacity() < 0.999f;
+    if (useOpacity) {
+        ctx.PushOpacity(GetOpacity());
+    }
+
+    OnRender(ctx);
+    for (auto& child : GetChildren()) {
+        if (child) {
+            child->Render(ctx);
+        }
+    }
+    DrawHeader(ctx);
+
+    if (useOpacity) {
+        ctx.PopOpacity();
+    }
+    ctx.PopClip();
+}
+
+void CollapsePanel::OnRender(GraphicsContext& ctx) {
+    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    float radius = GetCornerRadius();
+
+    ctx.FillRoundedRect(m_bounds, radius, bg);
+    ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);
 }
 
 } // namespace CUI
