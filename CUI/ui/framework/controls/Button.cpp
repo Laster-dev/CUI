@@ -87,7 +87,9 @@ void Button::OnMouseDown(Point pt) {
     m_rippleOpacity = 0.35f; // Soft translucent Telegram ripple
     m_rippleActive = true;
     RequestAnimationTicks();
-    MarkRenderContentDirty();
+    // Local rect only — MarkRenderContentDirty bubbles and dirties the whole
+    // NavigationView (content page included), which makes chrome clicks stutter.
+    MarkRenderRectDirty(m_bounds);
 }
 
 bool Button::OnAnimationTick() {
@@ -101,22 +103,25 @@ bool Button::OnAnimationTick() {
         return base;
     }
 
-    // Telegram Style Ripple: Smooth exponential expansion from click point & gradual color fade-out
+    // Expand toward farthest corner; keep fading after radius settles (don't cut on fill).
     float cornerX = (m_rippleCenter.x - m_bounds.x > m_bounds.width * 0.5f) ? m_bounds.x : (m_bounds.x + m_bounds.width);
     float cornerY = (m_rippleCenter.y - m_bounds.y > m_bounds.height * 0.5f) ? m_bounds.y : (m_bounds.y + m_bounds.height);
     float dx = m_rippleCenter.x - cornerX;
     float dy = m_rippleCenter.y - cornerY;
     float maxRadius = std::sqrt(dx * dx + dy * dy);
 
-    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.11f) + 72.0f * UIElement::GetAnimationDeltaSeconds();
-    m_rippleOpacity *= std::pow(0.95f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
+    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.22f) + 110.0f * UIElement::GetAnimationDeltaSeconds();
+    if (m_rippleRadius > maxRadius) {
+        m_rippleRadius = maxRadius;
+    }
+    m_rippleOpacity *= std::pow(0.88f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
 
-    if (m_rippleOpacity <= 0.01f || m_rippleRadius >= maxRadius - 0.2f) {
+    if (m_rippleOpacity <= 0.02f) {
         m_rippleActive = false;
         m_rippleOpacity = 0.0f;
     }
 
-    MarkRenderContentDirty();
+    // HasSelfAnimation already feeds CollectAnimationBounds; avoid content-dirty bubble.
     return true;
 }
 

@@ -271,15 +271,19 @@ bool NavigationViewItem::OnAnimationTick() {
     float dy = m_rippleCenter.y - cornerY;
     float maxRadius = std::sqrt(dx * dx + dy * dy);
 
-    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.11f) + 72.0f * UIElement::GetAnimationDeltaSeconds();
-    m_rippleOpacity *= std::pow(0.95f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
+    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.22f) + 110.0f * UIElement::GetAnimationDeltaSeconds();
+    if (m_rippleRadius > maxRadius) {
+        m_rippleRadius = maxRadius;
+    }
+    m_rippleOpacity *= std::pow(0.88f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
 
-    if (m_rippleOpacity <= 0.01f || m_rippleRadius >= maxRadius - 0.2f) {
+    if (m_rippleOpacity <= 0.02f) {
         m_rippleActive = false;
         m_rippleOpacity = 0.0f;
     }
 
-    MarkRenderContentDirty();
+    // HasSelfAnimation feeds CollectAnimationBounds; do not MarkRenderContentDirty
+    // (that would dirty the entire NavigationView including the content host).
     return true;
 }
 
@@ -291,7 +295,7 @@ void NavigationViewItem::OnMouseEnter() {
     Control::OnMouseEnter();
     if (!m_hovered) {
         m_hovered = true;
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(m_bounds);
     }
 }
 
@@ -299,7 +303,7 @@ void NavigationViewItem::OnMouseLeave() {
     Control::OnMouseLeave();
     if (m_hovered) {
         m_hovered = false;
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(m_bounds);
     }
 }
 
