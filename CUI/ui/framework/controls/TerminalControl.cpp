@@ -603,17 +603,17 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
         const Rect bar = GetFindBarRect();
         ctx.FillRect(bar, D2D1::ColorF(0x2D2D2D));
         ctx.DrawText("Find:", Rect(bar.x + 8.0f, bar.y, 44.0f, bar.height),
-                     D2D1::ColorF(D2D1::ColorF::White), "Segoe UI", 12.0f,
+                     D2D1::ColorF(D2D1::ColorF::White), "微软雅黑", 12.0f,
                      DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         ctx.DrawText(m_findStatus, Rect(bar.x + 280.0f, bar.y, 96.0f, bar.height),
-                     D2D1::ColorF(D2D1::ColorF::Gray), "Segoe UI", 12.0f,
+                     D2D1::ColorF(D2D1::ColorF::Gray), "微软雅黑", 12.0f,
                      DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         for (int i = 0; i < 3; ++i) {
             const Rect btn = GetFindButtonRect(i);
             const bool hot = (m_hoveredFindButton == i);
             ctx.FillRoundedRect(btn, 3.0f, hot ? D2D1::ColorF(0x4A4A4A) : D2D1::ColorF(0x3A3A3A));
             ctx.DrawText(kFindButtonLabels[i], btn, D2D1::ColorF(D2D1::ColorF::White),
-                         "Segoe UI", 12.0f,
+                         "微软雅黑", 12.0f,
                          DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
         }
     }

@@ -10,7 +10,7 @@ namespace CUI {
 
 std::vector<PropertyMeta> TextBox::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
+    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
     metas.push_back({ "fontWeight", "字体粗细 (FontWeight)", "字体文本", "enum", { "Normal", "Bold", "Light" } });
     metas.push_back({ "lineSpacing", "行间距 (LineSpacing)", "高级排版", "number" });
@@ -47,7 +47,7 @@ TextBox::TextBox() {
     SetColorToken(ThemeTokenId::TextPrimary);
     SetPlaceholderColorToken(ThemeTokenId::TextMuted);
     SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    SetFontFamily("Segoe UI");
+    SetFontFamily("微软雅黑");
     SetFontSize(13.0f);
     SetPadding(Thickness(0, 18, 0, 8));
     SetWidth(260.0f);

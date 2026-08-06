@@ -20,7 +20,7 @@ TreeView::TreeView() {
     SetColor(ThemeManager::Instance().GetColor("textPrimary"));
     SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
     SetFontSize(13.0f);
-    SetFontFamily("Segoe UI");
+    SetFontFamily("微软雅黑");
     SetItemHeight(24.0f);
     SetCornerRadius(4.0f);
     SetWidth(260.0f);
@@ -29,7 +29,7 @@ TreeView::TreeView() {
 
 std::vector<PropertyMeta> TreeView::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
+    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
     metas.push_back({ "itemHeight", "节点行高 (ItemHeight)", "树形配置", "number" });
     metas.push_back({ "indentWidth", "层级缩进 (IndentWidth)", "树形配置", "number" });

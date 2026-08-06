@@ -1209,7 +1209,7 @@ void NavigationView::OnRender(GraphicsContext& ctx) {
                 Rect titleRect(titleX, pane.y + 4.0f,
                                (std::max)(0.0f, pane.x + pane.width - titleX - 8.0f), kChromeButton);
                 ctx.PushClip(titleRect);
-                ctx.DrawText(m_paneTitle, titleRect, textPrimary, "Segoe UI", 14.0f,
+                ctx.DrawText(m_paneTitle, titleRect, textPrimary, "微软雅黑", 14.0f,
                              DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
                              DWRITE_FONT_WEIGHT_SEMI_BOLD);
                 ctx.PopClip();
@@ -1221,7 +1221,7 @@ void NavigationView::OnRender(GraphicsContext& ctx) {
     if (ShouldShowHeader()) {
         const Rect header = GetHeaderRect();
         ctx.DrawText(m_header, Rect(header.x + 24.0f, header.y, header.width - 32.0f, header.height),
-                     textPrimary, "Segoe UI", 20.0f,
+                     textPrimary, "微软雅黑", 20.0f,
                      DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
                      DWRITE_FONT_WEIGHT_SEMI_BOLD);
         ctx.DrawLine(Point(header.x, header.y + header.height),

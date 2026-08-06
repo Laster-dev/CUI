@@ -101,11 +101,11 @@ void Image::OnRender(GraphicsContext& ctx) {
         Rect circleRect(m_bounds.x + (m_bounds.width - minDim) / 2.0f, m_bounds.y + (m_bounds.height - minDim) / 2.0f, minDim, minDim);
 
         ctx.FillRoundedRect(circleRect, radius, m_badgeColor);
-        ctx.DrawText(m_badgeText, circleRect, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "Segoe UI", minDim * 0.45f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(m_badgeText, circleRect, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "微软雅黑", minDim * 0.45f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
     } else if (m_imageType == ImageType::FileIcon) {
         // Draw Document / File Badge Image
         ctx.FillRoundedRect(m_bounds, 3.0f, m_badgeColor);
-        ctx.DrawText(m_badgeText, m_bounds, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "Segoe UI", m_bounds.height * 0.4f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(m_badgeText, m_bounds, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "微软雅黑", m_bounds.height * 0.4f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
     } else if (m_imageType == ImageType::StatusBadge) {
         // Draw Glowing Status Dot Badge Image
         float minDim = (std::min)(m_bounds.width, m_bounds.height);
@@ -117,7 +117,7 @@ void Image::OnRender(GraphicsContext& ctx) {
         ctx.DrawRoundedRect(dotRect, radius, D2D1::ColorF(ring.r, ring.g, ring.b, 0.4f), 1.5f);
     } else {
         ctx.FillRoundedRect(m_bounds, 4.0f, m_badgeColor);
-        ctx.DrawText(m_badgeText, m_bounds, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(m_badgeText, m_bounds, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
 }
 

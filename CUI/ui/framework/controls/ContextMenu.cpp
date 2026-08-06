@@ -11,7 +11,7 @@ MenuItem::MenuItem() {
     SetColorToken(ThemeTokenId::TextSecondary);
     SetColor(ThemeManager::Instance().GetColor("textSecondary"));
     SetFontSize(12.0f);
-    SetFontFamily("Segoe UI");
+    SetFontFamily("微软雅黑");
     SetHeight(26.0f);
 }
 

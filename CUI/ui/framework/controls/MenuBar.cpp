@@ -24,7 +24,7 @@ std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {
 float MenuBar::GetTotalWidth(GraphicsContext& ctx) {
     float totalW = 12.0f;
     for (size_t i = 0; i < m_menus.size(); ++i) {
-        Size txtSize = ctx.MeasureText(m_menus[i].title, "Segoe UI", 12.0f);
+        Size txtSize = ctx.MeasureText(m_menus[i].title, "微软雅黑", 12.0f);
         totalW += txtSize.width + 20.0f;
     }
     return totalW;
@@ -80,7 +80,7 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
     float curX = m_bounds.x + 6.0f;
 
     for (size_t i = 0; i < m_menus.size(); ++i) {
-        Size txtSize = ctx.MeasureText(m_menus[i].title, "Segoe UI", 12.0f);
+        Size txtSize = ctx.MeasureText(m_menus[i].title, "微软雅黑", 12.0f);
         float itemW = txtSize.width + 16.0f;
         Rect itemRect(curX, m_bounds.y + 3.0f, itemW, m_bounds.height - 6.0f);
         m_menus[i].bounds = itemRect;
@@ -100,7 +100,7 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
             m_menus[i].title,
             itemRect,
             defaultTextColor,
-            "Segoe UI",
+            "微软雅黑",
             12.0f,
             DWRITE_TEXT_ALIGNMENT_CENTER,
             DWRITE_PARAGRAPH_ALIGNMENT_CENTER

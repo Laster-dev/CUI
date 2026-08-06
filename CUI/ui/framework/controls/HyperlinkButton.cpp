@@ -8,7 +8,7 @@ HyperlinkButton::HyperlinkButton() {
     SetColorToken(ThemeTokenId::AccentColor);
     SetColor(ThemeManager::Instance().GetColor("accentColor"));
     SetFontSize(13.0f);
-    SetFontFamily("Segoe UI");
+    SetFontFamily("微软雅黑");
     SetPadding(Thickness(2, 2, 2, 2));
 }
 

@@ -253,7 +253,7 @@ std::string GenerateAutoCodeExample(const std::shared_ptr<UIElement>& target) {
     if (!target->GetPlaceholder().empty()) {
         EmitLine(oss, emitted, kMaxLines, "target->SetPlaceholder(\"" + target->GetPlaceholder() + "\");");
     }
-    if (target->GetFontFamily() != "Segoe UI") {
+    if (target->GetFontFamily() != "微软雅黑") {
         EmitLine(oss, emitted, kMaxLines, "target->SetFontFamily(\"" + target->GetFontFamily() + "\");");
     }
     if (target->GetFontSize() != 12.0f) {

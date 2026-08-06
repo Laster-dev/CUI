@@ -6,7 +6,7 @@ namespace CUI {
 
 std::vector<PropertyMeta> TextBlock::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
+    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
     metas.push_back({ "fontWeight", "字体粗细 (FontWeight)", "字体文本", "enum", { "Normal", "Bold", "Light" } });
     metas.push_back({ "lineSpacing", "行间距 (LineSpacing)", "高级排版", "number" });
@@ -18,7 +18,7 @@ TextBlock::TextBlock() {
     SetText("");
     SetColorToken(ThemeTokenId::TextSecondary);
     SetColor(ThemeManager::Instance().GetColor("textSecondary"));
-    SetFontFamily("Segoe UI");
+    SetFontFamily("微软雅黑");
     SetFontSize(13.0f);
     SetFontWeight("Normal");
 }

@@ -314,7 +314,7 @@ protected:
     std::string m_styleClass;
     std::string m_text;
     std::string m_placeholder;
-    std::string m_fontFamily{ "Segoe UI" };
+    std::string m_fontFamily{ "微软雅黑" };
     std::string m_fontWeight{ "Normal" };
     std::string m_toolTip;
     std::string m_icon;

@@ -22,7 +22,7 @@ ListBox::ListBox() {
     SetColor(ThemeManager::Instance().GetColor("textPrimary"));
     SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
     SetFontSize(13.0f);
-    SetFontFamily("Segoe UI");
+    SetFontFamily("微软雅黑");
     SetItemHeight(28.0f);
     SetCornerRadius(4.0f);
     SetWidth(240.0f);

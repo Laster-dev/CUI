@@ -53,7 +53,7 @@ void NavigationViewItemHeader::OnRender(GraphicsContext& ctx) {
     const float indent = 12.0f + m_depth * 12.0f;
     Rect textRect(m_bounds.x + indent, m_bounds.y, (std::max)(0.0f, m_bounds.width - indent - 8.0f), m_bounds.height);
     ctx.PushClip(textRect);
-    ctx.DrawText(m_text, textRect, color, "Segoe UI", 11.0f,
+    ctx.DrawText(m_text, textRect, color, "微软雅黑", 11.0f,
                  DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
                  DWRITE_FONT_WEIGHT_SEMI_BOLD);
     ctx.PopClip();
@@ -206,7 +206,7 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
 
     Rect iconRect(x, m_bounds.y, kIconSlot, m_bounds.height);
     if (!m_icon.empty()) {
-        ctx.DrawText(m_icon, iconRect, textColor, "Segoe UI", 14.0f,
+        ctx.DrawText(m_icon, iconRect, textColor, "微软雅黑", 14.0f,
                      DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
     x += kIconSlot;
@@ -218,7 +218,7 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
             : (kChevronSize + kChevronRightInset + 4.0f);
         Rect textRect(x, m_bounds.y, (std::max)(0.0f, m_bounds.x + m_bounds.width - x - rightPad), m_bounds.height);
         ctx.PushClip(textRect);
-        ctx.DrawText(m_content, textRect, textColor, "Segoe UI", 14.0f,
+        ctx.DrawText(m_content, textRect, textColor, "微软雅黑", 14.0f,
                      DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
                      showSelected ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
         ctx.PopClip();

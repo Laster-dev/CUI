@@ -169,7 +169,7 @@ float TabView::MeasureTabWidth(GraphicsContext& ctx, const TabViewItem& tab) con
     if (!tab.icon.empty()) {
         width += 16.0f + 8.0f;
     }
-    width += ctx.MeasureText(tab.title, "Segoe UI", 12.0f, DWRITE_FONT_WEIGHT_NORMAL).width;
+    width += ctx.MeasureText(tab.title, "微软雅黑", 12.0f, DWRITE_FONT_WEIGHT_NORMAL).width;
     width += tab.isClosable ? 24.0f : 10.0f;
     return std::clamp(width, minW, maxW);
 }
@@ -404,13 +404,13 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         // Draw Icon if available
         float titleX = tabX + 12.0f;
         if (!tab.icon.empty()) {
-            ctx.DrawText(tab.icon, Rect(titleX, tabRect.y, 16, tabRect.height), ThemeManager::Instance().GetTokens().accentColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            ctx.DrawText(tab.icon, Rect(titleX, tabRect.y, 16, tabRect.height), ThemeManager::Instance().GetTokens().accentColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             titleX += 20.0f;
         }
 
         // Draw Title Text
         D2D1_COLOR_F textColor = isActive ? defaultActiveTextCol : defaultInactiveTextCol;
-        ctx.DrawText(tab.title, Rect(titleX, tabRect.y, tabW - (titleX - tabX) - 24.0f, tabRect.height), textColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isActive ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+        ctx.DrawText(tab.title, Rect(titleX, tabRect.y, tabW - (titleX - tabX) - 24.0f, tabRect.height), textColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isActive ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
 
         // Draw Close 'X' Button if closable
         if (tab.isClosable) {

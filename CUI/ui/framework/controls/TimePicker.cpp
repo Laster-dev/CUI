@@ -349,9 +349,9 @@ void TimePicker::RenderPopup(GraphicsContext& ctx) {
     ctx.DrawRoundedRect(popup, 6.0f, border, 1.5f);
 
     ctx.DrawText("时", Rect(popup.x + 12.0f, popup.y + 6.0f, (popup.width - 34.0f) * 0.5f, 20.0f),
-        headerAccent, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        headerAccent, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
     ctx.DrawText("分", Rect(popup.x + popup.width * 0.5f + 5.0f, popup.y + 6.0f, (popup.width - 34.0f) * 0.5f, 20.0f),
-        headerAccent, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        headerAccent, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     ctx.DrawLine(
         Point(popup.x + 6.0f, popup.y + kHeaderHeight),
@@ -399,7 +399,7 @@ void TimePicker::RenderPopup(GraphicsContext& ctx) {
                 ss.str(),
                 itemRect,
                 color,
-                "Segoe UI",
+                "微软雅黑",
                 fontSize,
                 DWRITE_TEXT_ALIGNMENT_CENTER,
                 DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
@@ -416,7 +416,7 @@ void TimePicker::RenderPopup(GraphicsContext& ctx) {
     ctx.FillRect(footerLine, divider);
 
     Rect doneRect(popup.x + 12.0f, popup.y + popup.height - 32.0f, popup.width - 24.0f, 20.0f);
-    ctx.DrawText("确定", doneRect, textPrimary, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    ctx.DrawText("确定", doneRect, textPrimary, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     ctx.PopClip();
 }

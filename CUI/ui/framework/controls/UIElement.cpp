@@ -212,7 +212,7 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
     if (m_isHovered && m_tooltipVisible) {
         const std::string& tip = GetToolTip();
         if (!tip.empty()) {
-            std::string font = "Segoe UI";
+            std::string font = "微软雅黑";
             float fontSize = 12.0f;
             Size textSize = ctx.MeasureText(tip, font, fontSize);
 

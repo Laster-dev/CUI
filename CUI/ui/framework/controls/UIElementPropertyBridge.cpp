@@ -266,7 +266,7 @@ static const char* const kVisibilityOptions[] = { "Visible", "Hidden", "Collapse
 static const char* const kAlignmentOptions[] = { "Stretch", "Start", "Center", "End", nullptr };
 static const char* const kOrientationOptions[] = { "Vertical", "Horizontal", nullptr };
 static const char* const kDockOptions[] = { "Left", "Top", "Right", "Bottom", nullptr };
-static const char* const kFontFamilyOptions[] = { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman", nullptr };
+static const char* const kFontFamilyOptions[] = { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman", nullptr };
 static const char* const kFontWeightOptions[] = { "Normal", "Bold", "Light", nullptr };
 
 static const PropertyDesc kUIElementDescs[] = {

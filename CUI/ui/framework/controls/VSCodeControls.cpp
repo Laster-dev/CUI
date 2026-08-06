@@ -85,7 +85,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     // Draw app icon
     Rect iconRect(m_bounds.x + 10, m_bounds.y + (m_bounds.height - 18) * 0.5f, 18, 18);
     ctx.FillRoundedRect(iconRect, 4.0f, tokens.accentColor);
-    ctx.DrawText("C", iconRect, tokens.titleBarText, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    ctx.DrawText("C", iconRect, tokens.titleBarText, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     // Render Real Interactive MenuBar with dynamic content-fit width
     float calcMenuBarW = m_menuBar.GetTotalWidth(ctx);
@@ -136,7 +136,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
         : D2D1::ColorF(tokens.titleBarText.r, tokens.titleBarText.g, tokens.titleBarText.b, isHoveredInTitle ? 0.14f : 0.08f);
     // Draw title in center
     const std::string& title = GetTitle();
-    ctx.DrawText(title, m_bounds, titleColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(title, m_bounds, titleColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // 1. LowPerf / Animation Toggle Button
     Rect lowPerfHit = GetLowPerformanceToggleRect();
@@ -169,7 +169,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
         lowPerfOn ? "低性能" : "动画",
         lowPerfRect,
         toggleText,
-        "Segoe UI",
+        "微软雅黑",
         11.0f,
         DWRITE_TEXT_ALIGNMENT_CENTER,
         DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
@@ -200,7 +200,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
 
     ctx.FillRoundedRect(bdpRect, 8.0f, bdpBg);
     ctx.DrawRoundedRect(bdpRect, 8.0f, bdpBorder, 1.0f);
-    ctx.DrawText(bdpText, bdpRect, bdpTextCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+    ctx.DrawText(bdpText, bdpRect, bdpTextCol, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
 
     // 3. Theme Toggle Button
     Rect themeHit = GetThemeToggleRect();
@@ -223,7 +223,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
 
     ctx.FillRoundedRect(themeRect, 8.0f, themeBg);
     ctx.DrawRoundedRect(themeRect, 8.0f, themeBorder, 1.0f);
-    ctx.DrawText(themeStr, themeRect, themeTextCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+    ctx.DrawText(themeStr, themeRect, themeTextCol, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
 
     // 1. Minimize Button (_)
     Rect minBtnRect(rightX, m_bounds.y, btnW, btnH);
@@ -403,14 +403,14 @@ void ActivityBar::OnRender(GraphicsContext& ctx) {
         }
 
         D2D1_COLOR_F iconColor = isSelected ? tokens.accentForeground : tokens.textMuted;
-        ctx.DrawText(m_items[i].icon, itemRect, iconColor, "Segoe UI", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+        ctx.DrawText(m_items[i].icon, itemRect, iconColor, "微软雅黑", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
 
         y += itemHeight;
     }
 
     // Draw settings icon at bottom
     Rect gearRect(m_bounds.x, m_bounds.y + m_bounds.height - 48.0f, m_bounds.width, 48.0f);
-    ctx.DrawText("[*]", gearRect, tokens.textMuted, "Segoe UI", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("[*]", gearRect, tokens.textMuted, "微软雅黑", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // Right border line
     ctx.DrawLine(Point(m_bounds.x + m_bounds.width - 1, m_bounds.y), Point(m_bounds.x + m_bounds.width - 1, m_bounds.y + m_bounds.height), tokens.cardBackground);
@@ -466,7 +466,7 @@ void SideBar::OnRender(GraphicsContext& ctx) {
     // Section title bar
     const std::string& title = GetTitle();
     Rect headerRect(m_bounds.x + 16, m_bounds.y + 8, m_bounds.width - 32, 24);
-    ctx.DrawText(title, headerRect, tokens.textSecondary, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    ctx.DrawText(title, headerRect, tokens.textSecondary, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     // Draw file tree items
     float itemHeight = 22.0f;
@@ -487,11 +487,11 @@ void SideBar::OnRender(GraphicsContext& ctx) {
 
         // Draw icon
         D2D1_COLOR_F iconColor = item.isFolder ? tokens.textMuted : tokens.accentColor;
-        ctx.DrawText(item.icon, Rect(indent, y, 16, itemHeight), iconColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(item.icon, Rect(indent, y, 16, itemHeight), iconColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Draw name
         D2D1_COLOR_F textColor = isSelected ? tokens.textPrimary : tokens.textSecondary;
-        ctx.DrawText(item.name, Rect(indent + 18.0f, y, m_bounds.width - indent - 18.0f, itemHeight), textColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(item.name, Rect(indent + 18.0f, y, m_bounds.width - indent - 18.0f, itemHeight), textColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         y += itemHeight;
     }
@@ -541,7 +541,7 @@ void TabBar::OnRender(GraphicsContext& ctx) {
         const auto& tab = m_tabs[i];
         bool isActive = (static_cast<int>(i) == m_activeIndex);
 
-        Size titleSize = ctx.MeasureText(tab.title, "Segoe UI", 12.0f);
+        Size titleSize = ctx.MeasureText(tab.title, "微软雅黑", 12.0f);
         float tabW = titleSize.width + 50.0f;
         Rect tabRect(tabX, m_bounds.y, tabW, m_bounds.height);
 
@@ -555,16 +555,16 @@ void TabBar::OnRender(GraphicsContext& ctx) {
 
         // Draw icon
         D2D1_COLOR_F iconColor = (tab.icon == "x") ? tokens.dangerColor : tokens.accentColor;
-        ctx.DrawText(tab.icon, Rect(tabX + 10, m_bounds.y, 16, m_bounds.height), iconColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(tab.icon, Rect(tabX + 10, m_bounds.y, 16, m_bounds.height), iconColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Draw title
         D2D1_COLOR_F textColor = isActive ? tokens.textPrimary : tokens.textMuted;
-        ctx.DrawText(tab.title, Rect(tabX + 30, m_bounds.y, titleSize.width + 5, m_bounds.height), textColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(tab.title, Rect(tabX + 30, m_bounds.y, titleSize.width + 5, m_bounds.height), textColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Draw modified dot or close 'x'
         std::string rightSymbol = tab.isModified ? "o" : "x";
         D2D1_COLOR_F closeColor = tab.isModified ? tokens.textPrimary : tokens.textMuted;
-        ctx.DrawText(rightSymbol, Rect(tabX + tabW - 20, m_bounds.y, 16, m_bounds.height), closeColor, "Segoe UI", 10.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(rightSymbol, Rect(tabX + tabW - 20, m_bounds.y, 16, m_bounds.height), closeColor, "微软雅黑", 10.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
         // Right separator line
         ctx.DrawLine(Point(tabX + tabW - 1, m_bounds.y), Point(tabX + tabW - 1, m_bounds.y + m_bounds.height), tokens.cardBackground);
@@ -580,7 +580,7 @@ void TabBar::OnMouseDown(Point pt) {
     GraphicsContext ctx;
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
-        Size titleSize = ctx.MeasureText(m_tabs[i].title, "Segoe UI", 12.0f);
+        Size titleSize = ctx.MeasureText(m_tabs[i].title, "微软雅黑", 12.0f);
         float tabW = titleSize.width + 50.0f;
         if (pt.x >= tabX && pt.x <= tabX + tabW) {
             m_activeIndex = static_cast<int>(i);
@@ -707,10 +707,10 @@ void StatusBar::OnRender(GraphicsContext& ctx) {
 
     // Left items: Git Branch
     std::string branchStr = "[git] " + GetBranch();
-    ctx.DrawText(branchStr, Rect(m_bounds.x + 10, m_bounds.y, 120, m_bounds.height), textColor, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(branchStr, Rect(m_bounds.x + 10, m_bounds.y, 120, m_bounds.height), textColor, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // Errors & Warnings
-    ctx.DrawText("(x) 0  (!) 0", Rect(m_bounds.x + 130, m_bounds.y, 100, m_bounds.height), textColor, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("(x) 0  (!) 0", Rect(m_bounds.x + 130, m_bounds.y, 100, m_bounds.height), textColor, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     // Right items: Ln, Col, Spaces, UTF-8, C++
     int line = GetLine();
@@ -718,11 +718,11 @@ void StatusBar::OnRender(GraphicsContext& ctx) {
     std::string posStr = "Ln " + std::to_string(line) + ", Col " + std::to_string(col);
 
     float rightX = m_bounds.x + m_bounds.width - 320;
-    ctx.DrawText(posStr, Rect(rightX, m_bounds.y, 100, m_bounds.height), textColor, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(posStr, Rect(rightX, m_bounds.y, 100, m_bounds.height), textColor, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-    ctx.DrawText("Spaces: 4", Rect(rightX + 100, m_bounds.y, 70, m_bounds.height), textColor, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    ctx.DrawText("UTF-8", Rect(rightX + 170, m_bounds.y, 60, m_bounds.height), textColor, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    ctx.DrawText("C++20", Rect(rightX + 230, m_bounds.y, 60, m_bounds.height), textColor, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("Spaces: 4", Rect(rightX + 100, m_bounds.y, 70, m_bounds.height), textColor, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("UTF-8", Rect(rightX + 170, m_bounds.y, 60, m_bounds.height), textColor, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("C++20", Rect(rightX + 230, m_bounds.y, 60, m_bounds.height), textColor, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
 } // namespace CUI

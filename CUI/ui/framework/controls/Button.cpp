@@ -15,7 +15,7 @@ float FrameBlend(float factorAt60Hz) {
 std::vector<PropertyMeta> Button::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
     metas.push_back({ "icon", "前置图标 (Icon)", "基本信息", "string" });
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
+    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
     return metas;
 }
@@ -34,7 +34,7 @@ Button::Button() {
     SetBorderBrush(ThemeManager::Instance().GetColor("accentColor"));
     SetColor(ThemeManager::Instance().GetColor("accentForeground"));
     SetFontSize(12.0f);
-    SetFontFamily("Segoe UI");
+    SetFontFamily("微软雅黑");
     SetPadding(Thickness(8, 4, 8, 4));
     SetCornerRadius(4.0f);
     SetBorderThickness(0.0f);

@@ -170,7 +170,7 @@ void PagingControl::OnRender(GraphicsContext& ctx) {
     Rect infoRect(startX + 5 * (btnW + gap) + 4.0f, m_bounds.y, 65.0f, m_bounds.height);
     std::string info = "共 " + std::to_string(total) + " 页";
     D2D1_COLOR_F infoColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextMuted);
-    ctx.DrawText(info, infoRect, infoColor, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(info, infoRect, infoColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
 bool PagingControl::OnAnimationTick() {

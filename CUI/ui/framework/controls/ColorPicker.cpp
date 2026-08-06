@@ -139,7 +139,7 @@ void ColorPicker::OnRender(GraphicsContext& ctx) {
     char hexBuf[32];
     sprintf_s(hexBuf, "🎨 #%02X%02X%02X", static_cast<int>(selColor.r * 255), static_cast<int>(selColor.g * 255), static_cast<int>(selColor.b * 255));
     Rect textRect(m_bounds.x + 36.0f, m_bounds.y, m_bounds.width - 44.0f, m_bounds.height);
-    ctx.DrawText(hexBuf, textRect, ThemeManager::Instance().GetTokens().textPrimary, "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(hexBuf, textRect, ThemeManager::Instance().GetTokens().textPrimary, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
 void ColorPicker::SetPopupOpen(bool open) {
@@ -195,7 +195,7 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
 
     // Title
     Rect headerRect(popRect.x, popRect.y + 4.0f, popW, 20.0f);
-    ctx.DrawText("高精度 HSV 调色盘面板", headerRect, accentCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    ctx.DrawText("高精度 HSV 调色盘面板", headerRect, accentCol, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     // Render High Precision Color Canvas (Grid Sampling Saturation / Value)
     Rect canvasRect(popRect.x + 12.0f, popRect.y + 28.0f, 160.0f, 100.0f);
@@ -243,7 +243,7 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
     char hexDetail[64];
     sprintf_s(hexDetail, "RGB(%d, %d, %d)", static_cast<int>(selColor.r * 255), static_cast<int>(selColor.g * 255), static_cast<int>(selColor.b * 255));
     Rect bottomText(popRect.x + 12.0f, popRect.y + 175.0f, popW - 24.0f, 20.0f);
-    ctx.DrawText(hexDetail, bottomText, textMutedCol, "Segoe UI", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(hexDetail, bottomText, textMutedCol, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
     ctx.PopClip();
 }

@@ -17,7 +17,7 @@ Rect ComboBoxMenuRect(const Rect& bounds, float itemHeight, size_t itemCount) {
 
 std::vector<PropertyMeta> ComboBox::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "Consolas", "微软雅黑", "Times New Roman" } });
+    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
     metas.push_back({ "itemHeight", "下拉项高度 (ItemHeight)", "下拉控制", "number" });
     return metas;
@@ -38,7 +38,7 @@ ComboBox::ComboBox() {
     SetBorderThickness(1.0f);
     SetColor(ThemeManager::Instance().GetColor("textPrimary"));
     SetFontSize(13.0f);
-    SetFontFamily("Segoe UI");
+    SetFontFamily("微软雅黑");
     SetPadding(Thickness(10, 6, 10, 6));
     SetCornerRadius(3.0f);
     SetWidth(200.0f);

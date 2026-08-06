@@ -32,7 +32,7 @@ ListView::ListView() {
     SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
     SetBorderThickness(1.0f);
     SetFontSize(12.0f);
-    SetFontFamily("Segoe UI");
+    SetFontFamily("微软雅黑");
     SetCornerRadius(4.0f);
     SetWidth(480.0f);
     SetHeight(320.0f);
