@@ -400,7 +400,7 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     ctx.PopClip();
 
     // 3. Render Direct2D Vector ScrollBar on Right Edge (outside item content clip)
-    if (m_maxScrollY > 0.0f) {
+    if (m_maxScrollY > 0.0f && m_scrollbarAutoHide.IsDrawn()) {
         float trackX = m_bounds.x + m_bounds.width - 8.0f;
         float trackY = m_bounds.y + 2.0f;
         float trackH = m_bounds.height - 4.0f;
@@ -410,9 +410,10 @@ void ListBox::OnRender(GraphicsContext& ctx) {
         float thumbY = trackY + (m_scrollY / m_maxScrollY) * (trackH - thumbH);
 
         Rect thumbRect(trackX, thumbY, 6.0f, thumbH);
+        const float vis = m_scrollbarAutoHide.Opacity();
         D2D1_COLOR_F thumbBg = m_isDraggingScrollbar
-            ? D2D1::ColorF(border.r, border.g, border.b, 0.8f)
-            : D2D1::ColorF(border.r, border.g, border.b, 0.5f);
+            ? D2D1::ColorF(border.r, border.g, border.b, 0.8f * vis)
+            : D2D1::ColorF(border.r, border.g, border.b, 0.5f * vis);
 
         ctx.FillRoundedRect(thumbRect, 3.0f, thumbBg);
     }
@@ -426,6 +427,9 @@ void ListBox::OnMouseDown(Point pt) {
         float trackX = m_bounds.x + m_bounds.width - 10.0f;
         if (pt.x >= trackX) {
             m_isDraggingScrollbar = true;
+            m_scrollbarAutoHide.SetDragging(true);
+            m_scrollbarAutoHide.NotifyActivity();
+            RequestAnimationTicks();
             m_dragStartY = pt.y;
             m_dragStartScrollY = m_scrollY;
             return;
@@ -472,6 +476,12 @@ void ListBox::OnMouseDblClick(Point pt) {
 void ListBox::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
 
+    const bool overBar = m_maxScrollY > 0.0f && pt.x >= m_bounds.x + m_bounds.width - 10.0f;
+    m_scrollbarAutoHide.SetPointerOver(overBar);
+    if (overBar) {
+        RequestAnimationTicks();
+    }
+
     if (m_isDraggingScrollbar && m_isPressed) {
         float deltaY = pt.y - m_dragStartY;
         float trackH = m_bounds.height - 4.0f;
@@ -486,6 +496,7 @@ void ListBox::OnMouseMove(Point pt) {
             ClampScroll();
             m_scrollY = m_targetScrollY;
             m_scrollYAnim.Reset(m_scrollY);
+            m_scrollbarAutoHide.NotifyActivity();
             MarkRenderContentDirty();
         } else {
             m_scrollY = 0.0f;
@@ -501,6 +512,14 @@ void ListBox::OnMouseMove(Point pt) {
 void ListBox::OnMouseUp(Point pt) {
     Control::OnMouseUp(pt);
     m_isDraggingScrollbar = false;
+    m_scrollbarAutoHide.SetDragging(false);
+    RequestAnimationTicks();
+}
+
+void ListBox::OnMouseLeave() {
+    Control::OnMouseLeave();
+    m_scrollbarAutoHide.SetPointerOver(false);
+    RequestAnimationTicks();
 }
 
 void ListBox::OnMouseWheel(float delta) {
@@ -530,29 +549,44 @@ void ListBox::OnMouseWheel(float delta) {
         // Same as ScrollViewer: wheel must re-register for AnimationManager ticks.
         RequestAnimationTicks();
     }
+    m_scrollbarAutoHide.NotifyActivity();
     MarkRenderContentDirty();
 }
 
 bool ListBox::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
+    float dt = UIElement::GetAnimationDeltaSeconds();
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
-        return base;
+        const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
+        if (hideAnimating) {
+            MarkRenderContentDirty();
+        }
+        return base || hideAnimating;
     }
-    float dt = UIElement::GetAnimationDeltaSeconds();
     m_scrollYAnim.SetTarget(m_targetScrollY);
     bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
     if (anim) {
         m_scrollY = m_scrollYAnim.Current();
+        m_scrollbarAutoHide.NotifyActivity();
         MarkRenderContentDirty();
     }
-    return base || anim;
+    const float prevOpacity = m_scrollbarAutoHide.Opacity();
+    const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
+    if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
+        MarkRenderContentDirty();
+    }
+    if (anim || hideAnimating) {
+        RequestAnimationTicks();
+    }
+    return base || anim || hideAnimating;
 }
 
 bool ListBox::HasSelfAnimation() const {
-    return Control::HasSelfAnimation() ||
-           std::abs(m_scrollYAnim.Target() - m_scrollYAnim.Current()) > 0.001f;
+    return Control::HasSelfAnimation()
+        || std::abs(m_scrollYAnim.Target() - m_scrollYAnim.Current()) > 0.001f
+        || m_scrollbarAutoHide.NeedsTicks();
 }
 
 void ListBox::OnKeyDown(int vkCode) {

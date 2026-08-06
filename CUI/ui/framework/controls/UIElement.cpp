@@ -91,12 +91,26 @@ void UIElement::AddChild(std::shared_ptr<UIElement> child) {
     MarkRenderContentDirty();
 }
 
+void UIElement::AddChildQuiet(std::shared_ptr<UIElement> child) {
+    if (!child) return;
+    child->SetParent(this);
+    m_children.push_back(child);
+}
+
 void UIElement::RemoveChild(std::shared_ptr<UIElement> child) {
     auto it = std::find(m_children.begin(), m_children.end(), child);
     if (it != m_children.end()) {
         (*it)->SetParent(nullptr);
         m_children.erase(it);
         MarkRenderContentDirty();
+    }
+}
+
+void UIElement::RemoveChildQuiet(std::shared_ptr<UIElement> child) {
+    auto it = std::find(m_children.begin(), m_children.end(), child);
+    if (it != m_children.end()) {
+        (*it)->SetParent(nullptr);
+        m_children.erase(it);
     }
 }
 
@@ -390,11 +404,10 @@ bool UIElement::OnAnimationTick() {
         }
     }
 
-    for (auto& child : m_children) {
-        if (child && child->OnAnimationTick()) {
-            any = true;
-        }
-    }
+    // Do NOT recurse into children here. AnimationManager ticks only registered
+    // elements; walking the tree from ScrollViewer/NavigationView on every mouse
+    // move was starving NavigationViewItem ripples (Buttons were fine — no parent
+    // walker registered).
     return any;
 }
 

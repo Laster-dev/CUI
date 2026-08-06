@@ -11,7 +11,9 @@ constexpr float kItemHeight = 40.0f;
 constexpr float kHeaderHeight = 28.0f;
 constexpr float kSeparatorHeight = 9.0f;
 constexpr float kIconSlot = 40.0f;
-constexpr float kChevronSize = 22.0f;
+constexpr float kChevronSize = 12.0f;
+constexpr float kChevronRightInset = 12.0f;
+constexpr float kHighlightInsetX = 2.0f;
 
 float FrameBlend(float factorAt60Hz) {
     factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
@@ -25,7 +27,8 @@ void NavigationViewItemBase::SetIsSelected(bool selected) {
         return;
     }
     m_isSelected = selected;
-    MarkRenderContentDirty();
+    // Local only — content-dirty bubbles through NavigationView and stalls ripples.
+    MarkRenderRectDirty(m_bounds);
 }
 
 NavigationViewItemHeader::NavigationViewItemHeader(const std::string& text) {
@@ -92,7 +95,7 @@ void NavigationViewItem::StyleDefaults() {
     SetSecondaryColorToken(ThemeTokenId::TextSecondary);
     SetIndicatorColorToken(ThemeTokenId::AccentColor);
     SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetCornerRadius(4.0f);
+    SetCornerRadius(6.0f);
 }
 
 void NavigationViewItem::SetContent(const std::string& content) {
@@ -146,7 +149,8 @@ Rect NavigationViewItem::GetChevronRect() const {
     if (!HasChildren() || m_compact || m_topMode) {
         return Rect();
     }
-    return Rect(m_bounds.x + m_bounds.width - kChevronSize - 8.0f,
+    // Fixed inset from the item's right edge (overlay scrollbar keeps width stable).
+    return Rect(m_bounds.x + m_bounds.width - kChevronSize - kChevronRightInset,
                 m_bounds.y + (m_bounds.height - kChevronSize) * 0.5f,
                 kChevronSize, kChevronSize);
 }
@@ -161,19 +165,26 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
 
     const float radius = GetCornerRadius();
     const bool showSelected = m_isSelected || m_isChildSelected;
+    // Inset so rounded corners aren't clipped by the pane/scroll edge.
+    const Rect highlight(
+        m_bounds.x + kHighlightInsetX,
+        m_bounds.y,
+        (std::max)(0.0f, m_bounds.width - kHighlightInsetX * 2.0f),
+        m_bounds.height
+    );
     D2D1_COLOR_F fill = D2D1::ColorF(0, 0, 0, 0);
     if (showSelected) {
         fill = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
     } else if (m_hovered) {
         fill = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
     }
-    if (fill.a > 0.001f) {
-        ctx.FillRoundedRect(m_bounds, radius, fill);
+    if (fill.a > 0.001f && !highlight.IsEmpty()) {
+        ctx.FillRoundedRect(highlight, radius, fill);
     }
 
     // Telegram-style ripple (same feel as Button).
     if (m_rippleActive && m_rippleOpacity > 0.0f) {
-        ctx.PushClip(m_bounds);
+        ctx.PushClip(highlight.IsEmpty() ? m_bounds : highlight);
         D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
         rippleColor.a = m_rippleOpacity;
         Rect rippleRect(
@@ -202,7 +213,9 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
 
     if (!m_compact) {
         const Rect chevron = GetChevronRect();
-        const float rightPad = chevron.IsEmpty() ? 8.0f : (kChevronSize + 12.0f);
+        const float rightPad = chevron.IsEmpty()
+            ? (8.0f + kHighlightInsetX)
+            : (kChevronSize + kChevronRightInset + 4.0f);
         Rect textRect(x, m_bounds.y, (std::max)(0.0f, m_bounds.x + m_bounds.width - x - rightPad), m_bounds.height);
         ctx.PushClip(textRect);
         ctx.DrawText(m_content, textRect, textColor, "Segoe UI", 14.0f,
@@ -216,7 +229,7 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
                 textColor,
                 m_isExpanded ? GraphicsContext::ChevronDirection::Down
                              : GraphicsContext::ChevronDirection::Right,
-                2.0f
+                1.5f
             );
         }
     }
@@ -233,6 +246,7 @@ void NavigationViewItem::StartRipple(Point pt) {
     m_rippleOpacity = 0.28f;
     m_rippleActive = true;
     RequestAnimationTicks();
+    MarkRenderRectDirty(m_bounds);
 }
 
 void NavigationViewItem::OnMouseDown(Point pt) {
@@ -251,6 +265,8 @@ void NavigationViewItem::OnMouseDown(Point pt) {
     if (HasChildren() && !m_selectsOnInvoked) {
         SetIsExpanded(!m_isExpanded);
     }
+    // Same as Button: invoke immediately. Deferred invoke left the item mid-ripple
+    // while NavigationView/ScrollViewer also registered and walked the tree.
     m_invoked.Invoke(this);
 }
 
@@ -271,19 +287,17 @@ bool NavigationViewItem::OnAnimationTick() {
     float dy = m_rippleCenter.y - cornerY;
     float maxRadius = std::sqrt(dx * dx + dy * dy);
 
-    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.22f) + 110.0f * UIElement::GetAnimationDeltaSeconds();
+    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.073f) + 37.0f * UIElement::GetAnimationDeltaSeconds();
     if (m_rippleRadius > maxRadius) {
         m_rippleRadius = maxRadius;
     }
-    m_rippleOpacity *= std::pow(0.88f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
+    m_rippleOpacity *= std::pow(0.958f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
 
     if (m_rippleOpacity <= 0.02f) {
         m_rippleActive = false;
         m_rippleOpacity = 0.0f;
     }
 
-    // HasSelfAnimation feeds CollectAnimationBounds; do not MarkRenderContentDirty
-    // (that would dirty the entire NavigationView including the content host).
     return true;
 }
 

@@ -83,7 +83,13 @@ public:
     bool IsExpanded() const { return m_isExpanded; }
 
     bool IsChildSelected() const { return m_isChildSelected; }
-    void SetIsChildSelected(bool value) { m_isChildSelected = value; }
+    void SetIsChildSelected(bool value) {
+        if (m_isChildSelected == value) {
+            return;
+        }
+        m_isChildSelected = value;
+        MarkRenderRectDirty(m_bounds);
+    }
 
     void AddMenuItem(const std::shared_ptr<NavigationViewItemBase>& item);
     const std::vector<std::shared_ptr<NavigationViewItemBase>>& MenuItems() const { return m_menuItems; }

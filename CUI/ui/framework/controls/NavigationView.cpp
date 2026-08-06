@@ -87,6 +87,9 @@ void NavigationView::EnsureMenuScroll() {
 
     m_menuScroll = std::make_shared<ScrollViewer>();
     m_menuScroll->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    // Overlay thumb so expanding a folder never shrinks item width / chevron inset.
+    m_menuScroll->SetOverlayScrollbar(true);
+    m_menuScroll->SetClipToBounds(true);
     m_menuScroll->AddChild(m_menuHost);
     AddChild(m_menuScroll);
 }
@@ -196,10 +199,8 @@ void NavigationView::WireItem(const std::shared_ptr<NavigationViewItemBase>& ite
             NotifyItemInvoked(invoked);
         });
         nvi->OnExpandChanged().Clear();
-        nvi->OnExpandChanged().Connect([this](NavigationViewItem*) {
-            SyncMenuHostChildren();
-            RelayoutChildren();
-            MarkRenderContentDirty();
+        nvi->OnExpandChanged().Connect([this](NavigationViewItem* folder) {
+            OnItemExpandChanged(folder);
         });
         for (auto& child : nvi->MenuItems()) {
             WireItem(child, intoMenuScroll);
@@ -392,57 +393,49 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
         return;
     }
 
-    // If an animation is in-flight, cancel it to keep state consistent.
+    // Cancel any in-flight fade from older builds / callers.
     if (m_contentAnimating) {
         if (m_contentNext) {
-            RemoveChild(m_contentNext);
+            RemoveChildQuiet(m_contentNext);
         }
         m_contentNext.reset();
         m_contentAnimating = false;
         m_contentFadeAnim.Reset(1.0f);
-        // m_content still references the previous page (already removed from tree).
     }
 
     if (m_content == content) {
+        if (m_content) {
+            m_content->SetOpacity(1.0f);
+        }
         return;
     }
 
-    // First content.
-    if (!m_content) {
-        m_content = content;
-        bool alreadyChild = false;
-        for (const auto& child : GetChildren()) {
-            if (child.get() == content.get()) {
-                alreadyChild = true;
-                break;
-            }
-        }
-        if (!alreadyChild) {
-            AddChild(m_content);
-        }
-        RelayoutChildren();
-        EnsureContentZOrder();
-        MarkRenderRectDirty(GetContentAreaRect());
-        MarkRenderContentDirty();
-        return;
-    }
-
-    // Fade new page in; remove old from tree immediately to avoid ghost frames.
+    // Instant swap (no multi-frame fade). A content fade dirties the content host
+    // every tick; unioned with pane ripple AABB covers the whole window and forces
+    // full-scene repaints — that is what makes NavigationViewItem ripples stutter.
     if (m_content) {
-        RemoveChild(m_content);
+        RemoveChildQuiet(m_content);
     }
-    m_contentNext = content;
-    m_contentAnimating = true;
-    m_contentFadeAnim.Reset(0.0f);
-    m_contentFadeAnim.SetTarget(1.0f);
-    m_contentNext->SetOpacity(0.0f);
+    m_content = content;
+    m_contentNext.reset();
+    m_contentAnimating = false;
+    m_contentFadeAnim.Reset(1.0f);
+    m_content->SetOpacity(1.0f);
+    m_content->SetClipToBounds(true);
 
-    AddChild(m_contentNext);
+    bool alreadyChild = false;
+    for (const auto& child : GetChildren()) {
+        if (child.get() == content.get()) {
+            alreadyChild = true;
+            break;
+        }
+    }
+    if (!alreadyChild) {
+        AddChildQuiet(m_content);
+    }
     RelayoutChildren();
     EnsureContentZOrder();
-    EnsureAnimationsScheduled();
     MarkRenderRectDirty(GetContentAreaRect());
-    MarkRenderContentDirty();
 }
 
 void NavigationView::SetHeader(const std::string& header) {
@@ -503,6 +496,9 @@ void NavigationView::SetIsBackEnabled(bool enabled) {
 }
 
 void NavigationView::SetSelectedItem(NavigationViewItem* item) {
+    // Selected child ⇒ every ancestor menu must be expanded (visibility + indicator).
+    ExpandAncestorsOf(item);
+
     if (m_selectedItem == item) {
         UpdateSelectionVisuals();
         return;
@@ -518,7 +514,73 @@ void NavigationView::SetSelectedItem(NavigationViewItem* item) {
         args.IsSettingsSelected = (m_selectedItem != nullptr && m_selectedItem == m_settingsItem.get());
         m_selectionChanged.Invoke(this, args);
     }
-    MarkRenderContentDirty();
+    if (previous) {
+        MarkRenderRectDirty(previous->GetBounds().Inflate(4.0f));
+    }
+    if (m_selectedItem) {
+        MarkRenderRectDirty(m_selectedItem->GetBounds().Inflate(4.0f));
+    }
+}
+
+bool NavigationView::ContainsDescendant(const NavigationViewItem* ancestor, const NavigationViewItem* candidate) const {
+    if (!ancestor || !candidate) {
+        return false;
+    }
+    for (const auto& child : ancestor->MenuItems()) {
+        if (auto* nvi = dynamic_cast<NavigationViewItem*>(child.get())) {
+            if (nvi == candidate || ContainsDescendant(nvi, candidate)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void NavigationView::ExpandAncestorsOf(NavigationViewItem* item) {
+    if (!item) {
+        return;
+    }
+
+    auto expandPath = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> bool {
+        auto* nvi = dynamic_cast<NavigationViewItem*>(node.get());
+        if (!nvi) {
+            return false;
+        }
+        if (nvi == item) {
+            return true;
+        }
+        for (auto& child : nvi->MenuItems()) {
+            if (self(self, child)) {
+                if (!nvi->IsExpanded()) {
+                    nvi->SetIsExpanded(true);
+                }
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (auto& root : m_menuItems) {
+        if (expandPath(expandPath, root)) {
+            return;
+        }
+    }
+    for (auto& root : m_footerItems) {
+        if (expandPath(expandPath, root)) {
+            return;
+        }
+    }
+}
+
+void NavigationView::OnItemExpandChanged(NavigationViewItem* folder) {
+    // Manual collapse while a descendant is selected → move selection to this menu.
+    if (folder && !folder->IsExpanded() && m_selectedItem
+        && ContainsDescendant(folder, m_selectedItem)) {
+        SetSelectedItem(folder);
+    }
+    SyncMenuHostChildren();
+    RelayoutChildren();
+    MarkRenderRectDirty(GetPaneRect().Inflate(2.0f));
 }
 
 Rect NavigationView::GetIndicatorRectForItem(const NavigationViewItem* item) const {
@@ -1246,7 +1308,9 @@ void NavigationView::OnMouseWheel(float delta) {
 }
 
 bool NavigationView::OnAnimationTick() {
-    bool base = Control::OnAnimationTick();
+    // Intentionally skip Control::OnAnimationTick → UIElement child walk. Menu
+    // items / page content register with AnimationManager themselves; walking
+    // them from here made pane ripples hitch whenever the view was animating.
     const float dt = UIElement::GetAnimationDeltaSeconds();
     m_paneWidthAnim.SetTarget(TargetPaneWidth());
     const bool widthAnim = m_paneWidthAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
@@ -1263,7 +1327,7 @@ bool NavigationView::OnAnimationTick() {
             // Keep layout origin stable; opacity-only entrance avoids text snap jitter.
             m_contentNext->Arrange(contentRect);
         }
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(contentRect);
     }
     if (m_contentAnimating && !m_contentFadeAnim.IsAnimating(0.001f)) {
         m_content = m_contentNext;
@@ -1275,14 +1339,14 @@ bool NavigationView::OnAnimationTick() {
         }
         RelayoutChildren();
         EnsureContentZOrder();
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(GetContentAreaRect());
     }
     if (widthAnim) {
         RelayoutChildren();
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(m_bounds);
     }
 
-    const bool stillAnimating = base || widthAnim || indicatorAnim || contentAnim || m_contentAnimating
+    const bool stillAnimating = widthAnim || indicatorAnim || contentAnim || m_contentAnimating
         || std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f
         || m_selectionIndicatorAnim.IsAnimating(0.001f)
         || m_contentFadeAnim.IsAnimating(0.001f);
@@ -1298,6 +1362,53 @@ bool NavigationView::HasSelfAnimation() const {
         || m_selectionIndicatorAnim.IsAnimating(0.001f)
         || m_contentAnimating
         || m_contentFadeAnim.IsAnimating(0.001f);
+}
+
+void NavigationView::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    if (m_visibility != Visibility::Visible) {
+        return;
+    }
+
+    // Never union full m_bounds for content/indicator ticks — that forces a
+    // full-window repaint and makes pane ripples stutter during page switches.
+    if (Control::HasSelfAnimation() && !m_bounds.IsEmpty()) {
+        dirtyRect = hasDirty ? dirtyRect.Union(m_bounds) : m_bounds;
+        hasDirty = true;
+    }
+
+    if (std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f && !m_bounds.IsEmpty()) {
+        dirtyRect = hasDirty ? dirtyRect.Union(m_bounds) : m_bounds;
+        hasDirty = true;
+    }
+
+    if (m_selectionIndicatorAnim.IsAnimating(0.001f)) {
+        const Rect fromRect = GetIndicatorRectForItem(m_selectionIndicatorFrom ? m_selectionIndicatorFrom : m_selectedItem);
+        const Rect toRect = GetIndicatorRectForItem(m_selectionIndicatorTo ? m_selectionIndicatorTo : m_selectedItem);
+        if (!fromRect.IsEmpty()) {
+            const Rect inflated = fromRect.Inflate(4.0f);
+            dirtyRect = hasDirty ? dirtyRect.Union(inflated) : inflated;
+            hasDirty = true;
+        }
+        if (!toRect.IsEmpty()) {
+            const Rect inflated = toRect.Inflate(4.0f);
+            dirtyRect = hasDirty ? dirtyRect.Union(inflated) : inflated;
+            hasDirty = true;
+        }
+    }
+
+    if (m_contentAnimating || m_contentFadeAnim.IsAnimating(0.001f)) {
+        const Rect contentRect = GetContentAreaRect();
+        if (!contentRect.IsEmpty()) {
+            dirtyRect = hasDirty ? dirtyRect.Union(contentRect) : contentRect;
+            hasDirty = true;
+        }
+    }
+
+    for (const auto& child : GetChildren()) {
+        if (child) {
+            child->CollectAnimationBounds(dirtyRect, hasDirty);
+        }
+    }
 }
 
 } // namespace CUI

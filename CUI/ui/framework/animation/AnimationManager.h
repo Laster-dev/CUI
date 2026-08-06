@@ -22,6 +22,7 @@ public:
     void SetTargetFrameSeconds(float seconds);
 
     void RequestFrame() { m_frameRequested = true; }
+    bool HasFrameRequest() const { return m_frameRequested; }
     bool ConsumeFrameRequest();
 
     void RegisterAnimating(UIElement* element);

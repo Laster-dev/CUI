@@ -199,13 +199,14 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
     {
         const float contentH = itemHeight * static_cast<float>(m_items.size());
         const float maxScroll = (std::max)(0.0f, contentH - menuH);
-        if (maxScroll > 0.001f && menuH > 0.001f) {
+        if (maxScroll > 0.001f && menuH > 0.001f && m_scrollbarAutoHide.IsDrawn()) {
             constexpr float kScrollW = 8.0f;
             const float trackX = menuRect.x + menuRect.width - kScrollW;
             const Rect trackRect(trackX, menuRect.y, kScrollW, menuH);
+            const float vis = m_scrollbarAutoHide.Opacity();
 
             D2D1_COLOR_F trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
-            trackColor.a = 0.35f;
+            trackColor.a = 0.35f * vis;
             ctx.DrawRoundedRect(trackRect, 4.0f, trackColor, 1.0f);
 
             const float thumbH = (std::max)(16.0f, (menuH * menuH) / contentH);
@@ -214,7 +215,7 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
             Rect thumbRect(trackX + 1.5f, thumbY, kScrollW - 3.0f, thumbH);
 
             D2D1_COLOR_F thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
-            thumbColor.a = 0.45f;
+            thumbColor.a = 0.45f * vis;
             ctx.FillRoundedRect(thumbRect, 4.0f, thumbColor);
         }
     }
@@ -264,6 +265,8 @@ void ComboBox::OnMouseWheel(float delta) {
     // delta > 0 => wheel up => scroll towards smaller indices.
     const float step = itemHeight; // about one row
     m_scrollOffset = std::clamp(m_scrollOffset - delta * step, 0.0f, maxScroll);
+    m_scrollbarAutoHide.NotifyActivity();
+    RequestAnimationTicks();
     MarkRenderContentDirty();
 }
 
@@ -280,6 +283,11 @@ bool ComboBox::OnAnimationTick() {
     // Keep Control visual-state transitions alive while this node is subscribed.
     if (Control::OnAnimationTick()) animating = true;
 
+    if (m_scrollbarAutoHide.Tick(dt)) {
+        animating = true;
+        MarkRenderContentDirty();
+    }
+
     if (animating) {
         RequestAnimationTicks();
     }
@@ -288,7 +296,8 @@ bool ComboBox::OnAnimationTick() {
 
 bool ComboBox::HasSelfAnimation() const {
     return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f ||
-           std::abs(m_arrowAnim.Target() - m_arrowAnim.Current()) > 0.001f;
+           std::abs(m_arrowAnim.Target() - m_arrowAnim.Current()) > 0.001f ||
+           m_scrollbarAutoHide.NeedsTicks();
 }
 
 void ComboBox::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {

@@ -3,6 +3,7 @@
 #define NOMINMAX
 #endif
 #include "Control.h"
+#include "ScrollbarAutoHide.h"
 #include <vector>
 #include <string>
 #include <unordered_set>
@@ -31,6 +32,7 @@ public:
     virtual void OnMouseDblClick(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
+    virtual void OnMouseLeave() override;
     virtual void OnKeyDown(int vkCode) override;
     virtual void OnCharInput(wchar_t ch);
     virtual void OnMouseWheel(float delta) override;
@@ -118,6 +120,7 @@ private:
     bool m_isDraggingScrollbar = false;
     float m_dragStartY = 0.0f;
     float m_dragStartScrollY = 0.0f;
+    ScrollbarAutoHide m_scrollbarAutoHide;
 
     Event<ListBox*, int, const std::string&> m_onSelectionChangedEvent;
     Event<ListBox*, int, const std::string&> m_onItemDoubleClickedEvent;

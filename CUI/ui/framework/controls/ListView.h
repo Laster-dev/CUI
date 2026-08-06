@@ -1,6 +1,7 @@
 #pragma once
 #include "Control.h"
 #include "ChromiumScrollAnimator.h"
+#include "ScrollbarAutoHide.h"
 #include <vector>
 #include <string>
 #include <unordered_set>
@@ -50,6 +51,7 @@ public:
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
+    virtual void OnMouseLeave() override;
     virtual void OnKeyDown(int vkCode) override;
     virtual void OnMouseWheel(float delta) override;
     virtual void OnAutoScrollTick() override;
@@ -160,6 +162,7 @@ private:
     bool m_isDraggingScrollbar = false;
     float m_dragStartY = 0.0f;
     float m_dragStartScrollY = 0.0f;
+    ScrollbarAutoHide m_scrollbarAutoHide;
 
     float m_headerHeight = 32.0f;
     float m_rowHeight = 28.0f;

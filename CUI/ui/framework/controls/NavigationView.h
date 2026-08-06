@@ -138,6 +138,7 @@ public:
     void OnMouseWheel(float delta) override;
     bool OnAnimationTick() override;
     bool HasSelfAnimation() const override;
+    void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
 
     // --- Events (WinUI order: ItemInvoked then SelectionChanged) ---
     Event<NavigationView*, const NavigationViewItemInvokedEventArgs&>& OnItemInvoked() { return m_itemInvoked; }
@@ -179,6 +180,12 @@ private:
     void RelayoutChildren();
     void UpdateSelectionVisuals();
     void ClosePaneIfOverlay();
+
+    // Hierarchy: keep ancestors expanded when a child is selected; on manual
+    // collapse of an ancestor, move selection up to that menu item.
+    bool ContainsDescendant(const NavigationViewItem* ancestor, const NavigationViewItem* candidate) const;
+    void ExpandAncestorsOf(NavigationViewItem* item);
+    void OnItemExpandChanged(NavigationViewItem* folder);
 
     Rect GetPaneRect() const;
     Rect GetContentHostRect() const;

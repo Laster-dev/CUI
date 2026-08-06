@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include "ScrollbarAutoHide.h"
 #include "../window/PopupHost.h"
 #include <ctime>
 
@@ -56,6 +57,7 @@ private:
     bool m_isPopupOpen = false;
     // When popup content exceeds visible height, allow browsing via internal scrolling.
     float m_scrollOffset = 0.0f; // layout/DIP coords; shifts the grid area upward
+    ScrollbarAutoHide m_scrollbarAutoHide;
     AnimatedScalar m_popupAnim{};
     Event<DatePicker*, int, int, int> m_onDateChangedEvent;
 };

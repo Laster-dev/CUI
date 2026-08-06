@@ -514,6 +514,9 @@ bool TerminalControl::HasSelfAnimation() const {
     if (!m_terminal) {
         return false;
     }
+    if (m_scrollbarAutoHide.NeedsTicks()) {
+        return true;
+    }
     if (m_outputPending.load() || m_redrawQueued) {
         return true;
     }
@@ -528,6 +531,13 @@ bool TerminalControl::OnAnimationTick() {
     }
 
     const float dtMs = GetAnimationDeltaSeconds() * 1000.0f;
+    const float prevOpacity = m_scrollbarAutoHide.Opacity();
+    if (m_scrollbarAutoHide.Tick(GetAnimationDeltaSeconds())) {
+        more = true;
+    }
+    if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
+        MarkRenderRectDirty(GetScrollBarRect());
+    }
 
     if (m_outputPending.load()) {
         m_flushAccumMs += dtMs;
@@ -642,11 +652,12 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
     ctx.PopClip();
 
     const Rect thumb = GetScrollThumbRect();
-    if (!thumb.IsEmpty()) {
+    if (!thumb.IsEmpty() && m_scrollbarAutoHide.IsDrawn()) {
         const Rect track = GetScrollBarRect();
-        ctx.FillRoundedRect(track, kScrollBarWidth * 0.5f, D2D1::ColorF(0x1A1A1A, 0.6f));
+        const float vis = m_scrollbarAutoHide.Opacity();
+        ctx.FillRoundedRect(track, kScrollBarWidth * 0.5f, D2D1::ColorF(0x1A1A1A, 0.6f * vis));
         ctx.FillRoundedRect(thumb, kScrollBarWidth * 0.5f,
-                            D2D1::ColorF(0x808080, m_draggingScrollbar ? 0.9f : 0.6f));
+                            D2D1::ColorF(0x808080, (m_draggingScrollbar ? 0.9f : 0.6f) * vis));
     }
 
     m_lastYDisp = buf.YDisp;
@@ -773,6 +784,9 @@ void TerminalControl::OnMouseDown(Point pt) {
     const Rect thumb = GetScrollThumbRect();
     if (!thumb.IsEmpty() && GetScrollBarRect().Contains(pt.x, pt.y)) {
         m_draggingScrollbar = true;
+        m_scrollbarAutoHide.SetDragging(true);
+        m_scrollbarAutoHide.NotifyActivity();
+        RequestAnimationTicks();
         m_scrollGrabOffset = thumb.Contains(pt.x, pt.y) ? (pt.y - thumb.y) : thumb.height * 0.5f;
         SyncScrollFromThumb(pt.y);
         return;
@@ -851,6 +865,13 @@ void TerminalControl::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
     m_lastMousePos = pt;
 
+    const bool overBar = !GetScrollThumbRect().IsEmpty() && GetScrollBarRect().Contains(pt.x, pt.y);
+    m_scrollbarAutoHide.SetPointerOver(overBar);
+    if (overBar) {
+        RequestAnimationTicks();
+        MarkRenderRectDirty(GetScrollBarRect());
+    }
+
     if (m_findVisible) {
         int hovered = -1;
         for (int i = 0; i < 3; ++i) {
@@ -867,6 +888,7 @@ void TerminalControl::OnMouseMove(Point pt) {
 
     if (m_draggingScrollbar) {
         SyncScrollFromThumb(pt.y);
+        m_scrollbarAutoHide.NotifyActivity();
         return;
     }
 
@@ -901,8 +923,10 @@ void TerminalControl::OnMouseUp(Point pt) {
 
     if (m_draggingScrollbar) {
         m_draggingScrollbar = false;
+        m_scrollbarAutoHide.SetDragging(false);
         Control::OnMouseUp(pt);
         MarkRenderRectDirty(GetScrollBarRect());
+        RequestAnimationTicks();
         return;
     }
 
@@ -956,11 +980,15 @@ void TerminalControl::OnMouseWheel(float delta) {
     }
 
     m_terminal->ScrollLines(delta > 0.0f ? 3 : -3);
+    m_scrollbarAutoHide.NotifyActivity();
+    RequestAnimationTicks();
     MarkViewportDirty();
 }
 
 void TerminalControl::OnMouseLeave() {
     Control::OnMouseLeave();
+    m_scrollbarAutoHide.SetPointerOver(false);
+    RequestAnimationTicks();
     if (m_hoveredFindButton != -1) {
         m_hoveredFindButton = -1;
         MarkRenderRectDirty(GetFindBarRect());

@@ -281,6 +281,8 @@ void ContextMenu::OnMouseWheel(float delta) {
 
     if (std::abs(next - m_scrollOffset) <= 0.001f) return;
     m_scrollOffset = next;
+    m_scrollbarAutoHide.NotifyActivity();
+    RequestAnimationTicks();
 
     // Re-layout items so RenderPopup + HitTestOverlay stay consistent.
     RelayoutItems();
@@ -292,6 +294,22 @@ void ContextMenu::OnMouseWheel(float delta) {
     }
 
     MarkRenderContentDirty();
+}
+
+bool ContextMenu::OnAnimationTick() {
+    const float prev = m_scrollbarAutoHide.Opacity();
+    const bool hideAnimating = m_scrollbarAutoHide.Tick(UIElement::GetAnimationDeltaSeconds());
+    if (std::abs(prev - m_scrollbarAutoHide.Opacity()) > 0.001f) {
+        MarkRenderContentDirty();
+    }
+    if (hideAnimating) {
+        RequestAnimationTicks();
+    }
+    return hideAnimating;
+}
+
+bool ContextMenu::HasSelfAnimation() const {
+    return m_scrollbarAutoHide.NeedsTicks();
 }
 
 Rect ContextMenu::GetTotalBounds() const {
@@ -333,13 +351,14 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
         const float contentH = m_contentHeight;
         const float visibleH = m_bounds.height;
         const float maxScroll = (std::max)(0.0f, contentH - visibleH);
-        if (maxScroll > 0.001f && visibleH > 0.001f) {
+        if (maxScroll > 0.001f && visibleH > 0.001f && m_scrollbarAutoHide.IsDrawn()) {
             constexpr float kScrollW = 8.0f;
             const float trackX = m_bounds.x + m_bounds.width - kScrollW;
             Rect trackRect(trackX, m_bounds.y, kScrollW, visibleH);
+            const float vis = m_scrollbarAutoHide.Opacity();
 
             D2D1_COLOR_F trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
-            trackColor.a = 0.35f;
+            trackColor.a = 0.35f * vis;
             ctx.DrawRoundedRect(trackRect, 4.0f, trackColor, 1.0f);
 
             const float thumbH = (std::max)(16.0f, (visibleH * visibleH) / contentH);
@@ -348,7 +367,7 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
 
             Rect thumbRect(trackX + 1.5f, thumbY, kScrollW - 3.0f, thumbH);
             D2D1_COLOR_F thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
-            thumbColor.a = 0.45f;
+            thumbColor.a = 0.45f * vis;
             ctx.FillRoundedRect(thumbRect, 4.0f, thumbColor);
         }
     }

@@ -110,11 +110,11 @@ bool Button::OnAnimationTick() {
     float dy = m_rippleCenter.y - cornerY;
     float maxRadius = std::sqrt(dx * dx + dy * dy);
 
-    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.22f) + 110.0f * UIElement::GetAnimationDeltaSeconds();
+    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.073f) + 37.0f * UIElement::GetAnimationDeltaSeconds();
     if (m_rippleRadius > maxRadius) {
         m_rippleRadius = maxRadius;
     }
-    m_rippleOpacity *= std::pow(0.88f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
+    m_rippleOpacity *= std::pow(0.958f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
 
     if (m_rippleOpacity <= 0.02f) {
         m_rippleActive = false;

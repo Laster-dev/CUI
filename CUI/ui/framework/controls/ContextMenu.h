@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include "ScrollbarAutoHide.h"
 #include "../window/PopupHost.h"
 #include <vector>
 #include <string>
@@ -81,6 +82,8 @@ public:
 
     virtual void OnBlur() override { Hide(); }
     virtual void OnMouseWheel(float delta) override;
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
 private:
     std::vector<std::shared_ptr<MenuItem>> m_items;
@@ -95,6 +98,7 @@ private:
     float m_scrollOffset = 0.0f;     // how much content is shifted up (in layout/DIP coords)
     float m_contentHeight = 0.0f;   // full, unclamped content height (computed in ShowAt)
     float m_itemWidth = 0.0f;        // current menu width used by Arrange
+    ScrollbarAutoHide m_scrollbarAutoHide;
 
     void RelayoutItems();
 };

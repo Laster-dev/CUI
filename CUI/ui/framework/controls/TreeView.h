@@ -3,6 +3,7 @@
 #define NOMINMAX
 #endif
 #include "Control.h"
+#include "ScrollbarAutoHide.h"
 #include "../animation/AnimationSystem.h"
 #include <memory>
 #include <string>
@@ -39,6 +40,7 @@ public:
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
+    virtual void OnMouseLeave() override;
     virtual void OnMouseWheel(float delta) override;
     virtual void OnKeyDown(int vkCode) override;
     bool OnAnimationTick() override;
@@ -85,6 +87,7 @@ private:
     mutable std::vector<VisibleItem> m_visibleItems;
     mutable bool m_visibleDirty = true;
     float m_scrollY = 0.0f;
+    ScrollbarAutoHide m_scrollbarAutoHide;
     bool m_isMouseDown = false;
     int m_hoveredVisibleIndex = -1;
     int m_pressedVisibleIndex = -1;

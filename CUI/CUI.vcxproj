@@ -124,6 +124,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)ui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -313,6 +314,7 @@
     <ClInclude Include="ui\framework\controls\ListView.h" />
     <ClInclude Include="ui\framework\controls\Panel.h" />
     <ClInclude Include="ui\framework\controls\ScrollViewer.h" />
+    <ClInclude Include="ui\framework\controls\ScrollbarAutoHide.h" />
     <ClInclude Include="ui\framework\controls\MessageBox.h" />
     <ClInclude Include="ui\framework\controls\Toast.h" />
     <ClInclude Include="ui\framework\controls\ToastCenter.h" />

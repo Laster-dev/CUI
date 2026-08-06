@@ -1,6 +1,7 @@
 #pragma once
 #include "UIElement.h"
 #include "ChromiumScrollAnimator.h"
+#include "ScrollbarAutoHide.h"
 #include "../render/DirtyRegion.h"
 #include "../render/RenderLayer.h"
 #include <cmath>
@@ -23,17 +24,24 @@ public:
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
+    virtual void OnMouseLeave() override;
     virtual void OnMouseWheel(float delta) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
     virtual HCURSOR GetCursor() const override;
     virtual void SyncRenderState() override;
     virtual void MarkRenderContentDirty() override;
+    virtual void MarkRenderRectDirty(const Rect& rect) override;
     virtual void CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume = true) override;
 
     float GetScrollOffsetY() const { return m_offsetY; }
     void SetScrollOffsetY(float offset);
     bool IsScrollAnimating() const { return m_scrollAnimator.IsActive(); }
+
+    // When true, thumb overlays content and does not shrink the content width.
+    // Keeps NavigationView chevrons aligned whether or not the menu overflows.
+    void SetOverlayScrollbar(bool overlay) { m_overlayScrollbar = overlay; }
+    bool OverlayScrollbar() const { return m_overlayScrollbar; }
 
 private:
     float GetMaxScroll() const;
@@ -66,6 +74,8 @@ private:
     float m_dragStartY = 0.0f;
     float m_dragStartOffsetY = 0.0f;
     bool m_scrollbarHovered = false;
+    ScrollbarAutoHide m_scrollbarAutoHide;
+    bool m_overlayScrollbar = false;
 
     LARGE_INTEGER m_qpcFreq = {};
     LONGLONG m_lastAnimQpc = 0;

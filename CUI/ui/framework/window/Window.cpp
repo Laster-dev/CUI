@@ -73,6 +73,17 @@ bool CoversRect(const Rect& outer, const Rect& inner, float epsilon = 1.0f) {
         && outer.y + outer.height >= inner.y + inner.height - epsilon;
 }
 
+// True only if some individual dirty rect covers the viewport — NOT the AABB of
+// disjoint rects (pane ripple + content dirty), which would false-trigger full repaints.
+bool AnyDirtyRectCovers(const DirtyRegion& region, const Rect& viewport, float epsilon = 1.0f) {
+    for (const auto& rect : region.GetRects()) {
+        if (CoversRect(rect, viewport, epsilon)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool IsOverlayScrimAnimating(UIElement* element) {
     if (!element) {
         return false;
@@ -678,6 +689,13 @@ void Window::RunMessageLoop() {
             if (msg.message == WM_QUIT) {
                 return;
             }
+            // Coalesce mouse-move spam: keep only the latest position.
+            if (msg.message == WM_MOUSEMOVE) {
+                MSG newest = msg;
+                while (PeekMessage(&newest, m_hwnd, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE)) {
+                    msg = newest;
+                }
+            }
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
@@ -691,6 +709,8 @@ void Window::RunMessageLoop() {
         const bool frameRequested = m_animationManager.ConsumeFrameRequest();
         const bool shouldProbeAnimation = hadMessage || animationActive
             || m_animationManager.HasAnimating() || frameRequested;
+        // Always allow a tick when animating OR when input arrived — but never
+        // tick faster than the display cadence while animating.
         const bool frameDue = !animationActive || (now - lastFrameTime) >= targetFrame;
         bool animating = animationActive;
         bool didAnimationTick = false;
@@ -720,7 +740,7 @@ void Window::RunMessageLoop() {
             if (PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
                 continue;
             }
-            if (animationActive) {
+            if (animationActive || m_animationManager.HasAnimating()) {
                 auto elapsed = std::chrono::duration<double>(clock::now() - lastFrameTime);
                 DWORD waitMs = elapsed >= targetFrame
                     ? 0
@@ -1215,7 +1235,7 @@ void Window::OnPaint() {
     bool fullRepaint = frameDirtyRegion.GetRectCount() == 0
         || viewportBounds.IsEmpty()
         || CoversRect(paintBounds, viewportBounds)
-        || CoversRect(dirtyBounds, viewportBounds)
+        || AnyDirtyRectCovers(frameDirtyRegion, viewportBounds)
         || !m_sceneLayer.IsValid();
 
     m_compositionContext.BeginFrame(viewportBounds, frameDirtyRegion, fullRepaint);
@@ -1296,12 +1316,29 @@ void Window::OnPaint() {
             sceneClearColor,
             !canRestoreScene)) {
         if (canRestoreScene && !dirtyBounds.IsEmpty()) {
-            // 只清一次并重绘并集脏区。按多个小矩形循环 renderScene 会在接缝处闪烁（滚动尤其明显）。
-            const Rect patch = dirtyBounds.Inflate(1.0f);
-            m_gfxContext.PushClip(patch);
-            m_gfxContext.ClearRect(patch);
-            renderScene();
-            m_gfxContext.PopClip();
+            // Prefer per-rect patches so a pane ripple + content dirty stay local.
+            // Using only the AABB would clear/repaint the whole window and stall ripples.
+            const auto& dirtyRects = frameDirtyRegion.GetRects();
+            if (dirtyRects.size() > 1) {
+                for (const Rect& rect : dirtyRects) {
+                    if (rect.IsEmpty()) {
+                        continue;
+                    }
+                    const Rect patch = rect.Inflate(1.0f);
+                    m_gfxContext.SetPaintBounds(patch);
+                    m_gfxContext.PushClip(patch);
+                    m_gfxContext.ClearRect(patch);
+                    renderScene();
+                    m_gfxContext.PopClip();
+                }
+            } else {
+                const Rect patch = dirtyBounds.Inflate(1.0f);
+                m_gfxContext.SetPaintBounds(patch);
+                m_gfxContext.PushClip(patch);
+                m_gfxContext.ClearRect(patch);
+                renderScene();
+                m_gfxContext.PopClip();
+            }
         } else {
             renderScene();
         }
@@ -1468,7 +1505,17 @@ bool Window::OnMouseMove(int x, int y) {
 
     if (auto pressed = LockElement(m_pressedElement)) {
         pressed->OnMouseMove(Point(fx, fy));
-        return true;
+        if (NeedsContinuousMouseRedraw(pressed.get())) {
+            return true;
+        }
+        // Thumb-drag / splitter etc. mark local dirty — flush those.
+        // Idle press+move (e.g. holding on a rippling nav item) must NOT invalidate.
+        if (m_rootElement) {
+            DirtyRegion probe;
+            m_rootElement->CollectRenderDirtyRegion(probe, false);
+            return !probe.IsEmpty();
+        }
+        return false;
     }
 
     // Same hit order as LButtonDown (no dismiss): popup → chrome → overlay → tree.

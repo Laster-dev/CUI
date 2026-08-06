@@ -522,7 +522,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
     }
 
     // 4. Draw Vertical & Horizontal ScrollBars
-    if (m_maxScrollY > 0.0f) {
+    if (m_maxScrollY > 0.0f && m_scrollbarAutoHide.IsDrawn()) {
         float trackX = m_bounds.x + m_bounds.width - 8.0f;
         float trackY = m_bounds.y + m_headerHeight + 2.0f;
         float trackH = m_bounds.height - m_headerHeight - 4.0f;
@@ -532,7 +532,8 @@ void ListView::OnRender(GraphicsContext& ctx) {
         float thumbY = trackY + (m_scrollY / m_maxScrollY) * (trackH - thumbH);
 
         Rect thumbRect(trackX, thumbY, 6.0f, thumbH);
-        ctx.FillRoundedRect(thumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.6f));
+        const float vis = m_scrollbarAutoHide.Opacity();
+        ctx.FillRoundedRect(thumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.6f * vis));
     }
 
     // 5. Column Drag Reordering Indicator Card & Insertion Line
@@ -579,6 +580,9 @@ void ListView::OnMouseDown(Point pt) {
         float trackX = m_bounds.x + m_bounds.width - 12.0f;
         if (pt.x >= trackX && pt.y >= m_bounds.y + m_headerHeight) {
             m_isDraggingScrollbar = true;
+            m_scrollbarAutoHide.SetDragging(true);
+            m_scrollbarAutoHide.NotifyActivity();
+            RequestAnimationTicks();
             m_dragStartY = pt.y;
             m_dragStartScrollY = m_scrollY;
             return;
@@ -655,6 +659,14 @@ void ListView::OnMouseDown(Point pt) {
 void ListView::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
 
+    const bool overBar = m_maxScrollY > 0.0f
+        && pt.x >= m_bounds.x + m_bounds.width - 12.0f
+        && pt.y >= m_bounds.y + m_headerHeight;
+    m_scrollbarAutoHide.SetPointerOver(overBar);
+    if (overBar) {
+        RequestAnimationTicks();
+    }
+
     // 1. Check ScrollBar Dragging
     if (m_isDraggingScrollbar && m_isPressed) {
         float deltaY = pt.y - m_dragStartY;
@@ -668,6 +680,7 @@ void ListView::OnMouseMove(Point pt) {
             ClampScroll();
             m_scrollY = m_targetScrollY;
             m_scrollYAnim.Reset(m_scrollY);
+            m_scrollbarAutoHide.NotifyActivity();
             MarkRenderContentDirty();
         }
         return;
@@ -788,8 +801,16 @@ void ListView::OnMouseUp(Point pt) {
     m_reorderingColumnIndex = -1;
     m_isRubberBandSelecting = false;
     m_isDraggingScrollbar = false;
+    m_scrollbarAutoHide.SetDragging(false);
     m_pendingRowClick = -1;
+    RequestAnimationTicks();
     MarkRenderContentDirty();
+}
+
+void ListView::OnMouseLeave() {
+    Control::OnMouseLeave();
+    m_scrollbarAutoHide.SetPointerOver(false);
+    RequestAnimationTicks();
 }
 
 void ListView::OnMouseWheel(float delta) {
@@ -826,6 +847,7 @@ void ListView::OnMouseWheel(float delta) {
         // hover/focus visual-state animation ends → intermittent frozen scroll.
         RequestAnimationTicks();
     }
+    m_scrollbarAutoHide.NotifyActivity();
     MarkRenderContentDirty();
 }
 
@@ -962,24 +984,38 @@ void ListView::OnKeyDown(int vkCode) {
 
 bool ListView::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
+    float dt = UIElement::GetAnimationDeltaSeconds();
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
-        return base;
+        const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
+        if (hideAnimating) {
+            MarkRenderContentDirty();
+        }
+        return base || hideAnimating;
     }
-    float dt = UIElement::GetAnimationDeltaSeconds();
     m_scrollYAnim.SetTarget(m_targetScrollY);
     bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
     if (anim) {
         m_scrollY = m_scrollYAnim.Current();
+        m_scrollbarAutoHide.NotifyActivity();
         MarkRenderContentDirty();
     }
-    return base || anim;
+    const float prevOpacity = m_scrollbarAutoHide.Opacity();
+    const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
+    if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
+        MarkRenderContentDirty();
+    }
+    if (anim || hideAnimating) {
+        RequestAnimationTicks();
+    }
+    return base || anim || hideAnimating;
 }
 
 bool ListView::HasSelfAnimation() const {
-    return Control::HasSelfAnimation() ||
-           std::abs(m_scrollYAnim.Target() - m_scrollYAnim.Current()) > 0.001f;
+    return Control::HasSelfAnimation()
+        || std::abs(m_scrollYAnim.Target() - m_scrollYAnim.Current()) > 0.001f
+        || m_scrollbarAutoHide.NeedsTicks();
 }
 
 } // namespace CUI

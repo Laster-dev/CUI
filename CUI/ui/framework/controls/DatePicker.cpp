@@ -94,11 +94,20 @@ UIElement* DatePicker::OnHitTestOverlay(float x, float y) {
 bool DatePicker::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
-    return m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    if (m_scrollbarAutoHide.Tick(dt)) {
+        animating = true;
+        MarkRenderContentDirty();
+    }
+    if (animating) {
+        RequestAnimationTicks();
+    }
+    return animating;
 }
 
 bool DatePicker::HasSelfAnimation() const {
-    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f;
+    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f
+        || m_scrollbarAutoHide.NeedsTicks();
 }
 
 void DatePicker::OnMouseDown(Point pt) {
@@ -192,6 +201,8 @@ void DatePicker::OnMouseDown(Point pt) {
                     if (trackRect.Contains(pt.x, pt.y)) {
                         const float ratio = std::clamp((pt.y - bodyY) / visibleScrollH, 0.0f, 1.0f);
                         m_scrollOffset = ratio * maxScroll;
+                        m_scrollbarAutoHide.NotifyActivity();
+                        RequestAnimationTicks();
                         MarkRenderContentDirty();
                         return;
                     }
@@ -292,6 +303,8 @@ void DatePicker::OnMouseWheel(float delta) {
     if (std::abs(next - m_scrollOffset) <= 0.001f) return;
 
     m_scrollOffset = next;
+    m_scrollbarAutoHide.NotifyActivity();
+    RequestAnimationTicks();
     MarkRenderContentDirty();
 }
 
@@ -478,12 +491,13 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
     }
 
     // Scrollbar
-    if (visibleScrollH > 12.0f && contentH > visibleScrollH + 0.001f) {
+    if (visibleScrollH > 12.0f && contentH > visibleScrollH + 0.001f && m_scrollbarAutoHide.IsDrawn()) {
         const float trackX = (std::min)(popRect.x + popW - kScrollBarPad, popRect.x + popW - kScrollBarW);
         const Rect trackRect(trackX, bodyY, kScrollBarW, visibleScrollH);
+        const float vis = m_scrollbarAutoHide.Opacity();
 
         D2D1_COLOR_F trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
-        trackColor.a = 0.35f;
+        trackColor.a = 0.35f * vis;
         ctx.DrawRoundedRect(trackRect, 4.0f, trackColor, 1.0f);
 
         const float thumbH = (std::max)(16.0f, visibleScrollH * visibleScrollH / contentH);
@@ -492,7 +506,7 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
 
         Rect thumbRect(trackX + 2.0f, thumbY, kScrollBarW - 4.0f, thumbH);
         D2D1_COLOR_F thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
-        thumbColor.a = 0.45f;
+        thumbColor.a = 0.45f * vis;
         ctx.FillRoundedRect(thumbRect, 4.0f, thumbColor);
     }
 

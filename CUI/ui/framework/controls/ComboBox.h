@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include "ScrollbarAutoHide.h"
 #include "../window/PopupHost.h"
 #include <vector>
 #include <string>
@@ -62,6 +63,7 @@ private:
     // When dropdown content exceeds the visible height (auto-clamped by placement),
     // keep an internal scroll offset so users can browse instead of only clipping.
     float m_scrollOffset = 0.0f;
+    ScrollbarAutoHide m_scrollbarAutoHide;
     AnimatedScalar m_popupAnim{};
     AnimatedScalar m_arrowAnim{};
 

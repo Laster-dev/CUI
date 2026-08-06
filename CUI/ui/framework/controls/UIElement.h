@@ -233,7 +233,10 @@ public:
 
     const std::vector<std::shared_ptr<UIElement>>& GetChildren() const { return m_children; }
     void AddChild(std::shared_ptr<UIElement> child);
+    // Same as AddChild/RemoveChild but without MarkRenderContentDirty (caller dirties locally).
+    void AddChildQuiet(std::shared_ptr<UIElement> child);
     void RemoveChild(std::shared_ptr<UIElement> child);
+    void RemoveChildQuiet(std::shared_ptr<UIElement> child);
     void RemoveChildRaw(UIElement* child);
     void ClearChildren();
 
@@ -290,6 +293,7 @@ public:
     const RenderNode& GetRenderNode() const { return m_renderNode; }
     virtual void SyncRenderState();
     virtual void MarkRenderContentDirty();
+    virtual void MarkRenderRectDirty(const Rect& rect);
 
     void SetContextMenu(std::shared_ptr<ContextMenu> menu) { m_contextMenu = menu; }
     std::shared_ptr<ContextMenu> GetContextMenu() const { return m_contextMenu; }
@@ -301,7 +305,6 @@ public:
     Event<UIElement*, Point>& OnMouseDownEvent() { return m_onMouseDownEvent; }
 
 protected:
-    void MarkRenderRectDirty(const Rect& rect);
     void NotifyFieldChanged(PropertyId id, const Value& val);
     bool DescHasOptionalProperty(const PropertyDesc& desc) const;
 

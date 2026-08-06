@@ -93,6 +93,9 @@ float ScrollViewer::GetMaxScroll() const {
 }
 
 float ScrollViewer::GetScrollbarReserve() const {
+    if (m_overlayScrollbar) {
+        return 0.0f;
+    }
     if (m_contentHeight > m_bounds.height && m_bounds.height > 0.0f) {
         return kScrollbarInset + kScrollbarWidth;
     }
@@ -249,7 +252,7 @@ void ScrollViewer::MarkContentLayerRectDirty(const Rect& rect) {
     }
     m_contentLayer.Invalidate(RenderLayer::ContentDirty);
     m_contentLayerDirty.AddRect(rect);
-    MarkRenderRectDirty(rect);
+    UIElement::MarkRenderRectDirty(rect);
 }
 
 void ScrollViewer::UpdateContentLayerState() {
@@ -499,18 +502,24 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
 }
 
 void ScrollViewer::RenderScrollChrome(GraphicsContext& ctx) {
-    if (m_contentHeight > m_bounds.height && m_bounds.height > 0.0f) {
-        Rect track = GetScrollbarTrackRect();
-        Rect thumb = GetScrollbarThumbRect();
-
-        D2D1_COLOR_F trackBase = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
-        D2D1_COLOR_F thumbBase = ResolveThemeColor(GetThumbColorToken(), ThemeTokenId::TextMuted);
-        float trackAlpha = m_scrollbarHovered || m_isDraggingThumb ? 0.18f : 0.08f;
-        ctx.FillRoundedRect(track, 4.0f, D2D1::ColorF(trackBase.r, trackBase.g, trackBase.b, trackAlpha));
-
-        float thumbAlpha = m_isDraggingThumb ? 0.75f : (m_scrollbarHovered ? 0.55f : 0.40f);
-        ctx.FillRoundedRect(thumb, 4.0f, D2D1::ColorF(thumbBase.r, thumbBase.g, thumbBase.b, thumbAlpha));
+    if (m_contentHeight <= m_bounds.height || m_bounds.height <= 0.0f) {
+        return;
     }
+    const float visibility = m_scrollbarAutoHide.Opacity();
+    if (visibility <= 0.01f) {
+        return;
+    }
+
+    Rect track = GetScrollbarTrackRect();
+    Rect thumb = GetScrollbarThumbRect();
+
+    D2D1_COLOR_F trackBase = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
+    D2D1_COLOR_F thumbBase = ResolveThemeColor(GetThumbColorToken(), ThemeTokenId::TextMuted);
+    float trackAlpha = (m_scrollbarHovered || m_isDraggingThumb ? 0.18f : 0.08f) * visibility;
+    ctx.FillRoundedRect(track, 4.0f, D2D1::ColorF(trackBase.r, trackBase.g, trackBase.b, trackAlpha));
+
+    float thumbAlpha = (m_isDraggingThumb ? 0.75f : (m_scrollbarHovered ? 0.55f : 0.40f)) * visibility;
+    ctx.FillRoundedRect(thumb, 4.0f, D2D1::ColorF(thumbBase.r, thumbBase.g, thumbBase.b, thumbAlpha));
 }
 
 void ScrollViewer::SyncRenderState() {
@@ -524,6 +533,16 @@ void ScrollViewer::SyncRenderState() {
 void ScrollViewer::MarkRenderContentDirty() {
     UIElement::MarkRenderContentDirty();
     MarkContentLayerDirty();
+}
+
+void ScrollViewer::MarkRenderRectDirty(const Rect& rect) {
+    // Nav-item ripples / hover mark local rects; without this the content-layer
+    // cache stays stale and the ripple looks frozen until something else rebuilds it.
+    if (!rect.IsEmpty()) {
+        m_contentLayer.Invalidate(RenderLayer::ContentDirty);
+        m_contentLayerDirty.AddRect(rect);
+    }
+    UIElement::MarkRenderRectDirty(rect);
 }
 
 void ScrollViewer::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume) {
@@ -576,9 +595,15 @@ void ScrollViewer::OnMouseDown(Point pt) {
     Rect track = GetScrollbarTrackRect();
     Rect thumb = GetScrollbarThumbRect();
 
+    if (thumb.Contains(pt.x, pt.y) || track.Contains(pt.x, pt.y)) {
+        m_scrollbarAutoHide.NotifyActivity();
+        RequestAnimationTicks();
+    }
+
     if (thumb.Contains(pt.x, pt.y)) {
         StopSmoothScroll();
         m_isDraggingThumb = true;
+        m_scrollbarAutoHide.SetDragging(true);
         m_dragStartY = pt.y;
         m_dragStartOffsetY = m_offsetY;
         return;
@@ -591,10 +616,15 @@ void ScrollViewer::OnMouseDown(Point pt) {
         float thumbH = thumb.height;
         float clickRatio = (pt.y - track.y - thumbH * 0.5f) / (std::max)(1.0f, trackH - thumbH);
         clickRatio = std::clamp(clickRatio, 0.0f, 1.0f);
+        float previousOffset = m_offsetY;
         m_offsetY = clickRatio * maxScroll;
         ClampOffset();
         m_scrollAnimator.JumpTo(m_offsetY);
         PositionChildren();
+        if (std::abs(previousOffset - m_offsetY) > 0.01f) {
+            MarkScrollVisualDirty(previousOffset);
+        }
+        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
     }
 }
 
@@ -603,8 +633,10 @@ void ScrollViewer::OnMouseMove(Point pt) {
 
     bool wasHovered = m_scrollbarHovered;
     m_scrollbarHovered = (m_contentHeight > m_bounds.height) && GetScrollbarTrackRect().Contains(pt.x, pt.y);
+    m_scrollbarAutoHide.SetPointerOver(m_scrollbarHovered);
     if (wasHovered != m_scrollbarHovered) {
         MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+        RequestAnimationTicks();
     }
 
     if (m_isDraggingThumb && m_isPressed) {
@@ -628,8 +660,20 @@ void ScrollViewer::OnMouseUp(Point pt) {
     UIElement::OnMouseUp(pt);
     if (m_isDraggingThumb) {
         MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+        RequestAnimationTicks();
     }
     m_isDraggingThumb = false;
+    m_scrollbarAutoHide.SetDragging(false);
+}
+
+void ScrollViewer::OnMouseLeave() {
+    UIElement::OnMouseLeave();
+    if (m_scrollbarHovered) {
+        m_scrollbarHovered = false;
+        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+    }
+    m_scrollbarAutoHide.SetPointerOver(false);
+    RequestAnimationTicks();
 }
 
 void ScrollViewer::OnMouseWheel(float delta) {
@@ -638,6 +682,9 @@ void ScrollViewer::OnMouseWheel(float delta) {
         UIElement::OnMouseWheel(delta);
         return;
     }
+
+    m_scrollbarAutoHide.NotifyActivity();
+    RequestAnimationTicks();
 
     if (!UIElement::AreAnimationsEnabled()) {
         float previousOffset = m_offsetY;
@@ -679,6 +726,7 @@ bool ScrollViewer::AdvanceSmoothScroll() {
     PositionChildren();
     if (std::abs(previousOffset - m_offsetY) > 0.01f) {
         MarkScrollVisualDirty(previousOffset);
+        m_scrollbarAutoHide.NotifyActivity();
     }
     return true;
 }
@@ -699,14 +747,20 @@ bool ScrollViewer::OnAnimationTick() {
         return childAnimating;
     }
     bool selfAnimating = AdvanceSmoothScroll();
-    if (selfAnimating) {
+    const float prevOpacity = m_scrollbarAutoHide.Opacity();
+    const bool hideAnimating = m_scrollbarAutoHide.Tick(UIElement::GetAnimationDeltaSeconds());
+    if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
+        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+    }
+    if (selfAnimating || hideAnimating) {
         RequestAnimationTicks();
     }
-    return childAnimating || selfAnimating;
+    return childAnimating || selfAnimating || hideAnimating;
 }
 
 bool ScrollViewer::HasSelfAnimation() const {
-    return UIElement::AreAnimationsEnabled() && m_scrollAnimator.IsActive();
+    return (UIElement::AreAnimationsEnabled() && m_scrollAnimator.IsActive())
+        || m_scrollbarAutoHide.NeedsTicks();
 }
 
 } // namespace CUI

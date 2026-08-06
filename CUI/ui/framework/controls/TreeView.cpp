@@ -300,7 +300,7 @@ void TreeView::OnRender(GraphicsContext& ctx) {
     // Scrollbar indicator
     float contentH = m_visibleItems.size() * itemH;
     float viewportH = m_bounds.height;
-    if (contentH > viewportH && viewportH > 0.0f) {
+    if (contentH > viewportH && viewportH > 0.0f && m_scrollbarAutoHide.IsDrawn()) {
         float maxScroll = contentH - viewportH;
         float trackH = viewportH - 4.0f;
         float thumbH = (viewportH / contentH) * trackH;
@@ -309,7 +309,8 @@ void TreeView::OnRender(GraphicsContext& ctx) {
         float scrollRatio = m_scrollY / maxScroll;
         float thumbY = m_bounds.y + 2.0f + scrollRatio * (trackH - thumbH);
         Rect thumbRect(m_bounds.x + m_bounds.width - 6.0f, thumbY, 4.0f, thumbH);
-        ctx.FillRoundedRect(thumbRect, 2.0f, D2D1::ColorF(border.r, border.g, border.b, 0.4f));
+        const float vis = m_scrollbarAutoHide.Opacity();
+        ctx.FillRoundedRect(thumbRect, 2.0f, D2D1::ColorF(border.r, border.g, border.b, 0.4f * vis));
     }
 }
 
@@ -340,12 +341,30 @@ void TreeView::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
     int oldHover = m_hoveredVisibleIndex;
     m_hoveredVisibleIndex = GetVisibleIndexFromY(pt.y);
+
+    RebuildVisibleItems();
+    float itemH = GetItemHeight();
+    float contentH = m_visibleItems.size() * itemH;
+    const bool overBar = contentH > m_bounds.height && pt.x >= m_bounds.x + m_bounds.width - 10.0f;
+    m_scrollbarAutoHide.SetPointerOver(overBar);
+    if (overBar || oldHover != m_hoveredVisibleIndex) {
+        if (overBar) {
+            RequestAnimationTicks();
+        }
+        MarkRenderContentDirty();
+    }
 }
 
 void TreeView::OnMouseUp(Point pt) {
     Control::OnMouseUp(pt);
     m_isMouseDown = false;
     m_pressedVisibleIndex = -1;
+}
+
+void TreeView::OnMouseLeave() {
+    Control::OnMouseLeave();
+    m_scrollbarAutoHide.SetPointerOver(false);
+    RequestAnimationTicks();
 }
 
 void TreeView::OnMouseWheel(float delta) {
@@ -361,6 +380,9 @@ void TreeView::OnMouseWheel(float delta) {
 
     m_scrollY -= delta * 40.0f;
     ClampScroll();
+    m_scrollbarAutoHide.NotifyActivity();
+    RequestAnimationTicks();
+    MarkRenderContentDirty();
 }
 
 std::shared_ptr<TreeViewItem> TreeView::FindFirstVisibleSelectable(int startIndex, int direction) const {
@@ -442,18 +464,25 @@ bool TreeView::TickExpandAnims(const std::vector<std::shared_ptr<TreeViewItem>>&
 
 bool TreeView::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
-    if (!UIElement::AreAnimationsEnabled()) {
-        return base;
-    }
     const float dt = UIElement::GetAnimationDeltaSeconds();
-    const bool moving = TickExpandAnims(m_items, dt);
-    if (moving) {
-        m_visibleDirty = true;
-        ClampScroll();
+    bool moving = false;
+    if (UIElement::AreAnimationsEnabled()) {
+        moving = TickExpandAnims(m_items, dt);
+        if (moving) {
+            m_visibleDirty = true;
+            ClampScroll();
+            MarkRenderContentDirty();
+        }
+    }
+    const float prevOpacity = m_scrollbarAutoHide.Opacity();
+    const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
+    if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
         MarkRenderContentDirty();
+    }
+    if (moving || hideAnimating) {
         RequestAnimationTicks();
     }
-    return base || moving;
+    return base || moving || hideAnimating;
 }
 
 bool TreeView::HasSelfAnimation() const {
@@ -465,7 +494,7 @@ bool TreeView::HasSelfAnimation() const {
         }
         return false;
     };
-    return Control::HasSelfAnimation() || walk(walk, m_items);
+    return Control::HasSelfAnimation() || walk(walk, m_items) || m_scrollbarAutoHide.NeedsTicks();
 }
 
 } // namespace CUI

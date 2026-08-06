@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include "ScrollbarAutoHide.h"
 #include "TextBox.h"
 #include "terminal/ConPtyBackend.h"
 #include "terminal/Terminal.h"
@@ -136,6 +137,7 @@ private:
     int m_lastMouseRow = -1;
     bool m_draggingScrollbar = false;
     float m_scrollGrabOffset = 0.0f;
+    ScrollbarAutoHide m_scrollbarAutoHide;
 
     int m_clickCount = 0;
     std::chrono::steady_clock::time_point m_lastClickTime;
