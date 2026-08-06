@@ -33,6 +33,7 @@ public:
     void Hide();
 
     bool IsOpen() const { return m_isOpen; }
+    virtual bool IsModalOverlayOpen() const override { return m_isOpen; }
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;

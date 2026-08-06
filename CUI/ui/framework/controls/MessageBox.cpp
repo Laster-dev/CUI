@@ -21,7 +21,11 @@ ContentDialog::ContentDialog() {
 
     m_btnPrimary = std::make_shared<Button>(m_primaryText);
     m_btnPrimary->SetBackgroundToken(ThemeTokenId::AccentColor);
+    m_btnPrimary->SetHoverBackgroundToken(ThemeTokenId::AccentColor);
+    m_btnPrimary->SetPressedBackgroundToken(ThemeTokenId::AccentColor);
     m_btnPrimary->SetBackground(ThemeManager::Instance().GetColor("accentColor"));
+    m_btnPrimary->SetColorToken(ThemeTokenId::AccentForeground);
+    m_btnPrimary->SetColor(ThemeManager::Instance().GetColor("accentForeground"));
     m_btnPrimary->SetPadding(Thickness(16, 6, 16, 6));
     m_btnPrimary->OnClick().Connect([this](UIElement*) {
         DialogResult res = DialogResult::Primary;
@@ -29,10 +33,20 @@ ContentDialog::ContentDialog() {
         if (m_callback) m_callback(res);
     });
 
+    auto styleSecondaryButton = [](const std::shared_ptr<Button>& btn) {
+        btn->SetBackgroundToken(ThemeTokenId::CardBackground);
+        btn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+        btn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+        btn->SetBorderToken(ThemeTokenId::CardBorder);
+        btn->SetBorderThickness(1.0f);
+        btn->SetColorToken(ThemeTokenId::TextPrimary);
+        btn->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+        btn->SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
+        btn->SetPadding(Thickness(16, 6, 16, 6));
+    };
+
     m_btnSecondary = std::make_shared<Button>(m_secondaryText);
-    m_btnSecondary->SetBackgroundToken(ThemeTokenId::CardBorder);
-    m_btnSecondary->SetBackground(ThemeManager::Instance().GetColor("cardBorder"));
-    m_btnSecondary->SetPadding(Thickness(16, 6, 16, 6));
+    styleSecondaryButton(m_btnSecondary);
     m_btnSecondary->OnClick().Connect([this](UIElement*) {
         DialogResult res = DialogResult::Secondary;
         Hide();
@@ -40,9 +54,7 @@ ContentDialog::ContentDialog() {
     });
 
     m_btnClose = std::make_shared<Button>(m_closeText);
-    m_btnClose->SetBackgroundToken(ThemeTokenId::CardBackground);
-    m_btnClose->SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
-    m_btnClose->SetPadding(Thickness(16, 6, 16, 6));
+    styleSecondaryButton(m_btnClose);
     m_btnClose->OnClick().Connect([this](UIElement*) {
         DialogResult res = DialogResult::Cancel;
         Hide();

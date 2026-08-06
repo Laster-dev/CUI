@@ -88,11 +88,10 @@ bool IsOverlayScrimAnimating(UIElement* element) {
     if (!element) {
         return false;
     }
-    if (element->HasSelfAnimation()) {
-        const char* name = element->GetClassName();
-        if (name && std::strcmp(name, "ContentDialog") == 0) {
-            return true;
-        }
+    // Freeze the scene under any open ContentDialog (open/close/idle) so the
+    // scrim is never baked into the scene cache (that caused open flash + stutter).
+    if (element->IsModalOverlayOpen()) {
+        return true;
     }
     for (const auto& child : element->GetChildren()) {
         if (IsOverlayScrimAnimating(child.get())) {
@@ -1258,11 +1257,11 @@ void Window::OnPaint() {
         || std::abs(m_sceneLayer.GetCacheSurfaceSize().height - sceneSize.height) > 0.5f;
 
     auto renderScene = [&]() {
+        // Scene layer must NOT include overlays — otherwise ContentDialog scrim is
+        // baked into the cache and the reuse path redraws it again (flash/stutter).
         if (m_rootElement) {
             m_rootElement->Render(m_gfxContext);
-            m_rootElement->RenderOverlay(m_gfxContext);
         }
-        m_popupHost.Render(m_gfxContext);
     };
 
     auto renderOverlaysOnly = [&]() {
@@ -1272,7 +1271,7 @@ void Window::OnPaint() {
         m_popupHost.Render(m_gfxContext);
     };
 
-    // ContentDialog 全窗遮罩动画：底层场景不动，只重绘 overlay，避免整树每帧重绘卡顿。
+    // ContentDialog 全窗遮罩：底层场景冻结，只重绘 overlay。
     const bool overlayScrimAnimating = IsOverlayScrimAnimating(m_rootElement.get());
     const bool reuseSceneForOverlayAnim =
         overlayScrimAnimating
@@ -1353,6 +1352,7 @@ void Window::OnPaint() {
         m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
     }
     m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
+    renderOverlaysOnly();
     DrawRenderStatsOverlay();
 
     m_gfxContext.EndDraw();

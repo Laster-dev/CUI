@@ -105,6 +105,16 @@ void TabView::SetSelectedIndex(int index) {
     }
 
     EnsureSelectedTabVisible();
+    // Drive header underline / scroll accent after the OnAnimationTick child-walk
+    // was removed — TabView must register itself or the top indicator never moves.
+    for (size_t i = 0; i < m_tabs.size(); ++i) {
+        const float target = (static_cast<int>(i) == m_selectedIndex) ? 1.0f : 0.0f;
+        m_tabs[i].accentAnim.SetTarget(target);
+        if (!UIElement::AreAnimationsEnabled()) {
+            m_tabs[i].accentAnim.Reset(target);
+        }
+    }
+    RequestAnimationTicks();
     MarkHeaderDirty();
     MarkContentDirty();
     m_selectionChangedEvent.Invoke(this, m_selectedIndex);
@@ -568,6 +578,9 @@ bool TabView::OnAnimationTick() {
         }
     }
 
+    if (animating) {
+        RequestAnimationTicks();
+    }
     return animating;
 }
 

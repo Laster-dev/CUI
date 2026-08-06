@@ -280,6 +280,8 @@ public:
     virtual bool NeedsAutoScrollTick() const { return false; }
     virtual bool OnAnimationTick();
     virtual bool HasSelfAnimation() const { return false; }
+    // Modal overlays (ContentDialog) — Window freezes the scene layer while true.
+    virtual bool IsModalOverlayOpen() const { return false; }
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const;
     virtual void CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume = true);
     void RequestAnimationTicks();

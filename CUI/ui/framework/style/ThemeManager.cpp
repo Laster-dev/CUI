@@ -84,8 +84,8 @@ void ThemeManager::UpdateTokens() {
         m_tokens.inputBorder = Rgb(0xD1, 0xD1, 0xD1);
         m_tokens.hoverBackground = Rgb(0xF5, 0xF5, 0xF5);        // SubtleFill ≈ black@3.5% on white
         m_tokens.pressedBackground = Rgb(0xF0, 0xF0, 0xF0);
-        // Nav selection: light gray fill (WinUI SubtleFill), keeps primary text dark
-        m_tokens.selectedBackground = Rgb(0xE8, 0xE8, 0xE8);
+        // Nav/list selection: soft accent tint (readable on #F3 pane / white cards)
+        m_tokens.selectedBackground = Rgb(0xC8, 0xE0, 0xF4);
         m_tokens.focusedBorder = Rgb(0x00, 0x5F, 0xB8);
         m_tokens.activityBarBackground = Rgb(0xEE, 0xEE, 0xEE);
     }
