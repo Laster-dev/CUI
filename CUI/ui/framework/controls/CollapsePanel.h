@@ -20,6 +20,9 @@ public:
     void SetHeader(const std::string& header);
     std::string GetHeader() const { return m_headerText; }
 
+    void SetSubtitle(const std::string& subtitle);
+    std::string GetSubtitle() const { return m_subtitleText; }
+
     void SetExpanded(bool expanded);
     bool IsExpanded() const { return m_isExpanded; }
 
@@ -40,8 +43,10 @@ private:
     void UpdateContentVisibility();
     void InvalidateParentLayout();
     void SyncHeaderChrome();
+    void DrawAnimatedChevron(GraphicsContext& ctx, const Rect& bounds, float progress);
 
     std::string m_headerText = "折叠面板";
+    std::string m_subtitleText;
     bool m_isExpanded = true;
     AnimatedScalar m_expandAnim{ 1.0f };
     float m_bodyDesiredHeight = 0.0f;

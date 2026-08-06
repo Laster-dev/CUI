@@ -255,6 +255,14 @@ public:
         return *this;
     }
 
+    ElementBuilder& Subtitle(const std::string& subtitle) {
+        auto cp = std::dynamic_pointer_cast<CollapsePanel>(m_element);
+        if (cp) {
+            cp->SetSubtitle(subtitle);
+        }
+        return *this;
+    }
+
     ElementBuilder& Orientation(const std::string& orient) {
         if (orient == "Horizontal" || orient == "Row") {
             m_element->SetOrientation(CUI::Orientation::Horizontal);
