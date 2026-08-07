@@ -771,6 +771,20 @@ void TextBox::OnMouseRightClick(Point pt) {
     }
 }
 
+void TextBox::OnMouseEnter() {
+    // TextBox::OnRender does not use Control hover fill — repainting on every
+    // PropertyGrid transit was re-laying out DWrite for zero visual change.
+    UIElement::OnMouseEnter();
+    UpdateVisualStateTarget();
+    m_visualStateAnim.Reset(m_visualStateTarget);
+}
+
+void TextBox::OnMouseLeave() {
+    UIElement::OnMouseLeave();
+    UpdateVisualStateTarget();
+    m_visualStateAnim.Reset(m_visualStateTarget);
+}
+
 void TextBox::OnMouseMove(Point pt) {
     if (!IsEnabled()) {
         return;

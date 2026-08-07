@@ -31,6 +31,8 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
+    // Returns true when menu chrome needs a repaint.
+    bool HandleMouseMove(Point pt);
     virtual void OnMouseLeave() override;
     virtual void OnBlur() override;
 

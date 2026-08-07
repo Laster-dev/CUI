@@ -34,10 +34,16 @@ public:
 
     void SetTitle(const std::string& title) { m_title = title; }
     const std::string& GetTitle() const { return m_title; }
+    bool ConsumeMenuChromeDirty() {
+        const bool dirty = m_menuChromeDirty;
+        m_menuChromeDirty = false;
+        return dirty;
+    }
 
 private:
     MenuBar m_menuBar;
     std::string m_title;
+    bool m_menuChromeDirty = false;
 };
 
 // 2. ActivityBar

@@ -20,6 +20,7 @@ public:
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
     virtual bool OnAnimationTick() override;
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
+    virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
 
     std::shared_ptr<Toast> AddToast(const std::shared_ptr<Toast>& toast);
     std::shared_ptr<Toast> ShowToast(const std::string& title,
@@ -36,6 +37,7 @@ public:
         const std::string& messageOverride = "");
     void DismissAll();
     size_t GetActiveCount() const;
+    void NotifyToastChanged();
 
     static std::shared_ptr<ToastCenter> Ensure(UIElement* root);
     static std::shared_ptr<Toast> Show(UIElement* root,
@@ -52,6 +54,7 @@ public:
 
 private:
     void Compact();
+    void ScheduleAutoCloseWake();
     Rect GetWindowRect() const;
 
     std::vector<std::shared_ptr<Toast>> m_toasts;

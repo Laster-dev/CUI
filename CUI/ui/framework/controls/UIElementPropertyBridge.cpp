@@ -386,36 +386,43 @@ void UIElement::NotifyFieldChanged(PropertyId id, const Value& val) {
 void UIElement::SetWidth(float v) {
     m_width = v;
     NotifyFieldChanged(PropertyId::Width, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetHeight(float v) {
     m_height = v;
     NotifyFieldChanged(PropertyId::Height, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetMinWidth(float v) {
     m_minWidth = v;
     NotifyFieldChanged(PropertyId::MinWidth, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetMinHeight(float v) {
     m_minHeight = v;
     NotifyFieldChanged(PropertyId::MinHeight, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetMargin(const Thickness& margin) {
     m_margin = margin;
     NotifyFieldChanged(PropertyId::Margin, Value(margin));
+    InvalidateMeasure();
 }
 
 void UIElement::SetPadding(const Thickness& padding) {
     m_padding = padding;
     NotifyFieldChanged(PropertyId::Padding, Value(padding));
+    InvalidateMeasure();
 }
 
 void UIElement::SetVisibility(Visibility v) {
     m_visibility = v;
     NotifyFieldChanged(PropertyId::Visibility, Value(VisibilityToString(v)));
+    InvalidateMeasure();
 }
 
 void UIElement::SetIsEnabled(bool enabled) {
@@ -424,6 +431,11 @@ void UIElement::SetIsEnabled(bool enabled) {
 }
 
 void UIElement::SetOpacity(float v) {
+    if (m_layerPromoted) {
+        SetComposeOpacity(v);
+        NotifyFieldChanged(PropertyId::Opacity, Value(v));
+        return;
+    }
     m_opacity = v;
     NotifyFieldChanged(PropertyId::Opacity, Value(v));
 }

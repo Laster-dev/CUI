@@ -139,7 +139,7 @@ void MenuBar::CloseActiveMenu() {
     InvalidateMenuChrome(previousOpen, m_hoveredIndex);
 }
 
-void MenuBar::OnMouseMove(Point pt) {
+bool MenuBar::HandleMouseMove(Point pt) {
     int oldHover = m_hoveredIndex;
     m_hoveredIndex = -1;
 
@@ -150,14 +150,21 @@ void MenuBar::OnMouseMove(Point pt) {
         }
     }
 
-    if (oldHover != m_hoveredIndex) {
+    bool chromeDirty = (oldHover != m_hoveredIndex);
+    if (chromeDirty) {
         InvalidateMenuChrome(oldHover, m_hoveredIndex);
     }
 
     // If a menu is already open, hover over another item opens its dropdown instantly
     if (m_activeOpenIndex >= 0 && m_hoveredIndex >= 0 && m_hoveredIndex != m_activeOpenIndex) {
         OpenMenu(m_hoveredIndex);
+        chromeDirty = true;
     }
+    return chromeDirty;
+}
+
+void MenuBar::OnMouseMove(Point pt) {
+    HandleMouseMove(pt);
 }
 
 void MenuBar::OnMouseLeave() {

@@ -213,12 +213,16 @@ bool ContentDialog::HasSelfAnimation() const {
     return UIElement::AreAnimationsEnabled() && (m_animState == 1 || m_animState == 3);
 }
 
-void ContentDialog::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+void ContentDialog::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
     // Do NOT contribute a fullscreen dirty rect — that forced the scene path to
     // either full-repaint or skip all under-scrim patches. Overlay paints are
     // driven by Window::InvalidateAnimatedRegions when IsModalOverlayOpen.
     (void)dirtyRect;
     (void)hasDirty;
+}
+
+void ContentDialog::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    CollectSelfAnimationBounds(dirtyRect, hasDirty);
 }
 
 Size ContentDialog::Measure(Size availableSize) {

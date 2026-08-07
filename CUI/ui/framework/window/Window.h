@@ -5,6 +5,8 @@
 #include "../render/DirtyRegion.h"
 #include "../render/RenderLayer.h"
 #include "../animation/AnimationManager.h"
+#include "../animation/FrameScheduler.h"
+#include "../input/RoutedEvent.h"
 #include "WindowBackdrop.h"
 #include "PopupHost.h"
 #include <windows.h>
@@ -69,6 +71,10 @@ private:
     void SetPressedElement(UIElement* element);
     void SetFocusedElement(UIElement* element);
     void InvalidateAnimatedRegions(bool animationStillActive);
+    void CommitFrame(bool animationStillActive);
+    void FlushLayoutIfNeeded();
+    void DispatchRoutedPointer(RoutedEventType type, Point pt, UIElement* target);
+    bool TryMoveFocus(bool forward);
     void RequestFullRepaint();
     void InvalidatePendingRenderRegions(bool fallbackToFullWindow);
     void DrawRenderStatsOverlay();
@@ -91,11 +97,13 @@ private:
     Rect m_lastAnimationDirtyRect;
     bool m_hasLastAnimationDirtyRect = false;
     AnimationManager m_animationManager;
+    FrameScheduler m_frameScheduler;
     CompositionContext m_compositionContext;
     DirtyRegion m_pendingDirtyRegion;
     RenderLayer m_sceneLayer;
     bool m_showRenderStatsOverlay = true;
     bool m_lowPerformanceMode = false;
+    bool m_flushInputDirty = false;
     BackdropType m_backdropType = BackdropType::None;
     ThemeMode m_themeMode = ThemeMode::Dark;
     std::chrono::steady_clock::time_point m_overlayFpsSampleStart{};

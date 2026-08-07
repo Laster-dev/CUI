@@ -21,6 +21,9 @@ ProgressBar::ProgressBar() {
     SetHeight(3.0f);
     SetCornerRadius(1.5f);
     m_displayValue = GetValue();
+    // Promoted layer enables compose-offset path for indeterminate without
+    // inventing a second clock; content still re-records the thin bar strip.
+    PromoteLayer(true);
 }
 
 std::vector<PropertyMeta> ProgressBar::GetPropertyMetas() const {
@@ -49,13 +52,8 @@ bool ProgressBar::OnAnimationTick() {
         }
     }
 
-    const auto now = std::chrono::steady_clock::now();
-    float deltaSeconds = 1.0f / 60.0f;
-    if (m_lastTickTime.time_since_epoch().count() != 0) {
-        deltaSeconds = std::chrono::duration<float>(now - m_lastTickTime).count();
-        deltaSeconds = std::clamp(deltaSeconds, 1.0f / 240.0f, 0.05f);
-    }
-    m_lastTickTime = now;
+    const float deltaSeconds = UIElement::GetAnimationDeltaSeconds();
+    m_lastTickTime = std::chrono::steady_clock::now();
 
     if (IsIndeterminate()) {
         if (m_visibility != Visibility::Visible || m_bounds.IsEmpty()) {
@@ -66,6 +64,7 @@ bool ProgressBar::OnAnimationTick() {
         if (m_animOffset > 10000.0f) {
             m_animOffset = std::fmod(m_animOffset, 2.0f);
         }
+        MarkRenderRectDirty(m_bounds);
         RequestAnimationTicks();
         return true;
     }
@@ -83,6 +82,7 @@ bool ProgressBar::OnAnimationTick() {
     }
     float smoothing = 1.0f - std::exp(-12.0f * deltaSeconds);
     m_displayValue += delta * smoothing;
+    MarkRenderRectDirty(m_bounds);
     RequestAnimationTicks();
     return true;
 }
@@ -97,10 +97,9 @@ bool ProgressBar::HasSelfAnimation() const {
 }
 
 void ProgressBar::OnRender(GraphicsContext& ctx) {
-    // Kick the pump only while this control is actually painted (live tree).
-    // Showcase builds all pages up-front; SetIsIndeterminate must not keep
-    // off-screen bars registered forever.
-    if (IsIndeterminate()) {
+    // Start only when actually painted (live tree). Gallery pages Build() all
+    // ProgressBars up front — they must not join the pump until shown.
+    if (IsIndeterminate() && !IsAnimationTicksRegistered()) {
         RequestAnimationTicks();
     }
 

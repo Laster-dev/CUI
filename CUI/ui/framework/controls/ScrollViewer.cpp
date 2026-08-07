@@ -282,7 +282,18 @@ void ScrollViewer::MarkScrollVisualDirty(float previousOffset) {
     }
 
     Rect contentViewport = GetContentViewportRect();
-    if (!contentViewport.IsEmpty()) {
+    const bool cacheFullContent = m_contentHeight > 0.0f && m_contentHeight <= kMaxFullContentCacheHeight;
+
+    if (cacheFullContent) {
+        // Full-content bitmap already holds the whole scroll range — scrolling is a
+        // sourceRect blit only. Do NOT mark ContentDirty/TransformDirty or we re-rasterize
+        // every child every frame.
+        if (!contentViewport.IsEmpty()) {
+            MarkRenderRectDirty(contentViewport.Inflate(2.0f));
+        }
+        m_pendingViewportScrollPatch = false;
+        m_pendingViewportPatchDeltaY = 0.0f;
+    } else if (!contentViewport.IsEmpty()) {
         MarkContentLayerRectDirty(contentViewport.Inflate(2.0f));
         m_contentLayer.Invalidate(RenderLayer::TransformDirty);
         m_pendingViewportScrollPatch = true;

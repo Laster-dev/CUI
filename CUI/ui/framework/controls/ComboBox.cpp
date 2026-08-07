@@ -300,7 +300,7 @@ bool ComboBox::HasSelfAnimation() const {
            m_scrollbarAutoHide.NeedsTicks();
 }
 
-void ComboBox::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+void ComboBox::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
     if (HasSelfAnimation() && !m_bounds.IsEmpty()) {
         float itemHeight = GetItemHeight();
         if (itemHeight < 0.0f) itemHeight = 28.0f;
@@ -310,6 +310,10 @@ void ComboBox::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
         dirtyRect = hasDirty ? dirtyRect.Union(area) : area;
         hasDirty = true;
     }
+}
+
+void ComboBox::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    CollectSelfAnimationBounds(dirtyRect, hasDirty);
     for (const auto& child : GetChildren()) {
         if (child) {
             child->CollectAnimationBounds(dirtyRect, hasDirty);

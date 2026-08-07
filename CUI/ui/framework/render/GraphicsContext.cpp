@@ -464,6 +464,24 @@ void GraphicsContext::PopOpacity() {
     m_d2dContext->PopLayer();
 }
 
+void GraphicsContext::PushTransform(const D2D1_MATRIX_3X2_F& transform) {
+    if (!m_d2dContext) {
+        return;
+    }
+    D2D1_MATRIX_3X2_F current = D2D1::IdentityMatrix();
+    m_d2dContext->GetTransform(&current);
+    m_transformStack.push_back(current);
+    m_d2dContext->SetTransform(transform * current);
+}
+
+void GraphicsContext::PopTransform() {
+    if (!m_d2dContext || m_transformStack.empty()) {
+        return;
+    }
+    m_d2dContext->SetTransform(m_transformStack.back());
+    m_transformStack.pop_back();
+}
+
 bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
     if (!m_d2dDevice) {
         return false;

@@ -1,6 +1,7 @@
 #include "Control.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
+#include <cmath>
 
 namespace CUI {
 
@@ -38,6 +39,19 @@ float Control::GetVisualStateTarget() const {
     return 0.0f;
 }
 
+bool Control::VisualStateChromeDiffers() const {
+    D2D1_COLOR_F bg = (m_backgroundToken != ThemeTokenId::Unset)
+        ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
+        : (m_hasBackgroundColor ? m_backgroundColor : D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F hoverBg = (m_hoverBackgroundToken != ThemeTokenId::Unset)
+        ? ResolveThemeColor(m_hoverBackgroundToken, ThemeTokenId::HoverBackground)
+        : bg;
+    return std::abs(bg.r - hoverBg.r) > 0.002f
+        || std::abs(bg.g - hoverBg.g) > 0.002f
+        || std::abs(bg.b - hoverBg.b) > 0.002f
+        || std::abs(bg.a - hoverBg.a) > 0.002f;
+}
+
 D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
     D2D1_COLOR_F bg = (m_backgroundToken != ThemeTokenId::Unset)
         ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
@@ -66,7 +80,14 @@ bool Control::OnAnimationTick() {
     bool childAnimating = UIElement::OnAnimationTick();
     UpdateVisualStateTarget();
     m_visualStateAnim.SetTarget(m_visualStateTarget);
-    const bool selfAnimating = m_visualStateAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.28f, 0.01f });
+    const float prev = m_visualStateAnim.Current();
+    // Finite maxDuration (~CSS transition) + larger epsilon — browser-like.
+    const bool selfAnimating = m_visualStateAnim.Tick(
+        UIElement::GetAnimationDeltaSeconds(),
+        AnimationSpec{ 0.40f, 0.04f });
+    if (selfAnimating || std::abs(m_visualStateAnim.Current() - prev) > 0.004f) {
+        MarkRenderRectDirty(m_bounds);
+    }
     if (selfAnimating) {
         RequestAnimationTicks();
     }
@@ -74,7 +95,7 @@ bool Control::OnAnimationTick() {
 }
 
 bool Control::HasSelfAnimation() const {
-    return m_visualStateAnim.IsAnimating(0.01f);
+    return m_visualStateAnim.IsAnimating(0.04f);
 }
 
 void Control::OnRender(GraphicsContext& ctx) {
@@ -112,25 +133,37 @@ void Control::OnMouseEnter() {
     if (!IsEnabled()) return;
     UIElement::OnMouseEnter();
     UpdateVisualStateTarget();
-    RequestAnimationTicks();
+    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    if (VisualStateChromeDiffers()) {
+        MarkRenderRectDirty(m_bounds);
+        RequestAnimationTicks();
+    }
 }
 
 void Control::OnMouseLeave() {
     UIElement::OnMouseLeave();
     UpdateVisualStateTarget();
-    RequestAnimationTicks();
+    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    if (VisualStateChromeDiffers()) {
+        MarkRenderRectDirty(m_bounds);
+        RequestAnimationTicks();
+    }
 }
 
 void Control::OnMouseDown(Point pt) {
     if (!IsEnabled()) return;
     UIElement::OnMouseDown(pt);
     UpdateVisualStateTarget();
+    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    MarkRenderRectDirty(m_bounds);
     RequestAnimationTicks();
 }
 
 void Control::OnMouseUp(Point pt) {
     UIElement::OnMouseUp(pt);
     UpdateVisualStateTarget();
+    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    MarkRenderRectDirty(m_bounds);
     RequestAnimationTicks();
 }
 

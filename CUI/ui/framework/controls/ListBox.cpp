@@ -566,16 +566,19 @@ bool ListBox::OnAnimationTick() {
         return base || hideAnimating;
     }
     m_scrollYAnim.SetTarget(m_targetScrollY);
-    bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    const float prevScroll = m_scrollY;
+    bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.5f });
     if (anim) {
         m_scrollY = m_scrollYAnim.Current();
         m_scrollbarAutoHide.NotifyActivity(this);
-        MarkRenderContentDirty();
+        if (std::abs(m_scrollY - prevScroll) > 0.25f) {
+            MarkRenderRectDirty(m_bounds);
+        }
     }
     const float prevOpacity = m_scrollbarAutoHide.Opacity();
     const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
     if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(m_bounds);
     }
     if (anim || hideAnimating) {
         RequestAnimationTicks();

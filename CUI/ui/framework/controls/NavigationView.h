@@ -138,6 +138,7 @@ public:
     void OnMouseWheel(float delta) override;
     bool OnAnimationTick() override;
     bool HasSelfAnimation() const override;
+    void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
     void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
 
     // --- Events (WinUI order: ItemInvoked then SelectionChanged) ---
@@ -225,6 +226,7 @@ private:
     std::shared_ptr<StackPanel> m_menuHost;
 
     AnimatedScalar m_paneWidthAnim{ DefaultOpenPaneLength };
+    int m_lastLaidOutPanePixelWidth = -1;
     bool m_ignoreSelectionEvent = false;
 
     // Animated selection indicator ("blue bar") that slides between items.

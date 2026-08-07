@@ -1,5 +1,7 @@
 #include "ToastCenter.h"
+#include "../animation/AnimationManager.h"
 #include <algorithm>
+#include <cmath>
 
 namespace CUI {
 
@@ -30,11 +32,45 @@ void ToastCenter::Compact() {
     }), m_toasts.end());
 }
 
+void ToastCenter::NotifyToastChanged() {
+    RequestAnimationTicks();
+    ScheduleAutoCloseWake();
+}
+
+void ToastCenter::ScheduleAutoCloseWake() {
+    int earliestMs = -1;
+    for (const auto& toast : m_toasts) {
+        if (!toast) {
+            continue;
+        }
+        const int remain = toast->GetAutoCloseRemainMs();
+        if (remain < 0) {
+            continue;
+        }
+        if (earliestMs < 0 || remain < earliestMs) {
+            earliestMs = remain;
+        }
+    }
+
+    AnimationManager* mgr = AnimationManager::Current();
+    if (!mgr) {
+        return;
+    }
+    if (earliestMs < 0) {
+        mgr->CancelWake(this);
+        return;
+    }
+    mgr->RequestWake(
+        this,
+        AnimationManager::clock::now() + std::chrono::milliseconds(earliestMs));
+}
+
 std::shared_ptr<Toast> ToastCenter::AddToast(const std::shared_ptr<Toast>& toast) {
     if (!toast) return nullptr;
+    toast->SetHost(this);
     toast->Show();
     m_toasts.push_back(toast);
-    RequestAnimationTicks();
+    NotifyToastChanged();
     return toast;
 }
 
@@ -86,6 +122,7 @@ void ToastCenter::DismissAll() {
     for (auto& toast : m_toasts) {
         if (toast) toast->Hide();
     }
+    NotifyToastChanged();
 }
 
 size_t ToastCenter::GetActiveCount() const {
@@ -186,16 +223,19 @@ UIElement* ToastCenter::OnHitTestOverlay(float x, float y) {
 bool ToastCenter::OnAnimationTick() {
     bool active = false;
     for (auto& toast : m_toasts) {
-        if (toast && toast->OnAnimationTick()) active = true;
+        if (toast && toast->OnAnimationTick()) {
+            active = true;
+        }
     }
     Compact();
+    ScheduleAutoCloseWake();
     if (active) {
         RequestAnimationTicks();
     }
     return active;
 }
 
-void ToastCenter::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+void ToastCenter::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
     for (const auto& toast : m_toasts) {
         if (!toast || !toast->HasSelfAnimation()) {
             continue;
@@ -209,6 +249,10 @@ void ToastCenter::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const 
         dirtyRect = hasDirty ? dirtyRect.Union(bounds) : bounds;
         hasDirty = true;
     }
+}
+
+void ToastCenter::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    CollectSelfAnimationBounds(dirtyRect, hasDirty);
 }
 
 } // namespace CUI

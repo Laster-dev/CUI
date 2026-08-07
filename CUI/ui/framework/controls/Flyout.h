@@ -67,6 +67,7 @@ public:
     virtual UIElement* HitTestOverlay(float x, float y) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
+    virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
     virtual bool ShouldClipToBounds() const override { return false; }
 

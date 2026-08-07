@@ -15,6 +15,8 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <functional>
+#include <list>
 
 using namespace CUI;
 using namespace CUI::DSL;
@@ -43,57 +45,58 @@ public:
         struct SampleEntry {
             std::string tag;
             std::string category;
-            std::shared_ptr<UIElement> content;
             std::string label;
+            std::function<ShowcasePage()> factory;
         };
 
         std::vector<SampleEntry> samples;
-        auto add = [&](const std::string& tag, const std::string& category, const ShowcasePage& page) {
-            samples.push_back(SampleEntry{ tag, category, page.content, page.tabTitle });
+        auto add = [&](const std::string& tag, const std::string& category, const std::string& label,
+                       std::function<ShowcasePage()> factory) {
+            samples.push_back(SampleEntry{ tag, category, label, std::move(factory) });
         };
 
-        // --- Build samples (grouped like WinUI3 Gallery) ---
-        add("button", "基础 Controls", BuildButtonPage(m_ctx));
-        add("textblock", "基础 Controls", BuildTextBlockPage(m_ctx));
-        add("textbox", "基础 Controls", BuildTextBoxPage(m_ctx));
-        add("passwordbox", "基础 Controls", BuildPasswordBoxPage(m_ctx));
-        add("checkbox", "基础 Controls", BuildCheckBoxPage(m_ctx));
-        add("radiobutton", "基础 Controls", BuildRadioButtonPage(m_ctx));
-        add("toggleswitch", "基础 Controls", BuildToggleSwitchPage(m_ctx));
-        add("combobox", "基础 Controls", BuildComboBoxPage(m_ctx));
+        // Factories only — pages build on first navigate (browser/Flutter route style).
+        add("button", "基础 Controls", "Button", [ctx = m_ctx] { return BuildButtonPage(ctx); });
+        add("textblock", "基础 Controls", "TextBlock", [ctx = m_ctx] { return BuildTextBlockPage(ctx); });
+        add("textbox", "基础 Controls", "TextBox", [ctx = m_ctx] { return BuildTextBoxPage(ctx); });
+        add("passwordbox", "基础 Controls", "PasswordBox", [ctx = m_ctx] { return BuildPasswordBoxPage(ctx); });
+        add("checkbox", "基础 Controls", "CheckBox", [ctx = m_ctx] { return BuildCheckBoxPage(ctx); });
+        add("radiobutton", "基础 Controls", "RadioButton", [ctx = m_ctx] { return BuildRadioButtonPage(ctx); });
+        add("toggleswitch", "基础 Controls", "ToggleSwitch", [ctx = m_ctx] { return BuildToggleSwitchPage(ctx); });
+        add("combobox", "基础 Controls", "ComboBox", [ctx = m_ctx] { return BuildComboBoxPage(ctx); });
 
-        add("slider", "值/进度", BuildSliderPage(m_ctx));
-        add("progressbar", "值/进度", BuildProgressBarPage(m_ctx));
-        add("numberbox", "值/进度", BuildNumberBoxPage(m_ctx));
-        add("datepicker", "值/进度", BuildDatePickerPage(m_ctx));
-        add("timepicker", "值/进度", BuildTimePickerPage(m_ctx));
-        add("colorpicker", "值/进度", BuildColorPickerPage(m_ctx));
+        add("slider", "值/进度", "Slider", [ctx = m_ctx] { return BuildSliderPage(ctx); });
+        add("progressbar", "值/进度", "ProgressBar", [ctx = m_ctx] { return BuildProgressBarPage(ctx); });
+        add("numberbox", "值/进度", "NumberBox", [ctx = m_ctx] { return BuildNumberBoxPage(ctx); });
+        add("datepicker", "值/进度", "DatePicker", [ctx = m_ctx] { return BuildDatePickerPage(ctx); });
+        add("timepicker", "值/进度", "TimePicker", [ctx = m_ctx] { return BuildTimePickerPage(ctx); });
+        add("colorpicker", "值/进度", "ColorPicker", [ctx = m_ctx] { return BuildColorPickerPage(ctx); });
 
-        add("breadcrumb", "导航与数据", BuildBreadcrumbPage(m_ctx));
-        add("paging", "导航与数据", BuildPagingPage(m_ctx));
-        add("treeview", "导航与数据", BuildTreeViewPage(m_ctx));
-        add("hyperlink", "导航与数据", BuildHyperlinkPage(m_ctx));
-        add("listbox", "列表", BuildListBoxPage(m_ctx));
-        add("listview", "列表", BuildListViewPage(m_ctx));
+        add("breadcrumb", "导航与数据", "Breadcrumb", [ctx = m_ctx] { return BuildBreadcrumbPage(ctx); });
+        add("paging", "导航与数据", "Paging", [ctx = m_ctx] { return BuildPagingPage(ctx); });
+        add("treeview", "导航与数据", "TreeView", [ctx = m_ctx] { return BuildTreeViewPage(ctx); });
+        add("hyperlink", "导航与数据", "Hyperlink", [ctx = m_ctx] { return BuildHyperlinkPage(ctx); });
+        add("listbox", "列表", "ListBox", [ctx = m_ctx] { return BuildListBoxPage(ctx); });
+        add("listview", "列表", "ListView", [ctx = m_ctx] { return BuildListViewPage(ctx); });
 
-        add("splitter", "布局", BuildSplitterPage(m_ctx));
-        add("collapse", "布局", BuildCollapsePage(m_ctx));
-        add("grid", "布局", BuildGridPage(m_ctx));
-        add("wrap", "布局", BuildWrapPage(m_ctx));
-        add("dock", "布局", BuildDockPage(m_ctx));
-        add("uniformgrid", "布局", BuildUniformPage(m_ctx));
-        add("stackpanel", "布局", BuildStackPanelPage(m_ctx));
-        add("scrollviewer", "布局", BuildScrollViewerPage(m_ctx));
+        add("splitter", "布局", "Splitter", [ctx = m_ctx] { return BuildSplitterPage(ctx); });
+        add("collapse", "布局", "Collapse", [ctx = m_ctx] { return BuildCollapsePage(ctx); });
+        add("grid", "布局", "Grid", [ctx = m_ctx] { return BuildGridPage(ctx); });
+        add("wrap", "布局", "Wrap", [ctx = m_ctx] { return BuildWrapPage(ctx); });
+        add("dock", "布局", "Dock", [ctx = m_ctx] { return BuildDockPage(ctx); });
+        add("uniformgrid", "布局", "UniformGrid", [ctx = m_ctx] { return BuildUniformPage(ctx); });
+        add("stackpanel", "布局", "StackPanel", [ctx = m_ctx] { return BuildStackPanelPage(ctx); });
+        add("scrollviewer", "布局", "ScrollViewer", [ctx = m_ctx] { return BuildScrollViewerPage(ctx); });
 
-        add("flyout", "交互/浮层", BuildFlyoutPage(m_ctx));
-        add("dialog", "交互/浮层", BuildDialogPage(m_ctx));
-        add("toast", "交互/浮层", BuildToastPage(m_ctx));
-        add("stream", "终端/媒体", BuildStreamPage(m_ctx));
-        add("terminal", "终端/媒体", BuildTerminalPage(m_ctx));
+        add("flyout", "交互/浮层", "Flyout", [ctx = m_ctx] { return BuildFlyoutPage(ctx); });
+        add("dialog", "交互/浮层", "Dialog", [ctx = m_ctx] { return BuildDialogPage(ctx); });
+        add("toast", "交互/浮层", "Toast", [ctx = m_ctx] { return BuildToastPage(ctx); });
+        add("stream", "终端/媒体", "Stream", [ctx = m_ctx] { return BuildStreamPage(ctx); });
+        add("terminal", "终端/媒体", "Terminal", [ctx = m_ctx] { return BuildTerminalPage(ctx); });
 
-        add("navigationview", "交互/导航", BuildNavigationViewPage(m_ctx));
-        add("tabview", "交互/导航", BuildTabViewPage(m_ctx));
-        add("canvas", "画布与渲染", BuildCanvasPage(m_ctx));
+        add("navigationview", "交互/导航", "NavigationView", [ctx = m_ctx] { return BuildNavigationViewPage(ctx); });
+        add("tabview", "交互/导航", "TabView", [ctx = m_ctx] { return BuildTabViewPage(ctx); });
+        add("canvas", "画布与渲染", "Canvas", [ctx = m_ctx] { return BuildCanvasPage(ctx); });
 
         // --- Settings content (WinUI Gallery: theme/backdrop) ---
         std::shared_ptr<UIElement> settingsContent;
@@ -151,11 +154,40 @@ public:
         nav->SetIsSettingsVisible(true);
         nav->SetIsPaneOpen(true);
 
-        std::unordered_map<std::string, std::shared_ptr<UIElement>> contentByTag;
-        contentByTag.reserve(samples.size());
-        for (const auto& s : samples) {
-            contentByTag.emplace(s.tag, s.content);
-        }
+        struct PageCache {
+            std::unordered_map<std::string, std::shared_ptr<UIElement>> content;
+            std::list<std::string> lru;
+            std::vector<SampleEntry> samples;
+
+            std::shared_ptr<UIElement> Resolve(const std::string& tag) {
+                constexpr size_t kMaxCachedPages = 3;
+                auto cached = content.find(tag);
+                if (cached != content.end()) {
+                    lru.remove(tag);
+                    lru.push_front(tag);
+                    return cached->second;
+                }
+                for (const auto& s : samples) {
+                    if (s.tag != tag || !s.factory) {
+                        continue;
+                    }
+                    ShowcasePage page = s.factory();
+                    content.emplace(tag, page.content);
+                    lru.push_front(tag);
+                    while (lru.size() > kMaxCachedPages) {
+                        const std::string evict = lru.back();
+                        lru.pop_back();
+                        if (evict != tag) {
+                            content.erase(evict);
+                        }
+                    }
+                    return page.content;
+                }
+                return nullptr;
+            }
+        };
+        auto pageCache = std::make_shared<PageCache>();
+        pageCache->samples = samples;
 
         std::string initialTag = samples.empty() ? std::string() : samples.front().tag;
         if (!samples.empty()) {
@@ -245,11 +277,15 @@ public:
             }
         }
 
-        if (!initialTag.empty() && contentByTag.count(initialTag)) {
-            nav->SetContent(contentByTag[initialTag]);
+        if (!initialTag.empty()) {
+            if (auto content = pageCache->Resolve(initialTag)) {
+                nav->SetContent(content);
+            }
         } else if (!samples.empty()) {
-            nav->SetContent(samples.front().content);
             initialTag = samples.front().tag;
+            if (auto content = pageCache->Resolve(initialTag)) {
+                nav->SetContent(content);
+            }
         }
 
         // Ensure indicator starts in sync.
@@ -261,7 +297,7 @@ public:
 
         // Switch content on invocation.
         nav->OnItemInvoked().Connect([nav, settingsContent, win, streamImg = m_ctx.streamImage,
-                                       contentByTag](NavigationView*, const NavigationViewItemInvokedEventArgs& args) mutable {
+                                       pageCache](NavigationView*, const NavigationViewItemInvokedEventArgs& args) mutable {
             if (args.IsSettingsInvoked) {
                 if (win) StopStreamingThread();
                 nav->SetContent(settingsContent);
@@ -272,10 +308,10 @@ public:
             const std::string tag = args.InvokedItem->GetTag();
             if (tag.empty()) return;
 
-            auto it = contentByTag.find(tag);
-            if (it == contentByTag.end()) return;
+            auto content = pageCache->Resolve(tag);
+            if (!content) return;
 
-            nav->SetContent(it->second);
+            nav->SetContent(content);
             if (win) {
                 if (tag == "stream") StartStreamingThread(win, streamImg);
                 else StopStreamingThread();

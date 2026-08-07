@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../core/Value.h"
 #include <chrono>
 #include <vector>
 
@@ -26,6 +27,7 @@ public:
     bool ConsumeFrameRequest();
 
     // One-shot wake: re-register element when deadline elapses (scrollbar idle hide, etc.).
+    // Also schedules FrameScheduler::ScheduleFrameAt so the clock does not need mouse input.
     void RequestWake(UIElement* element, clock::time_point when);
     void CancelWake(UIElement* element);
     void DispatchDueWakes(clock::time_point now);
@@ -47,6 +49,9 @@ public:
 
     // Ticks registered elements only. Unregisters any that return idle (false).
     bool Tick();
+
+    // Dirty rects from the registered animator set only (O(animating), not O(tree)).
+    void CollectAnimatingBounds(Rect& dirtyRect, bool& hasDirty) const;
 
 private:
     struct WakeEntry {

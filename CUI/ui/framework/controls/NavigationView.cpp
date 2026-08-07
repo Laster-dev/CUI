@@ -414,6 +414,7 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
     // every tick; unioned with pane ripple AABB covers the whole window and forces
     // full-scene repaints — that is what makes NavigationViewItem ripples stutter.
     if (m_content) {
+        m_content->OnNavigatedFrom();
         RemoveChildQuiet(m_content);
     }
     m_content = content;
@@ -436,6 +437,8 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
     RelayoutChildren();
     EnsureContentZOrder();
     MarkRenderRectDirty(GetContentAreaRect());
+    InvalidateMeasure();
+    m_content->OnNavigatedTo();
 }
 
 void NavigationView::SetHeader(const std::string& header) {
@@ -1343,7 +1346,13 @@ bool NavigationView::OnAnimationTick() {
         MarkRenderRectDirty(GetContentAreaRect());
     }
     if (widthAnim) {
-        RelayoutChildren();
+        // Layout only when the pane crosses an integer pixel — sub-pixel RelayoutChildren
+        // was Measure/Arrange-ing the whole page every refresh frame.
+        const int pixelW = static_cast<int>(std::lround(m_paneWidthAnim.Current()));
+        if (pixelW != m_lastLaidOutPanePixelWidth) {
+            m_lastLaidOutPanePixelWidth = pixelW;
+            RelayoutChildren();
+        }
         MarkRenderRectDirty(m_bounds);
     }
 
@@ -1365,7 +1374,7 @@ bool NavigationView::HasSelfAnimation() const {
         || m_contentFadeAnim.IsAnimating(0.001f);
 }
 
-void NavigationView::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+void NavigationView::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
     if (m_visibility != Visibility::Visible) {
         return;
     }
@@ -1404,7 +1413,10 @@ void NavigationView::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) con
             hasDirty = true;
         }
     }
+}
 
+void NavigationView::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    CollectSelfAnimationBounds(dirtyRect, hasDirty);
     for (const auto& child : GetChildren()) {
         if (child) {
             child->CollectAnimationBounds(dirtyRect, hasDirty);

@@ -305,7 +305,9 @@ void TitleBar::OnMouseDown(Point pt) {
 
 void TitleBar::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
-    m_menuBar.OnMouseMove(pt);
+    if (m_menuBar.HandleMouseMove(pt)) {
+        m_menuChromeDirty = true;
+    }
 }
 
 void TitleBar::OnMouseLeave() {

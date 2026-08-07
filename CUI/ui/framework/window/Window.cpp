@@ -10,6 +10,8 @@
 #include "../controls/ColorPicker.h"
 #include "../controls/ComboBox.h"
 #include "../controls/Flyout.h"
+#include "../animation/FrameScheduler.h"
+#include "../input/RoutedEvent.h"
 #include <windowsx.h>
 #include <dwmapi.h>
 #include <imm.h>
@@ -433,12 +435,10 @@ std::shared_ptr<UIElement> Window::LockElement(const std::weak_ptr<UIElement>& e
 }
 
 bool Window::NeedsContinuousMouseRedraw(UIElement* element) {
-    if (!element) {
-        return false;
-    }
-
-    const std::string className = element->GetClassName();
-    return className == "TitleBar" || className == "MenuBar";
+    (void)element;
+    // TitleBar/MenuBar already mark local dirty when hover index changes.
+    // Returning true here forced a full title-bar Present on every WM_MOUSEMOVE pixel.
+    return false;
 }
 
 void Window::SetHoveredElement(UIElement* element) {
@@ -510,7 +510,9 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
 
     Rect dirtyRect;
     bool hasDirty = false;
-    m_rootElement->CollectAnimationBounds(dirtyRect, hasDirty);
+    // Only registered animators — full-tree CollectAnimationBounds was O(all controls)
+    // every hover/scroll frame.
+    m_animationManager.CollectAnimatingBounds(dirtyRect, hasDirty);
     m_popupHost.CollectDirty(dirtyRect, hasDirty);
 
     if (m_hasLastAnimationDirtyRect) {
@@ -542,7 +544,110 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
     }
 }
 
+void Window::CommitFrame(bool animationStillActive) {
+    InvalidateAnimatedRegions(animationStillActive);
+    InvalidatePendingRenderRegions(false);
+}
+
+void Window::FlushLayoutIfNeeded() {
+    if (!m_rootElement || !m_hwnd) {
+        return;
+    }
+    if (!m_rootElement->IsMeasureDirty() && !m_rootElement->IsArrangeDirty()) {
+        return;
+    }
+    RECT rc{};
+    GetClientRect(m_hwnd, &rc);
+    const float padLeft = 0.0f;
+    const float padTop = 0.0f;
+    const float layoutW = m_logicalClientSize.width > 0.0f
+        ? m_logicalClientSize.width
+        : static_cast<float>(rc.right - rc.left) / (m_dpiScale > 0.0f ? m_dpiScale : 1.0f);
+    const float layoutH = m_logicalClientSize.height > 0.0f
+        ? m_logicalClientSize.height
+        : static_cast<float>(rc.bottom - rc.top) / (m_dpiScale > 0.0f ? m_dpiScale : 1.0f);
+    m_rootElement->FlushLayout(Size(layoutW, layoutH), Rect(padLeft, padTop, layoutW, layoutH));
+}
+
+void Window::DispatchRoutedPointer(RoutedEventType type, Point pt, UIElement* target) {
+    if (!target) {
+        return;
+    }
+    std::vector<UIElement*> path;
+    for (UIElement* walk = target; walk; walk = walk->GetParent()) {
+        path.push_back(walk);
+    }
+
+    RoutedEventArgs args;
+    args.type = type;
+    args.position = pt;
+    args.originalSource = target;
+
+    args.phase = RoutedEventPhase::Tunnel;
+    for (auto it = path.rbegin(); it != path.rend() && !args.handled; ++it) {
+        if (*it != target) {
+            (*it)->OnRoutedEvent(args);
+        }
+    }
+
+    if (!args.handled) {
+        args.phase = RoutedEventPhase::Target;
+        target->OnRoutedEvent(args);
+    }
+
+    args.phase = RoutedEventPhase::Bubble;
+    for (UIElement* walk : path) {
+        if (args.handled) {
+            break;
+        }
+        if (walk != target) {
+            walk->OnRoutedEvent(args);
+        }
+    }
+}
+
+bool Window::TryMoveFocus(bool forward) {
+    if (!m_rootElement) {
+        return false;
+    }
+    std::vector<UIElement*> focusable;
+    std::function<void(UIElement*)> walk = [&](UIElement* el) {
+        if (!el || el->GetVisibility() != Visibility::Visible || !el->IsEnabled()) {
+            return;
+        }
+        // TextBox and similar accept focus via classic focus path.
+        if (dynamic_cast<TextBox*>(el)) {
+            focusable.push_back(el);
+        }
+        for (auto& child : el->GetChildren()) {
+            walk(child.get());
+        }
+    };
+    walk(m_rootElement.get());
+    if (focusable.empty()) {
+        return false;
+    }
+
+    int index = -1;
+    if (auto focused = LockElement(m_focusedElement)) {
+        for (int i = 0; i < static_cast<int>(focusable.size()); ++i) {
+            if (focusable[i] == focused.get()) {
+                index = i;
+                break;
+            }
+        }
+    }
+    int next = forward
+        ? (index + 1) % static_cast<int>(focusable.size())
+        : (index <= 0 ? static_cast<int>(focusable.size()) - 1 : index - 1);
+    SetFocusedElement(focusable[next]);
+    return true;
+}
+
 Window::~Window() {
+    if (FrameScheduler::Current() == &m_frameScheduler) {
+        FrameScheduler::SetCurrent(nullptr);
+    }
     if (AnimationManager::Current() == &m_animationManager) {
         AnimationManager::SetCurrent(nullptr);
     }
@@ -628,6 +733,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     PopupHost::SetCurrent(&m_popupHost);
     AnimationManager::SetCurrent(&m_animationManager);
+    FrameScheduler::SetCurrent(&m_frameScheduler);
     return true;
 }
 
@@ -701,7 +807,6 @@ void Window::SetLowPerformanceMode(bool enabled) {
 void Window::RunMessageLoop() {
     MSG msg = {};
     using clock = std::chrono::steady_clock;
-    auto lastFrameTime = clock::now();
     bool animationActive = false;
 
     for (;;) {
@@ -711,7 +816,6 @@ void Window::RunMessageLoop() {
             if (msg.message == WM_QUIT) {
                 return;
             }
-            // Coalesce mouse-move spam: keep only the latest position.
             if (msg.message == WM_MOUSEMOVE) {
                 MSG newest = msg;
                 while (PeekMessage(&newest, m_hwnd, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE)) {
@@ -722,22 +826,41 @@ void Window::RunMessageLoop() {
             DispatchMessage(&msg);
         }
 
+        if (m_flushInputDirty) {
+            m_flushInputDirty = false;
+            InvalidatePendingRenderRegions(false);
+        }
+
         const bool wasAnimationActive = animationActive;
         const auto now = clock::now();
         const float refreshHz = GetWindowRefreshRateHz(m_hwnd);
-        const double targetFps = m_lowPerformanceMode ? 8.0 : static_cast<double>((std::max)(30.0f, refreshHz));
-        const auto targetFrame = std::chrono::duration<double>(1.0 / targetFps);
-        m_animationManager.SetTargetFrameSeconds(static_cast<float>(targetFrame.count()));
-        const bool frameRequested = m_animationManager.ConsumeFrameRequest();
+        const double targetFps = m_lowPerformanceMode
+            ? 8.0
+            : (std::min)(60.0, static_cast<double>((std::max)(30.0f, refreshHz)));
+        const auto targetFrame = std::chrono::duration_cast<clock::duration>(
+            std::chrono::duration<double>(1.0 / targetFps));
+        m_frameScheduler.SetMinFrameInterval(targetFrame);
+        m_animationManager.SetTargetFrameSeconds(static_cast<float>(1.0 / targetFps));
+
         m_animationManager.DispatchDueWakes(now);
-        const bool shouldProbeAnimation = hadMessage || animationActive
-            || m_animationManager.HasAnimating() || frameRequested;
-        // Always allow a tick when animating OR when input arrived — but never
-        // tick faster than the display cadence while animating.
-        const bool frameDue = !animationActive || (now - lastFrameTime) >= targetFrame;
+        if (m_animationManager.HasAnimating() || m_animationManager.ConsumeFrameRequest()) {
+            m_frameScheduler.ScheduleFrame();
+        }
+        if (auto focused = LockElement(m_focusedElement)) {
+            if (focused->NeedsAutoScrollTick()) {
+                m_frameScheduler.ScheduleFrame();
+            }
+        }
+        if (animationActive) {
+            m_frameScheduler.ScheduleFrame();
+        }
+
+        const bool frameDue = m_frameScheduler.ConsumeDue(now);
         bool animating = animationActive;
-        bool didAnimationTick = false;
-        if (shouldProbeAnimation && frameDue && m_rootElement) {
+        bool didFrame = false;
+        if (frameDue && m_rootElement) {
+            FlushLayoutIfNeeded();
+
             m_animationManager.BeginFrame(now, animationActive);
             UIElement::SetAnimationDeltaSeconds(m_animationManager.GetDeltaSeconds());
             animating = m_animationManager.Tick();
@@ -750,33 +873,53 @@ void Window::RunMessageLoop() {
                     animating = true;
                 }
             }
-            lastFrameTime = now;
-            didAnimationTick = true;
+            didFrame = true;
         }
         animationActive = animating;
 
-        if (didAnimationTick && (animating || wasAnimationActive)) {
-            InvalidateAnimatedRegions(animating);
+        bool presented = false;
+        if (didFrame) {
+            CommitFrame(animating || wasAnimationActive);
+            // Drain WM_PAINT now so Present(1,0) is the vsync clock. Sleeping
+            // another minInterval on top of Present was capping us near ~30 FPS.
+            MSG paintMsg = {};
+            while (PeekMessage(&paintMsg, m_hwnd, WM_PAINT, WM_PAINT, PM_REMOVE)) {
+                TranslateMessage(&paintMsg);
+                DispatchMessage(&paintMsg);
+                presented = true;
+            }
+            if (animating) {
+                m_frameScheduler.ScheduleFrame();
+            }
         }
 
         if (!hadMessage) {
             if (PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
                 continue;
             }
-            if (animationActive || m_animationManager.HasAnimating()) {
-                auto elapsed = std::chrono::duration<double>(clock::now() - lastFrameTime);
-                DWORD waitMs = elapsed >= targetFrame
-                    ? 0
-                    : static_cast<DWORD>(std::ceil(std::chrono::duration<double, std::milli>(targetFrame - elapsed).count()));
+            const bool wantContinuous = animationActive || m_animationManager.HasAnimating();
+            if (wantContinuous) {
+                // Present already blocked for vsync when we painted; do not sleep
+                // another frame. If Commit produced no paint, yield briefly.
+                const DWORD waitMs = (didFrame && presented) ? 0
+                    : static_cast<DWORD>((std::max)(1, static_cast<int>(
+                        std::chrono::duration_cast<std::chrono::milliseconds>(targetFrame).count())));
+                MsgWaitForMultipleObjectsEx(0, nullptr, waitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            } else if (m_frameScheduler.HasPending() || m_animationManager.HasPendingWake()) {
+                const int schedMs = m_frameScheduler.GetMsUntilDeadline(clock::now());
                 const int wakeMs = m_animationManager.GetMsUntilNextWake(clock::now());
-                if (wakeMs >= 0) {
-                    waitMs = (std::min)(waitMs, static_cast<DWORD>(wakeMs));
+                int waitMs = -1;
+                if (schedMs >= 0) {
+                    waitMs = schedMs;
                 }
-                MsgWaitForMultipleObjectsEx(0, nullptr, waitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
-            } else if (m_animationManager.HasPendingWake()) {
-                const int wakeMs = m_animationManager.GetMsUntilNextWake(clock::now());
-                const DWORD waitMs = (wakeMs <= 0) ? 0 : static_cast<DWORD>(wakeMs);
-                MsgWaitForMultipleObjectsEx(0, nullptr, waitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                if (wakeMs >= 0) {
+                    waitMs = (waitMs < 0) ? wakeMs : (std::min)(waitMs, wakeMs);
+                }
+                if (waitMs < 0) {
+                    waitMs = 0;
+                }
+                MsgWaitForMultipleObjectsEx(
+                    0, nullptr, static_cast<DWORD>(waitMs), QS_ALLINPUT, MWMO_INPUTAVAILABLE);
             } else {
                 WaitMessage();
             }
@@ -1076,24 +1219,18 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             bool menuBoundsChanged = (oldMenuBounds.x != newMenuBounds.x || oldMenuBounds.y != newMenuBounds.y ||
                                       oldMenuBounds.width != newMenuBounds.width || oldMenuBounds.height != newMenuBounds.height);
 
-            if (moved || menuBoundsChanged || !oldMenuBounds.IsEmpty()) {
+            if (moved || menuBoundsChanged) {
                 if (!oldMenuBounds.IsEmpty()) {
                     m_pendingDirtyRegion.AddRect(oldMenuBounds.Inflate(4.0f));
                 }
                 if (!newMenuBounds.IsEmpty()) {
                     m_pendingDirtyRegion.AddRect(newMenuBounds.Inflate(4.0f));
                 }
-                // MenuBar 顶栏项高亮也必须刷新，否则快速滑过时上一菜单会「假亮」。
-                if (m_rootElement) {
-                    for (const auto& child : m_rootElement->GetChildren()) {
-                        if (auto* titleBar = dynamic_cast<TitleBar*>(child.get())) {
-                            m_pendingDirtyRegion.AddRect(titleBar->GetBounds().Inflate(2.0f));
-                            break;
-                        }
-                    }
-                }
-                // Dirty rects come from MarkRenderContentDirty / menu bounds — no full-window fallback.
-                InvalidatePendingRenderRegions(false);
+                // Defer flush to the message loop so a burst of hover changes coalesces
+                // into one Collect+Invalidate instead of one Present setup per TextBox.
+                m_flushInputDirty = true;
+            } else if (dragging) {
+                m_flushInputDirty = true;
             }
         }
         return 0;
@@ -1161,9 +1298,28 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             RequestFullRepaint();
             return 0;
         }
+        if (wParam == VK_TAB) {
+            const bool forward = (GetKeyState(VK_SHIFT) & 0x8000) == 0;
+            if (TryMoveFocus(forward)) {
+                InvalidatePendingRenderRegions(false);
+                return 0;
+            }
+        }
         if (auto focused = LockElement(m_focusedElement)) {
             if (focused->IsEnabled()) {
-                focused->OnKeyDown(static_cast<int>(wParam));
+                RoutedEventArgs args;
+                args.type = RoutedEventType::KeyDown;
+                args.phase = RoutedEventPhase::Target;
+                args.keyCode = static_cast<int>(wParam);
+                args.originalSource = focused.get();
+                focused->OnRoutedEvent(args);
+                if (!args.handled) {
+                    // Bubble key to ancestors for global shortcuts.
+                    args.phase = RoutedEventPhase::Bubble;
+                    for (UIElement* walk = focused->GetParent(); walk && !args.handled; walk = walk->GetParent()) {
+                        walk->OnRoutedEvent(args);
+                    }
+                }
                 InvalidatePendingRenderRegions(true);
             }
         }
@@ -1605,7 +1761,9 @@ bool Window::OnMouseMove(int x, int y) {
 
     if (hovered) {
         hovered->OnMouseMove(Point(fx, fy));
-        dirty = dirty || NeedsContinuousMouseRedraw(hovered.get());
+        if (auto* titleBar = dynamic_cast<TitleBar*>(hovered.get())) {
+            dirty = dirty || titleBar->ConsumeMenuChromeDirty();
+        }
         // Keep m_activeContextMenu synchronized if MenuBar opened a new dropdown
         UIElement* curr = hovered.get();
         while (curr) {

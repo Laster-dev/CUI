@@ -21,13 +21,19 @@ enum class ToastType {
     Error
 };
 
+class ToastCenter;
+
 class Toast : public UIElement {
 public:
     Toast();
-    virtual ~Toast() = default;
+    virtual ~Toast() override;
 
     virtual const char* GetClassName() const override { return "Toast"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
+
+    void SetHost(ToastCenter* host) { m_host = host; }
+    ToastCenter* GetHost() const { return m_host; }
+    void RequestHostTicks();
 
     void SetTitle(const std::string& title);
     void SetMessage(const std::string& message);
@@ -53,7 +59,9 @@ public:
     void Hide();
     bool IsOpen() const { return m_state == 1 || m_state == 2 || m_state == 4; }
     bool IsAlive() const { return m_state != 3; }
-    bool IsAnimating() const { return IsAlive(); }
+    bool IsAnimating() const { return m_state == 1 || m_state == 4; }
+    // Remaining ms until auto-close fires, or -1 if none.
+    int GetAutoCloseRemainMs() const;
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;
@@ -128,6 +136,7 @@ private:
     float m_currentOpacity = 0.0f;
     float m_currentSlideX = 0.0f;
     float m_currentSlideY = 0.0f;
+    ToastCenter* m_host = nullptr;
 };
 
 } // namespace CUI

@@ -41,6 +41,8 @@ public:
     void PopClip();
     void PushOpacity(float opacity);
     void PopOpacity();
+    void PushTransform(const D2D1_MATRIX_3X2_F& transform);
+    void PopTransform();
     bool EnsureLayerCache(RenderLayer& layer, Size sizeInDips);
     // Lazily allocate the twin scratch bitmap (ScrollViewer scroll-patch path only).
     bool EnsureLayerScratch(RenderLayer& layer);
@@ -149,6 +151,7 @@ private:
     std::vector<D2D1_RECT_F> m_clipStack;
     std::vector<bool> m_clipIsLayer; // true = PushLayer (rounded), false = axis-aligned
     std::vector<float> m_opacityStack;
+    std::vector<D2D1_MATRIX_3X2_F> m_transformStack;
     Rect m_paintBounds;
 
     struct TargetState {

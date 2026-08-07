@@ -6,6 +6,7 @@
 #include "../render/RenderNode.h"
 #include "../style/ThemeTokenId.h"
 #include "../layout/Layout.h"
+#include "../input/RoutedEvent.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -282,6 +283,8 @@ public:
     virtual bool HasSelfAnimation() const { return false; }
     // Modal overlays (ContentDialog) — Window freezes the scene layer while true.
     virtual bool IsModalOverlayOpen() const { return false; }
+    // Self contribution only (no child walk). Used by the animation pump dirty path.
+    virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const;
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const;
     virtual void CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume = true);
     void RequestAnimationTicks();
@@ -296,6 +299,33 @@ public:
     virtual void SyncRenderState();
     virtual void MarkRenderContentDirty();
     virtual void MarkRenderRectDirty(const Rect& rect);
+
+    // Layout dirty axis (WPF InvalidateMeasure / Flutter markNeedsLayout).
+    void InvalidateMeasure();
+    void InvalidateArrange();
+    bool IsMeasureDirty() const { return m_measureDirty; }
+    bool IsArrangeDirty() const { return m_arrangeDirty; }
+    // Incremental: only dirty subtrees. Window calls this each frame before animate.
+    void FlushLayout(Size availableSize, const Rect& arrangeRect);
+
+    // Composition properties — when promoted, opacity/offset animate without content re-raster.
+    void PromoteLayer(bool promote);
+    bool IsLayerPromoted() const { return m_layerPromoted; }
+    void SetComposeOpacity(float opacity);
+    float GetComposeOpacity() const { return m_composeOpacity; }
+    void SetComposeOffset(float x, float y);
+    float GetComposeOffsetX() const { return m_composeOffsetX; }
+    float GetComposeOffsetY() const { return m_composeOffsetY; }
+    bool HasComposeDirty() const { return m_composeDirty; }
+    void ClearComposeDirty() { m_composeDirty = false; }
+
+    // Page / subtree lifecycle (NavigationView content swap).
+    virtual void OnNavigatedTo() {}
+    virtual void OnNavigatedFrom();
+    void PauseAnimationSubtree();
+
+    // Routed events (tunnel then bubble). Default forwards to classic OnMouse*/OnKey*.
+    virtual void OnRoutedEvent(RoutedEventArgs& args);
 
     void SetContextMenu(std::shared_ptr<ContextMenu> menu) { m_contextMenu = menu; }
     std::shared_ptr<ContextMenu> GetContextMenu() const { return m_contextMenu; }
@@ -343,6 +373,15 @@ protected:
     int m_rows = 1;
     int m_columns = 1;
     bool m_clipToBounds = false;
+    bool m_subtreeRenderDirty = false;
+    bool m_measureDirty = true;
+    bool m_arrangeDirty = true;
+    bool m_layerPromoted = false;
+    bool m_composeDirty = false;
+    float m_composeOpacity = 1.0f;
+    float m_composeOffsetX = 0.0f;
+    float m_composeOffsetY = 0.0f;
+    Rect m_lastComposeScreenBounds{};
 
     float m_canvasLeft = kAttachedUnset;
     float m_canvasTop = kAttachedUnset;

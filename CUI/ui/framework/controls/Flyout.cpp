@@ -263,7 +263,7 @@ bool Flyout::HasSelfAnimation() const {
     return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f;
 }
 
-void Flyout::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+void Flyout::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
     if (HasSelfAnimation() || m_isOpen || m_popupAnim.Current() > 0.001f) {
         Rect area = GetPopupBounds().Inflate(6.0f);
         if (!area.IsEmpty()) {
@@ -271,6 +271,10 @@ void Flyout::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
             hasDirty = true;
         }
     }
+}
+
+void Flyout::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    CollectSelfAnimationBounds(dirtyRect, hasDirty);
 }
 
 } // namespace CUI

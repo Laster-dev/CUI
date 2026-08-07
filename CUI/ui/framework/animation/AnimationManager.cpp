@@ -1,4 +1,5 @@
 #include "AnimationManager.h"
+#include "FrameScheduler.h"
 #include "../controls/UIElement.h"
 #include <algorithm>
 #include <cmath>
@@ -45,10 +46,16 @@ void AnimationManager::RequestWake(UIElement* element, clock::time_point when) {
     for (auto& wake : m_wakes) {
         if (wake.element == element) {
             wake.when = when;
+            if (FrameScheduler* sched = FrameScheduler::Current()) {
+                sched->ScheduleFrameAt(when);
+            }
             return;
         }
     }
     m_wakes.push_back(WakeEntry{ element, when });
+    if (FrameScheduler* sched = FrameScheduler::Current()) {
+        sched->ScheduleFrameAt(when);
+    }
 }
 
 void AnimationManager::CancelWake(UIElement* element) {
@@ -115,6 +122,9 @@ void AnimationManager::RegisterAnimating(UIElement* element) {
     }
     m_animating.push_back(element);
     m_frameRequested = true;
+    if (FrameScheduler* sched = FrameScheduler::Current()) {
+        sched->ScheduleFrame();
+    }
 }
 
 void AnimationManager::UnregisterAnimating(UIElement* element) {
@@ -195,6 +205,15 @@ bool AnimationManager::Tick() {
         }
     }
     return any || !m_animating.empty();
+}
+
+void AnimationManager::CollectAnimatingBounds(Rect& dirtyRect, bool& hasDirty) const {
+    for (UIElement* el : m_animating) {
+        if (!el || !IsInLiveTree(el)) {
+            continue;
+        }
+        el->CollectSelfAnimationBounds(dirtyRect, hasDirty);
+    }
 }
 
 } // namespace CUI

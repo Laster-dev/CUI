@@ -2,9 +2,11 @@
 #include "../animation/AnimationManager.h"
 #include "../layout/Layout.h"
 #include "../render/CompositionContext.h"
+#include "../render/RenderLayer.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 
 namespace CUI {
 
@@ -80,6 +82,145 @@ void UIElement::RequestAnimationTicks() {
     }
 }
 
+void UIElement::InvalidateMeasure() {
+    if (m_measureDirty) {
+        return;
+    }
+    m_measureDirty = true;
+    m_arrangeDirty = true;
+    if (m_parent) {
+        m_parent->InvalidateMeasure();
+    }
+}
+
+void UIElement::InvalidateArrange() {
+    if (m_arrangeDirty) {
+        return;
+    }
+    m_arrangeDirty = true;
+    if (m_parent) {
+        m_parent->InvalidateArrange();
+    }
+}
+
+void UIElement::FlushLayout(Size availableSize, const Rect& arrangeRect) {
+    if (m_visibility == Visibility::Collapsed) {
+        SetBounds(Rect(0, 0, 0, 0));
+        m_measureDirty = false;
+        m_arrangeDirty = false;
+        return;
+    }
+
+    if (m_measureDirty) {
+        Measure(availableSize);
+        m_measureDirty = false;
+        m_arrangeDirty = true;
+    }
+
+    if (m_arrangeDirty) {
+        Arrange(arrangeRect);
+        m_arrangeDirty = false;
+    } else {
+        // Children may still be dirty even if this node is not.
+        for (auto& child : m_children) {
+            if (child && (child->m_measureDirty || child->m_arrangeDirty)) {
+                child->FlushLayout(
+                    Size(child->m_bounds.width, child->m_bounds.height),
+                    child->m_bounds);
+            }
+        }
+    }
+}
+
+void UIElement::PromoteLayer(bool promote) {
+    m_layerPromoted = promote;
+    m_renderNode.GetLayer().SetCacheable(promote);
+    if (promote) {
+        m_composeOpacity = m_opacity;
+        m_renderNode.GetLayer().Invalidate(RenderLayer::ContentDirty | RenderLayer::OpacityDirty);
+    }
+}
+
+void UIElement::SetComposeOpacity(float opacity) {
+    opacity = std::clamp(opacity, 0.0f, 1.0f);
+    if (std::abs(opacity - m_composeOpacity) < 0.0005f) {
+        return;
+    }
+    m_composeOpacity = opacity;
+    if (m_layerPromoted) {
+        m_opacity = opacity;
+        m_composeDirty = true;
+        m_renderNode.GetLayer().Invalidate(RenderLayer::OpacityDirty);
+        // Footprint for commit — old and new are same bounds for opacity-only.
+        MarkRenderRectDirty(m_bounds.Inflate(2.0f));
+    } else {
+        SetOpacity(opacity);
+    }
+}
+
+void UIElement::SetComposeOffset(float x, float y) {
+    if (std::abs(x - m_composeOffsetX) < 0.01f && std::abs(y - m_composeOffsetY) < 0.01f) {
+        return;
+    }
+    Rect oldFootprint = Rect(
+        m_bounds.x + m_composeOffsetX,
+        m_bounds.y + m_composeOffsetY,
+        m_bounds.width,
+        m_bounds.height).Inflate(2.0f);
+    m_composeOffsetX = x;
+    m_composeOffsetY = y;
+    m_composeDirty = true;
+    if (m_layerPromoted) {
+        m_renderNode.GetLayer().SetTranslation(x, y);
+        m_renderNode.GetLayer().Invalidate(RenderLayer::TransformDirty);
+    }
+    Rect newFootprint = Rect(
+        m_bounds.x + m_composeOffsetX,
+        m_bounds.y + m_composeOffsetY,
+        m_bounds.width,
+        m_bounds.height).Inflate(2.0f);
+    MarkRenderRectDirty(oldFootprint.Union(newFootprint));
+}
+
+void UIElement::OnNavigatedFrom() {
+    PauseAnimationSubtree();
+}
+
+void UIElement::PauseAnimationSubtree() {
+    CancelAnimationTicks();
+    if (AnimationManager* mgr = AnimationManager::Current()) {
+        mgr->CancelWake(this);
+    }
+    for (auto& child : m_children) {
+        if (child) {
+            child->PauseAnimationSubtree();
+        }
+    }
+}
+
+void UIElement::OnRoutedEvent(RoutedEventArgs& args) {
+    if (args.handled) {
+        return;
+    }
+    if (args.phase == RoutedEventPhase::Tunnel) {
+        return;
+    }
+    switch (args.type) {
+    case RoutedEventType::PointerPressed:
+        OnMouseDown(args.position);
+        break;
+    case RoutedEventType::PointerReleased:
+        OnMouseUp(args.position);
+        break;
+    case RoutedEventType::PointerMoved:
+        OnMouseMove(args.position);
+        break;
+    case RoutedEventType::KeyDown:
+        OnKeyDown(args.keyCode);
+        break;
+    }
+}
+
 void UIElement::CancelAnimationTicks() {
     if (!m_animationTicksRegistered) {
         return;
@@ -95,6 +236,7 @@ void UIElement::AddChild(std::shared_ptr<UIElement> child) {
     child->SetParent(this);
     m_children.push_back(child);
     MarkRenderContentDirty();
+    InvalidateMeasure();
 }
 
 void UIElement::AddChildQuiet(std::shared_ptr<UIElement> child) {
@@ -109,6 +251,7 @@ void UIElement::RemoveChild(std::shared_ptr<UIElement> child) {
         (*it)->SetParent(nullptr);
         m_children.erase(it);
         MarkRenderContentDirty();
+        InvalidateMeasure();
     }
 }
 
@@ -153,10 +296,12 @@ std::shared_ptr<UIElement> UIElement::FindElementById(const std::string& id) {
 Size UIElement::Measure(Size availableSize) {
     if (m_visibility == Visibility::Collapsed) {
         m_desiredSize = Size(0, 0);
+        m_measureDirty = false;
         return m_desiredSize;
     }
 
     m_desiredSize = LayoutEngine::MeasureElement(this, availableSize);
+    m_measureDirty = false;
     return m_desiredSize;
 }
 
@@ -167,23 +312,32 @@ bool UIElement::ShouldClipToBounds() const {
 void UIElement::Arrange(Rect finalRect) {
     if (m_visibility == Visibility::Collapsed) {
         SetBounds(Rect(0, 0, 0, 0));
+        m_arrangeDirty = false;
         return;
     }
 
     SetBounds(finalRect);
     LayoutEngine::ArrangeElement(this, finalRect);
+    m_arrangeDirty = false;
 }
 
 void UIElement::Render(GraphicsContext& ctx) {
     if (m_visibility != Visibility::Visible) return;
-    if (m_opacity <= 0.001f) return;
+    const float drawOpacity = m_layerPromoted ? m_composeOpacity : m_opacity;
+    if (drawOpacity <= 0.001f) return;
     if (CanCullElementForCurrentPass(this, ctx)) {
         return;
     }
 
-    const bool useOpacity = m_opacity < 0.999f;
+    const bool useOffset = m_layerPromoted
+        && (std::abs(m_composeOffsetX) > 0.01f || std::abs(m_composeOffsetY) > 0.01f);
+    if (useOffset) {
+        ctx.PushTransform(D2D1::Matrix3x2F::Translation(m_composeOffsetX, m_composeOffsetY));
+    }
+
+    const bool useOpacity = drawOpacity < 0.999f;
     if (useOpacity) {
-        ctx.PushOpacity(m_opacity);
+        ctx.PushOpacity(drawOpacity);
     }
 
     bool clip = ShouldClipToBounds();
@@ -207,6 +361,10 @@ void UIElement::Render(GraphicsContext& ctx) {
 
     if (useOpacity) {
         ctx.PopOpacity();
+    }
+
+    if (useOffset) {
+        ctx.PopTransform();
     }
 }
 
@@ -300,8 +458,8 @@ UIElement* UIElement::HitTestOverlay(float x, float y) {
 UIElement* UIElement::HitTest(float x, float y) {
     if (m_visibility != Visibility::Visible) return nullptr;
 
-    UIElement* overlayHit = HitTestOverlay(x, y);
-    if (overlayHit) return overlayHit;
+    // Overlays are hit via HitTestOverlay explicitly (Window already probes overlay
+    // before the scene tree). Recursing overlay here doubled the walk on every move.
 
     if (ShouldClipToBounds() && !m_bounds.Contains(x, y)) {
         return nullptr;
@@ -323,7 +481,8 @@ void UIElement::OnMouseEnter() {
     m_isHovered = true;
     m_tooltipVisible = false;
     m_lastMouseMoveTime = std::chrono::steady_clock::now();
-    MarkRenderContentDirty();
+    // Do NOT MarkRenderContentDirty here — large panels would dirty the whole page on
+    // every hover transit. Controls that paint hover chrome mark locally themselves.
     if (!GetToolTip().empty()) {
         RequestAnimationTicks();
     }
@@ -334,9 +493,8 @@ void UIElement::OnMouseLeave() {
     m_isPressed = false;
     if (m_tooltipVisible) {
         m_tooltipVisible = false;
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(m_bounds);
     }
-    MarkRenderContentDirty();
 }
 
 void UIElement::OnMouseDown(Point pt) {
@@ -417,16 +575,18 @@ bool UIElement::OnAnimationTick() {
     return any;
 }
 
-void UIElement::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+void UIElement::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
     if (m_visibility != Visibility::Visible) {
         return;
     }
-
     if (HasSelfAnimation() && !m_bounds.IsEmpty()) {
         dirtyRect = hasDirty ? dirtyRect.Union(m_bounds) : m_bounds;
         hasDirty = true;
     }
+}
 
+void UIElement::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    CollectSelfAnimationBounds(dirtyRect, hasDirty);
     for (const auto& child : m_children) {
         if (child) {
             child->CollectAnimationBounds(dirtyRect, hasDirty);
@@ -435,6 +595,12 @@ void UIElement::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
 }
 
 void UIElement::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume) {
+    // Prune subtrees that were never marked — PropertyGrid has dozens of inputs;
+    // a full walk on every hover transit dominated CPU while sliding.
+    if (!m_subtreeRenderDirty && m_renderNode.GetWorldDirtyRegion().IsEmpty()) {
+        return;
+    }
+
     if (consume) {
         dirtyRegion.UnionWith(m_renderNode.ConsumeWorldDirtyRegion());
     } else {
@@ -445,6 +611,28 @@ void UIElement::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume)
         if (child) {
             child->CollectRenderDirtyRegion(dirtyRegion, consume);
         }
+    }
+
+    if (consume) {
+        m_subtreeRenderDirty = false;
+    }
+}
+
+void UIElement::MarkRenderContentDirty() {
+    m_renderNode.MarkContentDirty();
+    m_subtreeRenderDirty = true;
+    // Bubble only this element's rect — ancestors must not mark their full bounds dirty
+    // or a tiny control animation expands into a full-window repaint.
+    if (m_parent) {
+        m_parent->MarkRenderRectDirty(m_bounds);
+    }
+}
+
+void UIElement::MarkRenderRectDirty(const Rect& rect) {
+    m_renderNode.MarkDirtyRect(rect);
+    m_subtreeRenderDirty = true;
+    if (m_parent) {
+        m_parent->MarkRenderRectDirty(rect);
     }
 }
 
@@ -482,22 +670,6 @@ void UIElement::SyncRenderState() {
         if (child) {
             child->SyncRenderState();
         }
-    }
-}
-
-void UIElement::MarkRenderContentDirty() {
-    m_renderNode.MarkContentDirty();
-    // Bubble only this element's rect — ancestors must not mark their full bounds dirty
-    // or a tiny control animation expands into a full-window repaint.
-    if (m_parent) {
-        m_parent->MarkRenderRectDirty(m_bounds);
-    }
-}
-
-void UIElement::MarkRenderRectDirty(const Rect& rect) {
-    m_renderNode.MarkDirtyRect(rect);
-    if (m_parent) {
-        m_parent->MarkRenderRectDirty(rect);
     }
 }
 
