@@ -471,13 +471,13 @@ bool TreeView::OnAnimationTick() {
         if (moving) {
             m_visibleDirty = true;
             ClampScroll();
-            MarkRenderContentDirty();
+            MarkRenderRectDirty(m_bounds);
         }
     }
     const float prevOpacity = m_scrollbarAutoHide.Opacity();
     const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
     if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(m_bounds);
     }
     if (moving || hideAnimating) {
         RequestAnimationTicks();

@@ -223,7 +223,7 @@ void TimePicker::OnMouseDown(Point pt) {
 }
 
 bool TimePicker::OnAnimationTick() {
-    bool base = Control::OnAnimationTick();
+    bool base = UIElement::OnAnimationTick();
     if (!UIElement::AreAnimationsEnabled()) {
         m_hourPosition = WrapPosition(m_hourTarget, 24);
         m_minutePosition = WrapPosition(m_minuteTarget, 60);
@@ -263,7 +263,15 @@ bool TimePicker::OnAnimationTick() {
     bool popupAnimating = m_popupAnim.Tick(deltaSeconds, AnimationSpec{ 0.55f, 0.01f });
 
     ApplyAnimatedSelection();
-    return base || hourAnimating || minuteAnimating || popupAnimating;
+    const bool animating = base || hourAnimating || minuteAnimating || popupAnimating;
+    if (animating) {
+        MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+        if (m_isPopupOpen || m_popupAnim.Current() > 0.001f) {
+            MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
+        }
+        RequestAnimationTicks();
+    }
+    return animating;
 }
 
 bool TimePicker::HasSelfAnimation() const {

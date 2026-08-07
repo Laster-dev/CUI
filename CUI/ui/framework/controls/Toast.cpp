@@ -208,8 +208,20 @@ D2D1_COLOR_F Toast::ColorWithAlpha(const std::string& color, float alpha) {
     return c;
 }
 
-void Toast::SetTitle(const std::string& title) { m_titleText = title; UpdateTextElements(); }
-void Toast::SetMessage(const std::string& message) { m_messageText = message; UpdateTextElements(); }
+void Toast::SetTitle(const std::string& title) {
+    m_titleText = title;
+    UpdateTextElements();
+    if (IsLayerPromoted()) {
+        GetRenderNode().GetLayer().Invalidate(RenderLayer::ContentDirty);
+    }
+}
+void Toast::SetMessage(const std::string& message) {
+    m_messageText = message;
+    UpdateTextElements();
+    if (IsLayerPromoted()) {
+        GetRenderNode().GetLayer().Invalidate(RenderLayer::ContentDirty);
+    }
+}
 void Toast::SetCorner(ToastCorner corner) { m_corner = corner; }
 void Toast::SetDurationMs(int durationMs) { m_durationMs = durationMs; }
 void Toast::SetWidth(float width) { m_width = (std::max)(180.0f, width); UIElement::SetWidth(m_width); }
@@ -390,6 +402,39 @@ void Toast::OnRenderOverlay(GraphicsContext& ctx) {
     float sy = m_currentSlideY;
     if (corner == ToastCorner::TopLeft || corner == ToastCorner::BottomLeft) sx = -sx;
     if (corner == ToastCorner::BottomLeft || corner == ToastCorner::BottomRight) sy = -sy;
+
+    PromoteLayer(true);
+    SetBounds(bounds);
+    m_renderNode.SetBounds(bounds);
+    auto& layer = m_renderNode.GetLayer();
+    layer.SetBounds(bounds);
+
+    // Raster once at full opacity into the layer; animate via DrawLayer opacity/offset.
+    if (layer.NeedsContentRaster() || !layer.GetCacheBitmap()) {
+        const float w = (std::max)(1.0f, std::ceil(bounds.width));
+        const float h = (std::max)(1.0f, std::ceil(bounds.height));
+        if (ctx.PushLayerTarget(
+                layer,
+                Size(w, h),
+                Rect(0, 0, w, h),
+                D2D1::ColorF(0, 0, 0, 0),
+                true)) {
+            ctx.PushTransform(D2D1::Matrix3x2F::Translation(-bounds.x, -bounds.y));
+            RenderContent(ctx, bounds, 1.0f, 0.0f, 0.0f);
+            ctx.PopTransform();
+            ctx.PopLayerTarget(layer);
+            layer.Validate();
+        }
+    }
+
+    if (layer.GetCacheBitmap()) {
+        const Rect dest(bounds.x + sx, bounds.y + sy, bounds.width, bounds.height);
+        ctx.DrawLayer(layer, dest, nullptr, m_currentOpacity);
+        m_renderBounds = dest;
+        layer.ClearDirtyFlags(RenderLayer::OpacityDirty | RenderLayer::TransformDirty);
+        return;
+    }
+
     RenderContent(ctx, bounds, m_currentOpacity, sx, sy);
 }
 

@@ -183,7 +183,7 @@ void Flyout::ShowAt(Point pt) {
         host->Open(this);
     }
     RequestAnimationTicks();
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
 }
 
 void Flyout::Hide() {
@@ -197,7 +197,7 @@ void Flyout::Hide() {
         host->Close(this);
     }
     RequestAnimationTicks();
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
 }
 
 Rect Flyout::GetPopupBounds() const {
@@ -252,6 +252,10 @@ bool Flyout::OnAnimationTick() {
     bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.22f, 0.01f });
     if (m_presenter) {
         animating = m_presenter->OnAnimationTick() || animating;
+        // Height reveal is clip-based; dirty popup footprint only (no full content dirty).
+        if (animating) {
+            MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
+        }
     }
     if (animating) {
         RequestAnimationTicks();

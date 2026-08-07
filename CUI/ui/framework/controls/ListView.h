@@ -2,6 +2,7 @@
 #include "Control.h"
 #include "ChromiumScrollAnimator.h"
 #include "ScrollbarAutoHide.h"
+#include "../render/RenderLayer.h"
 #include <vector>
 #include <string>
 #include <unordered_set>
@@ -104,6 +105,12 @@ private:
     float GetTotalColumnsWidth() const;
     bool ApplyAutoScroll();
     void SelectRange(int fromIdx, int toIdx, bool keepExisting = false);
+    void InvalidateRowsLayer();
+    bool CanCacheFullRows() const;
+    float GetRowsContentHeight() const;
+    Rect GetRowsViewportRect() const;
+    void PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, float scrollX, float scrollY);
+    void RenderRowsLayer(GraphicsContext& ctx);
 
     std::string GetCellText(int row, int col) const;
     std::shared_ptr<UIElement> GetCellElement(int row, int col) const;
@@ -166,6 +173,11 @@ private:
 
     float m_headerHeight = 32.0f;
     float m_rowHeight = 28.0f;
+
+    RenderLayer m_rowsLayer;
+    bool m_rowsLayerCachesFull = false;
+    static constexpr float kMaxFullContentCacheHeight = 4096.0f;
+    static constexpr float kMaxFullContentCacheWidth = 4096.0f;
 
     Event<ListView*, int> m_onSelectionChangedEvent;
     Event<ListView*, int> m_onRowDoubleClickedEvent;

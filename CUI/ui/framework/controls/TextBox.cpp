@@ -385,7 +385,7 @@ bool TextBox::OnAnimationTick() {
         if (phase != m_lastCaretBlinkPhase) {
             m_lastCaretBlinkPhase = phase;
             m_caretBlinkDirty = true;
-            MarkRenderContentDirty();
+            MarkRenderRectDirty(m_bounds);
         }
         // Wake near the next blink boundary instead of pumping every refresh.
         const ULONGLONG nextMs = ((nowMs / static_cast<ULONGLONG>(blinkRate)) + 1ULL)
@@ -405,6 +405,7 @@ bool TextBox::OnAnimationTick() {
 
     if (animating || m_caretBlinkDirty) {
         RequestAnimationTicks();
+        MarkRenderRectDirty(m_bounds);
     }
     // Return true for caretBlinkDirty once so the window flushes dirty regions;
     // steady focus relies on RequestWake rather than continuous self-animation.
@@ -650,7 +651,7 @@ void TextBox::OnFocus() {
     m_lastCaretBlinkPhase = true;
     m_caretBlinkDirty = true;
     RequestAnimationTicks();
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 void TextBox::OnBlur() {
@@ -667,7 +668,7 @@ void TextBox::OnBlur() {
     m_scrollOffsetX = 0.0f;
     m_scrollOffsetY = 0.0f;
     RequestAnimationTicks();
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 void TextBox::OnMouseDown(Point pt) {

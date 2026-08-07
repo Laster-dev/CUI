@@ -216,7 +216,7 @@ void NavigationView::AddMenuItem(const std::shared_ptr<NavigationViewItemBase>& 
     m_menuItems.push_back(item);
     SyncMenuHostChildren();
     RelayoutChildren();
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 void NavigationView::ClearMenuItems() {
@@ -248,7 +248,7 @@ void NavigationView::AddFooterMenuItem(const std::shared_ptr<NavigationViewItemB
     WireItem(item, false);
     m_footerItems.push_back(item);
     RelayoutChildren();
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 void NavigationView::ClearFooterMenuItems() {
@@ -351,7 +351,7 @@ void NavigationView::SetPaneDisplayMode(NavigationViewPaneDisplayMode mode) {
     m_paneDisplayMode = mode;
     UpdateAdaptiveLayout(m_bounds.width);
     RelayoutChildren();
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 void NavigationView::SetIsPaneOpen(bool open) {
@@ -364,7 +364,7 @@ void NavigationView::SetIsPaneOpen(bool open) {
     UpdateChildCompactFlags();
     RelayoutChildren();
     EnsureContentZOrder();
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
     if (open) {
         m_paneOpened.Invoke(this);
     } else {
@@ -444,18 +444,18 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
 void NavigationView::SetHeader(const std::string& header) {
     m_header = header;
     RelayoutChildren();
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 void NavigationView::SetAlwaysShowHeader(bool always) {
     m_alwaysShowHeader = always;
     RelayoutChildren();
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 void NavigationView::SetPaneTitle(const std::string& title) {
     m_paneTitle = title;
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 void NavigationView::SetPaneFooter(const std::shared_ptr<UIElement>& footer) {
@@ -1327,7 +1327,8 @@ bool NavigationView::OnAnimationTick() {
         const float inv = 1.0f - t;
         const float ease = 1.0f - inv * inv * inv;
         if (m_contentNext) {
-            m_contentNext->SetOpacity(ease);
+            m_contentNext->PromoteLayer(true);
+            m_contentNext->SetComposeOpacity(ease);
             // Keep layout origin stable; opacity-only entrance avoids text snap jitter.
             m_contentNext->Arrange(contentRect);
         }
@@ -1353,7 +1354,7 @@ bool NavigationView::OnAnimationTick() {
             m_lastLaidOutPanePixelWidth = pixelW;
             RelayoutChildren();
         }
-        MarkRenderRectDirty(m_bounds);
+        MarkRenderRectDirty(GetPaneRect().Union(GetContentAreaRect()).Inflate(2.0f));
     }
 
     const bool stillAnimating = widthAnim || indicatorAnim || contentAnim || m_contentAnimating
@@ -1387,7 +1388,8 @@ void NavigationView::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty)
     }
 
     if (std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f && !m_bounds.IsEmpty()) {
-        dirtyRect = hasDirty ? dirtyRect.Union(m_bounds) : m_bounds;
+        const Rect footprint = GetPaneRect().Union(GetContentAreaRect()).Inflate(2.0f);
+        dirtyRect = hasDirty ? dirtyRect.Union(footprint) : footprint;
         hasDirty = true;
     }
 

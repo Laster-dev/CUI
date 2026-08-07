@@ -329,13 +329,60 @@ void UIElement::Render(GraphicsContext& ctx) {
         return;
     }
 
-    const bool useOffset = m_layerPromoted
-        && (std::abs(m_composeOffsetX) > 0.01f || std::abs(m_composeOffsetY) > 0.01f);
+    auto& layer = m_renderNode.GetLayer();
+    if (m_layerPromoted && layer.IsCacheable()) {
+        layer.SetBounds(m_bounds);
+        const bool needRaster = layer.NeedsContentRaster();
+        if (needRaster) {
+            const float w = (std::max)(1.0f, std::ceil(m_bounds.width));
+            const float h = (std::max)(1.0f, std::ceil(m_bounds.height));
+            if (ctx.PushLayerTarget(
+                    layer,
+                    Size(w, h),
+                    Rect(0.0f, 0.0f, w, h),
+                    D2D1::ColorF(0, 0, 0, 0),
+                    true)) {
+                // Record in local space so the bitmap is (0,0)-(w,h).
+                ctx.PushTransform(D2D1::Matrix3x2F::Translation(-m_bounds.x, -m_bounds.y));
+                if (auto* composition = ctx.GetCompositionContext()) {
+                    composition->CountRasterizedNode();
+                    composition->CountLayerCacheMiss();
+                }
+                OnRender(ctx);
+                for (auto& child : m_children) {
+                    if (child) {
+                        child->Render(ctx);
+                    }
+                }
+                ctx.PopTransform();
+                ctx.PopLayerTarget(layer);
+                layer.Validate();
+            }
+        } else if (auto* composition = ctx.GetCompositionContext()) {
+            composition->CountLayerCacheHit();
+            composition->CountLayerCacheReuse();
+        }
+
+        if (layer.GetCacheBitmap()) {
+            const Rect dest(
+                m_bounds.x + m_composeOffsetX,
+                m_bounds.y + m_composeOffsetY,
+                m_bounds.width,
+                m_bounds.height);
+            ctx.DrawLayer(layer, dest, nullptr, drawOpacity);
+            layer.ClearDirtyFlags(RenderLayer::OpacityDirty | RenderLayer::TransformDirty);
+            m_composeDirty = false;
+            return;
+        }
+        // Fall through to immediate path if layer alloc failed.
+    }
+
+    const bool useOffset = std::abs(m_composeOffsetX) > 0.01f || std::abs(m_composeOffsetY) > 0.01f;
     if (useOffset) {
         ctx.PushTransform(D2D1::Matrix3x2F::Translation(m_composeOffsetX, m_composeOffsetY));
     }
 
-    const bool useOpacity = drawOpacity < 0.999f;
+    const bool useOpacity = !m_layerPromoted && drawOpacity < 0.999f;
     if (useOpacity) {
         ctx.PushOpacity(drawOpacity);
     }
@@ -352,7 +399,9 @@ void UIElement::Render(GraphicsContext& ctx) {
     OnRender(ctx);
 
     for (auto& child : m_children) {
-        child->Render(ctx);
+        if (child) {
+            child->Render(ctx);
+        }
     }
 
     if (clip) {
@@ -620,6 +669,14 @@ void UIElement::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume)
 
 void UIElement::MarkRenderContentDirty() {
     m_renderNode.MarkContentDirty();
+    if (m_layerPromoted) {
+        m_renderNode.GetLayer().Invalidate(RenderLayer::ContentDirty);
+    }
+    for (UIElement* walk = m_parent; walk; walk = walk->m_parent) {
+        if (walk->m_layerPromoted) {
+            walk->m_renderNode.GetLayer().Invalidate(RenderLayer::ContentDirty);
+        }
+    }
     m_subtreeRenderDirty = true;
     // Bubble only this element's rect — ancestors must not mark their full bounds dirty
     // or a tiny control animation expands into a full-window repaint.

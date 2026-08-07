@@ -4,6 +4,7 @@
 #endif
 #include "Control.h"
 #include "ScrollbarAutoHide.h"
+#include "../render/RenderLayer.h"
 #include <vector>
 #include <string>
 #include <unordered_set>
@@ -95,6 +96,12 @@ private:
     void EnsureVisible(int index);
     void SelectRange(int fromIdx, int toIdx, bool keepExisting = false);
     void PerformTypeSearch(wchar_t ch);
+    void InvalidateItemsLayer();
+    bool CanCacheFullItems() const;
+    float GetItemsContentHeight() const;
+    Rect GetItemsViewportRect() const;
+    void PaintItemsRange(GraphicsContext& ctx, int startIdx, int endIdx, float itemW, float scrollY);
+    void RenderItemsLayer(GraphicsContext& ctx, float itemW);
 
     std::vector<ListBoxItemData> m_itemDatas;
     bool m_virtualMode = false;
@@ -121,6 +128,11 @@ private:
     float m_dragStartY = 0.0f;
     float m_dragStartScrollY = 0.0f;
     ScrollbarAutoHide m_scrollbarAutoHide;
+
+    // Full-content bitmap when height fits — scroll is sourceRect blit (ScrollViewer-style).
+    RenderLayer m_itemsLayer;
+    bool m_itemsLayerCachesFull = false;
+    static constexpr float kMaxFullContentCacheHeight = 4096.0f;
 
     Event<ListBox*, int, const std::string&> m_onSelectionChangedEvent;
     Event<ListBox*, int, const std::string&> m_onItemDoubleClickedEvent;

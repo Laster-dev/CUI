@@ -64,7 +64,7 @@ void ToggleSwitch::SetIsOn(bool on) {
     } else {
         RequestAnimationTicks();
     }
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 bool ToggleSwitch::OnAnimationTick() {
@@ -90,7 +90,7 @@ bool ToggleSwitch::OnAnimationTick() {
     const bool moving = std::abs(current - target) > 0.001f;
     if (moving) {
         RequestAnimationTicks();
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(m_bounds);
     }
     return base || moving;
 }

@@ -71,7 +71,15 @@ UIElement* ColorPicker::OnHitTestOverlay(float x, float y) {
 bool ColorPicker::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
-    return m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    if (animating) {
+        MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+        if (m_isPopupOpen || m_popupAnim.Current() > 0.001f) {
+            MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
+        }
+        RequestAnimationTicks();
+    }
+    return animating;
 }
 
 bool ColorPicker::HasSelfAnimation() const {

@@ -280,15 +280,15 @@ bool ComboBox::OnAnimationTick() {
     m_arrowAnim.SetTarget(m_isDropDownOpen ? 1.0f : 0.0f);
     if (m_arrowAnim.Tick(dt, spec)) animating = true;
 
-    // Keep Control visual-state transitions alive while this node is subscribed.
-    if (Control::OnAnimationTick()) animating = true;
-
     if (m_scrollbarAutoHide.Tick(dt)) {
         animating = true;
-        MarkRenderContentDirty();
     }
 
     if (animating) {
+        MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+        if (m_isDropDownOpen || m_popupAnim.Current() > 0.001f) {
+            MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
+        }
         RequestAnimationTicks();
     }
     return animating;

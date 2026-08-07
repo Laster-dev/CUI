@@ -36,6 +36,7 @@ ListView::ListView() {
     SetCornerRadius(4.0f);
     SetWidth(480.0f);
     SetHeight(320.0f);
+    m_rowsLayer.SetCacheable(true);
 }
 
 HCURSOR ListView::GetCursor() const {
@@ -168,7 +169,7 @@ void ListView::SelectAll() {
         m_selectedIndices.insert(i);
     }
     m_onSelectionChangedEvent.Invoke(this, -1);
-    MarkRenderContentDirty();
+    InvalidateRowsLayer();
 }
 
 void ListView::ClearSelection() {
@@ -176,7 +177,7 @@ void ListView::ClearSelection() {
     m_anchorIndex = -1;
     m_caretIndex = -1;
     m_onSelectionChangedEvent.Invoke(this, -1);
-    MarkRenderContentDirty();
+    InvalidateRowsLayer();
 }
 
 void ListView::SetRowSelected(int rowIndex, bool selected) {
@@ -192,7 +193,7 @@ void ListView::SetRowSelected(int rowIndex, bool selected) {
             m_selectedIndices.erase(rowIndex);
         }
         m_onSelectionChangedEvent.Invoke(this, rowIndex);
-        MarkRenderContentDirty();
+        InvalidateRowsLayer();
     }
 }
 
@@ -205,7 +206,7 @@ void ListView::SetCaretIndex(int index) {
     if (index >= 0 && index < rowCount) {
         m_caretIndex = index;
         EnsureVisible(index);
-        MarkRenderContentDirty();
+        InvalidateRowsLayer();
     }
 }
 
@@ -230,7 +231,7 @@ void ListView::EnsureVisible(int rowIndex) {
     } else {
         RequestAnimationTicks();
     }
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 void ListView::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
@@ -253,7 +254,7 @@ void ListView::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
     m_caretIndex = toIdx;
     EnsureVisible(toIdx);
     m_onSelectionChangedEvent.Invoke(this, toIdx);
-    MarkRenderContentDirty();
+    InvalidateRowsLayer();
 }
 
 float ListView::GetTotalColumnsWidth() const {
@@ -393,13 +394,32 @@ UIElement* ListView::HitTest(float x, float y) {
     return nullptr;
 }
 
-void ListView::OnRender(GraphicsContext& ctx) {
-    ClampScroll();
+void ListView::InvalidateRowsLayer() {
+    m_rowsLayer.Invalidate(RenderLayer::ContentDirty | RenderLayer::StructureDirty);
+    m_rowsLayerCachesFull = false;
+    MarkRenderRectDirty(m_bounds);
+}
 
-    float radius = GetCornerRadius();
-    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
-    D2D1_COLOR_F headerBg = ResolveThemeColor(GetHeaderBackgroundToken(), ThemeTokenId::PaneBackground);
-    D2D1_COLOR_F borderClr = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+bool ListView::CanCacheFullRows() const {
+    const float contentH = GetRowsContentHeight();
+    const float contentW = (std::max)(m_bounds.width, GetTotalColumnsWidth());
+    return contentH > 0.0f && contentH <= kMaxFullContentCacheHeight
+        && contentW > 0.0f && contentW <= kMaxFullContentCacheWidth;
+}
+
+float ListView::GetRowsContentHeight() const {
+    return m_rowHeight * static_cast<float>(GetRowCount());
+}
+
+Rect ListView::GetRowsViewportRect() const {
+    return Rect(
+        m_bounds.x + 1.0f,
+        m_bounds.y + m_headerHeight + 1.0f,
+        (std::max)(0.0f, m_bounds.width - 2.0f),
+        (std::max)(0.0f, m_bounds.height - m_headerHeight - 2.0f));
+}
+
+void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, float scrollX, float scrollY) {
     D2D1_COLOR_F gridLineClr = ResolveThemeColor(GetGridLineBrushToken(), ThemeTokenId::InputBorder);
     D2D1_COLOR_F textClr = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     D2D1_COLOR_F selectedBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
@@ -407,71 +427,30 @@ void ListView::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F focusBorderColor = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
     std::string font = GetFontFamily();
     float fontH = GetFontSize();
-
-    // Draw container outer box
-    ctx.FillRect(m_bounds, bg);
-    ctx.DrawRect(m_bounds, borderClr, 1.0f);
-
-    // 1. Render Multi-Column Header Bar
-    Rect headerRect(m_bounds.x, m_bounds.y, m_bounds.width, m_headerHeight);
-    ctx.FillRect(headerRect, headerBg);
-    ctx.DrawLine(Point(m_bounds.x, m_bounds.y + m_headerHeight), Point(m_bounds.x + m_bounds.width, m_bounds.y + m_headerHeight), borderClr, 1.0f);
-
-    float currColX = m_bounds.x - m_scrollX;
-    ctx.PushClip(Rect(m_bounds.x + 1, m_bounds.y + 1, m_bounds.width - 2, m_headerHeight - 1));
-
-    for (size_t colIdx = 0; colIdx < m_columns.size(); ++colIdx) {
-        const auto& col = m_columns[colIdx];
-        Rect colHeaderRect(currColX, m_bounds.y, col.width, m_headerHeight);
-
-        // Header column text
-        Rect colTextRect(colHeaderRect.x + 8.0f, colHeaderRect.y, colHeaderRect.width - 16.0f, colHeaderRect.height);
-        ctx.DrawText(col.header, colTextRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-
-        // Header column splitter line
-        ctx.DrawLine(Point(currColX + col.width, m_bounds.y + 4.0f), Point(currColX + col.width, m_bounds.y + m_headerHeight - 4.0f), borderClr, 1.0f);
-
-        currColX += col.width;
-    }
-    ctx.PopClip();
-
-    // 2. High-Performance Virtualized Rows Area
-    Rect contentArea(m_bounds.x + 1.0f, m_bounds.y + m_headerHeight + 1.0f, m_bounds.width - 2.0f, m_bounds.height - m_headerHeight - 2.0f);
-    ctx.PushClip(contentArea);
-
-    int rowCount = static_cast<int>(GetRowCount());
-    int startRow = std::max(0, static_cast<int>(m_scrollY / m_rowHeight));
-    int endRow = std::min(rowCount - 1, static_cast<int>((m_scrollY + contentArea.height) / m_rowHeight));
-
     float totalColsW = GetTotalColumnsWidth();
     bool isFocused = m_isFocused;
 
     for (int r = startRow; r <= endRow; ++r) {
-        float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - m_scrollY;
+        float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - scrollY;
         Rect rowRect(m_bounds.x, rowY, std::max(m_bounds.width, totalColsW), m_rowHeight);
 
         bool isSelected = IsRowSelected(r);
         bool isHovered = (r == m_hoveredRowIndex);
         bool isCaret = (r == m_caretIndex);
 
-        // Row background state
         if (isSelected) {
             ctx.FillRect(rowRect, selectedBg);
         } else if (isHovered && IsEnabled()) {
             ctx.FillRect(rowRect, hoverBg);
         }
 
-        // Focus caret outline
         if (isCaret && isFocused) {
             ctx.DrawRect(rowRect.Inflate(-1.0f), focusBorderColor, 1.0f);
         }
 
-        // Draw Row Grid Line
         ctx.DrawLine(Point(m_bounds.x, rowY + m_rowHeight), Point(m_bounds.x + m_bounds.width, rowY + m_rowHeight), gridLineClr, 1.0f);
 
-        // Draw Cells Data
-        float cellX = m_bounds.x - m_scrollX;
-
+        float cellX = m_bounds.x - scrollX;
         for (size_t c = 0; c < m_columns.size(); ++c) {
             float colW = m_columns[c].width;
             auto cellElem = GetCellElement(r, static_cast<int>(c));
@@ -486,13 +465,99 @@ void ListView::OnRender(GraphicsContext& ctx) {
                 D2D1_COLOR_F cellClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textClr;
                 ctx.DrawText(cellText, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
             }
-            // Cell Vertical Grid Line
             ctx.DrawLine(Point(cellX + colW, rowY), Point(cellX + colW, rowY + m_rowHeight), gridLineClr, 1.0f);
             cellX += colW;
         }
     }
+}
 
-    // 3. Draw Rubber-Band Selection Box
+void ListView::RenderRowsLayer(GraphicsContext& ctx) {
+    const float contentH = GetRowsContentHeight();
+    const float contentW = (std::max)(m_bounds.width, GetTotalColumnsWidth());
+    const Rect viewport = GetRowsViewportRect();
+    const float viewH = (std::min)(viewport.height, contentH);
+    const float viewW = viewport.width;
+    if (contentH <= 0.0f || contentW <= 0.0f || viewH <= 0.0f || viewW <= 0.0f) {
+        return;
+    }
+
+    const Size cacheSize(contentW, contentH);
+    const bool sizeChanged =
+        std::abs(m_rowsLayer.GetCacheSurfaceSize().width - cacheSize.width) > 0.5f
+        || std::abs(m_rowsLayer.GetCacheSurfaceSize().height - cacheSize.height) > 0.5f;
+    const bool needsRerender = sizeChanged
+        || !m_rowsLayerCachesFull
+        || !m_rowsLayer.IsValid()
+        || m_rowsLayer.NeedsContentRaster()
+        || !m_rowsLayer.GetCacheBitmap();
+
+    if (needsRerender) {
+        Rect contentWorld(m_bounds.x, m_bounds.y + m_headerHeight, contentW, contentH);
+        if (ctx.PushLayerTarget(m_rowsLayer, cacheSize, contentWorld, D2D1::ColorF(0, 0, 0, 0))) {
+            auto* d2d = ctx.GetD2DContext();
+            D2D1_MATRIX_3X2_F oldTransform{};
+            d2d->GetTransform(&oldTransform);
+            d2d->SetTransform(D2D1::Matrix3x2F::Translation(-contentWorld.x, -contentWorld.y));
+            PaintRowsRange(ctx, 0, static_cast<int>(GetRowCount()) - 1, 0.0f, 0.0f);
+            d2d->SetTransform(oldTransform);
+            ctx.PopLayerTarget(m_rowsLayer);
+            m_rowsLayer.Validate();
+            m_rowsLayerCachesFull = true;
+        }
+    }
+
+    const float srcX = std::clamp(m_scrollX, 0.0f, (std::max)(0.0f, contentW - viewW));
+    const float srcY = std::clamp(m_scrollY, 0.0f, (std::max)(0.0f, contentH - viewH));
+    Rect sourceRect(srcX, srcY, viewW, viewH);
+    ctx.PushClip(viewport);
+    ctx.DrawLayer(m_rowsLayer, viewport, &sourceRect);
+    ctx.PopClip();
+    m_rowsLayer.SetTranslation(-m_scrollX, -m_scrollY);
+}
+
+void ListView::OnRender(GraphicsContext& ctx) {
+    ClampScroll();
+
+    float radius = GetCornerRadius();
+    (void)radius;
+    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    D2D1_COLOR_F headerBg = ResolveThemeColor(GetHeaderBackgroundToken(), ThemeTokenId::PaneBackground);
+    D2D1_COLOR_F borderClr = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    std::string font = GetFontFamily();
+    float fontH = GetFontSize();
+
+    ctx.FillRect(m_bounds, bg);
+    ctx.DrawRect(m_bounds, borderClr, 1.0f);
+
+    Rect headerRect(m_bounds.x, m_bounds.y, m_bounds.width, m_headerHeight);
+    ctx.FillRect(headerRect, headerBg);
+    ctx.DrawLine(Point(m_bounds.x, m_bounds.y + m_headerHeight), Point(m_bounds.x + m_bounds.width, m_bounds.y + m_headerHeight), borderClr, 1.0f);
+
+    float currColX = m_bounds.x - m_scrollX;
+    ctx.PushClip(Rect(m_bounds.x + 1, m_bounds.y + 1, m_bounds.width - 2, m_headerHeight - 1));
+    for (size_t colIdx = 0; colIdx < m_columns.size(); ++colIdx) {
+        const auto& col = m_columns[colIdx];
+        Rect colHeaderRect(currColX, m_bounds.y, col.width, m_headerHeight);
+        Rect colTextRect(colHeaderRect.x + 8.0f, colHeaderRect.y, colHeaderRect.width - 16.0f, colHeaderRect.height);
+        ctx.DrawText(col.header, colTextRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawLine(Point(currColX + col.width, m_bounds.y + 4.0f), Point(currColX + col.width, m_bounds.y + m_headerHeight - 4.0f), borderClr, 1.0f);
+        currColX += col.width;
+    }
+    ctx.PopClip();
+
+    Rect contentArea = GetRowsViewportRect();
+    int rowCount = static_cast<int>(GetRowCount());
+    if (rowCount > 0 && CanCacheFullRows()) {
+        RenderRowsLayer(ctx);
+    } else if (rowCount > 0) {
+        ctx.PushClip(contentArea);
+        int startRow = std::max(0, static_cast<int>(m_scrollY / m_rowHeight));
+        int endRow = std::min(rowCount - 1, static_cast<int>((m_scrollY + contentArea.height) / m_rowHeight));
+        PaintRowsRange(ctx, startRow, endRow, m_scrollX, m_scrollY);
+        ctx.PopClip();
+    }
+
+    ctx.PushClip(contentArea);
     if (m_isRubberBandSelecting) {
         float curContentX = m_rubberBandCurrent.x - m_bounds.x + m_scrollX;
         float curContentY = m_rubberBandCurrent.y - m_bounds.y - m_headerHeight + m_scrollY;
@@ -521,7 +586,6 @@ void ListView::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    // 4. Draw Vertical & Horizontal ScrollBars
     if (m_maxScrollY > 0.0f && m_scrollbarAutoHide.IsDrawn()) {
         float trackX = m_bounds.x + m_bounds.width - 8.0f;
         float trackY = m_bounds.y + m_headerHeight + 2.0f;
@@ -536,10 +600,9 @@ void ListView::OnRender(GraphicsContext& ctx) {
         ctx.FillRoundedRect(thumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.6f * vis));
     }
 
-    // 5. Column Drag Reordering Indicator Card & Insertion Line
     if (m_isReorderingColumn && m_reorderingColumnIndex >= 0 && m_reorderingColumnIndex < static_cast<int>(m_columns.size())) {
         D2D1_COLOR_F accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
-        
+
         float dropX = m_bounds.x - m_scrollX;
         float currX = m_bounds.x - m_scrollX;
         for (size_t c = 0; c < m_columns.size(); ++c) {
@@ -636,7 +699,7 @@ void ListView::OnMouseDown(Point pt) {
             SelectRange(anchor, clickedRow, ctrlDown);
         }
         m_onSelectionChangedEvent.Invoke(this, clickedRow);
-        MarkRenderContentDirty();
+        InvalidateRowsLayer();
     } else {
         // Click on Empty Space / Whitespace -> Start ReactOS Marquee Select
         m_pendingRowClick = -1;
@@ -652,7 +715,7 @@ void ListView::OnMouseDown(Point pt) {
         m_rubberBandCurrent = pt;
         m_rubberBandScrollOffsetY = m_scrollY;
         m_lastAutoScrollTime = std::chrono::steady_clock::now();
-        MarkRenderContentDirty();
+        InvalidateRowsLayer();
     }
 }
 
@@ -681,7 +744,7 @@ void ListView::OnMouseMove(Point pt) {
             m_scrollY = m_targetScrollY;
             m_scrollYAnim.Reset(m_scrollY);
             m_scrollbarAutoHide.NotifyActivity(this);
-            MarkRenderContentDirty();
+            MarkRenderRectDirty(m_bounds);
         }
         return;
     }
@@ -693,7 +756,7 @@ void ListView::OnMouseMove(Point pt) {
         if (m_columns[m_resizingColumnIndex].width != newW) {
             m_columns[m_resizingColumnIndex].width = newW;
             ClampScroll();
-            MarkRenderContentDirty();
+            InvalidateRowsLayer();
         }
         return;
     }
@@ -704,7 +767,7 @@ void ListView::OnMouseMove(Point pt) {
         if (dx > 4.0f || m_isReorderingColumn) {
             m_isReorderingColumn = true;
             m_columnDragCurrentX = pt.x;
-            MarkRenderContentDirty();
+            InvalidateRowsLayer();
             return;
         }
     }
@@ -732,7 +795,7 @@ void ListView::OnMouseMove(Point pt) {
             ClampScroll();
         }
         UpdateRubberBandSelection();
-        MarkRenderContentDirty();
+        InvalidateRowsLayer();
         return;
     }
 
@@ -750,7 +813,11 @@ void ListView::OnMouseMove(Point pt) {
         }
     }
 
-    m_hoveredRowIndex = GetRowIndexFromY(pt.y);
+    const int newHover = GetRowIndexFromY(pt.y);
+    if (newHover != m_hoveredRowIndex) {
+        m_hoveredRowIndex = newHover;
+        InvalidateRowsLayer();
+    }
 }
 
 void ListView::OnMouseUp(Point pt) {
@@ -791,7 +858,7 @@ void ListView::OnMouseUp(Point pt) {
                     }
                 }
             }
-            MarkRenderContentDirty();
+            InvalidateRowsLayer();
         }
     }
 
@@ -804,12 +871,16 @@ void ListView::OnMouseUp(Point pt) {
     m_scrollbarAutoHide.SetDragging(false, this);
     m_pendingRowClick = -1;
     RequestAnimationTicks();
-    MarkRenderContentDirty();
+    InvalidateRowsLayer();
 }
 
 void ListView::OnMouseLeave() {
     Control::OnMouseLeave();
     m_scrollbarAutoHide.SetPointerOver(false, this);
+    if (m_hoveredRowIndex != -1) {
+        m_hoveredRowIndex = -1;
+        InvalidateRowsLayer();
+    }
     RequestAnimationTicks();
 }
 
@@ -818,7 +889,7 @@ void ListView::OnMouseWheel(float delta) {
     if (shiftDown) {
         m_scrollX -= delta * 40.0f;
         ClampScroll();
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(m_bounds);
         return;
     }
 
@@ -848,7 +919,7 @@ void ListView::OnMouseWheel(float delta) {
         RequestAnimationTicks();
     }
     m_scrollbarAutoHide.NotifyActivity(this);
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 bool ListView::ApplyAutoScroll() {
@@ -978,19 +1049,19 @@ void ListView::OnKeyDown(int vkCode) {
             m_anchorIndex = m_caretIndex;
             m_onSelectionChangedEvent.Invoke(this, m_caretIndex);
         }
-        MarkRenderContentDirty();
+        InvalidateRowsLayer();
     }
 }
 
 bool ListView::OnAnimationTick() {
-    bool base = Control::OnAnimationTick();
+    bool base = UIElement::OnAnimationTick();
     float dt = UIElement::GetAnimationDeltaSeconds();
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
         const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
         if (hideAnimating) {
-            MarkRenderContentDirty();
+            MarkRenderRectDirty(m_bounds);
         }
         return base || hideAnimating;
     }

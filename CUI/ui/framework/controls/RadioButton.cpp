@@ -58,7 +58,7 @@ void RadioButton::UncheckSiblingsInGroup() {
                 auto* sibling = dynamic_cast<RadioButton*>(child.get());
                 if (sibling && sibling != this && sibling->GetGroupName() == myGroup) {
                     sibling->SetChecked(false);
-                    sibling->MarkRenderContentDirty();
+                    sibling->MarkRenderRectDirty(sibling->GetBounds());
                     foundAny = true;
                 } else {
                     queue.push_back(child.get());
@@ -166,7 +166,7 @@ void RadioButton::SetChecked(bool checked) {
         // otherwise the filled dot never animates away (looks like two selected).
         RequestAnimationTicks();
     }
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 } // namespace CUI

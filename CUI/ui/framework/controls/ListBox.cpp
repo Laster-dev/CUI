@@ -27,6 +27,7 @@ ListBox::ListBox() {
     SetCornerRadius(4.0f);
     SetWidth(240.0f);
     SetHeight(300.0f);
+    m_itemsLayer.SetCacheable(true);
 }
 
 void ListBox::SetProperty(PropertyId id, const Value& val) {
@@ -82,6 +83,7 @@ void ListBox::SetItems(const std::vector<std::string>& items) {
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
+    InvalidateItemsLayer();
 }
 
 void ListBox::SetItems(const std::string& itemsCsv) {
@@ -105,6 +107,7 @@ void ListBox::ClearItems() {
     m_anchorIndex = -1;
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
+    InvalidateItemsLayer();
 }
 
 size_t ListBox::GetItemCount() const {
@@ -147,7 +150,7 @@ void ListBox::SetSelectedIndex(int index) {
         m_selectedIndex = -1;
     }
     m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
-    MarkRenderContentDirty();
+    InvalidateItemsLayer();
 }
 
 void ListBox::SetCaretIndex(int index) {
@@ -155,7 +158,7 @@ void ListBox::SetCaretIndex(int index) {
     if (index >= 0 && index < static_cast<int>(count)) {
         m_caretIndex = index;
         EnsureVisible(index);
-        MarkRenderContentDirty();
+        InvalidateItemsLayer();
     }
 }
 
@@ -177,7 +180,7 @@ void ListBox::SetItemSelected(int index, bool selected) {
         }
     }
     m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
-    MarkRenderContentDirty();
+    InvalidateItemsLayer();
 }
 
 void ListBox::SelectAll() {
@@ -191,14 +194,14 @@ void ListBox::SelectAll() {
         m_selectedIndex = 0;
     }
     m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
-    MarkRenderContentDirty();
+    InvalidateItemsLayer();
 }
 
 void ListBox::ClearSelection() {
     m_selectedIndices.clear();
     m_selectedIndex = -1;
     m_onSelectionChangedEvent.Invoke(this, -1, "");
-    MarkRenderContentDirty();
+    InvalidateItemsLayer();
 }
 
 void ListBox::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
@@ -222,7 +225,7 @@ void ListBox::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
     m_caretIndex = toIdx;
     EnsureVisible(toIdx);
     m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
-    MarkRenderContentDirty();
+    InvalidateItemsLayer();
 }
 
 std::string ListBox::GetSelectedItem() const {
@@ -314,7 +317,111 @@ void ListBox::EnsureVisible(int index) {
     } else {
         RequestAnimationTicks();
     }
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
+}
+
+void ListBox::InvalidateItemsLayer() {
+    m_itemsLayer.Invalidate(RenderLayer::ContentDirty | RenderLayer::StructureDirty);
+    m_itemsLayerCachesFull = false;
+    MarkRenderRectDirty(m_bounds);
+}
+
+bool ListBox::CanCacheFullItems() const {
+    const float contentH = GetItemsContentHeight();
+    return contentH > 0.0f && contentH <= kMaxFullContentCacheHeight;
+}
+
+float ListBox::GetItemsContentHeight() const {
+    return GetItemHeight() * static_cast<float>(GetItemCount());
+}
+
+Rect ListBox::GetItemsViewportRect() const {
+    return Rect(m_bounds.x + 2.0f, m_bounds.y + 2.0f,
+                (std::max)(0.0f, m_bounds.width - 4.0f),
+                (std::max)(0.0f, m_bounds.height - 4.0f));
+}
+
+void ListBox::PaintItemsRange(GraphicsContext& ctx, int startIdx, int endIdx, float itemW, float scrollY) {
+    float itemH = GetItemHeight();
+    float fontH = GetFontSize();
+    std::string font = GetFontFamily();
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    D2D1_COLOR_F selectedBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
+    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    D2D1_COLOR_F focusBorderColor = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
+    bool isFocused = m_isFocused;
+
+    for (int i = startIdx; i <= endIdx; ++i) {
+        float itemY = m_bounds.y + 2.0f + i * itemH - scrollY;
+        Rect itemRect(m_bounds.x + 2.0f, itemY, itemW, itemH);
+
+        bool isSelected = IsItemSelected(i);
+        bool isHovered = (i == m_hoveredIndex);
+        bool isCaret = (i == m_caretIndex);
+
+        if (isSelected) {
+            ctx.FillRoundedRect(itemRect, 2.0f, selectedBg);
+        } else if (isHovered && IsEnabled()) {
+            ctx.FillRoundedRect(itemRect, 2.0f, hoverBg);
+        }
+
+        if (isCaret && isFocused) {
+            ctx.DrawRoundedRect(itemRect.Inflate(-1.0f), 2.0f, focusBorderColor, 1.0f);
+        }
+
+        if (!m_virtualMode && static_cast<size_t>(i) < m_itemDatas.size() && m_itemDatas[i].customElement) {
+            m_itemDatas[i].customElement->Measure(Size(itemRect.width, itemRect.height));
+            m_itemDatas[i].customElement->Arrange(itemRect);
+            m_itemDatas[i].customElement->Render(ctx);
+        } else {
+            std::string itemText = GetItemAt(i);
+            D2D1_COLOR_F textClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor;
+            Rect textRect(itemRect.x + 8.0f, itemRect.y, itemRect.width - 16.0f, itemRect.height);
+            ctx.DrawText(itemText, textRect, textClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        }
+    }
+}
+
+void ListBox::RenderItemsLayer(GraphicsContext& ctx, float itemW) {
+    const float contentH = GetItemsContentHeight();
+    const Rect viewport = GetItemsViewportRect();
+    const float viewH = (std::min)(viewport.height, contentH);
+    if (contentH <= 0.0f || itemW <= 0.0f || viewH <= 0.0f) {
+        return;
+    }
+
+    const Size cacheSize(itemW, contentH);
+    const bool sizeChanged =
+        std::abs(m_itemsLayer.GetCacheSurfaceSize().width - cacheSize.width) > 0.5f
+        || std::abs(m_itemsLayer.GetCacheSurfaceSize().height - cacheSize.height) > 0.5f;
+    const bool needsRerender = sizeChanged
+        || !m_itemsLayerCachesFull
+        || !m_itemsLayer.IsValid()
+        || m_itemsLayer.NeedsContentRaster()
+        || !m_itemsLayer.GetCacheBitmap();
+
+    if (needsRerender) {
+        Rect contentWorld(m_bounds.x + 2.0f, m_bounds.y + 2.0f, itemW, contentH);
+        if (ctx.PushLayerTarget(m_itemsLayer, cacheSize, contentWorld, D2D1::ColorF(0, 0, 0, 0))) {
+            auto* d2d = ctx.GetD2DContext();
+            D2D1_MATRIX_3X2_F oldTransform{};
+            d2d->GetTransform(&oldTransform);
+            d2d->SetTransform(D2D1::Matrix3x2F::Translation(-contentWorld.x, -contentWorld.y));
+            PaintItemsRange(ctx, 0, static_cast<int>(GetItemCount()) - 1, itemW, 0.0f);
+            d2d->SetTransform(oldTransform);
+            ctx.PopLayerTarget(m_itemsLayer);
+            m_itemsLayer.Validate();
+            m_itemsLayerCachesFull = true;
+        }
+    }
+
+    const float srcY = std::clamp(m_scrollY, 0.0f, (std::max)(0.0f, contentH - viewH));
+    Rect sourceRect(0.0f, srcY, itemW, viewH);
+    Rect dest(viewport.x, viewport.y, itemW, viewH);
+    ctx.PushClip(viewport);
+    ctx.DrawLayer(m_itemsLayer, dest, &sourceRect);
+    ctx.PopClip();
+    m_itemsLayer.SetTranslation(0.0f, -m_scrollY);
 }
 
 void ListBox::Render(GraphicsContext& ctx) {
@@ -340,66 +447,24 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     float borderThick = GetBorderThickness();
 
-    // Draw container background and border
     ctx.FillRoundedRect(m_bounds, radius, bg);
     ctx.DrawRoundedRect(m_bounds, radius, border, borderThick);
 
-    // 2. High-Performance Virtualized Item Rendering (O(Visible) instead of O(N))
-    ctx.PushClip(Rect(m_bounds.x + 1, m_bounds.y + 1, m_bounds.width - 2, m_bounds.height - 2));
-
     float itemH = GetItemHeight();
-    float fontH = GetFontSize();
-    std::string font = GetFontFamily();
-    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-    D2D1_COLOR_F selectedBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
-    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
-    D2D1_COLOR_F focusBorderColor = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
-
     float sbWidth = (m_maxScrollY > 0.0f) ? 8.0f : 0.0f;
     float itemW = m_bounds.width - 4.0f - sbWidth;
-
     size_t count = GetItemCount();
-    int startIdx = std::max(0, static_cast<int>(m_scrollY / itemH));
-    int endIdx = std::min(static_cast<int>(count) - 1, static_cast<int>((m_scrollY + m_bounds.height) / itemH));
 
-    bool isFocused = m_isFocused;
-
-    for (int i = startIdx; i <= endIdx; ++i) {
-        float itemY = m_bounds.y + 2.0f + i * itemH - m_scrollY;
-        Rect itemRect(m_bounds.x + 2.0f, itemY, itemW, itemH);
-
-        bool isSelected = IsItemSelected(i);
-        bool isHovered = (i == m_hoveredIndex);
-        bool isCaret = (i == m_caretIndex);
-
-        // Item background highlight
-        if (isSelected) {
-            ctx.FillRoundedRect(itemRect, 2.0f, selectedBg);
-        } else if (isHovered && IsEnabled()) {
-            ctx.FillRoundedRect(itemRect, 2.0f, hoverBg);
-        }
-
-        // Draw Caret outline when focused
-        if (isCaret && isFocused) {
-            ctx.DrawRoundedRect(itemRect.Inflate(-1.0f), 2.0f, focusBorderColor, 1.0f);
-        }
-
-        // Draw custom element OR standard text
-        if (!m_virtualMode && m_itemDatas[i].customElement) {
-            m_itemDatas[i].customElement->Measure(Size(itemRect.width, itemRect.height));
-            m_itemDatas[i].customElement->Arrange(itemRect);
-            m_itemDatas[i].customElement->Render(ctx);
-        } else {
-            std::string itemText = GetItemAt(i);
-            D2D1_COLOR_F textClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor;
-            Rect textRect(itemRect.x + 8.0f, itemRect.y, itemRect.width - 16.0f, itemRect.height);
-            ctx.DrawText(itemText, textRect, textClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        }
+    if (count > 0 && CanCacheFullItems()) {
+        RenderItemsLayer(ctx, itemW);
+    } else if (count > 0) {
+        ctx.PushClip(Rect(m_bounds.x + 1, m_bounds.y + 1, m_bounds.width - 2, m_bounds.height - 2));
+        int startIdx = std::max(0, static_cast<int>(m_scrollY / itemH));
+        int endIdx = std::min(static_cast<int>(count) - 1, static_cast<int>((m_scrollY + m_bounds.height) / itemH));
+        PaintItemsRange(ctx, startIdx, endIdx, itemW, m_scrollY);
+        ctx.PopClip();
     }
 
-    ctx.PopClip();
-
-    // 3. Render Direct2D Vector ScrollBar on Right Edge (outside item content clip)
     if (m_maxScrollY > 0.0f && m_scrollbarAutoHide.IsDrawn()) {
         float trackX = m_bounds.x + m_bounds.width - 8.0f;
         float trackY = m_bounds.y + 2.0f;
@@ -497,7 +562,7 @@ void ListBox::OnMouseMove(Point pt) {
             m_scrollY = m_targetScrollY;
             m_scrollYAnim.Reset(m_scrollY);
             m_scrollbarAutoHide.NotifyActivity(this);
-            MarkRenderContentDirty();
+            MarkRenderRectDirty(m_bounds);
         } else {
             m_scrollY = 0.0f;
             m_targetScrollY = 0.0f;
@@ -506,7 +571,11 @@ void ListBox::OnMouseMove(Point pt) {
         return;
     }
 
-    m_hoveredIndex = GetItemIndexFromY(pt.y);
+    const int newHover = GetItemIndexFromY(pt.y);
+    if (newHover != m_hoveredIndex) {
+        m_hoveredIndex = newHover;
+        InvalidateItemsLayer();
+    }
 }
 
 void ListBox::OnMouseUp(Point pt) {
@@ -519,6 +588,10 @@ void ListBox::OnMouseUp(Point pt) {
 void ListBox::OnMouseLeave() {
     Control::OnMouseLeave();
     m_scrollbarAutoHide.SetPointerOver(false, this);
+    if (m_hoveredIndex != -1) {
+        m_hoveredIndex = -1;
+        InvalidateItemsLayer();
+    }
     RequestAnimationTicks();
 }
 
@@ -550,18 +623,19 @@ void ListBox::OnMouseWheel(float delta) {
         RequestAnimationTicks();
     }
     m_scrollbarAutoHide.NotifyActivity(this);
-    MarkRenderContentDirty();
+    MarkRenderRectDirty(m_bounds);
 }
 
 bool ListBox::OnAnimationTick() {
-    bool base = Control::OnAnimationTick();
+    // Skip Control hover visual-state pump — list chrome is not Control-fill driven.
+    bool base = UIElement::OnAnimationTick();
     float dt = UIElement::GetAnimationDeltaSeconds();
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
         const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
         if (hideAnimating) {
-            MarkRenderContentDirty();
+            MarkRenderRectDirty(m_bounds);
         }
         return base || hideAnimating;
     }
@@ -652,7 +726,7 @@ void ListBox::OnKeyDown(int vkCode) {
         } else if (m_selectionMode == ListBoxSelectionMode::Single) {
             SetSelectedIndex(m_caretIndex);
         }
-        MarkRenderContentDirty();
+        InvalidateItemsLayer();
     }
 }
 

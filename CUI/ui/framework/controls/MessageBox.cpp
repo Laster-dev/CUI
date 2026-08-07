@@ -116,6 +116,9 @@ void ContentDialog::Show(std::function<void(DialogResult)> callback) {
     m_animState = 1; // Opening
     m_animStartTime = std::chrono::steady_clock::now();
     m_animProgress = 0.0f;
+    m_cardCacheValid = false;
+    m_cardLayer.SetCacheable(true);
+    m_cardLayer.Invalidate(RenderLayer::ContentDirty | RenderLayer::SizeDirty);
     if (!UIElement::AreAnimationsEnabled()) {
         m_animState = 2;
         m_animProgress = 1.0f;
@@ -244,7 +247,6 @@ void ContentDialog::OnRender(GraphicsContext& ctx) {
 void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
     if (!m_isOpen || m_animProgress <= 0.001f) return;
 
-    // 1. Get window root dimensions to span full backdrop over entire window area
     Rect windowRect = m_bounds;
     UIElement* root = this;
     while (root->GetParent()) {
@@ -254,17 +256,14 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
         windowRect = root->GetBounds();
     }
 
-    // 2. Draw semi-transparent dark backdrop mask with subtle fade-in alpha (0 -> 0.4)
     float backdropAlpha = 0.40f * m_animProgress;
     ctx.FillRect(windowRect, D2D1::ColorF(0.0f, 0.0f, 0.0f, backdropAlpha));
 
     float baseW = (std::min)(480.0f, windowRect.width - 40.0f);
     float baseH = 220.0f;
 
-    // Fade in only — avoid 1.03→1.0 scale pop which reads as a flash with the scrim.
     float scale = 1.0f;
     if (m_animState == 3) {
-        // Slight ease-out scale on close only.
         scale = 1.0f + 0.02f * (1.0f - m_animProgress);
     }
 
@@ -272,65 +271,88 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
     float cardH = baseH * scale;
     float cardX = windowRect.x + (windowRect.width - cardW) * 0.5f;
     float cardY = windowRect.y + (windowRect.height - cardH) * 0.5f;
-
     m_dialogBounds = Rect(cardX, cardY, cardW, cardH);
 
-    // Card background + single-line border (no thick shadow “black frame”).
+    m_cardLayer.SetCacheable(true);
+    const bool needRaster = !m_cardCacheValid || m_cardLayer.NeedsContentRaster()
+        || !m_cardLayer.GetCacheBitmap()
+        || std::abs(m_cardLayer.GetCacheSurfaceSize().width - cardW) > 1.0f
+        || std::abs(m_cardLayer.GetCacheSurfaceSize().height - cardH) > 1.0f;
+
+    if (needRaster) {
+        if (ctx.PushLayerTarget(
+                m_cardLayer,
+                Size(cardW, cardH),
+                Rect(0, 0, cardW, cardH),
+                D2D1::ColorF(0, 0, 0, 0),
+                true)) {
+            ctx.PushTransform(D2D1::Matrix3x2F::Translation(-cardX, -cardY));
+
+            D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+            D2D1_COLOR_F cardBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+            ctx.FillRoundedRect(m_dialogBounds, 8.0f, cardBg);
+            ctx.DrawRoundedRect(m_dialogBounds, 8.0f, cardBorder, 1.0f);
+
+            float innerX = cardX + 24.0f * scale;
+            float innerY = cardY + 20.0f * scale;
+            float innerW = cardW - 48.0f * scale;
+
+            if (m_txtTitle) {
+                m_txtTitle->Measure(Size(innerW, 30.0f * scale));
+                m_txtTitle->Arrange(Rect(innerX, innerY, innerW, 30.0f * scale));
+                m_txtTitle->Render(ctx);
+            }
+            if (m_txtMessage) {
+                m_txtMessage->Measure(Size(innerW, 80.0f * scale));
+                m_txtMessage->Arrange(Rect(innerX, innerY + 36.0f * scale, innerW, 80.0f * scale));
+                m_txtMessage->Render(ctx);
+            }
+
+            float btnY = cardY + cardH - 52.0f * scale;
+            float btnRight = cardX + cardW - 24.0f * scale;
+            if (!m_closeText.empty() && m_btnClose) {
+                Size s = m_btnClose->Measure(Size(innerW, 32.0f * scale));
+                float w = (std::max)(80.0f * scale, s.width);
+                btnRight -= w;
+                m_btnClose->Arrange(Rect(btnRight, btnY, w, 32.0f * scale));
+                m_btnClose->Render(ctx);
+                btnRight -= 12.0f * scale;
+            }
+            if (!m_secondaryText.empty() && m_btnSecondary) {
+                Size s = m_btnSecondary->Measure(Size(innerW, 32.0f * scale));
+                float w = (std::max)(80.0f * scale, s.width);
+                btnRight -= w;
+                m_btnSecondary->Arrange(Rect(btnRight, btnY, w, 32.0f * scale));
+                m_btnSecondary->Render(ctx);
+                btnRight -= 12.0f * scale;
+            }
+            if (!m_primaryText.empty() && m_btnPrimary) {
+                Size s = m_btnPrimary->Measure(Size(innerW, 32.0f * scale));
+                float w = (std::max)(80.0f * scale, s.width);
+                btnRight -= w;
+                m_btnPrimary->Arrange(Rect(btnRight, btnY, w, 32.0f * scale));
+                m_btnPrimary->Render(ctx);
+            }
+
+            ctx.PopTransform();
+            ctx.PopLayerTarget(m_cardLayer);
+            m_cardLayer.Validate();
+            m_cardCacheValid = true;
+        }
+    }
+
+    if (m_cardLayer.GetCacheBitmap()) {
+        ctx.DrawLayer(m_cardLayer, m_dialogBounds, nullptr, m_animProgress);
+        return;
+    }
+
+    // Fallback immediate path if layer alloc failed.
     D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
     cardBg.a = m_animProgress;
     D2D1_COLOR_F cardBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     cardBorder.a = m_animProgress;
     ctx.FillRoundedRect(m_dialogBounds, 8.0f, cardBg);
     ctx.DrawRoundedRect(m_dialogBounds, 8.0f, cardBorder, 1.0f);
-
-    // 4. Layout Children inside Centered Card
-    float innerX = cardX + 24.0f * scale;
-    float innerY = cardY + 20.0f * scale;
-    float innerW = cardW - 48.0f * scale;
-
-    // Title
-    if (m_txtTitle) {
-        m_txtTitle->Measure(Size(innerW, 30.0f * scale));
-        m_txtTitle->Arrange(Rect(innerX, innerY, innerW, 30.0f * scale));
-        m_txtTitle->Render(ctx);
-    }
-
-    // Message Text
-    if (m_txtMessage) {
-        m_txtMessage->Measure(Size(innerW, 80.0f * scale));
-        m_txtMessage->Arrange(Rect(innerX, innerY + 36.0f * scale, innerW, 80.0f * scale));
-        m_txtMessage->Render(ctx);
-    }
-
-    // Footer Buttons Panel (Right aligned)
-    float btnY = cardY + cardH - 52.0f * scale;
-    float btnRight = cardX + cardW - 24.0f * scale;
-
-    if (!m_closeText.empty() && m_btnClose) {
-        Size s = m_btnClose->Measure(Size(innerW, 32.0f * scale));
-        float w = (std::max)(80.0f * scale, s.width);
-        btnRight -= w;
-        m_btnClose->Arrange(Rect(btnRight, btnY, w, 32.0f * scale));
-        m_btnClose->Render(ctx);
-        btnRight -= 12.0f * scale;
-    }
-
-    if (!m_secondaryText.empty() && m_btnSecondary) {
-        Size s = m_btnSecondary->Measure(Size(innerW, 32.0f * scale));
-        float w = (std::max)(80.0f * scale, s.width);
-        btnRight -= w;
-        m_btnSecondary->Arrange(Rect(btnRight, btnY, w, 32.0f * scale));
-        m_btnSecondary->Render(ctx);
-        btnRight -= 12.0f * scale;
-    }
-
-    if (!m_primaryText.empty() && m_btnPrimary) {
-        Size s = m_btnPrimary->Measure(Size(innerW, 32.0f * scale));
-        float w = (std::max)(80.0f * scale, s.width);
-        btnRight -= w;
-        m_btnPrimary->Arrange(Rect(btnRight, btnY, w, 32.0f * scale));
-        m_btnPrimary->Render(ctx);
-    }
 }
 
 UIElement* ContentDialog::OnHitTestOverlay(float x, float y) {

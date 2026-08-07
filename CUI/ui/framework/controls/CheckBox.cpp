@@ -210,6 +210,9 @@ bool CheckBox::OnAnimationTick() {
     animating = m_checkAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.20f, 0.01f }) || animating;
     animating = m_indeterminateAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.20f, 0.01f }) || animating;
 
+    if (animating) {
+        MarkRenderRectDirty(m_bounds);
+    }
     return animating;
 }
 

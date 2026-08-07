@@ -38,12 +38,15 @@ public:
     ID2D1Bitmap1* GetScratchBitmap() const { return m_scratchBitmap.Get(); }
 
     void Invalidate(unsigned flags);
+    void ClearDirtyFlags(unsigned flags);
     void Validate();
     void ResetCache();
 
     bool IsValid() const { return m_valid; }
     bool HasDirtyFlags() const { return m_dirtyFlags != None; }
     unsigned GetDirtyFlags() const { return m_dirtyFlags; }
+    bool NeedsContentRaster() const;
+    bool NeedsComposeOnly() const;
 
 private:
     friend class GraphicsContext;

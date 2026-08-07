@@ -2,6 +2,7 @@
 #include "UIElement.h"
 #include "Button.h"
 #include "TextBlock.h"
+#include "../render/RenderLayer.h"
 #include <functional>
 #include <string>
 #include <memory>
@@ -68,6 +69,8 @@ private:
     std::shared_ptr<Button> m_btnClose;
 
     Rect m_dialogBounds;
+    RenderLayer m_cardLayer;
+    bool m_cardCacheValid = false;
 
     // Animation state
     int m_animState = 0; // 0=Closed, 1=Opening, 2=Opened, 3=Closing

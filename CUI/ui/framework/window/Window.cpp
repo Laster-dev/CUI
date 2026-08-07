@@ -1203,7 +1203,6 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_MOUSEMOVE:
         {
-            const bool dragging = !m_pressedElement.expired();
             Rect oldMenuBounds;
             if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
                 oldMenuBounds = m_activeContextMenu->GetTotalBounds();
@@ -1229,9 +1228,8 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 // Defer flush to the message loop so a burst of hover changes coalesces
                 // into one Collect+Invalidate instead of one Present setup per TextBox.
                 m_flushInputDirty = true;
-            } else if (dragging) {
-                m_flushInputDirty = true;
             }
+            // No dirty → no Present (cursor-only moves stay free).
         }
         return 0;
 
@@ -1242,11 +1240,11 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             LRESULT dwmResult = 0;
             DwmDefWindowProc(m_hwnd, uMsg, wParam, lParam, &dwmResult);
         }
-        RequestFullRepaint();
+        // Do NOT RequestFullRepaint — NC mouse move must not pump the scene.
         return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 
     case WM_NCMOUSELEAVE:
-        RequestFullRepaint();
+        // Do NOT RequestFullRepaint on NC leave.
         return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 
     case WM_LBUTTONDOWN:
@@ -1381,7 +1379,13 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (auto hovered = LockElement(m_hoveredElement)) {
             hovered->OnMouseLeave();
             m_hoveredElement.reset();
-            InvalidatePendingRenderRegions(false);
+            if (m_rootElement) {
+                DirtyRegion probe;
+                m_rootElement->CollectRenderDirtyRegion(probe, false);
+                if (!probe.IsEmpty()) {
+                    InvalidatePendingRenderRegions(false);
+                }
+            }
         }
         m_trackingMouse = false;
         return 0;
@@ -1707,7 +1711,6 @@ UIElement* Window::HitTestChrome(float x, float y) const {
 }
 
 bool Window::OnMouseMove(int x, int y) {
-    bool dirty = false;
     if (!m_trackingMouse) {
         TRACKMOUSEEVENT tme = { sizeof(tme), TME_LEAVE, m_hwnd, 0 };
         TrackMouseEvent(&tme);
@@ -1756,13 +1759,12 @@ bool Window::OnMouseMove(int x, int y) {
         if (hovered) {
             hovered->OnMouseEnter();
         }
-        dirty = true;
     }
 
     if (hovered) {
         hovered->OnMouseMove(Point(fx, fy));
         if (auto* titleBar = dynamic_cast<TitleBar*>(hovered.get())) {
-            dirty = dirty || titleBar->ConsumeMenuChromeDirty();
+            (void)titleBar->ConsumeMenuChromeDirty();
         }
         // Keep m_activeContextMenu synchronized if MenuBar opened a new dropdown
         UIElement* curr = hovered.get();
@@ -1775,7 +1777,20 @@ bool Window::OnMouseMove(int x, int y) {
             curr = curr->GetParent();
         }
     }
-    return dirty;
+
+    // Cursor-only / no-chrome hover must NOT Present. Only flush when someone
+    // actually MarkRender*Dirty during enter/leave/move.
+    if (m_rootElement) {
+        DirtyRegion probe;
+        m_rootElement->CollectRenderDirtyRegion(probe, false);
+        if (!probe.IsEmpty()) {
+            return true;
+        }
+    }
+    Rect popupDirty;
+    bool hasPopupDirty = false;
+    m_popupHost.CollectDirty(popupDirty, hasPopupDirty);
+    return hasPopupDirty;
 }
 
 bool Window::OnLButtonDown(int x, int y) {

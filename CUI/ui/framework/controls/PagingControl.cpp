@@ -185,6 +185,9 @@ bool PagingControl::OnAnimationTick() {
 
     m_pageIndicatorAnim.SetTarget(targetIndex);
     bool indicatorAnim = m_pageIndicatorAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    if (indicatorAnim) {
+        MarkRenderRectDirty(m_bounds);
+    }
     return base || indicatorAnim;
 }
 
@@ -201,7 +204,7 @@ void PagingControl::SetCurrentPage(int page) {
         NotifyFieldChanged(PropertyId::CurrentPage, Value(page));
         UpdatePageButtons();
         m_onPageChangedEvent.Invoke(this, page);
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(m_bounds);
     }
 }
 

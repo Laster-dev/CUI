@@ -133,20 +133,20 @@ void Control::OnMouseEnter() {
     if (!IsEnabled()) return;
     UIElement::OnMouseEnter();
     UpdateVisualStateTarget();
-    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    // Instant chrome (no multi-frame color re-raster). Continuous hover fades were
+    // the main "slide mouse → CPU spike" source across dozens of controls.
+    m_visualStateAnim.Reset(m_visualStateTarget);
     if (VisualStateChromeDiffers()) {
         MarkRenderRectDirty(m_bounds);
-        RequestAnimationTicks();
     }
 }
 
 void Control::OnMouseLeave() {
     UIElement::OnMouseLeave();
     UpdateVisualStateTarget();
-    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    m_visualStateAnim.Reset(m_visualStateTarget);
     if (VisualStateChromeDiffers()) {
         MarkRenderRectDirty(m_bounds);
-        RequestAnimationTicks();
     }
 }
 
