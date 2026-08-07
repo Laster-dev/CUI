@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "GraphicsContext.h"
 #include <d3d11.h>
+#include <d3d11_4.h>
 #include <dxgi1_2.h>
 #include <stdexcept>
 #include <algorithm>
@@ -135,6 +136,15 @@ HRESULT GraphicsContext::CreateDeviceResources() {
         );
     }
     if (FAILED(hr)) return hr;
+
+    m_d3dDevice = d3dDevice;
+    // Required before any secondary D2D device context / raster worker touches the GPU.
+    {
+        ComPtr<ID3D11Multithread> mt;
+        if (SUCCEEDED(m_d3dDevice.As(&mt)) && mt) {
+            mt->SetMultithreadProtected(TRUE);
+        }
+    }
 
     ComPtr<IDXGIDevice> dxgiDevice;
     hr = d3dDevice.As(&dxgiDevice);
@@ -295,6 +305,7 @@ void GraphicsContext::ReleaseDeviceResources() {
     m_swapChain.Reset();
     m_d2dContext.Reset();
     m_d2dDevice.Reset();
+    m_d3dDevice.Reset();
     m_usesCompositionSwapChain = false;
     m_supportsPerPixelAlpha = false;
 }
@@ -652,19 +663,24 @@ bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const
 }
 
 void GraphicsContext::ClearRect(const Rect& rect) {
+    ClearRect(rect, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+}
+
+void GraphicsContext::ClearRect(const Rect& rect, D2D1_COLOR_F color) {
     if (!m_d2dContext || rect.IsEmpty()) {
         return;
     }
-    // Expand outward to whole pixels so partial dirty clears never leave 1px stale seams.
-    const D2D1_RECT_F clearRc = D2D1::RectF(
-        std::floor(rect.x),
-        std::floor(rect.y),
-        std::ceil(rect.x + rect.width),
-        std::ceil(rect.y + rect.height)
-    );
+    // Expand outward to whole *device* pixels (not DIP floor) so DPI scales don't
+    // leave 1px stale seams that read as black bars after composition.
+    const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+    const float x0 = std::floor(rect.x * scale) / scale;
+    const float y0 = std::floor(rect.y * scale) / scale;
+    const float x1 = std::ceil((rect.x + rect.width) * scale) / scale;
+    const float y1 = std::ceil((rect.y + rect.height) * scale) / scale;
+    const D2D1_RECT_F clearRc = D2D1::RectF(x0, y0, x1, y1);
     const D2D1_PRIMITIVE_BLEND oldBlend = m_d2dContext->GetPrimitiveBlend();
     m_d2dContext->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
-    if (auto brush = m_resources.GetSolidBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f))) {
+    if (auto brush = m_resources.GetSolidBrush(color)) {
         m_d2dContext->FillRectangle(clearRc, brush);
     }
     m_d2dContext->SetPrimitiveBlend(oldBlend);

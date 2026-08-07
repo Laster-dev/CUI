@@ -948,7 +948,7 @@ Rect NavigationView::GetContentAreaRect() const {
                 host.width, (std::max)(0.0f, host.height - DefaultHeaderHeight));
 }
 
-void NavigationView::RelayoutChildren() {
+void NavigationView::RelayoutChildren(bool measureContent) {
     if (m_bounds.width <= 0.0f || m_bounds.height <= 0.0f) {
         return;
     }
@@ -1130,28 +1130,40 @@ void NavigationView::RelayoutChildren() {
         }
     }
 
-    // Content + header
-    const Rect headerRect = GetHeaderRect();
-    const Rect contentRect = GetContentAreaRect();
-    if (m_contentAnimating) {
-        const float t = std::clamp(m_contentFadeAnim.Current(), 0.0f, 1.0f);
-        const float inv = 1.0f - t;
-        const float ease = 1.0f - inv * inv * inv;
-        if (m_contentNext) {
-            m_contentNext->SetOpacity(ease);
-            m_contentNext->SetVisibility(Visibility::Visible);
-            m_contentNext->Measure(Size(contentRect.width, contentRect.height));
-            // Fade only — do NOT slide Arrange by a fractional Y. DrawText snaps
-            // to device pixels, so a moving fractional layout origin makes glyphs jitter.
-            m_contentNext->Arrange(contentRect);
+    // Content + header — during pane-width ticks, Arrange-only (skip Measure) so the
+    // showcase page is not remeasured every integer pixel of the sidebar animation.
+    if (measureContent) {
+        const Rect contentRect = GetContentAreaRect();
+        if (m_contentAnimating) {
+            const float t = std::clamp(m_contentFadeAnim.Current(), 0.0f, 1.0f);
+            const float inv = 1.0f - t;
+            const float ease = 1.0f - inv * inv * inv;
+            if (m_contentNext) {
+                m_contentNext->SetOpacity(ease);
+                m_contentNext->SetVisibility(Visibility::Visible);
+                m_contentNext->Measure(Size(contentRect.width, contentRect.height));
+                m_contentNext->Arrange(contentRect);
+            }
+        } else if (m_content) {
+            m_content->SetOpacity(1.0f);
+            m_content->SetVisibility(Visibility::Visible);
+            m_content->Measure(Size(contentRect.width, contentRect.height));
+            m_content->Arrange(contentRect);
         }
+    } else {
+        ArrangeContentHost();
+    }
+}
+
+void NavigationView::ArrangeContentHost() {
+    const Rect contentRect = GetContentAreaRect();
+    if (m_contentAnimating && m_contentNext) {
+        m_contentNext->SetVisibility(Visibility::Visible);
+        m_contentNext->Arrange(contentRect);
     } else if (m_content) {
-        m_content->SetOpacity(1.0f);
         m_content->SetVisibility(Visibility::Visible);
-        m_content->Measure(Size(contentRect.width, contentRect.height));
         m_content->Arrange(contentRect);
     }
-    (void)headerRect;
 }
 
 Size NavigationView::Measure(Size availableSize) {
@@ -1352,8 +1364,16 @@ bool NavigationView::OnAnimationTick() {
         const int pixelW = static_cast<int>(std::lround(m_paneWidthAnim.Current()));
         if (pixelW != m_lastLaidOutPanePixelWidth) {
             m_lastLaidOutPanePixelWidth = pixelW;
-            RelayoutChildren();
+            // Skip content Measure during the slide — showcase pages are huge.
+            RelayoutChildren(/*measureContent=*/false);
         }
+        MarkRenderRectDirty(GetPaneRect().Union(GetContentAreaRect()).Inflate(2.0f));
+        m_paneWidthAnimActive = true;
+    } else if (m_paneWidthAnimActive) {
+        // Settled: one full Measure so wrap/scroll metrics match the final width.
+        m_paneWidthAnimActive = false;
+        m_lastLaidOutPanePixelWidth = static_cast<int>(std::lround(TargetPaneWidth()));
+        RelayoutChildren(/*measureContent=*/true);
         MarkRenderRectDirty(GetPaneRect().Union(GetContentAreaRect()).Inflate(2.0f));
     }
 

@@ -35,6 +35,7 @@ namespace {
 constexpr UINT WM_CUI_TOGGLE_LOW_PERF = WM_APP + 42;
 constexpr UINT WM_CUI_TOGGLE_BACKDROP = WM_APP + 43;
 constexpr UINT WM_CUI_TOGGLE_THEME = WM_APP + 44;
+constexpr UINT WM_CUI_RASTER_COMPLETE = WM_APP + 45;
 
 float GetWindowRefreshRateHz(HWND hwnd) {
     // EnumDisplaySettings is relatively expensive — cache per monitor briefly.
@@ -545,6 +546,10 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
 }
 
 void Window::CommitFrame(bool animationStillActive) {
+    // Drain any UI-thread raster jobs; KickAsync covers worker-bound PictureLayer work.
+    if (!m_layerRasterizer.KickAsync()) {
+        m_layerRasterizer.FlushSync(m_gfxContext);
+    }
     InvalidateAnimatedRegions(animationStillActive);
     InvalidatePendingRenderRegions(false);
 }
@@ -725,6 +730,15 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     if (!m_gfxContext.Initialize(m_hwnd)) {
         return false;
     }
+
+    m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
+    m_layerRasterizer.SetCompletionCallback([hwnd = m_hwnd]() {
+        if (hwnd) {
+            PostMessage(hwnd, WM_CUI_RASTER_COMPLETE, 0, 0);
+        }
+    });
+    // Worker ready; jobs still FlushSync unless callers enable async + KickAsync.
+    m_layerRasterizer.SetAsyncEnabled(true);
 
     // Graphics may add WS_EX_NOREDIRECTIONBITMAP for the composition fallback —
     // re-apply DWM alpha/backdrop so the final present path is wired correctly.
@@ -1153,6 +1167,13 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         OnPaint();
         return 0;
 
+    case WM_CUI_RASTER_COMPLETE:
+        if (FrameScheduler* sched = FrameScheduler::Current()) {
+            sched->ScheduleFrame();
+        }
+        InvalidatePendingRenderRegions(false);
+        return 0;
+
     case WM_CUI_TOGGLE_LOW_PERF:
         SetLowPerformanceMode(!m_lowPerformanceMode);
         return 0;
@@ -1424,11 +1445,15 @@ void Window::OnPaint() {
         viewportBounds = GetLogicalClientBounds(m_hwnd, dpiScale);
     }
     Rect dirtyBounds = frameDirtyRegion.GetBounds();
-    bool fullRepaint = frameDirtyRegion.GetRectCount() == 0
+    const bool viewportDirty = frameDirtyRegion.GetRectCount() == 0
         || viewportBounds.IsEmpty()
         || CoversRect(paintBounds, viewportBounds)
         || AnyDirtyRectCovers(frameDirtyRegion, viewportBounds)
         || !m_sceneLayer.IsValid();
+    // Always treat paint as full scene rebuild for the cache (avoids gap/margin black bars).
+    const bool fullRepaint = true;
+    (void)viewportDirty;
+    (void)dirtyBounds;
 
     m_compositionContext.BeginFrame(viewportBounds, frameDirtyRegion, fullRepaint);
     m_gfxContext.SetCompositionContext(&m_compositionContext);
@@ -1476,39 +1501,8 @@ void Window::OnPaint() {
         && m_sceneLayer.GetCacheBitmap() != nullptr;
 
     if (reuseSceneForOverlayAnim) {
-        const auto& dirtyRects = frameDirtyRegion.GetRects();
-        Rect unionPatch;
-        bool hasPatch = false;
-        for (const Rect& rect : dirtyRects) {
-            if (rect.IsEmpty() || CoversRect(rect, viewportBounds)) {
-                continue;
-            }
-            const Rect patch = rect.Inflate(1.0f);
-            unionPatch = hasPatch ? unionPatch.Union(patch) : patch;
-            hasPatch = true;
-        }
-        if (hasPatch) {
-            if (m_gfxContext.PushLayerTarget(
-                    m_sceneLayer,
-                    sceneSize,
-                    unionPatch,
-                    sceneClearColor,
-                    false)) {
-                for (const Rect& rect : dirtyRects) {
-                    if (rect.IsEmpty() || CoversRect(rect, viewportBounds)) {
-                        continue;
-                    }
-                    m_gfxContext.ClearRect(rect.Inflate(1.0f));
-                }
-                m_gfxContext.SetPaintBounds(unionPatch);
-                m_gfxContext.PushClip(unionPatch);
-                renderScene();
-                m_gfxContext.PopClip();
-                m_gfxContext.PopLayerTarget(m_sceneLayer);
-                m_sceneLayer.Validate();
-            }
-        }
-
+        // Reuse the last full scene bitmap; do not dirty-patch under the scrim
+        // (same gap/margin seam risk as the main path).
         if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
             m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
         } else {
@@ -1525,42 +1519,17 @@ void Window::OnPaint() {
         return;
     }
 
-    const bool canRestoreScene =
-        !fullRepaint
-        && !sceneSizeChanged
-        && m_sceneLayer.IsValid()
-        && m_sceneLayer.GetCacheBitmap() != nullptr;
-
-    // 材质也走场景层局部脏区：不要每帧整窗直绘（下拉/弹窗动画会卡死）。
-    // 场景层本身是 premul alpha，DrawLayer 到 Composition swap chain 可保留透明度。
-    const Rect layerPaintBounds = (canRestoreScene && !dirtyBounds.IsEmpty())
-        ? dirtyBounds.Inflate(1.0f)
-        : viewportBounds;
-
+    // Dirty-rect scene patching disabled: clearing StackPanel gaps / TextBlock margins
+    // with WindowBackground or transparent left "black bars" on Pane/Card surfaces.
+    // Rebuild the full scene bitmap each paint until gap-aware dirty expansion exists.
     if (m_gfxContext.PushLayerTarget(
             m_sceneLayer,
             sceneSize,
-            layerPaintBounds,
+            viewportBounds,
             sceneClearColor,
-            !canRestoreScene)) {
-        if (canRestoreScene && !dirtyBounds.IsEmpty()) {
-            // Clear each dirty patch, but walk the tree once with the union AABB so
-            // cull can skip unrelated subtrees (N full walks was a major CPU cost).
-            const auto& dirtyRects = frameDirtyRegion.GetRects();
-            const Rect unionPatch = dirtyBounds.Inflate(1.0f);
-            for (const Rect& rect : dirtyRects) {
-                if (!rect.IsEmpty()) {
-                    m_gfxContext.ClearRect(rect.Inflate(1.0f));
-                }
-            }
-            m_gfxContext.SetPaintBounds(unionPatch);
-            m_gfxContext.PushClip(unionPatch);
-            renderScene();
-            m_gfxContext.PopClip();
-        } else {
-            renderScene();
-        }
-
+            true)) {
+        m_gfxContext.SetPaintBounds(viewportBounds);
+        renderScene();
         m_gfxContext.PopLayerTarget(m_sceneLayer);
         m_sceneLayer.Validate();
     }

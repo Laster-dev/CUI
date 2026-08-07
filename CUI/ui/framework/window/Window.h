@@ -4,6 +4,7 @@
 #include "../render/CompositionContext.h"
 #include "../render/DirtyRegion.h"
 #include "../render/RenderLayer.h"
+#include "../render/LayerRasterizer.h"
 #include "../animation/AnimationManager.h"
 #include "../animation/FrameScheduler.h"
 #include "../input/RoutedEvent.h"
@@ -99,6 +100,7 @@ private:
     AnimationManager m_animationManager;
     FrameScheduler m_frameScheduler;
     CompositionContext m_compositionContext;
+    LayerRasterizer m_layerRasterizer;
     DirtyRegion m_pendingDirtyRegion;
     RenderLayer m_sceneLayer;
     bool m_showRenderStatsOverlay = true;

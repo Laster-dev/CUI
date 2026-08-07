@@ -343,6 +343,9 @@ void UIElement::Render(GraphicsContext& ctx) {
                     D2D1::ColorF(0, 0, 0, 0),
                     true)) {
                 // Record in local space so the bitmap is (0,0)-(w,h).
+                // Paint-bounds cull uses world coords — disable for this pass.
+                const Rect savedPaintBounds = ctx.GetPaintBounds();
+                ctx.SetPaintBounds(Rect());
                 ctx.PushTransform(D2D1::Matrix3x2F::Translation(-m_bounds.x, -m_bounds.y));
                 if (auto* composition = ctx.GetCompositionContext()) {
                     composition->CountRasterizedNode();
@@ -355,6 +358,7 @@ void UIElement::Render(GraphicsContext& ctx) {
                     }
                 }
                 ctx.PopTransform();
+                ctx.SetPaintBounds(savedPaintBounds);
                 ctx.PopLayerTarget(layer);
                 layer.Validate();
             }

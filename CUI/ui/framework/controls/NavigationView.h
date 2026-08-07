@@ -178,7 +178,8 @@ private:
     bool IsCompactList() const;
 
     void UpdateChildCompactFlags();
-    void RelayoutChildren();
+    void RelayoutChildren(bool measureContent = true);
+    void ArrangeContentHost();
     void UpdateSelectionVisuals();
     void ClosePaneIfOverlay();
 
@@ -227,6 +228,7 @@ private:
 
     AnimatedScalar m_paneWidthAnim{ DefaultOpenPaneLength };
     int m_lastLaidOutPanePixelWidth = -1;
+    bool m_paneWidthAnimActive = false;
     bool m_ignoreSelectionEvent = false;
 
     // Animated selection indicator ("blue bar") that slides between items.

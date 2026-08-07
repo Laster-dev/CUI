@@ -65,7 +65,7 @@ Size NavigationViewItemSeparator::Measure(Size availableSize) {
 }
 
 void NavigationViewItemSeparator::OnRender(GraphicsContext& ctx) {
-    Control::OnRender(ctx);
+    // No Control chrome fill — a 9px filled strip reads as a black bar on the pane.
     if (GetBorderToken() == ThemeTokenId::Unset) {
         SetBorderToken(ThemeTokenId::CardBorder);
     }

@@ -3,6 +3,7 @@
 #include "RenderLayer.h"
 #include "../core/Value.h"
 #include <d2d1_1.h>
+#include <d3d11.h>
 #include <dwrite.h>
 #include <wincodec.h>
 #include <dxgi1_2.h>
@@ -28,6 +29,8 @@ public:
     HRESULT EndDraw();
 
     ID2D1DeviceContext* GetD2DContext() const { return m_d2dContext.Get(); }
+    ID2D1Device* GetD2DDevice() const { return m_d2dDevice.Get(); }
+    ID3D11Device* GetD3DDevice() const { return m_d3dDevice.Get(); }
     IDWriteFactory* GetDWriteFactory() const { return m_dwriteFactory.Get(); }
     RenderResources& GetResources() { return m_resources; }
     HWND GetHwnd() const { return m_hwnd; }
@@ -53,7 +56,10 @@ public:
     bool PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, D2D1_COLOR_F clearColor, bool clearTarget = true);
     void PopLayerTarget(RenderLayer& layer);
     // Erase pixels in rect (SOURCE_COPY). Needed for transparent material clears under clip.
+    // Prefer passing the scene clear color when patching opaque caches — transparent clears
+    // leave holes that composite as black bars over WindowBackground.
     void ClearRect(const Rect& rect);
+    void ClearRect(const Rect& rect, D2D1_COLOR_F color);
 
     void DrawRect(const Rect& rect, D2D1_COLOR_F color, float strokeWidth = 1.0f);
     void FillRect(const Rect& rect, D2D1_COLOR_F color);
@@ -142,6 +148,7 @@ private:
 
     ComPtr<ID2D1Device> m_d2dDevice;
     ComPtr<ID2D1DeviceContext> m_d2dContext;
+    ComPtr<ID3D11Device> m_d3dDevice;
     ComPtr<IDXGISwapChain1> m_swapChain;
     ComPtr<IDCompositionDevice> m_dcompDevice;
     ComPtr<IDCompositionTarget> m_dcompTarget;
