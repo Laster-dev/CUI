@@ -89,12 +89,17 @@ NavigationViewItem::NavigationViewItem(const std::string& content, const std::st
 void NavigationViewItem::StyleDefaults() {
     // Bind theme tokens only. Do not bake ColorF snapshots — ThemeManager is
     // the single color source unless user code overrides a property.
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    // Hover/selected fills are drawn inset in OnRender — keep Control hover
+    // tokens unset so GetAnimatedBackground cannot paint a second full-bounds layer.
+    SetHoverBackgroundToken(ThemeTokenId::Unset);
+    SetPressedBackgroundToken(ThemeTokenId::Unset);
     SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
     SetColorToken(ThemeTokenId::TextPrimary);
     SetSecondaryColorToken(ThemeTokenId::TextSecondary);
     SetIndicatorColorToken(ThemeTokenId::AccentColor);
     SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
     SetCornerRadius(6.0f);
 }
 
@@ -161,8 +166,8 @@ bool NavigationViewItem::HitChevron(Point pt) const {
 }
 
 void NavigationViewItem::OnRender(GraphicsContext& ctx) {
-    Control::OnRender(ctx);
-
+    // Intentionally skip Control::OnRender. Control would fill m_bounds with the
+    // hover/pressed animated chrome; we paint a single inset highlight below.
     const float radius = GetCornerRadius();
     const bool showSelected = m_isSelected || m_isChildSelected;
     // Inset so rounded corners aren't clipped by the pane/scroll edge.
@@ -251,7 +256,8 @@ void NavigationViewItem::StartRipple(Point pt) {
 }
 
 void NavigationViewItem::OnMouseDown(Point pt) {
-    Control::OnMouseDown(pt);
+    // Skip Control::OnMouseDown — avoids full-bounds visual-state animation chrome.
+    UIElement::OnMouseDown(pt);
     if (!IsEnabled()) {
         return;
     }
@@ -272,14 +278,14 @@ void NavigationViewItem::OnMouseDown(Point pt) {
 }
 
 bool NavigationViewItem::OnAnimationTick() {
-    bool base = Control::OnAnimationTick();
+    // Do not run Control visual-state hover fade — chrome is discrete via m_hovered.
     if (!UIElement::AreAnimationsEnabled()) {
         m_rippleActive = false;
         m_rippleOpacity = 0.0f;
-        return base;
+        return UIElement::OnAnimationTick();
     }
     if (!m_rippleActive) {
-        return base;
+        return UIElement::OnAnimationTick();
     }
 
     float cornerX = (m_rippleCenter.x - m_bounds.x > m_bounds.width * 0.5f) ? m_bounds.x : (m_bounds.x + m_bounds.width);
@@ -299,26 +305,27 @@ bool NavigationViewItem::OnAnimationTick() {
         m_rippleOpacity = 0.0f;
     }
 
-    return true;
+    MarkRenderRectDirty(m_bounds.Inflate(2.0f));
+    return m_rippleActive || UIElement::OnAnimationTick();
 }
 
 bool NavigationViewItem::HasSelfAnimation() const {
-    return Control::HasSelfAnimation() || m_rippleActive;
+    return m_rippleActive;
 }
 
 void NavigationViewItem::OnMouseEnter() {
-    Control::OnMouseEnter();
+    UIElement::OnMouseEnter();
     if (!m_hovered) {
         m_hovered = true;
-        MarkRenderRectDirty(m_bounds);
+        MarkRenderRectDirty(m_bounds.Inflate(2.0f));
     }
 }
 
 void NavigationViewItem::OnMouseLeave() {
-    Control::OnMouseLeave();
+    UIElement::OnMouseLeave();
     if (m_hovered) {
         m_hovered = false;
-        MarkRenderRectDirty(m_bounds);
+        MarkRenderRectDirty(m_bounds.Inflate(2.0f));
     }
 }
 
