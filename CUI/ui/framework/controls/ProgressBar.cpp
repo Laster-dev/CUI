@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ProgressBar.h"
+#include "../animation/AnimationManager.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -42,6 +43,12 @@ Size ProgressBar::Measure(Size availableSize) {
 bool ProgressBar::OnAnimationTick() {
     bool baseAnim = Control::OnAnimationTick();
 
+    if (AnimationManager* mgr = AnimationManager::Current()) {
+        if (!mgr->IsInLiveTree(this)) {
+            return false;
+        }
+    }
+
     const auto now = std::chrono::steady_clock::now();
     float deltaSeconds = 1.0f / 60.0f;
     if (m_lastTickTime.time_since_epoch().count() != 0) {
@@ -51,6 +58,9 @@ bool ProgressBar::OnAnimationTick() {
     m_lastTickTime = now;
 
     if (IsIndeterminate()) {
+        if (m_visibility != Visibility::Visible || m_bounds.IsEmpty()) {
+            return baseAnim;
+        }
         const float speed = 1.0f;
         m_animOffset += speed * deltaSeconds;
         if (m_animOffset > 10000.0f) {
@@ -78,12 +88,22 @@ bool ProgressBar::OnAnimationTick() {
 }
 
 bool ProgressBar::HasSelfAnimation() const {
+    if (m_visibility != Visibility::Visible || m_bounds.IsEmpty()) {
+        return Control::HasSelfAnimation();
+    }
     return Control::HasSelfAnimation()
         || IsIndeterminate()
         || (UIElement::AreAnimationsEnabled() && std::abs(GetValue() - m_displayValue) > 0.01f);
 }
 
 void ProgressBar::OnRender(GraphicsContext& ctx) {
+    // Kick the pump only while this control is actually painted (live tree).
+    // Showcase builds all pages up-front; SetIsIndeterminate must not keep
+    // off-screen bars registered forever.
+    if (IsIndeterminate()) {
+        RequestAnimationTicks();
+    }
+
     float radius = GetCornerRadius();
     if (radius < 0.0f) radius = m_bounds.height * 0.5f;
     D2D1_COLOR_F trackBg = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);

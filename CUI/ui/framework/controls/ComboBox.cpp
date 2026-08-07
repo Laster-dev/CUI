@@ -265,7 +265,7 @@ void ComboBox::OnMouseWheel(float delta) {
     // delta > 0 => wheel up => scroll towards smaller indices.
     const float step = itemHeight; // about one row
     m_scrollOffset = std::clamp(m_scrollOffset - delta * step, 0.0f, maxScroll);
-    m_scrollbarAutoHide.NotifyActivity();
+    m_scrollbarAutoHide.NotifyActivity(this);
     RequestAnimationTicks();
     MarkRenderContentDirty();
 }

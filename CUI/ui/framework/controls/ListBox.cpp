@@ -427,8 +427,8 @@ void ListBox::OnMouseDown(Point pt) {
         float trackX = m_bounds.x + m_bounds.width - 10.0f;
         if (pt.x >= trackX) {
             m_isDraggingScrollbar = true;
-            m_scrollbarAutoHide.SetDragging(true);
-            m_scrollbarAutoHide.NotifyActivity();
+            m_scrollbarAutoHide.SetDragging(true, this);
+            m_scrollbarAutoHide.NotifyActivity(this);
             RequestAnimationTicks();
             m_dragStartY = pt.y;
             m_dragStartScrollY = m_scrollY;
@@ -477,7 +477,7 @@ void ListBox::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
 
     const bool overBar = m_maxScrollY > 0.0f && pt.x >= m_bounds.x + m_bounds.width - 10.0f;
-    m_scrollbarAutoHide.SetPointerOver(overBar);
+    m_scrollbarAutoHide.SetPointerOver(overBar, this);
     if (overBar) {
         RequestAnimationTicks();
     }
@@ -496,7 +496,7 @@ void ListBox::OnMouseMove(Point pt) {
             ClampScroll();
             m_scrollY = m_targetScrollY;
             m_scrollYAnim.Reset(m_scrollY);
-            m_scrollbarAutoHide.NotifyActivity();
+            m_scrollbarAutoHide.NotifyActivity(this);
             MarkRenderContentDirty();
         } else {
             m_scrollY = 0.0f;
@@ -512,13 +512,13 @@ void ListBox::OnMouseMove(Point pt) {
 void ListBox::OnMouseUp(Point pt) {
     Control::OnMouseUp(pt);
     m_isDraggingScrollbar = false;
-    m_scrollbarAutoHide.SetDragging(false);
+    m_scrollbarAutoHide.SetDragging(false, this);
     RequestAnimationTicks();
 }
 
 void ListBox::OnMouseLeave() {
     Control::OnMouseLeave();
-    m_scrollbarAutoHide.SetPointerOver(false);
+    m_scrollbarAutoHide.SetPointerOver(false, this);
     RequestAnimationTicks();
 }
 
@@ -549,7 +549,7 @@ void ListBox::OnMouseWheel(float delta) {
         // Same as ScrollViewer: wheel must re-register for AnimationManager ticks.
         RequestAnimationTicks();
     }
-    m_scrollbarAutoHide.NotifyActivity();
+    m_scrollbarAutoHide.NotifyActivity(this);
     MarkRenderContentDirty();
 }
 
@@ -569,7 +569,7 @@ bool ListBox::OnAnimationTick() {
     bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
     if (anim) {
         m_scrollY = m_scrollYAnim.Current();
-        m_scrollbarAutoHide.NotifyActivity();
+        m_scrollbarAutoHide.NotifyActivity(this);
         MarkRenderContentDirty();
     }
     const float prevOpacity = m_scrollbarAutoHide.Opacity();

@@ -42,6 +42,8 @@ public:
     void PushOpacity(float opacity);
     void PopOpacity();
     bool EnsureLayerCache(RenderLayer& layer, Size sizeInDips);
+    // Lazily allocate the twin scratch bitmap (ScrollViewer scroll-patch path only).
+    bool EnsureLayerScratch(RenderLayer& layer);
     ID2D1DeviceContext* BeginLayerDraw(RenderLayer& layer);
     void EndLayerDraw(RenderLayer& layer);
     void DrawLayer(const RenderLayer& layer, const Rect& destRect, const Rect* sourceRect = nullptr, float opacity = 1.0f);

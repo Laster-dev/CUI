@@ -1,5 +1,6 @@
 #include "Toast.h"
 #include "ToastCenter.h"
+#include "../animation/AnimationManager.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -371,11 +372,17 @@ UIElement* Toast::OnHitTestOverlay(float x, float y) {
 void Toast::OnMouseEnter() {
     UIElement::OnMouseEnter();
     m_isHovering = true;
+    if (AnimationManager* mgr = AnimationManager::Current()) {
+        mgr->CancelWake(this);
+    }
 }
 
 void Toast::OnMouseLeave() {
     UIElement::OnMouseLeave();
     m_isHovering = false;
+    if (m_state == 2 && m_autoClose && m_durationMs > 0) {
+        RequestAnimationTicks();
+    }
 }
 
 void Toast::OnMouseDown(Point pt) {
@@ -401,10 +408,33 @@ void Toast::OnMouseUp(Point pt) {
 }
 
 bool Toast::OnAnimationTick() {
-    if (m_state == 3) return false;
+    if (m_state == 3) {
+        if (AnimationManager* mgr = AnimationManager::Current()) {
+            mgr->CancelWake(this);
+        }
+        return false;
+    }
 
     auto now = std::chrono::steady_clock::now();
     float elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_stateTime).count() / 1000.0f;
+
+    auto scheduleAutoCloseWake = [&]() {
+        if (!m_autoClose || m_durationMs <= 0 || m_isHovering) {
+            if (AnimationManager* mgr = AnimationManager::Current()) {
+                mgr->CancelWake(this);
+            }
+            return;
+        }
+        const float remainMs = static_cast<float>(m_durationMs) - elapsed * 1000.0f;
+        if (remainMs <= 0.0f) {
+            return;
+        }
+        if (AnimationManager* mgr = AnimationManager::Current()) {
+            mgr->RequestWake(
+                this,
+                now + std::chrono::milliseconds(static_cast<int>(std::ceil(remainMs))));
+        }
+    };
 
     if (!UIElement::AreAnimationsEnabled()) {
         if (m_state == 1) {
@@ -413,6 +443,8 @@ bool Toast::OnAnimationTick() {
             m_currentOpacity = 1.0f;
             m_currentSlideX = 0.0f;
             m_currentSlideY = 0.0f;
+            scheduleAutoCloseWake();
+            return false;
         } else if (m_state == 2) {
             m_currentOpacity = 1.0f;
             m_currentSlideX = 0.0f;
@@ -422,7 +454,9 @@ bool Toast::OnAnimationTick() {
                     Hide();
                     return true;
                 }
+                scheduleAutoCloseWake();
             }
+            return false;
         } else if (m_state == 4) {
             m_state = 3;
             m_currentOpacity = 0.0f;
@@ -430,7 +464,7 @@ bool Toast::OnAnimationTick() {
             m_currentSlideY = 0.0f;
             return false;
         }
-        return IsOpen();
+        return false;
     }
 
     if (m_state == 1) {
@@ -445,6 +479,8 @@ bool Toast::OnAnimationTick() {
             m_currentOpacity = 1.0f;
             m_currentSlideX = 0.0f;
             m_currentSlideY = 0.0f;
+            scheduleAutoCloseWake();
+            return false;
         }
         return true;
     }
@@ -458,11 +494,15 @@ bool Toast::OnAnimationTick() {
                 Hide();
                 return true;
             }
+            scheduleAutoCloseWake();
         }
-        return IsOpen();
+        return false;
     }
 
     if (m_state == 4) {
+        if (AnimationManager* mgr = AnimationManager::Current()) {
+            mgr->CancelWake(this);
+        }
         float t = Clamp01(elapsed / 0.18f);
         float e = EaseOutCubic(t);
         m_currentOpacity = 1.0f - e;
@@ -482,7 +522,8 @@ bool Toast::OnAnimationTick() {
 }
 
 bool Toast::HasSelfAnimation() const {
-    return IsOpen();
+    // Only entering/exiting need continuous dirty invalidation.
+    return m_state == 1 || m_state == 4;
 }
 
 std::shared_ptr<Toast> Toast::Show(UIElement* root,

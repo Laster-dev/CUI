@@ -784,8 +784,8 @@ void TerminalControl::OnMouseDown(Point pt) {
     const Rect thumb = GetScrollThumbRect();
     if (!thumb.IsEmpty() && GetScrollBarRect().Contains(pt.x, pt.y)) {
         m_draggingScrollbar = true;
-        m_scrollbarAutoHide.SetDragging(true);
-        m_scrollbarAutoHide.NotifyActivity();
+        m_scrollbarAutoHide.SetDragging(true, this);
+        m_scrollbarAutoHide.NotifyActivity(this);
         RequestAnimationTicks();
         m_scrollGrabOffset = thumb.Contains(pt.x, pt.y) ? (pt.y - thumb.y) : thumb.height * 0.5f;
         SyncScrollFromThumb(pt.y);
@@ -866,7 +866,7 @@ void TerminalControl::OnMouseMove(Point pt) {
     m_lastMousePos = pt;
 
     const bool overBar = !GetScrollThumbRect().IsEmpty() && GetScrollBarRect().Contains(pt.x, pt.y);
-    m_scrollbarAutoHide.SetPointerOver(overBar);
+    m_scrollbarAutoHide.SetPointerOver(overBar, this);
     if (overBar) {
         RequestAnimationTicks();
         MarkRenderRectDirty(GetScrollBarRect());
@@ -888,7 +888,7 @@ void TerminalControl::OnMouseMove(Point pt) {
 
     if (m_draggingScrollbar) {
         SyncScrollFromThumb(pt.y);
-        m_scrollbarAutoHide.NotifyActivity();
+        m_scrollbarAutoHide.NotifyActivity(this);
         return;
     }
 
@@ -923,7 +923,7 @@ void TerminalControl::OnMouseUp(Point pt) {
 
     if (m_draggingScrollbar) {
         m_draggingScrollbar = false;
-        m_scrollbarAutoHide.SetDragging(false);
+        m_scrollbarAutoHide.SetDragging(false, this);
         Control::OnMouseUp(pt);
         MarkRenderRectDirty(GetScrollBarRect());
         RequestAnimationTicks();
@@ -980,14 +980,14 @@ void TerminalControl::OnMouseWheel(float delta) {
     }
 
     m_terminal->ScrollLines(delta > 0.0f ? 3 : -3);
-    m_scrollbarAutoHide.NotifyActivity();
+    m_scrollbarAutoHide.NotifyActivity(this);
     RequestAnimationTicks();
     MarkViewportDirty();
 }
 
 void TerminalControl::OnMouseLeave() {
     Control::OnMouseLeave();
-    m_scrollbarAutoHide.SetPointerOver(false);
+    m_scrollbarAutoHide.SetPointerOver(false, this);
     RequestAnimationTicks();
     if (m_hoveredFindButton != -1) {
         m_hoveredFindButton = -1;

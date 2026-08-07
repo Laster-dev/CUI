@@ -12,6 +12,9 @@ bool UIElement::s_animationsEnabled = true;
 float UIElement::s_animationDeltaSeconds = 1.0f / 60.0f;
 
 namespace {
+// Inflate cull bounds so ripples/shadows that draw slightly outside still get painted.
+constexpr float kCullBoundsSlop = 8.0f;
+
 bool CanCullElementForCurrentPass(const UIElement* element, const GraphicsContext& ctx) {
     if (!element) {
         return true;
@@ -22,12 +25,11 @@ bool CanCullElementForCurrentPass(const UIElement* element, const GraphicsContex
         return false;
     }
 
-    if (!element->ShouldClipToBounds()) {
-        return false;
-    }
-
     const Rect bounds = element->GetBounds();
-    return !bounds.IsEmpty() && !ctx.IntersectsPaintBounds(bounds);
+    if (bounds.IsEmpty()) {
+        return true;
+    }
+    return !ctx.IntersectsPaintBounds(bounds.Inflate(kCullBoundsSlop));
 }
 } // namespace
 
@@ -42,6 +44,9 @@ UIElement::UIElement() {
 
 UIElement::~UIElement() {
     CancelAnimationTicks();
+    if (AnimationManager* mgr = AnimationManager::Current()) {
+        mgr->CancelWake(this);
+    }
     // Detach children so surviving shared_ptrs do not keep a dangling m_parent.
     // Avoid ClearChildren() — it also marks render dirty during teardown.
     for (auto& child : m_children) {
@@ -70,7 +75,8 @@ void UIElement::RequestAnimationTicks() {
     }
     if (AnimationManager* mgr = AnimationManager::Current()) {
         mgr->RegisterAnimating(this);
-        m_animationTicksRegistered = true;
+        // Register may reject detached elements (not under live root yet).
+        m_animationTicksRegistered = mgr->IsRegistered(this);
     }
 }
 
@@ -481,8 +487,10 @@ void UIElement::SyncRenderState() {
 
 void UIElement::MarkRenderContentDirty() {
     m_renderNode.MarkContentDirty();
+    // Bubble only this element's rect — ancestors must not mark their full bounds dirty
+    // or a tiny control animation expands into a full-window repaint.
     if (m_parent) {
-        m_parent->MarkRenderContentDirty();
+        m_parent->MarkRenderRectDirty(m_bounds);
     }
 }
 

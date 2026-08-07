@@ -160,6 +160,8 @@ private:
     float m_caretWidth = 1.5f;
     AnimatedScalar m_labelAnim{};
     AnimatedScalar m_focusLineAnim{};
+    bool m_lastCaretBlinkPhase = true;
+    bool m_caretBlinkDirty = false;
 
     std::vector<TextBoxUndoState> m_undoStack;
     std::vector<TextBoxUndoState> m_redoStack;

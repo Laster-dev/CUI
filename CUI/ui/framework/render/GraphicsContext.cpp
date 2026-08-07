@@ -484,6 +484,9 @@ bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
         return true;
     }
 
+    if (layer.m_cacheContext) {
+        m_resources.ReleaseContextBrushes(layer.m_cacheContext.Get());
+    }
     layer.ResetCache();
 
     HRESULT hr = m_d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &layer.m_cacheContext);
@@ -512,23 +515,39 @@ bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
         return false;
     }
 
-    hr = layer.m_cacheContext->CreateBitmap(
-        D2D1::SizeU(pixelW, pixelH),
-        nullptr,
-        0,
-        &props,
-        &layer.m_scratchBitmap
-    );
-    if (FAILED(hr) || !layer.m_scratchBitmap) {
-        layer.ResetCache();
-        return false;
-    }
-
     layer.m_cacheContext->SetDpi(dpi, dpi);
     layer.m_cacheContext->SetTarget(layer.m_cacheBitmap.Get());
     layer.SetCacheSurfaceSize(Size(widthDips, heightDips));
     layer.Invalidate(RenderLayer::SizeDirty | RenderLayer::ContentDirty);
     return true;
+}
+
+bool GraphicsContext::EnsureLayerScratch(RenderLayer& layer) {
+    if (layer.m_scratchBitmap) {
+        return true;
+    }
+    if (!layer.m_cacheContext || !layer.m_cacheBitmap) {
+        return false;
+    }
+
+    const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+    const float dpi = 96.0f * scale;
+    const D2D1_SIZE_U pixels = layer.m_cacheBitmap->GetPixelSize();
+    D2D1_BITMAP_PROPERTIES1 props = D2D1::BitmapProperties1(
+        D2D1_BITMAP_OPTIONS_TARGET,
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+        dpi,
+        dpi
+    );
+
+    HRESULT hr = layer.m_cacheContext->CreateBitmap(
+        pixels,
+        nullptr,
+        0,
+        &props,
+        &layer.m_scratchBitmap
+    );
+    return SUCCEEDED(hr) && layer.m_scratchBitmap;
 }
 
 ID2D1DeviceContext* GraphicsContext::BeginLayerDraw(RenderLayer& layer) {
@@ -765,9 +784,16 @@ void GraphicsContext::DrawTextOnTarget(
         return;
     }
 
-    ComPtr<ID2D1SolidColorBrush> brush;
-    if (FAILED(target->CreateSolidColorBrush(color, &brush)) || !brush) {
-        return;
+    ID2D1SolidColorBrush* brush = nullptr;
+    if (m_d2dContext.Get() == target) {
+        brush = m_resources.GetSolidBrush(color);
+    }
+    ComPtr<ID2D1SolidColorBrush> ownedBrush;
+    if (!brush) {
+        if (FAILED(target->CreateSolidColorBrush(color, &ownedBrush)) || !ownedBrush) {
+            return;
+        }
+        brush = ownedBrush.Get();
     }
 
     format->SetTextAlignment(align);
@@ -784,7 +810,7 @@ void GraphicsContext::DrawTextOnTarget(
         static_cast<UINT32>(text.length()),
         format,
         rect.ToD2D(),
-        brush.Get(),
+        brush,
         D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
     );
     target->SetTextAntialiasMode(previousMode);
@@ -801,9 +827,16 @@ void GraphicsContext::DrawTextLayoutOnTarget(
         return;
     }
 
-    ComPtr<ID2D1SolidColorBrush> brush;
-    if (FAILED(target->CreateSolidColorBrush(color, &brush)) || !brush) {
-        return;
+    ID2D1SolidColorBrush* brush = nullptr;
+    if (m_d2dContext.Get() == target) {
+        brush = m_resources.GetSolidBrush(color);
+    }
+    ComPtr<ID2D1SolidColorBrush> ownedBrush;
+    if (!brush) {
+        if (FAILED(target->CreateSolidColorBrush(color, &ownedBrush)) || !ownedBrush) {
+            return;
+        }
+        brush = ownedBrush.Get();
     }
 
     const D2D1_TEXT_ANTIALIAS_MODE previousMode = target->GetTextAntialiasMode();
@@ -811,7 +844,7 @@ void GraphicsContext::DrawTextLayoutOnTarget(
     target->DrawTextLayout(
         D2D1::Point2F(originRect.x, originRect.y),
         layout,
-        brush.Get(),
+        brush,
         D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
     );
     target->SetTextAntialiasMode(previousMode);

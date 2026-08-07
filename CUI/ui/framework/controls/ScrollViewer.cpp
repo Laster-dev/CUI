@@ -400,7 +400,7 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         cacheHeight
     );
 
-    if (canPatchViewportCache) {
+    if (canPatchViewportCache && ctx.EnsureLayerScratch(m_contentLayer)) {
         // Snapshot BEFORE PushLayerTarget: once the cache bitmap is the D2D target,
         // Clear+CopyFromBitmap races and produces torn/jittery scroll frames.
         ID2D1Bitmap1* cacheBmp = m_contentLayer.GetCacheBitmap();
@@ -596,14 +596,14 @@ void ScrollViewer::OnMouseDown(Point pt) {
     Rect thumb = GetScrollbarThumbRect();
 
     if (thumb.Contains(pt.x, pt.y) || track.Contains(pt.x, pt.y)) {
-        m_scrollbarAutoHide.NotifyActivity();
+        m_scrollbarAutoHide.NotifyActivity(this);
         RequestAnimationTicks();
     }
 
     if (thumb.Contains(pt.x, pt.y)) {
         StopSmoothScroll();
         m_isDraggingThumb = true;
-        m_scrollbarAutoHide.SetDragging(true);
+        m_scrollbarAutoHide.SetDragging(true, this);
         m_dragStartY = pt.y;
         m_dragStartOffsetY = m_offsetY;
         return;
@@ -633,7 +633,7 @@ void ScrollViewer::OnMouseMove(Point pt) {
 
     bool wasHovered = m_scrollbarHovered;
     m_scrollbarHovered = (m_contentHeight > m_bounds.height) && GetScrollbarTrackRect().Contains(pt.x, pt.y);
-    m_scrollbarAutoHide.SetPointerOver(m_scrollbarHovered);
+    m_scrollbarAutoHide.SetPointerOver(m_scrollbarHovered, this);
     if (wasHovered != m_scrollbarHovered) {
         MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
         RequestAnimationTicks();
@@ -663,7 +663,7 @@ void ScrollViewer::OnMouseUp(Point pt) {
         RequestAnimationTicks();
     }
     m_isDraggingThumb = false;
-    m_scrollbarAutoHide.SetDragging(false);
+    m_scrollbarAutoHide.SetDragging(false, this);
 }
 
 void ScrollViewer::OnMouseLeave() {
@@ -672,7 +672,7 @@ void ScrollViewer::OnMouseLeave() {
         m_scrollbarHovered = false;
         MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
     }
-    m_scrollbarAutoHide.SetPointerOver(false);
+    m_scrollbarAutoHide.SetPointerOver(false, this);
     RequestAnimationTicks();
 }
 
@@ -683,7 +683,7 @@ void ScrollViewer::OnMouseWheel(float delta) {
         return;
     }
 
-    m_scrollbarAutoHide.NotifyActivity();
+    m_scrollbarAutoHide.NotifyActivity(this);
     RequestAnimationTicks();
 
     if (!UIElement::AreAnimationsEnabled()) {
@@ -726,7 +726,7 @@ bool ScrollViewer::AdvanceSmoothScroll() {
     PositionChildren();
     if (std::abs(previousOffset - m_offsetY) > 0.01f) {
         MarkScrollVisualDirty(previousOffset);
-        m_scrollbarAutoHide.NotifyActivity();
+        m_scrollbarAutoHide.NotifyActivity(this);
     }
     return true;
 }

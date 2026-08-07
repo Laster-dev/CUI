@@ -1,8 +1,10 @@
 #define NOMINMAX
 #include "TextBox.h"
 #include "ContextMenu.h"
+#include "../animation/AnimationManager.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cwctype>
 
@@ -371,13 +373,42 @@ bool TextBox::OnAnimationTick() {
 
     bool animating = m_labelAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.34f, 0.01f });
     animating = m_focusLineAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.28f, 0.01f }) || animating;
-    // Keep the animation pump alive while focused so caret blink uses dirty regions
-    // instead of a full-window timer repaint.
-    const bool caretBlink = m_isFocused && IsEnabled();
-    if (animating || caretBlink) {
+
+    m_caretBlinkDirty = false;
+    if (m_isFocused && IsEnabled()) {
+        int blinkRate = GetCaretBlinkRate();
+        if (blinkRate <= 0) {
+            blinkRate = 500;
+        }
+        const ULONGLONG nowMs = GetTickCount64();
+        const bool phase = ((nowMs / static_cast<ULONGLONG>(blinkRate)) % 2ULL) == 0ULL;
+        if (phase != m_lastCaretBlinkPhase) {
+            m_lastCaretBlinkPhase = phase;
+            m_caretBlinkDirty = true;
+            MarkRenderContentDirty();
+        }
+        // Wake near the next blink boundary instead of pumping every refresh.
+        const ULONGLONG nextMs = ((nowMs / static_cast<ULONGLONG>(blinkRate)) + 1ULL)
+            * static_cast<ULONGLONG>(blinkRate);
+        DWORD delayMs = static_cast<DWORD>(nextMs - nowMs);
+        if (delayMs == 0) {
+            delayMs = static_cast<DWORD>(blinkRate);
+        }
+        if (AnimationManager* mgr = AnimationManager::Current()) {
+            mgr->RequestWake(
+                this,
+                AnimationManager::clock::now() + std::chrono::milliseconds(delayMs));
+        }
+    } else if (AnimationManager* mgr = AnimationManager::Current()) {
+        mgr->CancelWake(this);
+    }
+
+    if (animating || m_caretBlinkDirty) {
         RequestAnimationTicks();
     }
-    return base || animating || caretBlink;
+    // Return true for caretBlinkDirty once so the window flushes dirty regions;
+    // steady focus relies on RequestWake rather than continuous self-animation.
+    return base || animating || m_caretBlinkDirty;
 }
 
 bool TextBox::HasSelfAnimation() const {
@@ -388,7 +419,7 @@ bool TextBox::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
         || std::abs(labelTarget - m_labelAnim.Current()) > 0.01f
         || std::abs(focusTarget - m_focusLineAnim.Current()) > 0.01f
-        || (m_isFocused && IsEnabled());
+        || m_caretBlinkDirty;
 }
 
 void TextBox::SelectAll() {
@@ -616,6 +647,8 @@ void TextBox::OnMouseDblClick(Point pt) {
 void TextBox::OnFocus() {
     UIElement::OnFocus();
     m_isFocused = true;
+    m_lastCaretBlinkPhase = true;
+    m_caretBlinkDirty = true;
     RequestAnimationTicks();
     MarkRenderContentDirty();
 }
@@ -623,6 +656,10 @@ void TextBox::OnFocus() {
 void TextBox::OnBlur() {
     UIElement::OnBlur();
     m_isFocused = false;
+    m_caretBlinkDirty = false;
+    if (AnimationManager* mgr = AnimationManager::Current()) {
+        mgr->CancelWake(this);
+    }
     m_selectionStart = m_cursorPos;
     m_selectionEnd = m_cursorPos;
     m_compString.clear();

@@ -201,7 +201,7 @@ void DatePicker::OnMouseDown(Point pt) {
                     if (trackRect.Contains(pt.x, pt.y)) {
                         const float ratio = std::clamp((pt.y - bodyY) / visibleScrollH, 0.0f, 1.0f);
                         m_scrollOffset = ratio * maxScroll;
-                        m_scrollbarAutoHide.NotifyActivity();
+                        m_scrollbarAutoHide.NotifyActivity(this);
                         RequestAnimationTicks();
                         MarkRenderContentDirty();
                         return;
@@ -303,7 +303,7 @@ void DatePicker::OnMouseWheel(float delta) {
     if (std::abs(next - m_scrollOffset) <= 0.001f) return;
 
     m_scrollOffset = next;
-    m_scrollbarAutoHide.NotifyActivity();
+    m_scrollbarAutoHide.NotifyActivity(this);
     RequestAnimationTicks();
     MarkRenderContentDirty();
 }

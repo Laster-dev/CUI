@@ -1,6 +1,8 @@
 #pragma once
 #include "UIElement.h"
+#include "../animation/AnimationManager.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 
 namespace CUI {
@@ -9,34 +11,36 @@ namespace CUI {
 // Show again on scroll activity or pointer-over the track.
 class ScrollbarAutoHide {
 public:
+    using clock = std::chrono::steady_clock;
     static constexpr float kIdleHideSeconds = 1.5f;
 
-    void NotifyActivity() {
+    void NotifyActivity(UIElement* wakeOwner = nullptr) {
         m_idleSeconds = 0.0f;
         m_targetOpacity = 1.0f;
         // Low-performance mode disables animation ticks that would fade opacity in.
         if (!UIElement::AreAnimationsEnabled()) {
             m_opacity = 1.0f;
         }
+        ArmIdleWake(wakeOwner);
     }
 
-    void SetPointerOver(bool over) {
+    void SetPointerOver(bool over, UIElement* wakeOwner = nullptr) {
         if (m_pointerOver == over) {
             return;
         }
         m_pointerOver = over;
         if (over) {
-            NotifyActivity();
+            NotifyActivity(wakeOwner);
         }
     }
 
-    void SetDragging(bool dragging) {
+    void SetDragging(bool dragging, UIElement* wakeOwner = nullptr) {
         if (m_dragging == dragging) {
             return;
         }
         m_dragging = dragging;
         if (dragging) {
-            NotifyActivity();
+            NotifyActivity(wakeOwner);
         }
     }
 
@@ -44,6 +48,20 @@ public:
     bool Dragging() const { return m_dragging; }
     float Opacity() const { return m_opacity; }
     bool IsDrawn() const { return m_opacity > 0.01f; }
+
+    void ArmIdleWake(UIElement* wakeOwner) {
+        const bool hold = m_pointerOver || m_dragging;
+        if (!wakeOwner || hold || m_targetOpacity <= 0.01f) {
+            return;
+        }
+        m_idleDeadline = clock::now()
+            + std::chrono::duration_cast<clock::duration>(
+                std::chrono::duration<float>(kIdleHideSeconds));
+        m_hasIdleDeadline = true;
+        if (AnimationManager* mgr = AnimationManager::Current()) {
+            mgr->RequestWake(wakeOwner, m_idleDeadline);
+        }
+    }
 
     // Advance fade / idle countdown. Returns true while ticks are still needed.
     bool Tick(float dt) {
@@ -56,28 +74,30 @@ public:
                 m_idleSeconds = 0.0f;
                 m_targetOpacity = 1.0f;
                 m_opacity = 1.0f;
+                m_hasIdleDeadline = false;
                 return false;
             }
-            if (m_targetOpacity > 0.01f) {
-                m_idleSeconds += dt;
-                if (m_idleSeconds >= kIdleHideSeconds) {
-                    m_targetOpacity = 0.0f;
-                    m_opacity = 0.0f;
-                    return false;
-                }
+            if (m_hasIdleDeadline && clock::now() >= m_idleDeadline) {
+                m_targetOpacity = 0.0f;
+                m_opacity = 0.0f;
+                m_hasIdleDeadline = false;
+                return false;
             }
             m_opacity = m_targetOpacity;
-            return m_targetOpacity > 0.01f && m_idleSeconds < kIdleHideSeconds;
+            // Waiting for idle deadline: no continuous pump (wake handles it).
+            return false;
         }
 
         if (hold) {
             m_idleSeconds = 0.0f;
             m_targetOpacity = 1.0f;
-        } else if (m_targetOpacity > 0.01f) {
-            m_idleSeconds += dt;
-            if (m_idleSeconds >= kIdleHideSeconds) {
-                m_targetOpacity = 0.0f;
-            }
+            m_hasIdleDeadline = false;
+        } else if (m_hasIdleDeadline && clock::now() >= m_idleDeadline) {
+            m_targetOpacity = 0.0f;
+            m_hasIdleDeadline = false;
+        } else if (m_targetOpacity > 0.01f && m_hasIdleDeadline) {
+            // Keep idleSeconds roughly in sync for diagnostics; wake drives hide.
+            m_idleSeconds = kIdleHideSeconds;
         }
 
         const float prev = m_opacity;
@@ -90,21 +110,12 @@ public:
 
         const bool fading = std::abs(m_opacity - prev) > 0.001f
             || std::abs(m_opacity - m_targetOpacity) > 0.005f;
-        const bool waitingToHide = m_targetOpacity > 0.01f && !hold
-            && m_idleSeconds < kIdleHideSeconds;
-        return fading || waitingToHide;
+        return fading;
     }
 
+    // True only while opacity is actively changing — not during idle wait.
     bool NeedsTicks() const {
-        if (!UIElement::AreAnimationsEnabled()) {
-            const bool hold = m_pointerOver || m_dragging;
-            return m_targetOpacity > 0.01f && !hold && m_idleSeconds < kIdleHideSeconds;
-        }
-        if (std::abs(m_opacity - m_targetOpacity) > 0.005f) {
-            return true;
-        }
-        const bool hold = m_pointerOver || m_dragging;
-        return m_targetOpacity > 0.01f && !hold && m_idleSeconds < kIdleHideSeconds;
+        return std::abs(m_opacity - m_targetOpacity) > 0.005f;
     }
 
 private:
@@ -113,6 +124,8 @@ private:
     float m_idleSeconds = 0.0f;
     bool m_pointerOver = false;
     bool m_dragging = false;
+    bool m_hasIdleDeadline = false;
+    clock::time_point m_idleDeadline{};
 };
 
 } // namespace CUI

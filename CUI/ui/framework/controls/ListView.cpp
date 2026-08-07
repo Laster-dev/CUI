@@ -580,8 +580,8 @@ void ListView::OnMouseDown(Point pt) {
         float trackX = m_bounds.x + m_bounds.width - 12.0f;
         if (pt.x >= trackX && pt.y >= m_bounds.y + m_headerHeight) {
             m_isDraggingScrollbar = true;
-            m_scrollbarAutoHide.SetDragging(true);
-            m_scrollbarAutoHide.NotifyActivity();
+            m_scrollbarAutoHide.SetDragging(true, this);
+            m_scrollbarAutoHide.NotifyActivity(this);
             RequestAnimationTicks();
             m_dragStartY = pt.y;
             m_dragStartScrollY = m_scrollY;
@@ -662,7 +662,7 @@ void ListView::OnMouseMove(Point pt) {
     const bool overBar = m_maxScrollY > 0.0f
         && pt.x >= m_bounds.x + m_bounds.width - 12.0f
         && pt.y >= m_bounds.y + m_headerHeight;
-    m_scrollbarAutoHide.SetPointerOver(overBar);
+    m_scrollbarAutoHide.SetPointerOver(overBar, this);
     if (overBar) {
         RequestAnimationTicks();
     }
@@ -680,7 +680,7 @@ void ListView::OnMouseMove(Point pt) {
             ClampScroll();
             m_scrollY = m_targetScrollY;
             m_scrollYAnim.Reset(m_scrollY);
-            m_scrollbarAutoHide.NotifyActivity();
+            m_scrollbarAutoHide.NotifyActivity(this);
             MarkRenderContentDirty();
         }
         return;
@@ -801,7 +801,7 @@ void ListView::OnMouseUp(Point pt) {
     m_reorderingColumnIndex = -1;
     m_isRubberBandSelecting = false;
     m_isDraggingScrollbar = false;
-    m_scrollbarAutoHide.SetDragging(false);
+    m_scrollbarAutoHide.SetDragging(false, this);
     m_pendingRowClick = -1;
     RequestAnimationTicks();
     MarkRenderContentDirty();
@@ -809,7 +809,7 @@ void ListView::OnMouseUp(Point pt) {
 
 void ListView::OnMouseLeave() {
     Control::OnMouseLeave();
-    m_scrollbarAutoHide.SetPointerOver(false);
+    m_scrollbarAutoHide.SetPointerOver(false, this);
     RequestAnimationTicks();
 }
 
@@ -847,7 +847,7 @@ void ListView::OnMouseWheel(float delta) {
         // hover/focus visual-state animation ends → intermittent frozen scroll.
         RequestAnimationTicks();
     }
-    m_scrollbarAutoHide.NotifyActivity();
+    m_scrollbarAutoHide.NotifyActivity(this);
     MarkRenderContentDirty();
 }
 
@@ -998,7 +998,7 @@ bool ListView::OnAnimationTick() {
     bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
     if (anim) {
         m_scrollY = m_scrollYAnim.Current();
-        m_scrollbarAutoHide.NotifyActivity();
+        m_scrollbarAutoHide.NotifyActivity(this);
         MarkRenderContentDirty();
     }
     const float prevOpacity = m_scrollbarAutoHide.Opacity();

@@ -35,11 +35,26 @@ constexpr UINT WM_CUI_TOGGLE_BACKDROP = WM_APP + 43;
 constexpr UINT WM_CUI_TOGGLE_THEME = WM_APP + 44;
 
 float GetWindowRefreshRateHz(HWND hwnd) {
+    // EnumDisplaySettings is relatively expensive — cache per monitor briefly.
+    struct Cache {
+        HMONITOR monitor = nullptr;
+        float hz = 60.0f;
+        std::chrono::steady_clock::time_point at{};
+    };
+    static Cache cache;
+
     if (!hwnd) {
         return 60.0f;
     }
 
     HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    const auto now = std::chrono::steady_clock::now();
+    if (cache.monitor == monitor
+        && std::chrono::duration<float>(now - cache.at).count() < 2.0f
+        && cache.hz > 1.0f) {
+        return cache.hz;
+    }
+
     MONITORINFOEX monitorInfo = {};
     monitorInfo.cbSize = sizeof(monitorInfo);
     if (!GetMonitorInfo(monitor, &monitorInfo)) {
@@ -53,10 +68,10 @@ float GetWindowRefreshRateHz(HWND hwnd) {
     }
 
     const DWORD hz = devMode.dmDisplayFrequency;
-    if (hz == 0 || hz == 1) {
-        return 60.0f;
-    }
-    return static_cast<float>(hz);
+    cache.monitor = monitor;
+    cache.at = now;
+    cache.hz = (hz == 0 || hz == 1) ? 60.0f : static_cast<float>(hz);
+    return cache.hz;
 }
 
 bool CoversRect(const Rect& outer, const Rect& inner, float epsilon = 1.0f) {
@@ -714,6 +729,7 @@ void Window::RunMessageLoop() {
         const auto targetFrame = std::chrono::duration<double>(1.0 / targetFps);
         m_animationManager.SetTargetFrameSeconds(static_cast<float>(targetFrame.count()));
         const bool frameRequested = m_animationManager.ConsumeFrameRequest();
+        m_animationManager.DispatchDueWakes(now);
         const bool shouldProbeAnimation = hadMessage || animationActive
             || m_animationManager.HasAnimating() || frameRequested;
         // Always allow a tick when animating OR when input arrived — but never
@@ -752,6 +768,14 @@ void Window::RunMessageLoop() {
                 DWORD waitMs = elapsed >= targetFrame
                     ? 0
                     : static_cast<DWORD>(std::ceil(std::chrono::duration<double, std::milli>(targetFrame - elapsed).count()));
+                const int wakeMs = m_animationManager.GetMsUntilNextWake(clock::now());
+                if (wakeMs >= 0) {
+                    waitMs = (std::min)(waitMs, static_cast<DWORD>(wakeMs));
+                }
+                MsgWaitForMultipleObjectsEx(0, nullptr, waitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            } else if (m_animationManager.HasPendingWake()) {
+                const int wakeMs = m_animationManager.GetMsUntilNextWake(clock::now());
+                const DWORD waitMs = (wakeMs <= 0) ? 0 : static_cast<DWORD>(wakeMs);
                 MsgWaitForMultipleObjectsEx(0, nullptr, waitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
             } else {
                 WaitMessage();
@@ -762,6 +786,7 @@ void Window::RunMessageLoop() {
 
 void Window::SetRootElement(std::shared_ptr<UIElement> root) {
     m_rootElement = root;
+    m_animationManager.SetLiveRoot(m_rootElement.get());
     if (m_rootElement) {
         ApplyVisualState();
         m_rootElement->SyncRenderState();
@@ -1292,32 +1317,36 @@ void Window::OnPaint() {
 
     if (reuseSceneForOverlayAnim) {
         const auto& dirtyRects = frameDirtyRegion.GetRects();
-        bool patchedScene = false;
+        Rect unionPatch;
+        bool hasPatch = false;
         for (const Rect& rect : dirtyRects) {
             if (rect.IsEmpty() || CoversRect(rect, viewportBounds)) {
                 continue;
             }
             const Rect patch = rect.Inflate(1.0f);
-            if (!patchedScene) {
-                if (!m_gfxContext.PushLayerTarget(
-                        m_sceneLayer,
-                        sceneSize,
-                        viewportBounds,
-                        sceneClearColor,
-                        false)) {
-                    break;
-                }
-                patchedScene = true;
-            }
-            m_gfxContext.SetPaintBounds(patch);
-            m_gfxContext.PushClip(patch);
-            m_gfxContext.ClearRect(patch);
-            renderScene();
-            m_gfxContext.PopClip();
+            unionPatch = hasPatch ? unionPatch.Union(patch) : patch;
+            hasPatch = true;
         }
-        if (patchedScene) {
-            m_gfxContext.PopLayerTarget(m_sceneLayer);
-            m_sceneLayer.Validate();
+        if (hasPatch) {
+            if (m_gfxContext.PushLayerTarget(
+                    m_sceneLayer,
+                    sceneSize,
+                    unionPatch,
+                    sceneClearColor,
+                    false)) {
+                for (const Rect& rect : dirtyRects) {
+                    if (rect.IsEmpty() || CoversRect(rect, viewportBounds)) {
+                        continue;
+                    }
+                    m_gfxContext.ClearRect(rect.Inflate(1.0f));
+                }
+                m_gfxContext.SetPaintBounds(unionPatch);
+                m_gfxContext.PushClip(unionPatch);
+                renderScene();
+                m_gfxContext.PopClip();
+                m_gfxContext.PopLayerTarget(m_sceneLayer);
+                m_sceneLayer.Validate();
+            }
         }
 
         if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
@@ -1355,29 +1384,19 @@ void Window::OnPaint() {
             sceneClearColor,
             !canRestoreScene)) {
         if (canRestoreScene && !dirtyBounds.IsEmpty()) {
-            // Prefer per-rect patches so a pane ripple + content dirty stay local.
-            // Using only the AABB would clear/repaint the whole window and stall ripples.
+            // Clear each dirty patch, but walk the tree once with the union AABB so
+            // cull can skip unrelated subtrees (N full walks was a major CPU cost).
             const auto& dirtyRects = frameDirtyRegion.GetRects();
-            if (dirtyRects.size() > 1) {
-                for (const Rect& rect : dirtyRects) {
-                    if (rect.IsEmpty()) {
-                        continue;
-                    }
-                    const Rect patch = rect.Inflate(1.0f);
-                    m_gfxContext.SetPaintBounds(patch);
-                    m_gfxContext.PushClip(patch);
-                    m_gfxContext.ClearRect(patch);
-                    renderScene();
-                    m_gfxContext.PopClip();
+            const Rect unionPatch = dirtyBounds.Inflate(1.0f);
+            for (const Rect& rect : dirtyRects) {
+                if (!rect.IsEmpty()) {
+                    m_gfxContext.ClearRect(rect.Inflate(1.0f));
                 }
-            } else {
-                const Rect patch = dirtyBounds.Inflate(1.0f);
-                m_gfxContext.SetPaintBounds(patch);
-                m_gfxContext.PushClip(patch);
-                m_gfxContext.ClearRect(patch);
-                renderScene();
-                m_gfxContext.PopClip();
             }
+            m_gfxContext.SetPaintBounds(unionPatch);
+            m_gfxContext.PushClip(unionPatch);
+            renderScene();
+            m_gfxContext.PopClip();
         } else {
             renderScene();
         }

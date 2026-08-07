@@ -281,7 +281,7 @@ void ContextMenu::OnMouseWheel(float delta) {
 
     if (std::abs(next - m_scrollOffset) <= 0.001f) return;
     m_scrollOffset = next;
-    m_scrollbarAutoHide.NotifyActivity();
+    m_scrollbarAutoHide.NotifyActivity(this);
     RequestAnimationTicks();
 
     // Re-layout items so RenderPopup + HitTestOverlay stay consistent.

@@ -346,7 +346,7 @@ void TreeView::OnMouseMove(Point pt) {
     float itemH = GetItemHeight();
     float contentH = m_visibleItems.size() * itemH;
     const bool overBar = contentH > m_bounds.height && pt.x >= m_bounds.x + m_bounds.width - 10.0f;
-    m_scrollbarAutoHide.SetPointerOver(overBar);
+    m_scrollbarAutoHide.SetPointerOver(overBar, this);
     if (overBar || oldHover != m_hoveredVisibleIndex) {
         if (overBar) {
             RequestAnimationTicks();
@@ -363,7 +363,7 @@ void TreeView::OnMouseUp(Point pt) {
 
 void TreeView::OnMouseLeave() {
     Control::OnMouseLeave();
-    m_scrollbarAutoHide.SetPointerOver(false);
+    m_scrollbarAutoHide.SetPointerOver(false, this);
     RequestAnimationTicks();
 }
 
@@ -380,7 +380,7 @@ void TreeView::OnMouseWheel(float delta) {
 
     m_scrollY -= delta * 40.0f;
     ClampScroll();
-    m_scrollbarAutoHide.NotifyActivity();
+    m_scrollbarAutoHide.NotifyActivity(this);
     RequestAnimationTicks();
     MarkRenderContentDirty();
 }
