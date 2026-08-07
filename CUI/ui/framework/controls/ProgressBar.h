@@ -1,6 +1,5 @@
 #pragma once
 #include "Control.h"
-#include "../render/RenderLayer.h"
 #include <chrono>
 
 namespace CUI {
@@ -17,12 +16,17 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
-    virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
 
     float GetValue() const { return m_value; }
     void SetValue(float val) {
         m_value = val;
         NotifyFieldChanged(PropertyId::ControlValue, Value(val));
+        // Before first layout (or with anims off) snap — otherwise display stays 0
+        // until a click starts the pump ("only shows after click").
+        if (!UIElement::AreAnimationsEnabled() || m_bounds.IsEmpty()) {
+            m_displayValue = val;
+        }
+        MarkRenderRectDirty(m_bounds);
         RequestAnimationTicks();
     }
 
@@ -30,41 +34,33 @@ public:
     void SetMinimum(float minVal) {
         m_minimum = minVal;
         NotifyFieldChanged(PropertyId::Minimum, Value(minVal));
+        MarkRenderRectDirty(m_bounds);
     }
 
     float GetMaximum() const { return m_maximum; }
     void SetMaximum(float maxVal) {
         m_maximum = maxVal;
         NotifyFieldChanged(PropertyId::Maximum, Value(maxVal));
+        MarkRenderRectDirty(m_bounds);
     }
 
     bool IsIndeterminate() const { return m_isIndeterminate; }
     void SetIsIndeterminate(bool ind) {
         m_isIndeterminate = ind;
         NotifyFieldChanged(PropertyId::IsIndeterminate, Value(ind));
-        m_indicatorCacheValid = false;
+        MarkRenderRectDirty(m_bounds);
         if (ind) {
             RequestAnimationTicks();
         }
     }
 
 private:
-    void InvalidateIndicatorCache();
-    bool EnsureIndicatorStrip(GraphicsContext& ctx, float trackW, float trackH, float radius, D2D1_COLOR_F fill);
-
     float m_value = 0.0f;
     float m_minimum = 0.0f;
     float m_maximum = 100.0f;
     bool m_isIndeterminate = false;
     float m_animOffset = 0.0f;
     float m_displayValue = 0.0f;
-    float m_slideX = 0.0f;
-    float m_prevSlideX = 0.0f;
-    RenderLayer m_indicatorLayer;
-    bool m_indicatorCacheValid = false;
-    float m_cachedStripW = 0.0f;
-    float m_cachedStripH = 0.0f;
-    D2D1_COLOR_F m_cachedFillColor{};
     std::chrono::steady_clock::time_point m_lastTickTime{};
 };
 
