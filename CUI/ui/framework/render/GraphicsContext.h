@@ -60,6 +60,8 @@ public:
     // leave holes that composite as black bars over WindowBackground.
     void ClearRect(const Rect& rect);
     void ClearRect(const Rect& rect, D2D1_COLOR_F color);
+    // Expand rect outward to whole device pixels (and optional DIP inflate). Clear+clip must share this.
+    static Rect SnapExpandRect(const Rect& rect, float dpiScale, float inflateDips = 0.0f);
 
     void DrawRect(const Rect& rect, D2D1_COLOR_F color, float strokeWidth = 1.0f);
     void FillRect(const Rect& rect, D2D1_COLOR_F color);

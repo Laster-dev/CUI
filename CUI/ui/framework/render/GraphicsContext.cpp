@@ -662,6 +662,19 @@ bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const
     return true;
 }
 
+Rect GraphicsContext::SnapExpandRect(const Rect& rect, float dpiScale, float inflateDips) {
+    if (rect.IsEmpty()) {
+        return rect;
+    }
+    const Rect inflated = inflateDips > 0.0f ? rect.Inflate(inflateDips) : rect;
+    const float scale = (dpiScale > 0.001f) ? dpiScale : 1.0f;
+    const float x0 = std::floor(inflated.x * scale) / scale;
+    const float y0 = std::floor(inflated.y * scale) / scale;
+    const float x1 = std::ceil((inflated.x + inflated.width) * scale) / scale;
+    const float y1 = std::ceil((inflated.y + inflated.height) * scale) / scale;
+    return Rect(x0, y0, (std::max)(0.0f, x1 - x0), (std::max)(0.0f, y1 - y0));
+}
+
 void GraphicsContext::ClearRect(const Rect& rect) {
     ClearRect(rect, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
 }
@@ -670,14 +683,9 @@ void GraphicsContext::ClearRect(const Rect& rect, D2D1_COLOR_F color) {
     if (!m_d2dContext || rect.IsEmpty()) {
         return;
     }
-    // Expand outward to whole *device* pixels (not DIP floor) so DPI scales don't
-    // leave 1px stale seams that read as black bars after composition.
-    const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
-    const float x0 = std::floor(rect.x * scale) / scale;
-    const float y0 = std::floor(rect.y * scale) / scale;
-    const float x1 = std::ceil((rect.x + rect.width) * scale) / scale;
-    const float y1 = std::ceil((rect.y + rect.height) * scale) / scale;
-    const D2D1_RECT_F clearRc = D2D1::RectF(x0, y0, x1, y1);
+    // Caller should pass SnapExpandRect result so clear footprint == clip footprint.
+    const Rect snapped = SnapExpandRect(rect, m_dpiScale, 0.0f);
+    const D2D1_RECT_F clearRc = snapped.ToD2D();
     const D2D1_PRIMITIVE_BLEND oldBlend = m_d2dContext->GetPrimitiveBlend();
     m_d2dContext->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
     if (auto brush = m_resources.GetSolidBrush(color)) {

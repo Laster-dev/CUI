@@ -376,6 +376,7 @@ protected:
     bool m_subtreeRenderDirty = false;
     bool m_measureDirty = true;
     bool m_arrangeDirty = true;
+    Size m_lastMeasureAvailable{ -1.0f, -1.0f };
     bool m_layerPromoted = false;
     bool m_composeDirty = false;
     float m_composeOpacity = 1.0f;

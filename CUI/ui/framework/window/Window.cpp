@@ -1445,15 +1445,25 @@ void Window::OnPaint() {
         viewportBounds = GetLogicalClientBounds(m_hwnd, dpiScale);
     }
     Rect dirtyBounds = frameDirtyRegion.GetBounds();
-    const bool viewportDirty = frameDirtyRegion.GetRectCount() == 0
+    const Size sceneSize(viewportBounds.width, viewportBounds.height);
+    const bool sceneSizeChanged =
+        std::abs(m_sceneLayer.GetCacheSurfaceSize().width - sceneSize.width) > 0.5f
+        || std::abs(m_sceneLayer.GetCacheSurfaceSize().height - sceneSize.height) > 0.5f;
+    const bool coversViewport = frameDirtyRegion.GetRectCount() == 0
         || viewportBounds.IsEmpty()
         || CoversRect(paintBounds, viewportBounds)
         || AnyDirtyRectCovers(frameDirtyRegion, viewportBounds)
-        || !m_sceneLayer.IsValid();
-    // Always treat paint as full scene rebuild for the cache (avoids gap/margin black bars).
-    const bool fullRepaint = true;
-    (void)viewportDirty;
-    (void)dirtyBounds;
+        || !m_sceneLayer.IsValid()
+        || sceneSizeChanged;
+    // Gap-aware patch: pad dirty rects so StackPanel/Column gaps & category margins
+    // are cleared+repainted together (avoids black bars). Clear transparent; clip==clear.
+    constexpr float kDirtyGapPad = 16.0f;
+    const bool canRestoreScene =
+        !coversViewport
+        && m_sceneLayer.IsValid()
+        && m_sceneLayer.GetCacheBitmap() != nullptr
+        && !dirtyBounds.IsEmpty();
+    const bool fullRepaint = !canRestoreScene;
 
     m_compositionContext.BeginFrame(viewportBounds, frameDirtyRegion, fullRepaint);
     m_gfxContext.SetCompositionContext(&m_compositionContext);
@@ -1464,19 +1474,11 @@ void Window::OnPaint() {
     const bool usePerPixelAlpha =
         systemBackdrop
         && m_gfxContext.SupportsPerPixelAlpha();
-    // Transparent clear is required for DWM Mica/Acrylic to show through chrome.
     const D2D1_COLOR_F sceneClearColor = (usePerPixelAlpha || (m_transparentMode && !IsZoomed(m_hwnd)))
         ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)
         : ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
 
-    const Size sceneSize(viewportBounds.width, viewportBounds.height);
-    const bool sceneSizeChanged =
-        std::abs(m_sceneLayer.GetCacheSurfaceSize().width - sceneSize.width) > 0.5f
-        || std::abs(m_sceneLayer.GetCacheSurfaceSize().height - sceneSize.height) > 0.5f;
-
     auto renderScene = [&]() {
-        // Scene layer must NOT include overlays — otherwise ContentDialog scrim is
-        // baked into the cache and the reuse path redraws it again (flash/stutter).
         if (m_rootElement) {
             m_rootElement->Render(m_gfxContext);
         }
@@ -1489,10 +1491,6 @@ void Window::OnPaint() {
         m_popupHost.Render(m_gfxContext);
     };
 
-    // ContentDialog open/close: keep compositing overlay separately so the scrim
-    // is never baked into the scene cache. Still patch under-scrim dirty rects
-    // (button ripples, etc.) — skipping viewport-covering rects from the dialog
-    // itself, which only need an overlay redraw.
     const bool overlayScrimAnimating = IsOverlayScrimAnimating(m_rootElement.get());
     const bool reuseSceneForOverlayAnim =
         overlayScrimAnimating
@@ -1501,8 +1499,6 @@ void Window::OnPaint() {
         && m_sceneLayer.GetCacheBitmap() != nullptr;
 
     if (reuseSceneForOverlayAnim) {
-        // Reuse the last full scene bitmap; do not dirty-patch under the scrim
-        // (same gap/margin seam risk as the main path).
         if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
             m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
         } else {
@@ -1519,10 +1515,43 @@ void Window::OnPaint() {
         return;
     }
 
-    // Dirty-rect scene patching disabled: clearing StackPanel gaps / TextBlock margins
-    // with WindowBackground or transparent left "black bars" on Pane/Card surfaces.
-    // Rebuild the full scene bitmap each paint until gap-aware dirty expansion exists.
-    if (m_gfxContext.PushLayerTarget(
+    bool scenePatched = false;
+    if (canRestoreScene) {
+        Rect unionPatch;
+        bool hasPatch = false;
+        const auto& dirtyRects = frameDirtyRegion.GetRects();
+        for (const Rect& rect : dirtyRects) {
+            if (rect.IsEmpty()) {
+                continue;
+            }
+            const Rect patch = GraphicsContext::SnapExpandRect(rect, dpiScale, kDirtyGapPad);
+            unionPatch = hasPatch ? unionPatch.Union(patch) : patch;
+            hasPatch = true;
+        }
+        if (hasPatch
+            && m_gfxContext.PushLayerTarget(
+                m_sceneLayer,
+                sceneSize,
+                unionPatch,
+                sceneClearColor,
+                false)) {
+            for (const Rect& rect : dirtyRects) {
+                if (!rect.IsEmpty()) {
+                    m_gfxContext.ClearRect(
+                        GraphicsContext::SnapExpandRect(rect, dpiScale, kDirtyGapPad));
+                }
+            }
+            m_gfxContext.SetPaintBounds(unionPatch);
+            m_gfxContext.PushClip(unionPatch);
+            renderScene();
+            m_gfxContext.PopClip();
+            m_gfxContext.PopLayerTarget(m_sceneLayer);
+            m_sceneLayer.Validate();
+            scenePatched = true;
+        }
+    }
+    if (!scenePatched
+        && m_gfxContext.PushLayerTarget(
             m_sceneLayer,
             sceneSize,
             viewportBounds,

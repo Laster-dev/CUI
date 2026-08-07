@@ -297,9 +297,18 @@ Size UIElement::Measure(Size availableSize) {
     if (m_visibility == Visibility::Collapsed) {
         m_desiredSize = Size(0, 0);
         m_measureDirty = false;
+        m_lastMeasureAvailable = availableSize;
         return m_desiredSize;
     }
 
+    // Skip re-measure when layout is clean and constraints unchanged (Relayout thrash).
+    if (!m_measureDirty
+        && std::abs(m_lastMeasureAvailable.width - availableSize.width) < 0.5f
+        && std::abs(m_lastMeasureAvailable.height - availableSize.height) < 0.5f) {
+        return m_desiredSize;
+    }
+
+    m_lastMeasureAvailable = availableSize;
     m_desiredSize = LayoutEngine::MeasureElement(this, availableSize);
     m_measureDirty = false;
     return m_desiredSize;

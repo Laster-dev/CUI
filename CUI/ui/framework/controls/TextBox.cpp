@@ -385,9 +385,12 @@ bool TextBox::OnAnimationTick() {
         if (phase != m_lastCaretBlinkPhase) {
             m_lastCaretBlinkPhase = phase;
             m_caretBlinkDirty = true;
-            MarkRenderRectDirty(m_bounds);
+            // Only the caret band — not the whole TextBox / page.
+            const Rect caretBand = m_lastCaretDirtyRect.IsEmpty()
+                ? m_bounds
+                : m_lastCaretDirtyRect.Inflate(6.0f);
+            MarkRenderRectDirty(caretBand);
         }
-        // Wake near the next blink boundary instead of pumping every refresh.
         const ULONGLONG nextMs = ((nowMs / static_cast<ULONGLONG>(blinkRate)) + 1ULL)
             * static_cast<ULONGLONG>(blinkRate);
         DWORD delayMs = static_cast<DWORD>(nextMs - nowMs);
@@ -403,9 +406,11 @@ bool TextBox::OnAnimationTick() {
         mgr->CancelWake(this);
     }
 
-    if (animating || m_caretBlinkDirty) {
+    if (animating) {
         RequestAnimationTicks();
         MarkRenderRectDirty(m_bounds);
+    } else if (m_caretBlinkDirty) {
+        RequestAnimationTicks();
     }
     // Return true for caretBlinkDirty once so the window flushes dirty regions;
     // steady focus relies on RequestWake rather than continuous self-animation.
@@ -578,6 +583,9 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         D2D1_COLOR_F cursorColor = ResolveThemeColor(GetCaretColorToken(), ThemeTokenId::AccentColor);
 
         ctx.FillRect(Rect(cursorX, cursorY, cursorWidth, cursorH), cursorColor);
+        m_lastCaretDirtyRect = Rect(cursorX - 2.0f, cursorY - 2.0f, cursorWidth + 4.0f, cursorH + 4.0f);
+    } else if (!m_isFocused) {
+        m_lastCaretDirtyRect = Rect();
     }
 
     ctx.PopClip();

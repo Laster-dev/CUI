@@ -164,6 +164,7 @@ private:
     AnimatedScalar m_focusLineAnim{};
     bool m_lastCaretBlinkPhase = true;
     bool m_caretBlinkDirty = false;
+    Rect m_lastCaretDirtyRect{};
 
     std::vector<TextBoxUndoState> m_undoStack;
     std::vector<TextBoxUndoState> m_redoStack;
