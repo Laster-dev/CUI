@@ -104,7 +104,14 @@ public:
             cbBackdrop->AddItem("沉浸云母");
             cbBackdrop->AddItem("亚克力");
             cbBackdrop->AddItem("无材质");
-            cbBackdrop->SetSelectedIndex(0);
+            int defaultIndex = 3;
+            switch (win->GetBackdropType()) {
+            case BackdropType::Mica: defaultIndex = 0; break;
+            case BackdropType::MicaAlt: defaultIndex = 1; break;
+            case BackdropType::Acrylic: defaultIndex = 2; break;
+            case BackdropType::None: defaultIndex = 3; break;
+            }
+            cbBackdrop->SetSelectedIndex(defaultIndex);
 
             cbBackdrop->OnSelectionChanged().Connect([win](ComboBox*, int index, const std::string&) {
                 switch (index) {

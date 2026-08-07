@@ -96,7 +96,7 @@ private:
     RenderLayer m_sceneLayer;
     bool m_showRenderStatsOverlay = true;
     bool m_lowPerformanceMode = false;
-    BackdropType m_backdropType = BackdropType::Mica;
+    BackdropType m_backdropType = BackdropType::None;
     ThemeMode m_themeMode = ThemeMode::Dark;
     std::chrono::steady_clock::time_point m_overlayFpsSampleStart{};
     unsigned m_overlayFrameCounter = 0;

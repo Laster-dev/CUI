@@ -110,7 +110,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     }
 
     // Query current window state
-    BackdropType curBackdrop = BackdropType::Mica;
+    BackdropType curBackdrop = BackdropType::None;
     ThemeMode curTheme = ThemeMode::Dark;
     bool alphaOk = false;
     if (hwnd) {
