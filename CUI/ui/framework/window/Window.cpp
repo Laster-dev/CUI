@@ -804,6 +804,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
         SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA);
     }
 
+    m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode || (m_backdropType != BackdropType::None));
     if (!m_gfxContext.Initialize(m_hwnd)) {
         return false;
     }
@@ -831,6 +832,8 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 void Window::SetBackdropType(BackdropType type) {
     m_backdropType = type;
     if (m_hwnd) {
+        m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode || (type != BackdropType::None));
+        m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
         MaterialHost::Apply(m_hwnd, type, m_themeMode);
         UpdateDwmChrome();
         // 丢弃层缓存，避免上一种材质的不透明像素残留
@@ -859,6 +862,11 @@ void Window::SetThemeMode(ThemeMode theme) {
 
 void Window::SetTransparentMode(bool enabled) {
     m_transparentMode = enabled;
+    if (m_hwnd) {
+        m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode || (m_backdropType != BackdropType::None));
+        m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
+        RequestFullRepaint();
+    }
 }
 
 void Window::Show() {
@@ -1586,11 +1594,11 @@ void Window::OnPaint() {
     // Gap-aware patch: pad dirty rects so StackPanel/Column gaps & category margins
     // are cleared+repainted together (avoids black bars). Clear transparent; clip==clear.
     constexpr float kDirtyGapPad = 16.0f;
-    const bool canRestoreScene =
-        !coversViewport
-        && m_sceneLayer.IsValid()
-        && m_sceneLayer.GetCacheBitmap() != nullptr
-        && !dirtyBounds.IsEmpty();
+    // Temporary hard fallback: rebuild the scene cache for the frame instead of
+    // patching sub-rects into the previous bitmap. With full-frame Present now
+    // forced, this cleanly isolates whether the recurring light/dark seams are
+    // produced by the scene-patch path itself.
+    const bool canRestoreScene = false;
     const bool fullRepaint = !canRestoreScene;
 
     m_compositionContext.BeginFrame(viewportBounds, frameDirtyRegion, fullRepaint);
@@ -1663,7 +1671,8 @@ void Window::OnPaint() {
             for (const Rect& rect : dirtyRects) {
                 if (!rect.IsEmpty()) {
                     m_gfxContext.ClearRect(
-                        GraphicsContext::SnapExpandRect(rect, dpiScale, patchPad));
+                        GraphicsContext::SnapExpandRect(rect, dpiScale, patchPad),
+                        sceneClearColor);
                 }
             }
             m_gfxContext.SetPaintBounds(unionPatch);
@@ -1689,18 +1698,12 @@ void Window::OnPaint() {
         unionPatch = viewportBounds;
     }
 
-    // Partial present: only blit/Present the dirty strip (FLIP_SEQUENTIAL keeps
-    // the rest of the backbuffer). This is the main CPU gap vs full-window Present.
-    // Composition swap chains have been much less predictable with dirty-rect
-    // Present1 in this app than HWND swap chains: static interactions (hover,
-    // click, wheel) can look "stuck" until some unrelated animation keeps
-    // producing full presents. Keep the scene patch optimization, but publish
-    // the composed frame with a normal Present on the composition path.
-    const bool partialPresent =
-        scenePatched
-        && !unionPatch.IsEmpty()
-        && !CoversRect(unionPatch, viewportBounds)
-        && !m_gfxContext.UsesCompositionSwapChain();
+    // Dirty-rect Present on flip-model swapchains is not reliable enough for this
+    // renderer. After switching opaque windows back to a HWND swapchain it caused
+    // untouched regions to disappear until another hover/click repainted them.
+    // Keep the scene patch optimization, but always publish the final composed
+    // frame with a normal Present.
+    const bool partialPresent = false;
 
     if (partialPresent) {
         m_gfxContext.PushClip(unionPatch);

@@ -492,7 +492,7 @@ void ScrollViewer::Render(GraphicsContext& ctx) {
             & (RenderLayer::SizeDirty | RenderLayer::StructureDirty | RenderLayer::ClipDirty
                 | RenderLayer::ContentDirty)) == 0;
     if (!chromeOnly) {
-        RenderContentLayer(ctx);
+        RenderContentImmediate(ctx);
     }
     RenderScrollChrome(ctx);
 
@@ -501,6 +501,34 @@ void ScrollViewer::Render(GraphicsContext& ctx) {
 
 void ScrollViewer::OnRender(GraphicsContext& ctx) {
     UIElement::OnRender(ctx);
+}
+
+void ScrollViewer::RenderContentImmediate(GraphicsContext& ctx) {
+    if (m_contentViewportRect.IsEmpty()) {
+        return;
+    }
+
+    ctx.PushClip(m_contentViewportRect);
+    for (auto& child : GetChildren()) {
+        RenderVisibleSubtree(child.get(), ctx, m_contentViewportRect);
+    }
+    ctx.PopClip();
+
+    m_contentLayer.ResetCache();
+    m_contentLayerDirty.Clear();
+    m_contentLayer.Validate();
+    m_contentLayer.ClearDirtyFlags(
+        RenderLayer::ContentDirty
+        | RenderLayer::TransformDirty
+        | RenderLayer::OpacityDirty
+        | RenderLayer::SizeDirty
+        | RenderLayer::StructureDirty
+        | RenderLayer::ClipDirty);
+    m_contentLayerCachesFullContent = false;
+    m_pendingViewportScrollPatch = false;
+    m_pendingViewportPatchDeltaY = 0.0f;
+    m_contentLayerOffsetY = m_offsetY;
+    m_contentLayer.SetTranslation(0.0f, -m_offsetY);
 }
 
 void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {

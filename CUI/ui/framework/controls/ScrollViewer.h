@@ -68,6 +68,7 @@ private:
     void UpdateContentLayerState();
     bool ShouldRenderFullContentLayer(const GraphicsContext& ctx) const;
     void RenderContentLayer(GraphicsContext& ctx);
+    void RenderContentImmediate(GraphicsContext& ctx);
     void RenderScrollChrome(GraphicsContext& ctx);
     void SwallowDescendantRenderDirties();
 

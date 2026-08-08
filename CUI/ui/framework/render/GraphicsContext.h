@@ -23,6 +23,8 @@ public:
     ~GraphicsContext();
 
     bool Initialize(HWND hwnd);
+    void SetRequirePerPixelAlpha(bool enabled);
+    bool RequiresPerPixelAlpha() const { return m_requirePerPixelAlpha; }
     void Resize(UINT width, UINT height);
     void ReleaseDeviceResources();
 
@@ -165,6 +167,7 @@ private:
     float m_dpiScale = 1.0f;
     bool m_usesCompositionSwapChain = false;
     bool m_supportsPerPixelAlpha = false;
+    bool m_requirePerPixelAlpha = false;
 
     ComPtr<ID2D1Factory1> m_d2dFactory;
     ComPtr<IDWriteFactory> m_dwriteFactory;

@@ -34,6 +34,17 @@ bool GraphicsContext::Initialize(HWND hwnd) {
     return true;
 }
 
+void GraphicsContext::SetRequirePerPixelAlpha(bool enabled) {
+    if (m_requirePerPixelAlpha == enabled) {
+        return;
+    }
+    m_requirePerPixelAlpha = enabled;
+    if (m_hwnd && m_d2dContext) {
+        ReleaseDeviceResources();
+        CreateDeviceResources();
+    }
+}
+
 HRESULT GraphicsContext::CreateDeviceIndependentResources() {
     D2D1_FACTORY_OPTIONS options = {};
 #ifdef _DEBUG
@@ -184,63 +195,69 @@ HRESULT GraphicsContext::CreateDeviceResources() {
 #define WS_EX_NOREDIRECTIONBITMAP 0x00200000L
 #endif
 
-    // HWND flip swap chains do NOT composite per-pixel alpha (PREMULTIPLIED is
-    // unsupported / ignored). Always use Composition + WS_EX_NOREDIRECTIONBITMAP
-    // so translucent chrome can reveal DWM Mica/Acrylic.
     const LONG_PTR ex = GetWindowLongPtr(m_hwnd, GWL_EXSTYLE);
-    if ((ex & WS_EX_NOREDIRECTIONBITMAP) == 0) {
-        SetWindowLongPtr(m_hwnd, GWL_EXSTYLE, ex | WS_EX_NOREDIRECTIONBITMAP);
-        SetWindowPos(
-            m_hwnd, nullptr, 0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE
-        );
-    }
+    if (m_requirePerPixelAlpha) {
+        // HWND flip swap chains do NOT composite per-pixel alpha (PREMULTIPLIED is
+        // unsupported / ignored). Use Composition only when the window actually
+        // needs per-pixel alpha for transparent content or system materials.
+        if ((ex & WS_EX_NOREDIRECTIONBITMAP) == 0) {
+            SetWindowLongPtr(m_hwnd, GWL_EXSTYLE, ex | WS_EX_NOREDIRECTIONBITMAP);
+            SetWindowPos(
+                m_hwnd, nullptr, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE
+            );
+        }
 
-    hr = dxgiFactory->CreateSwapChainForComposition(
-        d3dDevice.Get(),
-        &swapChainDesc,
-        nullptr,
-        &m_swapChain
-    );
-    if (SUCCEEDED(hr)) {
-        hr = DCompositionCreateDevice(dxgiDevice.Get(), IID_PPV_ARGS(&m_dcompDevice));
+        hr = dxgiFactory->CreateSwapChainForComposition(
+            d3dDevice.Get(),
+            &swapChainDesc,
+            nullptr,
+            &m_swapChain
+        );
         if (SUCCEEDED(hr)) {
-            hr = m_dcompDevice->CreateTargetForHwnd(m_hwnd, TRUE, &m_dcompTarget);
-        }
-        if (SUCCEEDED(hr)) {
-            hr = m_dcompDevice->CreateVisual(&m_dcompRootVisual);
-        }
-        if (SUCCEEDED(hr)) {
-            hr = m_dcompDevice->CreateVisual(&m_dcompVisual);
-        }
-        if (SUCCEEDED(hr)) {
-            hr = m_dcompVisual->SetContent(m_swapChain.Get());
-        }
-        if (SUCCEEDED(hr)) {
-            // Root hosts the HWND swapchain plus independent overlay visuals
-            // (ProgressBar indeterminate) so overlays can Commit without Present.
-            hr = m_dcompRootVisual->AddVisual(m_dcompVisual.Get(), FALSE, nullptr);
-        }
-        if (SUCCEEDED(hr)) {
-            hr = m_dcompTarget->SetRoot(m_dcompRootVisual.Get());
-        }
-        if (SUCCEEDED(hr)) {
-            hr = m_dcompDevice->Commit();
-        }
-        if (SUCCEEDED(hr)) {
-            m_usesCompositionSwapChain = true;
-            m_supportsPerPixelAlpha = true;
-        } else {
-            m_dcompVisual.Reset();
-            m_dcompRootVisual.Reset();
-            m_dcompTarget.Reset();
-            m_dcompDevice.Reset();
-            m_swapChain.Reset();
+            hr = DCompositionCreateDevice(dxgiDevice.Get(), IID_PPV_ARGS(&m_dcompDevice));
+            if (SUCCEEDED(hr)) {
+                hr = m_dcompDevice->CreateTargetForHwnd(m_hwnd, TRUE, &m_dcompTarget);
+            }
+            if (SUCCEEDED(hr)) {
+                hr = m_dcompDevice->CreateVisual(&m_dcompRootVisual);
+            }
+            if (SUCCEEDED(hr)) {
+                hr = m_dcompDevice->CreateVisual(&m_dcompVisual);
+            }
+            if (SUCCEEDED(hr)) {
+                hr = m_dcompVisual->SetContent(m_swapChain.Get());
+            }
+            if (SUCCEEDED(hr)) {
+                hr = m_dcompRootVisual->AddVisual(m_dcompVisual.Get(), FALSE, nullptr);
+            }
+            if (SUCCEEDED(hr)) {
+                hr = m_dcompTarget->SetRoot(m_dcompRootVisual.Get());
+            }
+            if (SUCCEEDED(hr)) {
+                hr = m_dcompDevice->Commit();
+            }
+            if (SUCCEEDED(hr)) {
+                m_usesCompositionSwapChain = true;
+                m_supportsPerPixelAlpha = true;
+            } else {
+                m_dcompVisual.Reset();
+                m_dcompRootVisual.Reset();
+                m_dcompTarget.Reset();
+                m_dcompDevice.Reset();
+                m_swapChain.Reset();
+            }
         }
     }
 
     if (!m_swapChain) {
-        // Opaque fallback — material will not show through (label shows 无透).
+        if ((ex & WS_EX_NOREDIRECTIONBITMAP) != 0) {
+            SetWindowLongPtr(m_hwnd, GWL_EXSTYLE, ex & ~static_cast<LONG_PTR>(WS_EX_NOREDIRECTIONBITMAP));
+            SetWindowPos(
+                m_hwnd, nullptr, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE
+            );
+        }
         swapChainDesc.Scaling = DXGI_SCALING_NONE;
         swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
         hr = dxgiFactory->CreateSwapChainForHwnd(
@@ -536,7 +553,9 @@ float SnapFontSizeToDevicePixels(float fontSizeDips, float dpiScale) {
 }
 
 D2D1_RECT_F SnapRectForStroke(const Rect& rect, float strokeWidth, float dpiScale) {
-    const float halfStroke = strokeWidth * 0.5f;
+    const float scale = (dpiScale > 0.001f) ? dpiScale : 1.0f;
+    const float snappedStroke = (std::max)(1.0f / scale, std::round(strokeWidth * scale) / scale);
+    const float halfStroke = snappedStroke * 0.5f;
     return D2D1::RectF(
         SnapDipToDevicePixel(rect.x, dpiScale) + halfStroke,
         SnapDipToDevicePixel(rect.y, dpiScale) + halfStroke,
@@ -565,7 +584,10 @@ void GraphicsContext::PushClip(const Rect& rect) {
         D2D1_RECT_F d2dRect = SnapRectForFill(rect, m_dpiScale);
         m_clipStack.push_back(d2dRect);
         m_clipIsLayer.push_back(false);
-        m_d2dContext->PushAxisAlignedClip(d2dRect, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+        // Scene patch / scroll patch clips must be hard pixel clips. Using
+        // per-primitive AA here blends the clip edge with the clear color and
+        // produces 1px light/dark seams during partial redraws.
+        m_d2dContext->PushAxisAlignedClip(d2dRect, D2D1_ANTIALIAS_MODE_ALIASED);
     }
 }
 
@@ -655,8 +677,12 @@ bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
         return false;
     }
 
-    const float widthDips = (std::max)(1.0f, std::ceil(sizeInDips.width));
-    const float heightDips = (std::max)(1.0f, std::ceil(sizeInDips.height));
+    // Keep the layer size in the same DIP contract as the caller. Rounding to
+    // whole DIPs here makes the cached bitmap subtly larger than the target at
+    // non-100% DPI, and drawing it back with nearest-neighbor scaling can
+    // manifest as 1px dark/light seams across unrelated controls.
+    const float widthDips = (std::max)(1.0f, sizeInDips.width);
+    const float heightDips = (std::max)(1.0f, sizeInDips.height);
     const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
     const UINT32 pixelW = static_cast<UINT32>((std::max)(1.0f, std::ceil(widthDips * scale)));
     const UINT32 pixelH = static_cast<UINT32>((std::max)(1.0f, std::ceil(heightDips * scale)));
@@ -886,8 +912,13 @@ void GraphicsContext::PopClip() {
 }
 
 void GraphicsContext::DrawRect(const Rect& rect, D2D1_COLOR_F color, float strokeWidth) {
+    if (!m_d2dContext) {
+        return;
+    }
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        m_d2dContext->DrawRectangle(SnapRectForStroke(rect, strokeWidth, m_dpiScale), brush, strokeWidth);
+        const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+        const float snappedStroke = (std::max)(1.0f / scale, std::round(strokeWidth * scale) / scale);
+        m_d2dContext->DrawRectangle(SnapRectForStroke(rect, snappedStroke, m_dpiScale), brush, snappedStroke);
     }
 }
 
@@ -905,14 +936,64 @@ void GraphicsContext::FillRoundedRect(const Rect& rect, float radius, D2D1_COLOR
 }
 
 void GraphicsContext::DrawRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color, float strokeWidth) {
+    if (!m_d2dContext) {
+        return;
+    }
     if (auto brush = m_resources.GetSolidBrush(color)) {
-        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(SnapRectForStroke(rect, strokeWidth, m_dpiScale), radius, radius);
-        m_d2dContext->DrawRoundedRectangle(rr, brush, strokeWidth);
+        const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+        const float snappedStroke = (std::max)(1.0f / scale, std::round(strokeWidth * scale) / scale);
+        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(
+            SnapRectForStroke(rect, snappedStroke, m_dpiScale),
+            radius,
+            radius);
+        m_d2dContext->DrawRoundedRectangle(rr, brush, snappedStroke);
     }
 }
 
 void GraphicsContext::DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth) {
+    if (!m_d2dContext) {
+        return;
+    }
     if (auto brush = m_resources.GetSolidBrush(color)) {
+        const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+        const float dx = std::abs(p2.x - p1.x);
+        const float dy = std::abs(p2.y - p1.y);
+        const float snappedStroke = (std::max)(1.0f / scale, std::round(strokeWidth * scale) / scale);
+
+        // For axis-aligned separators/underlines, draw a snapped filled strip
+        // instead of a stroked line. This avoids half-covered device pixels and
+        // the recurring 1px light/dark seams at non-100% DPI.
+        if (dy <= 0.01f) {
+            const float x0 = std::min(p1.x, p2.x);
+            const float x1 = std::max(p1.x, p2.x);
+            const float centerY = SnapDipToDevicePixel(p1.y, scale);
+            const float top = std::floor((centerY - snappedStroke * 0.5f) * scale) / scale;
+            const float bottom = std::ceil((centerY + snappedStroke * 0.5f) * scale) / scale;
+            m_d2dContext->FillRectangle(
+                D2D1::RectF(
+                    std::floor(x0 * scale) / scale,
+                    top,
+                    std::ceil(x1 * scale) / scale,
+                    bottom),
+                brush);
+            return;
+        }
+        if (dx <= 0.01f) {
+            const float y0 = std::min(p1.y, p2.y);
+            const float y1 = std::max(p1.y, p2.y);
+            const float centerX = SnapDipToDevicePixel(p1.x, scale);
+            const float left = std::floor((centerX - snappedStroke * 0.5f) * scale) / scale;
+            const float right = std::ceil((centerX + snappedStroke * 0.5f) * scale) / scale;
+            m_d2dContext->FillRectangle(
+                D2D1::RectF(
+                    left,
+                    std::floor(y0 * scale) / scale,
+                    right,
+                    std::ceil(y1 * scale) / scale),
+                brush);
+            return;
+        }
+
         float offset = (static_cast<int>(strokeWidth) % 2 == 1) ? 0.5f : 0.0f;
         float x1 = std::floor(p1.x) + offset;
         float y1 = std::floor(p1.y) + offset;
