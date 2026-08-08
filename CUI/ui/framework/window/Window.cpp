@@ -32,6 +32,12 @@
 
 namespace CUI {
 
+Window* Window::s_current = nullptr;
+
+Window* Window::Current() {
+    return s_current;
+}
+
 namespace {
 constexpr UINT WM_CUI_TOGGLE_LOW_PERF = WM_APP + 42;
 constexpr UINT WM_CUI_TOGGLE_BACKDROP = WM_APP + 43;
@@ -281,7 +287,7 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
         if (element->GetThumbColorToken() == ThemeTokenId::Unset) {
             element->SetThumbColorToken(ThemeTokenId::AccentColor);
         }
-    } else if (className == "CollapsePanel") {
+    } else if (className == "Expander" || className == "CollapsePanel") {
         if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
             element->SetBackgroundToken(ThemeTokenId::PaneBackground);
         }
@@ -401,10 +407,10 @@ void ForceThemeRefresh(UIElement* element, const std::string& refreshStamp, bool
     if (!element) {
         return;
     }
+    (void)refreshStamp;
+    (void)systemBackdrop;
 
-    // Force render cache invalidation across the tree instead of mirroring a
-    // nonce through the string property bridge (nothing reads that string).
-    element->MarkRenderContentDirty();
+    element->OnThemeChanged();
 
     if (auto* menu = dynamic_cast<ContextMenu*>(element)) {
         if (auto subMenu = menu->GetActiveSubMenu()) {
@@ -420,6 +426,7 @@ void ForceThemeRefresh(UIElement* element, const std::string& refreshStamp, bool
 }
 
 Window::Window() {
+    s_current = this;
     m_sceneLayer.SetCacheable(true);
 }
 
@@ -624,6 +631,10 @@ void Window::FlushLayoutIfNeeded() {
     if (!m_rootElement->IsMeasureDirty() && !m_rootElement->IsArrangeDirty()) {
         return;
     }
+    ProgressBarDiag::Log(
+        "[EXP-WIN] FlushLayoutIfNeeded rootMeasure=%d rootArrange=%d",
+        m_rootElement->IsMeasureDirty() ? 1 : 0,
+        m_rootElement->IsArrangeDirty() ? 1 : 0);
     RECT rc{};
     GetClientRect(m_hwnd, &rc);
     const float padLeft = 0.0f;
@@ -713,6 +724,9 @@ bool Window::TryMoveFocus(bool forward) {
 }
 
 Window::~Window() {
+    if (s_current == this) {
+        s_current = nullptr;
+    }
     if (FrameScheduler::Current() == &m_frameScheduler) {
         FrameScheduler::SetCurrent(nullptr);
     }
@@ -929,8 +943,21 @@ void Window::RunMessageLoop() {
         // chrome). Without a scheduled frame those dirties only InvalidateRect and
         // skip CommitFrame/FlushSync/vsync Present — feels 卡 until some animation
         // happens to keep the pump alive ("有动画不卡、没动画卡").
+        const bool hasPendingLayout =
+            m_rootElement
+            && (m_rootElement->IsMeasureDirty() || m_rootElement->IsArrangeDirty());
+        if (hasPendingLayout) {
+            ProgressBarDiag::Log(
+                "[EXP-WIN] pendingLayout rootMeasure=%d rootArrange=%d pendingDirty=%d nativePaint=%d anim=%d",
+                m_rootElement->IsMeasureDirty() ? 1 : 0,
+                m_rootElement->IsArrangeDirty() ? 1 : 0,
+                m_pendingDirtyRegion.IsEmpty() ? 0 : 1,
+                HasPendingNativePaint() ? 1 : 0,
+                m_animationManager.HasAnimating() ? 1 : 0);
+        }
         if (m_animationManager.HasAnimating()
             || m_animationManager.ConsumeFrameRequest()
+            || hasPendingLayout
             || !m_pendingDirtyRegion.IsEmpty()
             || HasPendingNativePaint()) {
             m_frameScheduler.ScheduleFrame();

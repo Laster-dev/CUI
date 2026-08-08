@@ -331,6 +331,11 @@ bool ListBox::CanCacheFullItems() const {
     return contentH > 0.0f && contentH <= kMaxFullContentCacheHeight;
 }
 
+void ListBox::OnThemeChanged() {
+    UIElement::OnThemeChanged();
+    InvalidateItemsLayer();
+}
+
 float ListBox::GetItemsContentHeight() const {
     return GetItemHeight() * static_cast<float>(GetItemCount());
 }

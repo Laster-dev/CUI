@@ -51,9 +51,12 @@ bool Image::InitDynamicBitmap(ID2D1DeviceContext* d2dCtx, UINT width, UINT heigh
 
 void Image::UpdatePixelBuffer(const uint32_t* bgraPixelData, UINT width, UINT height, UINT pitch) {
     if (!bgraPixelData) return;
+    (void)pitch;
 
     // Copy to CPU double-buffer thread-safely (avoids cross-thread Direct2D Device Context call crash)
     std::lock_guard<std::mutex> lock(m_bufferMutex);
+    m_bmpWidth = width;
+    m_bmpHeight = height;
     size_t totalPixels = static_cast<size_t>(width) * height;
     if (m_pendingPixelBuffer.size() != totalPixels) {
         m_pendingPixelBuffer.resize(totalPixels);
@@ -71,6 +74,13 @@ Size Image::Measure(Size availableSize) {
 }
 
 void Image::OnRender(GraphicsContext& ctx) {
+    if (m_imageType == ImageType::DynamicBitmap) {
+        if ((!m_d2dBitmap || m_d2dBitmap->GetPixelSize().width != m_bmpWidth || m_d2dBitmap->GetPixelSize().height != m_bmpHeight)
+            && m_bmpWidth > 0 && m_bmpHeight > 0) {
+            InitDynamicBitmap(ctx.GetD2DContext(), m_bmpWidth, m_bmpHeight);
+        }
+    }
+
     if (m_imageType == ImageType::DynamicBitmap && m_d2dBitmap) {
         // Safely upload pending CPU buffer to GPU Texture on UI Rendering Thread!
         {

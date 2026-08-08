@@ -18,12 +18,12 @@
     <ClCompile Include="showcase\app\main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="ui\framework\controls\CollapsePanel.cpp">
+    <ClCompile Include="ui\framework\controls\Expander.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ui\framework\controls\CollapsePanel.h">
+    <ClInclude Include="ui\framework\controls\Expander.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

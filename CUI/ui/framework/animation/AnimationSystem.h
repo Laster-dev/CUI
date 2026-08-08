@@ -51,22 +51,24 @@ public:
 
     bool Tick(float dtSeconds, const AnimationSpec& spec) {
         if (std::abs(m_target - m_current) <= spec.epsilon) {
+            const bool changed = std::abs(m_target - m_current) > 0.0001f;
             m_current = m_target;
             m_elapsed = 0.0f;
-            return false;
+            return changed;
         }
 
-        const bool moving = AnimationSystem::Step(m_current, m_target, dtSeconds, spec);
-        if (!moving) {
+        const bool changed = AnimationSystem::Step(m_current, m_target, dtSeconds, spec);
+        if (!changed) {
             m_elapsed = 0.0f;
             return false;
         }
 
         m_elapsed += std::clamp(dtSeconds, 0.0f, 0.05f);
         if (spec.maxDurationSeconds > 0.0f && m_elapsed >= spec.maxDurationSeconds) {
+            const bool durationSnapChanged = std::abs(m_current - m_target) > 0.0001f;
             m_current = m_target;
             m_elapsed = 0.0f;
-            return false;
+            return durationSnapChanged;
         }
         return true;
     }

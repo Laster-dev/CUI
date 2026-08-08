@@ -59,6 +59,7 @@ public:
     virtual bool NeedsAutoScrollTick() const override { return m_isRubberBandSelecting; }
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
+    virtual void OnThemeChanged() override;
 
     // Columns Management
     void AddColumn(const std::string& header, float width = 120.0f);

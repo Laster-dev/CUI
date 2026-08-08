@@ -735,6 +735,10 @@ void UIElement::MarkRenderRectDirty(const Rect& rect) {
     }
 }
 
+void UIElement::OnThemeChanged() {
+    MarkRenderContentDirty();
+}
+
 void UIElement::SetAnimationsEnabled(bool enabled) {
     s_animationsEnabled = enabled;
 }

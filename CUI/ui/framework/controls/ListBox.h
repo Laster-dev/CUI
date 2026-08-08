@@ -39,6 +39,7 @@ public:
     virtual void OnMouseWheel(float delta) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
+    virtual void OnThemeChanged() override;
 
     void SetProperty(PropertyId id, const Value& val) override;
 

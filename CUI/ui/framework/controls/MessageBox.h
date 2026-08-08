@@ -49,6 +49,7 @@ public:
     virtual bool HasSelfAnimation() const override;
     virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
+    virtual void OnThemeChanged() override;
 
     static void ShowMessageBox(UIElement* root, const std::string& title, const std::string& message, std::function<void(DialogResult)> callback = nullptr);
 

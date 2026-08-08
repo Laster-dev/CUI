@@ -238,7 +238,7 @@
     <ClCompile Include="ui\framework\controls\Toast.cpp" />
     <ClCompile Include="ui\framework\controls\ToastCenter.cpp" />
     <ClCompile Include="ui\framework\controls\TabView.cpp" />
-    <ClCompile Include="ui\framework\controls\CollapsePanel.cpp" />
+    <ClCompile Include="ui\framework\controls\Expander.cpp" />
     <ClCompile Include="ui\framework\controls\MenuBar.cpp" />
     <ClCompile Include="ui\framework\controls\VSCodeControls.cpp" />
     <ClCompile Include="ui\framework\controls\PropertyGrid.cpp" />
@@ -326,7 +326,7 @@
     <ClInclude Include="ui\framework\controls\Toast.h" />
     <ClInclude Include="ui\framework\controls\ToastCenter.h" />
     <ClInclude Include="ui\framework\controls\TabView.h" />
-    <ClInclude Include="ui\framework\controls\CollapsePanel.h" />
+    <ClInclude Include="ui\framework\controls\Expander.h" />
     <ClInclude Include="ui\framework\controls\MenuBar.h" />
     <ClInclude Include="ui\framework\controls\VSCodeControls.h" />
     <ClInclude Include="ui\framework\controls\PropertyGrid.h" />

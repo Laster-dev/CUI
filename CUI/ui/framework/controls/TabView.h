@@ -44,6 +44,7 @@ public:
     virtual UIElement* HitTest(float x, float y) override;
     virtual void SyncRenderState() override;
     virtual void CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume = true) override;
+    virtual void OnThemeChanged() override;
 
     Event<TabView*, int>& OnSelectionChanged() { return m_selectionChangedEvent; }
     Event<TabView*, int>& OnTabClosed() { return m_tabClosedEvent; }

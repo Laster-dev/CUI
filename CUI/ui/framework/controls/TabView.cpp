@@ -564,7 +564,11 @@ bool TabView::OnAnimationTick() {
     }
 
     m_scrollOffsetXAnim.SetTarget(m_scrollTargetX);
+    const float scrollBefore = m_scrollOffsetXAnim.Current();
     if (m_scrollOffsetXAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.22f, 0.10f })) {
+        MarkHeaderDirty();
+        animating = true;
+    } else if (std::abs(m_scrollOffsetXAnim.Current() - scrollBefore) > 0.0005f) {
         MarkHeaderDirty();
         animating = true;
     }
@@ -572,7 +576,11 @@ bool TabView::OnAnimationTick() {
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         float target = (static_cast<int>(i) == m_selectedIndex) ? 1.0f : 0.0f;
         m_tabs[i].accentAnim.SetTarget(target);
+        const float before = m_tabs[i].accentAnim.Current();
         if (m_tabs[i].accentAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.18f, 0.01f })) {
+            MarkHeaderDirty();
+            animating = true;
+        } else if (std::abs(m_tabs[i].accentAnim.Current() - before) > 0.0005f) {
             MarkHeaderDirty();
             animating = true;
         }
@@ -627,6 +635,16 @@ void TabView::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume) {
 
     dirtyRegion.UnionWith(m_headerDirty);
     dirtyRegion.UnionWith(m_contentDirty);
+}
+
+void TabView::OnThemeChanged() {
+    UIElement::OnThemeChanged();
+    m_headerLayer.ResetCache();
+    m_contentLayer.ResetCache();
+    m_headerDirty.Clear();
+    m_contentDirty.Clear();
+    MarkHeaderDirty();
+    MarkContentDirty();
 }
 
 } // namespace CUI

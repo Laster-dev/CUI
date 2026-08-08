@@ -28,7 +28,7 @@
 #include "../controls/BreadcrumbBar.h"
 #include "../controls/PagingControl.h"
 #include "../controls/Splitter.h"
-#include "../controls/CollapsePanel.h"
+#include "../controls/Expander.h"
 #include "../controls/MessageBox.h"
 #include "../style/ThemeManager.h"
 
@@ -256,9 +256,9 @@ public:
     }
 
     ElementBuilder& Subtitle(const std::string& subtitle) {
-        auto cp = std::dynamic_pointer_cast<CollapsePanel>(m_element);
-        if (cp) {
-            cp->SetSubtitle(subtitle);
+        auto expander = std::dynamic_pointer_cast<Expander>(m_element);
+        if (expander) {
+            expander->SetSubtitle(subtitle);
         }
         return *this;
     }
@@ -473,10 +473,15 @@ inline ElementBuilder<Splitter> SplitterWidget(Orientation orientation = Orienta
     return s;
 }
 
-inline ElementBuilder<CollapsePanel> CollapsePanelWidget(const std::string& title = "Collapse Header") {
-    auto c = ElementBuilder<CollapsePanel>();
+inline ElementBuilder<Expander> ExpanderWidget(const std::string& title = "Expander") {
+    auto c = ElementBuilder<Expander>();
     c->SetHeader(title);
     return c;
+}
+
+// Compat alias for older showcase pages.
+inline ElementBuilder<Expander> CollapsePanelWidget(const std::string& title = "Expander") {
+    return ExpanderWidget(title);
 }
 
 inline ElementBuilder<ListView> ListViewWidget() {

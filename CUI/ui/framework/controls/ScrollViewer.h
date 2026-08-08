@@ -34,6 +34,7 @@ public:
     virtual void MarkRenderContentDirty() override;
     virtual void MarkRenderRectDirty(const Rect& rect) override;
     virtual void CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume = true) override;
+    virtual void OnThemeChanged() override;
 
     float GetScrollOffsetY() const { return m_offsetY; }
     void SetScrollOffsetY(float offset);

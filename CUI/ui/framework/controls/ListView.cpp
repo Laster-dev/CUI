@@ -400,6 +400,11 @@ void ListView::InvalidateRowsLayer() {
     MarkRenderRectDirty(m_bounds);
 }
 
+void ListView::OnThemeChanged() {
+    UIElement::OnThemeChanged();
+    InvalidateRowsLayer();
+}
+
 bool ListView::CanCacheFullRows() const {
     const float contentH = GetRowsContentHeight();
     const float contentW = (std::max)(m_bounds.width, GetTotalColumnsWidth());

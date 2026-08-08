@@ -2,7 +2,7 @@
 #include "framework/style/ThemeManager.h"
 #include "framework/style/ThemeTokenId.h"
 #include "framework/controls/TextBox.h"
-#include "framework/controls/CollapsePanel.h"
+#include "framework/controls/Expander.h"
 #include "framework/controls/ScrollViewer.h"
 #include <algorithm>
 #include <cctype>
@@ -384,8 +384,8 @@ std::shared_ptr<UIElement> CreateCodeExampleCollapse(
     codeScroll->SetAlign(Alignment::Stretch);
     codeScroll->AddChild(codeBox);
 
-    auto panel = std::make_shared<CollapsePanel>("示例代码 (Source)");
-    panel->SetExpanded(false);
+    auto panel = std::make_shared<Expander>("示例代码 (Source)");
+    panel->SetIsExpanded(false);
     panel->SetContent(codeScroll);
     return panel;
 }

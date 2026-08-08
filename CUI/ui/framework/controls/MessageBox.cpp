@@ -146,6 +146,15 @@ void ContentDialog::Hide() {
     RequestAnimationTicks();
 }
 
+void ContentDialog::OnThemeChanged() {
+    UIElement::OnThemeChanged();
+    m_cardCacheValid = false;
+    m_cardLayer.ResetCache();
+    if (m_isOpen || m_animState != 0) {
+        RequestAnimationTicks();
+    }
+}
+
 bool ContentDialog::OnAnimationTick() {
     bool childAnim = UIElement::OnAnimationTick();
     if (!m_isOpen && m_animState == 0) return childAnim;

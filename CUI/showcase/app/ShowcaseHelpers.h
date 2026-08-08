@@ -32,7 +32,7 @@ std::shared_ptr<CUI::UIElement> CreatePropertyGrid(
 std::shared_ptr<CUI::UIElement> CreateCodeExampleCollapse(
     const std::shared_ptr<CUI::UIElement>& target);
 
-// WinUI Gallery-like page: demo on top, code inside CollapsePanel, PropertyGrid on the right.
+// WinUI Gallery-like page: demo on top, code inside Expander, PropertyGrid on the right.
 std::shared_ptr<CUI::UIElement> CreatePage(
     const std::string& title,
     const std::string& subtitle,

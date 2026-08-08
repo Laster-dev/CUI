@@ -304,6 +304,7 @@ public:
     virtual void SyncRenderState();
     virtual void MarkRenderContentDirty();
     virtual void MarkRenderRectDirty(const Rect& rect);
+    virtual void OnThemeChanged();
 
     // Layout dirty axis (WPF InvalidateMeasure / Flutter markNeedsLayout).
     void InvalidateMeasure();

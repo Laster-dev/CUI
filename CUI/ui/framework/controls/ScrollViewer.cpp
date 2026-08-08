@@ -805,6 +805,14 @@ void ScrollViewer::SyncRenderState() {
     // (e.g. dark-mode white text composited onto a light pane).
 }
 
+void ScrollViewer::OnThemeChanged() {
+    UIElement::OnThemeChanged();
+    m_contentLayer.ResetCache();
+    m_contentLayerDirty.Clear();
+    UpdateContentLayerState();
+    MarkContentLayerDirty();
+}
+
 void ScrollViewer::MarkRenderContentDirty() {
     UIElement::MarkRenderContentDirty();
     MarkContentLayerDirty();

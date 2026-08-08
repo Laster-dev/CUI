@@ -81,7 +81,7 @@ public:
         add("listview", "列表", "ListView", [ctx = m_ctx] { return BuildListViewPage(ctx); });
 
         add("splitter", "布局", "Splitter", [ctx = m_ctx] { return BuildSplitterPage(ctx); });
-        add("collapse", "布局", "Collapse", [ctx = m_ctx] { return BuildCollapsePage(ctx); });
+        add("collapse", "布局", "Expander", [ctx = m_ctx] { return BuildCollapsePage(ctx); });
         add("grid", "布局", "Grid", [ctx = m_ctx] { return BuildGridPage(ctx); });
         add("wrap", "布局", "Wrap", [ctx = m_ctx] { return BuildWrapPage(ctx); });
         add("dock", "布局", "Dock", [ctx = m_ctx] { return BuildDockPage(ctx); });
