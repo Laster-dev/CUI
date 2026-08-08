@@ -918,7 +918,7 @@ void Window::RunMessageLoop() {
         const float refreshHz = GetWindowRefreshRateHz(m_hwnd);
         const double targetFps = m_lowPerformanceMode
             ? 8.0
-            : (std::min)(60.0, static_cast<double>((std::max)(30.0f, refreshHz)));
+            : static_cast<double>(std::clamp(refreshHz, 30.0f, 240.0f));
         const auto targetFrame = std::chrono::duration_cast<clock::duration>(
             std::chrono::duration<double>(1.0 / targetFps));
         m_frameScheduler.SetMinFrameInterval(targetFrame);
