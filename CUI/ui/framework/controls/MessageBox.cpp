@@ -295,6 +295,11 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
                 Rect(0, 0, cardW, cardH),
                 D2D1::ColorF(0, 0, 0, 0),
                 true)) {
+            // The card layer is rasterized in local layer space, but child controls
+            // keep world-space bounds. Do not cull them against the layer-local
+            // paint rect or title/buttons may disappear while hit-testing still works.
+            const Rect savedPaintBounds = ctx.GetPaintBounds();
+            ctx.SetPaintBounds(Rect());
             ctx.PushTransform(D2D1::Matrix3x2F::Translation(-cardX, -cardY));
 
             D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
@@ -344,6 +349,7 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
             }
 
             ctx.PopTransform();
+            ctx.SetPaintBounds(savedPaintBounds);
             ctx.PopLayerTarget(m_cardLayer);
             m_cardLayer.Validate();
             m_cardCacheValid = true;

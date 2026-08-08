@@ -1613,10 +1613,17 @@ void Window::OnPaint() {
     };
 
     auto renderOverlaysOnly = [&]() {
+        // Overlay is a separate pass above the scene cache. Do not inherit the
+        // scene patch dirty strip here: overlay sub-controls (dialog buttons,
+        // popup content, etc.) may sit outside that strip and would be wrongly
+        // culled even though the overlay root itself is visible.
+        const Rect savedPaintBounds = m_gfxContext.GetPaintBounds();
+        m_gfxContext.SetPaintBounds(viewportBounds);
         if (m_rootElement) {
             m_rootElement->RenderOverlay(m_gfxContext);
         }
         m_popupHost.Render(m_gfxContext);
+        m_gfxContext.SetPaintBounds(savedPaintBounds);
     };
 
     const bool overlayScrimAnimating = IsOverlayScrimAnimating(m_rootElement.get());
