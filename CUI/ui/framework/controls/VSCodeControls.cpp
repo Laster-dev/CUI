@@ -110,15 +110,11 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     }
 
     // Query current window state
-    BackdropType curBackdrop = BackdropType::None;
     ThemeMode curTheme = ThemeMode::Dark;
-    bool alphaOk = false;
     if (hwnd) {
         Window* winObj = reinterpret_cast<Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
         if (winObj) {
-            curBackdrop = winObj->GetBackdropType();
             curTheme = winObj->GetThemeMode();
-            alphaOk = winObj->GetGraphicsContext().SupportsPerPixelAlpha();
         }
     }
 
@@ -176,33 +172,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
         DWRITE_FONT_WEIGHT_SEMI_BOLD
     );
 
-    // 2. Backdrop Toggle Button
-    Rect bdpHit = GetBackdropToggleRect();
-    Rect bdpRect(
-        bdpHit.x,
-        bdpHit.y + (bdpHit.height - toggleVisualH) * 0.5f,
-        bdpHit.width,
-        toggleVisualH
-    );
-    bool isBdpHover = isHoveredInTitle && bdpHit.Contains(hoverX, hoverY);
-    const char* bdpStr = WindowBackdrop::DisplayNameZh(curBackdrop);
-    std::string bdpText = std::string("材质:") + bdpStr;
-    if (curBackdrop != BackdropType::None && !alphaOk) {
-        bdpText += "(无透)";
-    }
-    D2D1_COLOR_F bdpBg = lightTheme
-        ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isBdpHover ? 0.24f : 0.16f)
-        : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, isBdpHover ? 0.20f : 0.10f);
-    D2D1_COLOR_F bdpBorder = lightTheme
-        ? D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, 0.42f)
-        : D2D1::ColorF(tokens.cardBorder.r, tokens.cardBorder.g, tokens.cardBorder.b, 0.24f);
-    D2D1_COLOR_F bdpTextCol = chromeTextColor;
-
-    ctx.FillRoundedRect(bdpRect, 8.0f, bdpBg);
-    ctx.DrawRoundedRect(bdpRect, 8.0f, bdpBorder, 1.0f);
-    ctx.DrawText(bdpText, bdpRect, bdpTextCol, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-
-    // 3. Theme Toggle Button
+    // 2. Theme Toggle Button
     Rect themeHit = GetThemeToggleRect();
     Rect themeRect(
         themeHit.x,
@@ -292,10 +262,6 @@ void TitleBar::OnMouseDown(Point pt) {
         postChromeMessage(WM_APP + 42);
         return;
     }
-    if (IsBackdropToggleHit(pt.x, pt.y)) {
-        postChromeMessage(WM_APP + 43);
-        return;
-    }
     if (IsThemeToggleHit(pt.x, pt.y)) {
         postChromeMessage(WM_APP + 44);
         return;
@@ -338,24 +304,12 @@ bool TitleBar::IsLowPerformanceToggleHit(float x, float y) const {
     return GetLowPerformanceToggleRect().Contains(x, y);
 }
 
-Rect TitleBar::GetBackdropToggleRect() const {
+Rect TitleBar::GetThemeToggleRect() const {
     Rect lowPerfRect = GetLowPerformanceToggleRect();
-    constexpr float toggleWidth = 118.0f; // 「材质:沉浸云母」
+    constexpr float toggleWidth = 68.0f;
     constexpr float toggleGap = 6.0f;
     float x = lowPerfRect.x - toggleGap - toggleWidth;
     return Rect(x, lowPerfRect.y, toggleWidth, lowPerfRect.height);
-}
-
-bool TitleBar::IsBackdropToggleHit(float x, float y) const {
-    return GetBackdropToggleRect().Contains(x, y);
-}
-
-Rect TitleBar::GetThemeToggleRect() const {
-    Rect bdpRect = GetBackdropToggleRect();
-    constexpr float toggleWidth = 68.0f;
-    constexpr float toggleGap = 6.0f;
-    float x = bdpRect.x - toggleGap - toggleWidth;
-    return Rect(x, bdpRect.y, toggleWidth, bdpRect.height);
 }
 
 bool TitleBar::IsThemeToggleHit(float x, float y) const {
@@ -363,7 +317,7 @@ bool TitleBar::IsThemeToggleHit(float x, float y) const {
 }
 
 UIElement* TitleBar::HitTest(float x, float y) {
-    if (IsLowPerformanceToggleHit(x, y) || IsBackdropToggleHit(x, y) || IsThemeToggleHit(x, y)) {
+    if (IsLowPerformanceToggleHit(x, y) || IsThemeToggleHit(x, y)) {
         return this;
     }
     UIElement* mbHit = m_menuBar.HitTest(x, y);

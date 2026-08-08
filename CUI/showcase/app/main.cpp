@@ -99,32 +99,10 @@ public:
         add("tabview", "交互/导航", "TabView", [ctx = m_ctx] { return BuildTabViewPage(ctx); });
         add("canvas", "画布与渲染", "Canvas", [ctx = m_ctx] { return BuildCanvasPage(ctx); });
 
-        // --- Settings content (WinUI Gallery: theme/backdrop) ---
+        // --- Settings content ---
         std::shared_ptr<UIElement> settingsContent;
         if (win) {
-            auto title = CreateShowcaseHeader("Settings", "Theme / Backdrop 配置");
-            auto cbBackdrop = std::make_shared<ComboBox>();
-            cbBackdrop->AddItem("云母");
-            cbBackdrop->AddItem("沉浸云母");
-            cbBackdrop->AddItem("亚克力");
-            cbBackdrop->AddItem("无材质");
-            int defaultIndex = 3;
-            switch (win->GetBackdropType()) {
-            case BackdropType::Mica: defaultIndex = 0; break;
-            case BackdropType::MicaAlt: defaultIndex = 1; break;
-            case BackdropType::Acrylic: defaultIndex = 2; break;
-            case BackdropType::None: defaultIndex = 3; break;
-            }
-            cbBackdrop->SetSelectedIndex(defaultIndex);
-
-            cbBackdrop->OnSelectionChanged().Connect([win](ComboBox*, int index, const std::string&) {
-                switch (index) {
-                case 0: win->SetBackdropType(BackdropType::Mica); break;
-                case 1: win->SetBackdropType(BackdropType::MicaAlt); break;
-                case 2: win->SetBackdropType(BackdropType::Acrylic); break;
-                case 3: win->SetBackdropType(BackdropType::None); break;
-                }
-            });
+            auto title = CreateShowcaseHeader("Settings", "Theme 配置");
 
             auto btnDark = std::make_shared<Button>("Dark Theme");
             auto btnLight = std::make_shared<Button>("Light Theme");
@@ -136,9 +114,6 @@ public:
             });
 
             auto demo = Column(12).Children({
-                Row(12).Children({
-                    std::make_shared<TextBlock>("Backdrop:"), cbBackdrop
-                }).Build(),
                 Row(12).Children({ btnDark, btnLight }).Build(),
             }).Build();
 

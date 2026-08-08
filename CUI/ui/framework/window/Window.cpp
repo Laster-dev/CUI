@@ -40,7 +40,6 @@ Window* Window::Current() {
 
 namespace {
 constexpr UINT WM_CUI_TOGGLE_LOW_PERF = WM_APP + 42;
-constexpr UINT WM_CUI_TOGGLE_BACKDROP = WM_APP + 43;
 constexpr UINT WM_CUI_TOGGLE_THEME = WM_APP + 44;
 constexpr UINT WM_CUI_RASTER_COMPLETE = WM_APP + 45;
 
@@ -798,13 +797,13 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     m_dpiScale = GetDpiScaleForWindow(m_hwnd);
 
     UpdateDwmChrome();
-    MaterialHost::Apply(m_hwnd, m_backdropType, m_themeMode);
+    MaterialHost::Apply(m_hwnd, BackdropType::None, m_themeMode);
 
     if (m_transparentMode) {
         SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA);
     }
 
-    m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode || (m_backdropType != BackdropType::None));
+    m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode);
     if (!m_gfxContext.Initialize(m_hwnd)) {
         return false;
     }
@@ -820,7 +819,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     // Graphics may add WS_EX_NOREDIRECTIONBITMAP for the composition fallback —
     // re-apply DWM alpha/backdrop so the final present path is wired correctly.
-    MaterialHost::Apply(m_hwnd, m_backdropType, m_themeMode);
+    MaterialHost::Apply(m_hwnd, BackdropType::None, m_themeMode);
     UpdateDwmChrome();
 
     PopupHost::SetCurrent(&m_popupHost);
@@ -830,19 +829,18 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 }
 
 void Window::SetBackdropType(BackdropType type) {
-    m_backdropType = type;
+    m_backdropType = BackdropType::None;
     if (m_hwnd) {
-        m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode || (type != BackdropType::None));
+        m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode);
         m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
-        MaterialHost::Apply(m_hwnd, type, m_themeMode);
+        MaterialHost::Apply(m_hwnd, BackdropType::None, m_themeMode);
         UpdateDwmChrome();
-        // 丢弃层缓存，避免上一种材质的不透明像素残留
         m_gfxContext.GetResources().ReleaseDeviceResources();
         m_sceneLayer.ResetCache();
         ApplyVisualState();
         RequestFullRepaint();
     } else {
-        ThemeManager::Instance().SetBackdropType(type);
+        ThemeManager::Instance().SetBackdropType(BackdropType::None);
     }
 }
 
@@ -851,7 +849,7 @@ void Window::SetThemeMode(ThemeMode theme) {
     ThemeManager::Instance().SetThemeMode(theme);
     StyleManager::Instance().ReloadFromTheme();
     if (m_hwnd) {
-        MaterialHost::Apply(m_hwnd, m_backdropType, theme);
+        MaterialHost::Apply(m_hwnd, BackdropType::None, theme);
         // Drop cached brushes/layers so light/dark RGB cannot linger across themes.
         m_gfxContext.GetResources().ReleaseDeviceResources();
         m_sceneLayer.ResetCache();
@@ -863,7 +861,7 @@ void Window::SetThemeMode(ThemeMode theme) {
 void Window::SetTransparentMode(bool enabled) {
     m_transparentMode = enabled;
     if (m_hwnd) {
-        m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode || (m_backdropType != BackdropType::None));
+        m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode);
         m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
         RequestFullRepaint();
     }
@@ -1075,8 +1073,8 @@ void Window::SetRootElement(std::shared_ptr<UIElement> root) {
 }
 
 void Window::ApplyVisualState() {
-    const bool systemBackdrop = (m_backdropType != BackdropType::None);
-    ThemeManager::Instance().SetBackdropType(m_backdropType);
+    const bool systemBackdrop = false;
+    ThemeManager::Instance().SetBackdropType(BackdropType::None);
     if (m_rootElement) {
         ApplyThemeToTree(m_rootElement.get(), systemBackdrop);
         static unsigned long long s_themeRefreshNonce = 0;
@@ -1204,7 +1202,6 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             }
             if (titleBar) {
                 if (titleBar->IsLowPerformanceToggleHit(fx, fy) ||
-                    titleBar->IsBackdropToggleHit(fx, fy) ||
                     titleBar->IsThemeToggleHit(fx, fy) ||
                     titleBar->IsMenuBarHit(fx, fy)) {
                     return HTCLIENT;
@@ -1250,7 +1247,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (fx < winW - 138.0f && m_rootElement) {
                 UIElement* hit = m_rootElement->HitTest(fx, fy);
                 if (auto titleBar = dynamic_cast<TitleBar*>(hit)) {
-                    if (titleBar->IsLowPerformanceToggleHit(fx, fy) || titleBar->IsBackdropToggleHit(fx, fy) || titleBar->IsThemeToggleHit(fx, fy)) {
+                    if (titleBar->IsLowPerformanceToggleHit(fx, fy) || titleBar->IsThemeToggleHit(fx, fy)) {
                         return HTCLIENT;
                     }
                     if (titleBar->IsMenuBarHit(fx, fy)) {
@@ -1299,10 +1296,6 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_CUI_TOGGLE_LOW_PERF:
         SetLowPerformanceMode(!m_lowPerformanceMode);
-        return 0;
-
-    case WM_CUI_TOGGLE_BACKDROP:
-        SetBackdropType(WindowBackdrop::Cycle(m_backdropType));
         return 0;
 
     case WM_CUI_TOGGLE_THEME:
@@ -1606,7 +1599,7 @@ void Window::OnPaint() {
 
     m_gfxContext.BeginDraw();
 
-    const bool systemBackdrop = (m_backdropType != BackdropType::None);
+    const bool systemBackdrop = false;
     const bool usePerPixelAlpha =
         systemBackdrop
         && m_gfxContext.SupportsPerPixelAlpha();
@@ -1766,8 +1759,6 @@ void Window::DrawRenderStatsOverlay() {
         << "  未命中: " << stats.layerCacheMissCount
         << "  重录: " << stats.layerCacheRerenderCount
         << "  复用: " << stats.layerCacheReuseCount
-        << "  材质: " << MaterialHost::DisplayNameZh(m_backdropType)
-        << (m_gfxContext.SupportsPerPixelAlpha() ? "" : "(无透)")
         << "  显示帧率: " << static_cast<int>(std::round(m_overlayFps));
 
     const std::string text = ss.str();
@@ -1788,13 +1779,8 @@ void Window::DrawRenderStatsOverlay() {
 void Window::UpdateDwmChrome() {
     if (!m_hwnd) return;
 
-    // System backdrop needs the full client area extended so translucent chrome
-    // can reveal Mica/Acrylic. Otherwise keep a 1px DWM inset for snap animations.
     const bool maximized = IsZoomed(m_hwnd) != FALSE;
-    const bool systemBackdrop = (m_backdropType != BackdropType::None);
-    const MARGINS margins = systemBackdrop
-        ? MARGINS{ -1, -1, -1, -1 }
-        : (maximized ? MARGINS{ 0, 0, 0, 0 } : MARGINS{ 1, 1, 1, 1 });
+    const MARGINS margins = maximized ? MARGINS{ 0, 0, 0, 0 } : MARGINS{ 1, 1, 1, 1 };
     DwmExtendFrameIntoClientArea(m_hwnd, &margins);
 
     // 1. Force Native Windows 11 DWM Rounded Corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33)

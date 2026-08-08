@@ -9,7 +9,7 @@
 namespace CUI {
 
 std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) {
-    auto title = std::make_shared<TextBlock>("NavigationView & SystemBackdrop & Theme 导航与材质系统");
+    auto title = std::make_shared<TextBlock>("NavigationView & Theme 导航与主题系统");
     title->SetFontSize(18.0f);
     title->SetFontWeight("Bold");
     title->SetColorToken(ThemeTokenId::TextPrimary);
@@ -30,7 +30,7 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
 
     auto pageSettings = Column(12.0f).Children({
         std::make_shared<TextBlock>("⚙️ 设置 (Settings Page)"),
-        std::make_shared<TextBlock>("此页配置桌面背景材质 (Backdrop) 与 明暗主题 (Theme)。")
+        std::make_shared<TextBlock>("此页配置明暗主题 (Theme)。")
     }).Build();
 
     nav->AddItem("home", "首页 (Home)", "🏠", pageHome);
@@ -46,31 +46,7 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
     btnLeftCompact->OnClick().Connect([nav](UIElement*) { nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::LeftCompact); });
     btnTop->OnClick().Connect([nav](UIElement*) { nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Top); });
 
-    // SystemBackdrop Switcher ComboBox (Mica / MicaAlt / Acrylic / None)
-    auto cbBackdrop = std::make_shared<ComboBox>();
-    cbBackdrop->AddItem("云母");
-    cbBackdrop->AddItem("沉浸云母");
-    cbBackdrop->AddItem("亚克力");
     Window* win = ctx.windowRef;
-    int defaultIndex = 3;
-    if (win) {
-        switch (win->GetBackdropType()) {
-        case BackdropType::Mica: defaultIndex = 0; break;
-        case BackdropType::MicaAlt: defaultIndex = 1; break;
-        case BackdropType::Acrylic: defaultIndex = 2; break;
-        case BackdropType::None: defaultIndex = 3; break;
-        }
-    }
-    cbBackdrop->SetSelectedIndex(defaultIndex);
-    cbBackdrop->OnSelectionChanged().Connect([win](UIElement*, int index) {
-        if (!win) return;
-        switch (index) {
-        case 0: win->SetBackdropType(BackdropType::Mica); break;
-        case 1: win->SetBackdropType(BackdropType::MicaAlt); break;
-        case 2: win->SetBackdropType(BackdropType::Acrylic); break;
-        case 3: win->SetBackdropType(BackdropType::None); break;
-        }
-    });
 
     // Theme Switcher Buttons (Dark / Light)
     auto btnDark = std::make_shared<Button>("🌙 暗色主题 (Dark)");
@@ -87,11 +63,7 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
         btnLeft, btnLeftCompact, btnTop
     }).Build());
 
-    auto cardBackdrop = ControlCard("SystemBackdrop 材质与明暗主题切换", Column(12.0f).Children({
-        Row(12.0f).Children({
-            std::make_shared<TextBlock>("背景材质:"),
-            cbBackdrop
-        }).Build(),
+    auto cardBackdrop = ControlCard("明暗主题切换", Column(12.0f).Children({
         Row(12.0f).Children({
             std::make_shared<TextBlock>("明暗主题:"),
             btnDark,

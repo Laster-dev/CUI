@@ -40,8 +40,8 @@ void ThemeManager::SetBackdropActive(bool active) {
 }
 
 void ThemeManager::SetBackdropType(BackdropType type) {
-    m_backdropType = type;
-    m_backdropActive = (type != BackdropType::None);
+    m_backdropType = BackdropType::None;
+    m_backdropActive = false;
 }
 
 void ThemeManager::UpdateTokens() {
@@ -162,81 +162,6 @@ MaterialRole ThemeManager::GetMaterialRole(ThemeTokenId id) const {
 }
 
 D2D1_COLOR_F ThemeManager::ApplyMaterialRole(ThemeTokenId id, D2D1_COLOR_F base) const {
-    if (!m_backdropActive || m_backdropType == BackdropType::None) {
-        return base;
-    }
-
-    const MaterialRole role = GetMaterialRole(id);
-    const bool light = (m_mode == ThemeMode::Light);
-    const bool acrylic = (m_backdropType == BackdropType::Acrylic);
-    const bool micaAlt = (m_backdropType == BackdropType::MicaAlt);
-
-    if (role == MaterialRole::Chrome) {
-        if (id == ThemeTokenId::WindowBackground || id == ThemeTokenId::EditorBackground) {
-            base.a = 0.0f;
-            return base;
-        }
-
-        if (light) {
-            base.r = 1.0f;
-            base.g = 1.0f;
-            base.b = 1.0f;
-            if (micaAlt) {
-                base.r = 0.94f; base.g = 0.96f; base.b = 1.0f;
-            } else if (acrylic) {
-                base.r = 0.90f; base.g = 0.94f; base.b = 0.99f;
-            }
-            const float titleA = acrylic ? 0.12f : (micaAlt ? 0.16f : 0.22f);
-            const float paneA = acrylic ? 0.14f : (micaAlt ? 0.18f : 0.24f);
-            base.a = (id == ThemeTokenId::TitleBarBackground) ? titleA : paneA;
-            return base;
-        }
-
-        if (micaAlt) {
-            base.r = 0.10f; base.g = 0.10f; base.b = 0.12f;
-        } else if (acrylic) {
-            base.r = 0.08f; base.g = 0.10f; base.b = 0.14f;
-        } else {
-            base.r = 0.12f; base.g = 0.12f; base.b = 0.12f;
-        }
-        const float titleA = acrylic ? 0.16f : (micaAlt ? 0.20f : 0.26f);
-        const float paneA = acrylic ? 0.18f : (micaAlt ? 0.22f : 0.28f);
-        base.a = (id == ThemeTokenId::TitleBarBackground) ? titleA : paneA;
-        return base;
-    }
-
-    if (role == MaterialRole::Surface) {
-        if (id == ThemeTokenId::SelectedBackground ||
-            id == ThemeTokenId::HoverBackground ||
-            id == ThemeTokenId::PressedBackground) {
-            return base;
-        }
-        if (light) {
-            base.r = 1.0f;
-            base.g = 1.0f;
-            base.b = 1.0f;
-            if (id == ThemeTokenId::StatusBarBackground) {
-                base.a = 0.72f;
-            } else if (id == ThemeTokenId::InputBackground) {
-                base.a = acrylic ? 0.55f : 0.70f;
-            } else {
-                base.a = acrylic ? 0.55f : 0.68f;
-            }
-            return base;
-        }
-
-        if (id == ThemeTokenId::StatusBarBackground) {
-            base.a = 0.65f;
-        } else if (id == ThemeTokenId::InputBackground) {
-            base.r = 0.18f; base.g = 0.18f; base.b = 0.18f;
-            base.a = acrylic ? 0.45f : 0.58f;
-        } else {
-            base.r = 0.16f; base.g = 0.16f; base.b = 0.16f;
-            base.a = acrylic ? 0.42f : 0.55f;
-        }
-        return base;
-    }
-
     return base;
 }
 

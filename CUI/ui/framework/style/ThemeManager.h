@@ -9,12 +9,6 @@
 
 namespace CUI {
 
-// WinUI-like material contract:
-// - Chrome: title bar / nav pane / window host — lets SystemBackdrop show through
-// - Surface: page cards / inputs in the document — readable but slightly translucent
-// - Solid: text / accents / borders — always opaque
-// Popups (menu / flyout / combobox dropdown / tooltip) must NOT use Surface —
-// call GetFlatColor() so they stay fully opaque over the backdrop.
 enum class MaterialRole {
     Chrome,
     Surface,
@@ -50,7 +44,6 @@ public:
     ThemeMode GetThemeMode() const { return m_mode; }
     void SetThemeMode(ThemeMode mode);
 
-    // When true, GetColor() applies chrome/surface alphas so Mica/Acrylic can show.
     bool IsBackdropActive() const { return m_backdropActive; }
     void SetBackdropActive(bool active);
     void SetBackdropType(BackdropType type);

@@ -27,8 +27,6 @@ public:
     bool IsMenuBarHit(float x, float y);
     Rect GetLowPerformanceToggleRect() const;
     bool IsLowPerformanceToggleHit(float x, float y) const;
-    Rect GetBackdropToggleRect() const;
-    bool IsBackdropToggleHit(float x, float y) const;
     Rect GetThemeToggleRect() const;
     bool IsThemeToggleHit(float x, float y) const;
 
