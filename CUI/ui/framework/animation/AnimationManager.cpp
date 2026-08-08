@@ -1,6 +1,7 @@
 #include "AnimationManager.h"
 #include "FrameScheduler.h"
 #include "../controls/UIElement.h"
+#include "../render/GraphicsContext.h"
 #include <algorithm>
 #include <cmath>
 
@@ -204,7 +205,9 @@ bool AnimationManager::Tick() {
             el->CancelAnimationTicks();
         }
     }
-    return any || !m_animating.empty();
+    // Do NOT keep the pump alive solely because the list is non-empty: a re-register
+    // during Tick used to leave orphans and spin CommitFrame forever (整帧 storm).
+    return any;
 }
 
 void AnimationManager::CollectAnimatingBounds(Rect& dirtyRect, bool& hasDirty) const {
@@ -214,6 +217,55 @@ void AnimationManager::CollectAnimatingBounds(Rect& dirtyRect, bool& hasDirty) c
         }
         el->CollectSelfAnimationBounds(dirtyRect, hasDirty);
     }
+}
+
+void AnimationManager::CollectComposePresentBounds(Rect& dirtyRect, bool& hasDirty) const {
+    for (UIElement* el : m_animating) {
+        if (!el || !IsInLiveTree(el) || !el->IsComposeOnlyAnimation()) {
+            continue;
+        }
+        const Rect bounds = el->GetBounds();
+        if (bounds.IsEmpty()) {
+            continue;
+        }
+        dirtyRect = hasDirty ? dirtyRect.Union(bounds) : bounds;
+        hasDirty = true;
+    }
+}
+
+bool AnimationManager::HasComposeOnlyAnimating() const {
+    for (UIElement* el : m_animating) {
+        if (el && IsInLiveTree(el) && el->IsComposeOnlyAnimation()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool AnimationManager::HasSceneContributingAnimators() const {
+    for (UIElement* el : m_animating) {
+        if (!el || !IsInLiveTree(el)) {
+            continue;
+        }
+        if (!el->IsComposeOnlyAnimation()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool AnimationManager::FlushComposePresent(GraphicsContext& ctx) {
+    bool any = false;
+    for (UIElement* el : m_animating) {
+        if (!el || !IsInLiveTree(el) || !el->IsComposeOnlyAnimation()) {
+            continue;
+        }
+        if (el->ComposePresent(ctx)) {
+            any = true;
+        }
+    }
+    // Do not Commit/Present here — Window::CommitFrame / EndDraw owns publishing.
+    return any;
 }
 
 } // namespace CUI

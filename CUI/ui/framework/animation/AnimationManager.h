@@ -7,6 +7,7 @@
 namespace CUI {
 
 class UIElement;
+class GraphicsContext;
 
 class AnimationManager {
 public:
@@ -52,6 +53,13 @@ public:
 
     // Dirty rects from the registered animator set only (O(animating), not O(tree)).
     void CollectAnimatingBounds(Rect& dirtyRect, bool& hasDirty) const;
+    // Present rects for compose-only animators (no scene cache invalidation).
+    void CollectComposePresentBounds(Rect& dirtyRect, bool& hasDirty) const;
+    bool HasComposeOnlyAnimating() const;
+    // True when some registered animator still contributes scene dirty bounds.
+    bool HasSceneContributingAnimators() const;
+    // Updates DComp overlays for compose-only animators. Returns true if any ran.
+    bool FlushComposePresent(GraphicsContext& ctx);
 
 private:
     struct WakeEntry {

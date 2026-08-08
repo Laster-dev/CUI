@@ -1,4 +1,5 @@
 #include "NavigationView.h"
+#include "ProgressBarDiag.h"
 #include "../style/ThemeManager.h"
 #include "../window/Dpi.h"
 #include <algorithm>
@@ -403,6 +404,79 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
         m_contentFadeAnim.Reset(1.0f);
     }
 
+    m_pendingContentFactory = nullptr;
+    m_hasPendingContentFactory = false;
+
+    const auto* effective = m_hasPendingContent ? m_pendingContent.get() : m_content.get();
+    if (effective == content.get()) {
+        if (m_content == content && m_content) {
+            m_content->SetOpacity(1.0f);
+        }
+        return;
+    }
+
+    // Defer tree swap + content Measure/Arrange to the next animation frame so the
+    // click frame only pays NavigationViewItem ripple / selection dirty (small strip).
+    m_pendingContent = content;
+    m_hasPendingContent = true;
+    m_skipContentApplyOnce = true;
+    EnsureAnimationsScheduled();
+}
+
+void NavigationView::SetContentFactory(std::function<std::shared_ptr<UIElement>()> factory) {
+    if (!factory) {
+        return;
+    }
+
+    if (m_contentAnimating) {
+        if (m_contentNext) {
+            RemoveChildQuiet(m_contentNext);
+        }
+        m_contentNext.reset();
+        m_contentAnimating = false;
+        m_contentFadeAnim.Reset(1.0f);
+    }
+
+    // Click path must not call BuildXxxPage — that blocked the UI thread and
+    // froze NavigationViewItem ripple / selection indicator mid-animation.
+    m_pendingContent.reset();
+    m_hasPendingContent = false;
+    m_pendingContentFactory = std::move(factory);
+    m_hasPendingContentFactory = true;
+    // Factory already defers Build off the click handler. Do NOT skip an extra
+    // frame — with a settled Nav (no ticks) that skip could leave content stuck.
+    m_skipContentApplyOnce = false;
+    ProgressBarDiag::Log("[PB] Nav SetContentFactory pending (cold page)");
+    EnsureAnimationsScheduled();
+}
+
+void NavigationView::ApplyPendingContent() {
+    std::shared_ptr<UIElement> content;
+    if (m_hasPendingContentFactory) {
+        ProgressBarDiag::Log("[PB] Nav ApplyPendingContent invoking factory...");
+        auto factory = std::move(m_pendingContentFactory);
+        m_pendingContentFactory = nullptr;
+        m_hasPendingContentFactory = false;
+        if (factory) {
+            content = factory();
+        }
+        ProgressBarDiag::Log(
+            "[PB] Nav factory done content=%p class=%s",
+            (void*)content.get(),
+            content && content->GetClassName() ? content->GetClassName() : "(null)");
+    } else if (m_hasPendingContent) {
+        content = m_pendingContent;
+        m_pendingContent.reset();
+        m_hasPendingContent = false;
+    } else {
+        return;
+    }
+
+    if (!content) {
+        ProgressBarDiag::Log("[PB] Nav ApplyPendingContent ABORT null content");
+        return;
+    }
+
     if (m_content == content) {
         if (m_content) {
             m_content->SetOpacity(1.0f);
@@ -410,9 +484,6 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
         return;
     }
 
-    // Instant swap (no multi-frame fade). A content fade dirties the content host
-    // every tick; unioned with pane ripple AABB covers the whole window and forces
-    // full-scene repaints — that is what makes NavigationViewItem ripples stutter.
     if (m_content) {
         m_content->OnNavigatedFrom();
         RemoveChildQuiet(m_content);
@@ -434,10 +505,19 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
     if (!alreadyChild) {
         AddChildQuiet(m_content);
     }
-    RelayoutChildren();
+
+    // Content swap must NOT RelayoutChildren() — that re-measures the whole pane
+    // menu tree on every navigation and freezes NavigationViewItem ripple mid-flight.
+    const Rect contentRect = GetContentAreaRect();
+    m_content->SetVisibility(Visibility::Visible);
+    m_content->Measure(Size(contentRect.width, contentRect.height));
+    m_content->Arrange(contentRect);
     EnsureContentZOrder();
-    MarkRenderRectDirty(GetContentAreaRect());
-    InvalidateMeasure();
+    MarkRenderRectDirty(contentRect);
+    ProgressBarDiag::Log(
+        "[PB] Nav ApplyPendingContent class=%s bounds=(%.0f,%.0f,%.0fx%.0f)",
+        m_content->GetClassName() ? m_content->GetClassName() : "?",
+        contentRect.x, contentRect.y, contentRect.width, contentRect.height);
     m_content->OnNavigatedTo();
 }
 
@@ -544,6 +624,7 @@ void NavigationView::ExpandAncestorsOf(NavigationViewItem* item) {
         return;
     }
 
+    bool expandedAny = false;
     auto expandPath = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> bool {
         auto* nvi = dynamic_cast<NavigationViewItem*>(node.get());
         if (!nvi) {
@@ -555,7 +636,9 @@ void NavigationView::ExpandAncestorsOf(NavigationViewItem* item) {
         for (auto& child : nvi->MenuItems()) {
             if (self(self, child)) {
                 if (!nvi->IsExpanded()) {
-                    nvi->SetIsExpanded(true);
+                    // Expand without OnExpandChanged → Relayout storm on the click frame.
+                    nvi->SetIsExpandedSilent(true);
+                    expandedAny = true;
                 }
                 return true;
             }
@@ -563,15 +646,31 @@ void NavigationView::ExpandAncestorsOf(NavigationViewItem* item) {
         return false;
     };
 
+    bool found = false;
     for (auto& root : m_menuItems) {
         if (expandPath(expandPath, root)) {
-            return;
+            found = true;
+            break;
         }
     }
-    for (auto& root : m_footerItems) {
-        if (expandPath(expandPath, root)) {
-            return;
+    if (!found) {
+        for (auto& root : m_footerItems) {
+            if (expandPath(expandPath, root)) {
+                break;
+            }
         }
+    }
+
+    if (expandedAny) {
+        SyncMenuHostChildren();
+        if (m_menuScroll) {
+            m_menuScroll->InvalidateContentLayout();
+        }
+        RelayoutChildren(/*measureContent=*/false);
+        if (m_menuScroll) {
+            m_menuScroll->MarkRenderContentDirty();
+        }
+        MarkRenderRectDirty(GetPaneRect().Inflate(2.0f));
     }
 }
 
@@ -582,7 +681,15 @@ void NavigationView::OnItemExpandChanged(NavigationViewItem* folder) {
         SetSelectedItem(folder);
     }
     SyncMenuHostChildren();
+    // Drop visual-height floor + force content-layer FULL so newly visible children
+    // appear (soft ContentDirty was leaving the old menu bitmap cached).
+    if (m_menuScroll) {
+        m_menuScroll->InvalidateContentLayout();
+    }
     RelayoutChildren();
+    if (m_menuScroll) {
+        m_menuScroll->MarkRenderContentDirty();
+    }
     MarkRenderRectDirty(GetPaneRect().Inflate(2.0f));
 }
 
@@ -655,17 +762,24 @@ void NavigationView::NotifyItemInvoked(NavigationViewItem* item) {
         return;
     }
 
-    NavigationViewItemInvokedEventArgs invokedArgs;
-    invokedArgs.InvokedItem = item;
-    invokedArgs.IsSettingsInvoked = (item == m_settingsItem.get());
-    m_itemInvoked.Invoke(this, invokedArgs);
+    ProgressBarDiag::Log(
+        "[PB] Nav ItemInvoked tag=%s selects=%d children=%d",
+        item->GetTag().c_str(),
+        item->SelectsOnInvoked() ? 1 : 0,
+        item->HasChildren() ? 1 : 0);
 
+    // Select first so ripple/indicator start before any content-scheduling work.
     if (item->SelectsOnInvoked()) {
         SetSelectedItem(item);
         ClosePaneIfOverlay();
     } else if (item->HasChildren()) {
         // Already toggled expand in item click path when SelectsOnInvoked is false.
     }
+
+    NavigationViewItemInvokedEventArgs invokedArgs;
+    invokedArgs.InvokedItem = item;
+    invokedArgs.IsSettingsInvoked = (item == m_settingsItem.get());
+    m_itemInvoked.Invoke(this, invokedArgs);
 }
 
 void NavigationView::ClosePaneIfOverlay() {
@@ -955,21 +1069,9 @@ void NavigationView::RelayoutChildren(bool measureContent) {
 
     UpdateAdaptiveLayout(m_bounds.width);
 
-    // Hide entire menu tree first; visible list re-shows what should paint.
-    auto hideTree = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> void {
-        if (!node) return;
-        node->SetVisibility(Visibility::Collapsed);
-        if (auto* nvi = dynamic_cast<NavigationViewItem*>(node.get())) {
-            for (auto& child : nvi->MenuItems()) {
-                self(self, child);
-            }
-        }
-    };
-    for (auto& item : m_menuItems) hideTree(hideTree, item);
-    for (auto& item : m_footerItems) hideTree(hideTree, item);
-    if (m_settingsItem) {
-        m_settingsItem->SetVisibility(Visibility::Collapsed);
-    }
+    // Do NOT hideTree+SetVisibility(Collapsed) on every item first — that was an
+    // InvalidateMeasure storm on every click/selection (same hitch class as
+    // PropertyGrid full re-raster). SyncMenuHostChildren sets visibility once.
 
     const bool showBack = ShouldShowBackButton();
     const bool top = IsTopNavigation();
@@ -1324,6 +1426,17 @@ void NavigationView::OnMouseWheel(float delta) {
 }
 
 bool NavigationView::OnAnimationTick() {
+    // Defer content swap one frame so the click frame only pays item ripple/selection.
+    const bool hasPendingSwap = m_hasPendingContent || m_hasPendingContentFactory;
+    if (hasPendingSwap) {
+        if (m_skipContentApplyOnce) {
+            m_skipContentApplyOnce = false;
+            EnsureAnimationsScheduled();
+        } else {
+            ApplyPendingContent();
+        }
+    }
+
     // Intentionally skip Control::OnAnimationTick → UIElement child walk. Menu
     // items / page content register with AnimationManager themselves; walking
     // them from here made pane ripples hitch whenever the view was animating.
@@ -1378,6 +1491,8 @@ bool NavigationView::OnAnimationTick() {
     }
 
     const bool stillAnimating = widthAnim || indicatorAnim || contentAnim || m_contentAnimating
+        || m_hasPendingContent
+        || m_hasPendingContentFactory
         || std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f
         || m_selectionIndicatorAnim.IsAnimating(0.001f)
         || m_contentFadeAnim.IsAnimating(0.001f);
@@ -1389,6 +1504,8 @@ bool NavigationView::OnAnimationTick() {
 
 bool NavigationView::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
+        || m_hasPendingContent
+        || m_hasPendingContentFactory
         || std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f
         || m_selectionIndicatorAnim.IsAnimating(0.001f)
         || m_contentAnimating
@@ -1402,11 +1519,6 @@ void NavigationView::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty)
 
     // Never union full m_bounds for content/indicator ticks — that forces a
     // full-window repaint and makes pane ripples stutter during page switches.
-    if (Control::HasSelfAnimation() && !m_bounds.IsEmpty()) {
-        dirtyRect = hasDirty ? dirtyRect.Union(m_bounds) : m_bounds;
-        hasDirty = true;
-    }
-
     if (std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f && !m_bounds.IsEmpty()) {
         const Rect footprint = GetPaneRect().Union(GetContentAreaRect()).Inflate(2.0f);
         dirtyRect = hasDirty ? dirtyRect.Union(footprint) : footprint;

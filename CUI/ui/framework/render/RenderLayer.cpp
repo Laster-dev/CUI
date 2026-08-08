@@ -4,10 +4,12 @@ namespace CUI {
 
 void RenderLayer::Invalidate(unsigned flags) {
     m_dirtyFlags |= flags;
-    // Opacity/transform-only updates keep the cached bitmap — compose blit path.
-    constexpr unsigned kContentMask =
-        ContentDirty | SizeDirty | StructureDirty | ClipDirty;
-    if (flags & kContentMask) {
+    // Size/structure/clip require discarding the bitmap. ContentDirty alone must
+    // KEEP m_valid so ScrollViewer can strip-patch ripples/hover into the existing
+    // cache — otherwise every MarkRenderRectDirty forces FULL_RERASTER (PropertyGrid
+    // / NavigationView menu hitch identical to the old scroll bug).
+    constexpr unsigned kDiscardBitmapMask = SizeDirty | StructureDirty | ClipDirty;
+    if (flags & kDiscardBitmapMask) {
         m_valid = false;
     }
 }

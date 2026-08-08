@@ -10,6 +10,7 @@
 #include "../controls/ColorPicker.h"
 #include "../controls/ComboBox.h"
 #include "../controls/Flyout.h"
+#include "../controls/ProgressBarDiag.h"
 #include "../animation/FrameScheduler.h"
 #include "../input/RoutedEvent.h"
 #include <windowsx.h>
@@ -483,25 +484,35 @@ void Window::InvalidatePendingRenderRegions(bool fallbackToFullWindow) {
         return;
     }
 
-    const auto& rects = m_pendingDirtyRegion.GetRects();
-    if (rects.size() > 8) {
-        RequestFullRepaint();
-        return;
+    // Many small/overlapping rects → one bounds invalidate. Do NOT RequestFullRepaint
+    // (that StructureDirties the scene and locks 整帧 for the frame).
+    if (m_pendingDirtyRegion.GetRectCount() > 8) {
+        m_pendingDirtyRegion.CollapseToBounds();
     }
 
-    for (const auto& rect : rects) {
+    // Dirty regions are DIP; InvalidateRect expects client pixels.
+    const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+    for (const auto& rect : m_pendingDirtyRegion.GetRects()) {
         if (rect.IsEmpty()) {
             continue;
         }
 
         RECT rc = {
-            static_cast<LONG>(std::floor(rect.x)),
-            static_cast<LONG>(std::floor(rect.y)),
-            static_cast<LONG>(std::ceil(rect.x + rect.width)),
-            static_cast<LONG>(std::ceil(rect.y + rect.height))
+            static_cast<LONG>(std::floor(rect.x * scale)),
+            static_cast<LONG>(std::floor(rect.y * scale)),
+            static_cast<LONG>(std::ceil((rect.x + rect.width) * scale)),
+            static_cast<LONG>(std::ceil((rect.y + rect.height) * scale))
         };
         InvalidateRect(m_hwnd, &rc, FALSE);
     }
+}
+
+bool Window::HasPendingNativePaint() const {
+    if (!m_hwnd) {
+        return false;
+    }
+
+    return GetUpdateRect(m_hwnd, nullptr, FALSE) != FALSE;
 }
 
 void Window::InvalidateAnimatedRegions(bool animationStillActive) {
@@ -509,47 +520,99 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
         return;
     }
 
-    Rect dirtyRect;
-    bool hasDirty = false;
-    // Only registered animators — full-tree CollectAnimationBounds was O(all controls)
-    // every hover/scroll frame.
-    m_animationManager.CollectAnimatingBounds(dirtyRect, hasDirty);
-    m_popupHost.CollectDirty(dirtyRect, hasDirty);
+    // Fresh dirty from current animators only (compose-only ProgressBar contributes nothing).
+    Rect freshDirty;
+    bool hasFresh = false;
+    m_animationManager.CollectAnimatingBounds(freshDirty, hasFresh);
+    m_popupHost.CollectDirty(freshDirty, hasFresh);
 
+    // Stale footprint from a previous frame must be erased once — but must NOT be
+    // re-stored as lastAnimDirty while animationStillActive (that locked ProgressBar
+    // into FULL_PAINT forever: lastAnimDirty=1 every CommitFrame).
     if (m_hasLastAnimationDirtyRect) {
-        dirtyRect = hasDirty ? dirtyRect.Union(m_lastAnimationDirtyRect) : m_lastAnimationDirtyRect;
-        hasDirty = true;
+        if (hasFresh && freshDirty.Intersects(m_lastAnimationDirtyRect.Inflate(8.0f))) {
+            freshDirty = freshDirty.Union(m_lastAnimationDirtyRect);
+            hasFresh = true;
+        } else {
+            m_pendingDirtyRegion.AddRect(m_lastAnimationDirtyRect.Inflate(2.0f));
+        }
+        m_lastAnimationDirtyRect = Rect();
+        m_hasLastAnimationDirtyRect = false;
     }
 
-    if (hasDirty) {
-        Rect expandedDirtyRect = dirtyRect.Inflate(2.0f);
+    if (hasFresh) {
+        const Rect expandedDirtyRect = freshDirty.Inflate(2.0f);
         m_pendingDirtyRegion.AddRect(expandedDirtyRect);
         InvalidatePendingRenderRegions(false);
 
         if (animationStillActive) {
             m_lastAnimationDirtyRect = expandedDirtyRect;
             m_hasLastAnimationDirtyRect = true;
-        } else {
-            m_lastAnimationDirtyRect = Rect();
-            m_hasLastAnimationDirtyRect = false;
         }
-    } else if (!animationStillActive) {
-        m_lastAnimationDirtyRect = Rect();
-        m_hasLastAnimationDirtyRect = false;
+    } else if (!m_pendingDirtyRegion.IsEmpty()) {
+        // Stale footprint was queued above — flush it.
+        InvalidatePendingRenderRegions(false);
     }
 
-    // ContentDialog fade is overlay-only and does not contribute scene dirty.
-    // Still force a full-client paint so the scrim/card composite updates.
     if (IsOverlayScrimAnimating(m_rootElement.get())) {
         InvalidateRect(m_hwnd, nullptr, FALSE);
     }
 }
 
 void Window::CommitFrame(bool animationStillActive) {
-    // Drain any UI-thread raster jobs; KickAsync covers worker-bound PictureLayer work.
+    // ProgressBar indeterminate uses scene dirty + Present1 (DComp Commit-only
+    // overlays are not visible on CreateSwapChainForComposition without a real
+    // Present, and DXGI_PRESENT_DO_NOT_SEQUENCE stalled the flip queue to ~1 FPS).
+    const bool composeFlushed = m_animationManager.FlushComposePresent(m_gfxContext);
+    const bool sceneContrib = m_animationManager.HasSceneContributingAnimators();
+    const bool hasComposeOnly = m_animationManager.HasComposeOnlyAnimating();
+    const bool pendingEmpty = m_pendingDirtyRegion.IsEmpty();
+    const bool scrim = IsOverlayScrimAnimating(m_rootElement.get());
+
+    const bool onlyComposePresent =
+        composeFlushed
+        && !sceneContrib
+        && pendingEmpty
+        && !scrim;
+
+    if (onlyComposePresent) {
+        m_lastAnimationDirtyRect = Rect();
+        m_hasLastAnimationDirtyRect = false;
+        m_gfxContext.CommitComposition();
+        const unsigned n = ++ProgressBarDiag::CommitComposeOnly();
+        if (ProgressBarDiag::ShouldLogDetail(n)) {
+            ProgressBarDiag::Log(
+                "[PB] CommitFrame composeFlushed=1 sceneContrib=0 hasComposeOnly=%d "
+                "pendingEmpty=1 scrim=0 => COMPOSE_ONLY(Commit) #%u",
+                hasComposeOnly ? 1 : 0,
+                n);
+        }
+        return;
+    }
+
     if (!m_layerRasterizer.KickAsync()) {
         m_layerRasterizer.FlushSync(m_gfxContext);
     }
+
+    // ProgressBar indeterminate is scene-strip (IsComposeOnlyAnimation=false). Log
+    // that path too — otherwise the diag file dies after Window::Show.
+    if (hasComposeOnly || composeFlushed || ProgressBarDiag::TickCount() > 0) {
+        const unsigned n = ++ProgressBarDiag::CommitFullPaint();
+        if (ProgressBarDiag::ShouldLogDetail(n)) {
+            ProgressBarDiag::Log(
+                "[PB] CommitFrame composeFlushed=%d sceneContrib=%d hasComposeOnly=%d "
+                "lastAnimDirty=%d pendingEmpty=%d scrim=%d pbTicks=%u => FULL_PAINT_PATH #%u",
+                composeFlushed ? 1 : 0,
+                sceneContrib ? 1 : 0,
+                hasComposeOnly ? 1 : 0,
+                m_hasLastAnimationDirtyRect ? 1 : 0,
+                pendingEmpty ? 1 : 0,
+                scrim ? 1 : 0,
+                ProgressBarDiag::TickCount(),
+                n);
+        }
+    }
+
     InvalidateAnimatedRegions(animationStillActive);
     InvalidatePendingRenderRegions(false);
 }
@@ -785,6 +848,11 @@ void Window::SetTransparentMode(bool enabled) {
 }
 
 void Window::Show() {
+    ProgressBarDiag::Log(
+        "[PB] Window::Show hwnd=%p usesCompSC=%d — ProgressBar tick/OnRender lines appear "
+        "only after opening nav: 值/进度 > ProgressBar",
+        (void*)m_hwnd,
+        m_gfxContext.UsesCompositionSwapChain() ? 1 : 0);
     if (m_hwnd) {
         ShowWindow(m_hwnd, SW_SHOW);
         // The very first layout often happens before the shown window settles on
@@ -857,7 +925,14 @@ void Window::RunMessageLoop() {
         m_animationManager.SetTargetFrameSeconds(static_cast<float>(1.0 / targetFps));
 
         m_animationManager.DispatchDueWakes(now);
-        if (m_animationManager.HasAnimating() || m_animationManager.ConsumeFrameRequest()) {
+        // Hover/click often MarkRender*Dirty without RequestAnimationTicks (instant
+        // chrome). Without a scheduled frame those dirties only InvalidateRect and
+        // skip CommitFrame/FlushSync/vsync Present — feels 卡 until some animation
+        // happens to keep the pump alive ("有动画不卡、没动画卡").
+        if (m_animationManager.HasAnimating()
+            || m_animationManager.ConsumeFrameRequest()
+            || !m_pendingDirtyRegion.IsEmpty()
+            || HasPendingNativePaint()) {
             m_frameScheduler.ScheduleFrame();
         }
         if (auto focused = LockElement(m_focusedElement)) {
@@ -894,6 +969,13 @@ void Window::RunMessageLoop() {
         bool presented = false;
         if (didFrame) {
             CommitFrame(animating || wasAnimationActive);
+            // For one-shot input (hover/click/wheel without a continuous animation),
+            // waiting for WM_PAINT to be delivered "when idle" adds visible lag.
+            // Commit prepared the dirty region already, so force the paint now and
+            // let Present(1,0) become the latency boundary for interactive frames.
+            if (HasPendingNativePaint()) {
+                UpdateWindow(m_hwnd);
+            }
             // Drain WM_PAINT now so Present(1,0) is the vsync clock. Sleeping
             // another minInterval on top of Present was capping us near ~30 FPS.
             MSG paintMsg = {};
@@ -909,6 +991,12 @@ void Window::RunMessageLoop() {
 
         if (!hadMessage) {
             if (PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
+                continue;
+            }
+            // A bare cross-thread InvalidateRect can leave the HWND with an update
+            // region but without any queued input message to wake WaitMessage().
+            // Treat that as work and loop once more so ScheduleFrame/WM_PAINT runs.
+            if (HasPendingNativePaint()) {
                 continue;
             }
             const bool wantContinuous = animationActive || m_animationManager.HasAnimating();
@@ -1270,7 +1358,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_LBUTTONDOWN:
         if (OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
-            InvalidatePendingRenderRegions(true);
+            InvalidatePendingRenderRegions(false);
         }
         return 0;
 
@@ -1423,6 +1511,19 @@ void Window::OnPaint() {
     PAINTSTRUCT ps;
     BeginPaint(m_hwnd, &ps);
 
+    if (m_animationManager.HasComposeOnlyAnimating()) {
+        const unsigned n = ++ProgressBarDiag::OnPaintCount();
+        if (ProgressBarDiag::ShouldLogDetail(n)) {
+            ProgressBarDiag::Log(
+                "[PB] OnPaint#%u rcPaint=(%d,%d)-(%d,%d) pendingRects=%zu fullRepaintProbe pendingEmpty=%d",
+                n,
+                (int)ps.rcPaint.left, (int)ps.rcPaint.top,
+                (int)ps.rcPaint.right, (int)ps.rcPaint.bottom,
+                m_pendingDirtyRegion.GetRectCount(),
+                m_pendingDirtyRegion.IsEmpty() ? 1 : 0);
+        }
+    }
+
     const float dpiScale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
     Rect paintBounds = PhysicalRectToLogical(
         Rect(
@@ -1515,16 +1616,25 @@ void Window::OnPaint() {
         return;
     }
 
+    // ProgressBar / hover: keep gap pad small for thin controls so we don't
+    // re-record half the page. 4 dips is enough for the 3px bar + AA.
+    constexpr float kAnimDirtyPad = 4.0f;
+    const float patchPad = (frameDirtyRegion.GetRectCount() == 1
+        && dirtyBounds.height <= 24.0f
+        && dirtyBounds.width <= viewportBounds.width * 0.75f)
+        ? kAnimDirtyPad
+        : kDirtyGapPad;
+
     bool scenePatched = false;
+    Rect unionPatch;
     if (canRestoreScene) {
-        Rect unionPatch;
         bool hasPatch = false;
         const auto& dirtyRects = frameDirtyRegion.GetRects();
         for (const Rect& rect : dirtyRects) {
             if (rect.IsEmpty()) {
                 continue;
             }
-            const Rect patch = GraphicsContext::SnapExpandRect(rect, dpiScale, kDirtyGapPad);
+            const Rect patch = GraphicsContext::SnapExpandRect(rect, dpiScale, patchPad);
             unionPatch = hasPatch ? unionPatch.Union(patch) : patch;
             hasPatch = true;
         }
@@ -1538,7 +1648,7 @@ void Window::OnPaint() {
             for (const Rect& rect : dirtyRects) {
                 if (!rect.IsEmpty()) {
                     m_gfxContext.ClearRect(
-                        GraphicsContext::SnapExpandRect(rect, dpiScale, kDirtyGapPad));
+                        GraphicsContext::SnapExpandRect(rect, dpiScale, patchPad));
                 }
             }
             m_gfxContext.SetPaintBounds(unionPatch);
@@ -1561,18 +1671,47 @@ void Window::OnPaint() {
         renderScene();
         m_gfxContext.PopLayerTarget(m_sceneLayer);
         m_sceneLayer.Validate();
+        unionPatch = viewportBounds;
     }
 
-    if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
-        m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+    // Partial present: only blit/Present the dirty strip (FLIP_SEQUENTIAL keeps
+    // the rest of the backbuffer). This is the main CPU gap vs full-window Present.
+    // Composition swap chains have been much less predictable with dirty-rect
+    // Present1 in this app than HWND swap chains: static interactions (hover,
+    // click, wheel) can look "stuck" until some unrelated animation keeps
+    // producing full presents. Keep the scene patch optimization, but publish
+    // the composed frame with a normal Present on the composition path.
+    const bool partialPresent =
+        scenePatched
+        && !unionPatch.IsEmpty()
+        && !CoversRect(unionPatch, viewportBounds)
+        && !m_gfxContext.UsesCompositionSwapChain();
+
+    if (partialPresent) {
+        m_gfxContext.PushClip(unionPatch);
+        m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
+        renderOverlaysOnly();
+        m_gfxContext.PopClip();
+
+        const RECT dirtyPx{
+            static_cast<LONG>(std::floor(unionPatch.x * dpiScale)),
+            static_cast<LONG>(std::floor(unionPatch.y * dpiScale)),
+            static_cast<LONG>(std::ceil((unionPatch.x + unionPatch.width) * dpiScale)),
+            static_cast<LONG>(std::ceil((unionPatch.y + unionPatch.height) * dpiScale))
+        };
+        m_gfxContext.EndDraw(&dirtyPx);
     } else {
-        m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
+        if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
+            m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+        } else {
+            m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
+        }
+        m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
+        renderOverlaysOnly();
+        DrawRenderStatsOverlay();
+        m_gfxContext.EndDraw();
     }
-    m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
-    renderOverlaysOnly();
-    DrawRenderStatsOverlay();
 
-    m_gfxContext.EndDraw();
     m_gfxContext.SetCompositionContext(nullptr);
     m_compositionContext.EndFrame();
     m_pendingDirtyRegion.Clear();

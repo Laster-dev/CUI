@@ -420,6 +420,9 @@ void UIElement::SetPadding(const Thickness& padding) {
 }
 
 void UIElement::SetVisibility(Visibility v) {
+    if (m_visibility == v) {
+        return;
+    }
     m_visibility = v;
     NotifyFieldChanged(PropertyId::Visibility, Value(VisibilityToString(v)));
     InvalidateMeasure();

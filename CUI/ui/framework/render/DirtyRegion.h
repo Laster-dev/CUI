@@ -19,6 +19,8 @@ public:
     size_t GetRectCount() const { return m_rects.size(); }
 
     void SetMaxRects(size_t maxRects) { m_maxRects = maxRects; }
+    // Collapse all rects into their union (used before HWND invalidate).
+    void CollapseToBounds();
 
 private:
     void CollapseIfNeeded();

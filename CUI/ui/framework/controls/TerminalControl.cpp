@@ -505,8 +505,10 @@ void TerminalControl::QueueRedraw() {
 void TerminalControl::RequestWindowRepaint() {
     HWND hwnd = m_hwnd;
     if (hwnd != nullptr) {
-        // Safe to call from the PTY reader thread; wakes the idle message loop.
+        // Cross-thread InvalidateRect marks an update region but does not
+        // guarantee WaitMessage() will wake immediately, so poke the queue too.
         InvalidateRect(hwnd, nullptr, FALSE);
+        PostMessage(hwnd, WM_NULL, 0, 0);
     }
 }
 

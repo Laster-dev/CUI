@@ -58,6 +58,7 @@ void StartStreamingThread(Window* window, const std::shared_ptr<Image>& image) {
             }
             if (g_activeWindow && g_activeWindow->GetHWND()) {
                 InvalidateRect(g_activeWindow->GetHWND(), nullptr, FALSE);
+                PostMessage(g_activeWindow->GetHWND(), WM_NULL, 0, 0);
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }

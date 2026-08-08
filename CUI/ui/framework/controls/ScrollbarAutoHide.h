@@ -7,8 +7,10 @@
 
 namespace CUI {
 
-// Overlay-style scrollbar visibility: keep layout/hit-test, fade chrome after idle.
-// Show again on scroll activity or pointer-over the track.
+// Overlay-style scrollbar visibility: keep layout/hit-test, hide chrome after idle.
+// Show/hide are snapped inside Tick (not multi-frame faded): fading re-entered the
+// animation pump and re-painted tall track strips after idle — matching
+// "卡 when hidden / smooth while the bar is still visible".
 class ScrollbarAutoHide {
 public:
     using clock = std::chrono::steady_clock;
@@ -17,7 +19,8 @@ public:
     void NotifyActivity(UIElement* wakeOwner = nullptr) {
         m_idleSeconds = 0.0f;
         m_targetOpacity = 1.0f;
-        // Low-performance mode disables animation ticks that would fade opacity in.
+        // Low-performance mode: snap immediately (no animation ticks).
+        // Otherwise leave opacity for Tick so OnAnimationTick's prev/new dirty fires.
         if (!UIElement::AreAnimationsEnabled()) {
             m_opacity = 1.0f;
         }
@@ -31,6 +34,9 @@ public:
         m_pointerOver = over;
         if (over) {
             NotifyActivity(wakeOwner);
+        } else {
+            // Resume idle hide countdown after leaving the track.
+            ArmIdleWake(wakeOwner);
         }
     }
 
@@ -41,6 +47,8 @@ public:
         m_dragging = dragging;
         if (dragging) {
             NotifyActivity(wakeOwner);
+        } else {
+            ArmIdleWake(wakeOwner);
         }
     }
 
@@ -54,6 +62,7 @@ public:
         if (!wakeOwner || hold || m_targetOpacity <= 0.01f) {
             return;
         }
+        m_wakeOwner = wakeOwner;
         m_idleDeadline = clock::now()
             + std::chrono::duration_cast<clock::duration>(
                 std::chrono::duration<float>(kIdleHideSeconds));
@@ -63,57 +72,42 @@ public:
         }
     }
 
-    // Advance fade / idle countdown. Returns true while ticks are still needed.
-    bool Tick(float dt) {
-        dt = std::clamp(dt, 0.0f, 0.05f);
-        const bool hold = m_pointerOver || m_dragging;
-
-        if (!UIElement::AreAnimationsEnabled()) {
-            // Instant show/hide — no exponential fade (animation system is off).
-            if (hold) {
-                m_idleSeconds = 0.0f;
-                m_targetOpacity = 1.0f;
-                m_opacity = 1.0f;
-                m_hasIdleDeadline = false;
-                return false;
+    void ClearIdleWake() {
+        m_hasIdleDeadline = false;
+        if (m_wakeOwner) {
+            if (AnimationManager* mgr = AnimationManager::Current()) {
+                mgr->CancelWake(m_wakeOwner);
             }
-            if (m_hasIdleDeadline && clock::now() >= m_idleDeadline) {
-                m_targetOpacity = 0.0f;
-                m_opacity = 0.0f;
-                m_hasIdleDeadline = false;
-                return false;
-            }
-            m_opacity = m_targetOpacity;
-            // Waiting for idle deadline: no continuous pump (wake handles it).
-            return false;
         }
+    }
+
+    // Snap show/hide. Returns true only if opacity still disagrees with target
+    // (should be rare; callers keep RequestAnimationTicks while true).
+    bool Tick(float dt) {
+        (void)dt;
+        const bool hold = m_pointerOver || m_dragging;
 
         if (hold) {
             m_idleSeconds = 0.0f;
             m_targetOpacity = 1.0f;
-            m_hasIdleDeadline = false;
-        } else if (m_hasIdleDeadline && clock::now() >= m_idleDeadline) {
+            m_opacity = 1.0f;
+            ClearIdleWake();
+            return false;
+        }
+
+        if (m_hasIdleDeadline && clock::now() >= m_idleDeadline) {
             m_targetOpacity = 0.0f;
             m_hasIdleDeadline = false;
-        } else if (m_targetOpacity > 0.01f && m_hasIdleDeadline) {
-            // Keep idleSeconds roughly in sync for diagnostics; wake drives hide.
-            m_idleSeconds = kIdleHideSeconds;
         }
 
-        const float prev = m_opacity;
-        const float speed = (m_targetOpacity > m_opacity) ? 16.0f : 10.0f;
-        const float t = 1.0f - std::exp(-speed * dt);
-        m_opacity += (m_targetOpacity - m_opacity) * t;
-        if (std::abs(m_opacity - m_targetOpacity) < 0.005f) {
+        // Snap — no exponential fade (that was the idle hitch).
+        if (std::abs(m_opacity - m_targetOpacity) > 0.001f) {
             m_opacity = m_targetOpacity;
         }
-
-        const bool fading = std::abs(m_opacity - prev) > 0.001f
-            || std::abs(m_opacity - m_targetOpacity) > 0.005f;
-        return fading;
+        return NeedsTicks();
     }
 
-    // True only while opacity is actively changing — not during idle wait.
+    // True only while opacity disagrees with target — not during idle wait.
     bool NeedsTicks() const {
         return std::abs(m_opacity - m_targetOpacity) > 0.005f;
     }
@@ -126,6 +120,7 @@ private:
     bool m_dragging = false;
     bool m_hasIdleDeadline = false;
     clock::time_point m_idleDeadline{};
+    UIElement* m_wakeOwner = nullptr;
 };
 
 } // namespace CUI

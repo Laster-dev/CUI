@@ -80,6 +80,8 @@ public:
     bool SelectsOnInvoked() const { return m_selectsOnInvoked; }
 
     void SetIsExpanded(bool expanded);
+    // Expand/collapse without firing OnExpandChanged (avoids sync Relayout on select).
+    void SetIsExpandedSilent(bool expanded);
     bool IsExpanded() const { return m_isExpanded; }
 
     bool IsChildSelected() const { return m_isChildSelected; }

@@ -78,6 +78,7 @@ private:
     bool TryMoveFocus(bool forward);
     void RequestFullRepaint();
     void InvalidatePendingRenderRegions(bool fallbackToFullWindow);
+    bool HasPendingNativePaint() const;
     void DrawRenderStatsOverlay();
     void ApplyVisualState();
     Point ClientPointToLogical(int x, int y) const;

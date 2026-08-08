@@ -46,6 +46,10 @@ void DirtyRegion::CollapseIfNeeded() {
         return;
     }
 
+    CollapseToBounds();
+}
+
+void DirtyRegion::CollapseToBounds() {
     Rect bounds = GetBounds();
     m_rects.clear();
     if (!bounds.IsEmpty()) {

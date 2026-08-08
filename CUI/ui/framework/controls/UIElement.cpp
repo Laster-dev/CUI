@@ -1,5 +1,6 @@
 #include "UIElement.h"
 #include "../animation/AnimationManager.h"
+#include "../animation/FrameScheduler.h"
 #include "../layout/Layout.h"
 #include "../render/CompositionContext.h"
 #include "../render/RenderLayer.h"
@@ -72,13 +73,20 @@ void UIElement::SetParent(UIElement* parent) {
 }
 
 void UIElement::RequestAnimationTicks() {
-    if (m_animationTicksRegistered) {
-        return;
-    }
     if (AnimationManager* mgr = AnimationManager::Current()) {
-        mgr->RegisterAnimating(this);
-        // Register may reject detached elements (not under live root yet).
-        m_animationTicksRegistered = mgr->IsRegistered(this);
+        if (m_animationTicksRegistered && !mgr->IsRegistered(this)) {
+            // Flag/list desync — recover so pending work (e.g. Nav content swap) can run.
+            m_animationTicksRegistered = false;
+        }
+        if (!m_animationTicksRegistered) {
+            mgr->RegisterAnimating(this);
+            m_animationTicksRegistered = mgr->IsRegistered(this);
+        }
+        // Always wake a frame. Early-return when already registered used to skip
+        // ScheduleFrame, so SetContentFactory after a settled Nav never applied.
+        if (FrameScheduler* sched = FrameScheduler::Current()) {
+            sched->ScheduleFrame();
+        }
     }
 }
 
@@ -182,6 +190,10 @@ void UIElement::SetComposeOffset(float x, float y) {
     MarkRenderRectDirty(oldFootprint.Union(newFootprint));
 }
 
+void UIElement::OnNavigatedTo() {
+    ResumeAnimationSubtree();
+}
+
 void UIElement::OnNavigatedFrom() {
     PauseAnimationSubtree();
 }
@@ -194,6 +206,17 @@ void UIElement::PauseAnimationSubtree() {
     for (auto& child : m_children) {
         if (child) {
             child->PauseAnimationSubtree();
+        }
+    }
+}
+
+void UIElement::ResumeAnimationSubtree() {
+    if (HasSelfAnimation()) {
+        RequestAnimationTicks();
+    }
+    for (auto& child : m_children) {
+        if (child) {
+            child->ResumeAnimationSubtree();
         }
     }
 }
@@ -565,7 +588,9 @@ void UIElement::OnMouseDown(Point pt) {
     }
     m_isPressed = true;
     m_onMouseDownEvent.Invoke(this, pt);
-    MarkRenderContentDirty();
+    // Local rect only — MarkRenderContentDirty bubbles through ScrollViewer and
+    // used to StructureDirty the whole menu/PropertyGrid content bitmap on click.
+    MarkRenderRectDirty(m_bounds);
 }
 
 void UIElement::OnMouseUp(Point pt) {
@@ -574,7 +599,7 @@ void UIElement::OnMouseUp(Point pt) {
         if (IsEnabled() && m_bounds.Contains(pt.x, pt.y)) {
             m_onClickEvent.Invoke(this);
         }
-        MarkRenderContentDirty();
+        MarkRenderRectDirty(m_bounds);
     }
 }
 
@@ -701,8 +726,12 @@ void UIElement::MarkRenderContentDirty() {
 void UIElement::MarkRenderRectDirty(const Rect& rect) {
     m_renderNode.MarkDirtyRect(rect);
     m_subtreeRenderDirty = true;
-    if (m_parent) {
-        m_parent->MarkRenderRectDirty(rect);
+    // Flag ancestors only — do NOT stamp the same rect onto every ancestor's
+    // world dirty region. Collect walks the subtree and would otherwise emit
+    // N copies of one ripple rect; Window then hits rects.size()>8 and
+    // RequestFullRepaint() every animation frame (整帧 + ~13 FPS).
+    for (UIElement* walk = m_parent; walk; walk = walk->m_parent) {
+        walk->m_subtreeRenderDirty = true;
     }
 }
 

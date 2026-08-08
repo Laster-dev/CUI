@@ -14,7 +14,7 @@ public:
     static FrameScheduler* Current();
     static void SetCurrent(FrameScheduler* scheduler);
 
-    // Merge into "as soon as the next vsync-paced slot".
+    // Request the next frame slot (paced by DXGI Present when painting).
     void ScheduleFrame();
     // Low-frequency work (caret blink, toast timeout).
     void ScheduleFrameAt(clock::time_point when);

@@ -10,11 +10,21 @@ void RenderNode::SetBounds(const Rect& bounds) {
         return;
     }
 
+    const bool sizeChanged =
+        std::abs(bounds.width - m_bounds.width) > 0.5f
+        || std::abs(bounds.height - m_bounds.height) > 0.5f;
+
     MarkTransformDirty(m_bounds, bounds);
     m_previousBounds = m_bounds;
     m_bounds = bounds;
     m_layer.SetBounds(bounds);
-    m_layer.Invalidate(RenderLayer::TransformDirty | RenderLayer::SizeDirty);
+    // Translation-only moves (ScrollViewer offset) must NOT SizeDirty — that
+    // invalidates cached bitmaps and forces full PropertyGrid re-raster on scroll.
+    if (sizeChanged) {
+        m_layer.Invalidate(RenderLayer::TransformDirty | RenderLayer::SizeDirty);
+    } else {
+        m_layer.Invalidate(RenderLayer::TransformDirty);
+    }
 }
 
 void RenderNode::MarkContentDirty() {

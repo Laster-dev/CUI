@@ -8,6 +8,7 @@
 #include "framework/controls/VSCodeControls.h"
 #include "framework/controls/NavigationView.h"
 #include "framework/controls/NavigationViewItem.h"
+#include "framework/controls/ProgressBarDiag.h"
 #include "framework/controls/Button.h"
 #include "framework/controls/TextBlock.h"
 #include "framework/controls/ComboBox.h"
@@ -160,7 +161,7 @@ public:
             std::vector<SampleEntry> samples;
 
             std::shared_ptr<UIElement> Resolve(const std::string& tag) {
-                constexpr size_t kMaxCachedPages = 3;
+            constexpr size_t kMaxCachedPages = 12;
                 auto cached = content.find(tag);
                 if (cached != content.end()) {
                     lru.remove(tag);
@@ -184,6 +185,10 @@ public:
                     return page.content;
                 }
                 return nullptr;
+            }
+
+            bool Contains(const std::string& tag) const {
+                return content.find(tag) != content.end();
             }
         };
         auto pageCache = std::make_shared<PageCache>();
@@ -308,10 +313,21 @@ public:
             const std::string tag = args.InvokedItem->GetTag();
             if (tag.empty()) return;
 
-            auto content = pageCache->Resolve(tag);
-            if (!content) return;
+            CUI::ProgressBarDiag::Log("[PB] gallery ItemInvoked tag=%s cached=%d",
+                tag.c_str(), pageCache->Contains(tag) ? 1 : 0);
 
-            nav->SetContent(content);
+            // Cached pages: cheap swap (still deferred one frame). Cold pages:
+            // build AFTER click + after selection indicator settles so item anim stays smooth.
+            if (pageCache->Contains(tag)) {
+                if (auto content = pageCache->Resolve(tag)) {
+                    nav->SetContent(content);
+                }
+            } else {
+                nav->SetContentFactory([pageCache, tag]() {
+                    CUI::ProgressBarDiag::Log("[PB] gallery factory Resolve(%s)", tag.c_str());
+                    return pageCache->Resolve(tag);
+                });
+            }
             if (win) {
                 if (tag == "stream") StartStreamingThread(win, streamImg);
                 else StopStreamingThread();

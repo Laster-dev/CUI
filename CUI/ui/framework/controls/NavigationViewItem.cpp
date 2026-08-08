@@ -122,6 +122,14 @@ void NavigationViewItem::SetIsExpanded(bool expanded) {
     MarkRenderContentDirty();
 }
 
+void NavigationViewItem::SetIsExpandedSilent(bool expanded) {
+    if (m_isExpanded == expanded) {
+        return;
+    }
+    m_isExpanded = expanded;
+    MarkRenderRectDirty(m_bounds);
+}
+
 void NavigationViewItem::AddMenuItem(const std::shared_ptr<NavigationViewItemBase>& item) {
     if (!item) {
         return;

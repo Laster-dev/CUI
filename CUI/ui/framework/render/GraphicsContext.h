@@ -10,6 +10,7 @@
 #include <dcomp.h>
 #include <wrl/client.h>
 #include <vector>
+#include <functional>
 
 namespace CUI {
 
@@ -27,6 +28,8 @@ public:
 
     void BeginDraw();
     HRESULT EndDraw();
+    // Partial present (FLIP_SEQUENTIAL). dirtyRectPx is in physical pixels; null = full present.
+    HRESULT EndDraw(const RECT* dirtyRectPx);
 
     ID2D1DeviceContext* GetD2DContext() const { return m_d2dContext.Get(); }
     ID2D1Device* GetD2DDevice() const { return m_d2dDevice.Get(); }
@@ -37,6 +40,25 @@ public:
     bool UsesCompositionSwapChain() const { return m_usesCompositionSwapChain; }
     // True when the present path keeps per-pixel alpha for DWM Mica/Acrylic.
     bool SupportsPerPixelAlpha() const { return m_supportsPerPixelAlpha; }
+    IDCompositionDevice* GetDCompDevice() const { return m_dcompDevice.Get(); }
+    IDCompositionVisual* GetDCompRootVisual() const { return m_dcompRootVisual.Get(); }
+    // Commit the DComp tree (used after a normal swapchain Present).
+    HRESULT CommitComposition();
+
+    // Create or resize a premultiplied BGRA composition surface (pixel size).
+    bool EnsureCompositionSurface(
+        ComPtr<IDCompositionSurface>& surface,
+        UINT widthPx,
+        UINT heightPx);
+    // Draw into a composition surface with a temporary D2D context (DIPs, origin 0,0).
+    // draw() may call FillRoundedRect/etc. on this GraphicsContext.
+    bool DrawCompositionSurface(
+        IDCompositionSurface* surface,
+        float widthDips,
+        float heightDips,
+        const std::function<void()>& draw);
+    bool AttachCompositionOverlay(IDCompositionVisual* visual);
+    void DetachCompositionOverlay(IDCompositionVisual* visual);
 
     void PushClip(const Rect& rect);
     // Geometry clip matching FillRoundedRect corners (for ripples, etc.).
@@ -154,7 +176,10 @@ private:
     ComPtr<IDXGISwapChain1> m_swapChain;
     ComPtr<IDCompositionDevice> m_dcompDevice;
     ComPtr<IDCompositionTarget> m_dcompTarget;
+    ComPtr<IDCompositionVisual> m_dcompRootVisual;
     ComPtr<IDCompositionVisual> m_dcompVisual;
+    // Reused for DComp overlay surface draws (ProgressBar indeterminate).
+    ComPtr<ID2D1DeviceContext> m_overlayD2dContext;
 
     RenderResources m_resources;
     std::vector<D2D1_RECT_F> m_clipStack;

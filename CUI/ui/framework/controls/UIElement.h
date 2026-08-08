@@ -283,6 +283,11 @@ public:
     virtual bool HasSelfAnimation() const { return false; }
     // Modal overlays (ContentDialog) — Window freezes the scene layer while true.
     virtual bool IsModalOverlayOpen() const { return false; }
+    // True while this animator updates via ComposePresent (DComp) and must not
+    // dirty the scene cache or Present the HWND swapchain.
+    virtual bool IsComposeOnlyAnimation() const { return false; }
+    // Independent composition present (WinUI-style). Return true if handled.
+    virtual bool ComposePresent(GraphicsContext& ctx) { (void)ctx; return false; }
     // Self contribution only (no child walk). Used by the animation pump dirty path.
     virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const;
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const;
@@ -320,9 +325,12 @@ public:
     void ClearComposeDirty() { m_composeDirty = false; }
 
     // Page / subtree lifecycle (NavigationView content swap).
-    virtual void OnNavigatedTo() {}
+    virtual void OnNavigatedTo();
     virtual void OnNavigatedFrom();
     void PauseAnimationSubtree();
+    // Re-arm HasSelfAnimation() ticks after attach / OnNavigatedTo (Build-time
+    // RequestAnimationTicks is rejected while not under the live root).
+    void ResumeAnimationSubtree();
 
     // Routed events (tunnel then bubble). Default forwards to classic OnMouse*/OnKey*.
     virtual void OnRoutedEvent(RoutedEventArgs& args);

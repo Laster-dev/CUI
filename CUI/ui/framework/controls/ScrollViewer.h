@@ -28,6 +28,7 @@ public:
     virtual void OnMouseWheel(float delta) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
+    virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
     virtual HCURSOR GetCursor() const override;
     virtual void SyncRenderState() override;
     virtual void MarkRenderContentDirty() override;
@@ -37,6 +38,9 @@ public:
     float GetScrollOffsetY() const { return m_offsetY; }
     void SetScrollOffsetY(float offset);
     bool IsScrollAnimating() const { return m_scrollAnimator.IsActive(); }
+
+    // Expand/collapse / host rebuild: drop visual-height floor and force content-layer FULL.
+    void InvalidateContentLayout();
 
     // When true, thumb overlays content and does not shrink the content width.
     // Keeps NavigationView chevrons aligned whether or not the menu overflows.
@@ -64,10 +68,13 @@ private:
     bool ShouldRenderFullContentLayer(const GraphicsContext& ctx) const;
     void RenderContentLayer(GraphicsContext& ctx);
     void RenderScrollChrome(GraphicsContext& ctx);
+    void SwallowDescendantRenderDirties();
 
     float m_offsetY = 0.0f;
     ChromiumScrollAnimator m_scrollAnimator;
     float m_contentHeight = 0.0f;
+    float m_measuredContentHeight = 0.0f;
+    float m_visualContentHeight = 0.0f;
     float m_measuredContentWidth = -1.0f;
 
     bool m_isDraggingThumb = false;

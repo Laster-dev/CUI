@@ -208,13 +208,21 @@ HRESULT GraphicsContext::CreateDeviceResources() {
             hr = m_dcompDevice->CreateTargetForHwnd(m_hwnd, TRUE, &m_dcompTarget);
         }
         if (SUCCEEDED(hr)) {
+            hr = m_dcompDevice->CreateVisual(&m_dcompRootVisual);
+        }
+        if (SUCCEEDED(hr)) {
             hr = m_dcompDevice->CreateVisual(&m_dcompVisual);
         }
         if (SUCCEEDED(hr)) {
             hr = m_dcompVisual->SetContent(m_swapChain.Get());
         }
         if (SUCCEEDED(hr)) {
-            hr = m_dcompTarget->SetRoot(m_dcompVisual.Get());
+            // Root hosts the HWND swapchain plus independent overlay visuals
+            // (ProgressBar indeterminate) so overlays can Commit without Present.
+            hr = m_dcompRootVisual->AddVisual(m_dcompVisual.Get(), FALSE, nullptr);
+        }
+        if (SUCCEEDED(hr)) {
+            hr = m_dcompTarget->SetRoot(m_dcompRootVisual.Get());
         }
         if (SUCCEEDED(hr)) {
             hr = m_dcompDevice->Commit();
@@ -224,6 +232,7 @@ HRESULT GraphicsContext::CreateDeviceResources() {
             m_supportsPerPixelAlpha = true;
         } else {
             m_dcompVisual.Reset();
+            m_dcompRootVisual.Reset();
             m_dcompTarget.Reset();
             m_dcompDevice.Reset();
             m_swapChain.Reset();
@@ -300,14 +309,149 @@ void GraphicsContext::ReleaseDeviceResources() {
         m_d2dContext->SetTarget(nullptr);
     }
     m_dcompVisual.Reset();
+    m_dcompRootVisual.Reset();
     m_dcompTarget.Reset();
     m_dcompDevice.Reset();
+    m_overlayD2dContext.Reset();
     m_swapChain.Reset();
     m_d2dContext.Reset();
     m_d2dDevice.Reset();
     m_d3dDevice.Reset();
     m_usesCompositionSwapChain = false;
     m_supportsPerPixelAlpha = false;
+}
+
+HRESULT GraphicsContext::CommitComposition() {
+    if (!m_usesCompositionSwapChain || !m_dcompDevice) {
+        return E_FAIL;
+    }
+    return m_dcompDevice->Commit();
+}
+
+bool GraphicsContext::EnsureCompositionSurface(
+    ComPtr<IDCompositionSurface>& surface,
+    UINT widthPx,
+    UINT heightPx) {
+    if (!m_dcompDevice || widthPx == 0 || heightPx == 0) {
+        return false;
+    }
+    widthPx = (std::max)(1u, widthPx);
+    heightPx = (std::max)(1u, heightPx);
+
+    // Recreate when missing; callers pass matching size each frame.
+    if (surface) {
+        // IDCompositionSurface has no size getter — ProgressBar tracks size and
+        // resets the ComPtr when dimensions change.
+        return true;
+    }
+
+    HRESULT hr = m_dcompDevice->CreateSurface(
+        widthPx,
+        heightPx,
+        DXGI_FORMAT_B8G8R8A8_UNORM,
+        DXGI_ALPHA_MODE_PREMULTIPLIED,
+        &surface);
+    return SUCCEEDED(hr) && surface;
+}
+
+bool GraphicsContext::DrawCompositionSurface(
+    IDCompositionSurface* surface,
+    float widthDips,
+    float heightDips,
+    const std::function<void()>& draw) {
+    if (!surface || !m_d2dDevice || !draw || widthDips <= 0.0f || heightDips <= 0.0f) {
+        return false;
+    }
+
+    POINT updateOffset{};
+    ComPtr<IDXGISurface> dxgiSurface;
+    HRESULT hr = surface->BeginDraw(nullptr, IID_PPV_ARGS(&dxgiSurface), &updateOffset);
+    if (FAILED(hr) || !dxgiSurface) {
+        return false;
+    }
+
+    ComPtr<ID2D1DeviceContext> overlayDc = m_overlayD2dContext;
+    if (!overlayDc) {
+        hr = m_d2dDevice->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_NONE, &overlayDc);
+        if (FAILED(hr) || !overlayDc) {
+            surface->EndDraw();
+            return false;
+        }
+        m_overlayD2dContext = overlayDc;
+    }
+
+    const float dpi = m_dpiScale * 96.0f;
+    D2D1_BITMAP_PROPERTIES1 props = D2D1::BitmapProperties1(
+        D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+        dpi,
+        dpi);
+
+    ComPtr<ID2D1Bitmap1> targetBmp;
+    hr = overlayDc->CreateBitmapFromDxgiSurface(dxgiSurface.Get(), &props, &targetBmp);
+    if (FAILED(hr) || !targetBmp) {
+        surface->EndDraw();
+        return false;
+    }
+
+    TargetState state;
+    state.context = m_d2dContext;
+    state.paintBounds = m_paintBounds;
+    state.clipStack = m_clipStack;
+    state.clipIsLayer = m_clipIsLayer;
+    state.opacityStack = m_opacityStack;
+    m_targetStack.push_back(std::move(state));
+
+    m_d2dContext = overlayDc;
+    m_paintBounds = Rect();
+    m_clipStack.clear();
+    m_clipIsLayer.clear();
+    m_opacityStack.clear();
+    m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
+
+    m_d2dContext->SetTarget(targetBmp.Get());
+    m_d2dContext->SetDpi(dpi, dpi);
+    m_d2dContext->BeginDraw();
+    m_d2dContext->SetTransform(D2D1::Matrix3x2F::Translation(
+        static_cast<float>(updateOffset.x) * 96.0f / dpi,
+        static_cast<float>(updateOffset.y) * 96.0f / dpi));
+    m_d2dContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+    m_d2dContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+
+    draw();
+
+    hr = m_d2dContext->EndDraw();
+    m_d2dContext->SetTarget(nullptr);
+    surface->EndDraw();
+
+    TargetState restored = std::move(m_targetStack.back());
+    m_targetStack.pop_back();
+    m_d2dContext = restored.context;
+    m_paintBounds = restored.paintBounds;
+    m_clipStack = std::move(restored.clipStack);
+    m_clipIsLayer = std::move(restored.clipIsLayer);
+    m_opacityStack = std::move(restored.opacityStack);
+    if (m_d2dContext) {
+        m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
+    }
+
+    return SUCCEEDED(hr);
+}
+
+bool GraphicsContext::AttachCompositionOverlay(IDCompositionVisual* visual) {
+    if (!m_dcompRootVisual || !visual) {
+        return false;
+    }
+    // Place above the swapchain visual (top of z-order).
+    HRESULT hr = m_dcompRootVisual->AddVisual(visual, TRUE, nullptr);
+    return SUCCEEDED(hr);
+}
+
+void GraphicsContext::DetachCompositionOverlay(IDCompositionVisual* visual) {
+    if (!m_dcompRootVisual || !visual) {
+        return;
+    }
+    m_dcompRootVisual->RemoveVisual(visual);
 }
 
 void GraphicsContext::BeginDraw() {
@@ -323,6 +467,10 @@ void GraphicsContext::BeginDraw() {
 }
 
 HRESULT GraphicsContext::EndDraw() {
+    return EndDraw(nullptr);
+}
+
+HRESULT GraphicsContext::EndDraw(const RECT* dirtyRectPx) {
     if (!m_d2dContext) return E_POINTER;
 
     HRESULT hr = m_d2dContext->EndDraw();
@@ -333,8 +481,17 @@ HRESULT GraphicsContext::EndDraw() {
     }
 
     if (m_swapChain) {
-        // Pace animation to the compositor refresh rate for smoother scrolling/toast motion.
-        m_swapChain->Present(1, 0);
+        if (dirtyRectPx
+            && dirtyRectPx->left < dirtyRectPx->right
+            && dirtyRectPx->top < dirtyRectPx->bottom) {
+            DXGI_PRESENT_PARAMETERS params = {};
+            RECT dirty = *dirtyRectPx;
+            params.DirtyRectsCount = 1;
+            params.pDirtyRects = &dirty;
+            m_swapChain->Present1(1, 0, &params);
+        } else {
+            m_swapChain->Present(1, 0);
+        }
         if (m_usesCompositionSwapChain && m_dcompDevice) {
             m_dcompDevice->Commit();
         }

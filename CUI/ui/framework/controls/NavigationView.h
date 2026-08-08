@@ -5,6 +5,7 @@
 #include "ScrollViewer.h"
 #include "Panel.h"
 #include "../animation/AnimationSystem.h"
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -105,7 +106,11 @@ public:
 
     // --- Content / header / pane chrome ---
     void SetContent(const std::shared_ptr<UIElement>& content);
-    std::shared_ptr<UIElement> GetContent() const { return m_content; }
+    // Build the page on a later animation frame (not on the click that selects the item).
+    void SetContentFactory(std::function<std::shared_ptr<UIElement>()> factory);
+    std::shared_ptr<UIElement> GetContent() const {
+        return m_hasPendingContent ? m_pendingContent : m_content;
+    }
 
     void SetHeader(const std::string& header);
     const std::string& GetHeader() const { return m_header; }
@@ -141,7 +146,6 @@ public:
     void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
     void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
 
-    // --- Events (WinUI order: ItemInvoked then SelectionChanged) ---
     Event<NavigationView*, const NavigationViewItemInvokedEventArgs&>& OnItemInvoked() { return m_itemInvoked; }
     Event<NavigationView*, const NavigationViewSelectionChangedEventArgs&>& OnSelectionChanged() { return m_selectionChanged; }
     Event<NavigationView*>& OnBackRequested() { return m_backRequested; }
@@ -166,6 +170,7 @@ private:
     void SyncMenuHostChildren();
     void EnsureContentZOrder();
     void EnsureAnimationsScheduled();
+    void ApplyPendingContent();
 
     void UpdateAdaptiveLayout(float width);
     void ApplyDisplayMode(NavigationViewDisplayMode mode, bool forceEvent);
@@ -211,6 +216,11 @@ private:
 
     NavigationViewItem* m_selectedItem = nullptr;
     std::shared_ptr<UIElement> m_content;
+    std::shared_ptr<UIElement> m_pendingContent;
+    std::function<std::shared_ptr<UIElement>()> m_pendingContentFactory;
+    bool m_hasPendingContent = false;
+    bool m_hasPendingContentFactory = false;
+    bool m_skipContentApplyOnce = false;
     std::shared_ptr<UIElement> m_paneFooter;
     std::shared_ptr<UIElement> m_autoSuggestBox;
 

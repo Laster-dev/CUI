@@ -2,11 +2,14 @@
 #define NOMINMAX
 #endif
 #include "ScrollViewer.h"
+#include "ScrollDiag.h"
+#include "../animation/FrameScheduler.h"
 #include "../render/CompositionContext.h"
 #include "../style/ThemeManager.h"
 #include <wrl/client.h>
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 namespace CUI {
 
@@ -66,9 +69,10 @@ ScrollViewer::ScrollViewer() {
     m_scrollAnimator.Reset(0.0f);
     GetRenderNode().GetLayer().SetCacheable(true);
     m_contentLayer.SetCacheable(true);
-    OnPropertyIdChanged().Connect([this](PropertyId, const Value&) {
-        MarkContentLayerDirty();
-    });
+    // Do NOT hook OnPropertyIdChanged → MarkContentLayerDirty here.
+    // UIElement already MarkRenderContentDirties on NotifyFieldChanged; a second
+    // StructureDirty path forced FULL_RERASTER of the whole menu/PropertyGrid
+    // bitmap on every token/opacity write (identical hitch to the old scroll bug).
 }
 
 void ScrollViewer::SetScrollOffsetY(float offset) {
@@ -154,8 +158,6 @@ float ScrollViewer::MeasureContentHeight(float contentWidth) {
         Size dSize = child->Measure(avail);
         height = std::max(height, dSize.height);
     }
-    m_measuredContentWidth = contentWidth;
-    MarkContentLayerDirty();
     return padding.top + height + padding.bottom + kContentBottomPad;
 }
 
@@ -163,12 +165,56 @@ void ScrollViewer::RefreshContentMetrics(float viewportWidth, float viewportHeig
     Thickness padding = GetPadding();
     float innerWidth = std::max(0.0f, viewportWidth - padding.left - padding.right);
 
-    // First measure without a scrollbar. If it overflows, measure once more with
-    // the reserved scrollbar gutter because narrower text may wrap higher.
-    m_contentHeight = MeasureContentHeight(innerWidth);
-    if (m_contentHeight > viewportHeight) {
-        float contentWidth = std::max(0.0f, innerWidth - kScrollbarInset - kScrollbarWidth);
-        m_contentHeight = MeasureContentHeight(contentWidth);
+    // Measure without mutating "last measured" width mid-pass. The old two-step
+    // path wrote m_measuredContentWidth=full then =full-scrollbar, so the next
+    // frame always looked like a metrics change and MarkContentLayerDirty'd the
+    // menu/PropertyGrid every frame (732↔758 oscillation).
+    const float prevMeasuredHeight = m_measuredContentHeight;
+    const float prevWidth = m_measuredContentWidth;
+    const float prevContentHeight = m_contentHeight;
+
+    float usedWidth = innerWidth;
+    float measuredHeight = MeasureContentHeight(innerWidth);
+    // Overlay scrollbars do not steal content width — subtracting them here made
+    // Arrange (reserve=0) disagree with Measure and MarkContentLayerDirty every
+    // Relayout while the menu was animating ripples.
+    if (!m_overlayScrollbar && measuredHeight > viewportHeight) {
+        usedWidth = std::max(0.0f, innerWidth - kScrollbarInset - kScrollbarWidth);
+        measuredHeight = MeasureContentHeight(usedWidth);
+    }
+
+    m_measuredContentHeight = measuredHeight;
+    m_measuredContentWidth = usedWidth;
+
+    // PositionChildren may discover a taller visual subtree (PropertyGrid paints
+    // past DesiredSize). Keep that floor so Measure→Position→Measure does not
+    // oscillate 580↔758 and MarkContentLayerDirty every frame.
+    if (measuredHeight + 0.5f < m_visualContentHeight
+        && std::abs(prevMeasuredHeight - measuredHeight) > 0.5f) {
+        // Real measured shrink (collapse / page swap) — drop the visual floor.
+        m_visualContentHeight = measuredHeight;
+    }
+    m_contentHeight = (std::max)(measuredHeight, m_visualContentHeight);
+
+    const bool measuredChg =
+        std::abs(prevMeasuredHeight - m_measuredContentHeight) > 0.5f
+        || std::abs(prevWidth - m_measuredContentWidth) > 0.5f;
+    const bool cacheGrew =
+        m_contentHeight > prevContentHeight + 0.5f;
+    if (measuredChg || cacheGrew) {
+        ScrollDiag::Log(
+            "[SV] %s metricsChg measH=%.1f->%.1f contentH=%.1f->%.1f W=%.1f->%.1f "
+            "visual=%.1f overlay=%d => MarkContentLayerDirty",
+            GetClassName(),
+            prevMeasuredHeight,
+            m_measuredContentHeight,
+            prevContentHeight,
+            m_contentHeight,
+            prevWidth,
+            m_measuredContentWidth,
+            m_visualContentHeight,
+            m_overlayScrollbar ? 1 : 0);
+        MarkContentLayerDirty();
     }
     ClampOffset();
 }
@@ -187,7 +233,10 @@ void ScrollViewer::PositionChildren() {
         if (child->GetVisibility() == Visibility::Collapsed) continue;
         naturalHeight = std::max(naturalHeight, child->GetDesiredSize().height);
     }
-    float childHeight = std::max(viewportContentHeight, naturalHeight);
+    // Do NOT stretch the content host to the viewport when content is shorter.
+    // Stretching made GetVisualBottom == viewport bottom → contentH ≈ viewport →
+    // GetMaxScroll() == 0 → wheel/drag looked dead ("滚动没反应").
+    float childHeight = (naturalHeight > 0.5f) ? naturalHeight : viewportContentHeight;
 
     for (auto& child : GetChildren()) {
         if (child->GetVisibility() == Visibility::Collapsed) continue;
@@ -209,11 +258,15 @@ void ScrollViewer::PositionChildren() {
     if (visualBottom > 0.0f) {
         float contentTop = m_bounds.y + padding.top - m_offsetY;
         float visualContentHeight = visualBottom - contentTop + padding.bottom + kContentBottomPad;
-        if (visualContentHeight > m_contentHeight + 0.5f) {
-            // Some layout containers intentionally render children past their own
-            // bounds (PropertyGrid does this to avoid clipping rows). Scroll range
-            // must follow the real visual subtree, not only the direct child's
-            // desired height, or the last controls cannot be scrolled into view.
+        // Ignore visual "growth" that is only the old stretch-to-viewport artifact.
+        if (visualContentHeight > m_measuredContentHeight + 0.5f
+            && visualContentHeight > m_visualContentHeight + 0.5f) {
+            m_visualContentHeight = visualContentHeight;
+        }
+        if (visualContentHeight > m_contentHeight + 0.5f
+            && visualContentHeight > m_measuredContentHeight + 0.5f) {
+            // PropertyGrid (and similar) may paint past DesiredSize — grow scroll
+            // range to the real visual subtree, but never from viewport stretch.
             m_contentHeight = visualContentHeight;
             ClampOffset();
         }
@@ -236,14 +289,29 @@ Rect ScrollViewer::GetContentViewportRect() const {
 }
 
 void ScrollViewer::MarkContentLayerDirty() {
+    // StructureDirty discards m_valid → guaranteed FULL_RERASTER (expand/collapse,
+    // metrics). Soft ContentDirty alone is reserved for strip-patch ripples.
     m_contentLayer.Invalidate(RenderLayer::ContentDirty | RenderLayer::StructureDirty);
     m_pendingViewportScrollPatch = false;
     m_pendingViewportPatchDeltaY = 0.0f;
     Rect viewport = GetContentViewportRect();
     if (!viewport.IsEmpty()) {
         m_contentLayerDirty.AddRect(viewport.Inflate(2.0f));
-        MarkRenderRectDirty(viewport.Inflate(2.0f));
+        UIElement::MarkRenderRectDirty(viewport.Inflate(2.0f));
     }
+}
+
+void ScrollViewer::InvalidateContentLayout() {
+    m_visualContentHeight = 0.0f;
+    m_measuredContentHeight = 0.0f;
+    m_measuredContentWidth = -1.0f;
+    for (auto& child : GetChildren()) {
+        if (child) {
+            child->InvalidateMeasure();
+        }
+    }
+    InvalidateMeasure();
+    MarkContentLayerDirty();
 }
 
 void ScrollViewer::MarkContentLayerRectDirty(const Rect& rect) {
@@ -267,13 +335,36 @@ bool ScrollViewer::ShouldRenderFullContentLayer(const GraphicsContext& ctx) cons
     if (!m_contentLayer.IsValid()) {
         return true;
     }
-    if (m_contentLayer.HasDirtyFlags()) {
+    // Hard structural changes require a full bitmap rebuild.
+    constexpr unsigned kHardMask =
+        RenderLayer::SizeDirty
+        | RenderLayer::StructureDirty
+        | RenderLayer::ClipDirty;
+    if ((m_contentLayer.GetDirtyFlags() & kHardMask) != 0) {
         return true;
     }
     if (!ctx.IntersectsPaintBounds(m_contentViewportRect)) {
-        return true;
+        return false;
     }
-    return m_contentLayerDirty.GetRectCount() != 1;
+    // Soft ContentDirty with localized rects → strip patch (ripple/hover).
+    // Only a dirty covering most of the viewport/cache forces FULL.
+    if ((m_contentLayer.GetDirtyFlags() & RenderLayer::ContentDirty) != 0) {
+        const size_t n = m_contentLayerDirty.GetRectCount();
+        // Collect used to clear dirty rects before paint, leaving ContentDirty with
+        // n==0 — that must NOT force FULL (it made PropertyGrid rebuild every frame).
+        if (n == 0) {
+            return false;
+        }
+        const float vpArea = (std::max)(1.0f, m_contentViewportRect.width * m_contentViewportRect.height);
+        Rect unionRect = m_contentLayerDirty.GetBounds();
+        const float dirtyArea = (std::max)(0.0f, unionRect.width * unionRect.height);
+        // Multiple nav ripples must STRIP the union — never FULL the whole menu.
+        if (dirtyArea >= vpArea * 0.85f) {
+            return true;
+        }
+        return false; // strip patch
+    }
+    return false;
 }
 
 void ScrollViewer::MarkScrollVisualDirty(float previousOffset) {
@@ -281,27 +372,57 @@ void ScrollViewer::MarkScrollVisualDirty(float previousOffset) {
         return;
     }
 
+    // Scroll PositionChildren already moved descendants (transform dirties). Swallow
+    // those before Collect or the HWND dirty region becomes the full document height.
+    // Do NOT swallow in PositionChildren itself — expand/collapse layout needs those
+    // dirties (or MeasureContentHeight MarkContentLayerDirty) to re-raster the menu.
+    SwallowDescendantRenderDirties();
+
     Rect contentViewport = GetContentViewportRect();
     const bool cacheFullContent = m_contentHeight > 0.0f && m_contentHeight <= kMaxFullContentCacheHeight;
+    const bool isPropertyGrid = (std::strcmp(GetClassName(), "PropertyGrid") == 0);
 
     if (cacheFullContent) {
         // Full-content bitmap already holds the whole scroll range — scrolling is a
-        // sourceRect blit only. Do NOT mark ContentDirty/TransformDirty or we re-rasterize
-        // every child every frame.
+        // sourceRect blit only. Do NOT call MarkRenderRectDirty (override ContentDirties
+        // the content layer) or we re-rasterize every child every frame.
         if (!contentViewport.IsEmpty()) {
-            MarkRenderRectDirty(contentViewport.Inflate(2.0f));
+            UIElement::MarkRenderRectDirty(contentViewport.Inflate(2.0f));
         }
         m_pendingViewportScrollPatch = false;
         m_pendingViewportPatchDeltaY = 0.0f;
+        if (isPropertyGrid) {
+            ScrollDiag::Log(
+                "[SV] PropertyGrid MarkScroll dirty=sceneOnly fullCache=1 offset=%.1f->%.1f "
+                "contentH=%.1f layerValid=%d layerDirtyRects=%zu",
+                previousOffset,
+                m_offsetY,
+                m_contentHeight,
+                m_contentLayer.IsValid() ? 1 : 0,
+                m_contentLayerDirty.GetRectCount());
+        }
     } else if (!contentViewport.IsEmpty()) {
-        MarkContentLayerRectDirty(contentViewport.Inflate(2.0f));
+        // Tall content: shift/patch the viewport cache. TransformDirty alone must not
+        // ContentDirty the layer or canPatchViewportCache never sees a valid bitmap.
         m_contentLayer.Invalidate(RenderLayer::TransformDirty);
         m_pendingViewportScrollPatch = true;
         m_pendingViewportPatchDeltaY = m_offsetY - previousOffset;
+        UIElement::MarkRenderRectDirty(contentViewport.Inflate(2.0f));
+        if (isPropertyGrid) {
+            ScrollDiag::Log(
+                "[SV] PropertyGrid MarkScroll dirty=scene+transformPatch fullCache=0 "
+                "offset=%.1f->%.1f dY=%.1f contentH=%.1f layerValid=%d",
+                previousOffset,
+                m_offsetY,
+                m_pendingViewportPatchDeltaY,
+                m_contentHeight,
+                m_contentLayer.IsValid() ? 1 : 0);
+        }
     }
 
     if (m_contentHeight > m_bounds.height) {
-        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+        // Scrollbar chrome is drawn outside the content layer — scene dirty only.
+        UIElement::MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
 
         float maxScroll = GetMaxScroll();
         if (maxScroll > 0.0f) {
@@ -310,8 +431,8 @@ void ScrollViewer::MarkScrollVisualDirty(float previousOffset) {
             thumbHeight = std::clamp(thumbHeight, 24.0f, track.height);
             float previousRatio = std::clamp(previousOffset / maxScroll, 0.0f, 1.0f);
             float previousThumbY = track.y + previousRatio * (track.height - thumbHeight);
-            MarkRenderRectDirty(Rect(track.x, previousThumbY, track.width, thumbHeight).Inflate(2.0f));
-            MarkRenderRectDirty(GetScrollbarThumbRect().Inflate(2.0f));
+            UIElement::MarkRenderRectDirty(Rect(track.x, previousThumbY, track.width, thumbHeight).Inflate(2.0f));
+            UIElement::MarkRenderRectDirty(GetScrollbarThumbRect().Inflate(2.0f));
         }
     }
 }
@@ -353,7 +474,26 @@ void ScrollViewer::Render(GraphicsContext& ctx) {
 
     ctx.PushClip(m_bounds);
     OnRender(ctx);
-    RenderContentLayer(ctx);
+
+    // Scrollbar show/hide dirties only the track. Skip content-layer blit when the
+    // paint bounds sit inside that strip — otherwise every auto-hide tick still
+    // sampled a tall content bitmap through the overlay track.
+    const Rect paintBounds = ctx.GetPaintBounds();
+    const Rect track = GetScrollbarTrackRect().Inflate(4.0f);
+    const bool chromeOnly =
+        !paintBounds.IsEmpty()
+        && m_contentHeight > m_bounds.height
+        && paintBounds.width <= track.width + 8.0f
+        && paintBounds.x >= track.x - 4.0f
+        && (paintBounds.x + paintBounds.width) <= (track.x + track.width + 4.0f)
+        && m_contentLayer.IsValid()
+        && m_contentLayer.GetCacheBitmap() != nullptr
+        && (m_contentLayer.GetDirtyFlags()
+            & (RenderLayer::SizeDirty | RenderLayer::StructureDirty | RenderLayer::ClipDirty
+                | RenderLayer::ContentDirty)) == 0;
+    if (!chromeOnly) {
+        RenderContentLayer(ctx);
+    }
     RenderScrollChrome(ctx);
 
     ctx.PopClip();
@@ -373,11 +513,16 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         ? (std::max)(m_contentViewportRect.height, m_contentHeight)
         : m_contentViewportRect.height;
     const Size cacheSize(m_contentViewportRect.width, cacheHeight);
+    // EnsureLayerCache stores ceil(dips) — compare against the same, or every frame
+    // looks like a size change (e.g. 3437.5 vs stored 3438) and forces FULL_RERASTER.
+    const Size cacheSizeCeiled(
+        (std::max)(1.0f, std::ceil(cacheSize.width)),
+        (std::max)(1.0f, std::ceil(cacheSize.height)));
 
     const bool modeChanged = m_contentLayerCachesFullContent != cacheFullContent;
     const bool sizeChanged =
-        std::abs(m_contentLayer.GetCacheSurfaceSize().width - cacheSize.width) > 0.5f
-        || std::abs(m_contentLayer.GetCacheSurfaceSize().height - cacheSize.height) > 0.5f;
+        std::abs(m_contentLayer.GetCacheSurfaceSize().width - cacheSizeCeiled.width) > 0.5f
+        || std::abs(m_contentLayer.GetCacheSurfaceSize().height - cacheSizeCeiled.height) > 0.5f;
     const bool canPatchViewportCache =
         !cacheFullContent
         && !modeChanged
@@ -386,10 +531,52 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         && m_contentLayer.GetCacheBitmap() != nullptr
         && m_pendingViewportScrollPatch
         && std::abs(m_pendingViewportPatchDeltaY) > 0.01f
-        && std::abs(m_pendingViewportPatchDeltaY) < m_contentViewportRect.height;
+        && std::abs(m_pendingViewportPatchDeltaY) < m_contentViewportRect.height
+        // Don't shift-patch over pending ripple/hover — that Validate()'d away
+        // ContentDirty and left stuck pixels in the viewport cache.
+        && (m_contentLayer.GetDirtyFlags() & RenderLayer::ContentDirty) == 0;
+    constexpr unsigned kHardMask =
+        RenderLayer::SizeDirty | RenderLayer::StructureDirty | RenderLayer::ClipDirty;
+    const bool canStripPatchContent =
+        !canPatchViewportCache
+        && !modeChanged
+        && !sizeChanged
+        && m_contentLayer.IsValid()
+        && m_contentLayer.GetCacheBitmap() != nullptr
+        && (m_contentLayer.GetDirtyFlags() & RenderLayer::ContentDirty) != 0
+        && (m_contentLayer.GetDirtyFlags() & kHardMask) == 0
+        && m_contentLayerDirty.GetRectCount() >= 1
+        && !ShouldRenderFullContentLayer(ctx);
     const bool needsRerender = modeChanged || sizeChanged || ShouldRenderFullContentLayer(ctx);
+
+    const bool isPropertyGrid = (std::strcmp(GetClassName(), "PropertyGrid") == 0);
+    const bool logScroll = isPropertyGrid || (m_contentHeight > 400.0f);
+    if (logScroll) {
+        const unsigned n = ++ScrollDiag::RenderCount();
+        if (ScrollDiag::ShouldLogDetail(n)) {
+            ScrollDiag::Log(
+                "[SV] %s RenderContent#%u fullCache=%d valid=%d dirtyFlags=0x%X "
+                "layerDirtyRects=%zu needsRerender=%d canPatch=%d canStrip=%d offset=%.1f "
+                "contentH=%.1f => %s",
+                GetClassName(),
+                n,
+                cacheFullContent ? 1 : 0,
+                m_contentLayer.IsValid() ? 1 : 0,
+                m_contentLayer.GetDirtyFlags(),
+                m_contentLayerDirty.GetRectCount(),
+                needsRerender ? 1 : 0,
+                canPatchViewportCache ? 1 : 0,
+                canStripPatchContent ? 1 : 0,
+                m_offsetY,
+                m_contentHeight,
+                canPatchViewportCache ? "PATCH"
+                    : (canStripPatchContent ? "STRIP"
+                        : (needsRerender ? "FULL_RERASTER" : "BLIT_ONLY")));
+        }
+    }
+
     if (auto* composition = ctx.GetCompositionContext()) {
-        if (canPatchViewportCache) {
+        if (canPatchViewportCache || canStripPatchContent) {
             composition->CountLayerCacheHit();
             composition->CountLayerCacheReuse();
         } else if (needsRerender) {
@@ -472,11 +659,59 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
             m_pendingViewportScrollPatch = false;
             m_pendingViewportPatchDeltaY = 0.0f;
         }
+    } else if (canStripPatchContent && ctx.PushLayerTarget(
+        m_contentLayer,
+        cacheSize,
+        cacheFullContent ? fullContentWorldRect : visibleWorldRect,
+        D2D1::ColorF(0, 0, 0, 0),
+        false)) {
+        // Localized content update (ripple/hover) into the existing cache bitmap.
+        // Clear/clip in WORLD space while the world→layer transform is active —
+        // converting to layer-local first double-transformed the rects and missed
+        // the item (stuck nav ripples / "animations don't work").
+        auto* d2d = ctx.GetD2DContext();
+        const float contentTop = m_contentViewportRect.y - (cacheFullContent ? m_offsetY : 0.0f);
+        D2D1_MATRIX_3X2_F oldTransform{};
+        d2d->GetTransform(&oldTransform);
+        d2d->SetTransform(D2D1::Matrix3x2F::Translation(-m_contentViewportRect.x, -contentTop));
+
+        for (const Rect& worldDirty : m_contentLayerDirty.GetRects()) {
+            Rect clipped = worldDirty;
+            // Intersect with the world rect covered by the cache.
+            const Rect cacheWorld = cacheFullContent ? fullContentWorldRect : visibleWorldRect;
+            const float x0 = (std::max)(clipped.x, cacheWorld.x);
+            const float y0 = (std::max)(clipped.y, cacheWorld.y);
+            const float x1 = (std::min)(clipped.x + clipped.width, cacheWorld.x + cacheWorld.width);
+            const float y1 = (std::min)(clipped.y + clipped.height, cacheWorld.y + cacheWorld.height);
+            if (x1 <= x0 || y1 <= y0) {
+                continue;
+            }
+            clipped = Rect(x0, y0, x1 - x0, y1 - y0);
+            ctx.ClearRect(clipped);
+            ctx.PushClip(clipped);
+            for (auto& child : GetChildren()) {
+                RenderVisibleSubtree(child.get(), ctx, clipped);
+            }
+            ctx.PopClip();
+        }
+
+        d2d->SetTransform(oldTransform);
+        ctx.PopLayerTarget(m_contentLayer);
+        m_contentLayer.Validate();
+        m_contentLayerDirty.Clear();
+        m_contentLayerCachesFullContent = cacheFullContent;
+        m_pendingViewportScrollPatch = false;
+        m_pendingViewportPatchDeltaY = 0.0f;
     } else if (needsRerender && ctx.PushLayerTarget(
         m_contentLayer,
         cacheSize,
         cacheFullContent ? fullContentWorldRect : visibleWorldRect,
         D2D1::ColorF(0, 0, 0, 0))) {
+        LARGE_INTEGER t0{}, t1{}, freq{};
+        if (isPropertyGrid) {
+            QueryPerformanceFrequency(&freq);
+            QueryPerformanceCounter(&t0);
+        }
         const float contentTop = m_contentViewportRect.y - (cacheFullContent ? m_offsetY : 0.0f);
         auto* d2d = ctx.GetD2DContext();
         D2D1_MATRIX_3X2_F oldTransform{};
@@ -496,6 +731,25 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         m_contentLayerCachesFullContent = cacheFullContent;
         m_pendingViewportScrollPatch = false;
         m_pendingViewportPatchDeltaY = 0.0f;
+        if (isPropertyGrid) {
+            QueryPerformanceCounter(&t1);
+            const double ms = (freq.QuadPart > 0)
+                ? (1000.0 * static_cast<double>(t1.QuadPart - t0.QuadPart)
+                    / static_cast<double>(freq.QuadPart))
+                : 0.0;
+            size_t childCount = 0;
+            for (auto& child : GetChildren()) {
+                if (child && child->GetVisibility() != Visibility::Collapsed) {
+                    ++childCount;
+                }
+            }
+            ScrollDiag::Log(
+                "[SV] PropertyGrid FULL_RERASTER done in %.2fms children=%zu cache=%.0fx%.0f",
+                ms,
+                childCount,
+                cacheSize.width,
+                cacheSize.height);
+        }
     }
 
     Rect sourceRect(
@@ -507,6 +761,16 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
     ctx.PushClip(m_contentViewportRect);
     ctx.DrawLayer(m_contentLayer, m_contentViewportRect, &sourceRect);
     ctx.PopClip();
+
+    // If we only blit (scroll) or Collect left ContentDirty with emptied rects,
+    // clear soft flags so the next frame does not FULL_RERASTER forever.
+    if (!needsRerender && !canStripPatchContent && !canPatchViewportCache) {
+        m_contentLayer.ClearDirtyFlags(
+            RenderLayer::ContentDirty
+            | RenderLayer::TransformDirty
+            | RenderLayer::OpacityDirty);
+        m_contentLayerDirty.Clear();
+    }
 
     m_contentLayerOffsetY = m_offsetY;
     m_contentLayer.SetTranslation(0.0f, -m_offsetY);
@@ -547,20 +811,89 @@ void ScrollViewer::MarkRenderContentDirty() {
 }
 
 void ScrollViewer::MarkRenderRectDirty(const Rect& rect) {
-    // Nav-item ripples / hover mark local rects; without this the content-layer
-    // cache stays stale and the ripple looks frozen until something else rebuilds it.
+    // Localized dirties (nav ripple, hover, caret) must NOT StructureDirty the
+    // whole content bitmap — that re-rasters every PropertyGrid/menu control each
+    // animation frame (identical hitch to the old scroll bug).
     if (!rect.IsEmpty()) {
-        m_contentLayer.Invalidate(RenderLayer::ContentDirty);
-        m_contentLayerDirty.AddRect(rect);
+        const Rect contentViewport = GetContentViewportRect();
+        if (!contentViewport.IsEmpty() && rect.Intersects(contentViewport)) {
+            m_contentLayer.Invalidate(RenderLayer::ContentDirty);
+            m_contentLayerDirty.AddRect(rect);
+        }
     }
     UIElement::MarkRenderRectDirty(rect);
 }
 
+void ScrollViewer::SwallowDescendantRenderDirties() {
+    auto clearDeep = [](auto&& self, UIElement* el) -> void {
+        if (!el) {
+            return;
+        }
+        (void)el->GetRenderNode().ConsumeWorldDirtyRegion();
+        for (auto& child : el->GetChildren()) {
+            if (child) {
+                self(self, child.get());
+            }
+        }
+    };
+    for (auto& child : GetChildren()) {
+        if (child) {
+            clearDeep(clearDeep, child.get());
+        }
+    }
+}
+
 void ScrollViewer::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume) {
-    UIElement::CollectRenderDirtyRegion(dirtyRegion, consume);
+    // Self / explicit scroll-viewport dirties.
+    if (m_subtreeRenderDirty || !m_renderNode.GetWorldDirtyRegion().IsEmpty()) {
+        if (consume) {
+            dirtyRegion.UnionWith(m_renderNode.ConsumeWorldDirtyRegion());
+            m_subtreeRenderDirty = false;
+        } else {
+            dirtyRegion.UnionWith(m_renderNode.GetWorldDirtyRegion());
+        }
+    }
+
+    // Children may dirty after expand/collapse or control edits. Collect them into a
+    // temp region — never union raw child bounds into the window (PropertyGrid doc
+    // height). Any real child dirty means the content-layer bitmap must rebuild;
+    // the window only needs the viewport refreshed.
+    DirtyRegion childRegion;
+    for (auto& child : GetChildren()) {
+        if (child) {
+            child->CollectRenderDirtyRegion(childRegion, consume);
+        }
+    }
+    if (!childRegion.IsEmpty()) {
+        // Soft content dirty only. Add the *individual* child dirty rects — using
+        // GetBounds() of a tall PropertyGrid document made every hover look like a
+        // full-viewport dirty (85% rule) and FULL_RERASTER'd every frame.
+        m_contentLayer.Invalidate(RenderLayer::ContentDirty);
+        const Rect viewport = GetContentViewportRect();
+        for (const Rect& r : childRegion.GetRects()) {
+            if (r.IsEmpty()) {
+                continue;
+            }
+            m_contentLayerDirty.AddRect(r.Inflate(2.0f));
+            if (!viewport.IsEmpty()) {
+                const float x0 = (std::max)(r.x, viewport.x);
+                const float y0 = (std::max)(r.y, viewport.y);
+                const float x1 = (std::min)(r.x + r.width, viewport.x + viewport.width);
+                const float y1 = (std::min)(r.y + r.height, viewport.y + viewport.height);
+                if (x1 > x0 && y1 > y0) {
+                    dirtyRegion.AddRect(Rect(x0, y0, x1 - x0, y1 - y0).Inflate(2.0f));
+                }
+            }
+        }
+        if (!viewport.IsEmpty() && dirtyRegion.IsEmpty()) {
+            dirtyRegion.AddRect(viewport.Inflate(2.0f));
+        }
+    }
+
     if (consume) {
+        // Publish content dirties to the window invalidate list, but keep
+        // m_contentLayerDirty until RenderContentLayer consumes it (strip/full).
         dirtyRegion.UnionWith(m_contentLayerDirty);
-        m_contentLayerDirty.Clear();
     } else {
         dirtyRegion.UnionWith(m_contentLayerDirty);
     }
@@ -635,7 +968,7 @@ void ScrollViewer::OnMouseDown(Point pt) {
         if (std::abs(previousOffset - m_offsetY) > 0.01f) {
             MarkScrollVisualDirty(previousOffset);
         }
-        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+        UIElement::MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
     }
 }
 
@@ -646,7 +979,7 @@ void ScrollViewer::OnMouseMove(Point pt) {
     m_scrollbarHovered = (m_contentHeight > m_bounds.height) && GetScrollbarTrackRect().Contains(pt.x, pt.y);
     m_scrollbarAutoHide.SetPointerOver(m_scrollbarHovered, this);
     if (wasHovered != m_scrollbarHovered) {
-        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+        UIElement::MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
         RequestAnimationTicks();
     }
 
@@ -670,7 +1003,7 @@ void ScrollViewer::OnMouseMove(Point pt) {
 void ScrollViewer::OnMouseUp(Point pt) {
     UIElement::OnMouseUp(pt);
     if (m_isDraggingThumb) {
-        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+        UIElement::MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
         RequestAnimationTicks();
     }
     m_isDraggingThumb = false;
@@ -681,7 +1014,7 @@ void ScrollViewer::OnMouseLeave() {
     UIElement::OnMouseLeave();
     if (m_scrollbarHovered) {
         m_scrollbarHovered = false;
-        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+        UIElement::MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
     }
     m_scrollbarAutoHide.SetPointerOver(false, this);
     RequestAnimationTicks();
@@ -704,6 +1037,10 @@ void ScrollViewer::OnMouseWheel(float delta) {
         PositionChildren();
         if (std::abs(previousOffset - m_offsetY) > 0.01f) {
             MarkScrollVisualDirty(previousOffset);
+        }
+        // No animation registration — still must schedule a paint or the wheel is a no-op.
+        if (FrameScheduler* sched = FrameScheduler::Current()) {
+            sched->ScheduleFrame();
         }
         return;
     }
@@ -761,7 +1098,7 @@ bool ScrollViewer::OnAnimationTick() {
         const float prevOpacity = m_scrollbarAutoHide.Opacity();
         const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
         if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
-            MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+            UIElement::MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
         }
         if (hideAnimating) {
             RequestAnimationTicks();
@@ -773,7 +1110,7 @@ bool ScrollViewer::OnAnimationTick() {
     const float prevOpacity = m_scrollbarAutoHide.Opacity();
     const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
     if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
-        MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
+        UIElement::MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
     }
     if (selfAnimating || hideAnimating) {
         RequestAnimationTicks();
@@ -784,6 +1121,32 @@ bool ScrollViewer::OnAnimationTick() {
 bool ScrollViewer::HasSelfAnimation() const {
     return (UIElement::AreAnimationsEnabled() && m_scrollAnimator.IsActive())
         || m_scrollbarAutoHide.NeedsTicks();
+}
+
+void ScrollViewer::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    if (m_visibility != Visibility::Visible) {
+        return;
+    }
+    // Never union the full ScrollViewer/PropertyGrid bounds — that forced 整帧
+    // paints for every scrollbar fade tick and made the whole app feel stuck.
+    if (UIElement::AreAnimationsEnabled() && m_scrollAnimator.IsActive()) {
+        const Rect vp = GetContentViewportRect();
+        if (!vp.IsEmpty()) {
+            dirtyRect = hasDirty ? dirtyRect.Union(vp) : vp;
+            hasDirty = true;
+        }
+        return;
+    }
+    // Only while opacity is changing — IsDrawn() used to dirty the full-height
+    // track on every registered frame (e.g. tooltip wait), which felt like
+    // "scrollbar visible = busy pump".
+    if (m_scrollbarAutoHide.NeedsTicks()) {
+        const Rect track = GetScrollbarTrackRect().Inflate(2.0f);
+        if (!track.IsEmpty()) {
+            dirtyRect = hasDirty ? dirtyRect.Union(track) : track;
+            hasDirty = true;
+        }
+    }
 }
 
 } // namespace CUI
