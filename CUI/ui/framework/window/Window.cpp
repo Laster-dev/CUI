@@ -1626,29 +1626,10 @@ void Window::OnPaint() {
         m_gfxContext.SetPaintBounds(savedPaintBounds);
     };
 
-    const bool overlayScrimAnimating = IsOverlayScrimAnimating(m_rootElement.get());
-    const bool reuseSceneForOverlayAnim =
-        overlayScrimAnimating
-        && !sceneSizeChanged
-        && m_sceneLayer.IsValid()
-        && m_sceneLayer.GetCacheBitmap() != nullptr;
-
-    if (reuseSceneForOverlayAnim) {
-        if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
-            m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
-        } else {
-            m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
-        }
-        m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
-        renderOverlaysOnly();
-        DrawRenderStatsOverlay();
-        m_gfxContext.EndDraw();
-        m_gfxContext.SetCompositionContext(nullptr);
-        m_compositionContext.EndFrame();
-        m_pendingDirtyRegion.Clear();
-        EndPaint(m_hwnd, &ps);
-        return;
-    }
+    // Do not freeze the scene during ContentDialog scrim animations. Reusing the
+    // old scene cache here makes under-scrim interactions look stalled for a few
+    // frames: animations continue ticking, but the user sees the old cached scene
+    // until the dialog open/close pass finishes.
 
     // ProgressBar / hover: keep gap pad small for thin controls so we don't
     // re-record half the page. 4 dips is enough for the 3px bar + AA.
