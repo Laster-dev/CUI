@@ -2,7 +2,6 @@
 #define NOMINMAX
 #endif
 #include "ScrollViewer.h"
-#include "ScrollDiag.h"
 #include "../animation/FrameScheduler.h"
 #include "../render/CompositionContext.h"
 #include "../style/ThemeManager.h"
@@ -202,18 +201,6 @@ void ScrollViewer::RefreshContentMetrics(float viewportWidth, float viewportHeig
     const bool cacheGrew =
         m_contentHeight > prevContentHeight + 0.5f;
     if (measuredChg || cacheGrew) {
-        ScrollDiag::Log(
-            "[SV] %s metricsChg measH=%.1f->%.1f contentH=%.1f->%.1f W=%.1f->%.1f "
-            "visual=%.1f overlay=%d => MarkContentLayerDirty",
-            GetClassName(),
-            prevMeasuredHeight,
-            m_measuredContentHeight,
-            prevContentHeight,
-            m_contentHeight,
-            prevWidth,
-            m_measuredContentWidth,
-            m_visualContentHeight,
-            m_overlayScrollbar ? 1 : 0);
         MarkContentLayerDirty();
     }
     ClampOffset();
@@ -380,8 +367,6 @@ void ScrollViewer::MarkScrollVisualDirty(float previousOffset) {
 
     Rect contentViewport = GetContentViewportRect();
     const bool cacheFullContent = m_contentHeight > 0.0f && m_contentHeight <= kMaxFullContentCacheHeight;
-    const bool isPropertyGrid = (std::strcmp(GetClassName(), "PropertyGrid") == 0);
-
     if (cacheFullContent) {
         // Full-content bitmap already holds the whole scroll range — scrolling is a
         // sourceRect blit only. Do NOT call MarkRenderRectDirty (override ContentDirties
@@ -391,16 +376,6 @@ void ScrollViewer::MarkScrollVisualDirty(float previousOffset) {
         }
         m_pendingViewportScrollPatch = false;
         m_pendingViewportPatchDeltaY = 0.0f;
-        if (isPropertyGrid) {
-            ScrollDiag::Log(
-                "[SV] PropertyGrid MarkScroll dirty=sceneOnly fullCache=1 offset=%.1f->%.1f "
-                "contentH=%.1f layerValid=%d layerDirtyRects=%zu",
-                previousOffset,
-                m_offsetY,
-                m_contentHeight,
-                m_contentLayer.IsValid() ? 1 : 0,
-                m_contentLayerDirty.GetRectCount());
-        }
     } else if (!contentViewport.IsEmpty()) {
         // Tall content: shift/patch the viewport cache. TransformDirty alone must not
         // ContentDirty the layer or canPatchViewportCache never sees a valid bitmap.
@@ -408,16 +383,6 @@ void ScrollViewer::MarkScrollVisualDirty(float previousOffset) {
         m_pendingViewportScrollPatch = true;
         m_pendingViewportPatchDeltaY = m_offsetY - previousOffset;
         UIElement::MarkRenderRectDirty(contentViewport.Inflate(2.0f));
-        if (isPropertyGrid) {
-            ScrollDiag::Log(
-                "[SV] PropertyGrid MarkScroll dirty=scene+transformPatch fullCache=0 "
-                "offset=%.1f->%.1f dY=%.1f contentH=%.1f layerValid=%d",
-                previousOffset,
-                m_offsetY,
-                m_pendingViewportPatchDeltaY,
-                m_contentHeight,
-                m_contentLayer.IsValid() ? 1 : 0);
-        }
     }
 
     if (m_contentHeight > m_bounds.height) {
@@ -577,32 +542,6 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         && !ShouldRenderFullContentLayer(ctx);
     const bool needsRerender = modeChanged || sizeChanged || ShouldRenderFullContentLayer(ctx);
 
-    const bool isPropertyGrid = (std::strcmp(GetClassName(), "PropertyGrid") == 0);
-    const bool logScroll = isPropertyGrid || (m_contentHeight > 400.0f);
-    if (logScroll) {
-        const unsigned n = ++ScrollDiag::RenderCount();
-        if (ScrollDiag::ShouldLogDetail(n)) {
-            ScrollDiag::Log(
-                "[SV] %s RenderContent#%u fullCache=%d valid=%d dirtyFlags=0x%X "
-                "layerDirtyRects=%zu needsRerender=%d canPatch=%d canStrip=%d offset=%.1f "
-                "contentH=%.1f => %s",
-                GetClassName(),
-                n,
-                cacheFullContent ? 1 : 0,
-                m_contentLayer.IsValid() ? 1 : 0,
-                m_contentLayer.GetDirtyFlags(),
-                m_contentLayerDirty.GetRectCount(),
-                needsRerender ? 1 : 0,
-                canPatchViewportCache ? 1 : 0,
-                canStripPatchContent ? 1 : 0,
-                m_offsetY,
-                m_contentHeight,
-                canPatchViewportCache ? "PATCH"
-                    : (canStripPatchContent ? "STRIP"
-                        : (needsRerender ? "FULL_RERASTER" : "BLIT_ONLY")));
-        }
-    }
-
     if (auto* composition = ctx.GetCompositionContext()) {
         if (canPatchViewportCache || canStripPatchContent) {
             composition->CountLayerCacheHit();
@@ -735,11 +674,6 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         cacheSize,
         cacheFullContent ? fullContentWorldRect : visibleWorldRect,
         D2D1::ColorF(0, 0, 0, 0))) {
-        LARGE_INTEGER t0{}, t1{}, freq{};
-        if (isPropertyGrid) {
-            QueryPerformanceFrequency(&freq);
-            QueryPerformanceCounter(&t0);
-        }
         const float contentTop = m_contentViewportRect.y - (cacheFullContent ? m_offsetY : 0.0f);
         auto* d2d = ctx.GetD2DContext();
         D2D1_MATRIX_3X2_F oldTransform{};
@@ -759,25 +693,6 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         m_contentLayerCachesFullContent = cacheFullContent;
         m_pendingViewportScrollPatch = false;
         m_pendingViewportPatchDeltaY = 0.0f;
-        if (isPropertyGrid) {
-            QueryPerformanceCounter(&t1);
-            const double ms = (freq.QuadPart > 0)
-                ? (1000.0 * static_cast<double>(t1.QuadPart - t0.QuadPart)
-                    / static_cast<double>(freq.QuadPart))
-                : 0.0;
-            size_t childCount = 0;
-            for (auto& child : GetChildren()) {
-                if (child && child->GetVisibility() != Visibility::Collapsed) {
-                    ++childCount;
-                }
-            }
-            ScrollDiag::Log(
-                "[SV] PropertyGrid FULL_RERASTER done in %.2fms children=%zu cache=%.0fx%.0f",
-                ms,
-                childCount,
-                cacheSize.width,
-                cacheSize.height);
-        }
     }
 
     Rect sourceRect(
