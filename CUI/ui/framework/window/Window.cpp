@@ -1311,16 +1311,36 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_NCMOUSEMOVE:
         {
-            // Narrow DWM handoff: enough for non-client hover behavior, without
-            // letting DWM resurrect native caption painting via NCCALCSIZE/PAINT.
+            // Caption buttons are HTMIN/MAX/CLOSE — updates arrive here, not WM_MOUSEMOVE.
+            POINT screenPt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+            POINT clientPt = screenPt;
+            ScreenToClient(m_hwnd, &clientPt);
+            const Point logicalPt = ClientPointToLogical(clientPt.x, clientPt.y);
+            if (IWindowChrome* chrome = FindWindowChrome(m_rootElement.get())) {
+                chrome->NotifyNonClientMouseMove(logicalPt.x, logicalPt.y);
+                if (chrome->ConsumeChromeDirty()) {
+                    m_flushInputDirty = true;
+                }
+            }
+            // Need WM_NCMOUSELEAVE when the cursor leaves the non-client chrome.
+            TRACKMOUSEEVENT tme = { sizeof(tme), TME_LEAVE | TME_NONCLIENT, m_hwnd, 0 };
+            TrackMouseEvent(&tme);
+
+            // Narrow DWM handoff: Snap Layouts on maximize, without full native chrome paint.
             LRESULT dwmResult = 0;
-            DwmDefWindowProc(m_hwnd, uMsg, wParam, lParam, &dwmResult);
+            if (DwmDefWindowProc(m_hwnd, uMsg, wParam, lParam, &dwmResult)) {
+                return dwmResult;
+            }
         }
-        // Do NOT RequestFullRepaint — NC mouse move must not pump the scene.
         return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 
     case WM_NCMOUSELEAVE:
-        // Do NOT RequestFullRepaint on NC leave.
+        if (IWindowChrome* chrome = FindWindowChrome(m_rootElement.get())) {
+            chrome->NotifyNonClientMouseLeave();
+            if (chrome->ConsumeChromeDirty()) {
+                m_flushInputDirty = true;
+            }
+        }
         return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 
     case WM_LBUTTONDOWN:

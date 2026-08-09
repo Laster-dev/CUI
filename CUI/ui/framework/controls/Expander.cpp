@@ -93,15 +93,9 @@ void Expander::SetIsExpanded(bool expanded) {
         (void*)this, m_header.c_str(), m_isExpanded ? 1 : 0, UIElement::AreAnimationsEnabled() ? 1 : 0);
 
     if (UIElement::AreAnimationsEnabled()) {
-        if (expanded) {
-            // Never wait for a later animation frame to make the body visible.
-            // Expanded state must be reflected in the same interaction frame.
-            m_expandAnim.Reset(1.0f);
-        } else {
-            m_expandAnim.Reset(1.0f);
-            m_expandAnim.SetTarget(0.0f);
-            RequestAnimationTicks();
-        }
+        // Animate from the current progress — do not snap to 1.0 on expand.
+        m_expandAnim.SetTarget(expanded ? 1.0f : 0.0f);
+        RequestAnimationTicks();
     } else {
         m_expandAnim.Reset(expanded ? 1.0f : 0.0f);
     }
@@ -164,9 +158,6 @@ float Expander::GetHeaderTextRight() const {
 }
 
 float Expander::GetExpandProgress() const {
-    if (m_isExpanded) {
-        return 1.0f;
-    }
     return Clamp01(m_expandAnim.Current());
 }
 
@@ -253,7 +244,8 @@ void Expander::UpdateContentVisibility() {
 
     const bool keepVisible = m_isExpanded
         || m_expandAnim.Target() > 0.01f
-        || m_expandAnim.Current() > 0.01f;
+        || m_expandAnim.Current() > 0.01f
+        || m_expandAnim.IsAnimating(0.01f);
     m_content->SetVisibility(keepVisible ? Visibility::Visible : Visibility::Collapsed);
     ProgressBarDiag::Log("[EXP] UpdateContentVisibility this=%p header=%s keepVisible=%d target=%.3f current=%.3f",
         (void*)this, m_header.c_str(), keepVisible ? 1 : 0, m_expandAnim.Target(), m_expandAnim.Current());
@@ -293,15 +285,16 @@ Size Expander::Measure(Size availableSize) {
     m_measuredBodyHeight = MeasureBodyHeight(availableWidth);
 
     const float width = GetWidth() >= 0.0f ? GetWidth() : availableWidth;
+    const float animatedBody = m_measuredBodyHeight * GetExpandProgress();
     const float height = GetHeight() >= 0.0f
         ? GetHeight()
-        : (m_headerHeight + (m_isExpanded ? m_measuredBodyHeight : 0.0f));
+        : (m_headerHeight + animatedBody);
 
     m_desiredSize = Size(
         width + margin.left + margin.right,
         height + margin.top + margin.bottom);
-    ProgressBarDiag::Log("[EXP] Measure this=%p header=%s isExpanded=%d availW=%.1f body=%.1f desired=%.1f x %.1f",
-        (void*)this, m_header.c_str(), m_isExpanded ? 1 : 0, availableWidth, m_measuredBodyHeight,
+    ProgressBarDiag::Log("[EXP] Measure this=%p header=%s isExpanded=%d progress=%.3f availW=%.1f body=%.1f desired=%.1f x %.1f",
+        (void*)this, m_header.c_str(), m_isExpanded ? 1 : 0, GetExpandProgress(), availableWidth, m_measuredBodyHeight,
         m_desiredSize.width, m_desiredSize.height);
     return m_desiredSize;
 }
@@ -434,14 +427,17 @@ bool Expander::OnAnimationTick() {
         return baseAnimating;
     }
 
+    // Keep target in sync with expanded flag (in case of interrupted toggles).
+    m_expandAnim.SetTarget(m_isExpanded ? 1.0f : 0.0f);
     const bool stillAnimating = m_expandAnim.Tick(
         UIElement::GetAnimationDeltaSeconds(),
-        AnimationSpec{ 0.22f, 0.01f, 0.32f });
+        AnimationSpec{ 0.22f, 0.01f, 0.28f });
     const bool changed = std::abs(m_expandAnim.Current() - before) > 0.0005f;
 
     if (changed) {
         UpdateContentVisibility();
-        InvalidateExpanderVisual();
+        // Relayout so parent height follows the expand progress (clip alone is not enough).
+        InvalidateExpanderLayout();
     }
 
     if (stillAnimating) {
@@ -486,9 +482,9 @@ void Expander::OnRender(GraphicsContext& ctx) {
     ctx.FillRoundedRect(m_bounds, radius, cardBg);
     if (m_headerHovered || m_headerPressed) {
         ctx.FillRoundedRect(headerRect, radius, fill);
-        if (m_expandDirection == ExpandDirection::Down && m_isExpanded) {
+        if (m_expandDirection == ExpandDirection::Down && GetExpandProgress() > 0.01f) {
             ctx.FillRect(Rect(headerRect.x, headerRect.y + headerRect.height - radius, headerRect.width, radius), fill);
-        } else if (m_expandDirection == ExpandDirection::Up && m_isExpanded) {
+        } else if (m_expandDirection == ExpandDirection::Up && GetExpandProgress() > 0.01f) {
             ctx.FillRect(Rect(headerRect.x, headerRect.y, headerRect.width, radius), fill);
         }
     }
@@ -545,7 +541,7 @@ void Expander::OnRender(GraphicsContext& ctx) {
         GetExpandProgress() >= 0.5f ? GraphicsContext::ChevronDirection::Up : GraphicsContext::ChevronDirection::Down,
         1.8f);
 
-    if (m_isExpanded && bodyRect.height > 0.0f) {
+    if (GetExpandProgress() > 0.01f && bodyRect.height > 0.0f) {
         D2D1_COLOR_F divider = border;
         divider.a *= Clamp01(GetExpandProgress());
         if (m_expandDirection == ExpandDirection::Down) {

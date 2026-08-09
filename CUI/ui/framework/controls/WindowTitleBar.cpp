@@ -19,6 +19,17 @@ namespace {
 
 constexpr float kCaptionButtonWidth = 46.0f;
 constexpr float kIconSize = 18.0f;
+// Match MenuBar hover: ease-out over ~160ms when animations are enabled.
+constexpr AnimationSpec kCaptionHoverSpec{ 0.22f, 0.01f, 0.16f };
+
+D2D1_COLOR_F LerpColor(const D2D1_COLOR_F& a, const D2D1_COLOR_F& b, float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    return D2D1::ColorF(
+        a.r + (b.r - a.r) * t,
+        a.g + (b.g - a.g) * t,
+        a.b + (b.b - a.b) * t,
+        a.a + (b.a - a.a) * t);
+}
 
 std::string DefaultIconTextFromTitle(const std::string& title) {
     for (unsigned char ch : title) {
@@ -189,6 +200,42 @@ int WindowTitleBar::HitTestHoverRegion(float x, float y) const {
     return -1;
 }
 
+void WindowTitleBar::SyncCaptionHoverTargets() {
+    const float minT = (m_hoverRegion == 1) ? 1.0f : 0.0f;
+    const float maxT = (m_hoverRegion == 2) ? 1.0f : 0.0f;
+    const float closeT = (m_hoverRegion == 3) ? 1.0f : 0.0f;
+    m_minHoverAnim.SetTarget(minT);
+    m_maxHoverAnim.SetTarget(maxT);
+    m_closeHoverAnim.SetTarget(closeT);
+    if (!AreAnimationsEnabled()) {
+        m_minHoverAnim.Reset(minT);
+        m_maxHoverAnim.Reset(maxT);
+        m_closeHoverAnim.Reset(closeT);
+    } else {
+        RequestAnimationTicks();
+    }
+}
+
+void WindowTitleBar::ApplyHoverRegion(int region, bool forceDirty) {
+    const int previous = m_hoverRegion;
+    m_hoverRegion = region;
+    SyncCaptionHoverTargets();
+    if (forceDirty || previous != m_hoverRegion || HasSelfAnimation()) {
+        m_menuChromeDirty = true;
+        if (!m_bounds.IsEmpty()) {
+            MarkRenderRectDirty(m_bounds.Inflate(2.0f));
+        }
+    }
+}
+
+void WindowTitleBar::NotifyNonClientMouseMove(float x, float y) {
+    ApplyHoverRegion(HitTestHoverRegion(x, y), false);
+}
+
+void WindowTitleBar::NotifyNonClientMouseLeave() {
+    ApplyHoverRegion(-1, true);
+}
+
 void WindowTitleBar::OnThemeChanged() {
     Control::OnThemeChanged();
     // Device resources may have been dropped on theme switch.
@@ -202,13 +249,6 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
     const HWND hwnd = ctx.GetHwnd();
     const bool isMaximized = hwnd && IsZoomed(hwnd) != FALSE;
-
-    bool isHoveredInTitle = false;
-    float hoverX = -1.0f;
-    float hoverY = -1.0f;
-    if (hwnd && TryGetCursorClientLogical(hwnd, hoverX, hoverY)) {
-        isHoveredInTitle = m_bounds.Contains(hoverX, hoverY);
-    }
 
     const Rect iconRect(
         m_bounds.x + 10.0f,
@@ -243,9 +283,7 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     m_menuBar.OnRender(ctx);
 
     const D2D1_COLOR_F titleColor = tokens.textPrimary;
-    const D2D1_COLOR_F subtleChromeBg = lightTheme
-        ? D2D1::ColorF(tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, isHoveredInTitle ? 0.08f : 0.04f)
-        : D2D1::ColorF(tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, isHoveredInTitle ? 0.14f : 0.08f);
+    const float captionHoverPeak = lightTheme ? 0.08f : 0.14f;
 
     const float titleLeft = menuBarRect.x + menuBarRect.width + 12.0f;
     const float titleRight = GetMinimizeButtonRect().x - 8.0f;
@@ -265,18 +303,24 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     const Rect minRect = GetMinimizeButtonRect();
     const Rect maxRect = GetMaximizeButtonRect();
     const Rect closeRect = GetCloseButtonRect();
-    const bool minHover = isHoveredInTitle && minRect.Contains(hoverX, hoverY);
-    const bool maxHover = isHoveredInTitle && maxRect.Contains(hoverX, hoverY);
-    const bool closeHover = isHoveredInTitle && closeRect.Contains(hoverX, hoverY);
+    const float minHoverT = m_minHoverAnim.Current();
+    const float maxHoverT = m_maxHoverAnim.Current();
+    const float closeHoverT = m_closeHoverAnim.Current();
 
-    if (minHover) {
-        ctx.FillRect(minRect, subtleChromeBg);
+    if (minHoverT > 0.001f) {
+        ctx.FillRect(minRect, D2D1::ColorF(
+            tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b,
+            captionHoverPeak * minHoverT));
     }
-    if (maxHover) {
-        ctx.FillRect(maxRect, subtleChromeBg);
+    if (maxHoverT > 0.001f) {
+        ctx.FillRect(maxRect, D2D1::ColorF(
+            tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b,
+            captionHoverPeak * maxHoverT));
     }
-    if (closeHover) {
-        ctx.FillRect(closeRect, tokens.dangerColor);
+    if (closeHoverT > 0.001f) {
+        D2D1_COLOR_F closeBg = tokens.dangerColor;
+        closeBg.a *= closeHoverT;
+        ctx.FillRect(closeRect, closeBg);
     }
 
     const float iconCenterY = m_bounds.y + m_bounds.height * 0.5f;
@@ -289,7 +333,7 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
         ctx.DrawRect(Rect(maxRect.x + 18.0f, iconCenterY - 5.0f, 10.0f, 10.0f), titleColor, 1.0f);
     }
 
-    const D2D1_COLOR_F closeIconColor = closeHover ? tokens.accentForeground : titleColor;
+    const D2D1_COLOR_F closeIconColor = LerpColor(titleColor, tokens.accentForeground, closeHoverT);
     const float closeCenterX = closeRect.x + closeRect.width * 0.5f;
     ctx.DrawLine(Point(closeCenterX - 5.0f, iconCenterY - 5.0f), Point(closeCenterX + 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
     ctx.DrawLine(Point(closeCenterX + 5.0f, iconCenterY - 5.0f), Point(closeCenterX - 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
@@ -308,12 +352,7 @@ void WindowTitleBar::OnMouseDown(Point pt) {
 
 void WindowTitleBar::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
-    const int previousHoverRegion = m_hoverRegion;
-    m_hoverRegion = HitTestHoverRegion(pt.x, pt.y);
-    if (previousHoverRegion != m_hoverRegion) {
-        m_menuChromeDirty = true;
-        MarkRenderRectDirty(m_bounds.Inflate(2.0f));
-    }
+    ApplyHoverRegion(HitTestHoverRegion(pt.x, pt.y), false);
     if (m_menuBar.HandleMouseMove(pt)) {
         m_menuChromeDirty = true;
     }
@@ -321,22 +360,44 @@ void WindowTitleBar::OnMouseMove(Point pt) {
 
 void WindowTitleBar::OnMouseLeave() {
     Control::OnMouseLeave();
-    if (m_hoverRegion != -1) {
-        m_hoverRegion = -1;
-        m_menuChromeDirty = true;
-        MarkRenderRectDirty(m_bounds.Inflate(2.0f));
-    }
+    ApplyHoverRegion(-1, true);
     m_menuBar.OnMouseLeave();
 }
 
 void WindowTitleBar::OnBlur() {
     Control::OnBlur();
-    if (m_hoverRegion != -1) {
-        m_hoverRegion = -1;
-        m_menuChromeDirty = true;
-        MarkRenderRectDirty(m_bounds.Inflate(2.0f));
-    }
+    ApplyHoverRegion(-1, true);
     m_menuBar.OnBlur();
+}
+
+bool WindowTitleBar::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    const float dt = UIElement::GetAnimationDeltaSeconds();
+    bool any = false;
+    if (m_minHoverAnim.Tick(dt, kCaptionHoverSpec)) {
+        any = true;
+    }
+    if (m_maxHoverAnim.Tick(dt, kCaptionHoverSpec)) {
+        any = true;
+    }
+    if (m_closeHoverAnim.Tick(dt, kCaptionHoverSpec)) {
+        any = true;
+    }
+    if (any) {
+        m_menuChromeDirty = true;
+        if (!m_bounds.IsEmpty()) {
+            MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+        }
+        RequestAnimationTicks();
+    }
+    return base || any;
+}
+
+bool WindowTitleBar::HasSelfAnimation() const {
+    return Control::HasSelfAnimation()
+        || m_minHoverAnim.IsAnimating()
+        || m_maxHoverAnim.IsAnimating()
+        || m_closeHoverAnim.IsAnimating();
 }
 
 UIElement* WindowTitleBar::HitTest(float x, float y) {

@@ -15,6 +15,8 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseUp(Point pt) override;
+    virtual void OnFocus() override;
+    virtual void OnBlur() override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 

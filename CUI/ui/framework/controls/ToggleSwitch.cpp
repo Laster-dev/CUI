@@ -25,12 +25,16 @@ ToggleSwitch::ToggleSwitch() {
     SetKnobColorToken(ThemeTokenId::AccentForeground);
     SetBorderToken(ThemeTokenId::CardBorder);
     SetColorToken(ThemeTokenId::TextSecondary);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    // No control chrome fill — focus/hover must not paint a rectangular backdrop.
+    SetBackgroundToken(ThemeTokenId::Unset);
+    SetHoverBackgroundToken(ThemeTokenId::Unset);
+    SetPressedBackgroundToken(ThemeTokenId::Unset);
+    SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
     SetBorderBrush(theme.GetColor("cardBorder"));
     SetColor(theme.GetColor("textSecondary"));
-    SetHoverBackground(theme.GetColor("hoverBackground"));
-    SetPressedBackground(theme.GetColor("pressedBackground"));
+    SetBorderThickness(0.0f);
     SetWidth(170.0f);
     SetHeight(28.0f);
     m_knobPosAnim.Reset(0.0f);
@@ -110,8 +114,17 @@ void ToggleSwitch::OnMouseUp(Point pt) {
     }
 }
 
+void ToggleSwitch::OnFocus() {
+    // Skip Control::OnFocus visual-state chrome (rectangular hover/focus fill).
+    UIElement::OnFocus();
+}
+
+void ToggleSwitch::OnBlur() {
+    UIElement::OnBlur();
+}
+
 void ToggleSwitch::OnRender(GraphicsContext& ctx) {
-    Control::OnRender(ctx);
+    // Do not call Control::OnRender — ToggleSwitch has no rectangular backdrop.
 
     // WinUI-ish pill proportions (~40x20 scaled down for dense gallery rows).
     float pillW = 40.0f;

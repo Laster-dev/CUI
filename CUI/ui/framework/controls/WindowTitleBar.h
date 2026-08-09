@@ -2,6 +2,7 @@
 
 #include "Control.h"
 #include "MenuBar.h"
+#include "../animation/AnimationSystem.h"
 #include "../window/IWindowChrome.h"
 
 #include <wrl/client.h>
@@ -21,6 +22,8 @@ public:
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseLeave() override;
     virtual void OnBlur() override;
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
     virtual UIElement* HitTest(float x, float y) override;
 
     virtual UIElement* GetChromeElement() override { return this; }
@@ -29,6 +32,8 @@ public:
     virtual bool IsCaptionDragHit(float x, float y, UIElement* treeHit) const override;
     virtual LRESULT HitTestNonClient(float x, float y) const override;
     virtual bool ConsumeChromeDirty() override;
+    virtual void NotifyNonClientMouseMove(float x, float y) override;
+    virtual void NotifyNonClientMouseLeave() override;
 
     MenuBar& GetMenuBar() { return m_menuBar; }
     const MenuBar& GetMenuBar() const { return m_menuBar; }
@@ -53,6 +58,8 @@ private:
     bool IsCaptionButtonHit(float x, float y) const;
     int HitTestHoverRegion(float x, float y) const;
     bool EnsureNativeIconBitmap(GraphicsContext& ctx);
+    void ApplyHoverRegion(int region, bool forceDirty);
+    void SyncCaptionHoverTargets();
 
     MenuBar m_menuBar;
     std::string m_title;
@@ -62,6 +69,9 @@ private:
     Microsoft::WRL::ComPtr<ID2D1Bitmap> m_nativeIconBitmap;
     bool m_menuChromeDirty = false;
     int m_hoverRegion = -1;
+    AnimatedScalar m_minHoverAnim{ 0.0f };
+    AnimatedScalar m_maxHoverAnim{ 0.0f };
+    AnimatedScalar m_closeHoverAnim{ 0.0f };
 };
 
 } // namespace CUI
