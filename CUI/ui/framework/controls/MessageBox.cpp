@@ -199,15 +199,10 @@ bool ContentDialog::OnAnimationTick() {
     bool childAnim = UIElement::OnAnimationTick();
     if (!m_isOpen && m_animState == 0) return childAnim;
 
-    // Caret blink / label anim on the input box — do not keep the dialog in a
-    // continuous self-animation loop (that forced full-window InvalidateRect).
-    if (m_inputEnabled && m_inputBox && m_animState == 2) {
-        if (m_inputBox->OnAnimationTick()) {
-            InvalidateCard();
-            MarkRenderRectDirty(m_dialogBounds.IsEmpty() ? m_bounds : m_dialogBounds);
-            childAnim = true;
-        }
-    }
+    // Input TextBox registers itself with AnimationManager for focus-line / caret.
+    // Do not tick it here (double-speed) and do not keep the dialog self-animating
+    // for the whole input lifetime (that forced full-window invalidates).
+    // Visual updates go through TextBox::NotifyHostOverlayDirty → InvalidateCard.
 
     if (!UIElement::AreAnimationsEnabled()) {
         if (m_animState == 1) {

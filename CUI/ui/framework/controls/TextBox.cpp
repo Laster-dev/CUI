@@ -411,8 +411,12 @@ bool TextBox::OnAnimationTick() {
     if (animating) {
         RequestAnimationTicks();
         MarkRenderRectDirty(m_bounds);
+        // ContentDialog paints from a cached card bitmap — scene dirty alone will
+        // not redraw the focus underline / floating label inside the overlay.
+        NotifyHostOverlayDirty();
     } else if (m_caretBlinkDirty) {
         RequestAnimationTicks();
+        NotifyHostOverlayDirty();
     }
     // Return true for caretBlinkDirty once so the window flushes dirty regions;
     // steady focus relies on RequestWake rather than continuous self-animation.
@@ -660,14 +664,17 @@ void TextBox::OnFocus() {
     m_isFocused = true;
     m_lastCaretBlinkPhase = true;
     m_caretBlinkDirty = true;
+    m_focusLineAnim.SetTarget(1.0f);
     RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds);
+    NotifyHostOverlayDirty();
 }
 
 void TextBox::OnBlur() {
     UIElement::OnBlur();
     m_isFocused = false;
     m_caretBlinkDirty = false;
+    m_focusLineAnim.SetTarget(0.0f);
     if (AnimationManager* mgr = AnimationManager::Current()) {
         mgr->CancelWake(this);
     }
@@ -679,6 +686,7 @@ void TextBox::OnBlur() {
     m_scrollOffsetY = 0.0f;
     RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds);
+    NotifyHostOverlayDirty();
 }
 
 void TextBox::NotifyHostOverlayDirty() {

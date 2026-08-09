@@ -494,8 +494,11 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
     float totalColsW = GetTotalColumnsWidth();
     bool isFocused = m_isFocused;
 
-    // Pass 1: row fills / focus rings. Inset 1px from the top so we never cover the
-    // shared horizontal hairline drawn by the previous row (or the header).
+    // Pass 1: inset rounded selection/hover pills — stay inside the row, leave grid
+    // hairlines intact, match TreeView-style chrome.
+    constexpr float kPillInsetX = 4.0f;
+    constexpr float kPillInsetY = 2.0f;
+    constexpr float kPillRadius = 4.0f;
     for (int r = startRow; r <= endRow; ++r) {
         float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - scrollY;
         Rect rowRect(m_bounds.x, rowY, std::max(m_bounds.width, totalColsW), m_rowHeight);
@@ -504,15 +507,20 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
         bool isHovered = (r == m_hoveredRowIndex);
         bool isCaret = (r == m_caretIndex);
 
-        Rect fillRect(rowRect.x, rowRect.y + 1.0f, rowRect.width, (std::max)(0.0f, rowRect.height - 1.0f));
+        const float pillW = (std::max)(0.0f, (std::min)(rowRect.width, m_bounds.width) - kPillInsetX * 2.0f);
+        const float pillH = (std::max)(0.0f, rowRect.height - kPillInsetY * 2.0f);
+        Rect pill(rowRect.x + kPillInsetX, rowRect.y + kPillInsetY, pillW, pillH);
+
         if (isSelected) {
-            ctx.FillRect(fillRect, selectedBg);
+            ctx.FillRoundedRect(pill, kPillRadius, selectedBg);
         } else if (isHovered && IsEnabled()) {
-            ctx.FillRect(fillRect, hoverBg);
+            ctx.FillRoundedRect(pill, kPillRadius, hoverBg);
         }
 
         if (isCaret && isFocused) {
-            ctx.DrawRect(rowRect.Inflate(-1.0f), focusBorderColor, 1.0f);
+            D2D1_COLOR_F ring = focusBorderColor;
+            ring.a = (std::min)(1.0f, ring.a * 0.65f + 0.25f);
+            ctx.DrawRoundedRect(pill, kPillRadius, ring, 1.0f);
         }
     }
 
