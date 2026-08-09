@@ -321,6 +321,7 @@ void GraphicsContext::Resize(UINT width, UINT height) {
 }
 
 void GraphicsContext::ReleaseDeviceResources() {
+    m_iconBitmapCache.clear();
     m_resources.ReleaseDeviceResources();
     if (m_d2dContext) {
         m_d2dContext->SetTarget(nullptr);
@@ -772,10 +773,9 @@ ID2D1DeviceContext* GraphicsContext::BeginLayerDraw(RenderLayer& layer) {
     layer.m_cacheContext->SetTarget(layer.m_cacheBitmap.Get());
     layer.m_cacheContext->SetDpi(dpi, dpi);
     layer.m_cacheContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-    layer.m_cacheContext->SetTextAntialiasMode(
-        m_supportsPerPixelAlpha
-            ? D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE
-            : D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+    // Layer bitmaps are always intermediate targets (often cleared transparent).
+    // ClearType requires an opaque background — always use grayscale here.
+    layer.m_cacheContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
     return layer.m_cacheContext.Get();
 }
 
@@ -810,6 +810,102 @@ void GraphicsContext::DrawLayer(const RenderLayer& layer, const Rect& destRect, 
         opacity,
         D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
         src
+    );
+}
+
+ID2D1Bitmap* GraphicsContext::GetOrCreateIconBitmap(HICON icon) {
+    if (!icon || !m_d2dContext) return nullptr;
+
+    auto it = m_iconBitmapCache.find(icon);
+    if (it != m_iconBitmapCache.end() && it->second) {
+        return it->second.Get();
+    }
+
+    ICONINFO ii = {};
+    if (!GetIconInfo(icon, &ii)) return nullptr;
+
+    BITMAP bmp = {};
+    if (ii.hbmColor) {
+        GetObject(ii.hbmColor, sizeof(bmp), &bmp);
+    } else if (ii.hbmMask) {
+        GetObject(ii.hbmMask, sizeof(bmp), &bmp);
+        bmp.bmHeight /= 2;
+    }
+
+    const int w = (std::max)(1, static_cast<int>(bmp.bmWidth));
+    const int h = (std::max)(1, static_cast<int>(bmp.bmHeight > 0 ? bmp.bmHeight : bmp.bmWidth));
+
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = w;
+    bmi.bmiHeader.biHeight = -h;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    std::vector<UINT32> pixels(static_cast<size_t>(w) * static_cast<size_t>(h), 0);
+    HDC screenDc = GetDC(nullptr);
+    HDC memDc = CreateCompatibleDC(screenDc);
+    void* bits = nullptr;
+    HBITMAP dib = CreateDIBSection(memDc, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    bool ok = false;
+    if (dib && memDc && bits) {
+        HGDIOBJ old = SelectObject(memDc, dib);
+        DrawIconEx(memDc, 0, 0, icon, w, h, 0, nullptr, DI_NORMAL);
+        memcpy(pixels.data(), bits, pixels.size() * sizeof(UINT32));
+        SelectObject(memDc, old);
+        ok = true;
+    }
+    if (dib) DeleteObject(dib);
+    if (memDc) DeleteDC(memDc);
+    if (screenDc) ReleaseDC(nullptr, screenDc);
+    if (ii.hbmColor) DeleteObject(ii.hbmColor);
+    if (ii.hbmMask) DeleteObject(ii.hbmMask);
+    if (!ok) return nullptr;
+
+    for (UINT32& px : pixels) {
+        const UINT32 a = (px >> 24) & 0xFFu;
+        if (a == 0 || a == 255) continue;
+        const UINT32 r = (px >> 16) & 0xFFu;
+        const UINT32 g = (px >> 8) & 0xFFu;
+        const UINT32 b = px & 0xFFu;
+        px = (a << 24)
+            | (((r * a) / 255u) << 16)
+            | (((g * a) / 255u) << 8)
+            | ((b * a) / 255u);
+    }
+
+    D2D1_BITMAP_PROPERTIES props = D2D1::BitmapProperties(
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)
+    );
+    ComPtr<ID2D1Bitmap> bitmap;
+    if (FAILED(m_d2dContext->CreateBitmap(
+            D2D1::SizeU(static_cast<UINT32>(w), static_cast<UINT32>(h)),
+            pixels.data(),
+            static_cast<UINT32>(w * 4),
+            &props,
+            &bitmap)) || !bitmap) {
+        return nullptr;
+    }
+
+    ID2D1Bitmap* raw = bitmap.Get();
+    m_iconBitmapCache[icon] = std::move(bitmap);
+    return raw;
+}
+
+void GraphicsContext::DrawHIcon(HICON icon, const Rect& dest, float opacity) {
+    if (!icon || !m_d2dContext || dest.width <= 0.0f || dest.height <= 0.0f) return;
+    ID2D1Bitmap* bitmap = GetOrCreateIconBitmap(icon);
+    if (!bitmap) return;
+
+    const Rect snapped = SnapRectToDevicePixels(dest, m_dpiScale);
+    const D2D1_RECT_F d2d = snapped.ToD2D();
+    m_d2dContext->DrawBitmap(
+        bitmap,
+        &d2d,
+        std::clamp(opacity, 0.0f, 1.0f),
+        D2D1_INTERPOLATION_MODE_LINEAR,
+        nullptr
     );
 }
 
@@ -958,17 +1054,18 @@ void GraphicsContext::DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float str
         const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
         const float dx = std::abs(p2.x - p1.x);
         const float dy = std::abs(p2.y - p1.y);
-        const float snappedStroke = (std::max)(1.0f / scale, std::round(strokeWidth * scale) / scale);
+        // Hairline = exactly one device pixel. The old center±halfStroke + floor/ceil
+        // path often expanded a 1.0 DIP stroke into two device pixels.
+        const float hairlineDip = 1.0f / scale;
+        const float requested = (std::max)(hairlineDip, strokeWidth);
+        const int devicePx = (std::max)(1, static_cast<int>(std::lround(requested * scale)));
 
-        // For axis-aligned separators/underlines, draw a snapped filled strip
-        // instead of a stroked line. This avoids half-covered device pixels and
-        // the recurring 1px light/dark seams at non-100% DPI.
         if (dy <= 0.01f) {
             const float x0 = std::min(p1.x, p2.x);
             const float x1 = std::max(p1.x, p2.x);
-            const float centerY = SnapDipToDevicePixel(p1.y, scale);
-            const float top = std::floor((centerY - snappedStroke * 0.5f) * scale) / scale;
-            const float bottom = std::ceil((centerY + snappedStroke * 0.5f) * scale) / scale;
+            const float py = std::floor(p1.y * scale + 0.5f);
+            const float top = py / scale;
+            const float bottom = (py + static_cast<float>(devicePx)) / scale;
             m_d2dContext->FillRectangle(
                 D2D1::RectF(
                     std::floor(x0 * scale) / scale,
@@ -981,9 +1078,9 @@ void GraphicsContext::DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float str
         if (dx <= 0.01f) {
             const float y0 = std::min(p1.y, p2.y);
             const float y1 = std::max(p1.y, p2.y);
-            const float centerX = SnapDipToDevicePixel(p1.x, scale);
-            const float left = std::floor((centerX - snappedStroke * 0.5f) * scale) / scale;
-            const float right = std::ceil((centerX + snappedStroke * 0.5f) * scale) / scale;
+            const float px = std::floor(p1.x * scale + 0.5f);
+            const float left = px / scale;
+            const float right = (px + static_cast<float>(devicePx)) / scale;
             m_d2dContext->FillRectangle(
                 D2D1::RectF(
                     left,
@@ -994,12 +1091,16 @@ void GraphicsContext::DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float str
             return;
         }
 
-        float offset = (static_cast<int>(strokeWidth) % 2 == 1) ? 0.5f : 0.0f;
-        float x1 = std::floor(p1.x) + offset;
-        float y1 = std::floor(p1.y) + offset;
-        float x2 = std::floor(p2.x) + offset;
-        float y2 = std::floor(p2.y) + offset;
-        m_d2dContext->DrawLine(D2D1::Point2F(x1, y1), D2D1::Point2F(x2, y2), brush, strokeWidth);
+        float offset = (devicePx % 2 == 1) ? 0.5f / scale : 0.0f;
+        float x1 = std::floor(p1.x * scale) / scale + offset;
+        float y1 = std::floor(p1.y * scale) / scale + offset;
+        float x2 = std::floor(p2.x * scale) / scale + offset;
+        float y2 = std::floor(p2.y * scale) / scale + offset;
+        m_d2dContext->DrawLine(
+            D2D1::Point2F(x1, y1),
+            D2D1::Point2F(x2, y2),
+            brush,
+            static_cast<float>(devicePx) / scale);
     }
 }
 
@@ -1053,7 +1154,8 @@ void GraphicsContext::DrawTextOnTarget(
     DWRITE_TEXT_ALIGNMENT align,
     DWRITE_PARAGRAPH_ALIGNMENT vAlign,
     DWRITE_FONT_WEIGHT weight,
-    D2D1_TEXT_ANTIALIAS_MODE antialiasMode) {
+    D2D1_TEXT_ANTIALIAS_MODE antialiasMode,
+    bool truncateWithEllipsis) {
 
     if (!target || text.empty()) {
         return;
@@ -1080,8 +1182,18 @@ void GraphicsContext::DrawTextOnTarget(
     format->SetParagraphAlignment(vAlign);
     format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
 
-    DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
-    format->SetTrimming(&trimming, nullptr);
+    ComPtr<IDWriteInlineObject> ellipsis;
+    if (truncateWithEllipsis && m_dwriteFactory) {
+        DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
+        if (SUCCEEDED(m_dwriteFactory->CreateEllipsisTrimmingSign(format, &ellipsis))) {
+            format->SetTrimming(&trimming, ellipsis.Get());
+        } else {
+            format->SetTrimming(&trimming, nullptr);
+        }
+    } else {
+        DWRITE_TRIMMING trimming = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
+        format->SetTrimming(&trimming, nullptr);
+    }
 
     const D2D1_TEXT_ANTIALIAS_MODE previousMode = target->GetTextAntialiasMode();
     target->SetTextAntialiasMode(antialiasMode);
@@ -1091,9 +1203,13 @@ void GraphicsContext::DrawTextOnTarget(
         format,
         rect.ToD2D(),
         brush,
-        D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
+        D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT | D2D1_DRAW_TEXT_OPTIONS_CLIP
     );
     target->SetTextAntialiasMode(previousMode);
+
+    // Reset shared format trimming so other callers are not affected.
+    DWRITE_TRIMMING none = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
+    format->SetTrimming(&none, nullptr);
 }
 
 void GraphicsContext::DrawTextLayoutOnTarget(
@@ -1133,15 +1249,17 @@ void GraphicsContext::DrawTextLayoutOnTarget(
 void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,
                                const std::string& fontName, float fontSize,
                                DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT vAlign,
-                               DWRITE_FONT_WEIGHT weight) {
+                               DWRITE_FONT_WEIGHT weight, bool truncateWithEllipsis) {
     if (text.empty() || !m_d2dContext) {
         return;
     }
 
     // Mica/composition targets keep per-pixel alpha; ClearType is invalid there.
-    // Swap-chain bitmaps are also CANNOT_DRAW, so never sample them for a ClearType blit.
+    // Offscreen layer caches are also cleared to transparent — ClearType on a
+    // transparent bitmap produces vertical RGB fringe garbage (ListView rows).
+    const bool layerTarget = !m_targetStack.empty();
     const D2D1_TEXT_ANTIALIAS_MODE mode =
-        m_supportsPerPixelAlpha
+        (m_supportsPerPixelAlpha || layerTarget)
             ? D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE
             : D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE;
 
@@ -1155,7 +1273,8 @@ void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_C
         align,
         vAlign,
         weight,
-        mode
+        mode,
+        truncateWithEllipsis
     );
 }
 
@@ -1181,7 +1300,7 @@ Size GraphicsContext::MeasureText(const std::string& text, const std::string& fo
         DWRITE_FONT_STYLE_NORMAL,
         DWRITE_FONT_STRETCH_NORMAL,
         fontSize,
-        L"en-US",
+        L"zh-CN",
         &format
     );
     if (FAILED(hr)) return Size(text.length() * fontSize * 0.65f, fontSize + 4);
@@ -1274,8 +1393,9 @@ void GraphicsContext::DrawTextLayout(IDWriteTextLayout* layout, const Rect& orig
         return;
     }
 
+    const bool layerTarget = !m_targetStack.empty();
     const D2D1_TEXT_ANTIALIAS_MODE mode =
-        m_supportsPerPixelAlpha
+        (m_supportsPerPixelAlpha || layerTarget)
             ? D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE
             : D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE;
 

@@ -67,10 +67,15 @@ public:
 
     void ShowAt(float x, float y, float windowW = 0.0f, float windowH = 0.0f);
     void ShowSubMenuAt(Rect parentItemBounds, float windowW = 0.0f, float windowH = 0.0f);
+    void OpenSubMenuForItem(MenuItem* item);
     void Hide();
+    // Walk to the outermost open menu and hide it (and all submenus).
+    void DismissHierarchy();
     bool IsOpen() const { return m_isOpen; }
     Rect GetTotalBounds() const;
     std::shared_ptr<ContextMenu> GetActiveSubMenu() const { return m_activeSubMenu; }
+    ContextMenu* GetOwnerMenu() const { return m_ownerMenu; }
+    void SetOwnerMenu(ContextMenu* owner) { m_ownerMenu = owner; }
 
     // IPopup
     virtual bool IsPopupOpen() const override { return m_isOpen; }
@@ -93,6 +98,7 @@ private:
     float m_windowHeight = 0.0f;
     int m_hoveredIndex = -1;
     std::shared_ptr<ContextMenu> m_activeSubMenu = nullptr;
+    ContextMenu* m_ownerMenu = nullptr; // parent menu when this is a submenu
 
     // Scrolling support when content height exceeds visible height.
     float m_scrollOffset = 0.0f;     // how much content is shifted up (in layout/DIP coords)

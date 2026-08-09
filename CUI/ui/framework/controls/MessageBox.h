@@ -2,6 +2,7 @@
 #include "UIElement.h"
 #include "Button.h"
 #include "TextBlock.h"
+#include "TextBox.h"
 #include "../render/RenderLayer.h"
 #include <functional>
 #include <string>
@@ -30,6 +31,12 @@ public:
     void SetSecondaryButtonText(const std::string& text);
     void SetCloseButtonText(const std::string& text);
 
+    // Optional single-line / multi-line text input (CUI TextBox — not a Win32 dialog).
+    void SetInputEnabled(bool enabled, bool multiline = false);
+    void SetInputText(const std::string& text);
+    std::string GetInputText() const;
+    bool IsInputEnabled() const { return m_inputEnabled; }
+
     void Show(std::function<void(DialogResult)> callback = nullptr);
     void Hide();
 
@@ -51,20 +58,36 @@ public:
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
     virtual void OnThemeChanged() override;
 
-    static void ShowMessageBox(UIElement* root, const std::string& title, const std::string& message, std::function<void(DialogResult)> callback = nullptr);
+    static void ShowMessageBox(UIElement* root, const std::string& title, const std::string& message,
+                               std::function<void(DialogResult)> callback = nullptr);
+
+    // Async CUI prompt. Callback receives DialogResult::Primary and the entered text on OK.
+    static void ShowInputBox(
+        UIElement* root,
+        const std::string& title,
+        const std::string& message,
+        const std::string& initialText,
+        bool multiline,
+        std::function<void(DialogResult, const std::string&)> callback);
 
 private:
+    void LayoutCardChildren(float scale);
+    void InvalidateCard();
+
     std::string m_titleText = "Message";
     std::string m_messageText = "";
-    std::string m_primaryText = "OK";
+    std::string m_primaryText = "确定";
     std::string m_secondaryText = "";
-    std::string m_closeText = "Cancel";
+    std::string m_closeText = "取消";
 
     bool m_isOpen = false;
+    bool m_inputEnabled = false;
+    bool m_inputMultiline = false;
     std::function<void(DialogResult)> m_callback = nullptr;
 
     std::shared_ptr<TextBlock> m_txtTitle;
     std::shared_ptr<TextBlock> m_txtMessage;
+    std::shared_ptr<TextBox> m_inputBox;
     std::shared_ptr<Button> m_btnPrimary;
     std::shared_ptr<Button> m_btnSecondary;
     std::shared_ptr<Button> m_btnClose;

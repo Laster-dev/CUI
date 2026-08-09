@@ -4,7 +4,14 @@
 #include "../window/Dpi.h"
 #include "../window/Window.h"
 
+#include <algorithm>
 #include <cctype>
+#include <vector>
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
 
 namespace CUI {
 
@@ -25,13 +32,20 @@ std::string DefaultIconTextFromTitle(const std::string& title) {
 } // namespace
 
 WindowTitleBar::WindowTitleBar() {
-    SetHeight(34.0f);
+    SetHeight(36.0f);
     SetBackgroundToken(ThemeTokenId::PaneBackground);
     SetHoverBackgroundToken(ThemeTokenId::PaneBackground);
     SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
     SetColorToken(ThemeTokenId::TextPrimary);
     SetTitle("CUI Application");
     m_menuBar.SetParent(this);
+}
+
+WindowTitleBar::~WindowTitleBar() {
+    if (m_ownsNativeIcon && m_nativeIcon) {
+        DestroyIcon(m_nativeIcon);
+        m_nativeIcon = nullptr;
+    }
 }
 
 void WindowTitleBar::SetTitle(const std::string& title) {
@@ -45,6 +59,93 @@ void WindowTitleBar::SetTitle(const std::string& title) {
 void WindowTitleBar::SetIconText(const std::string& iconText) {
     m_iconText = iconText.empty() ? DefaultIconTextFromTitle(m_title) : iconText;
     MarkRenderContentDirty();
+}
+
+void WindowTitleBar::SetNativeIcon(HICON icon, bool takeOwnership) {
+    if (m_ownsNativeIcon && m_nativeIcon && m_nativeIcon != icon) {
+        DestroyIcon(m_nativeIcon);
+    }
+    m_nativeIcon = icon;
+    m_ownsNativeIcon = takeOwnership && icon != nullptr;
+    m_nativeIconBitmap.Reset();
+    MarkRenderContentDirty();
+}
+
+bool WindowTitleBar::EnsureNativeIconBitmap(GraphicsContext& ctx) {
+    if (!m_nativeIcon) return false;
+    if (m_nativeIconBitmap) return true;
+
+    auto* d2d = ctx.GetD2DContext();
+    if (!d2d) return false;
+
+    ICONINFO ii = {};
+    if (!GetIconInfo(m_nativeIcon, &ii)) return false;
+
+    BITMAP bmp = {};
+    if (ii.hbmColor) {
+        GetObject(ii.hbmColor, sizeof(bmp), &bmp);
+    } else if (ii.hbmMask) {
+        GetObject(ii.hbmMask, sizeof(bmp), &bmp);
+        bmp.bmHeight /= 2;
+    }
+
+    const int w = (std::max)(1, static_cast<int>(bmp.bmWidth));
+    const int h = (std::max)(1, static_cast<int>(bmp.bmHeight > 0 ? bmp.bmHeight : bmp.bmWidth));
+
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = w;
+    bmi.bmiHeader.biHeight = -h; // top-down
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    std::vector<UINT32> pixels(static_cast<size_t>(w) * static_cast<size_t>(h), 0);
+    HDC screenDc = GetDC(nullptr);
+    HDC memDc = CreateCompatibleDC(screenDc);
+    void* bits = nullptr;
+    HBITMAP dib = CreateDIBSection(memDc, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
+    bool ok = false;
+    if (dib && memDc && bits) {
+        HGDIOBJ old = SelectObject(memDc, dib);
+        DrawIconEx(memDc, 0, 0, m_nativeIcon, w, h, 0, nullptr, DI_NORMAL);
+        memcpy(pixels.data(), bits, pixels.size() * sizeof(UINT32));
+        SelectObject(memDc, old);
+        ok = true;
+    }
+    if (dib) DeleteObject(dib);
+    if (memDc) DeleteDC(memDc);
+    if (screenDc) ReleaseDC(nullptr, screenDc);
+    if (ii.hbmColor) DeleteObject(ii.hbmColor);
+    if (ii.hbmMask) DeleteObject(ii.hbmMask);
+    if (!ok) return false;
+
+    for (UINT32& px : pixels) {
+        const UINT32 a = (px >> 24) & 0xFFu;
+        if (a == 0 || a == 255) continue;
+        const UINT32 r = (px >> 16) & 0xFFu;
+        const UINT32 g = (px >> 8) & 0xFFu;
+        const UINT32 b = px & 0xFFu;
+        px = (a << 24)
+            | (((r * a) / 255u) << 16)
+            | (((g * a) / 255u) << 8)
+            | ((b * a) / 255u);
+    }
+
+    D2D1_BITMAP_PROPERTIES props = D2D1::BitmapProperties(
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)
+    );
+    Microsoft::WRL::ComPtr<ID2D1Bitmap> bitmap;
+    const HRESULT hr = d2d->CreateBitmap(
+        D2D1::SizeU(static_cast<UINT32>(w), static_cast<UINT32>(h)),
+        pixels.data(),
+        static_cast<UINT32>(w * 4),
+        &props,
+        &bitmap
+    );
+    if (FAILED(hr) || !bitmap) return false;
+    m_nativeIconBitmap = bitmap;
+    return true;
 }
 
 Rect WindowTitleBar::GetMinimizeButtonRect() const {
@@ -88,6 +189,12 @@ int WindowTitleBar::HitTestHoverRegion(float x, float y) const {
     return -1;
 }
 
+void WindowTitleBar::OnThemeChanged() {
+    Control::OnThemeChanged();
+    // Device resources may have been dropped on theme switch.
+    m_nativeIconBitmap.Reset();
+}
+
 void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
@@ -109,17 +216,26 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
         kIconSize,
         kIconSize
     );
-    ctx.FillRoundedRect(iconRect, 4.0f, tokens.accentColor);
-    ctx.DrawText(
-        m_iconText.empty() ? DefaultIconTextFromTitle(m_title) : m_iconText,
-        iconRect,
-        tokens.accentForeground,
-        "微软雅黑",
-        11.0f,
-        DWRITE_TEXT_ALIGNMENT_CENTER,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-        DWRITE_FONT_WEIGHT_BOLD
-    );
+
+    bool drewNative = false;
+    if (m_nativeIcon && EnsureNativeIconBitmap(ctx) && m_nativeIconBitmap && ctx.GetD2DContext()) {
+        const D2D1_RECT_F dest = iconRect.ToD2D();
+        ctx.GetD2DContext()->DrawBitmap(m_nativeIconBitmap.Get(), dest, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+        drewNative = true;
+    }
+    if (!drewNative) {
+        ctx.FillRoundedRect(iconRect, 4.0f, tokens.accentColor);
+        ctx.DrawText(
+            m_iconText.empty() ? DefaultIconTextFromTitle(m_title) : m_iconText,
+            iconRect,
+            tokens.accentForeground,
+            "微软雅黑",
+            11.0f,
+            DWRITE_TEXT_ALIGNMENT_CENTER,
+            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+            DWRITE_FONT_WEIGHT_BOLD
+        );
+    }
 
     const float menuWidth = m_menuBar.GetTotalWidth(ctx);
     Rect menuBarRect(m_bounds.x + 36.0f, m_bounds.y, menuWidth, m_bounds.height);
@@ -139,9 +255,10 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
             Rect(titleLeft, m_bounds.y, titleRight - titleLeft, m_bounds.height),
             titleColor,
             "微软雅黑",
-            12.0f,
+            16.0f,
             DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER
+            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+            DWRITE_FONT_WEIGHT_NORMAL
         );
     }
 

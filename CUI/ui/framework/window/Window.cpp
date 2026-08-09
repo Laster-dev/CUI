@@ -1751,7 +1751,9 @@ void Window::OnResize(UINT width, UINT height) {
         float padLeft = isMaximized ? resizeBorder : 0.0f;
         float padTop = isMaximized ? resizeBorder : 0.0f;
         float padRight = isMaximized ? resizeBorder : 0.0f;
-        float padBottom = resizeBorder;
+        // Only inset when maximized (avoid screen-edge underlap). A permanent
+        // bottom pad left an empty strip under the status bar in normal windows.
+        float padBottom = isMaximized ? resizeBorder : 0.0f;
 
         const float layoutW = (std::max)(0.0f, PhysicalToLogical(static_cast<float>(width), m_hwnd) - padLeft - padRight);
         const float layoutH = (std::max)(0.0f, PhysicalToLogical(static_cast<float>(height), m_hwnd) - padTop - padBottom);

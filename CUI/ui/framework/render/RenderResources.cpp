@@ -1,4 +1,5 @@
 #include "RenderResources.h"
+#include "../core/Value.h"
 #include <algorithm>
 #include <cmath>
 
@@ -75,7 +76,13 @@ IDWriteTextFormat* RenderResources::GetTextFormat(const std::string& fontFamily,
         return it->second.Get();
     }
 
-    std::wstring wFont(fontFamily.begin(), fontFamily.end());
+    // fontFamily is UTF-8 (e.g. "微软雅黑"); treating bytes as wchar truncates
+    // and DWrite silently falls back to a Latin UI font — glyphs look wrong and
+    // MeasureText (UTF-8-correct) no longer matches drawn widths (breadcrumb gaps).
+    std::wstring wFont = Utf8ToUtf16(fontFamily);
+    if (wFont.empty()) {
+        wFont = L"Segoe UI";
+    }
     ComPtr<IDWriteTextFormat> format;
     HRESULT hr = m_dwriteFactory->CreateTextFormat(
         wFont.c_str(),
@@ -84,7 +91,7 @@ IDWriteTextFormat* RenderResources::GetTextFormat(const std::string& fontFamily,
         style,
         DWRITE_FONT_STRETCH_NORMAL,
         fontSize,
-        L"en-US",
+        L"zh-CN",
         &format
     );
 

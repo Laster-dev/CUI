@@ -407,7 +407,9 @@ void ListBox::RenderItemsLayer(GraphicsContext& ctx, float itemW) {
 
     if (needsRerender) {
         Rect contentWorld(m_bounds.x + 2.0f, m_bounds.y + 2.0f, itemW, contentH);
-        if (ctx.PushLayerTarget(m_itemsLayer, cacheSize, contentWorld, D2D1::ColorF(0, 0, 0, 0))) {
+        D2D1_COLOR_F clearBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+        clearBg.a = 1.0f;
+        if (ctx.PushLayerTarget(m_itemsLayer, cacheSize, contentWorld, clearBg)) {
             auto* d2d = ctx.GetD2DContext();
             D2D1_MATRIX_3X2_F oldTransform{};
             d2d->GetTransform(&oldTransform);

@@ -53,6 +53,7 @@ public:
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseLeave() override;
+    virtual void OnMouseRightClick(Point pt) override;
     virtual void OnKeyDown(int vkCode) override;
     virtual void OnMouseWheel(float delta) override;
     virtual void OnAutoScrollTick() override;
@@ -73,6 +74,10 @@ public:
     void SetRows(const std::vector<std::vector<ListViewCellData>>& rowsData);
     void ClearRows();
     size_t GetRowCount() const;
+
+    // Optional per-row icons drawn in column 0 (non-owning HICONs).
+    void SetRowIcons(const std::vector<HICON>& icons);
+    void ClearRowIcons();
 
     // Virtual Mode
     void SetVirtualMode(int rowCount, ListViewDataSource* dataSource);
@@ -104,6 +109,7 @@ private:
     int GetColumnIndexFromX(float x) const;
     void UpdateRubberBandSelection();
     float GetTotalColumnsWidth() const;
+    float GetColumnWidth(size_t index) const;
     bool ApplyAutoScroll();
     void SelectRange(int fromIdx, int toIdx, bool keepExisting = false);
     void InvalidateRowsLayer();
@@ -118,6 +124,7 @@ private:
 
     std::vector<ListViewColumn> m_columns;
     std::vector<std::vector<ListViewCellData>> m_rows;
+    std::vector<HICON> m_rowIcons;
 
     // Virtual mode state
     bool m_virtualMode = false;

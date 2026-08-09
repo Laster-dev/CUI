@@ -10,9 +10,10 @@ MenuItem::MenuItem() {
     SetText("");
     SetColorToken(ThemeTokenId::TextSecondary);
     SetColor(ThemeManager::Instance().GetColor("textSecondary"));
-    SetFontSize(12.0f);
+    SetFontSize(16.0f);
     SetFontFamily("微软雅黑");
-    SetHeight(26.0f);
+    SetFontWeight("Normal");
+    SetHeight(30.0f);
 }
 
 MenuItem::MenuItem(const std::string& text, std::function<void()> onClick) : MenuItem() {
@@ -25,7 +26,7 @@ Size MenuItem::Measure(Size availableSize) {
         m_desiredSize = Size(180.0f, 6.0f);
         return m_desiredSize;
     }
-    m_desiredSize = Size(180.0f, 26.0f);
+    m_desiredSize = Size(200.0f, 30.0f);
     return m_desiredSize;
 }
 
@@ -58,29 +59,34 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
     float iconW = 24.0f;
     if (!icon.empty()) {
         Rect iconRect(m_bounds.x + 6.0f, m_bounds.y, iconW, m_bounds.height);
-        ctx.DrawText(icon, iconRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(icon, iconRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
     }
 
     // Draw Main Text
     Rect textRect(m_bounds.x + 10.0f + (icon.empty() ? 0.0f : iconW), m_bounds.y, m_bounds.width - 120.0f, m_bounds.height);
-    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
 
     // Draw Shortcut Text or Submenu Right Arrow on Right End
     if (HasSubMenu()) {
         Rect arrowRect(m_bounds.x + m_bounds.width - 20.0f, m_bounds.y, 16.0f, m_bounds.height);
-        ctx.DrawText(">", arrowRect, textColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(">", arrowRect, textColor, font, 14.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
     } else if (!shortcut.empty()) {
         Rect shortcutRect(m_bounds.x + m_bounds.width - 125.0f, m_bounds.y, 115.0f, m_bounds.height);
         D2D1_COLOR_F scColor = enabled ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted) : textColor;
-        ctx.DrawText(shortcut, shortcutRect, scColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(shortcut, shortcutRect, scColor, font, 14.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
     }
 }
 
 void MenuItem::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
-    if (IsEnabled() && !HasSubMenu()) {
-        ExecuteCommand();
+    if (!IsEnabled()) return;
+    if (HasSubMenu()) {
+        if (m_parentMenu) {
+            m_parentMenu->OpenSubMenuForItem(this);
+        }
+        return;
     }
+    ExecuteCommand();
 }
 
 void MenuItem::OnMouseEnter() {
@@ -106,13 +112,18 @@ void MenuItem::OnMouseWheel(float delta) {
 }
 
 void MenuItem::ExecuteCommand() {
-    if (m_command) {
-        m_command();
+    // Dismiss the whole menu tree BEFORE running the command. Otherwise a
+    // ContentDialog opened from a submenu item (e.g. 新建 → 子项) leaves the
+    // root context menu painted on top of the modal.
+    auto cmd = m_command;
+    ContextMenu* menu = m_parentMenu;
+    if (menu) {
+        menu->DismissHierarchy();
+    }
+    if (cmd) {
+        cmd();
     }
     OnClick().Invoke(this);
-    if (m_parentMenu) {
-        m_parentMenu->Hide();
-    }
 }
 
 // ---------------- ContextMenu ----------------
@@ -146,6 +157,7 @@ std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, const st
 std::shared_ptr<ContextMenu> ContextMenu::AddSubMenu(const std::string& text) {
     auto item = std::make_shared<MenuItem>(text);
     auto subMenu = std::make_shared<ContextMenu>();
+    subMenu->SetOwnerMenu(this);
     item->SetSubMenu(subMenu);
     item->SetParentContextMenu(this);
     m_items.push_back(item);
@@ -252,6 +264,19 @@ void ContextMenu::ShowSubMenuAt(Rect parentItemBounds, float windowW, float wind
     RelayoutItems();
 }
 
+void ContextMenu::OpenSubMenuForItem(MenuItem* item) {
+    if (!item || !item->HasSubMenu()) return;
+    auto sub = item->GetSubMenu();
+    if (m_activeSubMenu == sub && sub && sub->IsOpen()) return;
+    if (m_activeSubMenu) {
+        m_activeSubMenu->Hide();
+        m_activeSubMenu = nullptr;
+    }
+    m_activeSubMenu = sub;
+    m_activeSubMenu->ShowSubMenuAt(item->GetBounds(), m_windowWidth, m_windowHeight);
+    MarkRenderContentDirty();
+}
+
 void ContextMenu::Hide() {
     const bool wasOpen = m_isOpen;
     m_isOpen = false;
@@ -264,6 +289,14 @@ void ContextMenu::Hide() {
             host->Close(this);
         }
     }
+}
+
+void ContextMenu::DismissHierarchy() {
+    ContextMenu* root = this;
+    while (root->m_ownerMenu) {
+        root = root->m_ownerMenu;
+    }
+    root->Hide();
 }
 
 void ContextMenu::OnMouseWheel(float delta) {
@@ -399,11 +432,7 @@ UIElement* ContextMenu::HitTestOverlay(float x, float y) {
             if ((*it)->GetBounds().Contains(x, y)) {
                 auto item = (*it);
                 if (item->HasSubMenu()) {
-                    if (m_activeSubMenu != item->GetSubMenu()) {
-                        if (m_activeSubMenu) m_activeSubMenu->Hide();
-                        m_activeSubMenu = item->GetSubMenu();
-                        m_activeSubMenu->ShowSubMenuAt(item->GetBounds(), m_windowWidth, m_windowHeight);
-                    }
+                    OpenSubMenuForItem(item.get());
                 } else if (!item->IsSeparator()) {
                     if (m_activeSubMenu) {
                         m_activeSubMenu->Hide();

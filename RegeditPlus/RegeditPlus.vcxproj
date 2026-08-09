@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{dfb6ed75-af30-40f8-afd1-08d6b48c8cb2}</ProjectGuid>
+    <RootNamespace>RegeditPlus</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\CUI\ui;$(ProjectDir)..\CUI;$(ProjectDir)..\CUI\showcase\app;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d2d1.lib;dwrite.lib;d3d11.lib;dxgi.lib;ole32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\CUI\ui;$(ProjectDir)..\CUI;$(ProjectDir)..\CUI\showcase\app;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d2d1.lib;dwrite.lib;d3d11.lib;dxgi.lib;ole32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\CUI\ui;$(ProjectDir)..\CUI;$(ProjectDir)..\CUI\showcase\app;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d2d1.lib;dwrite.lib;d3d11.lib;dxgi.lib;ole32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\CUI\ui;$(ProjectDir)..\CUI;$(ProjectDir)..\CUI\showcase\app;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>d2d1.lib;dwrite.lib;d3d11.lib;dxgi.lib;ole32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="App.cpp" />
+    <ClCompile Include="RegIcons.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\core\Value.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\core\Object.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\core\Binding.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\core\PropertyId.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\animation\AnimationManager.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\animation\FrameScheduler.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\animation\AnimationSystem.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\render\RenderResources.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\render\DirtyRegion.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\render\GraphicsContext.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\render\RenderLayer.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\render\LayerRasterizer.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\render\RenderNode.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\render\CompositionContext.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\text\TextLayoutCache.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\layout\Layout.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\UIElement.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\UIElementPropertyBridge.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\style\ThemeTokenId.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\Control.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\TextBlock.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\Button.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\TextBox.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\PasswordBox.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\CheckBox.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\HyperlinkButton.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\Image.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\ComboBox.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\ContextMenu.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\Flyout.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\ListBox.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\ListView.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\Panel.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\ScrollViewer.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\MessageBox.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\Toast.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\ToastCenter.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\TabView.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\Expander.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\MenuBar.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\WindowTitleBar.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\PropertyGrid.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\TreeView.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\NavigationView.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\NavigationViewItem.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\Slider.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\ProgressBar.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\NumberBox.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\RadioButton.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\ToggleSwitch.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\DatePicker.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\TimePicker.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\ColorPicker.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\BreadcrumbBar.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\PagingControl.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\controls\Splitter.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\style\ThemeManager.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\parser\StyleManager.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\window\Window.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\window\PopupHost.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\window\PopupPlacement.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\window\Dpi.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\window\CUIWindow.cpp" />
+    <ClCompile Include="..\CUI\ui\framework\window\WindowBackdrop.cpp" />
+    <ClCompile Include="..\CUI\showcase\app\chrome\VSCodeControls.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="App.h" />
+    <ClInclude Include="RegIcons.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

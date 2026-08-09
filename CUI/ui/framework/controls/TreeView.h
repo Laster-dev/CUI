@@ -3,6 +3,7 @@
 #define NOMINMAX
 #endif
 #include "Control.h"
+#include "ChromiumScrollAnimator.h"
 #include "ScrollbarAutoHide.h"
 #include "../animation/AnimationSystem.h"
 #include <memory>
@@ -16,6 +17,8 @@ class TreeView;
 struct TreeViewItem {
     std::string header;
     std::string icon;
+    // Optional native icon (non-owning). Prefer over text/emoji `icon` when set.
+    HICON nativeIcon = nullptr;
     bool isExpanded = false;
     bool isSelected = false;
     TreeViewItem* parent = nullptr;
@@ -42,6 +45,7 @@ public:
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseLeave() override;
+    virtual void OnMouseRightClick(Point pt) override;
     virtual void OnMouseWheel(float delta) override;
     virtual void OnKeyDown(int vkCode) override;
     bool OnAnimationTick() override;
@@ -62,6 +66,14 @@ public:
         MarkRenderContentDirty();
     }
 
+    // Call after mutating TreeViewItem::children outside TreeView APIs
+    // (e.g. lazy-load) so the flat visible list is rebuilt on next measure/render.
+    void InvalidateVisibleItems() {
+        m_visibleDirty = true;
+        ClampScroll();
+        MarkRenderContentDirty();
+    }
+
     Event<TreeView*, std::shared_ptr<TreeViewItem>>& OnSelectionChanged() { return m_onSelectionChangedEvent; }
     Event<TreeView*, std::shared_ptr<TreeViewItem>>& OnItemToggled() { return m_onItemToggledEvent; }
 
@@ -70,11 +82,21 @@ private:
         std::shared_ptr<TreeViewItem> item;
         int depth = 0;
         float clipFactor = 1.0f; // Combined effective height scale from all ancestors
+        float contentY = 0.0f;   // Top of row in content coordinates (for virtualization)
     };
 
     void RebuildVisibleItems() const;
+    float ComputeContentHeight(
+        const std::vector<std::shared_ptr<TreeViewItem>>& list,
+        float parentClip) const;
     float GetTotalContentHeight() const;
+    float GetViewportHeight() const;
+    float GetMaxScroll() const;
     void ClampScroll();
+    void StopSmoothScroll();
+    bool AdvanceSmoothScroll();
+    Rect GetScrollbarTrackRect() const;
+    Rect GetScrollbarThumbRect() const;
     int GetVisibleIndexFromY(float y) const;
     int GetVisibleIndexOfItem(TreeViewItem* item) const;
     Rect GetItemRect(int visibleIndex) const;
@@ -84,14 +106,24 @@ private:
     std::shared_ptr<TreeViewItem> FindFirstVisibleSelectable(int startIndex, int direction) const;
     bool TickExpandAnims(const std::vector<std::shared_ptr<TreeViewItem>>& list, float dt);
 
+    static constexpr float kScrollbarInset = 3.0f;
+    static constexpr float kScrollbarWidth = 8.0f;
+
     float m_indentWidth = 18.0f;
     std::vector<std::shared_ptr<TreeViewItem>> m_items;
     std::shared_ptr<TreeViewItem> m_selectedItem;
     mutable std::vector<VisibleItem> m_visibleItems;
     mutable bool m_visibleDirty = true;
+    mutable float m_cachedContentHeight = 0.0f;
     float m_scrollY = 0.0f;
+    ChromiumScrollAnimator m_scrollAnimator;
     ScrollbarAutoHide m_scrollbarAutoHide;
     bool m_isMouseDown = false;
+    bool m_isDraggingThumb = false;
+    bool m_scrollbarHovered = false;
+    float m_dragStartY = 0.0f;
+    float m_dragStartScrollY = 0.0f;
+    bool m_expandAnimActive = false;
     int m_hoveredVisibleIndex = -1;
     int m_pressedVisibleIndex = -1;
     Event<TreeView*, std::shared_ptr<TreeViewItem>> m_onSelectionChangedEvent;

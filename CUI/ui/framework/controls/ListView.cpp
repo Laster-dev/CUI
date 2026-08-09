@@ -11,6 +11,7 @@
 namespace CUI {
 
 namespace {
+
 float GetChromiumWheelStep(float viewportHeight) {
     UINT lines = 3;
     SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &lines, 0);
@@ -19,7 +20,17 @@ float GetChromiumWheelStep(float viewportHeight) {
     }
     return (std::max)(1u, lines) * 40.0f;
 }
+
+DWRITE_FONT_WEIGHT ResolveListFontWeight(const std::string& weight) {
+    if (weight == "Bold" || weight == "bold") return DWRITE_FONT_WEIGHT_BOLD;
+    if (weight == "SemiBold" || weight == "semibold" || weight == "Medium" || weight == "medium") {
+        return DWRITE_FONT_WEIGHT_SEMI_BOLD;
+    }
+    if (weight == "Light" || weight == "light") return DWRITE_FONT_WEIGHT_LIGHT;
+    return DWRITE_FONT_WEIGHT_NORMAL;
 }
+
+} // namespace
 
 ListView::ListView() {
     // 只绑 token；绘制走 ThemeManager。列表表面用 card，勿用 window（材质模式下 window 全透明）。
@@ -31,11 +42,14 @@ ListView::ListView() {
     SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
     SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
     SetBorderThickness(1.0f);
-    SetFontSize(12.0f);
+    SetFontSize(16.0f);
     SetFontFamily("微软雅黑");
+    SetFontWeight("Normal");
     SetCornerRadius(4.0f);
-    SetWidth(480.0f);
-    SetHeight(320.0f);
+    // No fixed size — let parent layout stretch ListView to the pane.
+    SetWidth(-1.0f);
+    SetHeight(-1.0f);
+    SetRowHeight(30.0f);
     m_rowsLayer.SetCacheable(true);
 }
 
@@ -77,6 +91,7 @@ void ListView::AddRow(const std::vector<ListViewCellData>& rowData) {
 void ListView::SetRows(const std::vector<std::vector<std::string>>& rowsData) {
     ClearChildren();
     m_rows.clear();
+    m_rowIcons.clear();
     for (const auto& row : rowsData) {
         AddRow(row);
     }
@@ -86,11 +101,13 @@ void ListView::SetRows(const std::vector<std::vector<std::string>>& rowsData) {
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
+    InvalidateRowsLayer();
 }
 
 void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsData) {
     ClearChildren();
     m_rows.clear();
+    m_rowIcons.clear();
     for (const auto& row : rowsData) {
         AddRow(row);
     }
@@ -100,11 +117,13 @@ void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsDat
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
+    InvalidateRowsLayer();
 }
 
 void ListView::ClearRows() {
     ClearChildren();
     m_rows.clear();
+    m_rowIcons.clear();
     m_virtualMode = false;
     m_virtualRowCount = 0;
     m_dataSource = nullptr;
@@ -114,6 +133,17 @@ void ListView::ClearRows() {
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
+    InvalidateRowsLayer();
+}
+
+void ListView::SetRowIcons(const std::vector<HICON>& icons) {
+    m_rowIcons = icons;
+    InvalidateRowsLayer();
+}
+
+void ListView::ClearRowIcons() {
+    m_rowIcons.clear();
+    InvalidateRowsLayer();
 }
 
 size_t ListView::GetRowCount() const {
@@ -133,6 +163,7 @@ void ListView::SetVirtualMode(int rowCount, ListViewDataSource* dataSource) {
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
+    InvalidateRowsLayer();
 }
 
 std::string ListView::GetCellText(int row, int col) const {
@@ -257,17 +288,44 @@ void ListView::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
     InvalidateRowsLayer();
 }
 
+float ListView::GetColumnWidth(size_t index) const {
+    if (index >= m_columns.size()) return 0.0f;
+    const float base = m_columns[index].width;
+    // Last column absorbs leftover viewport width so the list fills the pane.
+    if (index + 1 == m_columns.size() && m_bounds.width > 0.0f) {
+        float others = 0.0f;
+        for (size_t i = 0; i + 1 < m_columns.size(); ++i) {
+            others += m_columns[i].width;
+        }
+        const float avail = (std::max)(0.0f, m_bounds.width - 2.0f);
+        return (std::max)(base, avail - others);
+    }
+    return base;
+}
+
 float ListView::GetTotalColumnsWidth() const {
+    if (m_columns.empty()) return 0.0f;
     float totalW = 0.0f;
-    for (const auto& col : m_columns) {
-        totalW += col.width;
+    for (size_t i = 0; i < m_columns.size(); ++i) {
+        totalW += GetColumnWidth(i);
     }
     return totalW;
 }
 
 Size ListView::Measure(Size availableSize) {
-    float expW = GetWidth(); if (expW < 0) expW = 480.0f;
-    float expH = GetHeight(); if (expH < 0) expH = 320.0f;
+    float expW = GetWidth();
+    float expH = GetHeight();
+    // Prefer available space so Flex/Column parents can stretch the control.
+    if (expW < 0.0f) {
+        expW = (availableSize.width > 0.0f && availableSize.width < 1.0e6f)
+                   ? availableSize.width
+                   : 480.0f;
+    }
+    if (expH < 0.0f) {
+        expH = (availableSize.height > 0.0f && availableSize.height < 1.0e6f)
+                   ? availableSize.height
+                   : 320.0f;
+    }
     m_desiredSize = Size(expW, expH);
     return m_desiredSize;
 }
@@ -376,7 +434,7 @@ UIElement* ListView::HitTest(float x, float y) {
             float cellX = m_bounds.x - m_scrollX;
 
             for (size_t c = 0; c < m_columns.size(); ++c) {
-                float colW = m_columns[c].width;
+                float colW = GetColumnWidth(c);
                 auto cellElem = GetCellElement(r, static_cast<int>(c));
                 if (cellElem) {
                     Rect cellRect(cellX + 2.0f, rowY + 2.0f, colW - 4.0f, m_rowHeight - 4.0f);
@@ -432,6 +490,7 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
     D2D1_COLOR_F focusBorderColor = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
     std::string font = GetFontFamily();
     float fontH = GetFontSize();
+    const DWRITE_FONT_WEIGHT weight = ResolveListFontWeight(GetFontWeight());
     float totalColsW = GetTotalColumnsWidth();
     bool isFocused = m_isFocused;
 
@@ -457,7 +516,7 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
 
         float cellX = m_bounds.x - scrollX;
         for (size_t c = 0; c < m_columns.size(); ++c) {
-            float colW = m_columns[c].width;
+            float colW = GetColumnWidth(c);
             auto cellElem = GetCellElement(r, static_cast<int>(c));
             if (cellElem) {
                 Rect cellRect(cellX + 2.0f, rowY + 2.0f, colW - 4.0f, m_rowHeight - 4.0f);
@@ -466,9 +525,19 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
                 cellElem->Render(ctx);
             } else {
                 std::string cellText = GetCellText(r, static_cast<int>(c));
-                Rect cellRect(cellX + 8.0f, rowY, colW - 16.0f, m_rowHeight);
+                float textPad = 8.0f;
+                if (c == 0 && r >= 0 && r < static_cast<int>(m_rowIcons.size()) && m_rowIcons[static_cast<size_t>(r)]) {
+                    const float iconSize = 16.0f;
+                    Rect iconRect(cellX + 6.0f, rowY + (m_rowHeight - iconSize) * 0.5f, iconSize, iconSize);
+                    ctx.DrawHIcon(m_rowIcons[static_cast<size_t>(r)], iconRect);
+                    textPad = 6.0f + iconSize + 6.0f;
+                }
+                Rect cellRect(cellX + textPad, rowY, (std::max)(0.0f, colW - textPad - 8.0f), m_rowHeight);
                 D2D1_COLOR_F cellClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textClr;
-                ctx.DrawText(cellText, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                // Clip + ellipsis so long names cannot bleed into the next column.
+                ctx.PushClip(cellRect);
+                ctx.DrawText(cellText, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight, true);
+                ctx.PopClip();
             }
             ctx.DrawLine(Point(cellX + colW, rowY), Point(cellX + colW, rowY + m_rowHeight), gridLineClr, 1.0f);
             cellX += colW;
@@ -498,7 +567,11 @@ void ListView::RenderRowsLayer(GraphicsContext& ctx) {
 
     if (needsRerender) {
         Rect contentWorld(m_bounds.x, m_bounds.y + m_headerHeight, contentW, contentH);
-        if (ctx.PushLayerTarget(m_rowsLayer, cacheSize, contentWorld, D2D1::ColorF(0, 0, 0, 0))) {
+        // Opaque clear: ClearType (and any leftover AA) needs a real background.
+        // Transparent clears + text AA produced vertical fringe garbage in rows.
+        D2D1_COLOR_F clearBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+        clearBg.a = 1.0f;
+        if (ctx.PushLayerTarget(m_rowsLayer, cacheSize, contentWorld, clearBg)) {
             auto* d2d = ctx.GetD2DContext();
             D2D1_MATRIX_3X2_F oldTransform{};
             d2d->GetTransform(&oldTransform);
@@ -514,8 +587,11 @@ void ListView::RenderRowsLayer(GraphicsContext& ctx) {
     const float srcX = std::clamp(m_scrollX, 0.0f, (std::max)(0.0f, contentW - viewW));
     const float srcY = std::clamp(m_scrollY, 0.0f, (std::max)(0.0f, contentH - viewH));
     Rect sourceRect(srcX, srcY, viewW, viewH);
+    // Dest must match source DIP size — using the full viewport stretches few
+    // rows to fill the pane (vertically elongated text / "one row fills page").
+    Rect dest(viewport.x, viewport.y, viewW, viewH);
     ctx.PushClip(viewport);
-    ctx.DrawLayer(m_rowsLayer, viewport, &sourceRect);
+    ctx.DrawLayer(m_rowsLayer, dest, &sourceRect);
     ctx.PopClip();
     m_rowsLayer.SetTranslation(-m_scrollX, -m_scrollY);
 }
@@ -530,6 +606,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F borderClr = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     std::string font = GetFontFamily();
     float fontH = GetFontSize();
+    const DWRITE_FONT_WEIGHT weight = ResolveListFontWeight(GetFontWeight());
 
     ctx.FillRect(m_bounds, bg);
     ctx.DrawRect(m_bounds, borderClr, 1.0f);
@@ -542,11 +619,12 @@ void ListView::OnRender(GraphicsContext& ctx) {
     ctx.PushClip(Rect(m_bounds.x + 1, m_bounds.y + 1, m_bounds.width - 2, m_headerHeight - 1));
     for (size_t colIdx = 0; colIdx < m_columns.size(); ++colIdx) {
         const auto& col = m_columns[colIdx];
-        Rect colHeaderRect(currColX, m_bounds.y, col.width, m_headerHeight);
+        const float colW = GetColumnWidth(colIdx);
+        Rect colHeaderRect(currColX, m_bounds.y, colW, m_headerHeight);
         Rect colTextRect(colHeaderRect.x + 8.0f, colHeaderRect.y, colHeaderRect.width - 16.0f, colHeaderRect.height);
-        ctx.DrawText(col.header, colTextRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        ctx.DrawLine(Point(currColX + col.width, m_bounds.y + 4.0f), Point(currColX + col.width, m_bounds.y + m_headerHeight - 4.0f), borderClr, 1.0f);
-        currColX += col.width;
+        ctx.DrawText(col.header, colTextRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight, true);
+        ctx.DrawLine(Point(currColX + colW, m_bounds.y + 4.0f), Point(currColX + colW, m_bounds.y + m_headerHeight - 4.0f), borderClr, 1.0f);
+        currColX += colW;
     }
     ctx.PopClip();
 
@@ -887,6 +965,19 @@ void ListView::OnMouseLeave() {
         InvalidateRowsLayer();
     }
     RequestAnimationTicks();
+}
+
+void ListView::OnMouseRightClick(Point pt) {
+    Control::OnMouseRightClick(pt);
+    int row = GetRowIndexFromY(pt.y);
+    if (row >= 0 && row < static_cast<int>(GetRowCount())) {
+        m_selectedIndices.clear();
+        m_selectedIndices.insert(row);
+        m_anchorIndex = row;
+        m_caretIndex = row;
+        m_onSelectionChangedEvent.Invoke(this, row);
+        InvalidateRowsLayer();
+    }
 }
 
 void ListView::OnMouseWheel(float delta) {

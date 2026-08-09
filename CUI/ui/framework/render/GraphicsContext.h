@@ -9,6 +9,8 @@
 #include <dxgi1_2.h>
 #include <dcomp.h>
 #include <wrl/client.h>
+#include <windows.h>
+#include <unordered_map>
 #include <vector>
 #include <functional>
 
@@ -96,11 +98,14 @@ public:
     enum class ChevronDirection { Down, Up, Left, Right };
     // Vector chevron (two strokes). Prefer this over glyph characters under DPI scaling.
     void DrawChevron(const Rect& bounds, D2D1_COLOR_F color, ChevronDirection direction, float strokeWidth = 1.6f);
+    // Draw a native HICON (e.g. extracted from regedit.exe) into dest DIPs.
+    void DrawHIcon(HICON icon, const Rect& dest, float opacity = 1.0f);
     void DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,
                   const std::string& fontName = "微软雅黑", float fontSize = 13.0f,
                   DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING,
                   DWRITE_PARAGRAPH_ALIGNMENT vAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-                  DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL);
+                  DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL,
+                  bool truncateWithEllipsis = false);
 
     Size MeasureText(const std::string& text, const std::string& fontName = "微软雅黑",
                      float fontSize = 13.0f, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL);
@@ -155,7 +160,8 @@ private:
         DWRITE_TEXT_ALIGNMENT align,
         DWRITE_PARAGRAPH_ALIGNMENT vAlign,
         DWRITE_FONT_WEIGHT weight,
-        D2D1_TEXT_ANTIALIAS_MODE antialiasMode);
+        D2D1_TEXT_ANTIALIAS_MODE antialiasMode,
+        bool truncateWithEllipsis = false);
     void DrawTextLayoutOnTarget(
         ID2D1RenderTarget* target,
         IDWriteTextLayout* layout,
@@ -200,6 +206,10 @@ private:
     };
     std::vector<TargetState> m_targetStack;
     CompositionContext* m_compositionContext = nullptr;
+
+    // Cached HICON → D2D bitmap conversions (cleared with device resources).
+    std::unordered_map<HICON, ComPtr<ID2D1Bitmap>> m_iconBitmapCache;
+    ID2D1Bitmap* GetOrCreateIconBitmap(HICON icon);
 };
 
 } // namespace CUI

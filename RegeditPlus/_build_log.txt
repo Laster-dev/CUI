@@ -1,0 +1,3 @@
+閫傜敤浜?.NET Framework MSBuild 鐗堟湰 18.8.2+ce25c0108
+
+  RegeditPlus.vcxproj -> E:\C++project\CUI\RegeditPlus\x64\Debug\RegeditPlus.exe

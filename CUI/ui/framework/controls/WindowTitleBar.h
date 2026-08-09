@@ -4,15 +4,19 @@
 #include "MenuBar.h"
 #include "../window/IWindowChrome.h"
 
+#include <wrl/client.h>
+#include <d2d1_1.h>
+
 namespace CUI {
 
 class WindowTitleBar : public Control, public IWindowChrome {
 public:
     WindowTitleBar();
-    virtual ~WindowTitleBar() = default;
+    virtual ~WindowTitleBar();
 
     virtual const char* GetClassName() const override { return "WindowTitleBar"; }
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual void OnThemeChanged() override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseLeave() override;
@@ -35,6 +39,11 @@ public:
     void SetIconText(const std::string& iconText);
     const std::string& GetIconText() const { return m_iconText; }
 
+    // Native HICON drawn in the title-bar badge (e.g. regedit.exe).
+    // takeOwnership=true => WindowTitleBar destroys the icon on replace/dtor.
+    void SetNativeIcon(HICON icon, bool takeOwnership = false);
+    HICON GetNativeIcon() const { return m_nativeIcon; }
+
     Rect GetMinimizeButtonRect() const;
     Rect GetMaximizeButtonRect() const;
     Rect GetCloseButtonRect() const;
@@ -43,10 +52,14 @@ private:
     bool IsMenuBarHit(float x, float y) const;
     bool IsCaptionButtonHit(float x, float y) const;
     int HitTestHoverRegion(float x, float y) const;
+    bool EnsureNativeIconBitmap(GraphicsContext& ctx);
 
     MenuBar m_menuBar;
     std::string m_title;
     std::string m_iconText;
+    HICON m_nativeIcon = nullptr;
+    bool m_ownsNativeIcon = false;
+    Microsoft::WRL::ComPtr<ID2D1Bitmap> m_nativeIconBitmap;
     bool m_menuChromeDirty = false;
     int m_hoverRegion = -1;
 };

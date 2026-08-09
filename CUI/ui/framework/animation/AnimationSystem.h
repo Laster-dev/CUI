@@ -57,6 +57,20 @@ public:
             return changed;
         }
 
+        // Fixed-duration path: total play time is always maxDurationSeconds,
+        // independent of how far we travel or how many UI items are involved.
+        if (spec.maxDurationSeconds > 0.0f) {
+            const float prev = m_current;
+            m_elapsed += std::clamp(dtSeconds, 0.0f, 0.05f);
+            const bool moving = AnimationSystem::StepDuration(
+                m_current, m_from, m_target, m_elapsed, spec.maxDurationSeconds);
+            if (!moving) {
+                m_current = m_target;
+                m_elapsed = 0.0f;
+            }
+            return moving || std::abs(m_current - prev) > 0.0001f;
+        }
+
         const bool changed = AnimationSystem::Step(m_current, m_target, dtSeconds, spec);
         if (!changed) {
             m_elapsed = 0.0f;
@@ -64,12 +78,6 @@ public:
         }
 
         m_elapsed += std::clamp(dtSeconds, 0.0f, 0.05f);
-        if (spec.maxDurationSeconds > 0.0f && m_elapsed >= spec.maxDurationSeconds) {
-            const bool durationSnapChanged = std::abs(m_current - m_target) > 0.0001f;
-            m_current = m_target;
-            m_elapsed = 0.0f;
-            return durationSnapChanged;
-        }
         return true;
     }
 

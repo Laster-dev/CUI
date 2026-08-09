@@ -34,7 +34,13 @@ Size TextBlock::Measure(Size availableSize) {
     float fontSize = GetFontSize();
     const std::string& weightStr = GetFontWeight();
 
-    DWRITE_FONT_WEIGHT weight = (weightStr == "Bold") ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
+    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
+    if (weightStr == "Bold" || weightStr == "bold") weight = DWRITE_FONT_WEIGHT_BOLD;
+    else if (weightStr == "SemiBold" || weightStr == "semibold" || weightStr == "Medium" || weightStr == "medium") {
+        weight = DWRITE_FONT_WEIGHT_SEMI_BOLD;
+    } else if (weightStr == "Light" || weightStr == "light") {
+        weight = DWRITE_FONT_WEIGHT_LIGHT;
+    }
 
     // Temporary context for measuring
     GraphicsContext ctx;
@@ -69,7 +75,13 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
     const std::string& alignStr = GetTextAlign();
     const std::string& vAlignStr = GetVerticalAlign();
 
-    DWRITE_FONT_WEIGHT weight = (weightStr == "Bold") ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
+    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
+    if (weightStr == "Bold" || weightStr == "bold") weight = DWRITE_FONT_WEIGHT_BOLD;
+    else if (weightStr == "SemiBold" || weightStr == "semibold" || weightStr == "Medium" || weightStr == "medium") {
+        weight = DWRITE_FONT_WEIGHT_SEMI_BOLD;
+    } else if (weightStr == "Light" || weightStr == "light") {
+        weight = DWRITE_FONT_WEIGHT_LIGHT;
+    }
 
     DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING;
     if (alignStr == "Center") align = DWRITE_TEXT_ALIGNMENT_CENTER;

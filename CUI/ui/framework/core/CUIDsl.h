@@ -168,6 +168,11 @@ public:
         return *this;
     }
 
+    ElementBuilder& FontWeight(const std::string& weight) {
+        m_element->SetFontWeight(weight);
+        return *this;
+    }
+
     ElementBuilder& CornerRadius(float r) {
         m_element->SetCornerRadius(r);
         return *this;
