@@ -10,14 +10,14 @@ ShowcasePage BuildScrollViewerPage(const ShowcaseContext&) {
     target->SetWidth(380.0f);
     target->SetHeight(240.0f);
     target->AddChild(Column(8).Padding(10).Children({
-        ElevatedButton("可滚动列表项 #1").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
-        ElevatedButton("可滚动列表项 #2").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
-        ElevatedButton("可滚动列表项 #3").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
-        ElevatedButton("可滚动列表项 #4").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
-        ElevatedButton("可滚动列表项 #5").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
-        ElevatedButton("可滚动列表项 #6").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
-        ElevatedButton("可滚动列表项 #7").Background("#007ACC").Padding(12, 6, 12, 6).Build(),
-        ElevatedButton("可滚动列表项 #8").Background("#007ACC").Padding(12, 6, 12, 6).Build()
+        ElevatedButton("可滚动列表项 #1").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #2").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #3").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #4").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #5").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #6").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #7").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),
+        ElevatedButton("可滚动列表项 #8").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build()
     }).Build());
     return { "ScrollViewer 滚动容器", CreatePage(
         "ScrollViewer 滚动视口容器控制台",

@@ -11,7 +11,7 @@ ShowcasePage BuildWrapPage(const ShowcaseContext&) {
     target->SetHeight(240.0f);
     target->SetOrientation(Orientation::Horizontal);
     for (int i = 1; i <= 6; ++i) {
-        auto chip = ElevatedButton("Tag #" + std::to_string(i)).Background("#007ACC").Padding(14, 6, 14, 6).Build();
+        auto chip = ElevatedButton("Tag #" + std::to_string(i)).Background(Rgb(0x007ACC)).Padding(14, 6, 14, 6).Build();
         chip->SetMargin(Thickness(4));
         target->AddChild(chip);
     }

@@ -26,6 +26,7 @@ public:
     virtual const UIElement* GetChromeElement() const override { return this; }
     virtual bool IsInteractiveHit(float x, float y) const override;
     virtual bool IsCaptionDragHit(float x, float y, UIElement* treeHit) const override;
+    virtual LRESULT HitTestNonClient(float x, float y) const override;
     virtual bool ConsumeChromeDirty() override;
 
     MenuBar& GetMenuBar() { return m_menuBar; }
@@ -34,6 +35,10 @@ public:
     bool IsLowPerformanceToggleHit(float x, float y) const;
     Rect GetThemeToggleRect() const;
     bool IsThemeToggleHit(float x, float y) const;
+    Rect GetMinimizeButtonRect() const;
+    Rect GetMaximizeButtonRect() const;
+    Rect GetCloseButtonRect() const;
+    int HitTestHoverRegion(float x, float y) const;
 
     void SetTitle(const std::string& title) { m_title = title; }
     const std::string& GetTitle() const { return m_title; }
@@ -45,6 +50,7 @@ private:
     MenuBar m_menuBar;
     std::string m_title;
     bool m_menuChromeDirty = false;
+    int m_hoverRegion = -1;
     Event<TitleBar*> m_onToggleLowPerformance;
     Event<TitleBar*> m_onToggleTheme;
 };

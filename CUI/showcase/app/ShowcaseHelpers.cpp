@@ -318,7 +318,7 @@ std::shared_ptr<UIElement> CreateShowcaseHeader(
 std::shared_ptr<UIElement> CreateDemoSurface(
     std::initializer_list<std::shared_ptr<UIElement>> children,
     float gap) {
-    auto surface = Column(gap).Padding(24).CornerRadius(6).Border(ThemeManager::Instance().GetColorHex("cardBorder"), 1).Children(children).Build();
+    auto surface = Column(gap).Padding(24).CornerRadius(6).BorderToken(ThemeTokenId::CardBorder, 1).Children(children).Build();
     BindThemeToken(surface, "theme.backgroundToken", "cardBackground");
     BindThemeToken(surface, "theme.borderToken", "cardBorder");
     return surface;
@@ -326,7 +326,7 @@ std::shared_ptr<UIElement> CreateDemoSurface(
 
 std::shared_ptr<UIElement> CreateRightPanel(
     std::initializer_list<std::shared_ptr<UIElement>> children) {
-    auto panel = Column(10).Width(320).Padding(16).Border(ThemeManager::Instance().GetColorHex("cardBorder"), 1).Children(children).Build();
+    auto panel = Column(10).Width(320).Padding(16).BorderToken(ThemeTokenId::CardBorder, 1).Children(children).Build();
     BindThemeToken(panel, "theme.backgroundToken", "paneBackground");
     BindThemeToken(panel, "theme.borderToken", "cardBorder");
     return panel;

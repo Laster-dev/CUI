@@ -50,6 +50,8 @@ public:
 
     void SetThemeMode(ThemeMode theme);
     ThemeMode GetThemeMode() const { return m_themeMode; }
+    void SetRenderStatsOverlayVisible(bool visible) { m_showRenderStatsOverlay = visible; }
+    bool IsRenderStatsOverlayVisible() const { return m_showRenderStatsOverlay; }
 
     void SetActiveContextMenu(std::shared_ptr<ContextMenu> menu) { m_activeContextMenu = menu; }
 
@@ -108,7 +110,7 @@ private:
     LayerRasterizer m_layerRasterizer;
     DirtyRegion m_pendingDirtyRegion;
     RenderLayer m_sceneLayer;
-    bool m_showRenderStatsOverlay = true;
+    bool m_showRenderStatsOverlay = false;
     bool m_lowPerformanceMode = false;
     bool m_flushInputDirty = false;
     BackdropType m_backdropType = BackdropType::None;

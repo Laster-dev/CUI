@@ -245,6 +245,12 @@ void TitleBar::OnMouseDown(Point pt) {
 
 void TitleBar::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
+    const int previousHoverRegion = m_hoverRegion;
+    m_hoverRegion = HitTestHoverRegion(pt.x, pt.y);
+    if (previousHoverRegion != m_hoverRegion) {
+        m_menuChromeDirty = true;
+        MarkRenderRectDirty(m_bounds.Inflate(2.0f));
+    }
     if (m_menuBar.HandleMouseMove(pt)) {
         m_menuChromeDirty = true;
     }
@@ -252,11 +258,21 @@ void TitleBar::OnMouseMove(Point pt) {
 
 void TitleBar::OnMouseLeave() {
     Control::OnMouseLeave();
+    if (m_hoverRegion != -1) {
+        m_hoverRegion = -1;
+        m_menuChromeDirty = true;
+        MarkRenderRectDirty(m_bounds.Inflate(2.0f));
+    }
     m_menuBar.OnMouseLeave();
 }
 
 void TitleBar::OnBlur() {
     Control::OnBlur();
+    if (m_hoverRegion != -1) {
+        m_hoverRegion = -1;
+        m_menuChromeDirty = true;
+        MarkRenderRectDirty(m_bounds.Inflate(2.0f));
+    }
     m_menuBar.OnBlur();
 }
 
@@ -272,10 +288,29 @@ bool TitleBar::IsCaptionDragHit(float x, float y, UIElement* treeHit) const {
     if (!m_bounds.Contains(x, y)) {
         return false;
     }
-    if (IsInteractiveHit(x, y)) {
+    if (IsInteractiveHit(x, y)
+        || GetMinimizeButtonRect().Contains(x, y)
+        || GetMaximizeButtonRect().Contains(x, y)
+        || GetCloseButtonRect().Contains(x, y)) {
         return false;
     }
     return !treeHit || (treeHit == this);
+}
+
+LRESULT TitleBar::HitTestNonClient(float x, float y) const {
+    if (!m_bounds.Contains(x, y)) {
+        return HTNOWHERE;
+    }
+    if (GetCloseButtonRect().Contains(x, y)) {
+        return HTCLOSE;
+    }
+    if (GetMaximizeButtonRect().Contains(x, y)) {
+        return HTMAXBUTTON;
+    }
+    if (GetMinimizeButtonRect().Contains(x, y)) {
+        return HTMINBUTTON;
+    }
+    return HTNOWHERE;
 }
 
 Rect TitleBar::GetLowPerformanceToggleRect() const {
@@ -302,6 +337,43 @@ Rect TitleBar::GetThemeToggleRect() const {
 
 bool TitleBar::IsThemeToggleHit(float x, float y) const {
     return GetThemeToggleRect().Contains(x, y);
+}
+
+Rect TitleBar::GetMinimizeButtonRect() const {
+    constexpr float buttonWidth = 46.0f;
+    return Rect(m_bounds.x + m_bounds.width - buttonWidth * 3.0f, m_bounds.y, buttonWidth, m_bounds.height);
+}
+
+Rect TitleBar::GetMaximizeButtonRect() const {
+    constexpr float buttonWidth = 46.0f;
+    return Rect(m_bounds.x + m_bounds.width - buttonWidth * 2.0f, m_bounds.y, buttonWidth, m_bounds.height);
+}
+
+Rect TitleBar::GetCloseButtonRect() const {
+    constexpr float buttonWidth = 46.0f;
+    return Rect(m_bounds.x + m_bounds.width - buttonWidth, m_bounds.y, buttonWidth, m_bounds.height);
+}
+
+int TitleBar::HitTestHoverRegion(float x, float y) const {
+    if (GetCloseButtonRect().Contains(x, y)) {
+        return 5;
+    }
+    if (GetMaximizeButtonRect().Contains(x, y)) {
+        return 4;
+    }
+    if (GetMinimizeButtonRect().Contains(x, y)) {
+        return 3;
+    }
+    if (IsThemeToggleHit(x, y)) {
+        return 2;
+    }
+    if (IsLowPerformanceToggleHit(x, y)) {
+        return 1;
+    }
+    if (IsMenuBarHit(x, y)) {
+        return 0;
+    }
+    return -1;
 }
 
 bool TitleBar::ConsumeChromeDirty() {

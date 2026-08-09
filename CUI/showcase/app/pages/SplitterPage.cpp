@@ -57,7 +57,7 @@ ShowcasePage BuildSplitterPage(const ShowcaseContext& ctx) {
     }).Build();
     BindThemeToken(bottomPane, "theme.backgroundToken", "cardBackground");
 
-    auto rowSplit = Row().Height(150).CornerRadius(6).Border(ThemeManager::Instance().GetColorHex("cardBorder"), 1).Children({
+    auto rowSplit = Row().Height(150).CornerRadius(6).BorderToken(ThemeTokenId::CardBorder, 1).Children({
         leftPane,
         splitterLR,
         rightPane
@@ -65,7 +65,7 @@ ShowcasePage BuildSplitterPage(const ShowcaseContext& ctx) {
     BindThemeToken(rowSplit, "theme.backgroundToken", "cardBackground");
     BindThemeToken(rowSplit, "theme.borderToken", "cardBorder");
 
-    auto colSplit = Column(0).Height(170).CornerRadius(6).Border(ThemeManager::Instance().GetColorHex("cardBorder"), 1).Children({
+    auto colSplit = Column(0).Height(170).CornerRadius(6).BorderToken(ThemeTokenId::CardBorder, 1).Children({
         topPane,
         splitterTB,
         bottomPane

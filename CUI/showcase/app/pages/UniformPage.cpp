@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 ShowcasePage BuildUniformPage(const ShowcaseContext&) {
     auto target = UniformGridWidget(2, 3).Width(420).Height(240).Build();
     for (int i = 1; i <= 6; ++i) {
-        target->AddChild(ElevatedButton("单元格 #" + std::to_string(i)).Background("#007ACC").Build());
+        target->AddChild(ElevatedButton("单元格 #" + std::to_string(i)).Background(Rgb(0x007ACC)).Build());
     }
     return { "UniformGrid 等分网格", CreatePage(
         "UniformGrid 等分网格控制台",

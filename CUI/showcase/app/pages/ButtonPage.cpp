@@ -35,14 +35,14 @@ std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::
 }
 
 ShowcasePage BuildButtonPage(const ShowcaseContext& ctx) {
-    auto target = ElevatedButton("交互测试按钮").Background("#007ACC").HoverBackground("#0098FF").PressedBackground("#005A9E").FontSize(14).Padding(16, 8, 16, 8).CornerRadius(4).Build();
+    auto target = ElevatedButton("交互测试按钮").Background(Rgb(0x007ACC)).HoverBackground(Rgb(0x0098FF)).PressedBackground(Rgb(0x005A9E)).FontSize(14).Padding(16, 8, 16, 8).CornerRadius(4).Build();
     auto log = CreateShowcaseText("[就绪] 点击目标按钮触发 OnClick 点击事件...", 12.0f, "#B5CEA8", false, "Consolas");
     target->OnClick().Connect([window = ctx.windowRef, log](UIElement*) {
         log->SetText("[事件] OnClick 已触发，按钮交互链路正常。");
         Toast::Show(window->GetRootElement().get(), "Button", "按钮点击触发 OnClick 事件！", ToastCorner::BottomRight, 2200);
     });
 
-    auto logPanel = Column(4).Padding(10).CornerRadius(4).Border(ThemeManager::Instance().GetColorHex("cardBorder"), 1).Children({
+    auto logPanel = Column(4).Padding(10).CornerRadius(4).BorderToken(ThemeTokenId::CardBorder, 1).Children({
             CreateShowcaseText("事件日志 (Event Log)", 11.0f, "#4EC9B0", true),
             log
         }).Build();

@@ -7,9 +7,9 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildStackPanelPage(const ShowcaseContext&) {
     auto target = Row(12).Width(420).Height(220).Build();
-    target->AddChild(ElevatedButton("弹性元素 #1").Background("#007ACC").Padding(14, 8, 14, 8).Build());
-    target->AddChild(ElevatedButton("弹性元素 #2").Background("#10B981").Padding(14, 8, 14, 8).Build());
-    target->AddChild(ElevatedButton("弹性元素 #3").Background("#D13438").Padding(14, 8, 14, 8).Build());
+    target->AddChild(ElevatedButton("弹性元素 #1").Background(Rgb(0x007ACC)).Padding(14, 8, 14, 8).Build());
+    target->AddChild(ElevatedButton("弹性元素 #2").Background(Rgb(0x10B981)).Padding(14, 8, 14, 8).Build());
+    target->AddChild(ElevatedButton("弹性元素 #3").Background(Rgb(0xD13438)).Padding(14, 8, 14, 8).Build());
     auto combo = std::make_shared<ComboBox>();
     combo->AddItem("Horizontal");
     combo->AddItem("Vertical");

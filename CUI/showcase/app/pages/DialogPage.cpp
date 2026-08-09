@@ -7,7 +7,7 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildDialogPage(const ShowcaseContext& ctx) {
-    auto target = ElevatedButton("弹出 WinUI ContentDialog 消息框").Background("#007ACC").Padding(16, 8, 16, 8).Build();
+    auto target = ElevatedButton("弹出 WinUI ContentDialog 消息框").Background(Rgb(0x007ACC)).Padding(16, 8, 16, 8).Build();
     target->OnClick().Connect([window = ctx.windowRef](UIElement*) {
         ContentDialog::ShowMessageBox(window->GetRootElement().get(), "WinUI ContentDialog", "全盘 100% 纯 C++ 声明式 UI 完整回填生成。");
     });

@@ -1164,8 +1164,6 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         RECT rc;
         GetClientRect(m_hwnd, &rc);
         const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
-        float winW = static_cast<float>(rc.right) / scale;
-        float winH = static_cast<float>(rc.bottom) / scale;
 
         const Rect chromeBounds = GetChromeBounds(m_rootElement.get());
         if (!chromeBounds.IsEmpty() && chromeBounds.Contains(fx, fy)) {
@@ -1173,20 +1171,10 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 if (chrome->IsInteractiveHit(fx, fy)) {
                     return HTCLIENT;
                 }
-            }
-        }
-
-        // System buttons live in the same top chrome band as the custom app shell.
-        constexpr float kCaptionBtnW = 46.0f;
-        if (!chromeBounds.IsEmpty() && fy >= chromeBounds.y && fy <= (chromeBounds.y + chromeBounds.height)) {
-            if (fx >= winW - kCaptionBtnW) {
-                return HTCLOSE;
-            }
-            if (fx >= winW - kCaptionBtnW * 2.0f && fx < winW - kCaptionBtnW) {
-                return HTMAXBUTTON;
-            }
-            if (fx >= winW - kCaptionBtnW * 3.0f && fx < winW - kCaptionBtnW * 2.0f) {
-                return HTMINBUTTON;
+                const LRESULT chromeNcHit = chrome->HitTestNonClient(fx, fy);
+                if (chromeNcHit != HTNOWHERE) {
+                    return chromeNcHit;
+                }
             }
         }
 

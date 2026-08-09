@@ -42,27 +42,13 @@ namespace CUI {
 class Window;
 namespace DSL {
 
-inline std::string ResolveLegacyThemeTokenForColor(const std::string& colorStr) {
-    if (colorStr == "#1E1E1E") return "windowBackground";
-    if (colorStr == "#252526" || colorStr == "#2D2D30") return "cardBackground";
-    if (colorStr == "#333333" || colorStr == "#3E3E42") return "cardBorder";
-    if (colorStr == "#007ACC" || colorStr == "#0098FF" || colorStr == "#005A9E" || colorStr == "#0E639C") return "accentColor";
-    if (colorStr == "#569CD6" || colorStr == "#4EC9B0" || colorStr == "#9CDCFE") return "accentColor";
-    if (colorStr == "#10B981" || colorStr == "#8E44AD" || colorStr == "#D7A400" || colorStr == "#C586C0") return "accentColor";
-    if (colorStr == "#6A9955" || colorStr == "#CE9178" || colorStr == "#DCDCAA") return "accentColor";
-    if (colorStr == "#D13438" || colorStr == "#D16969") return "dangerColor";
-    if (colorStr == "#AAAAAA" || colorStr == "#888888") return "textMuted";
-    if (colorStr == "#CCCCCC" || colorStr == "#DBDBDB" || colorStr == "#E5E5E5" || colorStr == "#B5CEA8") return "textSecondary";
-    if (colorStr == "#5A5A5A") return "inputBorder";
-    // Allow direct token names in DSL
-    if (colorStr == "windowBackground" || colorStr == "cardBackground" || colorStr == "cardBorder" ||
-        colorStr == "textPrimary" || colorStr == "textSecondary" || colorStr == "textMuted" ||
-        colorStr == "accentColor" || colorStr == "accentForeground" || colorStr == "dangerColor" ||
-        colorStr == "paneBackground" || colorStr == "inputBackground" || colorStr == "inputBorder" ||
-        colorStr == "hoverBackground" || colorStr == "pressedBackground" || colorStr == "focusedBorder") {
-        return colorStr;
-    }
-    return "";
+inline D2D1_COLOR_F Rgb(unsigned int rgb, float alpha = 1.0f) {
+    return D2D1::ColorF(
+        static_cast<float>((rgb >> 16) & 0xFF) / 255.0f,
+        static_cast<float>((rgb >> 8) & 0xFF) / 255.0f,
+        static_cast<float>(rgb & 0xFF) / 255.0f,
+        alpha
+    );
 }
 
 template <typename T>
@@ -132,22 +118,8 @@ public:
         return *this;
     }
 
-    ElementBuilder& Background(const std::string& colorStr) {
-        std::string token = ResolveLegacyThemeTokenForColor(colorStr);
-        if (!token.empty()) {
-            ThemeTokenId id = ThemeTokenIdFromName(token);
-            m_element->SetBackgroundToken(id);
-            if (token == "accentColor" || token == "dangerColor") {
-                m_element->SetColorToken(ThemeTokenId::AccentForeground);
-            } else if (token == "inputBorder" || token == "cardBorder" || token == "cardBackground" ||
-                       token == "paneBackground" || token == "hoverBackground" || token == "windowBackground") {
-                m_element->SetColorToken(ThemeTokenId::TextPrimary);
-            }
-            return *this;
-        }
-        // Unmapped hex must not bypass the color system — fall back to accent
-        m_element->SetBackgroundToken(ThemeTokenId::AccentColor);
-        m_element->SetColorToken(ThemeTokenId::AccentForeground);
+    ElementBuilder& BackgroundToken(ThemeTokenId id) {
+        m_element->SetBackgroundToken(id);
         return *this;
     }
 
@@ -156,33 +128,28 @@ public:
         return *this;
     }
 
-    ElementBuilder& HoverBackground(const std::string& colorStr) {
-        std::string token = ResolveLegacyThemeTokenForColor(colorStr);
-        if (!token.empty()) {
-            m_element->SetHoverBackgroundToken(ThemeTokenIdFromName(token));
-            return *this;
-        }
-        m_element->SetHoverBackground(Value::ParseColor(colorStr));
+    ElementBuilder& HoverBackgroundToken(ThemeTokenId id) {
+        m_element->SetHoverBackgroundToken(id);
         return *this;
     }
 
-    ElementBuilder& PressedBackground(const std::string& colorStr) {
-        std::string token = ResolveLegacyThemeTokenForColor(colorStr);
-        if (!token.empty()) {
-            m_element->SetPressedBackgroundToken(ThemeTokenIdFromName(token));
-            return *this;
-        }
-        m_element->SetPressedBackground(Value::ParseColor(colorStr));
+    ElementBuilder& HoverBackground(D2D1_COLOR_F color) {
+        m_element->SetHoverBackground(color);
         return *this;
     }
 
-    ElementBuilder& Color(const std::string& colorStr) {
-        std::string token = ResolveLegacyThemeTokenForColor(colorStr);
-        if (!token.empty()) {
-            m_element->SetColorToken(ThemeTokenIdFromName(token));
-            return *this;
-        }
-        m_element->SetColor(Value::ParseColor(colorStr));
+    ElementBuilder& PressedBackgroundToken(ThemeTokenId id) {
+        m_element->SetPressedBackgroundToken(id);
+        return *this;
+    }
+
+    ElementBuilder& PressedBackground(D2D1_COLOR_F color) {
+        m_element->SetPressedBackground(color);
+        return *this;
+    }
+
+    ElementBuilder& ColorToken(ThemeTokenId id) {
+        m_element->SetColorToken(id);
         return *this;
     }
 
@@ -206,14 +173,14 @@ public:
         return *this;
     }
 
-    ElementBuilder& Border(const std::string& colorStr, float thickness = 1.0f) {
-        std::string token = ResolveLegacyThemeTokenForColor(colorStr);
-        if (!token.empty()) {
-            m_element->SetBorderToken(ThemeTokenIdFromName(token));
-            m_element->SetBorderThickness(thickness);
-            return *this;
-        }
-        m_element->SetBorderBrush(Value::ParseColor(colorStr));
+    ElementBuilder& BorderToken(ThemeTokenId id, float thickness = 1.0f) {
+        m_element->SetBorderToken(id);
+        m_element->SetBorderThickness(thickness);
+        return *this;
+    }
+
+    ElementBuilder& Border(D2D1_COLOR_F color, float thickness = 1.0f) {
+        m_element->SetBorderBrush(color);
         m_element->SetBorderThickness(thickness);
         return *this;
     }

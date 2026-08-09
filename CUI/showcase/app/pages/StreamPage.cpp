@@ -8,8 +8,8 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildStreamPage(const ShowcaseContext& ctx) {
     auto status = CreateShowcaseText("状态: 切换到本页后自动开始，离开自动停止。", 12.0f, "#9CDCFE", false, "Consolas");
-    auto startBtn = ElevatedButton("开始推流").Background("#007ACC").Padding(12, 6, 12, 6).Build();
-    auto stopBtn = ElevatedButton("暂停推流").Background("#5A5A5A").Padding(12, 6, 12, 6).Build();
+    auto startBtn = ElevatedButton("开始推流").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build();
+    auto stopBtn = ElevatedButton("暂停推流").Background(Rgb(0x5A5A5A)).Padding(12, 6, 12, 6).Build();
     startBtn->OnClick().Connect([window = ctx.windowRef, image = ctx.streamImage, status](UIElement*) {
         StartStreamingThread(window, image);
         status->SetText("状态: 推流中 (手动启动)。");
