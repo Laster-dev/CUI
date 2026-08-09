@@ -62,14 +62,15 @@ Size LayoutEngine::MeasureElement(UIElement* element, Size availableSize) {
 void LayoutEngine::ArrangeElement(UIElement* element, Rect finalRect) {
     if (!element) return;
 
-    Thickness margin = element->GetMargin();
+    // finalRect is already the element's arranged bounds (Margin applied by UIElement::Arrange).
+    // Only inset Padding for child/content layout.
     Thickness padding = element->GetPadding();
 
     Rect contentRect(
-        finalRect.x + margin.left + padding.left,
-        finalRect.y + margin.top + padding.top,
-        finalRect.width - margin.left - margin.right - padding.left - padding.right,
-        finalRect.height - margin.top - margin.bottom - padding.top - padding.bottom
+        finalRect.x + padding.left,
+        finalRect.y + padding.top,
+        finalRect.width - padding.left - padding.right,
+        finalRect.height - padding.top - padding.bottom
     );
     if (contentRect.width < 0) contentRect.width = 0;
     if (contentRect.height < 0) contentRect.height = 0;

@@ -348,8 +348,16 @@ void UIElement::Arrange(Rect finalRect) {
         return;
     }
 
-    SetBounds(finalRect);
-    LayoutEngine::ArrangeElement(this, finalRect);
+    // Layout slot is finalRect; visual/hit-test bounds exclude Margin (WPF-style).
+    // Without this, Grid/UniformGrid fill the whole cell and SetMargin appears ignored.
+    const Thickness margin = GetMargin();
+    Rect arranged(
+        finalRect.x + margin.left,
+        finalRect.y + margin.top,
+        (std::max)(0.0f, finalRect.width - margin.left - margin.right),
+        (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
+    SetBounds(arranged);
+    LayoutEngine::ArrangeElement(this, arranged);
     m_arrangeDirty = false;
 }
 

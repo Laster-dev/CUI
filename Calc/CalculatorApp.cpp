@@ -51,25 +51,25 @@ std::shared_ptr<UIElement> CalculatorApp::BuildRoot() {
     root->SetColorToken(ThemeTokenId::TextPrimary);
 
     auto titleBar = std::make_shared<WindowTitleBar>();
-    titleBar->SetTitle("Calc");
-    titleBar->SetIconText("C");
+    titleBar->SetTitle("计算器");
+    //titleBar->SetIconText("C");
 
-    auto fileMenu = titleBar->GetMenuBar().AddMenu("File");
-    fileMenu->AddItem("Clear", [this]() { ClearAll(); });
-    fileMenu->AddSeparator();
-    fileMenu->AddItem("Exit", [this]() {
-       /* if (HWND hwnd = m_window.GetHWND()) {
-            PostMessage(hwnd, WM_CLOSE, 0, 0);
-        }*/
-        ContentDialog::ShowMessageBox(m_window.GetRootElement().get(), "WinUI ContentDialog", "全盘 100% 纯 C++ 声明式 UI 完整回填生成。");
-    });
+    //auto fileMenu = titleBar->GetMenuBar().AddMenu("File");
+    //fileMenu->AddItem("Clear", [this]() { ClearAll(); });
+    //fileMenu->AddSeparator();
+    //fileMenu->AddItem("Exit", [this]() {
+    //   /* if (HWND hwnd = m_window.GetHWND()) {
+    //        PostMessage(hwnd, WM_CLOSE, 0, 0);
+    //    }*/
+    //    ContentDialog::ShowMessageBox(m_window.GetRootElement().get(), "WinUI ContentDialog", "全盘 100% 纯 C++ 声明式 UI 完整回填生成。");
+    //});
 
-    auto editMenu = titleBar->GetMenuBar().AddMenu("Edit");
-    editMenu->AddItem("Toggle Sign", [this]() { ToggleSign(); });
-    editMenu->AddItem("Percent", [this]() { ApplyPercent(); });
+    //auto editMenu = titleBar->GetMenuBar().AddMenu("Edit");
+    //editMenu->AddItem("Toggle Sign", [this]() { ToggleSign(); });
+    //editMenu->AddItem("Percent", [this]() { ApplyPercent(); });
 
-    auto helpMenu = titleBar->GetMenuBar().AddMenu("Help");
-    helpMenu->AddItem("About Calc");
+    //auto helpMenu = titleBar->GetMenuBar().AddMenu("Help");
+    //helpMenu->AddItem("About Calc");
 
     auto content = Column(16)
         .Padding(18)
@@ -182,7 +182,7 @@ void CalculatorApp::BuildButtons(Grid& grid) {
         button->SetGridRow(spec.row);
         button->SetGridColumn(spec.column);
         button->SetGridColumnSpan(spec.columnSpan);
-
+		button->SetMargin(5.0f);
         const std::string label = spec.text;
         button->OnClick().Connect([this, label](UIElement*) {
             if (label == "C") {
