@@ -91,25 +91,35 @@ void TreeView::RebuildVisibleItems() const {
     if (!m_visibleDirty) return;
     m_visibleItems.clear();
 
-    auto collect = [this](auto self, const std::vector<std::shared_ptr<TreeViewItem>>& list, int depth) -> void {
+    auto collect = [this](auto self, const std::vector<std::shared_ptr<TreeViewItem>>& list, int depth, float parentClip) -> void {
         for (const auto& item : list) {
             if (!item) continue;
-            m_visibleItems.push_back({ item, depth });
-            // Keep children visible while collapse anim is running.
-            const bool showChildren = item->isExpanded || item->expandAnim.Current() > 0.01f;
+            m_visibleItems.push_back({ item, depth, parentClip });
+            const float selfAnim = std::clamp(item->expandAnim.Current(), 0.0f, 1.0f);
+            const float effectiveClip = parentClip * selfAnim;
+            // Keep children visible in layout tree while expanding or collapsing animation is running
+            const bool showChildren = item->isExpanded || selfAnim > 0.001f;
             if (showChildren && !item->children.empty()) {
-                self(self, item->children, depth + 1);
+                self(self, item->children, depth + 1, effectiveClip);
             }
         }
     };
-    collect(collect, m_items, 0);
+    collect(collect, m_items, 0, 1.0f);
     m_visibleDirty = false;
 }
 
-void TreeView::ClampScroll() {
+float TreeView::GetTotalContentHeight() const {
     RebuildVisibleItems();
-    float itemH = GetItemHeight();
-    float contentH = m_visibleItems.size() * itemH;
+    float totalH = 0.0f;
+    const float baseH = GetItemHeight();
+    for (const auto& vis : m_visibleItems) {
+        totalH += baseH * vis.clipFactor;
+    }
+    return totalH;
+}
+
+void TreeView::ClampScroll() {
+    float contentH = GetTotalContentHeight();
     float viewportH = (std::max)(0.0f, m_bounds.height - 4.0f);
     float maxScroll = (std::max)(0.0f, contentH - viewportH);
     m_scrollY = std::clamp(m_scrollY, 0.0f, maxScroll);
@@ -120,11 +130,17 @@ int TreeView::GetVisibleIndexFromY(float y) const {
     if (m_visibleItems.empty() || y < m_bounds.y + 2.0f || y > m_bounds.y + m_bounds.height - 2.0f) {
         return -1;
     }
-    float itemH = GetItemHeight();
-    float relY = (y - (m_bounds.y + 2.0f)) + m_scrollY;
-    int idx = static_cast<int>(std::floor(relY / itemH));
-    if (idx >= 0 && idx < static_cast<int>(m_visibleItems.size())) {
-        return idx;
+
+    const float baseH = GetItemHeight();
+    float currY = m_bounds.y + 2.0f - m_scrollY;
+    for (size_t i = 0; i < m_visibleItems.size(); ++i) {
+        float rowH = baseH * m_visibleItems[i].clipFactor;
+        if (rowH > 0.5f) {
+            if (y >= currY && y < currY + rowH) {
+                return static_cast<int>(i);
+            }
+        }
+        currY += rowH;
     }
     return -1;
 }
@@ -142,15 +158,22 @@ int TreeView::GetVisibleIndexOfItem(TreeViewItem* item) const {
 
 Rect TreeView::GetItemRect(int visibleIndex) const {
     if (visibleIndex < 0) return Rect(0, 0, 0, 0);
-    float itemH = GetItemHeight();
-    float itemY = m_bounds.y + 2.0f + visibleIndex * itemH - m_scrollY;
-    return Rect(m_bounds.x + 2.0f, itemY, (std::max)(0.0f, m_bounds.width - 4.0f), itemH);
+    RebuildVisibleItems();
+    if (visibleIndex >= static_cast<int>(m_visibleItems.size())) return Rect(0, 0, 0, 0);
+
+    const float baseH = GetItemHeight();
+    float currY = m_bounds.y + 2.0f - m_scrollY;
+    for (int i = 0; i < visibleIndex; ++i) {
+        currY += baseH * m_visibleItems[i].clipFactor;
+    }
+    float thisRowH = baseH * m_visibleItems[visibleIndex].clipFactor;
+    return Rect(m_bounds.x + 2.0f, currY, (std::max)(0.0f, m_bounds.width - 4.0f), thisRowH);
 }
 
 Rect TreeView::GetToggleRect(const VisibleItem& visibleItem, const Rect& rowRect) const {
     float indentW = GetIndentWidth();
     float toggleX = rowRect.x + visibleItem.depth * indentW + 4.0f;
-    float toggleY = rowRect.y + (rowRect.height - 14.0f) * 0.5f;
+    float toggleY = rowRect.y + (GetItemHeight() - 14.0f) * 0.5f;
     return Rect(toggleX, toggleY, 14.0f, 14.0f);
 }
 
@@ -215,7 +238,7 @@ void TreeView::Render(GraphicsContext& ctx) {
 }
 
 void TreeView::OnRender(GraphicsContext& ctx) {
-    // Draw TreeView Container Background & Border (Do not call Control::OnRender to prevent m_isPressed from darkening whole container)
+    // Draw TreeView Container Background & Border
     float radius = GetCornerRadius();
     D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
     D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
@@ -226,79 +249,110 @@ void TreeView::OnRender(GraphicsContext& ctx) {
 
     RebuildVisibleItems();
 
-    float itemH = GetItemHeight();
+    float baseH = GetItemHeight();
     float indentW = GetIndentWidth();
     std::string fontFamily = GetFontFamily();
     float fontSize = GetFontSize();
     D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     D2D1_COLOR_F selBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
     D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    D2D1_COLOR_F accentColor = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+
+    float currY = m_bounds.y + 2.0f - m_scrollY;
 
     for (size_t i = 0; i < m_visibleItems.size(); ++i) {
         const auto& visItem = m_visibleItems[i];
         const auto& item = visItem.item;
-        Rect rowRect = GetItemRect(static_cast<int>(i));
+        float rowH = baseH * visItem.clipFactor;
 
-        // Skip rows outside viewport
-        if (rowRect.y + rowRect.height < m_bounds.y || rowRect.y > m_bounds.y + m_bounds.height) {
+        Rect rowRect(m_bounds.x + 2.0f, currY, (std::max)(0.0f, m_bounds.width - 4.0f), rowH);
+        currY += rowH;
+
+        // Skip rows below 0.5px height or outside viewport clip
+        if (rowH <= 0.5f || rowRect.y + rowRect.height < m_bounds.y || rowRect.y > m_bounds.y + m_bounds.height) {
             continue;
         }
+
+        // Push clip for expanding/collapsing height clip
+        ctx.PushClip(rowRect);
 
         bool isSelected = (m_selectedItem == item);
         bool isHovered = (m_hoveredVisibleIndex == static_cast<int>(i));
 
-        // Render Row Background
+        // Full item standard cell rect
+        Rect drawCellRect(rowRect.x, rowRect.y, rowRect.width, baseH);
+
+        // WinUI Selection Pill Indicator & Row Highlight
         if (isSelected) {
-            ctx.FillRoundedRect(rowRect, 3.0f, selBg);
+            ctx.FillRoundedRect(drawCellRect, 4.0f, selBg);
+            // Draw WinUI 3 left vertical pill indicator
+            Rect pillRect(drawCellRect.x + 2.0f, drawCellRect.y + (baseH - 16.0f) * 0.5f, 3.0f, 16.0f);
+            ctx.FillRoundedRect(pillRect, 1.5f, accentColor);
         } else if (isHovered) {
-            ctx.FillRoundedRect(rowRect, 3.0f, hoverBg);
+            ctx.FillRoundedRect(drawCellRect, 4.0f, hoverBg);
         }
 
-        float currX = rowRect.x + visItem.depth * indentW + 4.0f;
+        float contentX = drawCellRect.x + visItem.depth * indentW + 4.0f;
+        float rowAlpha = std::clamp(visItem.clipFactor, 0.0f, 1.0f);
 
-        // Render Expand / Collapse Arrow (animated via expandAnim).
+        // WinUI Chevron Icon & Continuous Angle Interpolation
         if (!item->children.empty()) {
-            Rect toggleRect = GetToggleRect(visItem, rowRect);
-            const float progress = std::clamp(item->expandAnim.Current(), 0.0f, 1.0f);
+            Rect toggleRect = GetToggleRect(visItem, drawCellRect);
+            const float animProgress = std::clamp(item->expandAnim.Current(), 0.0f, 1.0f);
+
             D2D1_COLOR_F arrowColor = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
-            ctx.DrawChevron(
-                toggleRect,
-                arrowColor,
-                progress > 0.5f ? GraphicsContext::ChevronDirection::Down
-                                : GraphicsContext::ChevronDirection::Right,
-                1.6f
-            );
+            arrowColor.a *= rowAlpha;
+
+            // Interpolate Chevron matrix transform or smooth step transition
+            if (animProgress > 0.001f && animProgress < 0.999f) {
+                // Perform rotation transform around center of toggle rect for smooth WinUI chevron motion
+                D2D1_POINT_2F center = D2D1::Point2F(toggleRect.x + toggleRect.width * 0.5f, toggleRect.y + toggleRect.height * 0.5f);
+                float angleDegrees = animProgress * 90.0f; // Rotate from Right (0deg) to Down (90deg)
+                D2D1_MATRIX_3X2_F rotMatrix = D2D1::Matrix3x2F::Rotation(angleDegrees, center);
+
+                ctx.PushTransform(rotMatrix);
+                ctx.DrawChevron(
+                    toggleRect,
+                    arrowColor,
+                    GraphicsContext::ChevronDirection::Right,
+                    1.6f
+                );
+                ctx.PopTransform();
+            } else {
+                ctx.DrawChevron(
+                    toggleRect,
+                    arrowColor,
+                    animProgress >= 0.5f ? GraphicsContext::ChevronDirection::Down
+                                        : GraphicsContext::ChevronDirection::Right,
+                    1.6f
+                );
+            }
         }
-        currX += 16.0f;
+        contentX += 16.0f;
 
         // Render Icon (or folder/file glyph fallback)
         std::string iconText = item->icon;
         if (iconText.empty()) {
             iconText = !item->children.empty() ? (item->expandAnim.Current() > 0.5f ? "📂" : "📁") : "📄";
         }
-        Rect iconRect(currX, rowRect.y, 16.0f, rowRect.height);
-        // Fade child rows with parent expand progress.
-        float rowAlpha = 1.0f;
-        if (item->parent) {
-            rowAlpha = std::clamp(item->parent->expandAnim.Current(), 0.0f, 1.0f);
-            const float inv = 1.0f - rowAlpha;
-            rowAlpha = 1.0f - inv * inv * inv;
-        }
-        D2D1_COLOR_F iconColor = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+        Rect iconRect(contentX, drawCellRect.y, 16.0f, baseH);
+        D2D1_COLOR_F iconColor = accentColor;
         iconColor.a *= rowAlpha;
         ctx.DrawText(iconText, iconRect, iconColor, "Segoe UI Emoji", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        currX += 20.0f;
+        contentX += 20.0f;
 
-        // Render Header Text
-        float textW = (std::max)(0.0f, rowRect.x + rowRect.width - currX - 4.0f);
-        Rect textRect(currX, rowRect.y, textW, rowRect.height);
+        // Render Header Text with opacity fade during expansion
+        float textW = (std::max)(0.0f, drawCellRect.x + drawCellRect.width - contentX - 4.0f);
+        Rect textRect(contentX, drawCellRect.y, textW, baseH);
         D2D1_COLOR_F rowText = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor;
         rowText.a *= rowAlpha;
-        ctx.DrawText(item->header, textRect, rowText, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+        ctx.DrawText(item->header, textRect, rowText, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+
+        ctx.PopClip();
     }
 
     // Scrollbar indicator
-    float contentH = m_visibleItems.size() * itemH;
+    float contentH = GetTotalContentHeight();
     float viewportH = m_bounds.height;
     if (contentH > viewportH && viewportH > 0.0f && m_scrollbarAutoHide.IsDrawn()) {
         float maxScroll = contentH - viewportH;
@@ -343,8 +397,7 @@ void TreeView::OnMouseMove(Point pt) {
     m_hoveredVisibleIndex = GetVisibleIndexFromY(pt.y);
 
     RebuildVisibleItems();
-    float itemH = GetItemHeight();
-    float contentH = m_visibleItems.size() * itemH;
+    float contentH = GetTotalContentHeight();
     const bool overBar = contentH > m_bounds.height && pt.x >= m_bounds.x + m_bounds.width - 10.0f;
     m_scrollbarAutoHide.SetPointerOver(overBar, this);
     if (overBar || oldHover != m_hoveredVisibleIndex) {
@@ -369,8 +422,7 @@ void TreeView::OnMouseLeave() {
 
 void TreeView::OnMouseWheel(float delta) {
     RebuildVisibleItems();
-    float itemH = GetItemHeight();
-    float contentH = m_visibleItems.size() * itemH;
+    float contentH = GetTotalContentHeight();
     float viewportH = (std::max)(0.0f, m_bounds.height - 4.0f);
     float maxScroll = (std::max)(0.0f, contentH - viewportH);
     if (maxScroll <= 0.0f) {
@@ -452,7 +504,8 @@ bool TreeView::TickExpandAnims(const std::vector<std::shared_ptr<TreeViewItem>>&
     for (const auto& item : list) {
         if (!item) continue;
         item->expandAnim.SetTarget(item->isExpanded ? 1.0f : 0.0f);
-        if (item->expandAnim.Tick(dt, AnimationSpec{ 0.32f, 0.01f })) {
+        // WinUI fluid spring ease animation curve: 0.22s response time
+        if (item->expandAnim.Tick(dt, AnimationSpec{ 0.22f, 0.001f })) {
             any = true;
         }
         if (TickExpandAnims(item->children, dt)) {
@@ -489,7 +542,7 @@ bool TreeView::HasSelfAnimation() const {
     auto walk = [](auto self, const std::vector<std::shared_ptr<TreeViewItem>>& list) -> bool {
         for (const auto& item : list) {
             if (!item) continue;
-            if (item->expandAnim.IsAnimating(0.01f)) return true;
+            if (item->expandAnim.IsAnimating(0.001f)) return true;
             if (self(self, item->children)) return true;
         }
         return false;

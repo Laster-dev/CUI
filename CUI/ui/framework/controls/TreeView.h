@@ -20,7 +20,8 @@ struct TreeViewItem {
     bool isSelected = false;
     TreeViewItem* parent = nullptr;
     std::vector<std::shared_ptr<TreeViewItem>> children;
-    // 0 = fully collapsed, 1 = fully expanded (drives child row fade + chevron).
+    // 0.0 = fully collapsed, 1.0 = fully expanded.
+    // Drives WinUI expansion height, opacity fading, and chevron rotation.
     AnimatedScalar expandAnim{ 0.0f };
 };
 
@@ -68,9 +69,11 @@ private:
     struct VisibleItem {
         std::shared_ptr<TreeViewItem> item;
         int depth = 0;
+        float clipFactor = 1.0f; // Combined effective height scale from all ancestors
     };
 
     void RebuildVisibleItems() const;
+    float GetTotalContentHeight() const;
     void ClampScroll();
     int GetVisibleIndexFromY(float y) const;
     int GetVisibleIndexOfItem(TreeViewItem* item) const;

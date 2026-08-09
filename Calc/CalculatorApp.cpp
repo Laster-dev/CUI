@@ -58,9 +58,10 @@ std::shared_ptr<UIElement> CalculatorApp::BuildRoot() {
     fileMenu->AddItem("Clear", [this]() { ClearAll(); });
     fileMenu->AddSeparator();
     fileMenu->AddItem("Exit", [this]() {
-        if (HWND hwnd = m_window.GetHWND()) {
+       /* if (HWND hwnd = m_window.GetHWND()) {
             PostMessage(hwnd, WM_CLOSE, 0, 0);
-        }
+        }*/
+        ContentDialog::ShowMessageBox(m_window.GetRootElement().get(), "WinUI ContentDialog", "全盘 100% 纯 C++ 声明式 UI 完整回填生成。");
     });
 
     auto editMenu = titleBar->GetMenuBar().AddMenu("Edit");
