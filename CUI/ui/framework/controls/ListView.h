@@ -118,6 +118,8 @@ private:
     Rect GetRowsViewportRect() const;
     void PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, float scrollX, float scrollY);
     void RenderRowsLayer(GraphicsContext& ctx);
+    void StartSelectRipple(int row, Point pt);
+    Rect GetRowPillRect(int row, float scrollY) const;
 
     std::string GetCellText(int row, int col) const;
     std::shared_ptr<UIElement> GetCellElement(int row, int col) const;
@@ -189,6 +191,14 @@ private:
 
     Event<ListView*, int> m_onSelectionChangedEvent;
     Event<ListView*, int> m_onRowDoubleClickedEvent;
+
+    // Selection reveal ripple (Button-style expand-to-cover).
+    int m_selectRippleRow = -1;
+    float m_selectRippleLocalX = 0.0f;
+    float m_selectRippleLocalY = 0.0f;
+    float m_selectRippleRadius = 0.0f;
+    bool m_selectRippleActive = false;
+    bool m_selectRippleCovered = false;
 };
 
 } // namespace CUI

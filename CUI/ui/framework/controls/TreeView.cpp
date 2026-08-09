@@ -17,6 +17,14 @@ float GetChromiumWheelStep(float viewportHeight) {
     }
     return (std::max)(1u, lines) * 40.0f;
 }
+
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
+
+constexpr float kTreeSelectPillRadius = 4.0f;
 } // namespace
 
 TreeView::TreeView() {
@@ -453,13 +461,30 @@ void TreeView::OnRender(GraphicsContext& ctx) {
         Rect drawCellRect(rowRect.x, rowRect.y, rowRect.width, baseH);
 
         // WinUI Selection Pill Indicator & Row Highlight
+        auto rippleItem = m_selectRippleItem.lock();
+        const bool rippleHere = m_selectRippleActive && rippleItem && rippleItem.get() == item.get();
+        const bool rippleCovering = rippleHere && !m_selectRippleCovered;
+
         if (isSelected) {
-            ctx.FillRoundedRect(drawCellRect, 4.0f, selBg);
+            if (rippleCovering) {
+                ctx.PushRoundedClip(drawCellRect, kTreeSelectPillRadius);
+                const float cx = drawCellRect.x + m_selectRippleLocalX;
+                const float cy = drawCellRect.y + m_selectRippleLocalY;
+                Rect rippleRect(
+                    cx - m_selectRippleRadius,
+                    cy - m_selectRippleRadius,
+                    m_selectRippleRadius * 2.0f,
+                    m_selectRippleRadius * 2.0f);
+                ctx.FillRoundedRect(rippleRect, m_selectRippleRadius, selBg);
+                ctx.PopClip();
+            } else {
+                ctx.FillRoundedRect(drawCellRect, kTreeSelectPillRadius, selBg);
+            }
             // Draw WinUI 3 left vertical pill indicator
             Rect pillRect(drawCellRect.x + 2.0f, drawCellRect.y + (baseH - 16.0f) * 0.5f, 3.0f, 16.0f);
             ctx.FillRoundedRect(pillRect, 1.5f, accentColor);
         } else if (isHovered) {
-            ctx.FillRoundedRect(drawCellRect, 4.0f, hoverBg);
+            ctx.FillRoundedRect(drawCellRect, kTreeSelectPillRadius, hoverBg);
         }
 
         float contentX = drawCellRect.x + visItem.depth * indentW + 4.0f;
@@ -593,6 +618,8 @@ void TreeView::OnMouseDown(Point pt) {
         // Selection click
         m_pressedVisibleIndex = idx;
         SetSelectedItem(visItem.item);
+        StartSelectRipple(visItem.item, pt);
+        MarkRenderContentDirty();
     }
 }
 
@@ -656,6 +683,8 @@ void TreeView::OnMouseRightClick(Point pt) {
     int idx = GetVisibleIndexFromY(pt.y);
     if (idx >= 0 && idx < static_cast<int>(m_visibleItems.size())) {
         SetSelectedItem(m_visibleItems[idx].item);
+        StartSelectRipple(m_visibleItems[idx].item, pt);
+        MarkRenderContentDirty();
     }
 }
 
@@ -707,16 +736,26 @@ void TreeView::OnKeyDown(int vkCode) {
     if (m_visibleItems.empty()) return;
 
     int currIdx = GetVisibleIndexOfItem(m_selectedItem.get());
+    auto startRippleAtSelection = [this]() {
+        if (!m_selectedItem) return;
+        int idx = GetVisibleIndexOfItem(m_selectedItem.get());
+        if (idx < 0) return;
+        Rect row = GetItemRect(idx);
+        StartSelectRipple(m_selectedItem, Point(row.x + row.width * 0.5f, row.y + row.height * 0.5f));
+        MarkRenderContentDirty();
+    };
 
     switch (vkCode) {
     case VK_UP: {
         int nextIdx = (currIdx > 0) ? currIdx - 1 : 0;
         SetSelectedItem(m_visibleItems[nextIdx].item);
+        startRippleAtSelection();
         break;
     }
     case VK_DOWN: {
         int nextIdx = (currIdx < static_cast<int>(m_visibleItems.size()) - 1) ? currIdx + 1 : static_cast<int>(m_visibleItems.size()) - 1;
         SetSelectedItem(m_visibleItems[nextIdx].item);
+        startRippleAtSelection();
         break;
     }
     case VK_RIGHT: {
@@ -726,6 +765,7 @@ void TreeView::OnKeyDown(int vkCode) {
                     ToggleItem(m_selectedItem);
                 } else if (!m_selectedItem->children.empty()) {
                     SetSelectedItem(m_selectedItem->children[0]);
+                    startRippleAtSelection();
                 }
             }
         }
@@ -736,10 +776,10 @@ void TreeView::OnKeyDown(int vkCode) {
             if (!m_selectedItem->children.empty() && m_selectedItem->isExpanded) {
                 ToggleItem(m_selectedItem);
             } else if (m_selectedItem->parent) {
-                // Move selection to parent
                 for (const auto& vis : m_visibleItems) {
                     if (vis.item.get() == m_selectedItem->parent) {
                         SetSelectedItem(vis.item);
+                        startRippleAtSelection();
                         break;
                     }
                 }
@@ -795,23 +835,91 @@ bool TreeView::OnAnimationTick() {
         }
     } else {
         m_expandAnimActive = false;
+        m_selectRippleActive = false;
+        m_selectRippleCovered = true;
     }
+
+    bool rippleAnim = false;
+    if (m_selectRippleActive) {
+        auto item = m_selectRippleItem.lock();
+        int idx = item ? GetVisibleIndexOfItem(item.get()) : -1;
+        if (!item || idx < 0) {
+            m_selectRippleActive = false;
+            m_selectRippleCovered = true;
+        } else {
+            Rect pill = GetItemRect(idx);
+            const float cx = pill.x + m_selectRippleLocalX;
+            const float cy = pill.y + m_selectRippleLocalY;
+            const float corners[4][2] = {
+                { pill.x, pill.y },
+                { pill.x + pill.width, pill.y },
+                { pill.x, pill.y + pill.height },
+                { pill.x + pill.width, pill.y + pill.height },
+            };
+            float maxRadius = 0.0f;
+            for (const auto& c : corners) {
+                const float dx = cx - c[0];
+                const float dy = cy - c[1];
+                maxRadius = (std::max)(maxRadius, std::sqrt(dx * dx + dy * dy));
+            }
+            // ~2x Button speed (same as ListView selection reveal).
+            m_selectRippleRadius += (maxRadius - m_selectRippleRadius) * FrameBlend(0.146f)
+                + 74.0f * dt;
+            if (m_selectRippleRadius >= maxRadius - 0.5f) {
+                m_selectRippleRadius = maxRadius;
+                m_selectRippleCovered = true;
+                m_selectRippleActive = false;
+            }
+            MarkRenderContentDirty();
+            rippleAnim = true;
+        }
+    }
+
     const float prevOpacity = m_scrollbarAutoHide.Opacity();
     const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
     if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
         MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
     }
-    if (scrolling || moving || hideAnimating || m_scrollAnimator.IsActive()) {
+    if (scrolling || moving || hideAnimating || m_scrollAnimator.IsActive() || rippleAnim) {
         RequestAnimationTicks();
     }
-    return base || scrolling || moving || hideAnimating;
+    return base || scrolling || moving || hideAnimating || rippleAnim;
 }
 
 bool TreeView::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
         || m_expandAnimActive
         || m_scrollAnimator.IsActive()
-        || m_scrollbarAutoHide.NeedsTicks();
+        || m_scrollbarAutoHide.NeedsTicks()
+        || m_selectRippleActive;
+}
+
+void TreeView::StartSelectRipple(const std::shared_ptr<TreeViewItem>& item, Point pt) {
+    if (!item) return;
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_selectRippleActive = false;
+        m_selectRippleCovered = true;
+        m_selectRippleItem = item;
+        return;
+    }
+
+    RebuildVisibleItems();
+    int idx = GetVisibleIndexOfItem(item.get());
+    Rect pill = (idx >= 0) ? GetItemRect(idx) : Rect(pt.x - 40.0f, pt.y - 12.0f, 80.0f, 24.0f);
+
+    m_selectRippleItem = item;
+    m_selectRippleLocalX = std::clamp(pt.x - pill.x, 0.0f, (std::max)(0.0f, pill.width));
+    m_selectRippleLocalY = std::clamp(pt.y - pill.y, 0.0f, (std::max)(0.0f, pill.height));
+    if (pill.width > 0.0f && (pt.x < pill.x || pt.x > pill.x + pill.width)) {
+        m_selectRippleLocalX = pill.width * 0.5f;
+    }
+    if (pill.height > 0.0f && (pt.y < pill.y || pt.y > pill.y + pill.height)) {
+        m_selectRippleLocalY = pill.height * 0.5f;
+    }
+    m_selectRippleRadius = 4.0f;
+    m_selectRippleActive = true;
+    m_selectRippleCovered = false;
+    RequestAnimationTicks();
 }
 
 } // namespace CUI

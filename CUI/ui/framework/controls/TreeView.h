@@ -105,6 +105,7 @@ private:
     void SetParentRecursive(const std::shared_ptr<TreeViewItem>& item, TreeViewItem* parent);
     std::shared_ptr<TreeViewItem> FindFirstVisibleSelectable(int startIndex, int direction) const;
     bool TickExpandAnims(const std::vector<std::shared_ptr<TreeViewItem>>& list, float dt);
+    void StartSelectRipple(const std::shared_ptr<TreeViewItem>& item, Point pt);
 
     static constexpr float kScrollbarInset = 3.0f;
     static constexpr float kScrollbarWidth = 8.0f;
@@ -128,6 +129,14 @@ private:
     int m_pressedVisibleIndex = -1;
     Event<TreeView*, std::shared_ptr<TreeViewItem>> m_onSelectionChangedEvent;
     Event<TreeView*, std::shared_ptr<TreeViewItem>> m_onItemToggledEvent;
+
+    // Selection reveal ripple (same as ListView, ~2x Button speed).
+    std::weak_ptr<TreeViewItem> m_selectRippleItem;
+    float m_selectRippleLocalX = 0.0f;
+    float m_selectRippleLocalY = 0.0f;
+    float m_selectRippleRadius = 0.0f;
+    bool m_selectRippleActive = false;
+    bool m_selectRippleCovered = false;
 };
 
 } // namespace CUI

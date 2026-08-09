@@ -30,6 +30,16 @@ DWRITE_FONT_WEIGHT ResolveListFontWeight(const std::string& weight) {
     return DWRITE_FONT_WEIGHT_NORMAL;
 }
 
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
+
+constexpr float kPillInsetX = 4.0f;
+constexpr float kPillInsetY = 2.0f;
+constexpr float kPillRadius = 4.0f;
+
 } // namespace
 
 ListView::ListView() {
@@ -494,11 +504,8 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
     float totalColsW = GetTotalColumnsWidth();
     bool isFocused = m_isFocused;
 
-    // Pass 1: inset rounded selection/hover pills — stay inside the row, leave grid
-    // hairlines intact, match TreeView-style chrome.
-    constexpr float kPillInsetX = 4.0f;
-    constexpr float kPillInsetY = 2.0f;
-    constexpr float kPillRadius = 4.0f;
+    // Pass 1: inset rounded selection/hover pills — selection reveal uses a
+    // Button-style expanding ripple clipped to the pill until it covers.
     for (int r = startRow; r <= endRow; ++r) {
         float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - scrollY;
         Rect rowRect(m_bounds.x, rowY, std::max(m_bounds.width, totalColsW), m_rowHeight);
@@ -511,8 +518,25 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
         const float pillH = (std::max)(0.0f, rowRect.height - kPillInsetY * 2.0f);
         Rect pill(rowRect.x + kPillInsetX, rowRect.y + kPillInsetY, pillW, pillH);
 
+        const bool rippleHere = m_selectRippleActive && r == m_selectRippleRow;
+        const bool rippleCovering = rippleHere && !m_selectRippleCovered;
+
         if (isSelected) {
-            ctx.FillRoundedRect(pill, kPillRadius, selectedBg);
+            if (rippleCovering) {
+                // Same selectedBg as the final fill — only geometry expands (no tint overlay).
+                ctx.PushRoundedClip(pill, kPillRadius);
+                const float cx = pill.x + m_selectRippleLocalX;
+                const float cy = pill.y + m_selectRippleLocalY;
+                Rect rippleRect(
+                    cx - m_selectRippleRadius,
+                    cy - m_selectRippleRadius,
+                    m_selectRippleRadius * 2.0f,
+                    m_selectRippleRadius * 2.0f);
+                ctx.FillRoundedRect(rippleRect, m_selectRippleRadius, selectedBg);
+                ctx.PopClip();
+            } else {
+                ctx.FillRoundedRect(pill, kPillRadius, selectedBg);
+            }
         } else if (isHovered && IsEnabled()) {
             ctx.FillRoundedRect(pill, kPillRadius, hoverBg);
         }
@@ -807,6 +831,7 @@ void ListView::OnMouseDown(Point pt) {
             SelectRange(anchor, clickedRow, ctrlDown);
         }
         m_onSelectionChangedEvent.Invoke(this, clickedRow);
+        StartSelectRipple(clickedRow, pt);
         InvalidateRowsLayer();
     } else {
         // Click on Empty Space / Whitespace -> Start ReactOS Marquee Select
@@ -1171,6 +1196,8 @@ void ListView::OnKeyDown(int vkCode) {
             m_onSelectionChangedEvent.Invoke(this, m_caretIndex);
         }
         InvalidateRowsLayer();
+        Rect pill = GetRowPillRect(m_caretIndex, m_scrollY);
+        StartSelectRipple(m_caretIndex, Point(pill.x + pill.width * 0.5f, pill.y + pill.height * 0.5f));
     }
 }
 
@@ -1180,12 +1207,44 @@ bool ListView::OnAnimationTick() {
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
+        m_selectRippleActive = false;
+        m_selectRippleCovered = true;
         const bool hideAnimating = m_scrollbarAutoHide.Tick(dt);
         if (hideAnimating) {
             MarkRenderRectDirty(m_bounds);
         }
         return base || hideAnimating;
     }
+
+    bool rippleAnim = false;
+    if (m_selectRippleActive && m_selectRippleRow >= 0) {
+        Rect pill = GetRowPillRect(m_selectRippleRow, m_scrollY);
+        const float cx = pill.x + m_selectRippleLocalX;
+        const float cy = pill.y + m_selectRippleLocalY;
+        const float corners[4][2] = {
+            { pill.x, pill.y },
+            { pill.x + pill.width, pill.y },
+            { pill.x, pill.y + pill.height },
+            { pill.x + pill.width, pill.y + pill.height },
+        };
+        float maxRadius = 0.0f;
+        for (const auto& c : corners) {
+            const float dx = cx - c[0];
+            const float dy = cy - c[1];
+            maxRadius = (std::max)(maxRadius, std::sqrt(dx * dx + dy * dy));
+        }
+        m_selectRippleRadius += (maxRadius - m_selectRippleRadius) * FrameBlend(0.146f)
+            + 74.0f * dt;
+        if (m_selectRippleRadius >= maxRadius - 0.5f) {
+            m_selectRippleRadius = maxRadius;
+            m_selectRippleCovered = true;
+            m_selectRippleActive = false;
+        }
+        InvalidateRowsLayer();
+        MarkRenderRectDirty(m_bounds);
+        rippleAnim = true;
+    }
+
     m_scrollYAnim.SetTarget(m_targetScrollY);
     const float prevScroll = m_scrollY;
     bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.5f });
@@ -1201,16 +1260,52 @@ bool ListView::OnAnimationTick() {
     if (std::abs(prevOpacity - m_scrollbarAutoHide.Opacity()) > 0.001f) {
         MarkRenderRectDirty(m_bounds);
     }
-    if (anim || hideAnimating) {
+    if (anim || hideAnimating || rippleAnim) {
         RequestAnimationTicks();
     }
-    return base || anim || hideAnimating;
+    return base || anim || hideAnimating || rippleAnim;
 }
 
 bool ListView::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
         || std::abs(m_scrollYAnim.Target() - m_scrollYAnim.Current()) > 0.001f
-        || m_scrollbarAutoHide.NeedsTicks();
+        || m_scrollbarAutoHide.NeedsTicks()
+        || m_selectRippleActive;
+}
+
+Rect ListView::GetRowPillRect(int row, float scrollY) const {
+    const float rowY = m_bounds.y + m_headerHeight + row * m_rowHeight - scrollY;
+    const float totalColsW = GetTotalColumnsWidth();
+    const float rowW = std::max(m_bounds.width, totalColsW);
+    const float pillW = (std::max)(0.0f, (std::min)(rowW, m_bounds.width) - kPillInsetX * 2.0f);
+    const float pillH = (std::max)(0.0f, m_rowHeight - kPillInsetY * 2.0f);
+    return Rect(m_bounds.x + kPillInsetX, rowY + kPillInsetY, pillW, pillH);
+}
+
+void ListView::StartSelectRipple(int row, Point pt) {
+    if (row < 0 || row >= static_cast<int>(GetRowCount())) return;
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_selectRippleActive = false;
+        m_selectRippleCovered = true;
+        m_selectRippleRow = row;
+        return;
+    }
+
+    Rect pill = GetRowPillRect(row, m_scrollY);
+    m_selectRippleRow = row;
+    m_selectRippleLocalX = std::clamp(pt.x - pill.x, 0.0f, (std::max)(0.0f, pill.width));
+    m_selectRippleLocalY = std::clamp(pt.y - pill.y, 0.0f, (std::max)(0.0f, pill.height));
+    // Prefer center if click is somehow outside the pill.
+    if (pill.width > 0.0f && (pt.x < pill.x || pt.x > pill.x + pill.width)) {
+        m_selectRippleLocalX = pill.width * 0.5f;
+    }
+    if (pill.height > 0.0f && (pt.y < pill.y || pt.y > pill.y + pill.height)) {
+        m_selectRippleLocalY = pill.height * 0.5f;
+    }
+    m_selectRippleRadius = 4.0f;
+    m_selectRippleActive = true;
+    m_selectRippleCovered = false;
+    RequestAnimationTicks();
 }
 
 } // namespace CUI

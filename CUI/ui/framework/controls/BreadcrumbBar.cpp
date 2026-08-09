@@ -67,18 +67,21 @@ void BreadcrumbBar::OnMouseDown(Point pt) {
     const std::string& font = GetFontFamily();
     float fontH = GetFontSize();
     constexpr float kGap = 4.0f;
+    constexpr float kTextPad = 2.0f;
 
     for (size_t i = 0; i < m_pathNodes.size(); ++i) {
-        Size sz = ctx.MeasureText(m_pathNodes[i], font, fontH);
-        Rect itemRect(currX, m_bounds.y, sz.width + 4.0f, m_bounds.height);
+        const bool isLast = (i + 1 == m_pathNodes.size());
+        const DWRITE_FONT_WEIGHT weight = isLast ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
+        Size sz = ctx.MeasureText(m_pathNodes[i], font, fontH, weight);
+        Rect itemRect(currX, m_bounds.y, sz.width + kTextPad, m_bounds.height);
         if (itemRect.Contains(pt.x, pt.y)) {
             // Do not mutate path here — the host decides navigation.
             m_onItemClickedEvent.Invoke(this, static_cast<int>(i), m_pathNodes[i]);
             break;
         }
-        currX += sz.width + kGap;
-        if (i + 1 < m_pathNodes.size()) {
-            Size sep = ctx.MeasureText("\\", font, fontH);
+        currX += sz.width + kTextPad + kGap;
+        if (!isLast) {
+            Size sep = ctx.MeasureText("\\", font, fontH, DWRITE_FONT_WEIGHT_NORMAL);
             currX += sep.width + kGap;
         }
     }
@@ -100,14 +103,17 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
     const std::string& font = GetFontFamily();
     float fontH = GetFontSize();
     constexpr float kGap = 4.0f;
+    constexpr float kTextPad = 2.0f; // DWrite layout can be slightly wider than metrics floor
     D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
     D2D1_COLOR_F activeColor = ResolveThemeColor(GetActiveColorToken(), ThemeTokenId::TextPrimary);
     D2D1_COLOR_F sepColor = ThemeManager::Instance().GetTokens().textMuted;
 
     for (size_t i = 0; i < m_pathNodes.size(); ++i) {
         bool isLast = (i == m_pathNodes.size() - 1);
-        Size sz = ctx.MeasureText(m_pathNodes[i], font, fontH);
-        Rect itemRect(currX, m_bounds.y, sz.width, m_bounds.height);
+        // Last segment is SemiBold — measure with the same weight used for DrawText.
+        const DWRITE_FONT_WEIGHT weight = isLast ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
+        Size sz = ctx.MeasureText(m_pathNodes[i], font, fontH, weight);
+        Rect itemRect(currX, m_bounds.y, sz.width + kTextPad, m_bounds.height);
 
         ctx.DrawText(
             m_pathNodes[i],
@@ -117,15 +123,15 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
             fontH,
             DWRITE_TEXT_ALIGNMENT_LEADING,
             DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            isLast ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL
+            weight
         );
-        currX += sz.width + kGap;
+        currX += sz.width + kTextPad + kGap;
 
         if (!isLast) {
-            Size sep = ctx.MeasureText("\\", font, fontH);
-            Rect sepRect(currX, m_bounds.y, sep.width, m_bounds.height);
+            Size sep = ctx.MeasureText("\\", font, fontH, DWRITE_FONT_WEIGHT_NORMAL);
+            Rect sepRect(currX, m_bounds.y, sep.width + kTextPad, m_bounds.height);
             ctx.DrawText("\\", sepRect, sepColor, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-            currX += sep.width + kGap;
+            currX += sep.width + kTextPad + kGap;
         }
     }
 }
