@@ -21,11 +21,11 @@ public:
     HWND GetHWND() const { return m_window.GetHWND(); }
 
 private:
-    void SetupTitleBar(const std::string& title);
+    void SetupHeader(const std::string& title);
 
     Window m_window;
     std::shared_ptr<StackPanel> m_rootContainer;
-    std::shared_ptr<Panel> m_titleBar;
+    std::shared_ptr<Panel> m_headerBar;
     std::shared_ptr<Panel> m_contentContainer;
 };
 

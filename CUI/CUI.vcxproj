@@ -240,7 +240,7 @@
     <ClCompile Include="ui\framework\controls\TabView.cpp" />
     <ClCompile Include="ui\framework\controls\Expander.cpp" />
     <ClCompile Include="ui\framework\controls\MenuBar.cpp" />
-    <ClCompile Include="ui\framework\controls\VSCodeControls.cpp" />
+    <ClCompile Include="showcase\app\chrome\VSCodeControls.cpp" />
     <ClCompile Include="ui\framework\controls\PropertyGrid.cpp" />
     <ClCompile Include="ui\framework\controls\TreeView.cpp" />
     <ClCompile Include="ui\framework\controls\terminal\AnsiColors.cpp" />
@@ -328,7 +328,8 @@
     <ClInclude Include="ui\framework\controls\TabView.h" />
     <ClInclude Include="ui\framework\controls\Expander.h" />
     <ClInclude Include="ui\framework\controls\MenuBar.h" />
-    <ClInclude Include="ui\framework\controls\VSCodeControls.h" />
+    <ClInclude Include="showcase\app\chrome\VSCodeControls.h" />
+    <ClInclude Include="ui\framework\window\IWindowChrome.h" />
     <ClInclude Include="ui\framework\controls\PropertyGrid.h" />
     <ClInclude Include="ui\framework\controls\TreeView.h" />
     <ClInclude Include="ui\framework\controls\NavigationView.h" />

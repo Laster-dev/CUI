@@ -1,10 +1,11 @@
 #include "Window.h"
 #include "Dpi.h"
+#include "IWindowChrome.h"
 #include "../style/ThemeManager.h"
 #include "../parser/StyleManager.h"
 #include "../controls/TextBox.h"
 #include "../controls/ContextMenu.h"
-#include "../controls/VSCodeControls.h"
+#include "../controls/MenuBar.h"
 #include "../controls/DatePicker.h"
 #include "../controls/TimePicker.h"
 #include "../controls/ColorPicker.h"
@@ -39,8 +40,6 @@ Window* Window::Current() {
 }
 
 namespace {
-constexpr UINT WM_CUI_TOGGLE_LOW_PERF = WM_APP + 42;
-constexpr UINT WM_CUI_TOGGLE_THEME = WM_APP + 44;
 constexpr UINT WM_CUI_RASTER_COMPLETE = WM_APP + 45;
 
 float GetWindowRefreshRateHz(HWND hwnd) {
@@ -153,6 +152,27 @@ Rect GetLogicalClientBounds(HWND hwnd, float dpiScale) {
     return PhysicalRectToLogical(GetClientBounds(hwnd), dpiScale);
 }
 
+IWindowChrome* FindWindowChrome(UIElement* root) {
+    if (!root) {
+        return nullptr;
+    }
+    for (const auto& child : root->GetChildren()) {
+        if (auto* chrome = dynamic_cast<IWindowChrome*>(child.get())) {
+            return chrome;
+        }
+    }
+    return nullptr;
+}
+
+Rect GetChromeBounds(UIElement* root) {
+    if (IWindowChrome* chrome = FindWindowChrome(root)) {
+        if (const UIElement* chromeElement = chrome->GetChromeElement()) {
+            return chromeElement->GetBounds();
+        }
+    }
+    return Rect();
+}
+
 // Paint always resolves colors through ResolveThemeColor(Get*Token()), so this
 // walk only needs to seed sensible default tokens where a control hasn't set
 // its own — no legacy ColorF/string mirroring required.
@@ -163,31 +183,13 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
 
     const std::string className = element->GetClassName();
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
-    if (className == "TitleBar") {
-        // Keep chrome fill stable across hover/focus; always sync from titleBarBackground.
+    if (className == "MenuBar") {
         if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
-            element->SetBackgroundToken(ThemeTokenId::TitleBarBackground);
-        }
-        if (element->GetHoverBackgroundToken() == ThemeTokenId::Unset) {
-            element->SetHoverBackgroundToken(ThemeTokenId::TitleBarBackground);
-        }
-        if (element->GetPressedBackgroundToken() == ThemeTokenId::Unset) {
-            element->SetPressedBackgroundToken(ThemeTokenId::TitleBarBackground);
+            element->SetBackgroundToken(ThemeTokenId::PaneBackground);
+            element->SetBackground(ThemeManager::Instance().GetColor("paneBackground"));
         }
         if (element->GetColorToken() == ThemeTokenId::Unset) {
-            element->SetColorToken(ThemeTokenId::TitleBarText);
-        }
-        element->SetBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
-        element->SetHoverBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
-        element->SetPressedBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
-        element->SetColor(ThemeManager::Instance().GetColor("titleBarText"));
-    } else if (className == "MenuBar") {
-        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
-            element->SetBackgroundToken(ThemeTokenId::TitleBarBackground);
-            element->SetBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
-        }
-        if (element->GetColorToken() == ThemeTokenId::Unset) {
-            element->SetColor(tokens.titleBarText);
+            element->SetColor(tokens.textPrimary);
         }
     } else if (className == "Button") {
         if (element->GetColorToken() == ThemeTokenId::Unset) {
@@ -372,28 +374,6 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
     } else if (className == "TextBlock" || className == "HyperlinkButton") {
         if (element->GetColorToken() == ThemeTokenId::Unset) {
             element->SetColor(className == "HyperlinkButton" ? tokens.accentColor : tokens.textSecondary);
-        }
-    } else if (className == "ActivityBar") {
-        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
-            element->SetBackgroundToken(ThemeTokenId::ActivityBarBackground);
-            element->SetBackground(ThemeManager::Instance().GetColor("activityBarBackground"));
-        }
-    } else if (className == "SideBar" || className == "TabBar") {
-        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
-            element->SetBackgroundToken(ThemeTokenId::PaneBackground);
-            element->SetBackground(ThemeManager::Instance().GetColor("paneBackground"));
-        }
-    } else if (className == "EditorView") {
-        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
-            element->SetBackgroundToken(ThemeTokenId::WindowBackground);
-            element->SetBackground(ThemeManager::Instance().GetColor("windowBackground"));
-        }
-    } else if (className == "StatusBar") {
-        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
-            element->SetBackground(tokens.accentColor);
-        }
-        if (element->GetColorToken() == ThemeTokenId::Unset) {
-            element->SetColor(tokens.accentForeground);
         }
     }
 
@@ -1187,31 +1167,18 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         float winW = static_cast<float>(rc.right) / scale;
         float winH = static_cast<float>(rc.bottom) / scale;
 
-        // TitleBar chrome toggles / menu must win over resize borders and caption drag.
-        // Prefer direct TitleBar child lookup — tree HitTest can still be wrong if content leaks.
-        if (fy >= 0 && fy <= 40.0f && fx < winW - 138.0f && m_rootElement) {
-            TitleBar* titleBar = nullptr;
-            for (const auto& child : m_rootElement->GetChildren()) {
-                titleBar = dynamic_cast<TitleBar*>(child.get());
-                if (titleBar) break;
-            }
-            if (!titleBar) {
-                if (auto* hit = m_rootElement->HitTest(fx, fy)) {
-                    titleBar = dynamic_cast<TitleBar*>(hit);
-                }
-            }
-            if (titleBar) {
-                if (titleBar->IsLowPerformanceToggleHit(fx, fy) ||
-                    titleBar->IsThemeToggleHit(fx, fy) ||
-                    titleBar->IsMenuBarHit(fx, fy)) {
+        const Rect chromeBounds = GetChromeBounds(m_rootElement.get());
+        if (!chromeBounds.IsEmpty() && chromeBounds.Contains(fx, fy)) {
+            if (IWindowChrome* chrome = FindWindowChrome(m_rootElement.get())) {
+                if (chrome->IsInteractiveHit(fx, fy)) {
                     return HTCLIENT;
                 }
             }
         }
 
-        // System buttons get first chance after chrome toggles (46 DIP each).
+        // System buttons live in the same top chrome band as the custom app shell.
         constexpr float kCaptionBtnW = 46.0f;
-        if (fy >= 0 && fy <= 40.0f) {
+        if (!chromeBounds.IsEmpty() && fy >= chromeBounds.y && fy <= (chromeBounds.y + chromeBounds.height)) {
             if (fx >= winW - kCaptionBtnW) {
                 return HTCLOSE;
             }
@@ -1241,23 +1208,15 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             if (bottom) return HTBOTTOM;
         }
 
-        // 3. Custom TitleBar Hit-Testing & Windows 11 Snap Layouts Integration
-        if (fy >= 0 && fy <= 40.0f) {
-            // Drag window caption (only when clicking directly on empty TitleBar space, NOT child controls)
-            if (fx < winW - 138.0f && m_rootElement) {
-                UIElement* hit = m_rootElement->HitTest(fx, fy);
-                if (auto titleBar = dynamic_cast<TitleBar*>(hit)) {
-                    if (titleBar->IsLowPerformanceToggleHit(fx, fy) || titleBar->IsThemeToggleHit(fx, fy)) {
-                        return HTCLIENT;
-                    }
-                    if (titleBar->IsMenuBarHit(fx, fy)) {
-                        return HTCLIENT;
-                    }
+        if (!chromeBounds.IsEmpty() && chromeBounds.Contains(fx, fy) && m_rootElement) {
+            UIElement* hit = m_rootElement->HitTest(fx, fy);
+            if (IWindowChrome* chrome = FindWindowChrome(m_rootElement.get())) {
+                if (chrome->IsCaptionDragHit(fx, fy, hit)) {
+                    return HTCAPTION;
                 }
-                if (hit && std::string(hit->GetClassName()) != "TitleBar" && hit != m_rootElement.get()) {
-                    return HTCLIENT; // All child controls inside titlebar (MenuBar, Buttons, etc.) process UI clicks!
+                if (chrome->IsInteractiveHit(fx, fy)) {
+                    return HTCLIENT;
                 }
-                return HTCAPTION;
             }
         }
 
@@ -1292,14 +1251,6 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             sched->ScheduleFrame();
         }
         InvalidatePendingRenderRegions(false);
-        return 0;
-
-    case WM_CUI_TOGGLE_LOW_PERF:
-        SetLowPerformanceMode(!m_lowPerformanceMode);
-        return 0;
-
-    case WM_CUI_TOGGLE_THEME:
-        SetThemeMode(m_themeMode == ThemeMode::Dark ? ThemeMode::Light : ThemeMode::Dark);
         return 0;
 
     case WM_SIZE:
@@ -1831,22 +1782,23 @@ Point Window::ClientPointToLogical(int x, int y) const {
 }
 
 UIElement* Window::HitTestChrome(float x, float y) const {
-    // TitleBar caption band must win over leaked document hits (e.g. scrolled content).
-    if (!m_rootElement || y < 0.0f || y > 40.0f) {
+    if (!m_rootElement) {
         return nullptr;
     }
-    for (const auto& child : m_rootElement->GetChildren()) {
-        auto* titleBar = dynamic_cast<TitleBar*>(child.get());
-        if (!titleBar) {
-            continue;
+    const Rect chromeBounds = GetChromeBounds(m_rootElement.get());
+    if (chromeBounds.IsEmpty() || !chromeBounds.Contains(x, y)) {
+        return nullptr;
+    }
+    if (IWindowChrome* chrome = FindWindowChrome(m_rootElement.get())) {
+        UIElement* chromeElement = chrome->GetChromeElement();
+        if (chromeElement) {
+            if (UIElement* hit = chromeElement->HitTest(x, y)) {
+                return hit;
+            }
+            if (chromeElement->GetBounds().Contains(x, y)) {
+                return chromeElement;
+            }
         }
-        if (UIElement* hit = titleBar->HitTest(x, y)) {
-            return hit;
-        }
-        if (titleBar->GetBounds().Contains(x, y)) {
-            return titleBar;
-        }
-        break;
     }
     return nullptr;
 }
@@ -1904,8 +1856,8 @@ bool Window::OnMouseMove(int x, int y) {
 
     if (hovered) {
         hovered->OnMouseMove(Point(fx, fy));
-        if (auto* titleBar = dynamic_cast<TitleBar*>(hovered.get())) {
-            (void)titleBar->ConsumeMenuChromeDirty();
+        if (auto* chrome = dynamic_cast<IWindowChrome*>(hovered.get())) {
+            (void)chrome->ConsumeChromeDirty();
         }
         // Keep m_activeContextMenu synchronized if MenuBar opened a new dropdown
         UIElement* curr = hovered.get();
@@ -2008,7 +1960,8 @@ bool Window::OnLButtonDown(int x, int y) {
             if (m_rootElement) {
                 std::function<void(UIElement*)> clearMenuBar = [&](UIElement* elem) {
                     if (!elem) return;
-                    if (auto mb = dynamic_cast<MenuBar*>(elem)) {
+                    MenuBar* mb = dynamic_cast<MenuBar*>(elem);
+                    if (mb) {
                         mb->ResetInteractionState();
                     }
                     for (auto& child : elem->GetChildren()) {

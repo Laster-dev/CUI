@@ -5,7 +5,7 @@
 #include "framework/window/Window.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/ToastCenter.h"
-#include "framework/controls/VSCodeControls.h"
+#include "chrome/VSCodeControls.h"
 #include "framework/controls/NavigationView.h"
 #include "framework/controls/NavigationViewItem.h"
 #include "framework/controls/ProgressBarDiag.h"
@@ -331,6 +331,15 @@ public:
         auto effectiveContext = m_ctx;
         if (context.window) {
             effectiveContext.windowRef = context.window;
+        }
+
+        if (effectiveContext.windowRef) {
+            titleBar->OnToggleLowPerformance().Connect([win = effectiveContext.windowRef](TitleBar*) {
+                win->SetLowPerformanceMode(!win->IsLowPerformanceMode());
+            });
+            titleBar->OnToggleTheme().Connect([win = effectiveContext.windowRef](TitleBar*) {
+                win->SetThemeMode(win->GetThemeMode() == ThemeMode::Dark ? ThemeMode::Light : ThemeMode::Dark);
+            });
         }
 
         // Root chrome/content must not use the default Column gap. ToastCenter is

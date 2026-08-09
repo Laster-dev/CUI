@@ -14,8 +14,6 @@ constexpr const char* kTokenNamesById[] = {
     "textPrimary",
     "textSecondary",
     "textMuted",
-    "titleBarBackground",
-    "titleBarText",
     "accentColor",
     "accentForeground",
     "dangerColor",
@@ -26,11 +24,6 @@ constexpr const char* kTokenNamesById[] = {
     "pressedBackground",
     "selectedBackground",
     "focusedBorder",
-    "activityBarBackground",
-    "sideBarBackground",
-    "editorBackground",
-    "statusBarBackground",
-    "tabBarBackground",
 };
 static_assert(sizeof(kTokenNamesById) / sizeof(kTokenNamesById[0]) ==
               static_cast<size_t>(ThemeTokenId::Count),

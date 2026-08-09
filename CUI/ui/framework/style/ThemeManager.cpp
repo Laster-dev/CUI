@@ -53,8 +53,6 @@ void ThemeManager::UpdateTokens() {
         m_tokens.textPrimary = Rgb(0xFF, 0xFF, 0xFF);            // TextFillColorPrimary
         m_tokens.textSecondary = Rgb(0xC5, 0xC5, 0xC5);
         m_tokens.textMuted = Rgb(0x87, 0x87, 0x87);
-        m_tokens.titleBarBackground = Rgb(0x20, 0x20, 0x20);
-        m_tokens.titleBarText = Rgb(0xFF, 0xFF, 0xFF);
         m_tokens.accentColor = Rgb(0x00, 0x86, 0xF0);
         m_tokens.accentForeground = Rgb(0xFF, 0xFF, 0xFF);
         m_tokens.dangerColor = Rgb(0xC4, 0x2B, 0x1C);
@@ -65,7 +63,6 @@ void ThemeManager::UpdateTokens() {
         m_tokens.pressedBackground = Rgb(0x32, 0x36, 0x38);
         m_tokens.selectedBackground = Rgb(0x09, 0x47, 0x71, 0.85f);
         m_tokens.focusedBorder = Rgb(0x00, 0x86, 0xF0);
-        m_tokens.activityBarBackground = Rgb(0x1C, 0x1C, 0x1C);
     } else {
         // WinUI Light — Common_themeresources_any.xaml Light dictionary
         m_tokens.windowBackground = Rgb(0xF3, 0xF3, 0xF3);       // SolidBackgroundFillColorBase
@@ -74,8 +71,6 @@ void ThemeManager::UpdateTokens() {
         m_tokens.textPrimary = Rgb(0x1A, 0x1A, 0x1A);           // TextFillColorPrimary (opaque for D2D)
         m_tokens.textSecondary = Rgb(0x5C, 0x5C, 0x5C);         // ~TextFillColorSecondary #9E000000 on white
         m_tokens.textMuted = Rgb(0x75, 0x75, 0x75);             // ~TextFillColorTertiary
-        m_tokens.titleBarBackground = Rgb(0xF9, 0xF9, 0xF9);     // SolidBackgroundFillColorTertiary
-        m_tokens.titleBarText = Rgb(0x1A, 0x1A, 0x1A);
         m_tokens.accentColor = Rgb(0x00, 0x5F, 0xB8);            // SystemAccentColorDark1
         m_tokens.accentForeground = Rgb(0xFF, 0xFF, 0xFF);       // TextOnAccentFillColorPrimary
         m_tokens.dangerColor = Rgb(0xC4, 0x2B, 0x1C);             // SystemFillColorCritical
@@ -87,7 +82,6 @@ void ThemeManager::UpdateTokens() {
         // Nav/list selection: soft accent tint (readable on #F3 pane / white cards)
         m_tokens.selectedBackground = Rgb(0xC8, 0xE0, 0xF4);
         m_tokens.focusedBorder = Rgb(0x00, 0x5F, 0xB8);
-        m_tokens.activityBarBackground = Rgb(0xEE, 0xEE, 0xEE);
     }
 }
 
@@ -115,8 +109,6 @@ D2D1_COLOR_F ThemeManager::LookupBaseColor(ThemeTokenId id) const {
     case ThemeTokenId::TextPrimary: return m_tokens.textPrimary;
     case ThemeTokenId::TextSecondary: return m_tokens.textSecondary;
     case ThemeTokenId::TextMuted: return m_tokens.textMuted;
-    case ThemeTokenId::TitleBarBackground: return m_tokens.titleBarBackground;
-    case ThemeTokenId::TitleBarText: return m_tokens.titleBarText;
     case ThemeTokenId::AccentColor: return m_tokens.accentColor;
     case ThemeTokenId::AccentForeground: return m_tokens.accentForeground;
     case ThemeTokenId::SelectedBackground: return m_tokens.selectedBackground;
@@ -127,11 +119,6 @@ D2D1_COLOR_F ThemeManager::LookupBaseColor(ThemeTokenId id) const {
     case ThemeTokenId::HoverBackground: return m_tokens.hoverBackground;
     case ThemeTokenId::PressedBackground: return m_tokens.pressedBackground;
     case ThemeTokenId::FocusedBorder: return m_tokens.focusedBorder;
-    case ThemeTokenId::ActivityBarBackground: return m_tokens.activityBarBackground;
-    case ThemeTokenId::SideBarBackground: return m_tokens.paneBackground;
-    case ThemeTokenId::EditorBackground: return m_tokens.windowBackground;
-    case ThemeTokenId::StatusBarBackground: return m_tokens.accentColor;
-    case ThemeTokenId::TabBarBackground: return m_tokens.paneBackground;
     case ThemeTokenId::Unset:
     case ThemeTokenId::Count:
     default:
@@ -142,19 +129,13 @@ D2D1_COLOR_F ThemeManager::LookupBaseColor(ThemeTokenId id) const {
 MaterialRole ThemeManager::GetMaterialRole(ThemeTokenId id) const {
     switch (id) {
     case ThemeTokenId::WindowBackground:
-    case ThemeTokenId::EditorBackground:
-    case ThemeTokenId::TitleBarBackground:
     case ThemeTokenId::PaneBackground:
-    case ThemeTokenId::SideBarBackground:
-    case ThemeTokenId::ActivityBarBackground:
-    case ThemeTokenId::TabBarBackground:
         return MaterialRole::Chrome;
     case ThemeTokenId::CardBackground:
     case ThemeTokenId::InputBackground:
     case ThemeTokenId::HoverBackground:
     case ThemeTokenId::PressedBackground:
     case ThemeTokenId::SelectedBackground:
-    case ThemeTokenId::StatusBarBackground:
         return MaterialRole::Surface;
     default:
         return MaterialRole::Solid;
@@ -205,8 +186,6 @@ const std::vector<std::string>& ThemeManager::GetTokenNames() {
         "textPrimary",
         "textSecondary",
         "textMuted",
-        "titleBarBackground",
-        "titleBarText",
         "accentColor",
         "accentForeground",
         "dangerColor",
@@ -216,11 +195,6 @@ const std::vector<std::string>& ThemeManager::GetTokenNames() {
         "hoverBackground",
         "pressedBackground",
         "focusedBorder",
-        "activityBarBackground",
-        "sideBarBackground",
-        "editorBackground",
-        "statusBarBackground",
-        "tabBarBackground",
         "selectedBackground"
     };
     return names;

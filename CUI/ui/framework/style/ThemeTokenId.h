@@ -13,8 +13,6 @@ enum class ThemeTokenId : uint16_t {
     TextPrimary,
     TextSecondary,
     TextMuted,
-    TitleBarBackground,
-    TitleBarText,
     AccentColor,
     AccentForeground,
     DangerColor,
@@ -25,11 +23,6 @@ enum class ThemeTokenId : uint16_t {
     PressedBackground,
     SelectedBackground,
     FocusedBorder,
-    ActivityBarBackground,
-    SideBarBackground,
-    EditorBackground,
-    StatusBarBackground,
-    TabBarBackground,
     Count
 };
 

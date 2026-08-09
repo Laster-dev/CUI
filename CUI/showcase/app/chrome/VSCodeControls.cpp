@@ -1,7 +1,7 @@
 #include "VSCodeControls.h"
-#include "../window/Window.h"
-#include "../window/Dpi.h"
-#include "../style/ThemeManager.h"
+#include "../../../ui/framework/window/Window.h"
+#include "../../../ui/framework/window/Dpi.h"
+#include "../../../ui/framework/style/ThemeManager.h"
 
 namespace CUI {
 
@@ -10,13 +10,13 @@ namespace CUI {
 // ==========================================
 TitleBar::TitleBar() {
     SetHeight(34.0f);
-    SetBackgroundToken(ThemeTokenId::TitleBarBackground);
-    SetHoverBackgroundToken(ThemeTokenId::TitleBarBackground);
-    SetPressedBackgroundToken(ThemeTokenId::TitleBarBackground);
-    SetColorToken(ThemeTokenId::TitleBarText);
-    SetBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
-    SetHoverBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
-    SetPressedBackground(ThemeManager::Instance().GetColor("titleBarBackground"));
+    SetBackgroundToken(ThemeTokenId::PaneBackground);
+    SetHoverBackgroundToken(ThemeTokenId::PaneBackground);
+    SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
+    SetColorToken(ThemeTokenId::TextPrimary);
+    SetBackground(ThemeManager::Instance().GetColor("paneBackground"));
+    SetHoverBackground(ThemeManager::Instance().GetColor("paneBackground"));
+    SetPressedBackground(ThemeManager::Instance().GetColor("paneBackground"));
     SetTitle("CUI - Visual Studio Code [Direct2D UI Engine]");
     m_menuBar.SetParent(this);
 
@@ -85,7 +85,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     // Draw app icon
     Rect iconRect(m_bounds.x + 10, m_bounds.y + (m_bounds.height - 18) * 0.5f, 18, 18);
     ctx.FillRoundedRect(iconRect, 4.0f, tokens.accentColor);
-    ctx.DrawText("C", iconRect, tokens.titleBarText, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    ctx.DrawText("C", iconRect, tokens.accentForeground, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     // Render Real Interactive MenuBar with dynamic content-fit width
     float calcMenuBarW = m_menuBar.GetTotalWidth(ctx);
@@ -118,18 +118,12 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    const D2D1_COLOR_F titleColor = lightTheme
-        ? tokens.titleBarText
-        : tokens.titleBarText;
-    const D2D1_COLOR_F chromeTextColor = lightTheme
-        ? tokens.titleBarText
-        : tokens.titleBarText;
-    const D2D1_COLOR_F chromeLineColor = lightTheme
-        ? tokens.titleBarText
-        : tokens.titleBarText;
+    const D2D1_COLOR_F titleColor = tokens.textPrimary;
+    const D2D1_COLOR_F chromeTextColor = tokens.textPrimary;
+    const D2D1_COLOR_F chromeLineColor = tokens.textPrimary;
     const D2D1_COLOR_F subtleChromeBg = lightTheme
-        ? D2D1::ColorF(tokens.titleBarText.r, tokens.titleBarText.g, tokens.titleBarText.b, isHoveredInTitle ? 0.08f : 0.04f)
-        : D2D1::ColorF(tokens.titleBarText.r, tokens.titleBarText.g, tokens.titleBarText.b, isHoveredInTitle ? 0.14f : 0.08f);
+        ? D2D1::ColorF(tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, isHoveredInTitle ? 0.08f : 0.04f)
+        : D2D1::ColorF(tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, isHoveredInTitle ? 0.14f : 0.08f);
     // Draw title in center
     const std::string& title = GetTitle();
     ctx.DrawText(title, m_bounds, titleColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -238,32 +232,12 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
 void TitleBar::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
 
-    auto postChromeMessage = [](UINT msg) {
-        HWND hwnd = nullptr;
-        POINT screenPt{};
-        if (GetCursorPos(&screenPt)) {
-            hwnd = WindowFromPoint(screenPt);
-            if (hwnd) {
-                hwnd = GetAncestor(hwnd, GA_ROOT);
-            }
-        }
-        if (!hwnd) {
-            hwnd = GetForegroundWindow();
-        }
-        if (!hwnd) {
-            hwnd = GetActiveWindow();
-        }
-        if (hwnd) {
-            PostMessageW(hwnd, msg, 0, 0);
-        }
-    };
-
     if (IsLowPerformanceToggleHit(pt.x, pt.y)) {
-        postChromeMessage(WM_APP + 42);
+        m_onToggleLowPerformance.Invoke(this);
         return;
     }
     if (IsThemeToggleHit(pt.x, pt.y)) {
-        postChromeMessage(WM_APP + 44);
+        m_onToggleTheme.Invoke(this);
         return;
     }
     m_menuBar.OnMouseDown(pt);
@@ -286,8 +260,22 @@ void TitleBar::OnBlur() {
     m_menuBar.OnBlur();
 }
 
-bool TitleBar::IsMenuBarHit(float x, float y) {
-    return m_menuBar.HitTest(x, y) != nullptr;
+bool TitleBar::IsMenuBarHit(float x, float y) const {
+    return const_cast<MenuBar&>(m_menuBar).HitTest(x, y) != nullptr;
+}
+
+bool TitleBar::IsInteractiveHit(float x, float y) const {
+    return IsLowPerformanceToggleHit(x, y) || IsThemeToggleHit(x, y) || IsMenuBarHit(x, y);
+}
+
+bool TitleBar::IsCaptionDragHit(float x, float y, UIElement* treeHit) const {
+    if (!m_bounds.Contains(x, y)) {
+        return false;
+    }
+    if (IsInteractiveHit(x, y)) {
+        return false;
+    }
+    return !treeHit || (treeHit == this);
 }
 
 Rect TitleBar::GetLowPerformanceToggleRect() const {
@@ -316,8 +304,14 @@ bool TitleBar::IsThemeToggleHit(float x, float y) const {
     return GetThemeToggleRect().Contains(x, y);
 }
 
+bool TitleBar::ConsumeChromeDirty() {
+    const bool dirty = m_menuChromeDirty;
+    m_menuChromeDirty = false;
+    return dirty;
+}
+
 UIElement* TitleBar::HitTest(float x, float y) {
-    if (IsLowPerformanceToggleHit(x, y) || IsThemeToggleHit(x, y)) {
+    if (IsInteractiveHit(x, y)) {
         return this;
     }
     UIElement* mbHit = m_menuBar.HitTest(x, y);
@@ -330,8 +324,8 @@ UIElement* TitleBar::HitTest(float x, float y) {
 // ==========================================
 ActivityBar::ActivityBar() {
     SetWidth(48.0f);
-    SetBackgroundToken(ThemeTokenId::ActivityBarBackground);
-    SetBackground(ThemeManager::Instance().GetTokens().activityBarBackground);
+    SetBackgroundToken(ThemeTokenId::PaneBackground);
+    SetBackground(ThemeManager::Instance().GetTokens().paneBackground);
 
     m_items = {
         { "[E]", "Explorer" },
@@ -387,8 +381,8 @@ void ActivityBar::OnMouseDown(Point pt) {
 // ==========================================
 SideBar::SideBar() {
     SetWidth(240.0f);
-    SetBackgroundToken(ThemeTokenId::SideBarBackground);
-    SetBackground(ThemeManager::Instance().GetColor("sideBarBackground"));
+    SetBackgroundToken(ThemeTokenId::PaneBackground);
+    SetBackground(ThemeManager::Instance().GetColor("paneBackground"));
     SetTitle("EXPLORER: CUI PROJECT");
 
     m_fileTree = {
@@ -473,8 +467,8 @@ void SideBar::OnMouseDown(Point pt) {
 // ==========================================
 TabBar::TabBar() {
     SetHeight(35.0f);
-    SetBackgroundToken(ThemeTokenId::TabBarBackground);
-    SetBackground(ThemeManager::Instance().GetColor("tabBarBackground"));
+    SetBackgroundToken(ThemeTokenId::PaneBackground);
+    SetBackground(ThemeManager::Instance().GetColor("paneBackground"));
 
     m_tabs = {
         { "c", "GraphicsContext.cpp", true },
@@ -550,8 +544,8 @@ void TabBar::OnMouseDown(Point pt) {
 // 5. EditorView Implementation
 // ==========================================
 EditorView::EditorView() {
-    SetBackgroundToken(ThemeTokenId::EditorBackground);
-    SetBackground(ThemeManager::Instance().GetColor("editorBackground"));
+    SetBackgroundToken(ThemeTokenId::WindowBackground);
+    SetBackground(ThemeManager::Instance().GetColor("windowBackground"));
 
     m_lines = {
         "// Direct2D High-Performance Render Loop",
@@ -650,9 +644,9 @@ void EditorView::OnMouseDown(Point pt) {
 // ==========================================
 StatusBar::StatusBar() {
     SetHeight(22.0f);
-    SetBackgroundToken(ThemeTokenId::StatusBarBackground);
+    SetBackgroundToken(ThemeTokenId::AccentColor);
     SetColorToken(ThemeTokenId::AccentForeground);
-    SetBackground(ThemeManager::Instance().GetColor("statusBarBackground"));
+    SetBackground(ThemeManager::Instance().GetColor("accentColor"));
     SetColor(ThemeManager::Instance().GetTokens().accentForeground);
 }
 

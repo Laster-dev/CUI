@@ -57,10 +57,9 @@ inline std::string ResolveLegacyThemeTokenForColor(const std::string& colorStr) 
     // Allow direct token names in DSL
     if (colorStr == "windowBackground" || colorStr == "cardBackground" || colorStr == "cardBorder" ||
         colorStr == "textPrimary" || colorStr == "textSecondary" || colorStr == "textMuted" ||
-        colorStr == "titleBarBackground" || colorStr == "titleBarText" || colorStr == "accentColor" ||
-        colorStr == "accentForeground" || colorStr == "dangerColor" || colorStr == "paneBackground" ||
-        colorStr == "inputBackground" || colorStr == "inputBorder" || colorStr == "hoverBackground" ||
-        colorStr == "pressedBackground" || colorStr == "focusedBorder" || colorStr == "activityBarBackground") {
+        colorStr == "accentColor" || colorStr == "accentForeground" || colorStr == "dangerColor" ||
+        colorStr == "paneBackground" || colorStr == "inputBackground" || colorStr == "inputBorder" ||
+        colorStr == "hoverBackground" || colorStr == "pressedBackground" || colorStr == "focusedBorder") {
         return colorStr;
     }
     return "";
@@ -138,7 +137,7 @@ public:
         if (!token.empty()) {
             ThemeTokenId id = ThemeTokenIdFromName(token);
             m_element->SetBackgroundToken(id);
-            if (token == "accentColor" || token == "dangerColor" || token == "statusBarBackground") {
+            if (token == "accentColor" || token == "dangerColor") {
                 m_element->SetColorToken(ThemeTokenId::AccentForeground);
             } else if (token == "inputBorder" || token == "cardBorder" || token == "cardBackground" ||
                        token == "paneBackground" || token == "hoverBackground" || token == "windowBackground") {

@@ -7,10 +7,10 @@ namespace CUI {
 
 MenuBar::MenuBar() {
     SetHeight(30.0f);
-    SetBackgroundToken(ThemeTokenId::TitleBarBackground);
-    SetHoverBackgroundToken(ThemeTokenId::TitleBarBackground);
-    SetPressedBackgroundToken(ThemeTokenId::TitleBarBackground);
-    SetColorToken(ThemeTokenId::TitleBarText);
+    SetBackgroundToken(ThemeTokenId::PaneBackground);
+    SetHoverBackgroundToken(ThemeTokenId::PaneBackground);
+    SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
+    SetColorToken(ThemeTokenId::TextPrimary);
 }
 
 std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {
@@ -69,7 +69,7 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
-    D2D1_COLOR_F defaultTextColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TitleBarText);
+    D2D1_COLOR_F defaultTextColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     D2D1_COLOR_F hoverBgColor = lightTheme
         ? D2D1::ColorF(ThemeManager::Instance().GetTokens().cardBorder.r, ThemeManager::Instance().GetTokens().cardBorder.g, ThemeManager::Instance().GetTokens().cardBorder.b, 0.12f)
         : D2D1::ColorF(ThemeManager::Instance().GetTokens().cardBorder.r, ThemeManager::Instance().GetTokens().cardBorder.g, ThemeManager::Instance().GetTokens().cardBorder.b, 0.18f);

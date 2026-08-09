@@ -22,8 +22,6 @@ struct ThemeTokens {
     D2D1_COLOR_F textPrimary;
     D2D1_COLOR_F textSecondary;
     D2D1_COLOR_F textMuted;
-    D2D1_COLOR_F titleBarBackground;
-    D2D1_COLOR_F titleBarText;
     D2D1_COLOR_F accentColor;
     D2D1_COLOR_F accentForeground;
     D2D1_COLOR_F dangerColor;
@@ -34,7 +32,6 @@ struct ThemeTokens {
     D2D1_COLOR_F pressedBackground;
     D2D1_COLOR_F selectedBackground;
     D2D1_COLOR_F focusedBorder;
-    D2D1_COLOR_F activityBarBackground;
 };
 
 class ThemeManager {

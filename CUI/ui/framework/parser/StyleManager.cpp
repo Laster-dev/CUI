@@ -19,21 +19,21 @@ void StyleManager::LoadDarkTheme() {
         return Value(ThemeManager::Instance().GetColorHex(token));
     };
 
-    RegisterStyle("vscode-titlebar", "background", hex("titleBarBackground"));
+    RegisterStyle("vscode-titlebar", "background", hex("paneBackground"));
     RegisterStyle("vscode-titlebar", "height", Value(30.0f));
 
-    RegisterStyle("vscode-activitybar", "background", hex("activityBarBackground"));
+    RegisterStyle("vscode-activitybar", "background", hex("paneBackground"));
     RegisterStyle("vscode-activitybar", "width", Value(48.0f));
 
-    RegisterStyle("vscode-sidebar", "background", hex("sideBarBackground"));
+    RegisterStyle("vscode-sidebar", "background", hex("paneBackground"));
     RegisterStyle("vscode-sidebar", "width", Value(240.0f));
 
-    RegisterStyle("vscode-tabbar", "background", hex("tabBarBackground"));
+    RegisterStyle("vscode-tabbar", "background", hex("paneBackground"));
     RegisterStyle("vscode-tabbar", "height", Value(35.0f));
 
-    RegisterStyle("vscode-editor", "background", hex("editorBackground"));
+    RegisterStyle("vscode-editor", "background", hex("windowBackground"));
 
-    RegisterStyle("vscode-statusbar", "background", hex("statusBarBackground"));
+    RegisterStyle("vscode-statusbar", "background", hex("accentColor"));
     RegisterStyle("vscode-statusbar", "height", Value(22.0f));
 }
 

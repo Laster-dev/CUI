@@ -13,32 +13,32 @@ CUIWindow::CUIWindow(const std::string& title, int width, int height) {
     m_rootContainer->SetBackgroundToken(ThemeTokenId::WindowBackground);
     m_rootContainer->SetBackground(theme.GetColor("windowBackground"));
 
-    SetupTitleBar(title);
+    SetupHeader(title);
 
     m_contentContainer = std::make_shared<Panel>();
     m_contentContainer->SetFlexGrow(1.0f);
     m_contentContainer->SetAlign(Alignment::Stretch);
 
-    m_rootContainer->AddChild(m_titleBar);
+    m_rootContainer->AddChild(m_headerBar);
     m_rootContainer->AddChild(m_contentContainer);
 
     m_window.Create(title, width, height);
     m_window.SetRootElement(m_rootContainer);
 }
 
-void CUIWindow::SetupTitleBar(const std::string& title) {
+void CUIWindow::SetupHeader(const std::string& title) {
     auto& theme = ThemeManager::Instance();
-    m_titleBar = std::make_shared<Panel>();
-    m_titleBar->SetHeight(32.0f);
-    m_titleBar->SetBackgroundToken(ThemeTokenId::TitleBarBackground);
-    m_titleBar->SetBackground(theme.GetColor("titleBarBackground"));
+    m_headerBar = std::make_shared<Panel>();
+    m_headerBar->SetHeight(32.0f);
+    m_headerBar->SetBackgroundToken(ThemeTokenId::PaneBackground);
+    m_headerBar->SetBackground(theme.GetColor("paneBackground"));
 
     auto txtTitle = std::make_shared<TextBlock>(title);
     txtTitle->SetFontSize(12.0f);
-    txtTitle->SetColorToken(ThemeTokenId::TitleBarText);
-    txtTitle->SetColor(theme.GetColor("titleBarText"));
+    txtTitle->SetColorToken(ThemeTokenId::TextPrimary);
+    txtTitle->SetColor(theme.GetColor("textPrimary"));
     txtTitle->SetMargin(Thickness(12, 8, 0, 0));
-    m_titleBar->AddChild(txtTitle);
+    m_headerBar->AddChild(txtTitle);
 }
 
 void CUIWindow::SetContent(std::shared_ptr<UIElement> rootContent) {

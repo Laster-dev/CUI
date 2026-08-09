@@ -1,15 +1,15 @@
 #pragma once
-#include "UIElement.h"
-#include "Control.h"
+#include "../../../ui/framework/controls/UIElement.h"
+#include "../../../ui/framework/controls/Control.h"
+#include "../../../ui/framework/controls/MenuBar.h"
+#include "../../../ui/framework/core/Event.h"
+#include "../../../ui/framework/window/IWindowChrome.h"
 #include <string>
 #include <vector>
 
-#include "MenuBar.h"
-
 namespace CUI {
 
-// 1. TitleBar
-class TitleBar : public Control {
+class TitleBar : public Control, public IWindowChrome {
 public:
     TitleBar();
     virtual ~TitleBar() = default;
@@ -20,11 +20,16 @@ public:
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseLeave() override;
     virtual void OnBlur() override;
-
     virtual UIElement* HitTest(float x, float y) override;
 
+    virtual UIElement* GetChromeElement() override { return this; }
+    virtual const UIElement* GetChromeElement() const override { return this; }
+    virtual bool IsInteractiveHit(float x, float y) const override;
+    virtual bool IsCaptionDragHit(float x, float y, UIElement* treeHit) const override;
+    virtual bool ConsumeChromeDirty() override;
+
     MenuBar& GetMenuBar() { return m_menuBar; }
-    bool IsMenuBarHit(float x, float y);
+    bool IsMenuBarHit(float x, float y) const;
     Rect GetLowPerformanceToggleRect() const;
     bool IsLowPerformanceToggleHit(float x, float y) const;
     Rect GetThemeToggleRect() const;
@@ -32,19 +37,18 @@ public:
 
     void SetTitle(const std::string& title) { m_title = title; }
     const std::string& GetTitle() const { return m_title; }
-    bool ConsumeMenuChromeDirty() {
-        const bool dirty = m_menuChromeDirty;
-        m_menuChromeDirty = false;
-        return dirty;
-    }
+
+    Event<TitleBar*>& OnToggleLowPerformance() { return m_onToggleLowPerformance; }
+    Event<TitleBar*>& OnToggleTheme() { return m_onToggleTheme; }
 
 private:
     MenuBar m_menuBar;
     std::string m_title;
     bool m_menuChromeDirty = false;
+    Event<TitleBar*> m_onToggleLowPerformance;
+    Event<TitleBar*> m_onToggleTheme;
 };
 
-// 2. ActivityBar
 class ActivityBar : public Control {
 public:
     struct Item {
@@ -67,7 +71,6 @@ private:
     int m_selectedIndex = 0;
 };
 
-// 3. SideBar
 class SideBar : public Control {
 public:
     struct TreeItem {
@@ -94,7 +97,6 @@ private:
     std::string m_title;
 };
 
-// 4. TabBar
 class TabBar : public Control {
 public:
     struct Tab {
@@ -119,7 +121,6 @@ private:
     int m_activeIndex = 0;
 };
 
-// 5. EditorView
 class EditorView : public Control {
 public:
     EditorView();
@@ -139,7 +140,6 @@ private:
     int m_cursorCol = 28;
 };
 
-// 6. StatusBar
 class StatusBar : public Control {
 public:
     StatusBar();

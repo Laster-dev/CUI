@@ -44,8 +44,7 @@ std::string ResolveLegacyColorToken(const std::string& color) {
     if (color == "#CCCCCC" || color == "#DBDBDB" || color == "#E5E5E5" || color == "#B5CEA8") return "textSecondary";
     // Direct token names
     if (color == "textPrimary" || color == "textSecondary" || color == "textMuted" ||
-        color == "accentColor" || color == "accentForeground" || color == "dangerColor" ||
-        color == "titleBarText") {
+        color == "accentColor" || color == "accentForeground" || color == "dangerColor") {
         return color;
     }
     return "";
@@ -78,8 +77,6 @@ std::string FormatTokenLiteral(ThemeTokenId id) {
     case ThemeTokenId::TextPrimary: return "ThemeTokenId::TextPrimary";
     case ThemeTokenId::TextSecondary: return "ThemeTokenId::TextSecondary";
     case ThemeTokenId::TextMuted: return "ThemeTokenId::TextMuted";
-    case ThemeTokenId::TitleBarBackground: return "ThemeTokenId::TitleBarBackground";
-    case ThemeTokenId::TitleBarText: return "ThemeTokenId::TitleBarText";
     case ThemeTokenId::AccentColor: return "ThemeTokenId::AccentColor";
     case ThemeTokenId::AccentForeground: return "ThemeTokenId::AccentForeground";
     case ThemeTokenId::DangerColor: return "ThemeTokenId::DangerColor";
@@ -90,11 +87,6 @@ std::string FormatTokenLiteral(ThemeTokenId id) {
     case ThemeTokenId::PressedBackground: return "ThemeTokenId::PressedBackground";
     case ThemeTokenId::SelectedBackground: return "ThemeTokenId::SelectedBackground";
     case ThemeTokenId::FocusedBorder: return "ThemeTokenId::FocusedBorder";
-    case ThemeTokenId::ActivityBarBackground: return "ThemeTokenId::ActivityBarBackground";
-    case ThemeTokenId::SideBarBackground: return "ThemeTokenId::SideBarBackground";
-    case ThemeTokenId::EditorBackground: return "ThemeTokenId::EditorBackground";
-    case ThemeTokenId::StatusBarBackground: return "ThemeTokenId::StatusBarBackground";
-    case ThemeTokenId::TabBarBackground: return "ThemeTokenId::TabBarBackground";
     default: return {};
     }
 }
