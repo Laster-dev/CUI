@@ -6,6 +6,10 @@
 
 namespace CUI {
 
+namespace {
+constexpr AnimationSpec kMenuHoverSpec{ 0.22f, 0.01f, 0.16f }; // cubic ease-out via maxDurationSeconds
+} // namespace
+
 MenuItem::MenuItem() {
     SetText("");
     SetColorToken(ThemeTokenId::TextSecondary);
@@ -13,7 +17,7 @@ MenuItem::MenuItem() {
     SetFontSize(16.0f);
     SetFontFamily("微软雅黑");
     SetFontWeight("Normal");
-    SetHeight(30.0f);
+    SetHeight(ContextMenu::kItemHeight);
 }
 
 MenuItem::MenuItem(const std::string& text, std::function<void()> onClick) : MenuItem() {
@@ -22,26 +26,53 @@ MenuItem::MenuItem(const std::string& text, std::function<void()> onClick) : Men
 }
 
 Size MenuItem::Measure(Size availableSize) {
+    (void)availableSize;
     if (m_isSeparator) {
-        m_desiredSize = Size(180.0f, 6.0f);
+        m_desiredSize = Size(180.0f, ContextMenu::kSeparatorHeight);
         return m_desiredSize;
     }
-    m_desiredSize = Size(200.0f, 30.0f);
+    GraphicsContext ctx;
+    const float contentW = MeasurePreferredContentWidth(ctx);
+    m_desiredSize = Size(contentW, ContextMenu::kItemHeight);
     return m_desiredSize;
+}
+
+float MenuItem::MeasurePreferredContentWidth(GraphicsContext& ctx) const {
+    if (m_isSeparator) return 160.0f;
+
+    const std::string font = GetFontFamily();
+    const float fontSize = GetFontSize();
+    const Size label = ctx.MeasureText(GetText(), font, fontSize, DWRITE_FONT_WEIGHT_NORMAL);
+
+    float left = 10.0f;
+    if (!GetIcon().empty()) left += 24.0f;
+
+    float right = 12.0f;
+    if (HasSubMenu()) {
+        right = 28.0f;
+    } else if (!m_shortcutText.empty()) {
+        const Size sc = ctx.MeasureText(m_shortcutText, font, 14.0f, DWRITE_FONT_WEIGHT_NORMAL);
+        right = sc.width + 24.0f;
+    }
+
+    return left + label.width + right;
 }
 
 void MenuItem::OnRender(GraphicsContext& ctx) {
     if (m_isSeparator) {
         float lineY = m_bounds.y + m_bounds.height / 2.0f;
-        ctx.DrawLine(Point(m_bounds.x + 8.0f, lineY), Point(m_bounds.x + m_bounds.width - 8.0f, lineY), ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder), 1.0f);
+        ctx.DrawLine(Point(m_bounds.x + 8.0f, lineY), Point(m_bounds.x + m_bounds.width - 8.0f, lineY),
+                     ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder), 1.0f);
         return;
     }
 
     bool enabled = IsEnabled();
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
-    if (m_isHovered && enabled) {
+    const float hoverT = m_hoverAnim.Current();
+    if (hoverT > 0.001f && enabled) {
         D2D1_COLOR_F hover = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
-        hover.a = lightTheme ? 0.16f : 0.32f;
+        const float peak = lightTheme ? 0.16f : 0.32f;
+        hover.a = peak * hoverT;
         ctx.FillRoundedRect(m_bounds, 3.0f, hover);
     }
 
@@ -55,25 +86,39 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
         ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary)
         : ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
 
-    // Draw Icon if available
     float iconW = 24.0f;
+    float textLeft = m_bounds.x + 10.0f;
     if (!icon.empty()) {
         Rect iconRect(m_bounds.x + 6.0f, m_bounds.y, iconW, m_bounds.height);
-        ctx.DrawText(icon, iconRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+        ctx.DrawText(icon, iconRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER,
+                     DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+        textLeft += iconW;
     }
 
-    // Draw Main Text
-    Rect textRect(m_bounds.x + 10.0f + (icon.empty() ? 0.0f : iconW), m_bounds.y, m_bounds.width - 120.0f, m_bounds.height);
-    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+    float rightReserve = 12.0f;
+    if (HasSubMenu()) {
+        rightReserve = 24.0f;
+    } else if (!shortcut.empty()) {
+        const Size sc = ctx.MeasureText(shortcut, font, 14.0f, DWRITE_FONT_WEIGHT_NORMAL);
+        rightReserve = sc.width + 20.0f;
+    }
 
-    // Draw Shortcut Text or Submenu Right Arrow on Right End
+    Rect textRect(textLeft, m_bounds.y,
+                  (std::max)(0.0f, m_bounds.x + m_bounds.width - textLeft - rightReserve),
+                  m_bounds.height);
+    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING,
+                 DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+
     if (HasSubMenu()) {
         Rect arrowRect(m_bounds.x + m_bounds.width - 20.0f, m_bounds.y, 16.0f, m_bounds.height);
-        ctx.DrawText(">", arrowRect, textColor, font, 14.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+        ctx.DrawText(">", arrowRect, textColor, font, 14.0f, DWRITE_TEXT_ALIGNMENT_TRAILING,
+                     DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
     } else if (!shortcut.empty()) {
-        Rect shortcutRect(m_bounds.x + m_bounds.width - 125.0f, m_bounds.y, 115.0f, m_bounds.height);
+        Rect shortcutRect(m_bounds.x + m_bounds.width - rightReserve, m_bounds.y,
+                          rightReserve - 8.0f, m_bounds.height);
         D2D1_COLOR_F scColor = enabled ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted) : textColor;
-        ctx.DrawText(shortcut, shortcutRect, scColor, font, 14.0f, DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+        ctx.DrawText(shortcut, shortcutRect, scColor, font, 14.0f, DWRITE_TEXT_ALIGNMENT_TRAILING,
+                     DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
     }
 }
 
@@ -91,21 +136,44 @@ void MenuItem::OnMouseDown(Point pt) {
 
 void MenuItem::OnMouseEnter() {
     Control::OnMouseEnter();
+    m_hoverAnim.SetTarget(1.0f);
+    RequestAnimationTicks();
     if (m_parentMenu) {
         m_parentMenu->MarkRenderContentDirty();
+        m_parentMenu->RequestAnimationTicks();
     }
 }
 
 void MenuItem::OnMouseLeave() {
     Control::OnMouseLeave();
+    m_hoverAnim.SetTarget(0.0f);
+    RequestAnimationTicks();
     if (m_parentMenu) {
         m_parentMenu->MarkRenderContentDirty();
+        m_parentMenu->RequestAnimationTicks();
     }
 }
 
+bool MenuItem::TickHoverAnimation(float dt) {
+    return m_hoverAnim.Tick(dt, kMenuHoverSpec);
+}
+
+bool MenuItem::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    bool hover = TickHoverAnimation(UIElement::GetAnimationDeltaSeconds());
+    if (hover) {
+        MarkRenderRectDirty(m_bounds);
+        if (m_parentMenu) m_parentMenu->MarkRenderContentDirty();
+        RequestAnimationTicks();
+    }
+    return base || hover;
+}
+
+bool MenuItem::HasSelfAnimation() const {
+    return Control::HasSelfAnimation() || m_hoverAnim.IsAnimating();
+}
+
 void MenuItem::OnMouseWheel(float delta) {
-    // Forward wheel scrolling to the parent menu so nested hit-test returns
-    // a MenuItem target but the menu still scrolls.
     if (m_parentMenu) {
         m_parentMenu->OnMouseWheel(delta);
     }
@@ -181,6 +249,25 @@ Rect ResolveMenuViewport(float windowW, float windowH) {
 }
 } // namespace
 
+float ContextMenu::ComputePreferredWidth() const {
+    GraphicsContext ctx;
+    float maxContent = kMinWidth - 8.0f;
+    for (const auto& item : m_items) {
+        if (!item || item->IsSeparator()) continue;
+        maxContent = (std::max)(maxContent, item->MeasurePreferredContentWidth(ctx));
+    }
+    // Outer chrome: 4px inset each side.
+    return (std::max)(kMinWidth, maxContent + 8.0f);
+}
+
+float ContextMenu::ComputeContentHeight() const {
+    float totalH = kVerticalPad;
+    for (const auto& item : m_items) {
+        totalH += item->IsSeparator() ? kSeparatorHeight : kItemHeight;
+    }
+    return totalH;
+}
+
 void ContextMenu::RelayoutItems() {
     if (m_items.empty()) return;
 
@@ -188,7 +275,7 @@ void ContextMenu::RelayoutItems() {
     float currentY = m_bounds.y + 4.0f - m_scrollOffset;
 
     for (auto& item : m_items) {
-        float h = item->IsSeparator() ? 6.0f : 26.0f;
+        float h = item->IsSeparator() ? kSeparatorHeight : kItemHeight;
         item->Arrange(Rect(m_bounds.x + 4.0f, currentY, w, h));
         currentY += h;
     }
@@ -200,30 +287,8 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
     m_windowHeight = windowH;
     m_isOpen = true;
 
-    // Calculate dynamic menu width based on item content and shortcuts
-    float maxItemWidth = 220.0f;
-    for (auto& item : m_items) {
-        if (!item->IsSeparator()) {
-            std::string t = item->GetText();
-            std::string sc = item->GetShortcutText();
-            float tLen = static_cast<float>(t.length()) * 7.5f;
-            float scLen = static_cast<float>(sc.length()) * 7.5f;
-            float reqW = tLen + scLen + 50.0f;
-            if (reqW > maxItemWidth) {
-                maxItemWidth = reqW;
-            }
-        }
-    }
-    float itemW = maxItemWidth;
-    float totalH = 8.0f;
-
-    for (auto& item : m_items) {
-        if (item->IsSeparator()) {
-            totalH += 6.0f;
-        } else {
-            totalH += 26.0f;
-        }
-    }
+    const float itemW = ComputePreferredWidth();
+    const float totalH = ComputeContentHeight();
 
     const Rect viewport = ResolveMenuViewport(windowW, windowH);
     m_bounds = PlacePopupAtPoint(Point(x, y), itemW, totalH, viewport);
@@ -243,19 +308,12 @@ void ContextMenu::ShowSubMenuAt(Rect parentItemBounds, float windowW, float wind
     m_windowHeight = windowH;
     m_isOpen = true;
 
-    float itemW = 200.0f;
-    float totalH = 8.0f;
-
-    for (auto& item : m_items) {
-        if (item->IsSeparator()) {
-            totalH += 6.0f;
-        } else {
-            totalH += 26.0f;
-        }
-    }
+    const float itemW = ComputePreferredWidth();
+    const float totalH = ComputeContentHeight();
 
     const Rect viewport = ResolveMenuViewport(windowW, windowH);
-    Rect anchor(parentItemBounds.x + parentItemBounds.width - 2.0f, parentItemBounds.y - 4.0f, 0.0f, parentItemBounds.height + 8.0f);
+    Rect anchor(parentItemBounds.x + parentItemBounds.width - 2.0f, parentItemBounds.y - 4.0f,
+                0.0f, parentItemBounds.height + 8.0f);
     m_bounds = PlacePopupNearAnchor(anchor, itemW, totalH, viewport, 2.0f);
 
     m_itemWidth = itemW;
@@ -302,13 +360,12 @@ void ContextMenu::DismissHierarchy() {
 void ContextMenu::OnMouseWheel(float delta) {
     if (!m_isOpen || m_items.empty()) return;
 
-    if (m_contentHeight <= m_bounds.height + 0.001f) return; // no overflow
+    if (m_contentHeight <= m_bounds.height + 0.001f) return;
 
     const float maxScroll = (std::max)(0.0f, m_contentHeight - m_bounds.height);
     if (maxScroll <= 0.001f) return;
 
-    // delta > 0 means wheel up -> decrease scrollOffset (show earlier items).
-    const float step = 26.0f;
+    const float step = kItemHeight;
     float next = m_scrollOffset - delta * step;
     next = (std::clamp)(next, 0.0f, maxScroll);
 
@@ -317,10 +374,8 @@ void ContextMenu::OnMouseWheel(float delta) {
     m_scrollbarAutoHide.NotifyActivity(this);
     RequestAnimationTicks();
 
-    // Re-layout items so RenderPopup + HitTestOverlay stay consistent.
     RelayoutItems();
 
-    // Scrolling usually invalidates submenu attachment; hide it for correctness.
     if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
         m_activeSubMenu->Hide();
         m_activeSubMenu = nullptr;
@@ -329,20 +384,57 @@ void ContextMenu::OnMouseWheel(float delta) {
     MarkRenderContentDirty();
 }
 
+bool ContextMenu::TickItemHoverAnimations() {
+    const float dt = UIElement::GetAnimationDeltaSeconds();
+    bool any = false;
+    for (auto& item : m_items) {
+        if (item && item->TickHoverAnimation(dt)) {
+            any = true;
+        }
+    }
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
+        if (m_activeSubMenu->TickItemHoverAnimations()) {
+            any = true;
+        }
+    }
+    if (any) {
+        MarkRenderContentDirty();
+    }
+    return any;
+}
+
+bool ContextMenu::TickPopupAnimation() {
+    bool any = TickItemHoverAnimations();
+    const float prev = m_scrollbarAutoHide.Opacity();
+    const bool hideAnimating = m_scrollbarAutoHide.Tick(UIElement::GetAnimationDeltaSeconds());
+    if (std::abs(prev - m_scrollbarAutoHide.Opacity()) > 0.001f) {
+        MarkRenderContentDirty();
+        any = true;
+    }
+    return any || hideAnimating;
+}
+
 bool ContextMenu::OnAnimationTick() {
+    bool child = UIElement::OnAnimationTick();
+    bool hover = TickItemHoverAnimations();
     const float prev = m_scrollbarAutoHide.Opacity();
     const bool hideAnimating = m_scrollbarAutoHide.Tick(UIElement::GetAnimationDeltaSeconds());
     if (std::abs(prev - m_scrollbarAutoHide.Opacity()) > 0.001f) {
         MarkRenderContentDirty();
     }
-    if (hideAnimating) {
+    if (hover || hideAnimating) {
         RequestAnimationTicks();
     }
-    return hideAnimating;
+    return child || hover || hideAnimating;
 }
 
 bool ContextMenu::HasSelfAnimation() const {
-    return m_scrollbarAutoHide.NeedsTicks();
+    if (m_scrollbarAutoHide.NeedsTicks()) return true;
+    for (const auto& item : m_items) {
+        if (item && item->HasSelfAnimation()) return true;
+    }
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen() && m_activeSubMenu->HasSelfAnimation()) return true;
+    return false;
 }
 
 Rect ContextMenu::GetTotalBounds() const {
@@ -355,8 +447,6 @@ Rect ContextMenu::GetTotalBounds() const {
 }
 
 void ContextMenu::OnRenderOverlay(GraphicsContext& ctx) {
-    // ContextMenu is typically not in the visual tree; PopupHost paints via RenderPopup.
-    // Keep this as a fallback when no host is active.
     if (PopupHost::Current() && m_isOpen) return;
     RenderPopup(ctx);
 }
@@ -366,20 +456,17 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
 
     float radius = GetCornerRadius();
 
-    // Draw ContextMenu Popup Box (Shadow & Background)
     D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
     D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
     ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);
 
-    // Render Menu Items
     ctx.PushClip(m_bounds);
     for (auto& item : m_items) {
         item->Render(ctx);
     }
 
-    // Scrollbar (visual only; wheel scrolling supported).
     {
         const float contentH = m_contentHeight;
         const float visibleH = m_bounds.height;
@@ -407,7 +494,6 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
 
     ctx.PopClip();
 
-    // Render Active Submenu if open
     if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
         m_activeSubMenu->RenderPopup(ctx);
     }
@@ -420,13 +506,11 @@ bool ContextMenu::HitDismissExempt(float x, float y) const {
 UIElement* ContextMenu::HitTestOverlay(float x, float y) {
     if (!m_isOpen || m_items.empty()) return nullptr;
 
-    // 1. Check open active submenu first!
     if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
         UIElement* subHit = m_activeSubMenu->HitTestOverlay(x, y);
         if (subHit) return subHit;
     }
 
-    // 2. Check current context menu items
     if (m_bounds.Contains(x, y)) {
         for (auto it = m_items.rbegin(); it != m_items.rend(); ++it) {
             if ((*it)->GetBounds().Contains(x, y)) {

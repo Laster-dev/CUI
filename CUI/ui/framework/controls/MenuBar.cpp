@@ -5,6 +5,10 @@
 
 namespace CUI {
 
+namespace {
+constexpr AnimationSpec kMenuBarHoverSpec{ 0.22f, 0.01f, 0.16f };
+} // namespace
+
 MenuBar::MenuBar() {
     SetHeight(30.0f);
     SetBackgroundToken(ThemeTokenId::PaneBackground);
@@ -17,8 +21,8 @@ std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {
     MenuBarItem item;
     item.title = title;
     item.dropDownMenu = std::make_shared<ContextMenu>();
-    m_menus.push_back(item);
-    return item.dropDownMenu;
+    m_menus.push_back(std::move(item));
+    return m_menus.back().dropDownMenu;
 }
 
 float MenuBar::GetTotalWidth(GraphicsContext& ctx) {
@@ -65,14 +69,21 @@ void MenuBar::HideAllMenusExcept(int keepIndex) {
     }
 }
 
+void MenuBar::SyncHoverAnimationTargets() {
+    for (size_t i = 0; i < m_menus.size(); ++i) {
+        const bool isOpen = (static_cast<int>(i) == m_activeOpenIndex);
+        const bool isHover = (static_cast<int>(i) == m_hoveredIndex) && !isOpen;
+        // Open state stays lit via open paint path; hover anim only for hover pill.
+        m_menus[i].hoverAnim.SetTarget(isHover ? 1.0f : 0.0f);
+    }
+}
+
 void MenuBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
     D2D1_COLOR_F defaultTextColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-    D2D1_COLOR_F hoverBgColor = lightTheme
-        ? D2D1::ColorF(ThemeManager::Instance().GetTokens().cardBorder.r, ThemeManager::Instance().GetTokens().cardBorder.g, ThemeManager::Instance().GetTokens().cardBorder.b, 0.12f)
-        : D2D1::ColorF(ThemeManager::Instance().GetTokens().cardBorder.r, ThemeManager::Instance().GetTokens().cardBorder.g, ThemeManager::Instance().GetTokens().cardBorder.b, 0.18f);
+    const float hoverPeak = lightTheme ? 0.12f : 0.18f;
     D2D1_COLOR_F openBgColor = lightTheme
         ? D2D1::ColorF(ThemeManager::Instance().GetTokens().accentColor.r, ThemeManager::Instance().GetTokens().accentColor.g, ThemeManager::Instance().GetTokens().accentColor.b, 0.10f)
         : D2D1::ColorF(ThemeManager::Instance().GetTokens().accentColor.r, ThemeManager::Instance().GetTokens().accentColor.g, ThemeManager::Instance().GetTokens().accentColor.b, 0.18f);
@@ -85,14 +96,17 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
         Rect itemRect(curX, m_bounds.y + 3.0f, itemW, m_bounds.height - 6.0f);
         m_menus[i].bounds = itemRect;
 
-        // Open highlight follows active index only — never leave a previous pill lit
-        // because another menu's IsOpen() lagged a frame.
         const bool isOpen = (static_cast<int>(i) == m_activeOpenIndex);
-        const bool isHover = (static_cast<int>(i) == m_hoveredIndex) && !isOpen;
+        const float hoverT = m_menus[i].hoverAnim.Current();
 
         if (isOpen) {
             ctx.FillRoundedRect(itemRect, 4.0f, openBgColor);
-        } else if (isHover) {
+        } else if (hoverT > 0.001f) {
+            D2D1_COLOR_F hoverBgColor = D2D1::ColorF(
+                ThemeManager::Instance().GetTokens().cardBorder.r,
+                ThemeManager::Instance().GetTokens().cardBorder.g,
+                ThemeManager::Instance().GetTokens().cardBorder.b,
+                hoverPeak * hoverT);
             ctx.FillRoundedRect(itemRect, 4.0f, hoverBgColor);
         }
 
@@ -119,7 +133,9 @@ void MenuBar::OpenMenu(int index) {
 
     m_activeOpenIndex = index;
     m_hoveredIndex = index;
+    SyncHoverAnimationTargets();
     InvalidateMenuChrome(previousOpen, index);
+    RequestAnimationTicks();
 
     auto menu = m_menus[index].dropDownMenu;
     if (menu) {
@@ -137,7 +153,9 @@ void MenuBar::CloseActiveMenu() {
     const int previousOpen = m_activeOpenIndex;
     HideAllMenusExcept(-1);
     m_activeOpenIndex = -1;
+    SyncHoverAnimationTargets();
     InvalidateMenuChrome(previousOpen, m_hoveredIndex);
+    RequestAnimationTicks();
 }
 
 bool MenuBar::HandleMouseMove(Point pt) {
@@ -153,7 +171,9 @@ bool MenuBar::HandleMouseMove(Point pt) {
 
     bool chromeDirty = (oldHover != m_hoveredIndex);
     if (chromeDirty) {
+        SyncHoverAnimationTargets();
         InvalidateMenuChrome(oldHover, m_hoveredIndex);
+        RequestAnimationTicks();
     }
 
     // If a menu is already open, hover over another item opens its dropdown instantly
@@ -171,8 +191,10 @@ void MenuBar::OnMouseMove(Point pt) {
 void MenuBar::OnMouseLeave() {
     const int oldHover = m_hoveredIndex;
     m_hoveredIndex = -1;
+    SyncHoverAnimationTargets();
     if (oldHover >= 0) {
         InvalidateMenuChrome(oldHover, m_activeOpenIndex);
+        RequestAnimationTicks();
     }
 }
 
@@ -184,7 +206,9 @@ void MenuBar::ResetInteractionState() {
     m_isHovered = false;
     m_isPressed = false;
     m_isFocused = false;
+    SyncHoverAnimationTargets();
     InvalidateMenuChrome(previousOpen, previousHover);
+    RequestAnimationTicks();
 }
 
 void MenuBar::OnBlur() {
@@ -204,6 +228,32 @@ void MenuBar::OnMouseDown(Point pt) {
             return;
         }
     }
+}
+
+bool MenuBar::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    const float dt = UIElement::GetAnimationDeltaSeconds();
+    bool any = false;
+    for (auto& item : m_menus) {
+        if (item.hoverAnim.Tick(dt, kMenuBarHoverSpec)) {
+            any = true;
+        }
+    }
+    if (any) {
+        if (!m_bounds.IsEmpty()) {
+            MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+        }
+        RequestAnimationTicks();
+    }
+    return base || any;
+}
+
+bool MenuBar::HasSelfAnimation() const {
+    if (Control::HasSelfAnimation()) return true;
+    for (const auto& item : m_menus) {
+        if (item.hoverAnim.IsAnimating()) return true;
+    }
+    return false;
 }
 
 } // namespace CUI

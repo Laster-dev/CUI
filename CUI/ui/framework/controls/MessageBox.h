@@ -40,6 +40,9 @@ public:
     void Show(std::function<void(DialogResult)> callback = nullptr);
     void Hide();
 
+    // Force re-raster of the dialog card (caret / selection / text changes).
+    void InvalidateCard();
+
     bool IsOpen() const { return m_isOpen; }
     virtual bool IsModalOverlayOpen() const override { return m_isOpen; }
 
@@ -72,7 +75,6 @@ public:
 
 private:
     void LayoutCardChildren(float scale);
-    void InvalidateCard();
 
     std::string m_titleText = "Message";
     std::string m_messageText = "";

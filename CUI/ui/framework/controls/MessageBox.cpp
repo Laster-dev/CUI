@@ -199,13 +199,14 @@ bool ContentDialog::OnAnimationTick() {
     bool childAnim = UIElement::OnAnimationTick();
     if (!m_isOpen && m_animState == 0) return childAnim;
 
-    // Keep the input field / caret live while the dialog is open.
+    // Caret blink / label anim on the input box — do not keep the dialog in a
+    // continuous self-animation loop (that forced full-window InvalidateRect).
     if (m_inputEnabled && m_inputBox && m_animState == 2) {
         if (m_inputBox->OnAnimationTick()) {
             InvalidateCard();
+            MarkRenderRectDirty(m_dialogBounds.IsEmpty() ? m_bounds : m_dialogBounds);
             childAnim = true;
         }
-        RequestAnimationTicks();
     }
 
     if (!UIElement::AreAnimationsEnabled()) {
@@ -267,8 +268,9 @@ bool ContentDialog::OnAnimationTick() {
 }
 
 bool ContentDialog::HasSelfAnimation() const {
+    // Open/close scrim only — an open input dialog must not report self-animation
+    // or Window invalidates the entire client every frame (TextBox drag becomes unusable).
     if (UIElement::AreAnimationsEnabled() && (m_animState == 1 || m_animState == 3)) return true;
-    if (m_inputEnabled && m_isOpen && m_animState == 2) return true;
     return false;
 }
 
@@ -380,10 +382,10 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
 
     LayoutCardChildren(scale);
 
-    // Input dialogs always re-raster so the TextBox caret/text stay live.
-    m_cardLayer.SetCacheable(!m_inputEnabled);
-    const bool needRaster = m_inputEnabled
-        || !m_cardCacheValid
+    // Cache chrome; for input dialogs still allow cache but invalidate on caret /
+    // selection / text changes via InvalidateCard() — never every vsync.
+    m_cardLayer.SetCacheable(true);
+    const bool needRaster = !m_cardCacheValid
         || m_cardLayer.NeedsContentRaster()
         || !m_cardLayer.GetCacheBitmap()
         || std::abs(m_cardLayer.GetCacheSurfaceSize().width - cardW) > 1.0f
@@ -416,7 +418,7 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
             ctx.SetPaintBounds(savedPaintBounds);
             ctx.PopLayerTarget(m_cardLayer);
             m_cardLayer.Validate();
-            m_cardCacheValid = !m_inputEnabled;
+            m_cardCacheValid = true;
         }
     }
 

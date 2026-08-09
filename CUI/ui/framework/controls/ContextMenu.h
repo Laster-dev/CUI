@@ -2,6 +2,7 @@
 #include "Control.h"
 #include "ScrollbarAutoHide.h"
 #include "../window/PopupHost.h"
+#include "../animation/AnimationSystem.h"
 #include <vector>
 #include <string>
 #include <functional>
@@ -24,6 +25,8 @@ public:
     virtual void OnMouseEnter() override;
     virtual void OnMouseLeave() override;
     virtual void OnMouseWheel(float delta) override;
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
     bool IsSeparator() const { return m_isSeparator; }
     void SetIsSeparator(bool isSep) { m_isSeparator = isSep; }
@@ -41,12 +44,17 @@ public:
     void SetParentContextMenu(ContextMenu* menu) { m_parentMenu = menu; }
     void ExecuteCommand();
 
+    // Preferred content width (label + icon + shortcut/arrow), excluding outer menu chrome.
+    float MeasurePreferredContentWidth(GraphicsContext& ctx) const;
+    bool TickHoverAnimation(float dt);
+
 private:
     bool m_isSeparator = false;
     std::string m_shortcutText;
     std::function<void()> m_command;
     ContextMenu* m_parentMenu = nullptr;
     std::shared_ptr<ContextMenu> m_subMenu = nullptr;
+    AnimatedScalar m_hoverAnim{ 0.0f };
 };
 
 class ContextMenu : public UIElement, public IPopup {
@@ -84,11 +92,17 @@ public:
     virtual UIElement* HitTestPopup(float x, float y) override { return HitTestOverlay(x, y); }
     virtual void RenderPopup(GraphicsContext& ctx) override;
     virtual void OnLightDismiss() override { Hide(); }
+    virtual bool TickPopupAnimation() override;
 
     virtual void OnBlur() override { Hide(); }
     virtual void OnMouseWheel(float delta) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
+
+    static constexpr float kItemHeight = 28.0f;
+    static constexpr float kSeparatorHeight = 6.0f;
+    static constexpr float kVerticalPad = 8.0f; // 4 top + 4 bottom
+    static constexpr float kMinWidth = 180.0f;
 
 private:
     std::vector<std::shared_ptr<MenuItem>> m_items;
@@ -101,12 +115,15 @@ private:
     ContextMenu* m_ownerMenu = nullptr; // parent menu when this is a submenu
 
     // Scrolling support when content height exceeds visible height.
-    float m_scrollOffset = 0.0f;     // how much content is shifted up (in layout/DIP coords)
-    float m_contentHeight = 0.0f;   // full, unclamped content height (computed in ShowAt)
-    float m_itemWidth = 0.0f;        // current menu width used by Arrange
+    float m_scrollOffset = 0.0f;
+    float m_contentHeight = 0.0f;
+    float m_itemWidth = 0.0f;
     ScrollbarAutoHide m_scrollbarAutoHide;
 
     void RelayoutItems();
+    float ComputePreferredWidth() const;
+    float ComputeContentHeight() const;
+    bool TickItemHoverAnimations();
 };
 
 } // namespace CUI

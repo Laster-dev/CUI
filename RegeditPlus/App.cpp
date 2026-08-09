@@ -1,5 +1,6 @@
 #include "App.h"
 #include "RegIcons.h"
+#include "BinaryValueDialog.h"
 
 #include "framework/core/CUIDsl.h"
 #include "framework/window/WindowBackdrop.h"
@@ -97,6 +98,12 @@ std::vector<std::wstring> SplitPath(const std::wstring& fullPath) {
     return parts;
 }
 
+bool RegNameLess(const std::wstring& a, const std::wstring& b) {
+    // Match regedit.exe: locale-aware, case-insensitive name order.
+    return CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE,
+                          a.c_str(), -1, b.c_str(), -1) == CSTR_LESS_THAN;
+}
+
 std::vector<std::wstring> EnumerateSubkeys(HKEY hKey) {
     std::vector<std::wstring> result;
     DWORD subCount = 0;
@@ -113,6 +120,7 @@ std::vector<std::wstring> EnumerateSubkeys(HKEY hKey) {
             result.emplace_back(buf.data(), len);
         }
     }
+    std::sort(result.begin(), result.end(), RegNameLess);
     return result;
 }
 
@@ -134,12 +142,12 @@ std::string RegValueTypeName(DWORD type) {
 std::string FormatHex(const BYTE* data, size_t size, size_t maxBytes) {
     std::ostringstream oss;
     oss << std::uppercase << std::hex;
-    const size_t show = (std::min)(size, maxBytes);
+    const size_t show = maxBytes == 0 ? size : (std::min)(size, maxBytes);
     for (size_t i = 0; i < show; ++i) {
         if (i) oss << ' ';
         oss << std::setw(2) << std::setfill('0') << static_cast<unsigned>(data[i]);
     }
-    if (size > show) oss << " ...";
+    if (maxBytes != 0 && size > show) oss << " ...";
     return oss.str();
 }
 
@@ -421,7 +429,7 @@ void RegeditPlusApp::BuildMenus() {
 
     // 文件
     auto fileMenu = menuBar.AddMenu("文件(F)");
-    fileMenu->AddItem("导入图(E)...", [this]() {
+    fileMenu->AddItem("导入(E)...", [this]() {
         ShowMessage("导入", "导入 .reg 注册表文件（功能占位）。");
     });
     fileMenu->AddItem("导出(O)...", [this]() {
@@ -456,6 +464,9 @@ void RegeditPlusApp::BuildMenus() {
     });
     editMenu->AddItem("修改", [this]() {
         if (m_selectedRow >= 0 && HasValidKey()) ModifySelectedValue();
+    });
+    editMenu->AddItem("修改二进制数据", [this]() {
+        if (m_selectedRow >= 0 && HasValidKey()) ModifySelectedValueAsBinary();
     });
 
     auto newSub = editMenu->AddSubMenu("新建(R)");
@@ -703,13 +714,15 @@ void RegeditPlusApp::LoadValues(const std::wstring& path) {
                     DWORD dataLen = 0;
                     const std::wstring nameStr = entry.name;
                     const wchar_t* namePtr = nameStr.empty() ? nullptr : nameStr.c_str();
-                    if (RegQueryValueExW(hKey, namePtr, nullptr, &type, nullptr, &dataLen) == ERROR_SUCCESS
-                        && dataLen > 0) {
+                    const LONG q = RegQueryValueExW(hKey, namePtr, nullptr, &type, nullptr, &dataLen);
+                    if ((q == ERROR_SUCCESS || q == ERROR_MORE_DATA) && dataLen > 0) {
+                        entry.type = type;
                         entry.data.resize(dataLen);
                         DWORD readLen = dataLen;
                         if (RegQueryValueExW(hKey, namePtr, nullptr, &type,
                                              entry.data.data(), &readLen) == ERROR_SUCCESS) {
                             entry.data.resize(readLen);
+                            entry.type = type;
                         } else {
                             entry.data.clear();
                         }
@@ -717,6 +730,41 @@ void RegeditPlusApp::LoadValues(const std::wstring& path) {
                     m_entries.push_back(std::move(entry));
                 }
             }
+
+            // regedit always lists the default value, even when unset.
+            bool hasDefault = false;
+            for (const auto& e : m_entries) {
+                if (e.name.empty()) { hasDefault = true; break; }
+            }
+            if (!hasDefault) {
+                ValueEntry def;
+                def.name.clear();
+                def.type = REG_SZ;
+                DWORD type = REG_SZ;
+                DWORD dataLen = 0;
+                const LONG st = RegQueryValueExW(hKey, nullptr, nullptr, &type, nullptr, &dataLen);
+                if (st == ERROR_SUCCESS || st == ERROR_MORE_DATA) {
+                    def.type = type;
+                    if (dataLen > 0) {
+                        def.data.resize(dataLen);
+                        DWORD readLen = dataLen;
+                        if (RegQueryValueExW(hKey, nullptr, nullptr, &type,
+                                             def.data.data(), &readLen) == ERROR_SUCCESS) {
+                            def.data.resize(readLen);
+                            def.type = type;
+                        } else {
+                            def.data.clear();
+                        }
+                    }
+                }
+                m_entries.push_back(std::move(def));
+            }
+
+            std::sort(m_entries.begin(), m_entries.end(), [](const ValueEntry& a, const ValueEntry& b) {
+                if (a.name.empty() != b.name.empty()) return a.name.empty();
+                return RegNameLess(a.name, b.name);
+            });
+
             RegCloseKey(hKey);
         }
     }
@@ -789,6 +837,11 @@ std::string RegeditPlusApp::TypeName(DWORD type) const {
 }
 
 std::string RegeditPlusApp::DataText(const ValueEntry& entry) const {
+    // Unset default value — regedit always shows this placeholder.
+    if (entry.name.empty() && entry.data.empty()
+        && (entry.type == REG_SZ || entry.type == REG_EXPAND_SZ || entry.type == REG_NONE)) {
+        return "(数值未设置)";
+    }
     return DataTextFor(entry.type, entry.data);
 }
 
@@ -831,6 +884,7 @@ std::shared_ptr<ContextMenu> RegeditPlusApp::BuildListContextMenu() {
     newSub->AddItem("多字符串值(M)", [this]() { CreateNewValue(REG_MULTI_SZ, "新建多字符串值"); });
     menu->AddSeparator();
     menu->AddItem("修改", [this]() { ModifySelectedValue(); });
+    menu->AddItem("修改二进制数据", [this]() { ModifySelectedValueAsBinary(); });
     menu->AddItem("删除", [this]() { DeleteSelectedValue(); });
     menu->AddItem("重命名", [this]() { RenameSelectedValue(); });
     return menu;
@@ -1133,14 +1187,24 @@ void RegeditPlusApp::ModifySelectedValue() {
 
         case REG_BINARY:
         default: {
-            std::wstring hex = Utf8ToWide(FormatHex(e.data.data(), e.data.size(), 400));
-            PromptText("编辑二进制值", "数据 (十六进制, 空格分隔):", hex, true, [this, row](const std::wstring& out) {
-                std::vector<BYTE> bytes = HexToBytes(out);
-                WriteValueAt(row, REG_BINARY, bytes);
-            });
+            ModifySelectedValueAsBinary();
             break;
         }
     }
+}
+
+void RegeditPlusApp::ModifySelectedValueAsBinary() {
+    const int row = SelectedValueRow();
+    if (row < 0 || !HasValidKey()) return;
+    const ValueEntry e = m_entries[static_cast<size_t>(row)];
+    const DWORD keepType = e.type;
+    const std::wstring displayName = e.name.empty() ? L"(默认)" : e.name;
+
+    auto dlg = std::make_shared<BinaryValueDialog>();
+    dlg->Show(m_root.get(), displayName, e.data, [this, row, keepType](bool ok, std::vector<BYTE> data) {
+        if (!ok) return;
+        WriteValueAt(row, keepType, data);
+    });
 }
 
 void RegeditPlusApp::WriteValueAt(int row, DWORD type, const std::vector<BYTE>& bytes) {

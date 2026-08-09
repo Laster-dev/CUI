@@ -494,6 +494,8 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
     float totalColsW = GetTotalColumnsWidth();
     bool isFocused = m_isFocused;
 
+    // Pass 1: row fills / focus rings. Inset 1px from the top so we never cover the
+    // shared horizontal hairline drawn by the previous row (or the header).
     for (int r = startRow; r <= endRow; ++r) {
         float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - scrollY;
         Rect rowRect(m_bounds.x, rowY, std::max(m_bounds.width, totalColsW), m_rowHeight);
@@ -502,18 +504,34 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
         bool isHovered = (r == m_hoveredRowIndex);
         bool isCaret = (r == m_caretIndex);
 
+        Rect fillRect(rowRect.x, rowRect.y + 1.0f, rowRect.width, (std::max)(0.0f, rowRect.height - 1.0f));
         if (isSelected) {
-            ctx.FillRect(rowRect, selectedBg);
+            ctx.FillRect(fillRect, selectedBg);
         } else if (isHovered && IsEnabled()) {
-            ctx.FillRect(rowRect, hoverBg);
+            ctx.FillRect(fillRect, hoverBg);
         }
 
         if (isCaret && isFocused) {
             ctx.DrawRect(rowRect.Inflate(-1.0f), focusBorderColor, 1.0f);
         }
+    }
 
+    // Pass 2: grid lines after all fills so separators stay visible on hover/selection.
+    for (int r = startRow; r <= endRow; ++r) {
+        float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - scrollY;
         ctx.DrawLine(Point(m_bounds.x, rowY + m_rowHeight), Point(m_bounds.x + m_bounds.width, rowY + m_rowHeight), gridLineClr, 1.0f);
+        float cellX = m_bounds.x - scrollX;
+        for (size_t c = 0; c < m_columns.size(); ++c) {
+            float colW = GetColumnWidth(c);
+            ctx.DrawLine(Point(cellX + colW, rowY), Point(cellX + colW, rowY + m_rowHeight), gridLineClr, 1.0f);
+            cellX += colW;
+        }
+    }
 
+    // Pass 3: cell content above the grid.
+    for (int r = startRow; r <= endRow; ++r) {
+        float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - scrollY;
+        bool isSelected = IsRowSelected(r);
         float cellX = m_bounds.x - scrollX;
         for (size_t c = 0; c < m_columns.size(); ++c) {
             float colW = GetColumnWidth(c);
@@ -539,7 +557,6 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
                 ctx.DrawText(cellText, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight, true);
                 ctx.PopClip();
             }
-            ctx.DrawLine(Point(cellX + colW, rowY), Point(cellX + colW, rowY + m_rowHeight), gridLineClr, 1.0f);
             cellX += colW;
         }
     }

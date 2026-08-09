@@ -1,6 +1,7 @@
 #pragma once
 #include "Control.h"
 #include "ContextMenu.h"
+#include "../animation/AnimationSystem.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -11,6 +12,7 @@ struct MenuBarItem {
     std::string title;
     std::shared_ptr<ContextMenu> dropDownMenu;
     Rect bounds;
+    AnimatedScalar hoverAnim{ 0.0f };
 };
 
 class MenuBar : public Control {
@@ -35,12 +37,15 @@ public:
     bool HandleMouseMove(Point pt);
     virtual void OnMouseLeave() override;
     virtual void OnBlur() override;
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override;
 
 private:
     void OpenMenu(int index);
     void CloseActiveMenu();
     void HideAllMenusExcept(int keepIndex);
     void InvalidateMenuChrome(int indexA, int indexB = -1);
+    void SyncHoverAnimationTargets();
 
     std::vector<MenuBarItem> m_menus;
     int m_hoveredIndex = -1;

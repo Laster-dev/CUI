@@ -1,11 +1,13 @@
 #define NOMINMAX
 #include "TextBox.h"
 #include "ContextMenu.h"
+#include "MessageBox.h"
 #include "../animation/AnimationManager.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <cwctype>
 
 namespace CUI {
@@ -679,6 +681,16 @@ void TextBox::OnBlur() {
     MarkRenderRectDirty(m_bounds);
 }
 
+void TextBox::NotifyHostOverlayDirty() {
+    for (UIElement* walk = GetParent(); walk; walk = walk->GetParent()) {
+        if (std::strcmp(walk->GetClassName(), "ContentDialog") == 0) {
+            static_cast<ContentDialog*>(walk)->InvalidateCard();
+            walk->MarkRenderRectDirty(walk->GetBounds());
+            break;
+        }
+    }
+}
+
 void TextBox::OnMouseDown(Point pt) {
     if (!IsEnabled()) {
         return;
@@ -696,6 +708,8 @@ void TextBox::OnMouseDown(Point pt) {
     m_selectionEnd = idx;
     m_isDraggingSelection = true;
     EnsureCaretVisible(ctx);
+    MarkRenderRectDirty(m_bounds);
+    NotifyHostOverlayDirty();
 }
 
 void TextBox::OnMouseRightClick(Point pt) {
@@ -805,23 +819,33 @@ void TextBox::OnMouseMove(Point pt) {
 
         if (!IsMultiline()) {
             const float scrollStep = 10.0f;
+            bool scrolled = false;
             if (pt.x > textRect.x + textRect.width) {
                 m_scrollOffsetX += scrollStep;
+                scrolled = true;
             } else if (pt.x < textRect.x) {
                 m_scrollOffsetX -= scrollStep;
+                scrolled = true;
             }
-            std::wstring wtext = BuildDisplayText(
-                Utf8ToUtf16(GetText()),
-                m_cursorPos,
-                m_compString
-            );
-            ClampScrollOffsets(ctx, wtext, textRect);
+            if (scrolled) {
+                std::wstring wtext = BuildDisplayText(
+                    Utf8ToUtf16(GetText()),
+                    m_cursorPos,
+                    m_compString
+                );
+                ClampScrollOffsets(ctx, wtext, textRect);
+            }
         }
 
         int idx = GetCaretIndexFromPoint(ctx, pt.x, pt.y);
+        if (idx == m_selectionEnd && idx == m_cursorPos) {
+            return;
+        }
         m_selectionEnd = idx;
         m_cursorPos = idx;
         EnsureCaretVisible(ctx);
+        MarkRenderRectDirty(m_bounds);
+        NotifyHostOverlayDirty();
     }
 }
 

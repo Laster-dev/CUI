@@ -141,6 +141,7 @@ private:
     void PushUndoState();
     void Undo();
     void Redo();
+    void NotifyHostOverlayDirty();
 
     int m_cursorPos = 0;
     int m_selectionStart = 0;

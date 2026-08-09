@@ -76,6 +76,7 @@ private:
     void DeleteSelectedKey();
     void CopyKeyName();
     void ModifySelectedValue();
+    void ModifySelectedValueAsBinary();
     void WriteValueAt(int row, DWORD type, const std::vector<BYTE>& bytes);
     void DeleteSelectedValue();
     void RenameSelectedValue();

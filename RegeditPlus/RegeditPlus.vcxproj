@@ -159,6 +159,8 @@
   <ItemGroup>
     <ClCompile Include="App.cpp" />
     <ClCompile Include="RegIcons.cpp" />
+    <ClCompile Include="HexEditor.cpp" />
+    <ClCompile Include="BinaryValueDialog.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="..\CUI\ui\framework\core\Value.cpp" />
     <ClCompile Include="..\CUI\ui\framework\core\Object.cpp" />
