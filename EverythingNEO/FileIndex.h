@@ -13,6 +13,7 @@ namespace EverythingNEO {
 constexpr uint32_t INVALID_FOLDER_ID = std::numeric_limits<uint32_t>::max();
 constexpr uint32_t INVALID_FILE_ID = std::numeric_limits<uint32_t>::max();
 constexpr uint16_t kAttrDeleted = 0x8000; // packed into attributes (not a Win32 flag)
+constexpr uint16_t kAttrMetaLoaded = 0x4000; // size/date fetched from disk
 
 #pragma pack(push, 1)
 // Everything-style compact record: name + parent only in hot path; FRN kept aside.

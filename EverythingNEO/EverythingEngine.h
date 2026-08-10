@@ -47,6 +47,10 @@ public:
     size_t Search(const std::string& query, const SearchOptions& opts,
                   std::vector<SearchResultRef>& outResults, size_t maxResults = 0);
 
+    // Sort on a worker thread (folders first, then column). Precomputes wide names
+    // once — safe for hundreds of thousands of hits without freezing the UI.
+    void SortSearchResults(std::vector<SearchResultRef>& results, int column, bool ascending) const;
+
     bool IsFolderResult(const SearchResultRef& r) const { return r.is_folder; }
     std::string GetResultName(const SearchResultRef& r) const;
     std::string GetResultPath(const SearchResultRef& r) const;

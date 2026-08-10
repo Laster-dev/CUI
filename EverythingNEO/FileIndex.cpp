@@ -120,6 +120,7 @@ bool FileIndexTable::UpdateFileMeta(uint32_t fileId, uint64_t fileSize, uint64_t
     if (fileId >= m_files.size()) return false;
     m_files[fileId].file_size = fileSize;
     m_files[fileId].date_modified = dateModified;
+    m_files[fileId].attributes = static_cast<uint16_t>(m_files[fileId].attributes | kAttrMetaLoaded);
     return true;
 }
 

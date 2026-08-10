@@ -102,6 +102,10 @@ public:
     float GetRowHeight() const { return m_rowHeight; }
     void SetRowHeight(float h) { m_rowHeight = h; }
 
+    // Content area column/row separators (Everything-style lists usually hide these).
+    void SetShowGridLines(bool show) { m_showGridLines = show; InvalidateRowsLayer(); }
+    bool GetShowGridLines() const { return m_showGridLines; }
+
     // Selection Management
     ListViewSelectionMode GetSelectionMode() const { return m_selectionMode; }
     void SetSelectionMode(ListViewSelectionMode mode) { m_selectionMode = mode; }
@@ -210,6 +214,7 @@ private:
 
     float m_headerHeight = 32.0f;
     float m_rowHeight = 28.0f;
+    bool m_showGridLines = true;
 
     RenderLayer m_rowsLayer;
     bool m_rowsLayerCachesFull = false;

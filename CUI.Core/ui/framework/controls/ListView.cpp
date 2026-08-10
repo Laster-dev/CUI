@@ -636,16 +636,18 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
     }
 
     // Pass 2: grid lines after all fills so separators stay visible on hover/selection.
-    for (int r = startRow; r <= endRow; ++r) {
-        float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - scrollY;
-        ctx.DrawLine(Point(m_bounds.x, rowY + m_rowHeight), Point(m_bounds.x + m_bounds.width, rowY + m_rowHeight), gridLineClr, 1.0f);
-        float cellX = m_bounds.x - scrollX;
-        for (size_t c = 0; c < m_columns.size(); ++c) {
-            if (!m_columns[c].visible) continue;
-            float colW = GetColumnWidth(c);
-            if (colW <= 0.0f) continue;
-            ctx.DrawLine(Point(cellX + colW, rowY), Point(cellX + colW, rowY + m_rowHeight), gridLineClr, 1.0f);
-            cellX += colW;
+    if (m_showGridLines) {
+        for (int r = startRow; r <= endRow; ++r) {
+            float rowY = m_bounds.y + m_headerHeight + r * m_rowHeight - scrollY;
+            ctx.DrawLine(Point(m_bounds.x, rowY + m_rowHeight), Point(m_bounds.x + m_bounds.width, rowY + m_rowHeight), gridLineClr, 1.0f);
+            float cellX = m_bounds.x - scrollX;
+            for (size_t c = 0; c < m_columns.size(); ++c) {
+                if (!m_columns[c].visible) continue;
+                float colW = GetColumnWidth(c);
+                if (colW <= 0.0f) continue;
+                ctx.DrawLine(Point(cellX + colW, rowY), Point(cellX + colW, rowY + m_rowHeight), gridLineClr, 1.0f);
+                cellX += colW;
+            }
         }
     }
 

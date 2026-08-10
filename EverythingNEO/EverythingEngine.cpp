@@ -3,9 +3,27 @@
 #include "DbSnapshot.h"
 #include "FastMatch.h"
 #include <windows.h>
+#include <shlwapi.h>
 #include <chrono>
+#include <algorithm>
+#include <numeric>
+
+#pragma comment(lib, "shlwapi.lib")
 
 namespace EverythingNEO {
+
+namespace {
+
+std::wstring Utf8SvToWide(std::string_view utf8) {
+    if (utf8.empty()) return {};
+    int n = MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()), nullptr, 0);
+    if (n <= 0) return {};
+    std::wstring w(static_cast<size_t>(n), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()), w.data(), n);
+    return w;
+}
+
+} // namespace
 
 EverythingEngine::EverythingEngine() = default;
 
@@ -222,25 +240,99 @@ size_t EverythingEngine::Search(const std::string& query, const SearchOptions& o
 
     outResults.reserve(4096);
 
-    for (uint32_t i = 0; i < static_cast<uint32_t>(files.size()); ++i) {
-        if ((files[i].attributes & kAttrDeleted) != 0) continue;
-        if (matches(m_index.GetFileName(i), files[i].parent_folder_id)) {
-            outResults.push_back({ i, false });
-            if (maxResults > 0 && outResults.size() >= maxResults) return outResults.size();
+    const bool wantFiles = opts.result_kind != SearchResultKind::FoldersOnly;
+    const bool wantFolders = opts.result_kind != SearchResultKind::FilesOnly;
+
+    // Folders first in the raw hit list (final order still sorted by the UI).
+    if (wantFolders) {
+        for (uint32_t i = 0; i < static_cast<uint32_t>(folders.size()); ++i) {
+            if ((folders[i].attributes & kAttrDeleted) != 0) continue;
+            if (i == 0) continue; // skip drive root duplicates
+            std::string_view name = m_index.GetFolderName(i);
+            if (name.empty()) continue;
+            if (matches(name, folders[i].parent_folder_id)) {
+                outResults.push_back({ i, true });
+                if (maxResults > 0 && outResults.size() >= maxResults) return outResults.size();
+            }
         }
     }
 
-    for (uint32_t i = 0; i < static_cast<uint32_t>(folders.size()); ++i) {
-        if ((folders[i].attributes & kAttrDeleted) != 0) continue;
-        if (i == 0) continue; // skip drive root duplicates
-        std::string_view name = m_index.GetFolderName(i);
-        if (name.empty()) continue;
-        if (matches(name, folders[i].parent_folder_id)) {
-            outResults.push_back({ i, true });
-            if (maxResults > 0 && outResults.size() >= maxResults) return outResults.size();
+    if (wantFiles) {
+        for (uint32_t i = 0; i < static_cast<uint32_t>(files.size()); ++i) {
+            if ((files[i].attributes & kAttrDeleted) != 0) continue;
+            if (matches(m_index.GetFileName(i), files[i].parent_folder_id)) {
+                outResults.push_back({ i, false });
+                if (maxResults > 0 && outResults.size() >= maxResults) return outResults.size();
+            }
         }
     }
     return outResults.size();
+}
+
+void EverythingEngine::SortSearchResults(std::vector<SearchResultRef>& results, int column, bool ascending) const {
+    if (results.size() <= 1) return;
+
+    std::shared_lock<std::shared_mutex> lock(m_mutex);
+
+    std::vector<uint32_t> order(results.size());
+    std::iota(order.begin(), order.end(), 0u);
+
+    auto foldersFirst = [&](uint32_t i, uint32_t j) -> bool {
+        return results[i].is_folder && !results[j].is_folder;
+    };
+
+    if (column <= 0) {
+        // Convert each name once — UI-thread StrCmpLogicalW per comparison was ~3s for 800k rows.
+        std::vector<std::wstring> names(results.size());
+        for (size_t i = 0; i < results.size(); ++i) {
+            const auto& r = results[i];
+            std::string_view sv = r.is_folder ? m_index.GetFolderName(r.index) : m_index.GetFileName(r.index);
+            names[i] = Utf8SvToWide(sv);
+        }
+        std::sort(order.begin(), order.end(), [&](uint32_t i, uint32_t j) {
+            if (results[i].is_folder != results[j].is_folder) return foldersFirst(i, j);
+            const int c = StrCmpLogicalW(names[i].c_str(), names[j].c_str());
+            return ascending ? c < 0 : c > 0;
+        });
+    } else if (column == 1) {
+        std::vector<std::wstring> paths(results.size());
+        for (size_t i = 0; i < results.size(); ++i) {
+            const auto& r = results[i];
+            if (r.is_folder) {
+                paths[i] = Utf8SvToWide(m_index.GetFolderPath(r.index));
+            } else {
+                paths[i] = Utf8SvToWide(m_index.GetFolderPath(m_index.GetFiles()[r.index].parent_folder_id));
+            }
+        }
+        std::sort(order.begin(), order.end(), [&](uint32_t i, uint32_t j) {
+            if (results[i].is_folder != results[j].is_folder) return foldersFirst(i, j);
+            const int c = StrCmpLogicalW(paths[i].c_str(), paths[j].c_str());
+            return ascending ? c < 0 : c > 0;
+        });
+    } else if (column == 2) {
+        std::sort(order.begin(), order.end(), [&](uint32_t i, uint32_t j) {
+            if (results[i].is_folder != results[j].is_folder) return foldersFirst(i, j);
+            const uint64_t sa = results[i].is_folder ? 0ULL : (
+                results[i].index < m_index.GetFiles().size() ? m_index.GetFiles()[results[i].index].file_size : 0ULL);
+            const uint64_t sb = results[j].is_folder ? 0ULL : (
+                results[j].index < m_index.GetFiles().size() ? m_index.GetFiles()[results[j].index].file_size : 0ULL);
+            return ascending ? sa < sb : sa > sb;
+        });
+    } else {
+        std::sort(order.begin(), order.end(), [&](uint32_t i, uint32_t j) {
+            if (results[i].is_folder != results[j].is_folder) return foldersFirst(i, j);
+            const uint64_t da = results[i].is_folder ? 0ULL : (
+                results[i].index < m_index.GetFiles().size() ? m_index.GetFiles()[results[i].index].date_modified : 0ULL);
+            const uint64_t db = results[j].is_folder ? 0ULL : (
+                results[j].index < m_index.GetFiles().size() ? m_index.GetFiles()[results[j].index].date_modified : 0ULL);
+            return ascending ? da < db : da > db;
+        });
+    }
+
+    std::vector<SearchResultRef> sorted;
+    sorted.reserve(results.size());
+    for (uint32_t i : order) sorted.push_back(results[i]);
+    results = std::move(sorted);
 }
 
 std::string EverythingEngine::GetResultName(const SearchResultRef& r) const {
@@ -283,10 +375,10 @@ uint16_t EverythingEngine::GetResultAttrs(const SearchResultRef& r) const {
     std::shared_lock<std::shared_mutex> lock(m_mutex);
     if (r.is_folder) {
         if (r.index >= m_index.GetFolders().size()) return FILE_ATTRIBUTE_DIRECTORY;
-        return static_cast<uint16_t>(m_index.GetFolders()[r.index].attributes & ~kAttrDeleted);
+        return static_cast<uint16_t>(m_index.GetFolders()[r.index].attributes & ~(kAttrDeleted | kAttrMetaLoaded));
     }
     if (r.index >= m_index.GetFiles().size()) return 0;
-    return static_cast<uint16_t>(m_index.GetFiles()[r.index].attributes & ~kAttrDeleted);
+    return static_cast<uint16_t>(m_index.GetFiles()[r.index].attributes & ~(kAttrDeleted | kAttrMetaLoaded));
 }
 
 std::string EverythingEngine::GetFileName(uint32_t fileIndex) const {
@@ -332,7 +424,7 @@ uint64_t EverythingEngine::GetFileDateModified(uint32_t fileIndex) const {
 uint16_t EverythingEngine::GetFileAttrs(uint32_t fileIndex) const {
     std::shared_lock<std::shared_mutex> lock(m_mutex);
     if (fileIndex >= m_index.GetFiles().size()) return 0;
-    return static_cast<uint16_t>(m_index.GetFiles()[fileIndex].attributes & ~kAttrDeleted);
+    return static_cast<uint16_t>(m_index.GetFiles()[fileIndex].attributes & ~(kAttrDeleted | kAttrMetaLoaded));
 }
 
 void EverythingEngine::EnsureFileMeta(uint32_t fileIndex) {
@@ -342,7 +434,8 @@ void EverythingEngine::EnsureFileMeta(uint32_t fileIndex) {
         if (fileIndex >= m_index.GetFiles().size()) return;
         const auto& node = m_index.GetFiles()[fileIndex];
         if ((node.attributes & kAttrDeleted) != 0) return;
-        if (node.file_size != 0 || node.date_modified != 0) return;
+        // Only skip when we already queried the filesystem (empty files stay size 0).
+        if ((node.attributes & kAttrMetaLoaded) != 0) return;
         path = m_index.GetFilePath(fileIndex);
     }
     if (path.empty()) return;
@@ -353,7 +446,11 @@ void EverythingEngine::EnsureFileMeta(uint32_t fileIndex) {
     MultiByteToWideChar(CP_UTF8, 0, path.data(), static_cast<int>(path.size()), wpath.data(), wlen);
 
     WIN32_FILE_ATTRIBUTE_DATA fad{};
-    if (!GetFileAttributesExW(wpath.c_str(), GetFileExInfoStandard, &fad)) return;
+    if (!GetFileAttributesExW(wpath.c_str(), GetFileExInfoStandard, &fad)) {
+        std::unique_lock<std::shared_mutex> lock(m_mutex);
+        m_index.UpdateFileMeta(fileIndex, 0, 0);
+        return;
+    }
 
     ULARGE_INTEGER size{};
     size.LowPart = fad.nFileSizeLow;

@@ -20,6 +20,7 @@ namespace CUI {
 class WindowTitleBar;
 class TextBox;
 class TextBlock;
+class ComboBox;
 class UIElement;
 class MenuItem;
 class ContextMenu;
@@ -137,6 +138,7 @@ private:
     std::shared_ptr<CUI::UIElement> m_root;
     std::shared_ptr<CUI::WindowTitleBar> m_titleBar;
     std::shared_ptr<CUI::TextBox> m_searchBox;
+    std::shared_ptr<CUI::ComboBox> m_typeFilter;
     std::shared_ptr<CUI::ListView> m_resultsList;
     std::shared_ptr<CUI::TextBlock> m_statusLeft;
     std::shared_ptr<CUI::TextBlock> m_statusRight;

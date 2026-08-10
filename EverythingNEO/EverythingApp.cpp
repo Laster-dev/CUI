@@ -7,6 +7,7 @@
 #include "framework/controls/TextBox.h"
 #include "framework/controls/TextBlock.h"
 #include "framework/controls/ListView.h"
+#include "framework/controls/ComboBox.h"
 #include "framework/controls/ContextMenu.h"
 #include "framework/controls/MessageBox.h"
 #include "framework/style/ThemeManager.h"
@@ -24,6 +25,9 @@
 #include <fstream>
 #include <filesystem>
 #include <shlobj.h>
+#include <shlwapi.h>
+
+#pragma comment(lib, "shlwapi.lib")
 
 using namespace CUI;
 using namespace CUI::DSL;
@@ -80,6 +84,11 @@ std::wstring Utf8ToWide(const std::string& s) {
     std::wstring out(static_cast<size_t>(n), L'\0');
     MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), out.data(), n);
     return out;
+}
+
+// Explorer-style name compare (digits as numbers, locale-aware).
+int CompareLogicalName(const std::string& a, const std::string& b) {
+    return StrCmpLogicalW(Utf8ToWide(a).c_str(), Utf8ToWide(b).c_str());
 }
 
 std::string JoinPath(const std::string& folder, const std::string& name) {
@@ -323,7 +332,6 @@ std::string ResultsDataSource::GetCellText(int row, int col) {
             bool isFolder = entry.is_folder;
             QueryPathMeta(entry.path, size, date, isFolder);
             if (isFolder) return "<文件夹>";
-            if (size == 0) return {};
             return FormatBytes(size);
         }
         if (col == 3) {
@@ -340,12 +348,22 @@ std::string ResultsDataSource::GetCellText(int row, int col) {
         case 0: return GetName(r);
         case 1: return r.is_folder ? engine->GetResultPath(r) : GetFolder(r);
         case 2: {
-            uint64_t size = engine->GetResultSize(r);
-            if (size == 0 && r.is_folder) return "<文件夹>";
-            if (size == 0) return {};
-            return FormatBytes(size);
+            if (r.is_folder) return "<文件夹>";
+            engine->EnsureFileMeta(r.index);
+            return FormatBytes(engine->GetResultSize(r));
         }
-        case 3: return FormatFileTime(engine->GetResultDateModified(r));
+        case 3: {
+            if (r.is_folder) {
+                uint64_t size = 0, date = 0;
+                bool isFolder = true;
+                if (QueryPathMeta(engine->GetResultPath(r), size, date, isFolder)) {
+                    return FormatFileTime(date);
+                }
+                return {};
+            }
+            engine->EnsureFileMeta(r.index);
+            return FormatFileTime(engine->GetResultDateModified(r));
+        }
         default: return {};
     }
 }
@@ -477,6 +495,26 @@ std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
     });
     searchRow->AddChild(m_searchBox);
 
+    m_typeFilter = std::make_shared<ComboBox>();
+    m_typeFilter->SetWidth(150.0f);
+    m_typeFilter->SetHeight(32.0f);
+    m_typeFilter->SetMargin(Thickness(6, 0, 0, 0));
+    m_typeFilter->SetFontFamily("微软雅黑");
+    m_typeFilter->SetFontSize(13.0f);
+    m_typeFilter->AddItem("文件+文件夹");
+    m_typeFilter->AddItem("文件");
+    m_typeFilter->AddItem("文件夹");
+    m_typeFilter->SetSelectedIndex(0);
+    m_typeFilter->OnSelectionChanged().Connect([this](ComboBox*, int index, const std::string&) {
+        switch (index) {
+            case 1: m_searchOptions.result_kind = SearchResultKind::FilesOnly; break;
+            case 2: m_searchOptions.result_kind = SearchResultKind::FoldersOnly; break;
+            default: m_searchOptions.result_kind = SearchResultKind::FilesAndFolders; break;
+        }
+        if (!m_lastQuery.empty()) QueueSearch(m_lastQuery);
+    });
+    searchRow->AddChild(m_typeFilter);
+
     m_resultsList = std::make_shared<ListView>();
     m_resultsList->SetWidth(-1.0f);
     m_resultsList->SetHeight(-1.0f);
@@ -486,6 +524,7 @@ std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
     m_resultsList->AddColumn("大小", 100.0f);
     m_resultsList->AddColumn("修改日期", 140.0f);
     m_resultsList->SetRowHeight(24.0f);
+    m_resultsList->SetShowGridLines(false);
     m_resultsList->SetFontFamily("微软雅黑");
     m_resultsList->SetFontSize(13.0f);
     m_resultsList->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
@@ -670,19 +709,21 @@ void EverythingApp::RefreshSearchMenuChecks() {
 }
 
 void EverythingApp::SortResults(int column, bool ascending) {
-    auto cmpStr = [ascending](const std::string& a, const std::string& b) {
-        const int cmp = _stricmp(a.c_str(), b.c_str());
+    auto cmpLogical = [ascending](const std::string& a, const std::string& b) {
+        const int cmp = CompareLogicalName(a, b);
         return ascending ? cmp < 0 : cmp > 0;
     };
 
     if (m_displayMode == ListDisplayMode::FrequentFiles) {
         std::sort(m_frequentFiles.begin(), m_frequentFiles.end(),
                   [&](const FrequentFileEntry& fa, const FrequentFileEntry& fb) {
+                      // Folders always before files (Everything-style).
+                      if (fa.is_folder != fb.is_folder) return fa.is_folder && !fb.is_folder;
                       switch (column) {
-                          case 0: return cmpStr(ResultsDataSource::BaseNameFromPath(fa.path),
-                                                ResultsDataSource::BaseNameFromPath(fb.path));
-                          case 1: return cmpStr(ResultsDataSource::FolderFromPath(fa.path),
-                                                ResultsDataSource::FolderFromPath(fb.path));
+                          case 0: return cmpLogical(ResultsDataSource::BaseNameFromPath(fa.path),
+                                                    ResultsDataSource::BaseNameFromPath(fb.path));
+                          case 1: return cmpLogical(ResultsDataSource::FolderFromPath(fa.path),
+                                                    ResultsDataSource::FolderFromPath(fb.path));
                           case 2: {
                               uint64_t sa = 0, da = 0, sb = 0, db = 0;
                               bool ia = fa.is_folder, ib = fb.is_folder;
@@ -709,19 +750,24 @@ void EverythingApp::SortResults(int column, bool ascending) {
 
     std::sort(m_results.begin(), m_results.end(),
               [&](const SearchResultRef& a, const SearchResultRef& b) {
+                  if (a.is_folder != b.is_folder) return a.is_folder && !b.is_folder;
                   switch (column) {
-                      case 0: return cmpStr(m_engine.GetResultName(a), m_engine.GetResultName(b));
+                      case 0: return cmpLogical(m_engine.GetResultName(a), m_engine.GetResultName(b));
                       case 1: {
                           const std::string pa = a.is_folder ? m_engine.GetResultPath(a) : m_engine.GetResultFolderPath(a);
                           const std::string pb = b.is_folder ? m_engine.GetResultPath(b) : m_engine.GetResultFolderPath(b);
-                          return cmpStr(pa, pb);
+                          return cmpLogical(pa, pb);
                       }
                       case 2: {
+                          if (!a.is_folder) m_engine.EnsureFileMeta(a.index);
+                          if (!b.is_folder) m_engine.EnsureFileMeta(b.index);
                           const uint64_t sa = m_engine.GetResultSize(a);
                           const uint64_t sb = m_engine.GetResultSize(b);
                           return ascending ? sa < sb : sa > sb;
                       }
                       case 3: {
+                          if (!a.is_folder) m_engine.EnsureFileMeta(a.index);
+                          if (!b.is_folder) m_engine.EnsureFileMeta(b.index);
                           const uint64_t da = m_engine.GetResultDateModified(a);
                           const uint64_t db = m_engine.GetResultDateModified(b);
                           return ascending ? da < db : da > db;
@@ -852,6 +898,8 @@ void EverythingApp::ApplySearchResults(std::vector<SearchResultRef>&& results, d
             m_resultsList->SetVirtualMode(static_cast<int>(m_results.size()), &m_dataSource);
         }
     }
+    // Default: folders (logical name) then files (logical name).
+    SortResults(0, true);
 
     if (!m_lastQuery.empty() && m_statusLeft) {
         std::ostringstream ss;
