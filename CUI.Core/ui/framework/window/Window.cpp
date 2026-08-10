@@ -1365,6 +1365,11 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         InvalidatePendingRenderRegions(true);
         return 0;
 
+    case WM_RBUTTONUP:
+        OnRButtonUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        InvalidatePendingRenderRegions(true);
+        return 0;
+
     case WM_MOUSEWHEEL: {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         ScreenToClient(m_hwnd, &pt);
@@ -2031,6 +2036,16 @@ bool Window::OnLButtonUp(int x, int y) {
     if (auto pressed = LockElement(m_pressedElement)) {
         pressed->OnMouseUp(Point(fx, fy));
         dirty = true;
+        // MenuBar / TitleBar may open a dropdown on mouse-up; track it for light-dismiss.
+        UIElement* curr = pressed.get();
+        while (curr) {
+            auto menu = curr->GetContextMenu();
+            if (menu && menu->IsOpen()) {
+                m_activeContextMenu = menu;
+                break;
+            }
+            curr = curr->GetParent();
+        }
     }
     m_pressedElement.reset();
     ReleaseCapture();
@@ -2047,33 +2062,55 @@ void Window::OnRButtonDown(int x, int y) {
         m_activeContextMenu = nullptr;
     }
 
-    RECT rc;
-    GetClientRect(m_hwnd, &rc);
-    (void)rc;
+    m_pendingContextMenuTarget = nullptr;
+    m_pendingContextMenu.reset();
 
     UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
-    if (target) {
-        auto focused = LockElement(m_focusedElement);
-        if (focused && focused.get() != target) {
-            focused->OnBlur();
-        }
-        SetFocusedElement(target);
-        if (auto curFocused = LockElement(m_focusedElement)) {
-            curFocused->OnFocus();
-        }
+    if (!target) return;
 
-        target->OnMouseRightClick(Point(fx, fy));
+    auto focused = LockElement(m_focusedElement);
+    if (focused && focused.get() != target) {
+        focused->OnBlur();
+    }
+    SetFocusedElement(target);
+    if (auto curFocused = LockElement(m_focusedElement)) {
+        curFocused->OnFocus();
+    }
 
-        UIElement* curr = target;
-        while (curr) {
-            auto menu = curr->GetContextMenu();
-            if (menu) {
-                m_activeContextMenu = menu;
-                m_activeContextMenu->ShowAt(fx, fy);
-                break;
-            }
-            curr = curr->GetParent();
+    target->OnMouseRightClick(Point(fx, fy));
+
+    m_pendingContextMenuTarget = target;
+    m_pendingContextMenuPt = Point(fx, fy);
+    UIElement* curr = target;
+    while (curr) {
+        if (auto menu = curr->GetContextMenu()) {
+            m_pendingContextMenu = menu;
+            break;
         }
+        curr = curr->GetParent();
+    }
+}
+
+void Window::OnRButtonUp(int x, int y) {
+    Point logicalPt = ClientPointToLogical(x, y);
+    float fx = logicalPt.x;
+    float fy = logicalPt.y;
+
+    UIElement* target = m_pendingContextMenuTarget;
+    m_pendingContextMenuTarget = nullptr;
+    auto pendingMenu = m_pendingContextMenu;
+    m_pendingContextMenu.reset();
+
+    if (!target) return;
+
+    const Point releasePt(fx, fy);
+    if (target->OnContextMenuRelease(releasePt)) {
+        return;
+    }
+
+    if (pendingMenu) {
+        m_activeContextMenu = pendingMenu;
+        m_activeContextMenu->ShowAt(releasePt.x, releasePt.y);
     }
 }
 

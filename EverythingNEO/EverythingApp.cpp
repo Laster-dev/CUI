@@ -1,5 +1,6 @@
 #include "EverythingApp.h"
 
+#include "ShellContextMenu.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/window/WindowBackdrop.h"
 #include "framework/controls/WindowTitleBar.h"
@@ -35,7 +36,14 @@ constexpr UINT WM_ENEO_STATUS = WM_APP + 40;
 constexpr UINT WM_ENEO_READY = WM_APP + 41;
 constexpr UINT WM_ENEO_CHANGED = WM_APP + 42;
 constexpr UINT WM_ENEO_ICONS_READY = WM_APP + 44;
+constexpr UINT WM_ENEO_SEARCH_RESULTS = WM_APP + 45;
 constexpr UINT_PTR kSubclassId = 0xE4E0;
+
+struct SearchResultsMessage {
+    std::vector<SearchResultRef> results;
+    double seconds = 0.0;
+    uint64_t generation = 0;
+};
 
 std::string FormatBytes(uint64_t bytes) {
     double size = static_cast<double>(bytes);
@@ -384,6 +392,14 @@ LRESULT CALLBACK EverythingApp::WndSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
         if (self->m_resultsList) self->m_resultsList->RefreshRows();
         return 0;
     }
+    if (msg == WM_ENEO_SEARCH_RESULTS) {
+        auto* payload = reinterpret_cast<SearchResultsMessage*>(lParam);
+        if (payload) {
+            self->ApplySearchResults(std::move(payload->results), payload->seconds, payload->generation);
+            delete payload;
+        }
+        return 0;
+    }
     if (msg == WM_ENEO_READY || msg == WM_ENEO_CHANGED) {
         self->OnEngineReady();
         return 0;
@@ -486,13 +502,28 @@ std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
         }
         OpenSelected();
     });
-
-    auto listMenu = std::make_shared<ContextMenu>();
-    listMenu->AddItem("打开(O)", [this]() { OpenSelected(); });
-    listMenu->AddItem("打开路径(P)", [this]() { OpenSelectedPath(); });
-    listMenu->AddSeparator();
-    listMenu->AddItem("复制完整路径(C)", [this]() { CopyFullPath(); });
-    m_resultsList->SetContextMenu(listMenu);
+    m_resultsList->OnColumnHeaderClicked().Connect([this](ListView*, int column, bool ascending) {
+        SortResults(column, ascending);
+    });
+    m_resultsList->SetShellContextMenuHandler([this](Point /*pt*/, const std::vector<int>& rows) {
+        std::vector<std::wstring> paths;
+        paths.reserve(rows.size());
+        if (m_displayMode == ListDisplayMode::FrequentFiles) {
+            for (int row : rows) {
+                if (row < 0 || row >= static_cast<int>(m_frequentFiles.size())) continue;
+                paths.push_back(Utf8ToWide(m_frequentFiles[static_cast<size_t>(row)].path));
+            }
+        } else {
+            for (int row : rows) {
+                if (row < 0 || row >= static_cast<int>(m_results.size())) continue;
+                paths.push_back(Utf8ToWide(m_engine.GetResultPath(m_results[static_cast<size_t>(row)])));
+            }
+        }
+        if (paths.empty()) return false;
+        POINT screenPt{};
+        GetCursorPos(&screenPt);
+        return ShowShellContextMenu(m_window.GetHWND(), paths, screenPt.x, screenPt.y);
+    });
 
     m_statusBar = Row(0).Build();
     m_statusBar->SetHeight(26.0f);
@@ -544,30 +575,33 @@ void EverythingApp::BuildMenus() {
     });
 
     auto searchMenu = menuBar.AddMenu("搜索(S)");
-    searchMenu->AddItem("启用正则表达式(R)", [this]() {
+    m_menuRegex = searchMenu->AddItem("启用正则表达式(R)", [this]() {
         ToggleSearchOption(&SearchOptions::use_regex, "regex");
     });
-    searchMenu->AddItem("匹配路径(P)", [this]() {
+    m_menuMatchPath = searchMenu->AddItem("匹配路径(P)", [this]() {
         ToggleSearchOption(&SearchOptions::match_path, "path");
     });
-    searchMenu->AddItem("匹配全字(W)", [this]() {
+    m_menuWholeWord = searchMenu->AddItem("匹配全字(W)", [this]() {
         ToggleSearchOption(&SearchOptions::match_whole_word, "word");
     });
-    searchMenu->AddItem("匹配大小写(C)", [this]() {
+    m_menuMatchCase = searchMenu->AddItem("匹配大小写(C)", [this]() {
         ToggleSearchOption(&SearchOptions::match_case, "case");
     });
+    RefreshSearchMenuChecks();
 
     auto viewMenu = menuBar.AddMenu("查看(V)");
     viewMenu->AddItem("刷新(R)", [this]() {
         QueueSearch(m_lastQuery);
         RefreshStatusBar();
     });
-    viewMenu->AddItem("状态栏(S)", [this]() {
+    m_menuStatusBar = viewMenu->AddItem("状态栏(S)", [this]() {
         m_statusBarVisible = !m_statusBarVisible;
         if (m_statusBar) {
             m_statusBar->SetVisibility(m_statusBarVisible ? Visibility::Visible : Visibility::Collapsed);
         }
+        RefreshSearchMenuChecks();
     });
+    m_menuStatusBar->SetChecked(m_statusBarVisible);
     viewMenu->AddItem("切换主题(T)", [this]() { ToggleTheme(); });
 
     auto toolsMenu = menuBar.AddMenu("工具(T)");
@@ -612,24 +646,110 @@ void EverythingApp::BuildMenus() {
 void EverythingApp::ToggleSearchOption(bool SearchOptions::* flag, const char* /*label*/) {
     bool current = m_searchOptions.*flag;
     m_searchOptions.*flag = !current;
+    RefreshSearchMenuChecks();
     if (!m_lastQuery.empty()) QueueSearch(m_lastQuery);
+}
+
+void EverythingApp::RefreshSearchMenuChecks() {
+    if (m_menuRegex) m_menuRegex->SetChecked(m_searchOptions.use_regex);
+    if (m_menuMatchPath) m_menuMatchPath->SetChecked(m_searchOptions.match_path);
+    if (m_menuWholeWord) m_menuWholeWord->SetChecked(m_searchOptions.match_whole_word);
+    if (m_menuMatchCase) m_menuMatchCase->SetChecked(m_searchOptions.match_case);
+    if (m_menuStatusBar) m_menuStatusBar->SetChecked(m_statusBarVisible);
+}
+
+void EverythingApp::SortResults(int column, bool ascending) {
+    auto cmpStr = [ascending](const std::string& a, const std::string& b) {
+        const int cmp = _stricmp(a.c_str(), b.c_str());
+        return ascending ? cmp < 0 : cmp > 0;
+    };
+
+    if (m_displayMode == ListDisplayMode::FrequentFiles) {
+        std::sort(m_frequentFiles.begin(), m_frequentFiles.end(),
+                  [&](const FrequentFileEntry& fa, const FrequentFileEntry& fb) {
+                      switch (column) {
+                          case 0: return cmpStr(ResultsDataSource::BaseNameFromPath(fa.path),
+                                                ResultsDataSource::BaseNameFromPath(fb.path));
+                          case 1: return cmpStr(ResultsDataSource::FolderFromPath(fa.path),
+                                                ResultsDataSource::FolderFromPath(fb.path));
+                          case 2: {
+                              uint64_t sa = 0, da = 0, sb = 0, db = 0;
+                              bool ia = fa.is_folder, ib = fb.is_folder;
+                              ResultsDataSource::QueryPathMeta(fa.path, sa, da, ia);
+                              ResultsDataSource::QueryPathMeta(fb.path, sb, db, ib);
+                              return ascending ? sa < sb : sa > sb;
+                          }
+                          case 3: {
+                              uint64_t sa = 0, da = 0, sb = 0, db = 0;
+                              bool ia = fa.is_folder, ib = fb.is_folder;
+                              ResultsDataSource::QueryPathMeta(fa.path, sa, da, ia);
+                              ResultsDataSource::QueryPathMeta(fb.path, sb, db, ib);
+                              return ascending ? da < db : da > db;
+                          }
+                          default: return false;
+                      }
+                  });
+        m_dataSource.ClearCaches();
+        if (m_resultsList) {
+            m_resultsList->RefreshRows();
+        }
+        return;
+    }
+
+    std::sort(m_results.begin(), m_results.end(),
+              [&](const SearchResultRef& a, const SearchResultRef& b) {
+                  switch (column) {
+                      case 0: return cmpStr(m_engine.GetResultName(a), m_engine.GetResultName(b));
+                      case 1: {
+                          const std::string pa = a.is_folder ? m_engine.GetResultPath(a) : m_engine.GetResultFolderPath(a);
+                          const std::string pb = b.is_folder ? m_engine.GetResultPath(b) : m_engine.GetResultFolderPath(b);
+                          return cmpStr(pa, pb);
+                      }
+                      case 2: {
+                          const uint64_t sa = m_engine.GetResultSize(a);
+                          const uint64_t sb = m_engine.GetResultSize(b);
+                          return ascending ? sa < sb : sa > sb;
+                      }
+                      case 3: {
+                          const uint64_t da = m_engine.GetResultDateModified(a);
+                          const uint64_t db = m_engine.GetResultDateModified(b);
+                          return ascending ? da < db : da > db;
+                      }
+                      default: return false;
+                  }
+              });
+    m_dataSource.ClearCaches();
+    if (m_resultsList) {
+        m_resultsList->RefreshRows();
+    }
 }
 
 void EverythingApp::QueueSearch(const std::string& query) {
     m_lastQuery = query;
-    m_searchGeneration.fetch_add(1);
+    const uint64_t generation = ++m_searchGeneration;
 
     if (query.empty()) {
         ShowFrequentFiles();
         return;
     }
 
-    auto t0 = std::chrono::high_resolution_clock::now();
-    std::vector<SearchResultRef> results;
-    m_engine.Search(query, m_searchOptions, results, 0);
-    auto t1 = std::chrono::high_resolution_clock::now();
-    double seconds = std::chrono::duration<double>(t1 - t0).count();
-    ApplySearchResults(std::move(results), seconds, m_searchGeneration.load());
+    const SearchOptions opts = m_searchOptions;
+    std::thread([this, query, opts, generation]() {
+        const auto t0 = std::chrono::high_resolution_clock::now();
+        std::vector<SearchResultRef> results;
+        m_engine.Search(query, opts, results, 0);
+        const auto t1 = std::chrono::high_resolution_clock::now();
+        const double seconds = std::chrono::duration<double>(t1 - t0).count();
+        if (generation != m_searchGeneration.load()) return;
+
+        HWND hwnd = m_window.GetHWND();
+        if (!hwnd) return;
+
+        auto* payload = new SearchResultsMessage{ std::move(results), seconds, generation };
+        if (!PostMessageW(hwnd, WM_ENEO_SEARCH_RESULTS, 0, reinterpret_cast<LPARAM>(payload))) {
+            delete payload;
+        }
+    }).detach();
 }
 
 void EverythingApp::ShowFrequentFiles() {

@@ -26,12 +26,21 @@ public:
     void ClearMenus() { m_menus.clear(); }
     void ClearActiveMenu() { CloseActiveMenu(); m_hoveredIndex = -1; }
     void ResetInteractionState();
+    std::shared_ptr<ContextMenu> GetActiveDropDown() const {
+        if (m_activeOpenIndex < 0 || m_activeOpenIndex >= static_cast<int>(m_menus.size())) {
+            return nullptr;
+        }
+        auto menu = m_menus[static_cast<size_t>(m_activeOpenIndex)].dropDownMenu;
+        if (menu && menu->IsOpen()) return menu;
+        return nullptr;
+    }
 
     float GetTotalWidth(GraphicsContext& ctx);
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     // Returns true when menu chrome needs a repaint.
     bool HandleMouseMove(Point pt);
@@ -50,6 +59,7 @@ private:
     std::vector<MenuBarItem> m_menus;
     int m_hoveredIndex = -1;
     int m_activeOpenIndex = -1;
+    int m_pendingOpenIndex = -1;
 };
 
 } // namespace CUI

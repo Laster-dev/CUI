@@ -69,6 +69,7 @@ private:
     void OnLButtonDblClick(int x, int y);
     bool OnLButtonUp(int x, int y);
     void OnRButtonDown(int x, int y);
+    void OnRButtonUp(int x, int y);
     // Caption / TitleBar band only — not popups or document content.
     UIElement* HitTestChrome(float x, float y) const;
     static std::shared_ptr<UIElement> CaptureElementRef(UIElement* element);
@@ -99,6 +100,9 @@ private:
     std::weak_ptr<UIElement> m_pressedElement;
     std::weak_ptr<UIElement> m_focusedElement;
     std::shared_ptr<ContextMenu> m_activeContextMenu = nullptr;
+    UIElement* m_pendingContextMenuTarget = nullptr;
+    Point m_pendingContextMenuPt{};
+    std::shared_ptr<ContextMenu> m_pendingContextMenu;
     PopupHost m_popupHost;
     bool m_trackingMouse = false;
     bool m_transparentMode = false;

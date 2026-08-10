@@ -350,6 +350,16 @@ void WindowTitleBar::OnMouseDown(Point pt) {
     m_menuBar.OnMouseDown(pt);
 }
 
+void WindowTitleBar::OnMouseUp(Point pt) {
+    Control::OnMouseUp(pt);
+    m_menuBar.OnMouseUp(pt);
+    // MenuBar is embedded (not a layout child); copy its open dropdown onto the
+    // title bar so Window can track / light-dismiss the active context menu.
+    if (auto menu = m_menuBar.GetActiveDropDown()) {
+        SetContextMenu(menu);
+    }
+}
+
 void WindowTitleBar::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
     ApplyHoverRegion(HitTestHoverRegion(pt.x, pt.y), false);

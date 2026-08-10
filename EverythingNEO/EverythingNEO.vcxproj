@@ -165,6 +165,7 @@
     <ClCompile Include="UsnWatcher.cpp" />
     <ClCompile Include="EverythingEngine.cpp" />
     <ClCompile Include="EverythingApp.cpp" />
+    <ClCompile Include="ShellContextMenu.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -177,6 +178,7 @@
     <ClInclude Include="UsnWatcher.h" />
     <ClInclude Include="EverythingEngine.h" />
     <ClInclude Include="EverythingApp.h" />
+    <ClInclude Include="ShellContextMenu.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

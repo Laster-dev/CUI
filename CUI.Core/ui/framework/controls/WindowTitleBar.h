@@ -19,6 +19,7 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnThemeChanged() override;
     virtual void OnMouseDown(Point pt) override;
+    virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseLeave() override;
     virtual void OnBlur() override;

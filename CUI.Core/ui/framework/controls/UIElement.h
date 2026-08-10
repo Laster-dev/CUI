@@ -272,6 +272,7 @@ public:
     virtual void OnMouseDown(Point pt);
     virtual void OnMouseDblClick(Point pt) {}
     virtual void OnMouseRightClick(Point pt) {}
+    virtual bool OnContextMenuRelease(Point pt) { (void)pt; return false; }
     virtual void OnMouseUp(Point pt);
     virtual void OnMouseMove(Point pt);
     virtual void OnMouseWheel(float delta);

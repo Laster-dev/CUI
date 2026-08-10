@@ -44,8 +44,9 @@ float MenuItem::MeasurePreferredContentWidth(GraphicsContext& ctx) const {
     const float fontSize = GetFontSize();
     const Size label = ctx.MeasureText(GetText(), font, fontSize, DWRITE_FONT_WEIGHT_NORMAL);
 
-    float left = 10.0f;
-    if (!GetIcon().empty()) left += 24.0f;
+    // Left gutter always reserved for checkmark / icon.
+    float left = 28.0f;
+    if (!GetIcon().empty()) left += 20.0f;
 
     float right = 12.0f;
     if (HasSubMenu()) {
@@ -86,13 +87,17 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
         ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary)
         : ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
 
-    float iconW = 24.0f;
-    float textLeft = m_bounds.x + 10.0f;
+    float textLeft = m_bounds.x + 28.0f;
+    if (m_isChecked) {
+        Rect checkRect(m_bounds.x + 4.0f, m_bounds.y, 22.0f, m_bounds.height);
+        ctx.DrawText("✓", checkRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER,
+                     DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+    }
     if (!icon.empty()) {
-        Rect iconRect(m_bounds.x + 6.0f, m_bounds.y, iconW, m_bounds.height);
+        Rect iconRect(m_bounds.x + 26.0f, m_bounds.y, 20.0f, m_bounds.height);
         ctx.DrawText(icon, iconRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER,
                      DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
-        textLeft += iconW;
+        textLeft += 20.0f;
     }
 
     float rightReserve = 12.0f;
@@ -125,13 +130,22 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
 void MenuItem::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
     if (!IsEnabled()) return;
-    if (HasSubMenu()) {
-        if (m_parentMenu) {
-            m_parentMenu->OpenSubMenuForItem(this);
-        }
-        return;
+    // Down only opens submenu; command runs on mouse up.
+    if (HasSubMenu() && m_parentMenu) {
+        m_parentMenu->OpenSubMenuForItem(this);
     }
-    ExecuteCommand();
+}
+
+void MenuItem::OnMouseUp(Point pt) {
+    // Avoid base OnClick: command lives in m_command / ExecuteCommand.
+    if (IsPressed()) {
+        m_isPressed = false;
+        MarkRenderRectDirty(m_bounds);
+    }
+    if (!IsEnabled() || HasSubMenu() || m_isSeparator) return;
+    if (m_bounds.Contains(pt.x, pt.y)) {
+        ExecuteCommand();
+    }
 }
 
 void MenuItem::OnMouseEnter() {
@@ -281,6 +295,17 @@ void ContextMenu::RelayoutItems() {
     }
 }
 
+void ContextMenu::BeginOpenAnimation() {
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_openProgress = 1.0f;
+        m_openAnimating = false;
+        return;
+    }
+    m_openProgress = 0.0f;
+    m_openAnimating = true;
+    RequestAnimationTicks();
+}
+
 void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
     m_popupPosition = Point(x, y);
     m_windowWidth = windowW;
@@ -297,6 +322,7 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
     m_contentHeight = totalH;
     m_scrollOffset = 0.0f;
     RelayoutItems();
+    BeginOpenAnimation();
 
     if (PopupHost* host = PopupHost::Current()) {
         host->Open(this);
@@ -320,6 +346,7 @@ void ContextMenu::ShowSubMenuAt(Rect parentItemBounds, float windowW, float wind
     m_contentHeight = totalH;
     m_scrollOffset = 0.0f;
     RelayoutItems();
+    BeginOpenAnimation();
 }
 
 void ContextMenu::OpenSubMenuForItem(MenuItem* item) {
@@ -338,6 +365,8 @@ void ContextMenu::OpenSubMenuForItem(MenuItem* item) {
 void ContextMenu::Hide() {
     const bool wasOpen = m_isOpen;
     m_isOpen = false;
+    m_openAnimating = false;
+    m_openProgress = 0.0f;
     if (m_activeSubMenu) {
         m_activeSubMenu->Hide();
         m_activeSubMenu = nullptr;
@@ -405,11 +434,23 @@ bool ContextMenu::TickItemHoverAnimations() {
 
 bool ContextMenu::TickPopupAnimation() {
     bool any = TickItemHoverAnimations();
+    if (m_openAnimating) {
+        m_openProgress += UIElement::GetAnimationDeltaSeconds() / kOpenAnimSeconds;
+        if (m_openProgress >= 1.0f) {
+            m_openProgress = 1.0f;
+            m_openAnimating = false;
+        }
+        MarkRenderContentDirty();
+        any = true;
+    }
     const float prev = m_scrollbarAutoHide.Opacity();
     const bool hideAnimating = m_scrollbarAutoHide.Tick(UIElement::GetAnimationDeltaSeconds());
     if (std::abs(prev - m_scrollbarAutoHide.Opacity()) > 0.001f) {
         MarkRenderContentDirty();
         any = true;
+    }
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
+        if (m_activeSubMenu->TickPopupAnimation()) any = true;
     }
     return any || hideAnimating;
 }
@@ -417,18 +458,29 @@ bool ContextMenu::TickPopupAnimation() {
 bool ContextMenu::OnAnimationTick() {
     bool child = UIElement::OnAnimationTick();
     bool hover = TickItemHoverAnimations();
+    bool open = false;
+    if (m_openAnimating) {
+        m_openProgress += UIElement::GetAnimationDeltaSeconds() / kOpenAnimSeconds;
+        if (m_openProgress >= 1.0f) {
+            m_openProgress = 1.0f;
+            m_openAnimating = false;
+        }
+        MarkRenderContentDirty();
+        open = true;
+    }
     const float prev = m_scrollbarAutoHide.Opacity();
     const bool hideAnimating = m_scrollbarAutoHide.Tick(UIElement::GetAnimationDeltaSeconds());
     if (std::abs(prev - m_scrollbarAutoHide.Opacity()) > 0.001f) {
         MarkRenderContentDirty();
     }
-    if (hover || hideAnimating) {
+    if (hover || hideAnimating || open) {
         RequestAnimationTicks();
     }
-    return child || hover || hideAnimating;
+    return child || hover || hideAnimating || open;
 }
 
 bool ContextMenu::HasSelfAnimation() const {
+    if (m_openAnimating) return true;
     if (m_scrollbarAutoHide.NeedsTicks()) return true;
     for (const auto& item : m_items) {
         if (item && item->HasSelfAnimation()) return true;
@@ -455,26 +507,40 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
     if (!m_isOpen || m_items.empty()) return;
 
     float radius = GetCornerRadius();
+    const float alpha = (std::clamp)(m_openProgress, 0.0f, 1.0f);
+    const float t = 1.0f - (1.0f - alpha) * (1.0f - alpha);
 
     D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
     D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
 
-    ctx.FillRoundedRect(m_bounds, radius, bg);
-    ctx.DrawRoundedRect(m_bounds, radius, border, 1.0f);
+    const float slide = (1.0f - t) * 4.0f;
+    Rect drawBounds(m_bounds.x, m_bounds.y + slide, m_bounds.width, m_bounds.height);
 
-    ctx.PushClip(m_bounds);
+    ctx.PushOpacity(t);
+    ctx.FillRoundedRect(drawBounds, radius, bg);
+    ctx.DrawRoundedRect(drawBounds, radius, border, 1.0f);
+
+    const float dy = drawBounds.y - m_bounds.y;
+    if (std::abs(dy) > 0.01f) {
+        for (auto& item : m_items) {
+            Rect b = item->GetBounds();
+            item->Arrange(Rect(b.x, b.y + dy, b.width, b.height));
+        }
+    }
+
+    ctx.PushClip(drawBounds);
     for (auto& item : m_items) {
         item->Render(ctx);
     }
 
     {
         const float contentH = m_contentHeight;
-        const float visibleH = m_bounds.height;
+        const float visibleH = drawBounds.height;
         const float maxScroll = (std::max)(0.0f, contentH - visibleH);
         if (maxScroll > 0.001f && visibleH > 0.001f && m_scrollbarAutoHide.IsDrawn()) {
             constexpr float kScrollW = 8.0f;
-            const float trackX = m_bounds.x + m_bounds.width - kScrollW;
-            Rect trackRect(trackX, m_bounds.y, kScrollW, visibleH);
+            const float trackX = drawBounds.x + drawBounds.width - kScrollW;
+            Rect trackRect(trackX, drawBounds.y, kScrollW, visibleH);
             const float vis = m_scrollbarAutoHide.Opacity();
 
             D2D1_COLOR_F trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
@@ -493,6 +559,11 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
     }
 
     ctx.PopClip();
+    ctx.PopOpacity();
+
+    if (std::abs(dy) > 0.01f) {
+        RelayoutItems();
+    }
 
     if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
         m_activeSubMenu->RenderPopup(ctx);

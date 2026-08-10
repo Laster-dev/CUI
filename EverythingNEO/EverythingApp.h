@@ -21,6 +21,7 @@ class WindowTitleBar;
 class TextBox;
 class TextBlock;
 class UIElement;
+class MenuItem;
 }
 
 namespace EverythingNEO {
@@ -79,6 +80,10 @@ public:
     std::string GetCellText(int row, int col) override;
     HICON GetRowIcon(int row) override;
 
+    static std::string BaseNameFromPath(const std::string& path);
+    static std::string FolderFromPath(const std::string& path);
+    static bool QueryPathMeta(const std::string& path, uint64_t& size, uint64_t& date, bool& isFolder);
+
 private:
     std::string GetName(const SearchResultRef& r);
     std::string GetFolder(const SearchResultRef& r);
@@ -91,10 +96,6 @@ private:
     static uint64_t CacheKey(const SearchResultRef& r) {
         return (static_cast<uint64_t>(r.index) << 1) | (r.is_folder ? 1ULL : 0ULL);
     }
-
-    static std::string BaseNameFromPath(const std::string& path);
-    static std::string FolderFromPath(const std::string& path);
-    static bool QueryPathMeta(const std::string& path, uint64_t& size, uint64_t& date, bool& isFolder);
 };
 
 class EverythingApp {
@@ -120,6 +121,8 @@ private:
     void CopyFullPath();
     void ToggleTheme();
     void ToggleSearchOption(bool SearchOptions::* flag, const char* menuLabel);
+    void RefreshSearchMenuChecks();
+    void SortResults(int column, bool ascending);
     void ApplyChromeColors();
     void OnEngineReady();
     void OnEngineStatus(const std::string& status);
@@ -147,6 +150,12 @@ private:
     std::string m_lastQuery;
     std::atomic<uint64_t> m_searchGeneration{ 0 };
     bool m_statusBarVisible = true;
+
+    std::shared_ptr<CUI::MenuItem> m_menuRegex;
+    std::shared_ptr<CUI::MenuItem> m_menuMatchPath;
+    std::shared_ptr<CUI::MenuItem> m_menuWholeWord;
+    std::shared_ptr<CUI::MenuItem> m_menuMatchCase;
+    std::shared_ptr<CUI::MenuItem> m_menuStatusBar;
 };
 
 } // namespace EverythingNEO

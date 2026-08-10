@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ListView.h"
+#include "ContextMenu.h"
 #include "../style/ThemeManager.h"
 #include <cmath>
 #include <algorithm>
@@ -331,18 +332,72 @@ void ListView::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
 }
 
 float ListView::GetColumnWidth(size_t index) const {
-    if (index >= m_columns.size()) return 0.0f;
+    if (index >= m_columns.size() || !m_columns[index].visible) return 0.0f;
     const float base = m_columns[index].width;
-    // Last column absorbs leftover viewport width so the list fills the pane.
-    if (index + 1 == m_columns.size() && m_bounds.width > 0.0f) {
+    // Last visible column absorbs leftover viewport width so the list fills the pane.
+    size_t lastVisible = m_columns.size();
+    while (lastVisible > 0 && !m_columns[lastVisible - 1].visible) --lastVisible;
+    if (lastVisible == 0) return 0.0f;
+    if (index + 1 == lastVisible && m_bounds.width > 0.0f) {
         float others = 0.0f;
         for (size_t i = 0; i + 1 < m_columns.size(); ++i) {
-            others += m_columns[i].width;
+            if (m_columns[i].visible) others += m_columns[i].width;
         }
         const float avail = (std::max)(0.0f, m_bounds.width - 2.0f);
         return (std::max)(base, avail - others);
     }
     return base;
+}
+
+void ListView::SetColumnVisible(int columnIndex, bool visible) {
+    if (columnIndex < 0 || columnIndex >= static_cast<int>(m_columns.size())) return;
+    m_columns[static_cast<size_t>(columnIndex)].visible = visible;
+    ClampScroll();
+    InvalidateRowsLayer();
+    MarkRenderContentDirty();
+}
+
+bool ListView::IsColumnVisible(int columnIndex) const {
+    if (columnIndex < 0 || columnIndex >= static_cast<int>(m_columns.size())) return false;
+    return m_columns[static_cast<size_t>(columnIndex)].visible;
+}
+
+int ListView::HitTestHeaderColumn(float x) const {
+    if (x < m_bounds.x || x > m_bounds.x + m_bounds.width) return -1;
+    float currX = m_bounds.x - m_scrollX;
+    for (size_t c = 0; c < m_columns.size(); ++c) {
+        if (!m_columns[c].visible) continue;
+        const float colW = GetColumnWidth(c);
+        if (x >= currX && x < currX + colW) return static_cast<int>(c);
+        currX += colW;
+    }
+    return -1;
+}
+
+void ListView::RebuildHeaderContextMenu() {
+    m_headerContextMenu = std::make_shared<ContextMenu>();
+    for (size_t i = 0; i < m_columns.size(); ++i) {
+        const int col = static_cast<int>(i);
+        auto item = m_headerContextMenu->AddItem(m_columns[i].header, [this, col]() {
+            SetColumnVisible(col, !IsColumnVisible(col));
+        });
+        item->SetChecked(m_columns[i].visible);
+    }
+}
+
+bool ListView::OnContextMenuRelease(Point pt) {
+    if (m_headerContextMenuPending && m_headerContextMenu) {
+        m_headerContextMenuPending = false;
+        m_headerContextMenu->ShowAt(pt.x, pt.y);
+        return true;
+    }
+    if (m_shellContextMenuHandler) {
+        std::vector<int> rows;
+        for (int r : m_selectedIndices) rows.push_back(r);
+        if (rows.empty() && m_caretIndex >= 0) rows.push_back(m_caretIndex);
+        return m_shellContextMenuHandler(pt, rows);
+    }
+    return false;
 }
 
 float ListView::GetTotalColumnsWidth() const {
@@ -586,7 +641,9 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
         ctx.DrawLine(Point(m_bounds.x, rowY + m_rowHeight), Point(m_bounds.x + m_bounds.width, rowY + m_rowHeight), gridLineClr, 1.0f);
         float cellX = m_bounds.x - scrollX;
         for (size_t c = 0; c < m_columns.size(); ++c) {
+            if (!m_columns[c].visible) continue;
             float colW = GetColumnWidth(c);
+            if (colW <= 0.0f) continue;
             ctx.DrawLine(Point(cellX + colW, rowY), Point(cellX + colW, rowY + m_rowHeight), gridLineClr, 1.0f);
             cellX += colW;
         }
@@ -598,7 +655,9 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
         bool isSelected = IsRowSelected(r);
         float cellX = m_bounds.x - scrollX;
         for (size_t c = 0; c < m_columns.size(); ++c) {
+            if (!m_columns[c].visible) continue;
             float colW = GetColumnWidth(c);
+            if (colW <= 0.0f) continue;
             auto cellElem = GetCellElement(r, static_cast<int>(c));
             if (cellElem) {
                 Rect cellRect(cellX + 2.0f, rowY + 2.0f, colW - 4.0f, m_rowHeight - 4.0f);
@@ -707,11 +766,16 @@ void ListView::OnRender(GraphicsContext& ctx) {
     float currColX = m_bounds.x - m_scrollX;
     ctx.PushClip(Rect(m_bounds.x + 1, m_bounds.y + 1, m_bounds.width - 2, m_headerHeight - 1));
     for (size_t colIdx = 0; colIdx < m_columns.size(); ++colIdx) {
+        if (!m_columns[colIdx].visible) continue;
         const auto& col = m_columns[colIdx];
         const float colW = GetColumnWidth(colIdx);
         Rect colHeaderRect(currColX, m_bounds.y, colW, m_headerHeight);
         Rect colTextRect(colHeaderRect.x + 8.0f, colHeaderRect.y, colHeaderRect.width - 16.0f, colHeaderRect.height);
-        ctx.DrawText(col.header, colTextRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight, true);
+        std::string headerText = col.header;
+        if (static_cast<int>(colIdx) == m_sortColumn) {
+            headerText += m_sortAscending ? " ▲" : " ▼";
+        }
+        ctx.DrawText(headerText, colTextRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight, true);
         ctx.DrawLine(Point(currColX + colW, m_bounds.y + 4.0f), Point(currColX + colW, m_bounds.y + m_headerHeight - 4.0f), borderClr, 1.0f);
         currColX += colW;
     }
@@ -825,14 +889,17 @@ void ListView::OnMouseDown(Point pt) {
 
     // 2. Check Header Bar: Splitter Resize OR Column Drag Reordering
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
+        m_headerClickCol = HitTestHeaderColumn(pt.x);
         float currX = m_bounds.x - m_scrollX;
         for (size_t c = 0; c < m_columns.size(); ++c) {
+            if (!m_columns[c].visible) continue;
             float splitterX = currX + m_columns[c].width;
             if (std::abs(pt.x - splitterX) <= 5.0f && m_columns[c].isResizable) {
                 m_isResizingColumn = true;
                 m_resizingColumnIndex = static_cast<int>(c);
                 m_dragStartX = pt.x;
                 m_initialColumnWidth = m_columns[c].width;
+                m_headerClickCol = -1;
                 return;
             }
             if (pt.x >= currX && pt.x < splitterX) {
@@ -840,7 +907,7 @@ void ListView::OnMouseDown(Point pt) {
                 m_columnDragStartX = pt.x;
                 m_columnDragCurrentX = pt.x;
             }
-            currX += m_columns[c].width;
+            currX += GetColumnWidth(c);
         }
         return;
     }
@@ -1032,6 +1099,24 @@ void ListView::OnMouseUp(Point pt) {
         }
     }
 
+    if (m_headerClickCol >= 0 && !m_isReorderingColumn && !m_isResizingColumn) {
+        const int col = m_headerClickCol;
+        if (col >= 0 && col < static_cast<int>(m_columns.size())
+            && m_columns[static_cast<size_t>(col)].sortable
+            && m_columns[static_cast<size_t>(col)].visible) {
+            if (m_sortColumn == col) {
+                m_sortAscending = !m_sortAscending;
+            } else {
+                m_sortColumn = col;
+                m_sortAscending = true;
+            }
+            m_onColumnSortEvent.Invoke(this, col, m_sortAscending);
+            InvalidateRowsLayer();
+            MarkRenderContentDirty();
+        }
+    }
+    m_headerClickCol = -1;
+
     m_isMouseDown = false;
     m_isResizingColumn = false;
     m_isReorderingColumn = false;
@@ -1056,6 +1141,14 @@ void ListView::OnMouseLeave() {
 
 void ListView::OnMouseRightClick(Point pt) {
     Control::OnMouseRightClick(pt);
+    m_headerContextMenuPending = false;
+
+    if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
+        RebuildHeaderContextMenu();
+        m_headerContextMenuPending = true;
+        return;
+    }
+
     int row = GetRowIndexFromY(pt.y);
     if (row < 0 || row >= static_cast<int>(GetRowCount())) return;
 

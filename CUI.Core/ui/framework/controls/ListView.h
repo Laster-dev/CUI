@@ -11,6 +11,8 @@
 
 namespace CUI {
 
+class ContextMenu;
+
 enum class ListViewSelectionMode {
     Single,
     Multiple,
@@ -22,6 +24,8 @@ struct ListViewColumn {
     float width = 120.0f;
     float minWidth = 40.0f;
     bool isResizable = true;
+    bool visible = true;
+    bool sortable = true;
 };
 
 struct ListViewCellData {
@@ -56,6 +60,7 @@ public:
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseLeave() override;
     virtual void OnMouseRightClick(Point pt) override;
+    virtual bool OnContextMenuRelease(Point pt) override;
     virtual void OnKeyDown(int vkCode) override;
     virtual void OnMouseWheel(float delta) override;
     virtual void OnAutoScrollTick() override;
@@ -68,6 +73,13 @@ public:
     void AddColumn(const std::string& header, float width = 120.0f);
     void ClearColumns();
     const std::vector<ListViewColumn>& GetColumns() const { return m_columns; }
+    void SetColumnVisible(int columnIndex, bool visible);
+    bool IsColumnVisible(int columnIndex) const;
+    int GetSortColumn() const { return m_sortColumn; }
+    bool IsSortAscending() const { return m_sortAscending; }
+
+    using ShellContextMenuHandler = std::function<bool(Point clientPt, const std::vector<int>& rows)>;
+    void SetShellContextMenuHandler(ShellContextMenuHandler handler) { m_shellContextMenuHandler = std::move(handler); }
 
     // In-Memory Data Rows Management
     void AddRow(const std::vector<std::string>& rowData);
@@ -107,8 +119,12 @@ public:
     // Events
     Event<ListView*, int>& OnSelectionChanged() { return m_onSelectionChangedEvent; }
     Event<ListView*, int>& OnRowDoubleClicked() { return m_onRowDoubleClickedEvent; }
+    Event<ListView*, int, bool>& OnColumnHeaderClicked() { return m_onColumnSortEvent; }
 
 private:
+    int HitTestHeaderColumn(float x) const;
+    void RebuildHeaderContextMenu();
+    void SortIndicatorForColumn(int colIdx, std::string& headerOut) const;
     void ClampScroll();
     int GetRowIndexFromY(float y) const;
     int GetColumnIndexFromX(float x) const;
@@ -144,6 +160,12 @@ private:
     int m_caretIndex = -1;
     int m_hoveredRowIndex = -1;
     int m_hoveredColumnSplitter = -1;
+    int m_headerClickCol = -1;
+    bool m_headerContextMenuPending = false;
+    int m_sortColumn = -1;
+    bool m_sortAscending = true;
+    std::shared_ptr<ContextMenu> m_headerContextMenu;
+    ShellContextMenuHandler m_shellContextMenuHandler;
 
     // Column resizing state
     bool m_isResizingColumn = false;
@@ -196,6 +218,7 @@ private:
 
     Event<ListView*, int> m_onSelectionChangedEvent;
     Event<ListView*, int> m_onRowDoubleClickedEvent;
+    Event<ListView*, int, bool> m_onColumnSortEvent;
 
     // Selection reveal ripple (Button-style expand-to-cover).
     int m_selectRippleRow = -1;

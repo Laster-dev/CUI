@@ -22,6 +22,7 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseEnter() override;
     virtual void OnMouseLeave() override;
     virtual void OnMouseWheel(float delta) override;
@@ -30,6 +31,13 @@ public:
 
     bool IsSeparator() const { return m_isSeparator; }
     void SetIsSeparator(bool isSep) { m_isSeparator = isSep; }
+
+    bool IsChecked() const { return m_isChecked; }
+    void SetChecked(bool checked) {
+        if (m_isChecked == checked) return;
+        m_isChecked = checked;
+        MarkRenderContentDirty();
+    }
 
     const std::string& GetShortcutText() const { return m_shortcutText; }
     void SetShortcutText(const std::string& shortcut) {
@@ -50,6 +58,7 @@ public:
 
 private:
     bool m_isSeparator = false;
+    bool m_isChecked = false;
     std::string m_shortcutText;
     std::function<void()> m_command;
     ContextMenu* m_parentMenu = nullptr;
@@ -103,6 +112,7 @@ public:
     static constexpr float kSeparatorHeight = 6.0f;
     static constexpr float kVerticalPad = 8.0f; // 4 top + 4 bottom
     static constexpr float kMinWidth = 180.0f;
+    static constexpr float kOpenAnimSeconds = 0.06f;
 
 private:
     std::vector<std::shared_ptr<MenuItem>> m_items;
@@ -120,10 +130,15 @@ private:
     float m_itemWidth = 0.0f;
     ScrollbarAutoHide m_scrollbarAutoHide;
 
+    // Open fade (~60ms).
+    float m_openProgress = 0.0f;
+    bool m_openAnimating = false;
+
     void RelayoutItems();
     float ComputePreferredWidth() const;
     float ComputeContentHeight() const;
     bool TickItemHoverAnimations();
+    void BeginOpenAnimation();
 };
 
 } // namespace CUI

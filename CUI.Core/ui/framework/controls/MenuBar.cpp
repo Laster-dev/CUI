@@ -217,16 +217,36 @@ void MenuBar::OnBlur() {
 }
 
 void MenuBar::OnMouseDown(Point pt) {
+    m_pendingOpenIndex = -1;
     for (size_t i = 0; i < m_menus.size(); ++i) {
         if (m_menus[i].bounds.Contains(pt.x, pt.y)) {
-            const bool isOpen = (m_activeOpenIndex == static_cast<int>(i));
-            if (isOpen) {
-                CloseActiveMenu();
+            // If a menu is already open, switch immediately (standard menu-bar UX).
+            if (m_activeOpenIndex >= 0) {
+                if (m_activeOpenIndex == static_cast<int>(i)) {
+                    m_pendingOpenIndex = static_cast<int>(i); // close on up
+                } else {
+                    OpenMenu(static_cast<int>(i));
+                }
                 return;
             }
-            OpenMenu(static_cast<int>(i));
+            m_pendingOpenIndex = static_cast<int>(i);
             return;
         }
+    }
+}
+
+void MenuBar::OnMouseUp(Point pt) {
+    Control::OnMouseUp(pt);
+    if (m_pendingOpenIndex < 0) return;
+    const int index = m_pendingOpenIndex;
+    m_pendingOpenIndex = -1;
+    if (index >= static_cast<int>(m_menus.size())) return;
+    if (!m_menus[static_cast<size_t>(index)].bounds.Contains(pt.x, pt.y)) return;
+
+    if (m_activeOpenIndex == index) {
+        CloseActiveMenu();
+    } else {
+        OpenMenu(index);
     }
 }
 
