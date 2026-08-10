@@ -16,13 +16,56 @@ D2D1_COLOR_F Argb(int a, int r, int g, int b) {
 }
 } // namespace
 
+#include <windows.h>
+
+ThemeMode ThemeManager::DetectSystemThemeMode() {
+    DWORD appsUseLightTheme = 1; // Default to Light if query fails
+    DWORD dataSize = sizeof(appsUseLightTheme);
+    LONG status = RegGetValueW(
+        HKEY_CURRENT_USER,
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        L"AppsUseLightTheme",
+        RRF_RT_REG_DWORD,
+        nullptr,
+        &appsUseLightTheme,
+        &dataSize
+    );
+
+    if (status == ERROR_SUCCESS) {
+        return (appsUseLightTheme == 0) ? ThemeMode::Dark : ThemeMode::Light;
+    }
+    return ThemeMode::Dark;
+}
+
 ThemeManager& ThemeManager::Instance() {
     static ThemeManager instance;
     return instance;
 }
 
 ThemeManager::ThemeManager() {
+    m_mode = DetectSystemThemeMode();
     UpdateTokens();
+}
+
+void ThemeManager::SetThemeSource(ThemeSource source) {
+    m_source = source;
+    if (m_source == ThemeSource::System) {
+        CheckAndUpdateSystemTheme();
+    } else {
+        ThemeMode targetMode = (m_source == ThemeSource::Dark) ? ThemeMode::Dark : ThemeMode::Light;
+        SetThemeMode(targetMode);
+    }
+}
+
+bool ThemeManager::CheckAndUpdateSystemTheme() {
+    if (m_source != ThemeSource::System) return false;
+    ThemeMode detected = DetectSystemThemeMode();
+    if (m_mode != detected) {
+        m_mode = detected;
+        UpdateTokens();
+        return true;
+    }
+    return false;
 }
 
 void ThemeManager::SetThemeMode(ThemeMode mode) {

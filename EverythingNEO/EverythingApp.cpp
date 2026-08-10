@@ -432,7 +432,7 @@ int EverythingApp::Run() {
     if (!m_window.Create("Everything", 1100, 680, false)) {
         return -1;
     }
-    m_window.SetThemeMode(ThemeMode::Light);
+    m_window.SetThemeMode(ThemeManager::Instance().GetThemeMode());
     m_window.SetBackdropType(BackdropType::None);
     m_window.SetRenderStatsOverlayVisible(false);
 
@@ -1122,8 +1122,10 @@ void EverythingApp::CopyFullPath() {
 }
 
 void EverythingApp::ToggleTheme() {
-    ThemeMode mode = ThemeManager::Instance().GetThemeMode();
-    m_window.SetThemeMode(mode == ThemeMode::Dark ? ThemeMode::Light : ThemeMode::Dark);
+    ThemeMode currentMode = ThemeManager::Instance().GetThemeMode();
+    ThemeMode nextMode = (currentMode == ThemeMode::Dark) ? ThemeMode::Light : ThemeMode::Dark;
+    ThemeManager::Instance().SetThemeSource(nextMode == ThemeMode::Dark ? ThemeSource::Dark : ThemeSource::Light);
+    m_window.SetThemeMode(nextMode);
     ApplyChromeColors();
 }
 

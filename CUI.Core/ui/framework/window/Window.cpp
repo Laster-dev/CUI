@@ -778,6 +778,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     m_dpiScale = GetDpiScaleForWindow(m_hwnd);
 
+    m_themeMode = ThemeManager::Instance().GetThemeMode();
     UpdateDwmChrome();
     MaterialHost::Apply(m_hwnd, BackdropType::None, m_themeMode);
 
@@ -1279,6 +1280,13 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         Relayout();
         RequestFullRepaint();
         return 0;
+
+    case WM_SETTINGCHANGE:
+    case WM_THEMECHANGED:
+        if (ThemeManager::Instance().CheckAndUpdateSystemTheme()) {
+            SetThemeMode(ThemeManager::Instance().GetThemeMode());
+        }
+        break;
 
     case WM_DPICHANGED:
         {

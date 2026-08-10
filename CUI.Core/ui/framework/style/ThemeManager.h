@@ -34,12 +34,26 @@ struct ThemeTokens {
     D2D1_COLOR_F focusedBorder;
 };
 
+enum class ThemeSource {
+    System,
+    Light,
+    Dark
+};
+
 class ThemeManager {
 public:
     static ThemeManager& Instance();
 
+    static ThemeMode DetectSystemThemeMode();
+
+    ThemeSource GetThemeSource() const { return m_source; }
+    void SetThemeSource(ThemeSource source);
+
     ThemeMode GetThemeMode() const { return m_mode; }
-    void SetThemeMode(ThemeMode mode);
+    void SetThemeMode(ThemeMode mode); // Manually set theme mode (switches source to Light/Dark)
+
+    // Call when WM_SETTINGCHANGE / AppsUseLightTheme registry changes occur
+    bool CheckAndUpdateSystemTheme();
 
     bool IsBackdropActive() const { return m_backdropActive; }
     void SetBackdropActive(bool active);
@@ -69,6 +83,7 @@ private:
     D2D1_COLOR_F ApplyMaterialRole(const std::string& tokenName, D2D1_COLOR_F base) const;
     D2D1_COLOR_F ApplyMaterialRole(ThemeTokenId id, D2D1_COLOR_F base) const;
 
+    ThemeSource m_source = ThemeSource::System;
     ThemeMode m_mode = ThemeMode::Dark;
     ThemeTokens m_tokens{};
     bool m_backdropActive = false;

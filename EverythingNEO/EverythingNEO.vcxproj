@@ -153,7 +153,7 @@
     <Link>
       <AdditionalDependencies>d2d1.lib;dwrite.lib;d3d11.lib;dxgi.lib;ole32.lib;shlwapi.lib;shell32.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>

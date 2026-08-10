@@ -1304,10 +1304,10 @@ void RegeditPlusApp::ToggleStatusBar() {
 }
 
 void RegeditPlusApp::ToggleTheme() {
-    const ThemeMode next = (m_window.GetThemeMode() == ThemeMode::Light)
-                               ? ThemeMode::Dark
-                               : ThemeMode::Light;
-    m_window.SetThemeMode(next);
+    const ThemeMode currentMode = m_window.GetThemeMode();
+    const ThemeMode nextMode = (currentMode == ThemeMode::Light) ? ThemeMode::Dark : ThemeMode::Light;
+    ThemeManager::Instance().SetThemeSource(nextMode == ThemeMode::Dark ? ThemeSource::Dark : ThemeSource::Light);
+    m_window.SetThemeMode(nextMode);
     ApplyChromeColors();
 }
 
