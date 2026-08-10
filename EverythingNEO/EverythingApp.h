@@ -111,7 +111,7 @@ private:
     std::shared_ptr<CUI::UIElement> BuildRoot();
     void BuildMenus();
     void QueueSearch(const std::string& query);
-    void ApplySearchResults(std::vector<SearchResultRef>&& results, double seconds, uint64_t generation);
+    void ApplySearchResults(std::vector<SearchResultRef>&& results, double searchMs, double totalMs, double sortMs, bool isSortMessage, uint64_t generation);
     void ShowFrequentFiles();
     void RecordFileAccess(const SearchResultRef& ref);
     void RecordFileAccessByPath(const std::string& path, bool isFolder);

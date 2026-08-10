@@ -71,6 +71,7 @@ public:
     uint64_t GetFolderFrn(uint32_t folderId) const;
 
     std::string_view GetFileName(size_t fileIndex) const;
+    const char* GetFileNameRaw(size_t fileIndex, uint16_t& outLen) const;
     std::string_view GetFolderName(uint32_t folderId) const;
     std::string GetFolderPath(uint32_t folderId) const;
     std::string GetFilePath(size_t fileIndex) const;

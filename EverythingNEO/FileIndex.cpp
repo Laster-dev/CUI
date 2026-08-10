@@ -130,6 +130,13 @@ std::string_view FileIndexTable::GetFileName(size_t fileIndex) const {
     return m_arena.GetString(file.name_offset, file.name_length);
 }
 
+const char* FileIndexTable::GetFileNameRaw(size_t fileIndex, uint16_t& outLen) const {
+    if (fileIndex >= m_files.size()) { outLen = 0; return nullptr; }
+    const auto& file = m_files[fileIndex];
+    outLen = file.name_length;
+    return m_arena.GetRawPtr(file.name_offset);
+}
+
 std::string_view FileIndexTable::GetFolderName(uint32_t folderId) const {
     if (folderId >= m_folders.size()) return {};
     const auto& folder = m_folders[folderId];

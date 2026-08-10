@@ -22,6 +22,9 @@ public:
 
     uint32_t AddString(std::string_view str);
     std::string_view GetString(uint32_t offset, uint16_t length) const;
+    const char* GetRawPtr(uint32_t offset) const {
+        return m_chunks[offset / CHUNK_SIZE].get() + (offset % CHUNK_SIZE);
+    }
 
     void Clear();
     void Swap(StringArena& other) noexcept;

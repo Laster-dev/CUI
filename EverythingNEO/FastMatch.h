@@ -82,7 +82,29 @@ inline bool MatchLowerQuery(std::string_view name, std::string_view lowerQuery) 
 
     const unsigned char q0 = q[0];
 
+
+
+    // Single character fast path
+
+    if (qn == 1) {
+
+        for (size_t i = 0; i < n; ++i) {
+
+            if (fold[s[i]] == q0) return true;
+
+        }
+
+        return false;
+
+    }
+
+
+
     const size_t last = n - qn;
+
+
+
+    // Fast-path ASCII case-insensitive search
 
     for (size_t i = 0; i <= last; ++i) {
 

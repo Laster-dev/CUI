@@ -153,10 +153,22 @@ bool ProcessUsnRecords(FileIndexTable* index, std::shared_mutex* mutex,
                         }
                     }
                 }
+            } else if (needsMeta && !isDir) {
+                // Data modification (overwrite/extend/close) on existing file — update meta only.
+                uint32_t id = index->FindFileByFrn(frn);
+                if (id != INVALID_FILE_ID) {
+                    fileIdForMeta = id;
+                    pathForMeta = index->GetFilePath(id);
+                }
             } else if ((reason & USN_REASON_CLOSE) && !(reason & USN_REASON_FILE_DELETE)) {
+                // Pure CLOSE without data-modification flags: may be a new file we missed.
+                // Only add if this is NOT a data modification (those should already exist).
+                const bool isDataModification = (reason & (USN_REASON_DATA_EXTEND
+                    | USN_REASON_DATA_OVERWRITE | USN_REASON_DATA_TRUNCATION
+                    | USN_REASON_BASIC_INFO_CHANGE)) != 0;
                 if (!name.empty() && name != "." && name != "..") {
                     if (isDir) {
-                        if (index->FindFolderByFrn(frn) == INVALID_FOLDER_ID) {
+                        if (index->FindFolderByFrn(frn) == INVALID_FOLDER_ID && !isDataModification) {
                             index->AddFolder(parentId, name,
                                              static_cast<uint16_t>(rec->FileAttributes), frn);
                             changed = true;
@@ -164,25 +176,21 @@ bool ProcessUsnRecords(FileIndexTable* index, std::shared_mutex* mutex,
                     } else {
                         uint32_t existing = index->FindFileByFrn(frn);
                         if (existing == INVALID_FILE_ID) {
-                            uint32_t newId = index->AddFile(parentId, name, 0,
-                                                            static_cast<uint16_t>(rec->FileAttributes),
-                                                            0, frn);
-                            changed = true;
-                            if (newId != INVALID_FILE_ID) {
-                                fileIdForMeta = newId;
-                                pathForMeta = index->GetFilePath(newId);
+                            if (!isDataModification) {
+                                uint32_t newId = index->AddFile(parentId, name, 0,
+                                                                static_cast<uint16_t>(rec->FileAttributes),
+                                                                0, frn);
+                                changed = true;
+                                if (newId != INVALID_FILE_ID) {
+                                    fileIdForMeta = newId;
+                                    pathForMeta = index->GetFilePath(newId);
+                                }
                             }
                         } else {
                             fileIdForMeta = existing;
                             pathForMeta = index->GetFilePath(existing);
                         }
                     }
-                }
-            } else if (needsMeta && !isDir) {
-                uint32_t id = index->FindFileByFrn(frn);
-                if (id != INVALID_FILE_ID) {
-                    fileIdForMeta = id;
-                    pathForMeta = index->GetFilePath(id);
                 }
             }
         }

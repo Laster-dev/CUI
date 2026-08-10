@@ -45,7 +45,10 @@ constexpr UINT_PTR kSubclassId = 0xE4E0;
 
 struct SearchResultsMessage {
     std::vector<SearchResultRef> results;
-    double seconds = 0.0;
+    double search_ms = 0.0;
+    double total_ms = 0.0;
+    double sort_ms = 0.0;
+    bool is_sort_message = false;
     uint64_t generation = 0;
 };
 
@@ -413,7 +416,7 @@ LRESULT CALLBACK EverythingApp::WndSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
     if (msg == WM_ENEO_SEARCH_RESULTS) {
         auto* payload = reinterpret_cast<SearchResultsMessage*>(lParam);
         if (payload) {
-            self->ApplySearchResults(std::move(payload->results), payload->seconds, payload->generation);
+            self->ApplySearchResults(std::move(payload->results), payload->search_ms, payload->total_ms, payload->sort_ms, payload->is_sort_message, payload->generation);
             delete payload;
         }
         return 0;
@@ -756,12 +759,15 @@ void EverythingApp::SortResults(int column, bool ascending) {
     const uint64_t generation = m_searchGeneration.load();
 
     std::thread([this, results = std::move(resultsCopy), column, ascending, generation]() mutable {
+        const auto t0 = std::chrono::high_resolution_clock::now();
         m_engine.SortSearchResults(results, column, ascending);
+        const auto t1 = std::chrono::high_resolution_clock::now();
+        const double sort_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
         if (generation != m_searchGeneration.load()) return;  // search changed, discard
 
         HWND hwnd = m_window.GetHWND();
         if (!hwnd) return;
-        auto* payload = new SearchResultsMessage{ std::move(results), -1.0, generation };
+        auto* payload = new SearchResultsMessage{ std::move(results), 0.0, sort_ms, sort_ms, true, generation };
         if (!PostMessageW(hwnd, WM_ENEO_SEARCH_RESULTS, 0, reinterpret_cast<LPARAM>(payload))) {
             delete payload;
         }
@@ -778,20 +784,22 @@ void EverythingApp::QueueSearch(const std::string& query) {
     }
 
     const SearchOptions opts = m_searchOptions;
+    const auto t_input = std::chrono::high_resolution_clock::now();
 
-    std::thread([this, query, opts, generation]() {
+    std::thread([this, query, opts, generation, t_input]() {
         const auto t0 = std::chrono::high_resolution_clock::now();
         std::vector<SearchResultRef> results;
         // Pass generation counter so search aborts early if user types another char
         m_engine.Search(query, opts, results, 0, &m_searchGeneration, generation);
         const auto t1 = std::chrono::high_resolution_clock::now();
-        const double seconds = std::chrono::duration<double>(t1 - t0).count();
+        const double search_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        const double total_ms = std::chrono::duration<double, std::milli>(t1 - t_input).count();
         if (generation != m_searchGeneration.load()) return;
 
         HWND hwnd = m_window.GetHWND();
         if (!hwnd) return;
 
-        auto* payload = new SearchResultsMessage{ std::move(results), seconds, generation };
+        auto* payload = new SearchResultsMessage{ std::move(results), search_ms, total_ms, 0.0, false, generation };
         if (!PostMessageW(hwnd, WM_ENEO_SEARCH_RESULTS, 0, reinterpret_cast<LPARAM>(payload))) {
             delete payload;
         }
@@ -873,9 +881,11 @@ void EverythingApp::SaveFrequentFiles() {
     }
 }
 
-void EverythingApp::ApplySearchResults(std::vector<SearchResultRef>&& results, double seconds,
-                                       uint64_t generation) {
+void EverythingApp::ApplySearchResults(std::vector<SearchResultRef>&& results, double searchMs,
+                                       double totalMs, double sortMs, bool isSortMessage, uint64_t generation) {
     if (generation != m_searchGeneration.load()) return;
+
+    const auto t_ui0 = std::chrono::high_resolution_clock::now();
 
     m_displayMode = ListDisplayMode::SearchResults;
     m_dataSource.ClearCaches();
@@ -886,13 +896,24 @@ void EverythingApp::ApplySearchResults(std::vector<SearchResultRef>&& results, d
         } else {
             m_resultsList->SetVirtualMode(static_cast<int>(m_results.size()), &m_dataSource);
         }
+        m_resultsList->RefreshRows();
     }
+
+    const auto t_ui1 = std::chrono::high_resolution_clock::now();
+    const double ui_ms = std::chrono::duration<double, std::milli>(t_ui1 - t_ui0).count();
 
     if (!m_lastQuery.empty() && m_statusLeft) {
         std::ostringstream ss;
         ss << m_results.size() << " 个对象";
-        if (seconds > 0.0) {
-            ss << "  (" << std::fixed << std::setprecision(3) << seconds << " 秒)";
+        if (isSortMessage) {
+            ss << " | [排序]: " << std::fixed << std::setprecision(1) << sortMs << " ms"
+               << " | [UI刷新]: " << std::setprecision(1) << ui_ms << " ms";
+        } else {
+            const double dispatch_ms = (totalMs > searchMs) ? (totalMs - searchMs) : 0.0;
+            ss << " | [检索]: " << std::fixed << std::setprecision(1) << searchMs << " ms"
+               << " | [调度]: " << std::setprecision(1) << dispatch_ms << " ms"
+               << " | [UI渲染]: " << std::setprecision(1) << ui_ms << " ms"
+               << " | [总计]: " << std::setprecision(1) << (totalMs + ui_ms) << " ms";
         }
         m_statusLeft->SetText(ss.str());
     }

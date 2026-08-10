@@ -266,13 +266,20 @@ size_t EverythingEngine::Search(const std::string& query, const SearchOptions& o
 
     if (wantFiles) {
         const uint32_t fileCount = static_cast<uint32_t>(files.size());
+        const bool isMatchPath = opts.match_path;
+
         for (uint32_t i = 0; i < fileCount; ++i) {
-            if ((i & 0xFFF) == 0 && cancelled()) return 0;
+            if ((i & 0x1FFF) == 0 && cancelled()) return 0;  // check cancellation every 8192 items
             if ((files[i].attributes & kAttrDeleted) != 0) continue;
 
-            std::string_view name = m_index.GetFileName(i);
-            bool hit;
-            if (opts.match_path) {
+            uint16_t nameLen = 0;
+            const char* namePtr = m_index.GetFileNameRaw(i, nameLen);
+            if (!namePtr || nameLen == 0) continue;
+
+            std::string_view name(namePtr, nameLen);
+            bool hit = false;
+
+            if (isMatchPath) {
                 std::string path = m_index.GetFolderPath(files[i].parent_folder_id);
                 if (!path.empty()) path += '\\';
                 path.append(name.data(), name.length());
