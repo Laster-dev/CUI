@@ -768,7 +768,10 @@ void EverythingApp::SortResults(int column, bool ascending) {
         HWND hwnd = m_window.GetHWND();
         if (!hwnd) return;
         auto* payload = new SearchResultsMessage{ std::move(results), 0.0, sort_ms, sort_ms, true, generation };
-        if (!PostMessageW(hwnd, WM_ENEO_SEARCH_RESULTS, 0, reinterpret_cast<LPARAM>(payload))) {
+        DWORD threadId = GetWindowThreadProcessId(hwnd, nullptr);
+        if (PostMessageW(hwnd, WM_ENEO_SEARCH_RESULTS, 0, reinterpret_cast<LPARAM>(payload))) {
+            PostThreadMessageW(threadId, WM_NULL, 0, 0);
+        } else {
             delete payload;
         }
     }).detach();
@@ -800,7 +803,11 @@ void EverythingApp::QueueSearch(const std::string& query) {
         if (!hwnd) return;
 
         auto* payload = new SearchResultsMessage{ std::move(results), search_ms, total_ms, 0.0, false, generation };
-        if (!PostMessageW(hwnd, WM_ENEO_SEARCH_RESULTS, 0, reinterpret_cast<LPARAM>(payload))) {
+        DWORD threadId = GetWindowThreadProcessId(hwnd, nullptr);
+        if (PostMessageW(hwnd, WM_ENEO_SEARCH_RESULTS, 0, reinterpret_cast<LPARAM>(payload))) {
+            // Wake main thread's MsgWaitForMultipleObjectsEx sleep immediately (0.00ms wake)
+            PostThreadMessageW(threadId, WM_NULL, 0, 0);
+        } else {
             delete payload;
         }
     }).detach();
