@@ -40,19 +40,27 @@ void EverythingEngine::StartAsync(StatusCallback onStatus, ReadyCallback onReady
         auto start = std::chrono::high_resolution_clock::now();
 
         bool loaded = false;
+        std::wstring loadedFrom;
         {
             if (onStatus) onStatus("正在加载 Everything.db ...");
             std::unique_lock<std::shared_mutex> lock(m_mutex);
             ClearPathCache();
-            loaded = DbSnapshot::Load(m_index, DbSnapshot::DefaultPath());
+            loaded = DbSnapshot::LoadPreferred(m_index, &loadedFrom);
             m_loadedFromDb = loaded;
         }
 
         if (loaded) {
-            if (onStatus) onStatus("数据库已载入，正在通过 USN 增量补齐 ...");
+            const size_t files = [&]() {
+                std::shared_lock<std::shared_mutex> lock(m_mutex);
+                return m_index.GetFiles().size();
+            }();
+            if (onStatus) {
+                onStatus("已从数据库载入 " + std::to_string(files)
+                         + " 个文件，正在 USN 增量补齐 ...");
+            }
             CatchUpUsn();
             if (m_journalResetRequested.exchange(false)) {
-                if (onStatus) onStatus("USN 日志已重置，正在重建受影响卷的索引 ...");
+                if (onStatus) onStatus("USN 日志已重置，正在重建索引 ...");
                 IndexAllDrives(onStatus);
                 {
                     std::unique_lock<std::shared_mutex> lock(m_mutex);

@@ -27,7 +27,14 @@ public:
     static bool Save(const FileIndexTable& index, const std::wstring& path);
     static bool Load(FileIndexTable& index, const std::wstring& path);
 
+    // Stable path: %LOCALAPPDATA%\EverythingNEO\Everything.db
     static std::wstring DefaultPath();
+
+    // Load from DefaultPath, then fall back to exe-dir / solution x64 outputs;
+    // on success from a fallback, migrate a copy into DefaultPath.
+    static bool LoadPreferred(FileIndexTable& index, std::wstring* loadedFrom = nullptr);
+
+    static bool EnsureParentDir(const std::wstring& filePath);
 };
 
 } // namespace EverythingNEO

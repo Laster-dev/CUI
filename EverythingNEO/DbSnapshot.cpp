@@ -1,24 +1,72 @@
 #include "DbSnapshot.h"
 #include <windows.h>
+#include <shlobj.h>
 #include <vector>
 
-namespace EverythingNEO {
+#pragma comment(lib, "shell32.lib")
 
-std::wstring DbSnapshot::DefaultPath() {
+namespace EverythingNEO {
+namespace {
+
+std::wstring ModuleDirectory() {
     wchar_t modulePath[MAX_PATH] = {};
     GetModuleFileNameW(nullptr, modulePath, MAX_PATH);
     std::wstring path(modulePath);
     size_t slash = path.find_last_of(L"\\/");
     if (slash != std::wstring::npos) {
-        path = path.substr(0, slash + 1);
-    } else {
-        path.clear();
+        return path.substr(0, slash + 1);
     }
-    path += L"Everything.db";
-    return path;
+    return {};
+}
+
+bool FileExists(const std::wstring& path) {
+    DWORD attrs = GetFileAttributesW(path.c_str());
+    return attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
+}
+
+bool CopyFileBestEffort(const std::wstring& src, const std::wstring& dst) {
+    if (src == dst) return true;
+    if (!DbSnapshot::EnsureParentDir(dst)) return false;
+    return CopyFileW(src.c_str(), dst.c_str(), FALSE) != 0;
+}
+
+} // namespace
+
+std::wstring DbSnapshot::DefaultPath() {
+    wchar_t localAppData[MAX_PATH] = {};
+    if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, localAppData))) {
+        std::wstring path(localAppData);
+        if (!path.empty() && path.back() != L'\\' && path.back() != L'/') {
+            path += L'\\';
+        }
+        path += L"EverythingNEO\\Everything.db";
+        return path;
+    }
+    return ModuleDirectory() + L"Everything.db";
+}
+
+bool DbSnapshot::EnsureParentDir(const std::wstring& filePath) {
+    size_t slash = filePath.find_last_of(L"\\/");
+    if (slash == std::wstring::npos) return true;
+    std::wstring dir = filePath.substr(0, slash);
+    if (dir.empty()) return true;
+    size_t start = 0;
+    if (dir.size() >= 2 && dir[1] == L':') start = 2;
+    while (start < dir.size() && (dir[start] == L'\\' || dir[start] == L'/')) ++start;
+    for (size_t i = start; i <= dir.size(); ++i) {
+        if (i == dir.size() || dir[i] == L'\\' || dir[i] == L'/') {
+            if (i > start) {
+                std::wstring sub = dir.substr(0, i);
+                CreateDirectoryW(sub.c_str(), nullptr);
+            }
+        }
+    }
+    return true;
 }
 
 bool DbSnapshot::Save(const FileIndexTable& index, const std::wstring& path) {
+    if (!EnsureParentDir(path)) return false;
+
     std::string arenaBlob = index.GetArena().Serialize();
 
     Header hdr{};
@@ -155,6 +203,52 @@ bool DbSnapshot::Load(FileIndexTable& index, const std::wstring& path) {
     CloseHandle(hMap);
     CloseHandle(hFile);
     return ok;
+}
+
+bool DbSnapshot::LoadPreferred(FileIndexTable& index, std::wstring* loadedFrom) {
+    const std::wstring primary = DefaultPath();
+    std::vector<std::wstring> candidates;
+    candidates.push_back(primary);
+
+    const std::wstring moduleDir = ModuleDirectory();
+    if (!moduleDir.empty()) {
+        candidates.push_back(moduleDir + L"Everything.db");
+
+        // Climb parents looking for solution-style x64\{Release|Debug}\Everything.db
+        // (VS often builds to EverythingNEO\x64\Release while an older DB sits in
+        //  $(SolutionDir)x64\Release).
+        std::wstring walk = moduleDir;
+        for (int i = 0; i < 6; ++i) {
+            if (walk.size() <= 3) break;
+            if (walk.back() == L'\\' || walk.back() == L'/') {
+                walk.pop_back();
+            }
+            size_t slash = walk.find_last_of(L"\\/");
+            if (slash == std::wstring::npos) break;
+            std::wstring parent = walk.substr(0, slash + 1);
+            candidates.push_back(parent + L"x64\\Release\\Everything.db");
+            candidates.push_back(parent + L"x64\\Debug\\Everything.db");
+            walk = parent;
+        }
+    }
+
+    std::wstring chosen;
+    for (const auto& path : candidates) {
+        if (path.empty() || !FileExists(path)) continue;
+        if (!Load(index, path)) continue;
+        chosen = path;
+        break;
+    }
+
+    if (chosen.empty()) return false;
+
+    if (loadedFrom) *loadedFrom = chosen;
+
+    // Keep a canonical copy under LocalAppData so every build output shares one DB.
+    if (_wcsicmp(chosen.c_str(), primary.c_str()) != 0) {
+        CopyFileBestEffort(chosen, primary);
+    }
+    return true;
 }
 
 } // namespace EverythingNEO

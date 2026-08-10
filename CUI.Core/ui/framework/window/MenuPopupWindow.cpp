@@ -5,6 +5,10 @@
 #include <windowsx.h>
 #include <cmath>
 
+#ifndef WS_EX_NOREDIRECTIONBITMAP
+#define WS_EX_NOREDIRECTIONBITMAP 0x00200000L
+#endif
+
 namespace CUI {
 
 namespace {
@@ -52,8 +56,10 @@ bool MenuPopupWindow::EnsureWindow(HWND owner) {
     }
 
     m_owner = owner;
+    // Per-pixel alpha via DComp (antialiased rounded corners). SetWindowRgn is
+    // GDI-aliased and produces the jagged corners users see on dark desktops.
     m_hwnd = CreateWindowExW(
-        WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST,
+        WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST | WS_EX_NOREDIRECTIONBITMAP,
         kMenuPopupClass,
         L"",
         WS_POPUP,
@@ -65,23 +71,9 @@ bool MenuPopupWindow::EnsureWindow(HWND owner) {
     if (!m_hwnd) return false;
 
     m_dpiScale = GetDpiScaleForWindow(m_hwnd);
-    m_gfx.SetRequirePerPixelAlpha(false);
+    m_gfx.SetRequirePerPixelAlpha(true);
     m_deviceReady = m_gfx.Initialize(m_hwnd);
     return m_deviceReady;
-}
-
-void MenuPopupWindow::ApplyRoundedRegion(int widthPx, int heightPx, float radiusDip) {
-    if (!m_hwnd || !IsWindow(m_hwnd)) return;
-    const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
-    const int r = static_cast<int>(std::lround((std::max)(0.0f, radiusDip) * scale));
-    if (r < 1) {
-        SetWindowRgn(m_hwnd, nullptr, TRUE);
-        return;
-    }
-    HRGN rgn = CreateRoundRectRgn(0, 0, widthPx + 1, heightPx + 1, r * 2, r * 2);
-    if (rgn) {
-        SetWindowRgn(m_hwnd, rgn, TRUE);
-    }
 }
 
 bool MenuPopupWindow::Show(ContextMenu* menu, HWND owner, Point screenDipTopLeft, Size clientDipSize) {
@@ -98,7 +90,8 @@ bool MenuPopupWindow::Show(ContextMenu* menu, HWND owner, Point screenDipTopLeft
     const int pw = (std::max)(1, static_cast<int>(std::lround(clientDipSize.width * m_dpiScale)));
     const int ph = (std::max)(1, static_cast<int>(std::lround(clientDipSize.height * m_dpiScale)));
 
-    ApplyRoundedRegion(pw, ph, menu->GetCornerRadius());
+    // No SetWindowRgn — D2D FillRoundedRect + transparent clear gives smooth AA.
+    SetWindowRgn(m_hwnd, nullptr, FALSE);
     SetWindowPos(m_hwnd, HWND_TOPMOST, px, py, pw, ph,
                  SWP_NOACTIVATE | SWP_SHOWWINDOW);
     m_gfx.Resize(static_cast<UINT>(pw), static_cast<UINT>(ph));
@@ -143,10 +136,9 @@ void MenuPopupWindow::Paint() {
     if (!m_menu || !m_deviceReady) return;
 
     m_gfx.BeginDraw();
-    D2D1_COLOR_F clear = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
-    clear.a = 1.0f;
     if (auto* ctx = m_gfx.GetD2DContext()) {
-        ctx->Clear(clear);
+        // Transparent outside the rounded fill so DWM composites soft edges.
+        ctx->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
     }
     m_menu->RenderPopup(m_gfx);
     m_gfx.EndDraw();
@@ -175,7 +167,6 @@ void MenuPopupWindow::HandleMouseMove(int x, int y) {
 }
 
 void MenuPopupWindow::HandleMouseButton(UINT msg, int x, int y) {
-    // Capture mouse-up even if Hide cleared m_menu mid-click (owner deactivate).
     ContextMenu* menu = m_menu;
     Point pt = ClientPhysicalToDip(x, y);
 
@@ -200,8 +191,6 @@ void MenuPopupWindow::HandleMouseButton(UINT msg, int x, int y) {
             ReleaseCapture();
         }
 
-        // Prefer the pressed element; fall back to current hit so a brief
-        // deactivate/Hide cannot swallow the command.
         UIElement* target = pressed;
         if ((!target || !menu) && menu) {
             target = menu->HitTestPopup(pt.x, pt.y);
@@ -212,7 +201,6 @@ void MenuPopupWindow::HandleMouseButton(UINT msg, int x, int y) {
 
         if (auto* item = dynamic_cast<MenuItem*>(target)) {
             if (item->IsEnabled() && !item->HasSubMenu() && !item->IsSeparator()) {
-                // Direct invoke — do not require IsPressed (MOUSELEAVE may clear it).
                 item->ExecuteCommand();
             } else if (pressed) {
                 pressed->OnMouseUp(pt);
@@ -258,8 +246,6 @@ LRESULT CALLBACK MenuPopupWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LP
         self->HandleMouseButton(msg, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         return 0;
     case WM_MOUSELEAVE:
-        // Do not clear pressed here — OnMouseLeave clears IsPressed and used to
-        // race with click invoke when the cursor briefly leaves during capture.
         if (self->m_hovered && self->m_hovered != self->m_pressed) {
             self->m_hovered->OnMouseLeave();
             self->m_hovered = nullptr;

@@ -35,7 +35,6 @@ private:
 
     bool EnsureWindow(HWND owner);
     void Paint();
-    void ApplyRoundedRegion(int widthPx, int heightPx, float radiusDip);
     Point ClientPhysicalToDip(int x, int y) const;
     void HandleMouseMove(int x, int y);
     void HandleMouseButton(UINT msg, int x, int y);
