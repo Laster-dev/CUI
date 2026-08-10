@@ -95,6 +95,11 @@ private:
     double m_lastScanDurationMs = 0.0;
     bool m_loadedFromDb = false;
     std::function<void()> m_changeNotify;
+
+    // Everything-style Incremental Filtering Cache
+    std::string m_lastSearchQuery;
+    SearchOptions m_lastSearchOpts;
+    std::vector<SearchResultRef> m_lastSearchResults;
 };
 
 } // namespace EverythingNEO

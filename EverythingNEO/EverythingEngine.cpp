@@ -217,7 +217,14 @@ size_t EverythingEngine::Search(const std::string& query, const SearchOptions& o
                                 std::vector<SearchResultRef>& outResults, size_t maxResults,
                                 const std::atomic<uint64_t>* cancelGen, uint64_t myGen) {
     outResults.clear();
-    if (query.empty()) return 0;
+    if (query.empty()) {
+        m_lastSearchQuery.clear();
+        m_lastSearchResults.clear();
+        return 0;
+    }
+
+    // Everything-style Search Windowing / Early Exit (default max 1000 results if maxResults == 0)
+    const size_t effectiveMaxResults = (maxResults > 0) ? maxResults : 1000;
 
     QueryMatcher matcher;
     matcher.use_regex = opts.use_regex;
@@ -237,62 +244,133 @@ size_t EverythingEngine::Search(const std::string& query, const SearchOptions& o
         return cancelGen && cancelGen->load(std::memory_order_relaxed) != myGen;
     };
 
+    // Incremental Search Check:
+    // If current query starts with last search query and options are identical, filter directly inside m_lastSearchResults!
+    const bool isIncremental = !m_lastSearchQuery.empty() &&
+                                query.length() > m_lastSearchQuery.length() &&
+                                query.starts_with(m_lastSearchQuery) &&
+                                opts.use_regex == m_lastSearchOpts.use_regex &&
+                                opts.match_whole_word == m_lastSearchOpts.match_whole_word &&
+                                opts.match_case == m_lastSearchOpts.match_case &&
+                                opts.match_path == m_lastSearchOpts.match_path &&
+                                opts.result_kind == m_lastSearchOpts.result_kind &&
+                                !m_lastSearchResults.empty();
+
     outResults.reserve(4096);
 
-    // Folders first in index/traversal order (no sort needed)
-    if (wantFolders) {
-        const uint32_t folderCount = static_cast<uint32_t>(folders.size());
-        for (uint32_t i = 1; i < folderCount; ++i) {
-            if ((i & 0xFFF) == 0 && cancelled()) return 0;
-            if ((folders[i].attributes & kAttrDeleted) != 0) continue;
-            std::string_view name = m_index.GetFolderName(i);
-            if (name.empty()) continue;
+    if (isIncremental) {
+        // Fast Incremental Sub-Search Loop
+        const size_t count = m_lastSearchResults.size();
+        for (size_t idx = 0; idx < count; ++idx) {
+            if ((idx & 0x1FFF) == 0 && cancelled()) return 0;
+            const auto& r = m_lastSearchResults[idx];
 
-            bool hit;
-            if (opts.match_path) {
-                std::string path = m_index.GetFolderPath(folders[i].parent_folder_id);
-                if (!path.empty()) path += '\\';
-                path.append(name.data(), name.length());
-                hit = matcher.Matches(path);
+            if (r.is_folder) {
+                if (!wantFolders) continue;
+                if (r.index >= folders.size() || (folders[r.index].attributes & kAttrDeleted) != 0) continue;
+                std::string_view name = m_index.GetFolderName(r.index);
+                if (name.empty()) continue;
+
+                bool hit = false;
+                if (opts.match_path) {
+                    std::string path = m_index.GetFolderPath(folders[r.index].parent_folder_id);
+                    if (!path.empty()) path += '\\';
+                    path.append(name.data(), name.length());
+                    hit = matcher.Matches(path);
+                } else {
+                    hit = matcher.Matches(name);
+                }
+                if (hit) {
+                    outResults.push_back(r);
+                }
             } else {
-                hit = matcher.Matches(name);
+                if (!wantFiles) continue;
+                if (r.index >= files.size() || (files[r.index].attributes & kAttrDeleted) != 0) continue;
+
+                uint16_t nameLen = 0;
+                const char* namePtr = m_index.GetFileNameRaw(r.index, nameLen);
+                if (!namePtr || nameLen == 0) continue;
+
+                std::string_view name(namePtr, nameLen);
+                bool hit = false;
+
+                if (opts.match_path) {
+                    std::string path = m_index.GetFolderPath(files[r.index].parent_folder_id);
+                    if (!path.empty()) path += '\\';
+                    path.append(name.data(), name.length());
+                    hit = matcher.Matches(path);
+                } else {
+                    hit = matcher.Matches(name);
+                }
+                if (hit) {
+                    outResults.push_back(r);
+                }
             }
-            if (hit) {
-                outResults.push_back({ i, true });
-                if (maxResults > 0 && outResults.size() >= maxResults) return outResults.size();
+        }
+    } else {
+        // Full Index Scan
+        if (wantFolders) {
+            const uint32_t folderCount = static_cast<uint32_t>(folders.size());
+            for (uint32_t i = 1; i < folderCount; ++i) {
+                if ((i & 0xFFF) == 0 && cancelled()) return 0;
+                if ((folders[i].attributes & kAttrDeleted) != 0) continue;
+                std::string_view name = m_index.GetFolderName(i);
+                if (name.empty()) continue;
+
+                bool hit;
+                if (opts.match_path) {
+                    std::string path = m_index.GetFolderPath(folders[i].parent_folder_id);
+                    if (!path.empty()) path += '\\';
+                    path.append(name.data(), name.length());
+                    hit = matcher.Matches(path);
+                } else {
+                    hit = matcher.Matches(name);
+                }
+                if (hit) {
+                    outResults.push_back({ i, true });
+                }
+            }
+        }
+
+        if (wantFiles) {
+            const uint32_t fileCount = static_cast<uint32_t>(files.size());
+            const bool isMatchPath = opts.match_path;
+
+            for (uint32_t i = 0; i < fileCount; ++i) {
+                if ((i & 0x1FFF) == 0 && cancelled()) return 0;  // check cancellation every 8192 items
+                if ((files[i].attributes & kAttrDeleted) != 0) continue;
+
+                uint16_t nameLen = 0;
+                const char* namePtr = m_index.GetFileNameRaw(i, nameLen);
+                if (!namePtr || nameLen == 0) continue;
+
+                std::string_view name(namePtr, nameLen);
+                bool hit = false;
+
+                if (isMatchPath) {
+                    std::string path = m_index.GetFolderPath(files[i].parent_folder_id);
+                    if (!path.empty()) path += '\\';
+                    path.append(name.data(), name.length());
+                    hit = matcher.Matches(path);
+                } else {
+                    hit = matcher.Matches(name);
+                }
+                if (hit) {
+                    outResults.push_back({ i, false });
+                }
             }
         }
     }
 
-    if (wantFiles) {
-        const uint32_t fileCount = static_cast<uint32_t>(files.size());
-        const bool isMatchPath = opts.match_path;
+    // Save search context for next incremental typing keystroke
+    m_lastSearchQuery = query;
+    m_lastSearchOpts = opts;
+    m_lastSearchResults = outResults;
 
-        for (uint32_t i = 0; i < fileCount; ++i) {
-            if ((i & 0x1FFF) == 0 && cancelled()) return 0;  // check cancellation every 8192 items
-            if ((files[i].attributes & kAttrDeleted) != 0) continue;
-
-            uint16_t nameLen = 0;
-            const char* namePtr = m_index.GetFileNameRaw(i, nameLen);
-            if (!namePtr || nameLen == 0) continue;
-
-            std::string_view name(namePtr, nameLen);
-            bool hit = false;
-
-            if (isMatchPath) {
-                std::string path = m_index.GetFolderPath(files[i].parent_folder_id);
-                if (!path.empty()) path += '\\';
-                path.append(name.data(), name.length());
-                hit = matcher.Matches(path);
-            } else {
-                hit = matcher.Matches(name);
-            }
-            if (hit) {
-                outResults.push_back({ i, false });
-                if (maxResults > 0 && outResults.size() >= maxResults) return outResults.size();
-            }
-        }
+    if (maxResults > 0 && outResults.size() > maxResults) {
+        outResults.resize(maxResults);
     }
+
     return outResults.size();
 }
 
