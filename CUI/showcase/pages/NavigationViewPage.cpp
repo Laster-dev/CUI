@@ -1,16 +1,15 @@
 #include "../app/ShowcaseHelpers.h"
-#include "../../ui/framework/controls/NavigationView.h"
-#include "../../ui/framework/controls/Button.h"
-#include "../../ui/framework/controls/TextBlock.h"
-#include "../../ui/framework/controls/ComboBox.h"
-#include "../../ui/framework/window/Window.h"
-#include "../../ui/framework/style/ThemeManager.h"
+#include "framework/controls/NavigationView.h"
+#include "framework/controls/Button.h"
+#include "framework/controls/TextBlock.h"
+#include "framework/controls/ComboBox.h"
+#include "framework/window/Window.h"
+#include "framework/style/ThemeManager.h"
 
 namespace CUI {
 
 std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) {
     auto title = std::make_shared<TextBlock>("NavigationView & Theme 导航与主题系统");
-    title->SetFontSize(18.0f);
     title->SetFontWeight("Bold");
     title->SetColorToken(ThemeTokenId::TextPrimary);
     title->SetColor(ThemeManager::Instance().GetColor("textPrimary"));

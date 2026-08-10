@@ -1,9 +1,9 @@
 #include "../app/ShowcaseHelpers.h"
-#include "../../ui/framework/controls/Flyout.h"
-#include "../../ui/framework/controls/Button.h"
-#include "../../ui/framework/controls/TextBlock.h"
-#include "../../ui/framework/controls/ComboBox.h"
-#include "../../ui/framework/style/ThemeManager.h"
+#include "framework/controls/Flyout.h"
+#include "framework/controls/Button.h"
+#include "framework/controls/TextBlock.h"
+#include "framework/controls/ComboBox.h"
+#include "framework/style/ThemeManager.h"
 
 namespace CUI {
 

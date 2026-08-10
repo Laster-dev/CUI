@@ -1,0 +1,319 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\VC-LTL.5.3.1\build\native\VC-LTL.props" Condition="Exists('..\packages\VC-LTL.5.3.1\build\native\VC-LTL.props')" />
+  <Import Project="..\packages\YY.NuGet.Import.Helper.1.0.1\build\native\YY.NuGet.Import.Helper.props" Condition="Exists('..\packages\YY.NuGet.Import.Helper.1.0.1\build\native\YY.NuGet.Import.Helper.props')" />
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{3E8B5749-34B8-4A1C-8A95-E2A421319B1A}</ProjectGuid>
+    <RootNamespace>CUI.Core</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir)ui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ui\framework\animation\AnimationManager.cpp" />
+    <ClCompile Include="ui\framework\animation\AnimationSystem.cpp" />
+    <ClCompile Include="ui\framework\animation\FrameScheduler.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\AnsiColors.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\BufferLine.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\BufferSet.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\CharsetMaps.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\ConPtyBackend.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\EscapeSequenceParser.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\HyperlinkStore.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\InputHandler.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\KeyboardTranslator.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\MouseReporter.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\SelectionService.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\Terminal.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\TerminalBuffer.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\TerminalRenderer.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\TerminalTheme.cpp" />
+    <ClCompile Include="ui\framework\controls\terminal\UnicodeWidth.cpp" />
+    <ClCompile Include="ui\framework\controls\BreadcrumbBar.cpp" />
+    <ClCompile Include="ui\framework\controls\Button.cpp" />
+    <ClCompile Include="ui\framework\controls\CheckBox.cpp" />
+    <ClCompile Include="ui\framework\controls\ColorPicker.cpp" />
+    <ClCompile Include="ui\framework\controls\ComboBox.cpp" />
+    <ClCompile Include="ui\framework\controls\ContextMenu.cpp" />
+    <ClCompile Include="ui\framework\controls\Control.cpp" />
+    <ClCompile Include="ui\framework\controls\DatePicker.cpp" />
+    <ClCompile Include="ui\framework\controls\Expander.cpp" />
+    <ClCompile Include="ui\framework\controls\Flyout.cpp" />
+    <ClCompile Include="ui\framework\controls\HyperlinkButton.cpp" />
+    <ClCompile Include="ui\framework\controls\Image.cpp" />
+    <ClCompile Include="ui\framework\controls\ListBox.cpp" />
+    <ClCompile Include="ui\framework\controls\ListView.cpp" />
+    <ClCompile Include="ui\framework\controls\MenuBar.cpp" />
+    <ClCompile Include="ui\framework\controls\MessageBox.cpp" />
+    <ClCompile Include="ui\framework\controls\NavigationView.cpp" />
+    <ClCompile Include="ui\framework\controls\NavigationViewItem.cpp" />
+    <ClCompile Include="ui\framework\controls\NumberBox.cpp" />
+    <ClCompile Include="ui\framework\controls\PagingControl.cpp" />
+    <ClCompile Include="ui\framework\controls\Panel.cpp" />
+    <ClCompile Include="ui\framework\controls\PasswordBox.cpp" />
+    <ClCompile Include="ui\framework\controls\ProgressBar.cpp" />
+    <ClCompile Include="ui\framework\controls\PropertyGrid.cpp" />
+    <ClCompile Include="ui\framework\controls\RadioButton.cpp" />
+    <ClCompile Include="ui\framework\controls\ScrollViewer.cpp" />
+    <ClCompile Include="ui\framework\controls\Slider.cpp" />
+    <ClCompile Include="ui\framework\controls\Splitter.cpp" />
+    <ClCompile Include="ui\framework\controls\TabView.cpp" />
+    <ClCompile Include="ui\framework\controls\TerminalControl.cpp" />
+    <ClCompile Include="ui\framework\controls\TextBlock.cpp" />
+    <ClCompile Include="ui\framework\controls\TextBox.cpp" />
+    <ClCompile Include="ui\framework\controls\TimePicker.cpp" />
+    <ClCompile Include="ui\framework\controls\Toast.cpp" />
+    <ClCompile Include="ui\framework\controls\ToastCenter.cpp" />
+    <ClCompile Include="ui\framework\controls\ToggleSwitch.cpp" />
+    <ClCompile Include="ui\framework\controls\TreeView.cpp" />
+    <ClCompile Include="ui\framework\controls\UIElement.cpp" />
+    <ClCompile Include="ui\framework\controls\UIElementPropertyBridge.cpp" />
+    <ClCompile Include="ui\framework\controls\WindowTitleBar.cpp" />
+    <ClCompile Include="ui\framework\core\Binding.cpp" />
+    <ClCompile Include="ui\framework\core\Object.cpp" />
+    <ClCompile Include="ui\framework\core\PropertyId.cpp" />
+    <ClCompile Include="ui\framework\core\Value.cpp" />
+    <ClCompile Include="ui\framework\layout\Layout.cpp" />
+    <ClCompile Include="ui\framework\parser\StyleManager.cpp" />
+    <ClCompile Include="ui\framework\render\CompositionContext.cpp" />
+    <ClCompile Include="ui\framework\render\DirtyRegion.cpp" />
+    <ClCompile Include="ui\framework\render\GraphicsContext.cpp" />
+    <ClCompile Include="ui\framework\render\LayerRasterizer.cpp" />
+    <ClCompile Include="ui\framework\render\RenderLayer.cpp" />
+    <ClCompile Include="ui\framework\render\RenderNode.cpp" />
+    <ClCompile Include="ui\framework\render\RenderResources.cpp" />
+    <ClCompile Include="ui\framework\style\ThemeManager.cpp" />
+    <ClCompile Include="ui\framework\style\ThemeTokenId.cpp" />
+    <ClCompile Include="ui\framework\text\TextLayoutCache.cpp" />
+    <ClCompile Include="ui\framework\window\CUIWindow.cpp" />
+    <ClCompile Include="ui\framework\window\Dpi.cpp" />
+    <ClCompile Include="ui\framework\window\PopupHost.cpp" />
+    <ClCompile Include="ui\framework\window\PopupPlacement.cpp" />
+    <ClCompile Include="ui\framework\window\Window.cpp" />
+    <ClCompile Include="ui\framework\window\WindowBackdrop.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ui\framework\animation\AnimationManager.h" />
+    <ClInclude Include="ui\framework\animation\AnimationSystem.h" />
+    <ClInclude Include="ui\framework\animation\FrameScheduler.h" />
+    <ClInclude Include="ui\framework\controls\terminal\AnsiColors.h" />
+    <ClInclude Include="ui\framework\controls\terminal\BufferLine.h" />
+    <ClInclude Include="ui\framework\controls\terminal\BufferSet.h" />
+    <ClInclude Include="ui\framework\controls\terminal\CellData.h" />
+    <ClInclude Include="ui\framework\controls\terminal\CharsetMaps.h" />
+    <ClInclude Include="ui\framework\controls\terminal\ConPtyBackend.h" />
+    <ClInclude Include="ui\framework\controls\terminal\EscapeSequenceParser.h" />
+    <ClInclude Include="ui\framework\controls\terminal\HyperlinkStore.h" />
+    <ClInclude Include="ui\framework\controls\terminal\InputHandler.h" />
+    <ClInclude Include="ui\framework\controls\terminal\ITerminalBackend.h" />
+    <ClInclude Include="ui\framework\controls\terminal\KeyboardTranslator.h" />
+    <ClInclude Include="ui\framework\controls\terminal\MouseReporter.h" />
+    <ClInclude Include="ui\framework\controls\terminal\Params.h" />
+    <ClInclude Include="ui\framework\controls\terminal\SelectionService.h" />
+    <ClInclude Include="ui\framework\controls\terminal\Terminal.h" />
+    <ClInclude Include="ui\framework\controls\terminal\TerminalBuffer.h" />
+    <ClInclude Include="ui\framework\controls\terminal\TerminalOptions.h" />
+    <ClInclude Include="ui\framework\controls\terminal\TerminalRenderer.h" />
+    <ClInclude Include="ui\framework\controls\terminal\TerminalTheme.h" />
+    <ClInclude Include="ui\framework\controls\terminal\UnicodeWidth.h" />
+    <ClInclude Include="ui\framework\controls\BreadcrumbBar.h" />
+    <ClInclude Include="ui\framework\controls\Button.h" />
+    <ClInclude Include="ui\framework\controls\CheckBox.h" />
+    <ClInclude Include="ui\framework\controls\ChromiumScrollAnimator.h" />
+    <ClInclude Include="ui\framework\controls\ColorPicker.h" />
+    <ClInclude Include="ui\framework\controls\ComboBox.h" />
+    <ClInclude Include="ui\framework\controls\ContextMenu.h" />
+    <ClInclude Include="ui\framework\controls\Control.h" />
+    <ClInclude Include="ui\framework\controls\DatePicker.h" />
+    <ClInclude Include="ui\framework\controls\Expander.h" />
+    <ClInclude Include="ui\framework\controls\Flyout.h" />
+    <ClInclude Include="ui\framework\controls\HyperlinkButton.h" />
+    <ClInclude Include="ui\framework\controls\Image.h" />
+    <ClInclude Include="ui\framework\controls\ListBox.h" />
+    <ClInclude Include="ui\framework\controls\ListView.h" />
+    <ClInclude Include="ui\framework\controls\MenuBar.h" />
+    <ClInclude Include="ui\framework\controls\MessageBox.h" />
+    <ClInclude Include="ui\framework\controls\NavigationView.h" />
+    <ClInclude Include="ui\framework\controls\NavigationViewItem.h" />
+    <ClInclude Include="ui\framework\controls\NumberBox.h" />
+    <ClInclude Include="ui\framework\controls\PagingControl.h" />
+    <ClInclude Include="ui\framework\controls\Panel.h" />
+    <ClInclude Include="ui\framework\controls\PasswordBox.h" />
+    <ClInclude Include="ui\framework\controls\ProgressBar.h" />
+    <ClInclude Include="ui\framework\controls\ProgressBarDiag.h" />
+    <ClInclude Include="ui\framework\controls\PropertyGrid.h" />
+    <ClInclude Include="ui\framework\controls\RadioButton.h" />
+    <ClInclude Include="ui\framework\controls\ScrollbarAutoHide.h" />
+    <ClInclude Include="ui\framework\controls\ScrollViewer.h" />
+    <ClInclude Include="ui\framework\controls\Slider.h" />
+    <ClInclude Include="ui\framework\controls\Splitter.h" />
+    <ClInclude Include="ui\framework\controls\TabView.h" />
+    <ClInclude Include="ui\framework\controls\TerminalControl.h" />
+    <ClInclude Include="ui\framework\controls\TextBlock.h" />
+    <ClInclude Include="ui\framework\controls\TextBox.h" />
+    <ClInclude Include="ui\framework\controls\TimePicker.h" />
+    <ClInclude Include="ui\framework\controls\Toast.h" />
+    <ClInclude Include="ui\framework\controls\ToastCenter.h" />
+    <ClInclude Include="ui\framework\controls\ToggleSwitch.h" />
+    <ClInclude Include="ui\framework\controls\TreeView.h" />
+    <ClInclude Include="ui\framework\controls\UIElement.h" />
+    <ClInclude Include="ui\framework\controls\WindowTitleBar.h" />
+    <ClInclude Include="ui\framework\core\Binding.h" />
+    <ClInclude Include="ui\framework\core\CUIDsl.h" />
+    <ClInclude Include="ui\framework\core\Event.h" />
+    <ClInclude Include="ui\framework\core\Object.h" />
+    <ClInclude Include="ui\framework\core\PropertyDesc.h" />
+    <ClInclude Include="ui\framework\core\PropertyId.h" />
+    <ClInclude Include="ui\framework\core\Value.h" />
+    <ClInclude Include="ui\framework\input\RoutedEvent.h" />
+    <ClInclude Include="ui\framework\layout\Layout.h" />
+    <ClInclude Include="ui\framework\parser\StyleManager.h" />
+    <ClInclude Include="ui\framework\render\CompositionContext.h" />
+    <ClInclude Include="ui\framework\render\CompositionLayer.h" />
+    <ClInclude Include="ui\framework\render\DirtyRegion.h" />
+    <ClInclude Include="ui\framework\render\GraphicsContext.h" />
+    <ClInclude Include="ui\framework\render\LayerRasterizer.h" />
+    <ClInclude Include="ui\framework\render\RenderLayer.h" />
+    <ClInclude Include="ui\framework\render\RenderNode.h" />
+    <ClInclude Include="ui\framework\render\RenderResources.h" />
+    <ClInclude Include="ui\framework\style\ThemeManager.h" />
+    <ClInclude Include="ui\framework\style\ThemeTokenId.h" />
+    <ClInclude Include="ui\framework\text\TextLayoutCache.h" />
+    <ClInclude Include="ui\framework\window\CUIWindow.h" />
+    <ClInclude Include="ui\framework\window\Dpi.h" />
+    <ClInclude Include="ui\framework\window\IWindowChrome.h" />
+    <ClInclude Include="ui\framework\window\PopupHost.h" />
+    <ClInclude Include="ui\framework\window\PopupPlacement.h" />
+    <ClInclude Include="ui\framework\window\Window.h" />
+    <ClInclude Include="ui\framework\window\WindowBackdrop.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\YY.NuGet.Import.Helper.1.0.1\build\native\YY.NuGet.Import.Helper.targets" Condition="Exists('..\packages\YY.NuGet.Import.Helper.1.0.1\build\native\YY.NuGet.Import.Helper.targets')" />
+  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>这台计算机上缺少此项目引用的 NuGet 程序包。使用“NuGet 程序包还原”可下载这些程序包。有关更多信息，请参见 http://go.microsoft.com/fwlink/?LinkID=322105。缺少的文件是 {0}。</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\YY.NuGet.Import.Helper.1.0.1\build\native\YY.NuGet.Import.Helper.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\YY.NuGet.Import.Helper.1.0.1\build\native\YY.NuGet.Import.Helper.props'))" />
+    <Error Condition="!Exists('..\packages\YY.NuGet.Import.Helper.1.0.1\build\native\YY.NuGet.Import.Helper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\YY.NuGet.Import.Helper.1.0.1\build\native\YY.NuGet.Import.Helper.targets'))" />
+    <Error Condition="!Exists('..\packages\VC-LTL.5.3.1\build\native\VC-LTL.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\VC-LTL.5.3.1\build\native\VC-LTL.props'))" />
+  </Target>
+</Project>

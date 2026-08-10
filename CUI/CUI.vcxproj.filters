@@ -18,13 +18,144 @@
     <ClCompile Include="showcase\app\main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="ui\framework\controls\Expander.cpp">
+    <ClCompile Include="showcase\app\pages\WrapPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\BreadcrumbPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\ButtonPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\CanvasPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\CheckBoxPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\CollapsePage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\ColorPickerPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\ComboBoxPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\DatePickerPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\DialogPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\DockPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\FlyoutPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\GridPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\HyperlinkPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\ListBoxPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\ListViewPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\NavigationViewPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\NumberBoxPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\PagingPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\PasswordBoxPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\ProgressBarPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\RadioButtonPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\ScrollViewerPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\ShowcaseHelpers.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\SliderPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\SplitterPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\StackPanelPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\Streaming.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\StreamPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\TabViewPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\TerminalPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\TextBlockPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\TextBoxPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\TimePickerPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\ToastPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\ToggleSwitchPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\TreeViewPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\UniformPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\chrome\VSCodeControls.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ui\framework\controls\Expander.h">
+    <ClInclude Include="showcase\app\chrome\VSCodeControls.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="showcase\app\Streaming.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="showcase\app\ShowcaseHelpers.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="showcase\app\ShowcaseContext.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="showcase\app\pages\PageRegistry.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config">
+      <Filter>源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

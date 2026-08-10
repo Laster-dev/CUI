@@ -1,7 +1,7 @@
 #include "VSCodeControls.h"
-#include "../../../ui/framework/window/Window.h"
-#include "../../../ui/framework/window/Dpi.h"
-#include "../../../ui/framework/style/ThemeManager.h"
+#include "framework/window/Window.h"
+#include "framework/window/Dpi.h"
+#include "framework/style/ThemeManager.h"
 
 namespace CUI {
 

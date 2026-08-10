@@ -1,9 +1,9 @@
 #pragma once
-#include "../../../ui/framework/controls/UIElement.h"
-#include "../../../ui/framework/controls/Control.h"
-#include "../../../ui/framework/controls/MenuBar.h"
-#include "../../../ui/framework/core/Event.h"
-#include "../../../ui/framework/window/IWindowChrome.h"
+#include "framework/controls/UIElement.h"
+#include "framework/controls/Control.h"
+#include "framework/controls/MenuBar.h"
+#include "framework/core/Event.h"
+#include "framework/window/IWindowChrome.h"
 #include <string>
 #include <vector>
 
