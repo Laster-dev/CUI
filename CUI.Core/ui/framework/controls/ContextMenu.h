@@ -14,7 +14,7 @@ class MenuItem : public Control {
 public:
     MenuItem();
     MenuItem(const std::string& text, std::function<void()> onClick = nullptr);
-    virtual ~MenuItem() = default;
+    virtual ~MenuItem();
 
     virtual const char* GetClassName() const override { return "MenuItem"; }
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; }
@@ -45,6 +45,10 @@ public:
         MarkRenderContentDirty();
     }
 
+    // Native shell / stock icon drawn in the left gutter (16x16). Takes ownership when takeOwnership=true.
+    void SetNativeIcon(HICON icon, bool takeOwnership = true);
+    HICON GetNativeIcon() const { return m_nativeIcon; }
+
     std::shared_ptr<ContextMenu> GetSubMenu() const { return m_subMenu; }
     void SetSubMenu(std::shared_ptr<ContextMenu> subMenu) { m_subMenu = subMenu; }
     bool HasSubMenu() const { return m_subMenu != nullptr; }
@@ -64,6 +68,8 @@ private:
     ContextMenu* m_parentMenu = nullptr;
     std::shared_ptr<ContextMenu> m_subMenu = nullptr;
     AnimatedScalar m_hoverAnim{ 0.0f };
+    HICON m_nativeIcon = nullptr;
+    bool m_ownsNativeIcon = false;
 };
 
 class ContextMenu : public UIElement, public IPopup {
@@ -80,6 +86,8 @@ public:
     std::shared_ptr<MenuItem> AddItem(const std::string& text, std::function<void()> onClick = nullptr);
     std::shared_ptr<MenuItem> AddItem(const std::string& text, const std::string& shortcut, std::function<void()> onClick = nullptr);
     std::shared_ptr<ContextMenu> AddSubMenu(const std::string& text);
+    // Like AddSubMenu, but returns the parent MenuItem so callers can set icons.
+    std::shared_ptr<MenuItem> AddSubMenuItem(const std::string& text);
     void AddSeparator();
 
     void ShowAt(float x, float y, float windowW = 0.0f, float windowH = 0.0f);

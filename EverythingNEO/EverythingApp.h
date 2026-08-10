@@ -22,6 +22,7 @@ class TextBox;
 class TextBlock;
 class UIElement;
 class MenuItem;
+class ContextMenu;
 }
 
 namespace EverythingNEO {
@@ -119,6 +120,7 @@ private:
     void OpenSelected();
     void OpenSelectedPath();
     void CopyFullPath();
+    void RenameSelected();
     void ToggleTheme();
     void ToggleSearchOption(bool SearchOptions::* flag, const char* menuLabel);
     void RefreshSearchMenuChecks();
@@ -156,6 +158,7 @@ private:
     std::shared_ptr<CUI::MenuItem> m_menuWholeWord;
     std::shared_ptr<CUI::MenuItem> m_menuMatchCase;
     std::shared_ptr<CUI::MenuItem> m_menuStatusBar;
+    std::shared_ptr<CUI::ContextMenu> m_fileContextMenu;
 };
 
 } // namespace EverythingNEO

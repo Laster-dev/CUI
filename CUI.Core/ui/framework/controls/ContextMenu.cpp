@@ -25,6 +25,22 @@ MenuItem::MenuItem(const std::string& text, std::function<void()> onClick) : Men
     m_command = onClick;
 }
 
+MenuItem::~MenuItem() {
+    if (m_ownsNativeIcon && m_nativeIcon) {
+        DestroyIcon(m_nativeIcon);
+        m_nativeIcon = nullptr;
+    }
+}
+
+void MenuItem::SetNativeIcon(HICON icon, bool takeOwnership) {
+    if (m_ownsNativeIcon && m_nativeIcon && m_nativeIcon != icon) {
+        DestroyIcon(m_nativeIcon);
+    }
+    m_nativeIcon = icon;
+    m_ownsNativeIcon = takeOwnership && icon != nullptr;
+    MarkRenderContentDirty();
+}
+
 Size MenuItem::Measure(Size availableSize) {
     (void)availableSize;
     if (m_isSeparator) {
@@ -92,12 +108,14 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
         Rect checkRect(m_bounds.x + 4.0f, m_bounds.y, 22.0f, m_bounds.height);
         ctx.DrawText("✓", checkRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER,
                      DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
-    }
-    if (!icon.empty()) {
-        Rect iconRect(m_bounds.x + 26.0f, m_bounds.y, 20.0f, m_bounds.height);
+    } else if (m_nativeIcon) {
+        const float iconSize = 16.0f;
+        Rect iconRect(m_bounds.x + 6.0f, m_bounds.y + (m_bounds.height - iconSize) * 0.5f, iconSize, iconSize);
+        ctx.DrawHIcon(m_nativeIcon, iconRect, enabled ? 1.0f : 0.45f);
+    } else if (!icon.empty()) {
+        Rect iconRect(m_bounds.x + 4.0f, m_bounds.y, 22.0f, m_bounds.height);
         ctx.DrawText(icon, iconRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER,
                      DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
-        textLeft += 20.0f;
     }
 
     float rightReserve = 12.0f;
@@ -237,6 +255,11 @@ std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, const st
 }
 
 std::shared_ptr<ContextMenu> ContextMenu::AddSubMenu(const std::string& text) {
+    auto item = AddSubMenuItem(text);
+    return item ? item->GetSubMenu() : nullptr;
+}
+
+std::shared_ptr<MenuItem> ContextMenu::AddSubMenuItem(const std::string& text) {
     auto item = std::make_shared<MenuItem>(text);
     auto subMenu = std::make_shared<ContextMenu>();
     subMenu->SetOwnerMenu(this);
@@ -244,7 +267,7 @@ std::shared_ptr<ContextMenu> ContextMenu::AddSubMenu(const std::string& text) {
     item->SetParentContextMenu(this);
     m_items.push_back(item);
     AddChild(item);
-    return subMenu;
+    return item;
 }
 
 void ContextMenu::AddSeparator() {

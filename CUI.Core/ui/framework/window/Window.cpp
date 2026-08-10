@@ -2105,6 +2105,15 @@ void Window::OnRButtonUp(int x, int y) {
 
     const Point releasePt(fx, fy);
     if (target->OnContextMenuRelease(releasePt)) {
+        UIElement* curr = target;
+        while (curr) {
+            auto menu = curr->GetContextMenu();
+            if (menu && menu->IsOpen()) {
+                m_activeContextMenu = menu;
+                break;
+            }
+            curr = curr->GetParent();
+        }
         return;
     }
 

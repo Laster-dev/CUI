@@ -505,7 +505,7 @@ std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
     m_resultsList->OnColumnHeaderClicked().Connect([this](ListView*, int column, bool ascending) {
         SortResults(column, ascending);
     });
-    m_resultsList->SetShellContextMenuHandler([this](Point /*pt*/, const std::vector<int>& rows) {
+    m_resultsList->SetShellContextMenuHandler([this](Point pt, const std::vector<int>& rows) {
         std::vector<std::wstring> paths;
         paths.reserve(rows.size());
         if (m_displayMode == ListDisplayMode::FrequentFiles) {
@@ -520,9 +520,20 @@ std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
             }
         }
         if (paths.empty()) return false;
-        POINT screenPt{};
-        GetCursorPos(&screenPt);
-        return ShowShellContextMenu(m_window.GetHWND(), paths, screenPt.x, screenPt.y);
+
+        ShellMenuActions actions;
+        actions.showOpenPath = (m_displayMode == ListDisplayMode::SearchResults);
+        actions.showCopyFullPath = true;
+        actions.showRename = (rows.size() == 1);
+        actions.openPath = [this]() { OpenSelectedPath(); };
+        actions.copyFullPath = [this]() { CopyFullPath(); };
+        actions.rename = [this]() { RenameSelected(); };
+
+        m_fileContextMenu = BuildShellContextMenu(m_window.GetHWND(), paths, actions);
+        if (!m_fileContextMenu) return false;
+        m_resultsList->SetContextMenu(m_fileContextMenu);
+        m_fileContextMenu->ShowAt(pt.x, pt.y);
+        return true;
     });
 
     m_statusBar = Row(0).Build();
@@ -923,7 +934,16 @@ void EverythingApp::OpenSelected() {
 }
 
 void EverythingApp::OpenSelectedPath() {
-    if (m_displayMode == ListDisplayMode::FrequentFiles) return;
+    if (m_displayMode == ListDisplayMode::FrequentFiles) {
+        for (int row : SelectedRows()) {
+            if (row < 0 || row >= static_cast<int>(m_frequentFiles.size())) continue;
+            const FrequentFileEntry& entry = m_frequentFiles[static_cast<size_t>(row)];
+            std::wstring wpath = Utf8ToWide(entry.path);
+            std::wstring params = L"/select,\"" + wpath + L"\"";
+            ShellExecuteW(nullptr, L"open", L"explorer.exe", params.c_str(), nullptr, SW_SHOWNORMAL);
+        }
+        return;
+    }
     for (int row : SelectedRows()) {
         if (row < 0 || row >= static_cast<int>(m_results.size())) continue;
         const SearchResultRef& ref = m_results[static_cast<size_t>(row)];
@@ -932,6 +952,69 @@ void EverythingApp::OpenSelectedPath() {
         std::wstring params = L"/select,\"" + wpath + L"\"";
         ShellExecuteW(nullptr, L"open", L"explorer.exe", params.c_str(), nullptr, SW_SHOWNORMAL);
     }
+}
+
+void EverythingApp::RenameSelected() {
+    auto rows = SelectedRows();
+    if (rows.size() != 1) return;
+    const int row = rows[0];
+
+    std::string fullPath;
+    bool isFolder = false;
+    if (m_displayMode == ListDisplayMode::FrequentFiles) {
+        if (row < 0 || row >= static_cast<int>(m_frequentFiles.size())) return;
+        fullPath = m_frequentFiles[static_cast<size_t>(row)].path;
+        isFolder = m_frequentFiles[static_cast<size_t>(row)].is_folder;
+    } else {
+        if (row < 0 || row >= static_cast<int>(m_results.size())) return;
+        const SearchResultRef& ref = m_results[static_cast<size_t>(row)];
+        fullPath = m_engine.GetResultPath(ref);
+        isFolder = ref.is_folder;
+    }
+    if (fullPath.empty()) return;
+
+    std::string baseName = ResultsDataSource::BaseNameFromPath(fullPath);
+    std::string folder = ResultsDataSource::FolderFromPath(fullPath);
+
+    ContentDialog::ShowInputBox(
+        m_root.get(),
+        "重命名",
+        isFolder ? "输入新文件夹名：" : "输入新文件名：",
+        baseName,
+        false,
+        [this, fullPath, folder, baseName](DialogResult result, const std::string& newName) {
+            if (result != DialogResult::Primary) return;
+            std::string trimmed = newName;
+            while (!trimmed.empty() && (trimmed.back() == ' ' || trimmed.back() == '\t')) trimmed.pop_back();
+            while (!trimmed.empty() && (trimmed.front() == ' ' || trimmed.front() == '\t')) trimmed.erase(trimmed.begin());
+            if (trimmed.empty() || trimmed == baseName) return;
+            if (trimmed.find_first_of("\\/:*?\"<>|") != std::string::npos) {
+                ContentDialog::ShowMessageBox(m_root.get(), "重命名", "名称包含非法字符。");
+                return;
+            }
+
+            const std::wstring src = Utf8ToWide(fullPath);
+            const std::wstring dst = Utf8ToWide(folder.empty() ? trimmed : (folder + "\\" + trimmed));
+            if (!MoveFileW(src.c_str(), dst.c_str())) {
+                ContentDialog::ShowMessageBox(m_root.get(), "重命名", "重命名失败（文件可能被占用或权限不足）。");
+                return;
+            }
+
+            // Update frequent-list entry if present.
+            for (auto& entry : m_frequentFiles) {
+                if (_stricmp(entry.path.c_str(), fullPath.c_str()) == 0) {
+                    entry.path = folder.empty() ? trimmed : (folder + "\\" + trimmed);
+                    break;
+                }
+            }
+            SaveFrequentFiles();
+
+            if (!m_lastQuery.empty()) {
+                QueueSearch(m_lastQuery);
+            } else {
+                ShowFrequentFiles();
+            }
+        });
 }
 
 void EverythingApp::CopyFullPath() {
