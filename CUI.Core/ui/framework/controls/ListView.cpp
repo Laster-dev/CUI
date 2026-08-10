@@ -705,6 +705,21 @@ void ListView::RenderRowsLayer(GraphicsContext& ctx) {
         return;
     }
 
+    // In Virtual Mode (Everything search results list), bypass m_rowsLayer offscreen
+    // bitmap allocation completely to eliminate GPU surface reallocation stalls on every keystroke.
+    if (m_virtualMode) {
+        const Rect viewport = GetRowsViewportRect();
+        const int rowCount = static_cast<int>(GetRowCount());
+        if (rowCount > 0 && !viewport.IsEmpty()) {
+            int startRow = (std::max)(0, static_cast<int>(std::floor(m_scrollY / m_rowHeight)));
+            int endRow = (std::min)(rowCount - 1, static_cast<int>(std::ceil((m_scrollY + viewport.height) / m_rowHeight)));
+            ctx.PushClip(viewport);
+            PaintRowsRange(ctx, startRow, endRow, m_scrollX, m_scrollY);
+            ctx.PopClip();
+        }
+        return;
+    }
+
     const Size cacheSize(contentW, contentH);
     const bool sizeChanged =
         std::abs(m_rowsLayer.GetCacheSurfaceSize().width - cacheSize.width) > 0.5f
