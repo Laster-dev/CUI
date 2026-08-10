@@ -709,6 +709,9 @@ void EverythingApp::RefreshSearchMenuChecks() {
 }
 
 void EverythingApp::SortResults(int column, bool ascending) {
+    m_sortColumn = column;
+    m_sortAscending = ascending;
+
     auto cmpLogical = [ascending](const std::string& a, const std::string& b) {
         const int cmp = CompareLogicalName(a, b);
         return ascending ? cmp < 0 : cmp > 0;
@@ -748,37 +751,21 @@ void EverythingApp::SortResults(int column, bool ascending) {
         return;
     }
 
-    std::sort(m_results.begin(), m_results.end(),
-              [&](const SearchResultRef& a, const SearchResultRef& b) {
-                  if (a.is_folder != b.is_folder) return a.is_folder && !b.is_folder;
-                  switch (column) {
-                      case 0: return cmpLogical(m_engine.GetResultName(a), m_engine.GetResultName(b));
-                      case 1: {
-                          const std::string pa = a.is_folder ? m_engine.GetResultPath(a) : m_engine.GetResultFolderPath(a);
-                          const std::string pb = b.is_folder ? m_engine.GetResultPath(b) : m_engine.GetResultFolderPath(b);
-                          return cmpLogical(pa, pb);
-                      }
-                      case 2: {
-                          if (!a.is_folder) m_engine.EnsureFileMeta(a.index);
-                          if (!b.is_folder) m_engine.EnsureFileMeta(b.index);
-                          const uint64_t sa = m_engine.GetResultSize(a);
-                          const uint64_t sb = m_engine.GetResultSize(b);
-                          return ascending ? sa < sb : sa > sb;
-                      }
-                      case 3: {
-                          if (!a.is_folder) m_engine.EnsureFileMeta(a.index);
-                          if (!b.is_folder) m_engine.EnsureFileMeta(b.index);
-                          const uint64_t da = m_engine.GetResultDateModified(a);
-                          const uint64_t db = m_engine.GetResultDateModified(b);
-                          return ascending ? da < db : da > db;
-                      }
-                      default: return false;
-                  }
-              });
-    m_dataSource.ClearCaches();
-    if (m_resultsList) {
-        m_resultsList->RefreshRows();
-    }
+    // Sort search results asynchronously in a background thread — never block UI.
+    auto resultsCopy = m_results;  // copy so UI stays responsive
+    const uint64_t generation = m_searchGeneration.load();
+
+    std::thread([this, results = std::move(resultsCopy), column, ascending, generation]() mutable {
+        m_engine.SortSearchResults(results, column, ascending);
+        if (generation != m_searchGeneration.load()) return;  // search changed, discard
+
+        HWND hwnd = m_window.GetHWND();
+        if (!hwnd) return;
+        auto* payload = new SearchResultsMessage{ std::move(results), -1.0, generation };
+        if (!PostMessageW(hwnd, WM_ENEO_SEARCH_RESULTS, 0, reinterpret_cast<LPARAM>(payload))) {
+            delete payload;
+        }
+    }).detach();
 }
 
 void EverythingApp::QueueSearch(const std::string& query) {
@@ -791,10 +778,12 @@ void EverythingApp::QueueSearch(const std::string& query) {
     }
 
     const SearchOptions opts = m_searchOptions;
+
     std::thread([this, query, opts, generation]() {
         const auto t0 = std::chrono::high_resolution_clock::now();
         std::vector<SearchResultRef> results;
-        m_engine.Search(query, opts, results, 0);
+        // Pass generation counter so search aborts early if user types another char
+        m_engine.Search(query, opts, results, 0, &m_searchGeneration, generation);
         const auto t1 = std::chrono::high_resolution_clock::now();
         const double seconds = std::chrono::duration<double>(t1 - t0).count();
         if (generation != m_searchGeneration.load()) return;
@@ -898,8 +887,6 @@ void EverythingApp::ApplySearchResults(std::vector<SearchResultRef>&& results, d
             m_resultsList->SetVirtualMode(static_cast<int>(m_results.size()), &m_dataSource);
         }
     }
-    // Default: folders (logical name) then files (logical name).
-    SortResults(0, true);
 
     if (!m_lastQuery.empty() && m_statusLeft) {
         std::ostringstream ss;

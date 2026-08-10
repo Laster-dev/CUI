@@ -153,6 +153,8 @@ private:
     std::vector<FrequentFileEntry> m_frequentFiles;
     std::string m_lastQuery;
     std::atomic<uint64_t> m_searchGeneration{ 0 };
+    int m_sortColumn = 0;
+    bool m_sortAscending = true;
     bool m_statusBarVisible = true;
 
     std::shared_ptr<CUI::MenuItem> m_menuRegex;

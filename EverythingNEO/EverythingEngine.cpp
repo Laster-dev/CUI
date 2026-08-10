@@ -214,7 +214,8 @@ bool EverythingEngine::LoadDatabase(const std::wstring& path) {
 }
 
 size_t EverythingEngine::Search(const std::string& query, const SearchOptions& opts,
-                                std::vector<SearchResultRef>& outResults, size_t maxResults) {
+                                std::vector<SearchResultRef>& outResults, size_t maxResults,
+                                const std::atomic<uint64_t>* cancelGen, uint64_t myGen) {
     outResults.clear();
     if (query.empty()) return 0;
 
@@ -228,29 +229,35 @@ size_t EverythingEngine::Search(const std::string& query, const SearchOptions& o
     const auto& files = m_index.GetFiles();
     const auto& folders = m_index.GetFolders();
 
-    auto matches = [&](std::string_view name, uint32_t folderId) -> bool {
-        if (opts.match_path) {
-            std::string path = m_index.GetFolderPath(folderId);
-            if (!path.empty()) path += '\\';
-            path.append(name.data(), name.length());
-            return matcher.Matches(path);
-        }
-        return matcher.Matches(name);
+    const bool wantFiles = opts.result_kind != SearchResultKind::FoldersOnly;
+    const bool wantFolders = opts.result_kind != SearchResultKind::FilesOnly;
+
+    // Early-cancel helper: check every 4096 items if a newer search superseded us
+    auto cancelled = [&]() -> bool {
+        return cancelGen && cancelGen->load(std::memory_order_relaxed) != myGen;
     };
 
     outResults.reserve(4096);
 
-    const bool wantFiles = opts.result_kind != SearchResultKind::FoldersOnly;
-    const bool wantFolders = opts.result_kind != SearchResultKind::FilesOnly;
-
-    // Folders first in the raw hit list (final order still sorted by the UI).
+    // Folders first in index/traversal order (no sort needed)
     if (wantFolders) {
-        for (uint32_t i = 0; i < static_cast<uint32_t>(folders.size()); ++i) {
+        const uint32_t folderCount = static_cast<uint32_t>(folders.size());
+        for (uint32_t i = 1; i < folderCount; ++i) {
+            if ((i & 0xFFF) == 0 && cancelled()) return 0;
             if ((folders[i].attributes & kAttrDeleted) != 0) continue;
-            if (i == 0) continue; // skip drive root duplicates
             std::string_view name = m_index.GetFolderName(i);
             if (name.empty()) continue;
-            if (matches(name, folders[i].parent_folder_id)) {
+
+            bool hit;
+            if (opts.match_path) {
+                std::string path = m_index.GetFolderPath(folders[i].parent_folder_id);
+                if (!path.empty()) path += '\\';
+                path.append(name.data(), name.length());
+                hit = matcher.Matches(path);
+            } else {
+                hit = matcher.Matches(name);
+            }
+            if (hit) {
                 outResults.push_back({ i, true });
                 if (maxResults > 0 && outResults.size() >= maxResults) return outResults.size();
             }
@@ -258,9 +265,22 @@ size_t EverythingEngine::Search(const std::string& query, const SearchOptions& o
     }
 
     if (wantFiles) {
-        for (uint32_t i = 0; i < static_cast<uint32_t>(files.size()); ++i) {
+        const uint32_t fileCount = static_cast<uint32_t>(files.size());
+        for (uint32_t i = 0; i < fileCount; ++i) {
+            if ((i & 0xFFF) == 0 && cancelled()) return 0;
             if ((files[i].attributes & kAttrDeleted) != 0) continue;
-            if (matches(m_index.GetFileName(i), files[i].parent_folder_id)) {
+
+            std::string_view name = m_index.GetFileName(i);
+            bool hit;
+            if (opts.match_path) {
+                std::string path = m_index.GetFolderPath(files[i].parent_folder_id);
+                if (!path.empty()) path += '\\';
+                path.append(name.data(), name.length());
+                hit = matcher.Matches(path);
+            } else {
+                hit = matcher.Matches(name);
+            }
+            if (hit) {
                 outResults.push_back({ i, false });
                 if (maxResults > 0 && outResults.size() >= maxResults) return outResults.size();
             }
@@ -274,17 +294,20 @@ void EverythingEngine::SortSearchResults(std::vector<SearchResultRef>& results, 
 
     std::shared_lock<std::shared_mutex> lock(m_mutex);
 
-    std::vector<uint32_t> order(results.size());
-    std::iota(order.begin(), order.end(), 0u);
+    const size_t n = results.size();
 
-    auto foldersFirst = [&](uint32_t i, uint32_t j) -> bool {
+    auto foldersFirst = [&](size_t i, size_t j) -> bool {
         return results[i].is_folder && !results[j].is_folder;
     };
 
+    // Use indirect sort via index array, then permute once
+    std::vector<uint32_t> order(n);
+    std::iota(order.begin(), order.end(), 0u);
+
     if (column <= 0) {
-        // Convert each name once — UI-thread StrCmpLogicalW per comparison was ~3s for 800k rows.
-        std::vector<std::wstring> names(results.size());
-        for (size_t i = 0; i < results.size(); ++i) {
+        // Pre-extract all names to wstring once (avoid repeated UTF8→UTF16 in comparator)
+        std::vector<std::wstring> names(n);
+        for (size_t i = 0; i < n; ++i) {
             const auto& r = results[i];
             std::string_view sv = r.is_folder ? m_index.GetFolderName(r.index) : m_index.GetFileName(r.index);
             names[i] = Utf8SvToWide(sv);
@@ -295,8 +318,8 @@ void EverythingEngine::SortSearchResults(std::vector<SearchResultRef>& results, 
             return ascending ? c < 0 : c > 0;
         });
     } else if (column == 1) {
-        std::vector<std::wstring> paths(results.size());
-        for (size_t i = 0; i < results.size(); ++i) {
+        std::vector<std::wstring> paths(n);
+        for (size_t i = 0; i < n; ++i) {
             const auto& r = results[i];
             if (r.is_folder) {
                 paths[i] = Utf8SvToWide(m_index.GetFolderPath(r.index));
@@ -330,7 +353,7 @@ void EverythingEngine::SortSearchResults(std::vector<SearchResultRef>& results, 
     }
 
     std::vector<SearchResultRef> sorted;
-    sorted.reserve(results.size());
+    sorted.reserve(n);
     for (uint32_t i : order) sorted.push_back(results[i]);
     results = std::move(sorted);
 }

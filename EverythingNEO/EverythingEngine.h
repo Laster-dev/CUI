@@ -44,8 +44,10 @@ public:
     bool LoadDatabase(const std::wstring& path = {});
 
     // Everything-style: match filename only, return compact file indices (no path alloc).
+    // cancelGen/myGen: if cancelGen->load() != myGen, search aborts early (new keystroke).
     size_t Search(const std::string& query, const SearchOptions& opts,
-                  std::vector<SearchResultRef>& outResults, size_t maxResults = 0);
+                  std::vector<SearchResultRef>& outResults, size_t maxResults = 0,
+                  const std::atomic<uint64_t>* cancelGen = nullptr, uint64_t myGen = 0);
 
     // Sort on a worker thread (folders first, then column). Precomputes wide names
     // once — safe for hundreds of thousands of hits without freezing the UI.
