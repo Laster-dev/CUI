@@ -35,6 +35,8 @@ public:
     virtual ~ListViewDataSource() = default;
     virtual std::string GetCellText(int row, int col) = 0;
     virtual std::shared_ptr<UIElement> GetCellElement(int row, int col) { return nullptr; }
+    // Optional small icon for column 0 (non-owning; caller retains lifetime).
+    virtual HICON GetRowIcon(int row) { (void)row; return nullptr; }
 };
 
 class ListView : public Control {
@@ -81,6 +83,9 @@ public:
 
     // Virtual Mode
     void SetVirtualMode(int rowCount, ListViewDataSource* dataSource);
+    void SetVirtualRowCount(int rowCount);
+    bool IsVirtualMode() const { return m_virtualMode; }
+    void RefreshRows();
     // Row Height
     float GetRowHeight() const { return m_rowHeight; }
     void SetRowHeight(float h) { m_rowHeight = h; }

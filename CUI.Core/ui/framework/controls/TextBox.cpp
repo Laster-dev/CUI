@@ -108,16 +108,19 @@ Rect TextBox::GetRevealButtonRect() const {
 Rect TextBox::GetTextRect() const {
     std::string placeholder = GetPlaceholder();
     bool hasFloatingLabel = !placeholder.empty();
+    // Floating-label mode keeps Material-style top/bottom padding.
+    // Plain single-line mode must not shrink the layout below the font size —
+    // otherwise descenders (g/y/p) are clipped by PushClip(textRect).
     Thickness padding = hasFloatingLabel
         ? GetPadding()
-        : Thickness(0, 6, 0, 6);
+        : Thickness(8.0f, 2.0f, 8.0f, 2.0f);
     float extraTop = hasFloatingLabel ? ((1.0f - m_labelAnim.Current()) * 8.0f) : 0.0f;
     float rightMargin = (IsPasswordMode() && GetShowRevealButton()) ? 32.0f : 0.0f;
     return Rect(
         m_bounds.x + padding.left,
         m_bounds.y + padding.top + extraTop,
         (std::max)(0.0f, m_bounds.width - padding.left - padding.right - rightMargin),
-        m_bounds.height - padding.top - padding.bottom - extraTop - 2.0f
+        (std::max)(0.0f, m_bounds.height - padding.top - padding.bottom - extraTop)
     );
 }
 

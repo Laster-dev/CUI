@@ -176,6 +176,23 @@ void ListView::SetVirtualMode(int rowCount, ListViewDataSource* dataSource) {
     InvalidateRowsLayer();
 }
 
+void ListView::SetVirtualRowCount(int rowCount) {
+    if (!m_virtualMode || m_dataSource == nullptr) {
+        SetVirtualMode(rowCount, m_dataSource);
+        return;
+    }
+    if (m_virtualRowCount == rowCount) return;
+    m_virtualRowCount = rowCount;
+    ClampScroll();
+    InvalidateRowsLayer();
+    MarkRenderContentDirty();
+}
+
+void ListView::RefreshRows() {
+    InvalidateRowsLayer();
+    MarkRenderContentDirty();
+}
+
 std::string ListView::GetCellText(int row, int col) const {
     if (m_virtualMode) {
         if (m_dataSource) return m_dataSource->GetCellText(row, col);
@@ -576,10 +593,18 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
             } else {
                 std::string cellText = GetCellText(r, static_cast<int>(c));
                 float textPad = 8.0f;
-                if (c == 0 && r >= 0 && r < static_cast<int>(m_rowIcons.size()) && m_rowIcons[static_cast<size_t>(r)]) {
+                HICON rowIcon = nullptr;
+                if (c == 0) {
+                    if (m_virtualMode && m_dataSource) {
+                        rowIcon = m_dataSource->GetRowIcon(r);
+                    } else if (r >= 0 && r < static_cast<int>(m_rowIcons.size())) {
+                        rowIcon = m_rowIcons[static_cast<size_t>(r)];
+                    }
+                }
+                if (rowIcon) {
                     const float iconSize = 16.0f;
                     Rect iconRect(cellX + 6.0f, rowY + (m_rowHeight - iconSize) * 0.5f, iconSize, iconSize);
-                    ctx.DrawHIcon(m_rowIcons[static_cast<size_t>(r)], iconRect);
+                    ctx.DrawHIcon(rowIcon, iconRect);
                     textPad = 6.0f + iconSize + 6.0f;
                 }
                 Rect cellRect(cellX + textPad, rowY, (std::max)(0.0f, colW - textPad - 8.0f), m_rowHeight);
@@ -684,7 +709,8 @@ void ListView::OnRender(GraphicsContext& ctx) {
     } else if (rowCount > 0) {
         ctx.PushClip(contentArea);
         int startRow = std::max(0, static_cast<int>(m_scrollY / m_rowHeight));
-        int endRow = std::min(rowCount - 1, static_cast<int>((m_scrollY + contentArea.height) / m_rowHeight));
+        int endRow = std::min(rowCount - 1,
+            static_cast<int>((m_scrollY + contentArea.height) / m_rowHeight) + 1);
         PaintRowsRange(ctx, startRow, endRow, m_scrollX, m_scrollY);
         ctx.PopClip();
     }
