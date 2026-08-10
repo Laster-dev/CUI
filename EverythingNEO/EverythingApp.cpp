@@ -917,6 +917,11 @@ void EverythingApp::ApplySearchResults(std::vector<SearchResultRef>&& results, d
         }
         m_statusLeft->SetText(ss.str());
     }
+
+    // Force immediate Direct2D frame rendering & DWM Present (bypass WM_PAINT queue delay)
+    if (HWND hwnd = m_window.GetHWND()) {
+        UpdateWindow(hwnd);
+    }
 }
 
 void EverythingApp::RefreshStatusBar() {

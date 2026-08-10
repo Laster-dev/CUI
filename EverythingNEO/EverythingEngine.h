@@ -96,10 +96,12 @@ private:
     bool m_loadedFromDb = false;
     std::function<void()> m_changeNotify;
 
-    // Everything-style Incremental Filtering Cache
-    std::string m_lastSearchQuery;
-    SearchOptions m_lastSearchOpts;
-    std::vector<SearchResultRef> m_lastSearchResults;
+    // Everything-style Multi-Level Search Cache Stack (Instant Backspace Support)
+    struct CachedSearchEntry {
+        SearchOptions opts;
+        std::vector<SearchResultRef> results;
+    };
+    std::unordered_map<std::string, CachedSearchEntry> m_queryCacheStack;
 };
 
 } // namespace EverythingNEO

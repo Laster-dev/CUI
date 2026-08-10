@@ -34,6 +34,7 @@ EverythingEngine::~EverythingEngine() {
 void EverythingEngine::ClearPathCache() {
     std::lock_guard<std::mutex> pathLock(m_pathCacheMutex);
     m_folderPathCache.clear();
+    m_queryCacheStack.clear();
 }
 
 void EverythingEngine::Stop() {
@@ -218,19 +219,9 @@ size_t EverythingEngine::Search(const std::string& query, const SearchOptions& o
                                 const std::atomic<uint64_t>* cancelGen, uint64_t myGen) {
     outResults.clear();
     if (query.empty()) {
-        m_lastSearchQuery.clear();
-        m_lastSearchResults.clear();
+        m_queryCacheStack.clear();
         return 0;
     }
-
-    // Everything-style Search Windowing / Early Exit (default max 1000 results if maxResults == 0)
-    const size_t effectiveMaxResults = (maxResults > 0) ? maxResults : 1000;
-
-    QueryMatcher matcher;
-    matcher.use_regex = opts.use_regex;
-    matcher.match_whole_word = opts.match_whole_word;
-    matcher.match_case = opts.match_case;
-    matcher.Prepare(query);
 
     std::shared_lock<std::shared_mutex> lock(m_mutex);
     const auto& files = m_index.GetFiles();
@@ -244,26 +235,55 @@ size_t EverythingEngine::Search(const std::string& query, const SearchOptions& o
         return cancelGen && cancelGen->load(std::memory_order_relaxed) != myGen;
     };
 
-    // Incremental Search Check:
-    // If current query starts with last search query and options are identical, filter directly inside m_lastSearchResults!
-    const bool isIncremental = !m_lastSearchQuery.empty() &&
-                                query.length() > m_lastSearchQuery.length() &&
-                                query.starts_with(m_lastSearchQuery) &&
-                                opts.use_regex == m_lastSearchOpts.use_regex &&
-                                opts.match_whole_word == m_lastSearchOpts.match_whole_word &&
-                                opts.match_case == m_lastSearchOpts.match_case &&
-                                opts.match_path == m_lastSearchOpts.match_path &&
-                                opts.result_kind == m_lastSearchOpts.result_kind &&
-                                !m_lastSearchResults.empty();
+    // 1. Exact Cache Hit Check (Instant Backspace Support — 0ms Return)
+    auto itExact = m_queryCacheStack.find(query);
+    if (itExact != m_queryCacheStack.end() &&
+        itExact->second.opts.use_regex == opts.use_regex &&
+        itExact->second.opts.match_whole_word == opts.match_whole_word &&
+        itExact->second.opts.match_case == opts.match_case &&
+        itExact->second.opts.match_path == opts.match_path &&
+        itExact->second.opts.result_kind == opts.result_kind) {
+        
+        outResults = itExact->second.results;
+        if (maxResults > 0 && outResults.size() > maxResults) {
+            outResults.resize(maxResults);
+        }
+        return outResults.size();
+    }
+
+    QueryMatcher matcher;
+    matcher.use_regex = opts.use_regex;
+    matcher.match_whole_word = opts.match_whole_word;
+    matcher.match_case = opts.match_case;
+    matcher.Prepare(query);
+
+    // 2. Longest Matching Prefix Search (Find best cached base results to filter from)
+    std::string bestPrefix;
+    const std::vector<SearchResultRef>* filterBase = nullptr;
+
+    for (const auto& [cachedQuery, entry] : m_queryCacheStack) {
+        if (cachedQuery.length() < query.length() &&
+            query.starts_with(cachedQuery) &&
+            cachedQuery.length() > bestPrefix.length() &&
+            entry.opts.use_regex == opts.use_regex &&
+            entry.opts.match_whole_word == opts.match_whole_word &&
+            entry.opts.match_case == opts.match_case &&
+            entry.opts.match_path == opts.match_path &&
+            entry.opts.result_kind == opts.result_kind) {
+            
+            bestPrefix = cachedQuery;
+            filterBase = &entry.results;
+        }
+    }
 
     outResults.reserve(4096);
 
-    if (isIncremental) {
-        // Fast Incremental Sub-Search Loop
-        const size_t count = m_lastSearchResults.size();
+    if (filterBase) {
+        // Filter incrementally from the best matching prefix cache
+        const size_t count = filterBase->size();
         for (size_t idx = 0; idx < count; ++idx) {
             if ((idx & 0x1FFF) == 0 && cancelled()) return 0;
-            const auto& r = m_lastSearchResults[idx];
+            const auto& r = (*filterBase)[idx];
 
             if (r.is_folder) {
                 if (!wantFolders) continue;
@@ -308,7 +328,7 @@ size_t EverythingEngine::Search(const std::string& query, const SearchOptions& o
             }
         }
     } else {
-        // Full Index Scan
+        // Full Index Scan Fallback
         if (wantFolders) {
             const uint32_t folderCount = static_cast<uint32_t>(folders.size());
             for (uint32_t i = 1; i < folderCount; ++i) {
@@ -362,10 +382,20 @@ size_t EverythingEngine::Search(const std::string& query, const SearchOptions& o
         }
     }
 
-    // Save search context for next incremental typing keystroke
-    m_lastSearchQuery = query;
-    m_lastSearchOpts = opts;
-    m_lastSearchResults = outResults;
+    // Cache current results in history stack
+    m_queryCacheStack[query] = CachedSearchEntry{ opts, outResults };
+
+    // Prevent cache map from growing excessively (limit max 32 query entries)
+    if (m_queryCacheStack.size() > 32) {
+        // Clear oldest/shorter query entries when capacity exceeded
+        for (auto it = m_queryCacheStack.begin(); it != m_queryCacheStack.end();) {
+            if (it->first != query && !query.starts_with(it->first)) {
+                it = m_queryCacheStack.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
 
     if (maxResults > 0 && outResults.size() > maxResults) {
         outResults.resize(maxResults);
