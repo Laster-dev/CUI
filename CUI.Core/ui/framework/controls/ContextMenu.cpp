@@ -1,6 +1,8 @@
 #include "ContextMenu.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
+#include "../window/MenuPopupWindow.h"
+#include "../window/Dpi.h"
 #include <algorithm>
 #include <cmath>
 
@@ -173,6 +175,11 @@ void MenuItem::OnMouseEnter() {
     if (m_parentMenu) {
         m_parentMenu->MarkRenderContentDirty();
         m_parentMenu->RequestAnimationTicks();
+        if (IsEnabled() && HasSubMenu()) {
+            m_parentMenu->OpenSubMenuForItem(this);
+        } else if (!IsSeparator()) {
+            m_parentMenu->CloseActiveSubMenu();
+        }
     }
 }
 
@@ -212,9 +219,8 @@ void MenuItem::OnMouseWheel(float delta) {
 }
 
 void MenuItem::ExecuteCommand() {
-    // Dismiss the whole menu tree BEFORE running the command. Otherwise a
-    // ContentDialog opened from a submenu item (e.g. 新建 → 子项) leaves the
-    // root context menu painted on top of the modal.
+    // Copy command first. Dismiss may tear down the popup HWND; keep lambdas
+    // (shell session shared_ptr) alive via the std::function copy.
     auto cmd = m_command;
     ContextMenu* menu = m_parentMenu;
     if (menu) {
@@ -234,8 +240,10 @@ ContextMenu::ContextMenu() {
     SetBorderToken(ThemeTokenId::CardBorder);
     SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
     SetBorderThickness(1.0f);
-    SetCornerRadius(4.0f);
+    SetCornerRadius(8.0f);
 }
+
+ContextMenu::~ContextMenu() = default;
 
 std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, std::function<void()> onClick) {
     auto item = std::make_shared<MenuItem>(text, onClick);
@@ -277,12 +285,59 @@ void ContextMenu::AddSeparator() {
     AddChild(item);
 }
 
+void ContextMenu::ClearItems() {
+    if (m_activeSubMenu) {
+        m_activeSubMenu->Hide();
+        m_activeSubMenu = nullptr;
+    }
+    for (auto& item : m_items) {
+        if (item) RemoveChild(item);
+    }
+    m_items.clear();
+    m_scrollOffset = 0.0f;
+    m_contentHeight = 0.0f;
+}
+
+void ContextMenu::EnsurePopulated() {
+    if (!m_lazyPopulate) return;
+    ClearItems();
+    m_lazyPopulate(*this);
+}
+
 namespace {
 Rect ResolveMenuViewport(float windowW, float windowH) {
     if (windowW > 0.0f && windowH > 0.0f) {
         return Rect(0.0f, 0.0f, windowW, windowH);
     }
     return GetPopupViewportOrDefault();
+}
+
+Rect MonitorWorkAreaDip(HWND hwnd) {
+    if (!hwnd) return Rect(0.0f, 0.0f, 1920.0f, 1080.0f);
+    HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi{};
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfoW(mon, &mi)) {
+        return Rect(0.0f, 0.0f, 1920.0f, 1080.0f);
+    }
+    const float scale = GetDpiScaleForWindow(hwnd);
+    const float s = (scale > 0.001f) ? scale : 1.0f;
+    return Rect(
+        static_cast<float>(mi.rcWork.left) / s,
+        static_cast<float>(mi.rcWork.top) / s,
+        static_cast<float>(mi.rcWork.right - mi.rcWork.left) / s,
+        static_cast<float>(mi.rcWork.bottom - mi.rcWork.top) / s);
+}
+
+Point ClientDipToScreenDip(HWND hwnd, float clientX, float clientY) {
+    const float scale = GetDpiScaleForWindow(hwnd);
+    const float s = (scale > 0.001f) ? scale : 1.0f;
+    POINT pt{
+        static_cast<LONG>(std::lround(clientX * s)),
+        static_cast<LONG>(std::lround(clientY * s))
+    };
+    ClientToScreen(hwnd, &pt);
+    return Point(static_cast<float>(pt.x) / s, static_cast<float>(pt.y) / s);
 }
 } // namespace
 
@@ -334,13 +389,39 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
     m_windowWidth = windowW;
     m_windowHeight = windowH;
     m_isOpen = true;
+    m_hostedExternally = false;
 
     const float itemW = ComputePreferredWidth();
     const float totalH = ComputeContentHeight();
 
+    HWND owner = nullptr;
+    if (PopupHost* host = PopupHost::Current()) {
+        owner = host->GetOwnerHwnd();
+    }
+
+    if (owner) {
+        const Point screenPt = ClientDipToScreenDip(owner, x, y);
+        const Rect work = MonitorWorkAreaDip(owner);
+        const Rect placed = PlacePopupAtPoint(screenPt, itemW, totalH, work);
+
+        m_bounds = Rect(0.0f, 0.0f, placed.width, placed.height);
+        m_itemWidth = itemW;
+        m_contentHeight = totalH;
+        m_scrollOffset = 0.0f;
+        RelayoutItems();
+        BeginOpenAnimation();
+
+        if (ShowOnExternalPopup(owner, Point(placed.x, placed.y), placed.width, placed.height)) {
+            if (PopupHost* host = PopupHost::Current()) {
+                host->Open(this);
+            }
+            return;
+        }
+    }
+
+    // Fallback: in-window overlay (cannot extend outside the owner client).
     const Rect viewport = ResolveMenuViewport(windowW, windowH);
     m_bounds = PlacePopupAtPoint(Point(x, y), itemW, totalH, viewport);
-
     m_itemWidth = itemW;
     m_contentHeight = totalH;
     m_scrollOffset = 0.0f;
@@ -357,14 +438,46 @@ void ContextMenu::ShowSubMenuAt(Rect parentItemBounds, float windowW, float wind
     m_windowHeight = windowH;
     m_isOpen = true;
 
+    // Re-run lazy fill every open — Send To often needs a fresh WM_INITMENUPOPUP
+    // at display time; the first build-time init is incomplete.
+    EnsurePopulated();
+
     const float itemW = ComputePreferredWidth();
     const float totalH = ComputeContentHeight();
+    if (m_items.empty() || totalH <= kVerticalPad + 0.5f) {
+        m_isOpen = false;
+        return;
+    }
 
+    ContextMenu* parent = m_ownerMenu;
+    HWND owner = nullptr;
+    if (PopupHost* host = PopupHost::Current()) {
+        owner = host->GetOwnerHwnd();
+    }
+
+    // Dedicated popup HWND sized to this submenu only (avoids stretching the parent
+    // surface into a tall empty background beside the root menu).
+    if (owner && parent && parent->m_hostedExternally && parent->m_popupSurface) {
+        Point screenPt = parent->m_popupSurface->ClientDipToScreenDip(
+            parentItemBounds.x + parentItemBounds.width - 2.0f,
+            parentItemBounds.y - 4.0f);
+        const Rect work = MonitorWorkAreaDip(owner);
+        const Rect placed = PlacePopupAtPoint(screenPt, itemW, totalH, work);
+
+        m_bounds = Rect(0.0f, 0.0f, placed.width, placed.height);
+        m_itemWidth = itemW;
+        m_contentHeight = totalH;
+        m_scrollOffset = 0.0f;
+        RelayoutItems();
+        BeginOpenAnimation();
+        ShowOnExternalPopup(owner, Point(placed.x, placed.y), placed.width, placed.height);
+        return;
+    }
+
+    const float sideX = parentItemBounds.x + parentItemBounds.width - 2.0f;
+    const float topY = parentItemBounds.y - 4.0f;
     const Rect viewport = ResolveMenuViewport(windowW, windowH);
-    Rect anchor(parentItemBounds.x + parentItemBounds.width - 2.0f, parentItemBounds.y - 4.0f,
-                0.0f, parentItemBounds.height + 8.0f);
-    m_bounds = PlacePopupNearAnchor(anchor, itemW, totalH, viewport, 2.0f);
-
+    m_bounds = PlacePopupAtPoint(Point(sideX, topY), itemW, totalH, viewport);
     m_itemWidth = itemW;
     m_contentHeight = totalH;
     m_scrollOffset = 0.0f;
@@ -383,6 +496,19 @@ void ContextMenu::OpenSubMenuForItem(MenuItem* item) {
     m_activeSubMenu = sub;
     m_activeSubMenu->ShowSubMenuAt(item->GetBounds(), m_windowWidth, m_windowHeight);
     MarkRenderContentDirty();
+    if (m_hostedExternally && m_popupSurface) {
+        m_popupSurface->Invalidate();
+    }
+}
+
+void ContextMenu::CloseActiveSubMenu() {
+    if (!m_activeSubMenu) return;
+    m_activeSubMenu->Hide();
+    m_activeSubMenu = nullptr;
+    MarkRenderContentDirty();
+    if (m_hostedExternally && m_popupSurface) {
+        m_popupSurface->Invalidate();
+    }
 }
 
 void ContextMenu::Hide() {
@@ -394,10 +520,45 @@ void ContextMenu::Hide() {
         m_activeSubMenu->Hide();
         m_activeSubMenu = nullptr;
     }
-    if (wasOpen) {
+    if (m_popupSurface) {
+        m_popupSurface->Hide();
+    }
+    m_hostedExternally = false;
+    if (wasOpen && !m_ownerMenu) {
         if (PopupHost* host = PopupHost::Current()) {
             host->Close(this);
         }
+    }
+}
+
+ContextMenu* ContextMenu::GetRootMenu() {
+    ContextMenu* root = this;
+    while (root->m_ownerMenu) {
+        root = root->m_ownerMenu;
+    }
+    return root;
+}
+
+bool ContextMenu::ShowOnExternalPopup(HWND owner, Point screenDipTopLeft, float width, float height) {
+    if (!owner) return false;
+    if (!m_popupSurface) {
+        m_popupSurface = std::make_unique<MenuPopupWindow>();
+    }
+    if (!m_popupSurface->Show(this, owner, screenDipTopLeft, Size(width, height))) {
+        m_popupSurface.reset();
+        m_hostedExternally = false;
+        return false;
+    }
+    m_hostedExternally = true;
+    return true;
+}
+
+void ContextMenu::OffsetPopupHierarchy(float dx, float dy) {
+    m_bounds.x += dx;
+    m_bounds.y += dy;
+    RelayoutItems();
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen() && !m_activeSubMenu->IsExternallyHosted()) {
+        m_activeSubMenu->OffsetPopupHierarchy(dx, dy);
     }
 }
 
@@ -475,6 +636,9 @@ bool ContextMenu::TickPopupAnimation() {
     if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
         if (m_activeSubMenu->TickPopupAnimation()) any = true;
     }
+    if (any && m_hostedExternally && m_popupSurface) {
+        m_popupSurface->Invalidate();
+    }
     return any || hideAnimating;
 }
 
@@ -515,7 +679,7 @@ bool ContextMenu::HasSelfAnimation() const {
 Rect ContextMenu::GetTotalBounds() const {
     if (!m_isOpen) return Rect();
     Rect r = m_bounds;
-    if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen() && !m_activeSubMenu->IsExternallyHosted()) {
         r = r.Union(m_activeSubMenu->GetTotalBounds());
     }
     return r;
@@ -588,19 +752,22 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
         RelayoutItems();
     }
 
-    if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen() && !m_activeSubMenu->IsExternallyHosted()) {
         m_activeSubMenu->RenderPopup(ctx);
     }
 }
 
 bool ContextMenu::HitDismissExempt(float x, float y) const {
+    // External popup HWND owns hit-testing; any click on the owner client dismisses.
+    if (m_hostedExternally) return false;
     return GetTotalBounds().Contains(x, y);
 }
 
 UIElement* ContextMenu::HitTestOverlay(float x, float y) {
     if (!m_isOpen || m_items.empty()) return nullptr;
 
-    if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
+    // Externally hosted submenus live in their own HWND — do not hit-test them here.
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen() && !m_activeSubMenu->IsExternallyHosted()) {
         UIElement* subHit = m_activeSubMenu->HitTestOverlay(x, y);
         if (subHit) return subHit;
     }
@@ -612,10 +779,7 @@ UIElement* ContextMenu::HitTestOverlay(float x, float y) {
                 if (item->HasSubMenu()) {
                     OpenSubMenuForItem(item.get());
                 } else if (!item->IsSeparator()) {
-                    if (m_activeSubMenu) {
-                        m_activeSubMenu->Hide();
-                        m_activeSubMenu = nullptr;
-                    }
+                    CloseActiveSubMenu();
                 }
                 return item.get();
             }

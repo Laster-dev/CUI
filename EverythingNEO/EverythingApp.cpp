@@ -522,7 +522,7 @@ std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
         if (paths.empty()) return false;
 
         ShellMenuActions actions;
-        actions.showOpenPath = (m_displayMode == ListDisplayMode::SearchResults);
+        actions.showOpenPath = true;
         actions.showCopyFullPath = true;
         actions.showRename = (rows.size() == 1);
         actions.openPath = [this]() { OpenSelectedPath(); };

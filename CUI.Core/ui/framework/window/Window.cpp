@@ -1,6 +1,7 @@
 #include "Window.h"
 #include "Dpi.h"
 #include "IWindowChrome.h"
+#include "MenuPopupWindow.h"
 #include "../style/ThemeManager.h"
 #include "../parser/StyleManager.h"
 #include "../controls/TextBox.h"
@@ -41,6 +42,7 @@ Window* Window::Current() {
 
 namespace {
 constexpr UINT WM_CUI_RASTER_COMPLETE = WM_APP + 45;
+constexpr UINT WM_CUI_CLOSE_POPUPS = WM_APP + 46;
 
 float GetWindowRefreshRateHz(HWND hwnd) {
     // EnumDisplaySettings is relatively expensive — cache per monitor briefly.
@@ -803,6 +805,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     UpdateDwmChrome();
 
     PopupHost::SetCurrent(&m_popupHost);
+    m_popupHost.SetOwnerHwnd(m_hwnd);
     AnimationManager::SetCurrent(&m_animationManager);
     FrameScheduler::SetCurrent(&m_frameScheduler);
     return true;
@@ -1133,6 +1136,30 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         // the right/bottom until the first manual resize.
         return 0;
 
+    case WM_ACTIVATEAPP:
+        if (wParam == FALSE) {
+            // Defer so a menu click's mouse-up can still run ExecuteCommand.
+            PostMessageW(m_hwnd, WM_CUI_CLOSE_POPUPS, 0, 0);
+        }
+        break;
+    case WM_ACTIVATE:
+        if (LOWORD(wParam) == WA_INACTIVE) {
+            HWND other = reinterpret_cast<HWND>(lParam);
+            // Clicking a WS_EX_NOACTIVATE menu popup must not dismiss mid-click.
+            if (MenuPopupWindow::IsMenuPopupHwnd(other)) {
+                break;
+            }
+            PostMessageW(m_hwnd, WM_CUI_CLOSE_POPUPS, 0, 0);
+        }
+        break;
+    case WM_CUI_CLOSE_POPUPS: {
+        HWND fore = GetForegroundWindow();
+        if (MenuPopupWindow::IsMenuPopupHwnd(fore)) {
+            break;
+        }
+        m_popupHost.CloseAll();
+        break;
+    }
     case WM_NCACTIVATE:
         return TRUE;
 

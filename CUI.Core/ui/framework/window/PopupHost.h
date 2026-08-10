@@ -2,6 +2,7 @@
 #include "../core/Value.h"
 #include "../render/GraphicsContext.h"
 #include <vector>
+#include <windows.h>
 
 namespace CUI {
 
@@ -21,6 +22,8 @@ public:
     virtual void RenderPopup(GraphicsContext& ctx) = 0;
     virtual void OnLightDismiss() = 0;
     virtual bool TickPopupAnimation() { return false; }
+    // True when the popup paints on its own top-level HWND (outside owner client).
+    virtual bool IsExternallyHosted() const { return false; }
     virtual void CollectPopupDirty(Rect& dirtyRect, bool& hasDirty) const {
         if (!IsPopupOpen()) return;
         Rect b = GetPopupBounds().Inflate(4.0f);
@@ -51,11 +54,15 @@ public:
     void SetViewport(const Rect& viewport) { m_viewport = viewport; }
     const Rect& GetViewport() const { return m_viewport; }
 
+    void SetOwnerHwnd(HWND hwnd) { m_ownerHwnd = hwnd; }
+    HWND GetOwnerHwnd() const { return m_ownerHwnd; }
+
     bool HasOpenPopups() const { return !m_open.empty(); }
 
 private:
     std::vector<IPopup*> m_open;
     Rect m_viewport;
+    HWND m_ownerHwnd = nullptr;
     static PopupHost* s_current;
 };
 

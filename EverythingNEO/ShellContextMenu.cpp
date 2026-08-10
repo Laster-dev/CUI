@@ -19,10 +19,15 @@ struct ShellMenuSession {
     IContextMenu* pcm = nullptr;
     IContextMenu2* pcm2 = nullptr;
     IContextMenu3* pcm3 = nullptr;
+    HMENU hRootMenu = nullptr;
     POINT invokePt{ 0, 0 };
     bool comNeedUninit = false;
 
     ~ShellMenuSession() {
+        if (hRootMenu) {
+            DestroyMenu(hRootMenu);
+            hRootMenu = nullptr;
+        }
         if (pcm3) { pcm3->Release(); pcm3 = nullptr; }
         if (pcm2) { pcm2->Release(); pcm2 = nullptr; }
         if (pcm) { pcm->Release(); pcm = nullptr; }
@@ -54,6 +59,14 @@ struct ShellMenuSession {
         } else if (pcm2) {
             pcm2->HandleMenuMsg(msg, wParam, lParam);
         }
+    }
+
+    // Send To / other cascades often fill in stages; pump a couple of inits.
+    void InitCascade(HMENU hSub, int index) {
+        if (!hSub) return;
+        const LPARAM lp = MAKELPARAM(static_cast<WORD>(index), FALSE);
+        HandleMenuMsg(WM_INITMENUPOPUP, reinterpret_cast<WPARAM>(hSub), lp);
+        HandleMenuMsg(WM_INITMENUPOPUP, reinterpret_cast<WPARAM>(hSub), lp);
     }
 };
 
@@ -354,11 +367,20 @@ void AddShellItem(CUI::ContextMenu& menu, HMENU hMenu, int index,
     HICON icon = session ? ExtractMenuItemIcon(*session, hMenu, index) : nullptr;
 
     if (mii.hSubMenu) {
+        // Do NOT populate cascading menus at build time. Send To / NanaZip / etc.
+        // fill their HMENU on WM_INITMENUPOPUP when the cascade is about to show;
+        // an early init is often incomplete and DestroyMenu would free the handle.
+        const HMENU hSub = mii.hSubMenu;
+        const int subIndex = index;
         auto item = menu.AddSubMenuItem(label.empty() ? "..." : label);
         if (icon) item->SetNativeIcon(icon, true);
         if (disabled) item->SetIsEnabled(false);
         if (checked) item->SetChecked(true);
-        PopulateMenuFromHMenu(*item->GetSubMenu(), mii.hSubMenu, session, idCmdFirst);
+        auto sub = item->GetSubMenu();
+        sub->SetLazyPopulate([session, hSub, subIndex, idCmdFirst](CUI::ContextMenu& dest) {
+            if (session) session->InitCascade(hSub, subIndex);
+            PopulateMenuFromHMenu(dest, hSub, session, idCmdFirst);
+        });
         return;
     }
 
@@ -462,6 +484,7 @@ std::shared_ptr<CUI::ContextMenu> BuildShellContextMenu(
     auto session = std::make_shared<ShellMenuSession>();
     session->owner = owner;
     session->pcm = pcm;
+    session->hRootMenu = hMenu; // keep alive for lazy cascade INITMENUPOPUP
     pcm->QueryInterface(IID_PPV_ARGS(&session->pcm3));
     if (!session->pcm3) {
         pcm->QueryInterface(IID_PPV_ARGS(&session->pcm2));
@@ -477,7 +500,7 @@ std::shared_ptr<CUI::ContextMenu> BuildShellContextMenu(
         if (injected) return;
         injected = true;
         if (actions.showOpenPath && actions.openPath) {
-            auto item = menu->AddItem("打开路径(P)", actions.openPath);
+            auto item = menu->AddItem("打开文件所在位置", actions.openPath);
             if (HICON ic = LoadStockIcon(SIID_FOLDEROPEN)) item->SetNativeIcon(ic, true);
         }
         if (actions.showCopyFullPath && actions.copyFullPath) {
@@ -507,7 +530,7 @@ std::shared_ptr<CUI::ContextMenu> BuildShellContextMenu(
         injectExtras();
     }
 
-    DestroyMenu(hMenu);
+    // Do not DestroyMenu here — session owns hRootMenu until the CUI menu is dismissed.
     return menu;
 }
 

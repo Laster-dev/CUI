@@ -75,6 +75,7 @@ UIElement* PopupHost::HitTest(float x, float y) {
     for (auto it = m_open.rbegin(); it != m_open.rend(); ++it) {
         IPopup* p = *it;
         if (!p || !p->IsPopupOpen()) continue;
+        if (p->IsExternallyHosted()) continue;
         if (UIElement* hit = p->HitTestPopup(x, y)) {
             return hit;
         }
@@ -84,7 +85,7 @@ UIElement* PopupHost::HitTest(float x, float y) {
 
 void PopupHost::Render(GraphicsContext& ctx) {
     for (IPopup* p : m_open) {
-        if (p && p->IsPopupOpen()) {
+        if (p && p->IsPopupOpen() && !p->IsExternallyHosted()) {
             p->RenderPopup(ctx);
         }
     }
@@ -106,7 +107,9 @@ bool PopupHost::TickAnimations() {
 
 void PopupHost::CollectDirty(Rect& dirtyRect, bool& hasDirty) const {
     for (IPopup* p : m_open) {
-        if (p) p->CollectPopupDirty(dirtyRect, hasDirty);
+        if (p && !p->IsExternallyHosted()) {
+            p->CollectPopupDirty(dirtyRect, hasDirty);
+        }
     }
 }
 

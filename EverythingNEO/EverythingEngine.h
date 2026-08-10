@@ -85,6 +85,7 @@ private:
     std::atomic<bool> m_isIndexing{ false };
     std::atomic<bool> m_ready{ false };
     std::atomic<bool> m_cancel{ false };
+    std::atomic<bool> m_journalResetRequested{ false };
     double m_lastScanDurationMs = 0.0;
     bool m_loadedFromDb = false;
     std::function<void()> m_changeNotify;

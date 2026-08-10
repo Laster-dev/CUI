@@ -75,7 +75,7 @@ private:
 class ContextMenu : public UIElement, public IPopup {
 public:
     ContextMenu();
-    virtual ~ContextMenu() = default;
+    virtual ~ContextMenu();
 
     virtual const char* GetClassName() const override { return "ContextMenu"; }
 
@@ -89,15 +89,25 @@ public:
     // Like AddSubMenu, but returns the parent MenuItem so callers can set icons.
     std::shared_ptr<MenuItem> AddSubMenuItem(const std::string& text);
     void AddSeparator();
+    void ClearItems();
+
+    // Shell cascading menus (Send To, NanaZip, …) fill lazily on WM_INITMENUPOPUP.
+    // When set, ShowSubMenuAt clears and re-runs this before measuring/showing.
+    using LazyPopulateFn = std::function<void(ContextMenu&)>;
+    void SetLazyPopulate(LazyPopulateFn fn) { m_lazyPopulate = std::move(fn); }
+    bool HasLazyPopulate() const { return static_cast<bool>(m_lazyPopulate); }
+    void EnsurePopulated();
 
     void ShowAt(float x, float y, float windowW = 0.0f, float windowH = 0.0f);
     void ShowSubMenuAt(Rect parentItemBounds, float windowW = 0.0f, float windowH = 0.0f);
     void OpenSubMenuForItem(MenuItem* item);
+    void CloseActiveSubMenu();
     void Hide();
     // Walk to the outermost open menu and hide it (and all submenus).
     void DismissHierarchy();
     bool IsOpen() const { return m_isOpen; }
     Rect GetTotalBounds() const;
+    void OffsetPopupHierarchy(float dx, float dy);
     std::shared_ptr<ContextMenu> GetActiveSubMenu() const { return m_activeSubMenu; }
     ContextMenu* GetOwnerMenu() const { return m_ownerMenu; }
     void SetOwnerMenu(ContextMenu* owner) { m_ownerMenu = owner; }
@@ -110,6 +120,7 @@ public:
     virtual void RenderPopup(GraphicsContext& ctx) override;
     virtual void OnLightDismiss() override { Hide(); }
     virtual bool TickPopupAnimation() override;
+    virtual bool IsExternallyHosted() const override { return m_hostedExternally; }
 
     virtual void OnBlur() override { Hide(); }
     virtual void OnMouseWheel(float delta) override;
@@ -141,12 +152,17 @@ private:
     // Open fade (~60ms).
     float m_openProgress = 0.0f;
     bool m_openAnimating = false;
+    bool m_hostedExternally = false;
+    std::unique_ptr<class MenuPopupWindow> m_popupSurface;
+    LazyPopulateFn m_lazyPopulate;
 
     void RelayoutItems();
     float ComputePreferredWidth() const;
     float ComputeContentHeight() const;
     bool TickItemHoverAnimations();
     void BeginOpenAnimation();
+    ContextMenu* GetRootMenu();
+    bool ShowOnExternalPopup(HWND owner, Point screenDipTopLeft, float width, float height);
 };
 
 } // namespace CUI

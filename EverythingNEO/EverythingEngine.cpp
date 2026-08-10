@@ -34,6 +34,7 @@ void EverythingEngine::StartAsync(StatusCallback onStatus, ReadyCallback onReady
     if (m_isIndexing.exchange(true)) return;
     m_cancel.store(false);
     m_ready.store(false);
+    m_journalResetRequested.store(false);
 
     std::thread([this, onStatus, onReady]() {
         auto start = std::chrono::high_resolution_clock::now();
@@ -50,6 +51,19 @@ void EverythingEngine::StartAsync(StatusCallback onStatus, ReadyCallback onReady
         if (loaded) {
             if (onStatus) onStatus("数据库已载入，正在通过 USN 增量补齐 ...");
             CatchUpUsn();
+            if (m_journalResetRequested.exchange(false)) {
+                if (onStatus) onStatus("USN 日志已重置，正在重建受影响卷的索引 ...");
+                IndexAllDrives(onStatus);
+                {
+                    std::unique_lock<std::shared_mutex> lock(m_mutex);
+                    m_index.ShrinkToFit();
+                }
+            }
+            // Persist advanced nextUsn so the next launch stays incremental.
+            {
+                std::unique_lock<std::shared_mutex> lock(m_mutex);
+                DbSnapshot::Save(m_index, DbSnapshot::DefaultPath());
+            }
         } else {
             if (onStatus) onStatus("未找到数据库，开始全盘索引 ...");
             IndexAllDrives(onStatus);
@@ -73,7 +87,7 @@ void EverythingEngine::StartAsync(StatusCallback onStatus, ReadyCallback onReady
 
         m_ready.store(true);
         m_isIndexing.store(false);
-        if (onStatus) onStatus("索引就绪");
+        if (onStatus) onStatus(loaded ? "索引就绪（增量）" : "索引就绪");
         if (onReady) onReady();
         if (m_changeNotify) m_changeNotify();
     }).detach();
@@ -149,7 +163,12 @@ void EverythingEngine::CatchUpUsn() {
 
 void EverythingEngine::OnVolumeJournalReset(char driveLetter) {
     (void)driveLetter;
-    if (m_isIndexing.load()) return;
+    // During StartAsync catch-up, queue a rebuild after CatchUp returns instead
+    // of ignoring the reset (old code returned early while m_isIndexing).
+    if (m_isIndexing.load()) {
+        m_journalResetRequested.store(true);
+        return;
+    }
     RebuildIndexAsync({}, [this]() {
         if (m_changeNotify) m_changeNotify();
     });

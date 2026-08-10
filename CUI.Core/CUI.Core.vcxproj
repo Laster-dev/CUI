@@ -203,6 +203,7 @@
     <ClCompile Include="ui\framework\window\Dpi.cpp" />
     <ClCompile Include="ui\framework\window\PopupHost.cpp" />
     <ClCompile Include="ui\framework\window\PopupPlacement.cpp" />
+    <ClCompile Include="ui\framework\window\MenuPopupWindow.cpp" />
     <ClCompile Include="ui\framework\window\Window.cpp" />
     <ClCompile Include="ui\framework\window\WindowBackdrop.cpp" />
   </ItemGroup>
@@ -298,6 +299,7 @@
     <ClInclude Include="ui\framework\window\IWindowChrome.h" />
     <ClInclude Include="ui\framework\window\PopupHost.h" />
     <ClInclude Include="ui\framework\window\PopupPlacement.h" />
+    <ClInclude Include="ui\framework\window\MenuPopupWindow.h" />
     <ClInclude Include="ui\framework\window\Window.h" />
     <ClInclude Include="ui\framework\window\WindowBackdrop.h" />
   </ItemGroup>

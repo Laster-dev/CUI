@@ -229,6 +229,7 @@ size_t UsnWatcher::CatchUpVolumes(FileIndexTable& index, std::shared_mutex& inde
     temp.m_index = &index;
     temp.m_mutex = &indexMutex;
     temp.m_onRebuild = std::move(onRebuild);
+    temp.m_running.store(true);
 
     size_t updates = 0;
     std::vector<VolumeState> volumes;
@@ -238,7 +239,7 @@ size_t UsnWatcher::CatchUpVolumes(FileIndexTable& index, std::shared_mutex& inde
     }
 
     for (auto& vol : volumes) {
-        if (vol.journalId == 0) continue;
+        // journalId==0: ProcessVolume bootstraps the cursor without a full rebuild.
         if (temp.ProcessVolume(vol.driveLetter, vol, true)) {
             ++updates;
         }
@@ -264,7 +265,6 @@ void UsnWatcher::ThreadMain() {
         bool anyChanged = false;
         for (auto& vol : volumes) {
             if (!m_running.load()) break;
-            if (vol.journalId == 0) continue;
 
             if (ProcessVolume(vol.driveLetter, vol, true)) {
                 anyChanged = true;
@@ -295,14 +295,15 @@ bool UsnWatcher::ProcessVolume(char driveLetter, VolumeState& vol, bool drainAll
         return false;
     }
 
+    // Journal recreated (chkdsk / delete) — request rebuild; do NOT advance the
+    // cursor to NextUsn or we permanently skip catch-up of a fresh journal.
     if (vol.journalId != 0 && vol.journalId != journal.UsnJournalID) {
         CloseHandle(hVol);
-        vol.journalId = journal.UsnJournalID;
-        vol.nextUsn = journal.NextUsn;
         if (m_onRebuild) m_onRebuild(driveLetter);
         return false;
     }
 
+    // First attach after index without a saved journal: pin cursor at tip.
     if (vol.journalId == 0) {
         vol.journalId = journal.UsnJournalID;
         vol.nextUsn = journal.NextUsn;
@@ -310,8 +311,18 @@ bool UsnWatcher::ProcessVolume(char driveLetter, VolumeState& vol, bool drainAll
         return false;
     }
 
+    // USN wrapped / oldest entry overwritten — must rebuild that volume.
+    if (vol.nextUsn != 0 && vol.nextUsn < journal.FirstUsn) {
+        CloseHandle(hVol);
+        if (m_onRebuild) m_onRebuild(driveLetter);
+        return false;
+    }
+
+    // Missing cursor with a known journal: pin at tip (do not replay the whole journal).
     if (vol.nextUsn == 0) {
-        vol.nextUsn = journal.FirstUsn;
+        vol.nextUsn = journal.NextUsn;
+        CloseHandle(hVol);
+        return false;
     }
 
     bool changed = false;
@@ -333,7 +344,15 @@ bool UsnWatcher::ProcessVolume(char driveLetter, VolumeState& vol, bool drainAll
                                   &readData, sizeof(readData),
                                   buffer.data(), bufferSize,
                                   &bytesReturned, nullptr);
-        if (!ok || bytesReturned <= sizeof(USN)) {
+        if (!ok) {
+            const DWORD err = GetLastError();
+            if (err == ERROR_JOURNAL_ENTRY_DELETED ||
+                err == ERROR_JOURNAL_DELETE_IN_PROGRESS) {
+                if (m_onRebuild) m_onRebuild(driveLetter);
+            }
+            break;
+        }
+        if (bytesReturned <= sizeof(USN)) {
             break;
         }
 
