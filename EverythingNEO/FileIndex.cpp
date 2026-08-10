@@ -232,4 +232,15 @@ void FileIndexTable::Clear() {
     m_arena.Clear();
 }
 
+void FileIndexTable::Swap(FileIndexTable& other) noexcept {
+    m_arena.Swap(other.m_arena);
+    m_folders.swap(other.m_folders);
+    m_files.swap(other.m_files);
+    m_folderFrns.swap(other.m_folderFrns);
+    m_fileFrns.swap(other.m_fileFrns);
+    m_volumes.swap(other.m_volumes);
+    m_folderByFrn.swap(other.m_folderByFrn);
+    m_fileByFrn.swap(other.m_fileByFrn);
+}
+
 } // namespace EverythingNEO

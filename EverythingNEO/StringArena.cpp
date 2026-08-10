@@ -56,6 +56,14 @@ void StringArena::Clear() {
     AllocateChunk();
 }
 
+void StringArena::Swap(StringArena& other) noexcept {
+    m_chunks.swap(other.m_chunks);
+    std::swap(m_currentChunkIndex, other.m_currentChunkIndex);
+    std::swap(m_currentChunkOffset, other.m_currentChunkOffset);
+    std::swap(m_totalBytesAllocated, other.m_totalBytesAllocated);
+    std::swap(m_usedBytes, other.m_usedBytes);
+}
+
 size_t StringArena::GetTotalMemoryUsage() const {
     return m_totalBytesAllocated;
 }

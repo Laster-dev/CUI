@@ -39,6 +39,21 @@ float FrameBlend(float factorAt60Hz) {
 constexpr float kPillInsetX = 4.0f;
 constexpr float kPillInsetY = 2.0f;
 constexpr float kPillRadius = 4.0f;
+// Keep scrollbar clear of the window's ~8px NC resize border on the right edge.
+constexpr float kScrollbarThumbW = 6.0f;
+constexpr float kScrollbarEdgeGap = 12.0f;
+constexpr float kScrollbarHitPad = 2.0f;
+
+float ScrollbarTrackX(const Rect& bounds) {
+    return bounds.x + bounds.width - kScrollbarEdgeGap - kScrollbarThumbW;
+}
+
+bool IsOverScrollbar(const Rect& bounds, float headerHeight, Point pt, bool canScroll) {
+    if (!canScroll) return false;
+    const float x0 = ScrollbarTrackX(bounds) - kScrollbarHitPad;
+    const float x1 = ScrollbarTrackX(bounds) + kScrollbarThumbW + kScrollbarHitPad;
+    return pt.x >= x0 && pt.x < x1 && pt.y >= bounds.y + headerHeight;
+}
 
 } // namespace
 
@@ -744,8 +759,8 @@ void ListView::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    if (m_maxScrollY > 0.0f && m_scrollbarAutoHide.IsDrawn()) {
-        float trackX = m_bounds.x + m_bounds.width - 8.0f;
+    if (m_maxScrollY > 0.0f) {
+        float trackX = ScrollbarTrackX(m_bounds);
         float trackY = m_bounds.y + m_headerHeight + 2.0f;
         float trackH = m_bounds.height - m_headerHeight - 4.0f;
 
@@ -753,9 +768,10 @@ void ListView::OnRender(GraphicsContext& ctx) {
         float thumbH = std::max(20.0f, trackH * (trackH / contentH));
         float thumbY = trackY + (m_scrollY / m_maxScrollY) * (trackH - thumbH);
 
-        Rect thumbRect(trackX, thumbY, 6.0f, thumbH);
-        const float vis = m_scrollbarAutoHide.Opacity();
-        ctx.FillRoundedRect(thumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.6f * vis));
+        Rect thumbRect(trackX, thumbY, kScrollbarThumbW, thumbH);
+        // Everything-style: always show thumb when scrollable (min 55% opacity).
+        const float vis = (std::max)(m_scrollbarAutoHide.Opacity(), 0.55f);
+        ctx.FillRoundedRect(thumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.75f * vis));
     }
 
     if (m_isReorderingColumn && m_reorderingColumnIndex >= 0 && m_reorderingColumnIndex < static_cast<int>(m_columns.size())) {
@@ -797,17 +813,14 @@ void ListView::OnMouseDown(Point pt) {
     m_reorderingColumnIndex = -1;
 
     // 1. Check Vertical ScrollBar Track / Thumb Click
-    if (m_maxScrollY > 0.0f) {
-        float trackX = m_bounds.x + m_bounds.width - 12.0f;
-        if (pt.x >= trackX && pt.y >= m_bounds.y + m_headerHeight) {
-            m_isDraggingScrollbar = true;
-            m_scrollbarAutoHide.SetDragging(true, this);
-            m_scrollbarAutoHide.NotifyActivity(this);
-            RequestAnimationTicks();
-            m_dragStartY = pt.y;
-            m_dragStartScrollY = m_scrollY;
-            return;
-        }
+    if (IsOverScrollbar(m_bounds, m_headerHeight, pt, m_maxScrollY > 0.0f)) {
+        m_isDraggingScrollbar = true;
+        m_scrollbarAutoHide.SetDragging(true, this);
+        m_scrollbarAutoHide.NotifyActivity(this);
+        RequestAnimationTicks();
+        m_dragStartY = pt.y;
+        m_dragStartScrollY = m_scrollY;
+        return;
     }
 
     // 2. Check Header Bar: Splitter Resize OR Column Drag Reordering
@@ -881,9 +894,7 @@ void ListView::OnMouseDown(Point pt) {
 void ListView::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
 
-    const bool overBar = m_maxScrollY > 0.0f
-        && pt.x >= m_bounds.x + m_bounds.width - 12.0f
-        && pt.y >= m_bounds.y + m_headerHeight;
+    const bool overBar = IsOverScrollbar(m_bounds, m_headerHeight, pt, m_maxScrollY > 0.0f);
     m_scrollbarAutoHide.SetPointerOver(overBar, this);
     if (overBar) {
         RequestAnimationTicks();
@@ -1046,14 +1057,17 @@ void ListView::OnMouseLeave() {
 void ListView::OnMouseRightClick(Point pt) {
     Control::OnMouseRightClick(pt);
     int row = GetRowIndexFromY(pt.y);
-    if (row >= 0 && row < static_cast<int>(GetRowCount())) {
+    if (row < 0 || row >= static_cast<int>(GetRowCount())) return;
+
+    // Keep rubber-band / multi-selection when right-clicking an already selected row.
+    if (!IsRowSelected(row)) {
         m_selectedIndices.clear();
         m_selectedIndices.insert(row);
         m_anchorIndex = row;
-        m_caretIndex = row;
         m_onSelectionChangedEvent.Invoke(this, row);
         InvalidateRowsLayer();
     }
+    m_caretIndex = row;
 }
 
 void ListView::OnMouseWheel(float delta) {

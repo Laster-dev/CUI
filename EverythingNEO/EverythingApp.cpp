@@ -19,6 +19,10 @@
 #include <commctrl.h>
 #include <cctype>
 #include <cstring>
+#include <algorithm>
+#include <fstream>
+#include <filesystem>
+#include <shlobj.h>
 
 using namespace CUI;
 using namespace CUI::DSL;
@@ -76,6 +80,17 @@ std::string JoinPath(const std::string& folder, const std::string& name) {
     return folder + "\\" + name;
 }
 
+std::wstring GetFrequentFilesPath() {
+    wchar_t appData[MAX_PATH]{};
+    if (FAILED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, SHGFP_TYPE_CURRENT, appData))) {
+        return L"frequent.txt";
+    }
+    std::wstring dir = appData;
+    dir += L"\\EverythingNEO";
+    CreateDirectoryW(dir.c_str(), nullptr);
+    return dir + L"\\frequent.txt";
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -113,10 +128,24 @@ void FileIconCache::Clear() {
     m_byExt.clear();
     m_pending.clear();
     m_queue.clear();
+    if (m_folderIcon) {
+        DestroyIcon(m_folderIcon);
+        m_folderIcon = nullptr;
+    }
     if (m_defaultIcon) {
         DestroyIcon(m_defaultIcon);
         m_defaultIcon = nullptr;
     }
+}
+
+HICON FileIconCache::GetFolderIconUnlocked() {
+    if (m_folderIcon) return m_folderIcon;
+    SHFILEINFOW sfi{};
+    if (SHGetFileInfoW(L"folder", FILE_ATTRIBUTE_DIRECTORY, &sfi, sizeof(sfi),
+                       SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES)) {
+        m_folderIcon = sfi.hIcon;
+    }
+    return m_folderIcon;
 }
 
 std::string FileIconCache::ExtKey(const std::string& fileName) {
@@ -151,8 +180,9 @@ HICON FileIconCache::GetExtIconUnlocked(const std::string& fileName) {
     return icon;
 }
 
-HICON FileIconCache::GetIcon(const std::string& fullPath, const std::string& fileName) {
+HICON FileIconCache::GetIcon(const std::string& fullPath, const std::string& fileName, bool isFolder) {
     std::lock_guard<std::mutex> lock(m_mutex);
+    if (isFolder) return GetFolderIconUnlocked();
     if (!fullPath.empty()) {
         auto it = m_byPath.find(fullPath);
         if (it != m_byPath.end()) return it->second;
@@ -217,52 +247,112 @@ void ResultsDataSource::ClearCaches() {
     m_pathCache.clear();
 }
 
-std::string ResultsDataSource::GetName(uint32_t fileIndex) {
-    auto it = m_nameCache.find(fileIndex);
+std::string ResultsDataSource::GetName(const SearchResultRef& r) {
+    uint64_t key = CacheKey(r);
+    auto it = m_nameCache.find(key);
     if (it != m_nameCache.end()) return it->second;
-    std::string name = engine ? engine->GetFileName(fileIndex) : std::string();
-    m_nameCache.emplace(fileIndex, name);
+    std::string name = engine ? engine->GetResultName(r) : std::string();
+    m_nameCache.emplace(key, name);
     return name;
 }
 
-std::string ResultsDataSource::GetFolder(uint32_t fileIndex) {
-    auto it = m_folderCache.find(fileIndex);
+std::string ResultsDataSource::GetFolder(const SearchResultRef& r) {
+    uint64_t key = CacheKey(r);
+    auto it = m_folderCache.find(key);
     if (it != m_folderCache.end()) return it->second;
-    std::string folder = engine ? engine->GetFileFolderPath(fileIndex) : std::string();
-    m_folderCache.emplace(fileIndex, folder);
+    std::string folder = engine ? engine->GetResultFolderPath(r) : std::string();
+    m_folderCache.emplace(key, folder);
     return folder;
 }
 
-std::string ResultsDataSource::GetFullPath(uint32_t fileIndex) {
-    auto it = m_pathCache.find(fileIndex);
+std::string ResultsDataSource::GetFullPath(const SearchResultRef& r) {
+    uint64_t key = CacheKey(r);
+    auto it = m_pathCache.find(key);
     if (it != m_pathCache.end()) return it->second;
-    std::string path = JoinPath(GetFolder(fileIndex), GetName(fileIndex));
-    m_pathCache.emplace(fileIndex, path);
+    std::string path = engine ? engine->GetResultPath(r) : std::string();
+    m_pathCache.emplace(key, path);
     return path;
 }
 
+std::string ResultsDataSource::BaseNameFromPath(const std::string& path) {
+    size_t pos = path.find_last_of("\\/");
+    if (pos == std::string::npos) return path;
+    return path.substr(pos + 1);
+}
+
+std::string ResultsDataSource::FolderFromPath(const std::string& path) {
+    size_t pos = path.find_last_of("\\/");
+    if (pos == std::string::npos) return {};
+    return path.substr(0, pos);
+}
+
+bool ResultsDataSource::QueryPathMeta(const std::string& path, uint64_t& size, uint64_t& date,
+                                    bool& isFolder) {
+    if (path.empty()) return false;
+    std::wstring wpath = Utf8ToWide(path);
+    WIN32_FILE_ATTRIBUTE_DATA fad{};
+    if (!GetFileAttributesExW(wpath.c_str(), GetFileExInfoStandard, &fad)) return false;
+    isFolder = (fad.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    ULARGE_INTEGER sz{};
+    sz.LowPart = fad.nFileSizeLow;
+    sz.HighPart = fad.nFileSizeHigh;
+    size = isFolder ? 0 : sz.QuadPart;
+    ULARGE_INTEGER dt{};
+    dt.LowPart = fad.ftLastWriteTime.dwLowDateTime;
+    dt.HighPart = fad.ftLastWriteTime.dwHighDateTime;
+    date = dt.QuadPart;
+    return true;
+}
+
 std::string ResultsDataSource::GetCellText(int row, int col) {
-    if (!engine || !results) return {};
-    if (row < 0 || row >= static_cast<int>(results->size())) return {};
-    uint32_t idx = (*results)[static_cast<size_t>(row)];
-    switch (col) {
-        case 0: return GetName(idx);
-        case 1: return GetFolder(idx);
-        case 2: {
-            uint64_t size = engine->GetFileSize(idx);
+    if (displayMode && *displayMode == ListDisplayMode::FrequentFiles) {
+        if (!frequentFiles || row < 0 || row >= static_cast<int>(frequentFiles->size())) return {};
+        const FrequentFileEntry& entry = (*frequentFiles)[static_cast<size_t>(row)];
+        if (col == 0) return BaseNameFromPath(entry.path);
+        if (col == 1) return FolderFromPath(entry.path);
+        if (col == 2) {
+            uint64_t size = 0, date = 0;
+            bool isFolder = entry.is_folder;
+            QueryPathMeta(entry.path, size, date, isFolder);
+            if (isFolder) return "<文件夹>";
             if (size == 0) return {};
             return FormatBytes(size);
         }
-        case 3: return FormatFileTime(engine->GetFileDateModified(idx));
+        if (col == 3) {
+            uint64_t size = 0, date = 0;
+            bool isFolder = entry.is_folder;
+            if (QueryPathMeta(entry.path, size, date, isFolder)) return FormatFileTime(date);
+        }
+        return {};
+    }
+    if (!engine || !results) return {};
+    if (row < 0 || row >= static_cast<int>(results->size())) return {};
+    const SearchResultRef& r = (*results)[static_cast<size_t>(row)];
+    switch (col) {
+        case 0: return GetName(r);
+        case 1: return r.is_folder ? engine->GetResultPath(r) : GetFolder(r);
+        case 2: {
+            uint64_t size = engine->GetResultSize(r);
+            if (size == 0 && r.is_folder) return "<文件夹>";
+            if (size == 0) return {};
+            return FormatBytes(size);
+        }
+        case 3: return FormatFileTime(engine->GetResultDateModified(r));
         default: return {};
     }
 }
 
 HICON ResultsDataSource::GetRowIcon(int row) {
-    if (!engine || !results || !icons) return nullptr;
+    if (!icons) return nullptr;
+    if (displayMode && *displayMode == ListDisplayMode::FrequentFiles) {
+        if (!frequentFiles || row < 0 || row >= static_cast<int>(frequentFiles->size())) return nullptr;
+        const FrequentFileEntry& entry = (*frequentFiles)[static_cast<size_t>(row)];
+        return icons->GetIcon(entry.path, BaseNameFromPath(entry.path), entry.is_folder);
+    }
+    if (!engine || !results) return nullptr;
     if (row < 0 || row >= static_cast<int>(results->size())) return nullptr;
-    uint32_t idx = (*results)[static_cast<size_t>(row)];
-    return icons->GetIcon(GetFullPath(idx), GetName(idx));
+    const SearchResultRef& r = (*results)[static_cast<size_t>(row)];
+    return icons->GetIcon(GetFullPath(r), GetName(r), r.is_folder);
 }
 
 // ---------------------------------------------------------------------------
@@ -311,7 +401,11 @@ int EverythingApp::Run() {
 
     m_dataSource.engine = &m_engine;
     m_dataSource.results = &m_results;
+    m_dataSource.frequentFiles = &m_frequentFiles;
+    m_dataSource.displayMode = &m_displayMode;
     m_dataSource.icons = &m_iconCache;
+
+    LoadFrequentFiles();
 
     m_root = BuildRoot();
     m_window.SetRootElement(m_root);
@@ -380,7 +474,18 @@ std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
     m_resultsList->SetFontSize(13.0f);
     m_resultsList->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
     m_resultsList->SetVirtualMode(0, &m_dataSource);
-    m_resultsList->OnRowDoubleClicked().Connect([this](ListView*, int) { OpenSelected(); });
+    m_resultsList->OnRowDoubleClicked().Connect([this](ListView*, int row) {
+        if (m_displayMode == ListDisplayMode::FrequentFiles) {
+            if (row >= 0 && row < static_cast<int>(m_frequentFiles.size())) {
+                const FrequentFileEntry& entry = m_frequentFiles[static_cast<size_t>(row)];
+                RecordFileAccessByPath(entry.path, entry.is_folder);
+                std::wstring wpath = Utf8ToWide(entry.path);
+                ShellExecuteW(nullptr, L"open", wpath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+            }
+            return;
+        }
+        OpenSelected();
+    });
 
     auto listMenu = std::make_shared<ContextMenu>();
     listMenu->AddItem("打开(O)", [this]() { OpenSelected(); });
@@ -439,8 +544,18 @@ void EverythingApp::BuildMenus() {
     });
 
     auto searchMenu = menuBar.AddMenu("搜索(S)");
-    searchMenu->AddItem("启用正则表达式(R)", []() {});
-    searchMenu->AddItem("匹配路径(P)", []() {});
+    searchMenu->AddItem("启用正则表达式(R)", [this]() {
+        ToggleSearchOption(&SearchOptions::use_regex, "regex");
+    });
+    searchMenu->AddItem("匹配路径(P)", [this]() {
+        ToggleSearchOption(&SearchOptions::match_path, "path");
+    });
+    searchMenu->AddItem("匹配全字(W)", [this]() {
+        ToggleSearchOption(&SearchOptions::match_whole_word, "word");
+    });
+    searchMenu->AddItem("匹配大小写(C)", [this]() {
+        ToggleSearchOption(&SearchOptions::match_case, "case");
+    });
 
     auto viewMenu = menuBar.AddMenu("查看(V)");
     viewMenu->AddItem("刷新(R)", [this]() {
@@ -457,12 +572,19 @@ void EverythingApp::BuildMenus() {
 
     auto toolsMenu = menuBar.AddMenu("工具(T)");
     toolsMenu->AddItem("重建索引(O)...", [this]() {
-        if (m_statusLeft) m_statusLeft->SetText("正在重建索引...");
-        m_engine.RebuildIndexAsync(
-            [this](const std::string& s) { OnEngineStatus(s); },
-            [this]() {
-                HWND hwnd = m_window.GetHWND();
-                if (hwnd) PostMessageW(hwnd, WM_ENEO_READY, 0, 0);
+        ContentDialog::ShowMessageBox(
+            m_root.get(),
+            "重建索引",
+            "重建索引可能需要几分钟，期间仍可操作界面。\n\n确定要继续吗？",
+            [this](DialogResult result) {
+                if (result != DialogResult::Primary) return;
+                if (m_statusLeft) m_statusLeft->SetText("正在重建索引...");
+                m_engine.RebuildIndexAsync(
+                    [this](const std::string& s) { OnEngineStatus(s); },
+                    [this]() {
+                        HWND hwnd = m_window.GetHWND();
+                        if (hwnd) PostMessageW(hwnd, WM_ENEO_READY, 0, 0);
+                    });
             });
     });
     toolsMenu->AddItem("保存数据库(S)", [this]() {
@@ -487,31 +609,111 @@ void EverythingApp::BuildMenus() {
     });
 }
 
+void EverythingApp::ToggleSearchOption(bool SearchOptions::* flag, const char* /*label*/) {
+    bool current = m_searchOptions.*flag;
+    m_searchOptions.*flag = !current;
+    if (!m_lastQuery.empty()) QueueSearch(m_lastQuery);
+}
+
 void EverythingApp::QueueSearch(const std::string& query) {
     m_lastQuery = query;
     m_searchGeneration.fetch_add(1);
 
     if (query.empty()) {
-        ApplySearchResults({}, 0.0, m_searchGeneration.load());
-        if (m_statusLeft) m_statusLeft->SetText("就绪");
+        ShowFrequentFiles();
         return;
     }
 
-    // Everything-style: engine is fast enough — search synchronously on UI thread
-    // to avoid thread hop + PostMessage one-frame lag.
     auto t0 = std::chrono::high_resolution_clock::now();
-    std::vector<uint32_t> indices;
-    m_engine.Search(query, indices, 0);
+    std::vector<SearchResultRef> results;
+    m_engine.Search(query, m_searchOptions, results, 0);
     auto t1 = std::chrono::high_resolution_clock::now();
     double seconds = std::chrono::duration<double>(t1 - t0).count();
-    ApplySearchResults(std::move(indices), seconds, m_searchGeneration.load());
+    ApplySearchResults(std::move(results), seconds, m_searchGeneration.load());
 }
 
-void EverythingApp::ApplySearchResults(std::vector<uint32_t>&& indices, double seconds, uint64_t generation) {
+void EverythingApp::ShowFrequentFiles() {
+    m_displayMode = ListDisplayMode::FrequentFiles;
+    m_dataSource.ClearCaches();
+    if (m_resultsList) {
+        if (m_resultsList->IsVirtualMode()) {
+            m_resultsList->SetVirtualRowCount(static_cast<int>(m_frequentFiles.size()));
+        } else {
+            m_resultsList->SetVirtualMode(static_cast<int>(m_frequentFiles.size()), &m_dataSource);
+        }
+    }
+    if (m_statusLeft) {
+        m_statusLeft->SetText(m_frequentFiles.empty() ? "就绪" : "常用文件");
+    }
+}
+
+void EverythingApp::RecordFileAccess(const SearchResultRef& ref) {
+    RecordFileAccessByPath(m_engine.GetResultPath(ref), ref.is_folder);
+}
+
+void EverythingApp::RecordFileAccessByPath(const std::string& path, bool isFolder) {
+    if (path.empty()) return;
+    auto it = std::find_if(m_frequentFiles.begin(), m_frequentFiles.end(),
+                           [&](const FrequentFileEntry& e) { return _stricmp(e.path.c_str(), path.c_str()) == 0; });
+    if (it != m_frequentFiles.end()) {
+        it->use_count++;
+        it->is_folder = isFolder;
+        if (it != m_frequentFiles.begin()) {
+            FrequentFileEntry entry = *it;
+            m_frequentFiles.erase(it);
+            m_frequentFiles.insert(m_frequentFiles.begin(), entry);
+        }
+    } else {
+        FrequentFileEntry entry{};
+        entry.path = path;
+        entry.is_folder = isFolder;
+        entry.use_count = 1;
+        m_frequentFiles.insert(m_frequentFiles.begin(), entry);
+    }
+    if (m_frequentFiles.size() > 30) m_frequentFiles.resize(30);
+    SaveFrequentFiles();
+    if (m_displayMode == ListDisplayMode::FrequentFiles && m_resultsList) {
+        m_resultsList->SetVirtualRowCount(static_cast<int>(m_frequentFiles.size()));
+        m_resultsList->RefreshRows();
+    }
+}
+
+void EverythingApp::LoadFrequentFiles() {
+    m_frequentFiles.clear();
+    const std::wstring storePath = GetFrequentFilesPath();
+    std::ifstream in{std::filesystem::path(storePath)};
+    if (!in) return;
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.empty()) continue;
+        size_t t1 = line.find('\t');
+        if (t1 == std::string::npos) continue;
+        size_t t2 = line.find('\t', t1 + 1);
+        if (t2 == std::string::npos) continue;
+        FrequentFileEntry entry{};
+        entry.path = line.substr(0, t1);
+        entry.is_folder = (line[t1 + 1] == '1');
+        entry.use_count = static_cast<uint32_t>(std::stoul(line.substr(t2 + 1)));
+        if (!entry.path.empty()) m_frequentFiles.push_back(entry);
+    }
+}
+
+void EverythingApp::SaveFrequentFiles() {
+    const std::wstring storePath = GetFrequentFilesPath();
+    std::ofstream out(std::filesystem::path(storePath), std::ios::trunc);
+    if (!out) return;
+    for (const auto& entry : m_frequentFiles) {
+        out << entry.path << '\t' << (entry.is_folder ? '1' : '0') << '\t' << entry.use_count << '\n';
+    }
+}
+
+void EverythingApp::ApplySearchResults(std::vector<SearchResultRef>&& results, double seconds,
+                                       uint64_t generation) {
     if (generation != m_searchGeneration.load()) return;
 
+    m_displayMode = ListDisplayMode::SearchResults;
     m_dataSource.ClearCaches();
-    m_results = std::move(indices);
+    m_results = std::move(results);
     if (m_resultsList) {
         if (m_resultsList->IsVirtualMode()) {
             m_resultsList->SetVirtualRowCount(static_cast<int>(m_results.size()));
@@ -545,13 +747,16 @@ void EverythingApp::OnEngineReady() {
     RefreshStatusBar();
     if (!m_lastQuery.empty()) {
         QueueSearch(m_lastQuery);
-    } else if (m_statusLeft && m_engine.IsReady()) {
-        EngineStats s = m_engine.GetStats();
-        std::ostringstream ss;
-        ss << "就绪 — 已索引 " << s.live_file_count << " 个文件";
-        if (s.elevated) ss << " [USN/MFT]";
-        else ss << " [标准扫描]";
-        m_statusLeft->SetText(ss.str());
+    } else {
+        ShowFrequentFiles();
+        if (m_statusLeft && m_engine.IsReady() && m_frequentFiles.empty()) {
+            EngineStats s = m_engine.GetStats();
+            std::ostringstream ss;
+            ss << "就绪 — 已索引 " << s.live_file_count << " 个文件";
+            if (s.elevated) ss << " [USN/MFT]";
+            else ss << " [标准扫描]";
+            m_statusLeft->SetText(ss.str());
+        }
     }
 }
 
@@ -564,42 +769,90 @@ void EverythingApp::OnEngineStatus(const std::string& status) {
     }
 }
 
-int EverythingApp::SelectedRow() const {
-    if (!m_resultsList || m_results.empty()) return -1;
+std::vector<int> EverythingApp::SelectedRows() const {
+    std::vector<int> rows;
+    if (!m_resultsList) return rows;
     const auto& sel = m_resultsList->GetSelectedIndices();
+    if (!sel.empty()) {
+        rows.assign(sel.begin(), sel.end());
+        return rows;
+    }
     int row = m_resultsList->GetCaretIndex();
-    if (!sel.empty()) row = *sel.begin();
-    if (row < 0 || row >= static_cast<int>(m_results.size())) return -1;
-    return row;
+    if (row >= 0) rows.push_back(row);
+    return rows;
 }
 
 void EverythingApp::OpenSelected() {
-    int row = SelectedRow();
-    if (row < 0) return;
-    std::wstring wpath = Utf8ToWide(m_engine.GetFilePath(m_results[static_cast<size_t>(row)]));
-    ShellExecuteW(nullptr, L"open", wpath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    if (m_displayMode == ListDisplayMode::FrequentFiles) {
+        for (int row : SelectedRows()) {
+            if (row < 0 || row >= static_cast<int>(m_frequentFiles.size())) continue;
+            const FrequentFileEntry& entry = m_frequentFiles[static_cast<size_t>(row)];
+            RecordFileAccessByPath(entry.path, entry.is_folder);
+            std::wstring wpath = Utf8ToWide(entry.path);
+            ShellExecuteW(nullptr, L"open", wpath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        }
+        return;
+    }
+    for (int row : SelectedRows()) {
+        if (row < 0 || row >= static_cast<int>(m_results.size())) continue;
+        const SearchResultRef& ref = m_results[static_cast<size_t>(row)];
+        RecordFileAccess(ref);
+        std::wstring wpath = Utf8ToWide(m_engine.GetResultPath(ref));
+        ShellExecuteW(nullptr, L"open", wpath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    }
 }
 
 void EverythingApp::OpenSelectedPath() {
-    int row = SelectedRow();
-    if (row < 0) return;
-    std::wstring wpath = Utf8ToWide(m_engine.GetFilePath(m_results[static_cast<size_t>(row)]));
-    std::wstring params = L"/select,\"" + wpath + L"\"";
-    ShellExecuteW(nullptr, L"open", L"explorer.exe", params.c_str(), nullptr, SW_SHOWNORMAL);
+    if (m_displayMode == ListDisplayMode::FrequentFiles) return;
+    for (int row : SelectedRows()) {
+        if (row < 0 || row >= static_cast<int>(m_results.size())) continue;
+        const SearchResultRef& ref = m_results[static_cast<size_t>(row)];
+        RecordFileAccess(ref);
+        std::wstring wpath = Utf8ToWide(m_engine.GetResultPath(ref));
+        std::wstring params = L"/select,\"" + wpath + L"\"";
+        ShellExecuteW(nullptr, L"open", L"explorer.exe", params.c_str(), nullptr, SW_SHOWNORMAL);
+    }
 }
 
 void EverythingApp::CopyFullPath() {
-    int row = SelectedRow();
-    if (row < 0) return;
-    std::wstring wpath = Utf8ToWide(m_engine.GetFilePath(m_results[static_cast<size_t>(row)]));
+    if (m_displayMode == ListDisplayMode::FrequentFiles) {
+        std::wstring combined;
+        for (int row : SelectedRows()) {
+            if (row < 0 || row >= static_cast<int>(m_frequentFiles.size())) continue;
+            if (!combined.empty()) combined += L"\r\n";
+            combined += Utf8ToWide(m_frequentFiles[static_cast<size_t>(row)].path);
+        }
+        if (combined.empty()) return;
+        if (!OpenClipboard(m_window.GetHWND())) return;
+        EmptyClipboard();
+        size_t bytes = (combined.size() + 1) * sizeof(wchar_t);
+        HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+        if (hMem) {
+            void* ptr = GlobalLock(hMem);
+            if (ptr) {
+                memcpy(ptr, combined.c_str(), bytes);
+                GlobalUnlock(hMem);
+                SetClipboardData(CF_UNICODETEXT, hMem);
+            }
+        }
+        CloseClipboard();
+        return;
+    }
+    std::wstring combined;
+    for (int row : SelectedRows()) {
+        if (row < 0 || row >= static_cast<int>(m_results.size())) continue;
+        if (!combined.empty()) combined += L"\r\n";
+        combined += Utf8ToWide(m_engine.GetResultPath(m_results[static_cast<size_t>(row)]));
+    }
+    if (combined.empty()) return;
     if (!OpenClipboard(m_window.GetHWND())) return;
     EmptyClipboard();
-    size_t bytes = (wpath.size() + 1) * sizeof(wchar_t);
+    size_t bytes = (combined.size() + 1) * sizeof(wchar_t);
     HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
     if (hMem) {
         void* ptr = GlobalLock(hMem);
         if (ptr) {
-            memcpy(ptr, wpath.c_str(), bytes);
+            memcpy(ptr, combined.c_str(), bytes);
             GlobalUnlock(hMem);
             SetClipboardData(CF_UNICODETEXT, hMem);
         }

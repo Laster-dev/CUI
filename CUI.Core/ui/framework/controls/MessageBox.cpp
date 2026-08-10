@@ -349,16 +349,24 @@ void ContentDialog::LayoutCardChildren(float scale) {
 void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
     if (!m_isOpen || m_animProgress <= 0.001f) return;
 
-    Rect windowRect = m_bounds;
-    UIElement* root = this;
-    while (root->GetParent()) {
-        root = root->GetParent();
+    Rect windowRect = ctx.GetPaintBounds();
+    if (windowRect.IsEmpty()) {
+        windowRect = m_bounds;
+        UIElement* root = this;
+        while (root->GetParent()) {
+            root = root->GetParent();
+        }
+        if (root) {
+            windowRect = root->GetBounds();
+        }
     }
-    if (root) {
-        windowRect = root->GetBounds();
-    }
+    // Cover full client viewport; expand slightly to eliminate sub-pixel bright rim.
+    windowRect.x -= 2.0f;
+    windowRect.y -= 2.0f;
+    windowRect.width += 4.0f;
+    windowRect.height += 4.0f;
 
-    float backdropAlpha = 0.40f * m_animProgress;
+    float backdropAlpha = 0.55f * m_animProgress;
     ctx.FillRect(windowRect, D2D1::ColorF(0.0f, 0.0f, 0.0f, backdropAlpha));
 
     float baseW = (std::min)(520.0f, windowRect.width - 40.0f);

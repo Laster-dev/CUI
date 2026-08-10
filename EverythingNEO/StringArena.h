@@ -24,6 +24,7 @@ public:
     std::string_view GetString(uint32_t offset, uint16_t length) const;
 
     void Clear();
+    void Swap(StringArena& other) noexcept;
     size_t GetTotalMemoryUsage() const;
     size_t GetUsedBytes() const;
 

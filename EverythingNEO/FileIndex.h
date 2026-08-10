@@ -113,6 +113,7 @@ public:
     void Reserve(size_t expectedFiles, size_t expectedFolders);
     void ShrinkToFit();
     void Clear();
+    void Swap(FileIndexTable& other) noexcept;
 
 private:
     StringArena m_arena;

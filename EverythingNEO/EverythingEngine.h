@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FileIndex.h"
+#include "SearchTypes.h"
 #include "UsnWatcher.h"
 #include <string>
 #include <vector>
@@ -43,8 +44,16 @@ public:
     bool LoadDatabase(const std::wstring& path = {});
 
     // Everything-style: match filename only, return compact file indices (no path alloc).
-    size_t Search(const std::string& query, std::vector<uint32_t>& outIndices,
-                  size_t maxResults = 0);
+    size_t Search(const std::string& query, const SearchOptions& opts,
+                  std::vector<SearchResultRef>& outResults, size_t maxResults = 0);
+
+    bool IsFolderResult(const SearchResultRef& r) const { return r.is_folder; }
+    std::string GetResultName(const SearchResultRef& r) const;
+    std::string GetResultPath(const SearchResultRef& r) const;
+    std::string GetResultFolderPath(const SearchResultRef& r) const;
+    uint64_t GetResultSize(const SearchResultRef& r) const;
+    uint64_t GetResultDateModified(const SearchResultRef& r) const;
+    uint16_t GetResultAttrs(const SearchResultRef& r) const;
 
     std::string GetFileName(uint32_t fileIndex) const;
     std::string GetFilePath(uint32_t fileIndex) const;
@@ -64,6 +73,7 @@ public:
 private:
     void IndexAllDrives(StatusCallback onStatus);
     void CatchUpUsn();
+    void OnVolumeJournalReset(char driveLetter);
     void ClearPathCache();
 
     mutable std::shared_mutex m_mutex;

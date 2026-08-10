@@ -3,10 +3,7 @@
 #include "DbSnapshot.h"
 #include "FastMatch.h"
 #include <windows.h>
-#include <algorithm>
-#include <thread>
 #include <chrono>
-#include <future>
 
 namespace EverythingNEO {
 
@@ -72,7 +69,7 @@ void EverythingEngine::StartAsync(StatusCallback onStatus, ReadyCallback onReady
                 ClearPathCache();
             }
             if (m_changeNotify) m_changeNotify();
-        });
+        }, [this](char driveLetter) { OnVolumeJournalReset(driveLetter); });
 
         m_ready.store(true);
         m_isIndexing.store(false);
@@ -90,16 +87,11 @@ void EverythingEngine::RebuildIndexAsync(StatusCallback onStatus, ReadyCallback 
 
     std::thread([this, onStatus, onReady]() {
         auto start = std::chrono::high_resolution_clock::now();
-        {
-            std::unique_lock<std::shared_mutex> lock(m_mutex);
-            m_index.Clear();
-            ClearPathCache();
-            m_loadedFromDb = false;
-        }
         IndexAllDrives(onStatus);
         {
             std::unique_lock<std::shared_mutex> lock(m_mutex);
             m_index.ShrinkToFit();
+            m_loadedFromDb = false;
             DbSnapshot::Save(m_index, DbSnapshot::DefaultPath());
         }
         auto end = std::chrono::high_resolution_clock::now();
@@ -111,7 +103,7 @@ void EverythingEngine::RebuildIndexAsync(StatusCallback onStatus, ReadyCallback 
                 ClearPathCache();
             }
             if (m_changeNotify) m_changeNotify();
-        });
+        }, [this](char driveLetter) { OnVolumeJournalReset(driveLetter); });
 
         m_ready.store(true);
         m_isIndexing.store(false);
@@ -125,11 +117,11 @@ void EverythingEngine::IndexAllDrives(StatusCallback onStatus) {
     auto drives = VolumeIndexer::EnumerateFixedDrives();
     if (drives.empty()) drives.push_back('C');
 
+    FileIndexTable built;
     for (char d : drives) {
         if (m_cancel.load()) break;
         if (onStatus) onStatus(std::string("正在索引 ") + d + ": ...");
-        std::unique_lock<std::shared_mutex> lock(m_mutex);
-        VolumeIndexer::IndexVolume(m_index, d,
+        VolumeIndexer::IndexVolume(built, d,
             [&](const IndexProgress& p) {
                 if (onStatus) {
                     onStatus(std::string("索引 ") + p.driveLetter + ":  文件 "
@@ -139,11 +131,29 @@ void EverythingEngine::IndexAllDrives(StatusCallback onStatus) {
                 }
             },
             &m_cancel);
+    }
+
+    {
+        std::unique_lock<std::shared_mutex> lock(m_mutex);
+        m_index.Swap(built);
         ClearPathCache();
     }
 }
 
-void EverythingEngine::CatchUpUsn() {}
+void EverythingEngine::CatchUpUsn() {
+    UsnWatcher::CatchUpVolumes(m_index, m_mutex, [this](char driveLetter) {
+        OnVolumeJournalReset(driveLetter);
+    });
+    ClearPathCache();
+}
+
+void EverythingEngine::OnVolumeJournalReset(char driveLetter) {
+    (void)driveLetter;
+    if (m_isIndexing.load()) return;
+    RebuildIndexAsync({}, [this]() {
+        if (m_changeNotify) m_changeNotify();
+    });
+}
 
 bool EverythingEngine::SaveDatabase(const std::wstring& path) {
     std::wstring p = path.empty() ? DbSnapshot::DefaultPath() : path;
@@ -158,72 +168,98 @@ bool EverythingEngine::LoadDatabase(const std::wstring& path) {
     return DbSnapshot::Load(m_index, p);
 }
 
-size_t EverythingEngine::Search(const std::string& query, std::vector<uint32_t>& outIndices,
-                                size_t maxResults) {
-    outIndices.clear();
+size_t EverythingEngine::Search(const std::string& query, const SearchOptions& opts,
+                                std::vector<SearchResultRef>& outResults, size_t maxResults) {
+    outResults.clear();
     if (query.empty()) return 0;
 
-    std::string lowerQuery = query;
-    ToLowerAsciiInPlace(lowerQuery);
+    QueryMatcher matcher;
+    matcher.use_regex = opts.use_regex;
+    matcher.match_whole_word = opts.match_whole_word;
+    matcher.match_case = opts.match_case;
+    matcher.Prepare(query);
 
     std::shared_lock<std::shared_mutex> lock(m_mutex);
     const auto& files = m_index.GetFiles();
-    const size_t total = files.size();
-    if (total == 0) return 0;
+    const auto& folders = m_index.GetFolders();
 
-    unsigned int numThreads = std::thread::hardware_concurrency();
-    if (numThreads == 0) numThreads = 4;
-    if (total < 100000) numThreads = 1;
-    if (numThreads > 8) numThreads = 8;
-
-    if (numThreads == 1) {
-        outIndices.reserve((std::min)(total, size_t{4096}));
-        for (uint32_t i = 0; i < static_cast<uint32_t>(total); ++i) {
-            if ((files[i].attributes & kAttrDeleted) != 0) continue;
-            if (MatchLowerQuery(m_index.GetFileName(i), lowerQuery)) {
-                outIndices.push_back(i);
-                if (maxResults > 0 && outIndices.size() >= maxResults) break;
-            }
+    auto matches = [&](std::string_view name, uint32_t folderId) -> bool {
+        if (opts.match_path) {
+            std::string path = m_index.GetFolderPath(folderId);
+            if (!path.empty()) path += '\\';
+            path.append(name.data(), name.length());
+            return matcher.Matches(path);
         }
-        return outIndices.size();
-    }
+        return matcher.Matches(name);
+    };
 
-    // Parallel filename scan — Everything-style: no path reconstruction.
-    std::vector<std::vector<uint32_t>> locals(numThreads);
-    std::vector<std::future<void>> futures;
-    const size_t chunk = (total + numThreads - 1) / numThreads;
+    outResults.reserve(4096);
 
-    for (unsigned t = 0; t < numThreads; ++t) {
-        const size_t begin = t * chunk;
-        const size_t end = (std::min)(begin + chunk, total);
-        if (begin >= end) continue;
-        futures.push_back(std::async(std::launch::async,
-            [this, &files, &lowerQuery, &locals, t, begin, end, maxResults]() {
-                auto& out = locals[t];
-                out.reserve(1024);
-                for (size_t i = begin; i < end; ++i) {
-                    if ((files[i].attributes & kAttrDeleted) != 0) continue;
-                    if (MatchLowerQuery(m_index.GetFileName(i), lowerQuery)) {
-                        out.push_back(static_cast<uint32_t>(i));
-                        if (maxResults > 0 && out.size() >= maxResults) break;
-                    }
-                }
-            }));
-    }
-    for (auto& f : futures) f.get();
-
-    size_t totalHits = 0;
-    for (auto& v : locals) totalHits += v.size();
-    outIndices.reserve((std::min)(totalHits, maxResults > 0 ? maxResults : totalHits));
-    for (auto& v : locals) {
-        for (uint32_t id : v) {
-            outIndices.push_back(id);
-            if (maxResults > 0 && outIndices.size() >= maxResults) {
-                return outIndices.size();
-            }
+    for (uint32_t i = 0; i < static_cast<uint32_t>(files.size()); ++i) {
+        if ((files[i].attributes & kAttrDeleted) != 0) continue;
+        if (matches(m_index.GetFileName(i), files[i].parent_folder_id)) {
+            outResults.push_back({ i, false });
+            if (maxResults > 0 && outResults.size() >= maxResults) return outResults.size();
         }
     }
-    return outIndices.size();
+
+    for (uint32_t i = 0; i < static_cast<uint32_t>(folders.size()); ++i) {
+        if ((folders[i].attributes & kAttrDeleted) != 0) continue;
+        if (i == 0) continue; // skip drive root duplicates
+        std::string_view name = m_index.GetFolderName(i);
+        if (name.empty()) continue;
+        if (matches(name, folders[i].parent_folder_id)) {
+            outResults.push_back({ i, true });
+            if (maxResults > 0 && outResults.size() >= maxResults) return outResults.size();
+        }
+    }
+    return outResults.size();
+}
+
+std::string EverythingEngine::GetResultName(const SearchResultRef& r) const {
+    std::shared_lock<std::shared_mutex> lock(m_mutex);
+    if (r.is_folder) {
+        auto sv = m_index.GetFolderName(r.index);
+        return std::string(sv);
+    }
+    auto sv = m_index.GetFileName(r.index);
+    return std::string(sv);
+}
+
+std::string EverythingEngine::GetResultPath(const SearchResultRef& r) const {
+    std::shared_lock<std::shared_mutex> lock(m_mutex);
+    if (r.is_folder) return m_index.GetFolderPath(r.index);
+    return m_index.GetFilePath(r.index);
+}
+
+std::string EverythingEngine::GetResultFolderPath(const SearchResultRef& r) const {
+    std::shared_lock<std::shared_mutex> lock(m_mutex);
+    if (r.is_folder) {
+        if (r.index >= m_index.GetFolders().size()) return {};
+        return m_index.GetFolderPath(m_index.GetFolders()[r.index].parent_folder_id);
+    }
+    if (r.index >= m_index.GetFiles().size()) return {};
+    return m_index.GetFolderPath(m_index.GetFiles()[r.index].parent_folder_id);
+}
+
+uint64_t EverythingEngine::GetResultSize(const SearchResultRef& r) const {
+    if (r.is_folder) return 0;
+    return GetFileSize(r.index);
+}
+
+uint64_t EverythingEngine::GetResultDateModified(const SearchResultRef& r) const {
+    if (r.is_folder) return 0;
+    return GetFileDateModified(r.index);
+}
+
+uint16_t EverythingEngine::GetResultAttrs(const SearchResultRef& r) const {
+    std::shared_lock<std::shared_mutex> lock(m_mutex);
+    if (r.is_folder) {
+        if (r.index >= m_index.GetFolders().size()) return FILE_ATTRIBUTE_DIRECTORY;
+        return static_cast<uint16_t>(m_index.GetFolders()[r.index].attributes & ~kAttrDeleted);
+    }
+    if (r.index >= m_index.GetFiles().size()) return 0;
+    return static_cast<uint16_t>(m_index.GetFiles()[r.index].attributes & ~kAttrDeleted);
 }
 
 std::string EverythingEngine::GetFileName(uint32_t fileIndex) const {

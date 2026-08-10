@@ -35,6 +35,21 @@ HANDLE OpenVolume(char driveLetter) {
                        nullptr, OPEN_EXISTING, 0, nullptr);
 }
 
+void FinalizeVolumeJournal(FileIndexTable& index, char driveLetter) {
+    VolumeState* vol = index.FindVolume(driveLetter);
+    if (!vol) return;
+    HANDLE hVol = OpenVolume(driveLetter);
+    if (hVol == INVALID_HANDLE_VALUE) return;
+    USN_JOURNAL_DATA_V0 journal{};
+    DWORD br = 0;
+    if (DeviceIoControl(hVol, FSCTL_QUERY_USN_JOURNAL, nullptr, 0,
+                         &journal, sizeof(journal), &br, nullptr)) {
+        vol->journalId = journal.UsnJournalID;
+        vol->nextUsn = journal.NextUsn;
+    }
+    CloseHandle(hVol);
+}
+
 } // namespace
 
 bool VolumeIndexer::IsElevated() {
@@ -180,8 +195,6 @@ bool VolumeIndexer::IndexViaUsnEnum(FileIndexTable& index, char driveLetter,
 
     VolumeState vol{};
     vol.driveLetter = driveLetter;
-    vol.journalId = journal.UsnJournalID;
-    vol.nextUsn = journal.NextUsn;
     vol.rootFolderId = rootId;
     index.AddVolume(vol);
 
@@ -232,6 +245,7 @@ bool VolumeIndexer::IndexViaUsnEnum(FileIndexTable& index, char driveLetter,
 
     prog.phase = "USN enum done";
     if (progress) progress(prog);
+    FinalizeVolumeJournal(index, driveLetter);
     return true;
 }
 
@@ -312,6 +326,7 @@ bool VolumeIndexer::IndexViaFindFirst(FileIndexTable& index, char driveLetter,
 
     prog.phase = "scan done";
     if (progress) progress(prog);
+    FinalizeVolumeJournal(index, driveLetter);
     return !(cancel && cancel->load());
 }
 
