@@ -626,6 +626,36 @@ void GraphicsContext::PushRoundedClip(const Rect& rect, float radius) {
     m_clipIsLayer.push_back(true);
 }
 
+void GraphicsContext::PushEllipseClip(Point center, float radiusX, float radiusY) {
+    if (!m_d2dContext || !m_d2dFactory) {
+        return;
+    }
+
+    const D2D1_ELLIPSE ellipse = D2D1::Ellipse(
+        D2D1::Point2F(center.x * m_dpiScale, center.y * m_dpiScale),
+        (std::max)(0.1f, radiusX * m_dpiScale),
+        (std::max)(0.1f, radiusY * m_dpiScale)
+    );
+
+    ComPtr<ID2D1EllipseGeometry> geometry;
+    if (FAILED(m_d2dFactory->CreateEllipseGeometry(ellipse, &geometry)) || !geometry) {
+        return;
+    }
+
+    D2D1_LAYER_PARAMETERS layerParams = D2D1::LayerParameters(
+        D2D1::InfiniteRect(),
+        geometry.Get(),
+        D2D1_ANTIALIAS_MODE_PER_PRIMITIVE,
+        D2D1::IdentityMatrix(),
+        1.0f,
+        nullptr,
+        D2D1_LAYER_OPTIONS_NONE
+    );
+    m_d2dContext->PushLayer(layerParams, nullptr);
+    m_clipStack.push_back(D2D1::RectF(center.x - radiusX, center.y - radiusY, center.x + radiusX, center.y + radiusY));
+    m_clipIsLayer.push_back(true);
+}
+
 void GraphicsContext::PushOpacity(float opacity) {
     if (!m_d2dContext) {
         return;

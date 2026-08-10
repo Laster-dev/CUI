@@ -19,6 +19,7 @@ public:
     void Initialize(ID2D1DeviceContext* context, IDWriteFactory* dwriteFactory);
     void ReleaseDeviceResources();
     void ReleaseContextBrushes(ID2D1DeviceContext* context);
+    void ClearBrushCaches() { m_brushCaches.clear(); }
 
     ID2D1SolidColorBrush* GetSolidBrush(D2D1_COLOR_F color);
     IDWriteTextFormat* GetTextFormat(const std::string& fontFamily, float fontSize, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL);

@@ -446,6 +446,7 @@ int EverythingApp::Run() {
 
     m_root = BuildRoot();
     m_window.SetRootElement(m_root);
+    m_window.OnThemeChanged().Connect([this](Window*, ThemeMode) { ApplyChromeColors(); });
     ApplyChromeColors();
 
     HWND hwnd = m_window.GetHWND();
@@ -1125,7 +1126,16 @@ void EverythingApp::ToggleTheme() {
     ThemeMode currentMode = ThemeManager::Instance().GetThemeMode();
     ThemeMode nextMode = (currentMode == ThemeMode::Dark) ? ThemeMode::Light : ThemeMode::Dark;
     ThemeManager::Instance().SetThemeSource(nextMode == ThemeMode::Dark ? ThemeSource::Dark : ThemeSource::Light);
-    m_window.SetThemeMode(nextMode);
+
+    Point clickPt(500.0f, 30.0f); // Default top-right area
+    if (HWND hwnd = m_window.GetHWND()) {
+        POINT pt{};
+        if (GetCursorPos(&pt) && ScreenToClient(hwnd, &pt)) {
+            clickPt = m_window.ClientPointToLogical(pt.x, pt.y);
+        }
+    }
+
+    m_window.SetThemeModeWithRipple(nextMode, clickPt);
     ApplyChromeColors();
 }
 

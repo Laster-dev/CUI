@@ -24,8 +24,6 @@ public:
     Window();
     virtual ~Window();
 
-    // width/height are DIPs (design size); converted to physical pixels at Create time.
-    // width/height are DIPs (logical design size); converted to physical for CreateWindowEx.
     bool Create(const std::string& title, int width = 1280, int height = 800, bool transparentMode = false);
     void Show();
     void RunMessageLoop();
@@ -49,9 +47,13 @@ public:
     BackdropType GetBackdropType() const { return m_backdropType; }
 
     void SetThemeMode(ThemeMode theme);
+    void SetThemeModeWithRipple(ThemeMode theme, Point originPoint);
     ThemeMode GetThemeMode() const { return m_themeMode; }
+    Event<Window*, ThemeMode>& OnThemeChanged() { return m_onThemeChanged; }
     void SetRenderStatsOverlayVisible(bool visible) { m_showRenderStatsOverlay = visible; }
     bool IsRenderStatsOverlayVisible() const { return m_showRenderStatsOverlay; }
+
+    Point ClientPointToLogical(int x, int y) const;
 
     void SetActiveContextMenu(std::shared_ptr<ContextMenu> menu) { m_activeContextMenu = menu; }
 
@@ -70,7 +72,6 @@ private:
     bool OnLButtonUp(int x, int y);
     void OnRButtonDown(int x, int y);
     void OnRButtonUp(int x, int y);
-    // Caption / TitleBar band only — not popups or document content.
     UIElement* HitTestChrome(float x, float y) const;
     static std::shared_ptr<UIElement> CaptureElementRef(UIElement* element);
     std::shared_ptr<UIElement> LockElement(const std::weak_ptr<UIElement>& element) const;
@@ -88,7 +89,6 @@ private:
     bool HasPendingNativePaint() const;
     void DrawRenderStatsOverlay();
     void ApplyVisualState();
-    Point ClientPointToLogical(int x, int y) const;
 
     HWND m_hwnd = nullptr;
     float m_dpiScale = 1.0f;
@@ -114,11 +114,17 @@ private:
     LayerRasterizer m_layerRasterizer;
     DirtyRegion m_pendingDirtyRegion;
     RenderLayer m_sceneLayer;
+    RenderLayer m_themeOldSceneLayer;
+    bool m_themeRippleActive = false;
+    Point m_themeRippleOrigin{ 0.0f, 0.0f };
+    float m_themeRippleProgress = 0.0f;
+    std::chrono::steady_clock::time_point m_themeRippleStartTime;
     bool m_showRenderStatsOverlay = false;
     bool m_lowPerformanceMode = false;
     bool m_flushInputDirty = false;
     BackdropType m_backdropType = BackdropType::None;
     ThemeMode m_themeMode = ThemeMode::Dark;
+    Event<Window*, ThemeMode> m_onThemeChanged;
     std::chrono::steady_clock::time_point m_overlayFpsSampleStart{};
     unsigned m_overlayFrameCounter = 0;
     float m_overlayFps = 0.0f;

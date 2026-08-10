@@ -67,6 +67,7 @@ public:
     void PushClip(const Rect& rect);
     // Geometry clip matching FillRoundedRect corners (for ripples, etc.).
     void PushRoundedClip(const Rect& rect, float radius);
+    void PushEllipseClip(Point center, float radiusX, float radiusY);
     void PopClip();
     void PushOpacity(float opacity);
     void PopOpacity();

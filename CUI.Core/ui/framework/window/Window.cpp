@@ -542,7 +542,7 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
         InvalidatePendingRenderRegions(false);
     }
 
-    if (IsOverlayScrimAnimating(m_rootElement.get())) {
+    if (IsOverlayScrimAnimating(m_rootElement.get()) || m_themeRippleActive) {
         InvalidateRect(m_hwnd, nullptr, FALSE);
     }
 }
@@ -829,17 +829,72 @@ void Window::SetBackdropType(BackdropType type) {
 }
 
 void Window::SetThemeMode(ThemeMode theme) {
+    SetThemeModeWithRipple(theme, Point(m_logicalClientSize.width * 0.5f, m_logicalClientSize.height * 0.5f));
+}
+
+void Window::SetThemeModeWithRipple(ThemeMode theme, Point originPoint) {
+    if (m_themeMode == theme && !m_themeRippleActive) {
+        return;
+    }
+
+    const Size sceneSize = m_logicalClientSize;
+    if (!m_hwnd || sceneSize.width < 0.5f || sceneSize.height < 0.5f) {
+        m_themeMode = theme;
+        ThemeManager::Instance().SetThemeMode(theme);
+        StyleManager::Instance().ReloadFromTheme();
+        return;
+    }
+
+    // 1. Ensure m_sceneLayer is valid and painted before snapshotting
+    D2D1_COLOR_F oldClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
+    if (!m_sceneLayer.IsValid() || !m_sceneLayer.GetCacheBitmap()) {
+        if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, Rect(0, 0, sceneSize.width, sceneSize.height), oldClearBg, true)) {
+            m_gfxContext.SetPaintBounds(Rect(0, 0, sceneSize.width, sceneSize.height));
+            if (m_rootElement) {
+                m_rootElement->Render(m_gfxContext);
+            }
+            m_gfxContext.PopLayerTarget(m_sceneLayer);
+            m_sceneLayer.Validate();
+        }
+    }
+
+    // 2. Snapshot current scene into m_themeOldSceneLayer (0.01ms cost)
+    if (m_sceneLayer.GetCacheBitmap()) {
+        if (m_gfxContext.PushLayerTarget(m_themeOldSceneLayer, sceneSize, Rect(0, 0, sceneSize.width, sceneSize.height), oldClearBg, true)) {
+            m_gfxContext.DrawLayer(m_sceneLayer, Rect(0, 0, sceneSize.width, sceneSize.height));
+            m_gfxContext.PopLayerTarget(m_themeOldSceneLayer);
+            m_themeOldSceneLayer.Validate();
+        }
+    }
+
+    // 3. Update theme tokens and clear brush caches
     m_themeMode = theme;
     ThemeManager::Instance().SetThemeMode(theme);
     StyleManager::Instance().ReloadFromTheme();
-    if (m_hwnd) {
-        MaterialHost::Apply(m_hwnd, BackdropType::None, theme);
-        // Drop cached brushes/layers so light/dark RGB cannot linger across themes.
-        m_gfxContext.GetResources().ReleaseDeviceResources();
-        m_sceneLayer.ResetCache();
-        ApplyVisualState();
-        RequestFullRepaint();
+    MaterialHost::Apply(m_hwnd, BackdropType::None, theme);
+    m_gfxContext.GetResources().ClearBrushCaches();
+    m_onThemeChanged.Invoke(this, theme);
+
+    // 4. Force immediate 1-frame pre-render of the new theme into m_sceneLayer
+    D2D1_COLOR_F newClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
+    if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, Rect(0, 0, sceneSize.width, sceneSize.height), newClearBg, true)) {
+        m_gfxContext.SetPaintBounds(Rect(0, 0, sceneSize.width, sceneSize.height));
+        if (m_rootElement) {
+            m_rootElement->Render(m_gfxContext);
+        }
+        m_gfxContext.PopLayerTarget(m_sceneLayer);
+        m_sceneLayer.Validate();
     }
+
+    m_themeRippleActive = true;
+    m_themeRippleOrigin = originPoint;
+    m_themeRippleProgress = 0.0f;
+    m_themeRippleStartTime = std::chrono::steady_clock::now();
+
+    m_frameScheduler.ScheduleFrame();
+    RequestFullRepaint();
+    UpdateWindow(m_hwnd);
+    PostThreadMessageW(GetWindowThreadProcessId(m_hwnd, nullptr), WM_NULL, 0, 0);
 }
 
 void Window::SetTransparentMode(bool enabled) {
@@ -946,6 +1001,7 @@ void Window::RunMessageLoop() {
                 m_animationManager.HasAnimating() ? 1 : 0);
         }
         if (m_animationManager.HasAnimating()
+            || m_themeRippleActive
             || m_animationManager.ConsumeFrameRequest()
             || hasPendingLayout
             || !m_pendingDirtyRegion.IsEmpty()
@@ -962,7 +1018,7 @@ void Window::RunMessageLoop() {
         }
 
         const bool frameDue = m_frameScheduler.ConsumeDue(now);
-        bool animating = animationActive;
+        bool animating = animationActive || m_themeRippleActive;
         bool didFrame = false;
         if (frameDue && m_rootElement) {
             FlushLayoutIfNeeded();
@@ -1016,7 +1072,7 @@ void Window::RunMessageLoop() {
             if (HasPendingNativePaint()) {
                 continue;
             }
-            const bool wantContinuous = animationActive || m_animationManager.HasAnimating();
+            const bool wantContinuous = animationActive || m_animationManager.HasAnimating() || m_themeRippleActive;
             if (wantContinuous) {
                 // Present already blocked for vsync when we painted; do not sleep
                 // another frame. If Commit produced no paint, yield briefly.
@@ -1642,52 +1698,54 @@ void Window::OnPaint() {
 
     bool scenePatched = false;
     Rect unionPatch;
-    if (canRestoreScene) {
-        bool hasPatch = false;
-        const auto& dirtyRects = frameDirtyRegion.GetRects();
-        for (const Rect& rect : dirtyRects) {
-            if (rect.IsEmpty()) {
-                continue;
+    if (!m_themeRippleActive) {
+        if (canRestoreScene) {
+            bool hasPatch = false;
+            const auto& dirtyRects = frameDirtyRegion.GetRects();
+            for (const Rect& rect : dirtyRects) {
+                if (rect.IsEmpty()) {
+                    continue;
+                }
+                const Rect patch = GraphicsContext::SnapExpandRect(rect, dpiScale, patchPad);
+                unionPatch = hasPatch ? unionPatch.Union(patch) : patch;
+                hasPatch = true;
             }
-            const Rect patch = GraphicsContext::SnapExpandRect(rect, dpiScale, patchPad);
-            unionPatch = hasPatch ? unionPatch.Union(patch) : patch;
-            hasPatch = true;
+            if (hasPatch
+                && m_gfxContext.PushLayerTarget(
+                    m_sceneLayer,
+                    sceneSize,
+                    unionPatch,
+                    sceneClearColor,
+                    false)) {
+                for (const Rect& rect : dirtyRects) {
+                    if (!rect.IsEmpty()) {
+                        m_gfxContext.ClearRect(
+                            GraphicsContext::SnapExpandRect(rect, dpiScale, patchPad),
+                            sceneClearColor);
+                    }
+                }
+                m_gfxContext.SetPaintBounds(unionPatch);
+                m_gfxContext.PushClip(unionPatch);
+                renderScene();
+                m_gfxContext.PopClip();
+                m_gfxContext.PopLayerTarget(m_sceneLayer);
+                m_sceneLayer.Validate();
+                scenePatched = true;
+            }
         }
-        if (hasPatch
+        if (!scenePatched
             && m_gfxContext.PushLayerTarget(
                 m_sceneLayer,
                 sceneSize,
-                unionPatch,
+                viewportBounds,
                 sceneClearColor,
-                false)) {
-            for (const Rect& rect : dirtyRects) {
-                if (!rect.IsEmpty()) {
-                    m_gfxContext.ClearRect(
-                        GraphicsContext::SnapExpandRect(rect, dpiScale, patchPad),
-                        sceneClearColor);
-                }
-            }
-            m_gfxContext.SetPaintBounds(unionPatch);
-            m_gfxContext.PushClip(unionPatch);
+                true)) {
+            m_gfxContext.SetPaintBounds(viewportBounds);
             renderScene();
-            m_gfxContext.PopClip();
             m_gfxContext.PopLayerTarget(m_sceneLayer);
             m_sceneLayer.Validate();
-            scenePatched = true;
+            unionPatch = viewportBounds;
         }
-    }
-    if (!scenePatched
-        && m_gfxContext.PushLayerTarget(
-            m_sceneLayer,
-            sceneSize,
-            viewportBounds,
-            sceneClearColor,
-            true)) {
-        m_gfxContext.SetPaintBounds(viewportBounds);
-        renderScene();
-        m_gfxContext.PopLayerTarget(m_sceneLayer);
-        m_sceneLayer.Validate();
-        unionPatch = viewportBounds;
     }
 
     // Dirty-rect Present on flip-model swapchains is not reliable enough for this
@@ -1716,7 +1774,48 @@ void Window::OnPaint() {
         } else {
             m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
         }
-        m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
+
+        if (m_themeRippleActive && m_themeOldSceneLayer.GetCacheBitmap()) {
+            auto now = std::chrono::steady_clock::now();
+            float elapsedSec = std::chrono::duration<float>(now - m_themeRippleStartTime).count();
+            constexpr float kThemeRippleDuration = 0.38f; // 380ms smooth visual radial wave
+            m_themeRippleProgress = std::clamp(elapsedSec / kThemeRippleDuration, 0.0f, 1.0f);
+
+            // Cubic Ease-Out
+            float t = m_themeRippleProgress;
+            float easeProgress = 1.0f - std::pow(1.0f - t, 3.0f);
+
+            // Compute maximum radius to cover entire window from click origin
+            const float dx1 = m_themeRippleOrigin.x;
+            const float dx2 = std::abs(viewportBounds.width - m_themeRippleOrigin.x);
+            const float dy1 = m_themeRippleOrigin.y;
+            const float dy2 = std::abs(viewportBounds.height - m_themeRippleOrigin.y);
+            const float maxRadius = std::hypot((std::max)(dx1, dx2), (std::max)(dy1, dy2));
+            const float currentRadius = maxRadius * easeProgress;
+
+            // 1. Draw Old Theme Snapshot as base
+            m_gfxContext.DrawLayer(m_themeOldSceneLayer, viewportBounds);
+
+            if (m_themeRippleProgress < 1.0f) {
+                // 2. Draw New Theme Scene clipped by an expanding radial circle from click position
+                m_gfxContext.PushEllipseClip(m_themeRippleOrigin, currentRadius, currentRadius);
+                m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
+                m_gfxContext.PopClip();
+
+                // Driver continuous frame pump
+                m_frameScheduler.ScheduleFrame();
+                m_animationManager.RequestWake(m_rootElement.get(), now + std::chrono::milliseconds(16));
+                InvalidateRect(m_hwnd, nullptr, FALSE);
+            } else {
+                // Transition finished
+                m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
+                m_themeRippleActive = false;
+                m_themeOldSceneLayer.ResetCache();
+            }
+        } else {
+            m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
+        }
+
         renderOverlaysOnly();
         DrawRenderStatsOverlay();
         m_gfxContext.EndDraw();
