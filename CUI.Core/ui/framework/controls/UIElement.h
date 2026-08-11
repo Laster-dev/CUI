@@ -276,6 +276,10 @@ public:
     virtual void OnMouseUp(Point pt);
     virtual void OnMouseMove(Point pt);
     virtual void OnMouseWheel(float delta);
+    // Middle-button autoscroll (browser-style). Return true if captured.
+    virtual bool OnMiddleButtonDown(Point pt) { (void)pt; return false; }
+    virtual void OnMiddleButtonUp(Point pt) { (void)pt; }
+    virtual bool IsMiddleScrollActive() const { return false; }
     virtual void OnKeyDown(int vkCode);
     virtual void OnCharInput(wchar_t ch) {}
     virtual void OnAutoScrollTick() {}

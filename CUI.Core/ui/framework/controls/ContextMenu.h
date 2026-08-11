@@ -106,6 +106,10 @@ public:
     // Walk to the outermost open menu and hide it (and all submenus).
     void DismissHierarchy();
     bool IsOpen() const { return m_isOpen; }
+
+    // Fired once when a root menu finishes closing (item click, light-dismiss, etc.).
+    using ClosedCallback = std::function<void()>;
+    void SetClosedCallback(ClosedCallback cb) { m_closedCallback = std::move(cb); }
     Rect GetTotalBounds() const;
     void OffsetPopupHierarchy(float dx, float dy);
     std::shared_ptr<ContextMenu> GetActiveSubMenu() const { return m_activeSubMenu; }
@@ -131,7 +135,7 @@ public:
     static constexpr float kSeparatorHeight = 6.0f;
     static constexpr float kVerticalPad = 8.0f; // 4 top + 4 bottom
     static constexpr float kMinWidth = 180.0f;
-    static constexpr float kOpenAnimSeconds = 0.06f;
+    static constexpr float kOpenAnimSeconds = 0.16f;
 
 private:
     std::vector<std::shared_ptr<MenuItem>> m_items;
@@ -155,6 +159,7 @@ private:
     bool m_hostedExternally = false;
     std::unique_ptr<class MenuPopupWindow> m_popupSurface;
     LazyPopulateFn m_lazyPopulate;
+    ClosedCallback m_closedCallback;
 
     void RelayoutItems();
     float ComputePreferredWidth() const;

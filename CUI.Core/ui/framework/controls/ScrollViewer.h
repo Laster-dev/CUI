@@ -26,6 +26,11 @@ public:
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseLeave() override;
     virtual void OnMouseWheel(float delta) override;
+    virtual bool OnMiddleButtonDown(Point pt) override;
+    virtual void OnMiddleButtonUp(Point pt) override;
+    virtual bool IsMiddleScrollActive() const override { return m_middleScrollActive; }
+    virtual void OnAutoScrollTick() override;
+    virtual bool NeedsAutoScrollTick() const override { return m_middleScrollActive; }
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
     virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
@@ -85,6 +90,10 @@ private:
     bool m_scrollbarHovered = false;
     ScrollbarAutoHide m_scrollbarAutoHide;
     bool m_overlayScrollbar = false;
+
+    bool m_middleScrollActive = false;
+    Point m_middleOrigin{};
+    Point m_middleLastMouse{};
 
     LARGE_INTEGER m_qpcFreq = {};
     LONGLONG m_lastAnimQpc = 0;

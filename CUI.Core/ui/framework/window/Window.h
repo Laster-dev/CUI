@@ -72,6 +72,11 @@ private:
     bool OnLButtonUp(int x, int y);
     void OnRButtonDown(int x, int y);
     void OnRButtonUp(int x, int y);
+    void OnMButtonDown(int x, int y);
+    void OnMButtonUp(int x, int y);
+    void ClearMenuBarInteractionState();
+    void StopMiddleClickAutoscroll();
+    bool IsMiddleClickAutoscrollActive() const;
     UIElement* HitTestChrome(float x, float y) const;
     static std::shared_ptr<UIElement> CaptureElementRef(UIElement* element);
     std::shared_ptr<UIElement> LockElement(const std::weak_ptr<UIElement>& element) const;
@@ -98,6 +103,8 @@ private:
 
     std::weak_ptr<UIElement> m_hoveredElement;
     std::weak_ptr<UIElement> m_pressedElement;
+    std::weak_ptr<UIElement> m_rpressedElement;
+    std::weak_ptr<UIElement> m_middleScrollElement;
     std::weak_ptr<UIElement> m_focusedElement;
     std::shared_ptr<ContextMenu> m_activeContextMenu = nullptr;
     UIElement* m_pendingContextMenuTarget = nullptr;

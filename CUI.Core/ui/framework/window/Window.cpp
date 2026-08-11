@@ -7,6 +7,7 @@
 #include "../controls/TextBox.h"
 #include "../controls/ContextMenu.h"
 #include "../controls/MenuBar.h"
+#include "../controls/WindowTitleBar.h"
 #include "../controls/DatePicker.h"
 #include "../controls/TimePicker.h"
 #include "../controls/ColorPicker.h"
@@ -542,7 +543,12 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
         InvalidatePendingRenderRegions(false);
     }
 
-    if (IsOverlayScrimAnimating(m_rootElement.get()) || m_themeRippleActive) {
+    if (IsOverlayScrimAnimating(m_rootElement.get())) {
+        InvalidateRect(m_hwnd, nullptr, FALSE);
+    } else if (m_themeRippleActive) {
+        // One InvalidateRect per frame tick (from the scheduler), never from
+        // OnPaint — otherwise the WM_PAINT pump re-enters until the wave ends.
+        m_frameScheduler.ScheduleFrame();
         InvalidateRect(m_hwnd, nullptr, FALSE);
     }
 }
@@ -574,6 +580,11 @@ void Window::CommitFrame(bool animationStillActive) {
                 "pendingEmpty=1 scrim=0 => COMPOSE_ONLY(Commit) #%u",
                 hasComposeOnly ? 1 : 0,
                 n);
+        }
+        // Theme ripple still needs a WM_PAINT compose pass (old+ellipse clip).
+        if (m_themeRippleActive && m_hwnd) {
+            m_frameScheduler.ScheduleFrame();
+            InvalidateRect(m_hwnd, nullptr, FALSE);
         }
         return;
     }
@@ -705,6 +716,7 @@ bool Window::TryMoveFocus(bool forward) {
 }
 
 Window::~Window() {
+    StopMiddleClickAutoscroll();
     if (s_current == this) {
         s_current = nullptr;
     }
@@ -829,27 +841,39 @@ void Window::SetBackdropType(BackdropType type) {
 }
 
 void Window::SetThemeMode(ThemeMode theme) {
-    SetThemeModeWithRipple(theme, Point(m_logicalClientSize.width * 0.5f, m_logicalClientSize.height * 0.5f));
+    Point origin(m_logicalClientSize.width * 0.5f, m_logicalClientSize.height * 0.5f);
+    if (m_hwnd) {
+        POINT pt{};
+        if (::GetCursorPos(&pt) && ::ScreenToClient(m_hwnd, &pt)) {
+            origin = ClientPointToLogical(pt.x, pt.y);
+        }
+    }
+    SetThemeModeWithRipple(theme, origin);
 }
 
 void Window::SetThemeModeWithRipple(ThemeMode theme, Point originPoint) {
+    // Idle no-op only when already on this theme and no wave is playing.
+    // Mid-wave clicks must always start a brand-new ripple.
     if (m_themeMode == theme && !m_themeRippleActive) {
         return;
     }
 
     const Size sceneSize = m_logicalClientSize;
+    const Rect viewportBounds(0.0f, 0.0f, sceneSize.width, sceneSize.height);
     if (!m_hwnd || sceneSize.width < 0.5f || sceneSize.height < 0.5f) {
         m_themeMode = theme;
+        m_themeRippleActive = false;
         ThemeManager::Instance().SetThemeMode(theme);
         StyleManager::Instance().ReloadFromTheme();
         return;
     }
 
-    // 1. Ensure m_sceneLayer is valid and painted before snapshotting
+    // If a wave is already playing, keep the current live destination scene as the
+    // next "from" snapshot so the new click starts a fresh wave immediately.
     D2D1_COLOR_F oldClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
     if (!m_sceneLayer.IsValid() || !m_sceneLayer.GetCacheBitmap()) {
-        if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, Rect(0, 0, sceneSize.width, sceneSize.height), oldClearBg, true)) {
-            m_gfxContext.SetPaintBounds(Rect(0, 0, sceneSize.width, sceneSize.height));
+        if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, viewportBounds, oldClearBg, true)) {
+            m_gfxContext.SetPaintBounds(viewportBounds);
             if (m_rootElement) {
                 m_rootElement->Render(m_gfxContext);
             }
@@ -857,28 +881,31 @@ void Window::SetThemeModeWithRipple(ThemeMode theme, Point originPoint) {
             m_sceneLayer.Validate();
         }
     }
-
-    // 2. Snapshot current scene into m_themeOldSceneLayer (0.01ms cost)
     if (m_sceneLayer.GetCacheBitmap()) {
-        if (m_gfxContext.PushLayerTarget(m_themeOldSceneLayer, sceneSize, Rect(0, 0, sceneSize.width, sceneSize.height), oldClearBg, true)) {
-            m_gfxContext.DrawLayer(m_sceneLayer, Rect(0, 0, sceneSize.width, sceneSize.height));
+        if (m_gfxContext.PushLayerTarget(m_themeOldSceneLayer, sceneSize, viewportBounds, oldClearBg, true)) {
+            m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
             m_gfxContext.PopLayerTarget(m_themeOldSceneLayer);
             m_themeOldSceneLayer.Validate();
         }
     }
 
-    // 3. Update theme tokens and clear brush caches
+    // Apply theme tokens + refresh control caches before capturing the destination scene.
     m_themeMode = theme;
     ThemeManager::Instance().SetThemeMode(theme);
     StyleManager::Instance().ReloadFromTheme();
     MaterialHost::Apply(m_hwnd, BackdropType::None, theme);
     m_gfxContext.GetResources().ClearBrushCaches();
+    if (m_rootElement) {
+        ApplyThemeToTree(m_rootElement.get(), false);
+        static unsigned long long s_rippleThemeNonce = 0;
+        ForceThemeRefresh(m_rootElement.get(), std::to_string(++s_rippleThemeNonce), false);
+    }
     m_onThemeChanged.Invoke(this, theme);
 
-    // 4. Force immediate 1-frame pre-render of the new theme into m_sceneLayer
+    // Pre-render destination theme into the live scene layer (one heavy frame only).
     D2D1_COLOR_F newClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
-    if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, Rect(0, 0, sceneSize.width, sceneSize.height), newClearBg, true)) {
-        m_gfxContext.SetPaintBounds(Rect(0, 0, sceneSize.width, sceneSize.height));
+    if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, viewportBounds, newClearBg, true)) {
+        m_gfxContext.SetPaintBounds(viewportBounds);
         if (m_rootElement) {
             m_rootElement->Render(m_gfxContext);
         }
@@ -886,15 +913,25 @@ void Window::SetThemeModeWithRipple(ThemeMode theme, Point originPoint) {
         m_sceneLayer.Validate();
     }
 
+    // Drop dirties created by ForceThemeRefresh — destination is already fully painted.
+    if (m_rootElement) {
+        DirtyRegion sink;
+        m_rootElement->CollectRenderDirtyRegion(sink, true);
+    }
+    m_pendingDirtyRegion.Clear();
+
+    // Start or restart the wave from the click.
     m_themeRippleActive = true;
     m_themeRippleOrigin = originPoint;
     m_themeRippleProgress = 0.0f;
     m_themeRippleStartTime = std::chrono::steady_clock::now();
 
+    // Present-only: do NOT RequestFullRepaint() — that StructureDirties the scene and
+    // forces a full tree rebuild on every ripple frame (blocking input).
     m_frameScheduler.ScheduleFrame();
-    RequestFullRepaint();
-    UpdateWindow(m_hwnd);
-    PostThreadMessageW(GetWindowThreadProcessId(m_hwnd, nullptr), WM_NULL, 0, 0);
+    if (m_hwnd) {
+        InvalidateRect(m_hwnd, nullptr, FALSE);
+    }
 }
 
 void Window::SetTransparentMode(bool enabled) {
@@ -951,6 +988,25 @@ void Window::RunMessageLoop() {
     bool animationActive = false;
 
     for (;;) {
+        // Theme ripple must never starve input. Drain mouse/keyboard before any
+        // paint/frame work so a second theme click can restart the wave immediately.
+        if (m_themeRippleActive) {
+            MSG inputMsg = {};
+            for (;;) {
+                const BOOL gotMouse = PeekMessage(&inputMsg, m_hwnd, WM_MOUSEFIRST, WM_MOUSELAST, PM_REMOVE);
+                const BOOL gotKey = gotMouse ? FALSE
+                    : PeekMessage(&inputMsg, m_hwnd, WM_KEYFIRST, WM_KEYLAST, PM_REMOVE);
+                if (!gotMouse && !gotKey) {
+                    break;
+                }
+                if (inputMsg.message == WM_QUIT) {
+                    return;
+                }
+                TranslateMessage(&inputMsg);
+                DispatchMessage(&inputMsg);
+            }
+        }
+
         bool hadMessage = false;
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
             hadMessage = true;
@@ -984,22 +1040,9 @@ void Window::RunMessageLoop() {
         m_animationManager.SetTargetFrameSeconds(static_cast<float>(1.0 / targetFps));
 
         m_animationManager.DispatchDueWakes(now);
-        // Hover/click often MarkRender*Dirty without RequestAnimationTicks (instant
-        // chrome). Without a scheduled frame those dirties only InvalidateRect and
-        // skip CommitFrame/FlushSync/vsync Present — feels 卡 until some animation
-        // happens to keep the pump alive ("有动画不卡、没动画卡").
         const bool hasPendingLayout =
             m_rootElement
             && (m_rootElement->IsMeasureDirty() || m_rootElement->IsArrangeDirty());
-        if (hasPendingLayout) {
-            ProgressBarDiag::Log(
-                "[EXP-WIN] pendingLayout rootMeasure=%d rootArrange=%d pendingDirty=%d nativePaint=%d anim=%d",
-                m_rootElement->IsMeasureDirty() ? 1 : 0,
-                m_rootElement->IsArrangeDirty() ? 1 : 0,
-                m_pendingDirtyRegion.IsEmpty() ? 0 : 1,
-                HasPendingNativePaint() ? 1 : 0,
-                m_animationManager.HasAnimating() ? 1 : 0);
-        }
         if (m_animationManager.HasAnimating()
             || m_themeRippleActive
             || m_animationManager.ConsumeFrameRequest()
@@ -1010,6 +1053,11 @@ void Window::RunMessageLoop() {
         }
         if (auto focused = LockElement(m_focusedElement)) {
             if (focused->NeedsAutoScrollTick()) {
+                m_frameScheduler.ScheduleFrame();
+            }
+        }
+        if (auto middle = LockElement(m_middleScrollElement)) {
+            if (middle->NeedsAutoScrollTick()) {
                 m_frameScheduler.ScheduleFrame();
             }
         }
@@ -1035,6 +1083,13 @@ void Window::RunMessageLoop() {
                     animating = true;
                 }
             }
+            if (auto middle = LockElement(m_middleScrollElement)) {
+                const auto focused = LockElement(m_focusedElement);
+                if (middle.get() != focused.get() && middle->NeedsAutoScrollTick()) {
+                    middle->OnAutoScrollTick();
+                    animating = true;
+                }
+            }
             didFrame = true;
         }
         animationActive = animating;
@@ -1042,22 +1097,22 @@ void Window::RunMessageLoop() {
         bool presented = false;
         if (didFrame) {
             CommitFrame(animating || wasAnimationActive);
-            // For one-shot input (hover/click/wheel without a continuous animation),
-            // waiting for WM_PAINT to be delivered "when idle" adds visible lag.
-            // Commit prepared the dirty region already, so force the paint now and
-            // let Present(1,0) become the latency boundary for interactive frames.
-            if (HasPendingNativePaint()) {
+
+            // Never UpdateWindow during theme ripple: sync Present+full paints
+            // were starving WM_LBUTTONDOWN until the wave finished.
+            if (!m_themeRippleActive && HasPendingNativePaint()) {
                 UpdateWindow(m_hwnd);
             }
-            // Drain WM_PAINT now so Present(1,0) is the vsync clock. Sleeping
-            // another minInterval on top of Present was capping us near ~30 FPS.
+            // One paint per frame tick. Pumping all WM_PAINTs is wrong while
+            // ripple (or any path) re-invalidates from OnPaint — it would spin
+            // until the animation ends and never see the next theme click.
             MSG paintMsg = {};
-            while (PeekMessage(&paintMsg, m_hwnd, WM_PAINT, WM_PAINT, PM_REMOVE)) {
+            if (PeekMessage(&paintMsg, m_hwnd, WM_PAINT, WM_PAINT, PM_REMOVE)) {
                 TranslateMessage(&paintMsg);
                 DispatchMessage(&paintMsg);
                 presented = true;
             }
-            if (animating) {
+            if (animating || m_themeRippleActive) {
                 m_frameScheduler.ScheduleFrame();
             }
         }
@@ -1066,16 +1121,11 @@ void Window::RunMessageLoop() {
             if (PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
                 continue;
             }
-            // A bare cross-thread InvalidateRect can leave the HWND with an update
-            // region but without any queued input message to wake WaitMessage().
-            // Treat that as work and loop once more so ScheduleFrame/WM_PAINT runs.
             if (HasPendingNativePaint()) {
                 continue;
             }
             const bool wantContinuous = animationActive || m_animationManager.HasAnimating() || m_themeRippleActive;
             if (wantContinuous) {
-                // Present already blocked for vsync when we painted; do not sleep
-                // another frame. If Commit produced no paint, yield briefly.
                 const DWORD waitMs = (didFrame && presented) ? 0
                     : static_cast<DWORD>((std::max)(1, static_cast<int>(
                         std::chrono::duration_cast<std::chrono::milliseconds>(targetFrame).count())));
@@ -1435,12 +1485,14 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return DefWindowProc(m_hwnd, uMsg, wParam, lParam);
 
     case WM_LBUTTONDOWN:
+        StopMiddleClickAutoscroll();
         if (OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
             InvalidatePendingRenderRegions(false);
         }
         return 0;
 
     case WM_LBUTTONDBLCLK:
+        StopMiddleClickAutoscroll();
         OnLButtonDblClick(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         InvalidatePendingRenderRegions(true);
         return 0;
@@ -1452,6 +1504,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return 0;
 
     case WM_RBUTTONDOWN:
+        StopMiddleClickAutoscroll();
         OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         InvalidatePendingRenderRegions(true);
         return 0;
@@ -1461,7 +1514,24 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         InvalidatePendingRenderRegions(true);
         return 0;
 
+    case WM_MBUTTONDOWN:
+        OnMButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        InvalidatePendingRenderRegions(false);
+        return 0;
+
+    case WM_MBUTTONUP:
+        OnMButtonUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        InvalidatePendingRenderRegions(false);
+        return 0;
+
+    case WM_CAPTURECHANGED:
+        if (IsMiddleClickAutoscrollActive() && reinterpret_cast<HWND>(lParam) != m_hwnd) {
+            StopMiddleClickAutoscroll();
+        }
+        return 0;
+
     case WM_MOUSEWHEEL: {
+        StopMiddleClickAutoscroll();
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         ScreenToClient(m_hwnd, &pt);
         Point logicalPt = ClientPointToLogical(pt.x, pt.y);
@@ -1483,6 +1553,11 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_KEYDOWN:
+        if (wParam == VK_ESCAPE && IsMiddleClickAutoscrollActive()) {
+            StopMiddleClickAutoscroll();
+            InvalidatePendingRenderRegions(false);
+            return 0;
+        }
         if (wParam == VK_F8) {
             m_showRenderStatsOverlay = !m_showRenderStatsOverlay;
             RequestFullRepaint();
@@ -1558,6 +1633,14 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_SETCURSOR:
         if (LOWORD(lParam) == HTCLIENT) {
+            if (auto middle = LockElement(m_middleScrollElement)) {
+                if (middle->IsMiddleScrollActive()) {
+                    if (HCURSOR hCur = middle->GetCursor()) {
+                        SetCursor(hCur);
+                        return TRUE;
+                    }
+                }
+            }
             auto hovered = LockElement(m_hoveredElement);
             HCURSOR hCur = hovered ? hovered->GetCursor() : nullptr;
             if (hCur) {
@@ -1698,7 +1781,17 @@ void Window::OnPaint() {
 
     bool scenePatched = false;
     Rect unionPatch;
-    if (!m_themeRippleActive) {
+    // During theme ripple the destination scene is owned by SetThemeModeWithRipple.
+    // Never rebuild it here — hover dirties were causing full-tree redraw every frame
+    // and blocking WM_LBUTTONDOWN until the wave finished.
+    const bool rippleComposeOnly =
+        m_themeRippleActive
+        && m_sceneLayer.IsValid()
+        && m_sceneLayer.GetCacheBitmap() != nullptr
+        && m_themeOldSceneLayer.IsValid()
+        && m_themeOldSceneLayer.GetCacheBitmap() != nullptr;
+
+    if (!rippleComposeOnly) {
         if (canRestoreScene) {
             bool hasPatch = false;
             const auto& dirtyRects = frameDirtyRegion.GetRects();
@@ -1746,6 +1839,16 @@ void Window::OnPaint() {
             m_sceneLayer.Validate();
             unionPatch = viewportBounds;
         }
+    } else {
+        unionPatch = viewportBounds;
+        scenePatched = true;
+        // Swallow hover/theme dirties so they don't fire a full rebuild the
+        // instant the ripple ends (or trip non-compose paths mid-wave).
+        if (m_rootElement) {
+            DirtyRegion sink;
+            m_rootElement->CollectRenderDirtyRegion(sink, true);
+        }
+        m_pendingDirtyRegion.Clear();
     }
 
     // Dirty-rect Present on flip-model swapchains is not reliable enough for this
@@ -1802,16 +1905,24 @@ void Window::OnPaint() {
                 m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
                 m_gfxContext.PopClip();
 
-                // Driver continuous frame pump
+                // Pace the next frame via the scheduler ONLY.
+                // Do NOT InvalidateRect here: that re-queues WM_PAINT from inside
+                // the paint handler and the message loop would keep dispatching
+                // paints until progress==1, never seeing WM_LBUTTONDOWN.
                 m_frameScheduler.ScheduleFrame();
                 m_animationManager.RequestWake(m_rootElement.get(), now + std::chrono::milliseconds(16));
-                InvalidateRect(m_hwnd, nullptr, FALSE);
             } else {
                 // Transition finished
                 m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
                 m_themeRippleActive = false;
                 m_themeOldSceneLayer.ResetCache();
             }
+        } else if (m_themeRippleActive) {
+            // Old snapshot lost — finish immediately so we never stick with
+            // m_themeRippleActive=true and a silent no-op paint path.
+            m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
+            m_themeRippleActive = false;
+            m_themeOldSceneLayer.ResetCache();
         } else {
             m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
         }
@@ -1963,6 +2074,19 @@ bool Window::OnMouseMove(int x, int y) {
     float fx = logicalPt.x;
     float fy = logicalPt.y;
 
+    if (auto middle = LockElement(m_middleScrollElement)) {
+        if (middle->IsMiddleScrollActive()) {
+            middle->OnMouseMove(Point(fx, fy));
+            if (m_rootElement) {
+                DirtyRegion probe;
+                m_rootElement->CollectRenderDirtyRegion(probe, false);
+                return !probe.IsEmpty();
+            }
+            return false;
+        }
+        m_middleScrollElement.reset();
+    }
+
     if (auto pressed = LockElement(m_pressedElement)) {
         pressed->OnMouseMove(Point(fx, fy));
         if (NeedsContinuousMouseRedraw(pressed.get())) {
@@ -1970,6 +2094,16 @@ bool Window::OnMouseMove(int x, int y) {
         }
         // Thumb-drag / splitter etc. mark local dirty — flush those.
         // Idle press+move (e.g. holding on a rippling nav item) must NOT invalidate.
+        if (m_rootElement) {
+            DirtyRegion probe;
+            m_rootElement->CollectRenderDirtyRegion(probe, false);
+            return !probe.IsEmpty();
+        }
+        return false;
+    }
+
+    if (auto rpressed = LockElement(m_rpressedElement)) {
+        rpressed->OnMouseMove(Point(fx, fy));
         if (m_rootElement) {
             DirtyRegion probe;
             m_rootElement->CollectRenderDirtyRegion(probe, false);
@@ -2106,19 +2240,7 @@ bool Window::OnLButtonDown(int x, int y) {
                 m_pendingDirtyRegion.AddRect(oldMenuBounds.Inflate(4.0f));
             }
             // Clear MenuBar active highlight state when context menu is dismissed
-            if (m_rootElement) {
-                std::function<void(UIElement*)> clearMenuBar = [&](UIElement* elem) {
-                    if (!elem) return;
-                    MenuBar* mb = dynamic_cast<MenuBar*>(elem);
-                    if (mb) {
-                        mb->ResetInteractionState();
-                    }
-                    for (auto& child : elem->GetChildren()) {
-                        clearMenuBar(child.get());
-                    }
-                };
-                clearMenuBar(m_rootElement.get());
-            }
+            ClearMenuBarInteractionState();
             if (auto hovered = LockElement(m_hoveredElement)) {
                 hovered->OnMouseLeave();
             }
@@ -2182,8 +2304,30 @@ bool Window::OnLButtonUp(int x, int y) {
         }
     }
     m_pressedElement.reset();
-    ReleaseCapture();
+    if (GetCapture() == m_hwnd && !LockElement(m_rpressedElement) && !LockElement(m_middleScrollElement)) {
+        ReleaseCapture();
+    }
     return dirty;
+}
+
+void Window::ClearMenuBarInteractionState() {
+    // WindowTitleBar embeds MenuBar as a composed member (not a layout child).
+    if (IWindowChrome* chrome = FindWindowChrome(m_rootElement.get())) {
+        if (auto* titleBar = dynamic_cast<WindowTitleBar*>(chrome)) {
+            titleBar->GetMenuBar().ResetInteractionState();
+        }
+    }
+    if (!m_rootElement) return;
+    std::function<void(UIElement*)> clearMenuBar = [&](UIElement* elem) {
+        if (!elem) return;
+        if (auto* mb = dynamic_cast<MenuBar*>(elem)) {
+            mb->ResetInteractionState();
+        }
+        for (auto& child : elem->GetChildren()) {
+            clearMenuBar(child.get());
+        }
+    };
+    clearMenuBar(m_rootElement.get());
 }
 
 void Window::OnRButtonDown(int x, int y) {
@@ -2194,10 +2338,12 @@ void Window::OnRButtonDown(int x, int y) {
     if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
         m_activeContextMenu->Hide();
         m_activeContextMenu = nullptr;
+        ClearMenuBarInteractionState();
     }
 
     m_pendingContextMenuTarget = nullptr;
     m_pendingContextMenu.reset();
+    m_rpressedElement.reset();
 
     UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
     if (!target) return;
@@ -2212,6 +2358,8 @@ void Window::OnRButtonDown(int x, int y) {
     }
 
     target->OnMouseRightClick(Point(fx, fy));
+    m_rpressedElement = CaptureElementRef(target);
+    SetCapture(m_hwnd);
 
     m_pendingContextMenuTarget = target;
     m_pendingContextMenuPt = Point(fx, fy);
@@ -2234,6 +2382,10 @@ void Window::OnRButtonUp(int x, int y) {
     m_pendingContextMenuTarget = nullptr;
     auto pendingMenu = m_pendingContextMenu;
     m_pendingContextMenu.reset();
+    m_rpressedElement.reset();
+    if (GetCapture() == m_hwnd && !LockElement(m_pressedElement) && !LockElement(m_middleScrollElement)) {
+        ReleaseCapture();
+    }
 
     if (!target) return;
 
@@ -2254,6 +2406,69 @@ void Window::OnRButtonUp(int x, int y) {
     if (pendingMenu) {
         m_activeContextMenu = pendingMenu;
         m_activeContextMenu->ShowAt(releasePt.x, releasePt.y);
+    }
+}
+
+bool Window::IsMiddleClickAutoscrollActive() const {
+    if (auto middle = LockElement(m_middleScrollElement)) {
+        return middle->IsMiddleScrollActive();
+    }
+    return false;
+}
+
+void Window::StopMiddleClickAutoscroll() {
+    if (auto middle = LockElement(m_middleScrollElement)) {
+        if (middle->IsMiddleScrollActive()) {
+            middle->OnMiddleButtonUp(Point());
+        }
+    }
+    m_middleScrollElement.reset();
+    if (GetCapture() == m_hwnd && !LockElement(m_pressedElement) && !LockElement(m_rpressedElement)) {
+        ReleaseCapture();
+    }
+}
+
+void Window::OnMButtonDown(int x, int y) {
+    Point logicalPt = ClientPointToLogical(x, y);
+    float fx = logicalPt.x;
+    float fy = logicalPt.y;
+
+    // Browser toggle-off: another middle click while autoscrolling exits the mode.
+    if (IsMiddleClickAutoscrollActive()) {
+        StopMiddleClickAutoscroll();
+        return;
+    }
+
+    UIElement* target = m_popupHost.HitTest(fx, fy);
+    if (!target && m_rootElement) {
+        target = m_rootElement->HitTestOverlay(fx, fy);
+        if (!target) {
+            target = m_rootElement->HitTest(fx, fy);
+        }
+    }
+    if (!target) return;
+
+    // Walk ancestors so a nested control inside ScrollViewer/ListView can start.
+    for (UIElement* curr = target; curr; curr = curr->GetParent()) {
+        if (curr->OnMiddleButtonDown(Point(fx, fy))) {
+            m_middleScrollElement = CaptureElementRef(curr);
+            SetFocusedElement(curr);
+            SetCapture(m_hwnd);
+            return;
+        }
+    }
+}
+
+void Window::OnMButtonUp(int x, int y) {
+    (void)x;
+    (void)y;
+    // Browser toggle mode: releasing middle button keeps autoscroll active until
+    // left/right click, Escape, wheel, or another middle click.
+    if (IsMiddleClickAutoscrollActive()) {
+        return;
+    }
+    if (GetCapture() == m_hwnd && !LockElement(m_pressedElement) && !LockElement(m_rpressedElement)) {
+        ReleaseCapture();
     }
 }
 

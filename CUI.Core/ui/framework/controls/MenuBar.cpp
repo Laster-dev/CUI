@@ -41,18 +41,24 @@ Size MenuBar::Measure(Size availableSize) {
 }
 
 void MenuBar::InvalidateMenuChrome(int indexA, int indexB) {
-    // MenuBar is composed inside TitleBar (not a layout child); always dirty the
-    // full strip so previous open/hover pills cannot linger in the scene cache.
+    // MenuBar is composed inside TitleBar (not a layout child); stamp the dirty
+    // rect onto the parent as well so CollectRenderDirtyRegion can see it.
+    auto dirtyRect = [&](const Rect& r) {
+        if (r.IsEmpty()) return;
+        const Rect inflated = r.Inflate(4.0f);
+        MarkRenderRectDirty(inflated);
+        if (m_parent) {
+            m_parent->MarkRenderRectDirty(inflated);
+        }
+    };
     if (!m_bounds.IsEmpty()) {
-        MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+        dirtyRect(m_bounds);
     }
     auto dirtyItem = [&](int index) {
         if (index < 0 || index >= static_cast<int>(m_menus.size())) {
             return;
         }
-        if (!m_menus[index].bounds.IsEmpty()) {
-            MarkRenderRectDirty(m_menus[index].bounds.Inflate(4.0f));
-        }
+        dirtyRect(m_menus[index].bounds);
     };
     dirtyItem(indexA);
     dirtyItem(indexB);
@@ -139,6 +145,17 @@ void MenuBar::OpenMenu(int index) {
 
     auto menu = m_menus[index].dropDownMenu;
     if (menu) {
+        // When the dropdown closes (item click / Escape / light-dismiss), clear the
+        // open highlight — MenuBar is not a layout child so tree walks often miss it.
+        menu->SetClosedCallback([this, index]() {
+            if (m_activeOpenIndex != index) return;
+            const int previous = m_activeOpenIndex;
+            m_activeOpenIndex = -1;
+            m_hoveredIndex = -1;
+            SyncHoverAnimationTargets();
+            InvalidateMenuChrome(previous, -1);
+            RequestAnimationTicks();
+        });
         menu->ShowAt(m_menus[index].bounds.x, m_bounds.y + m_bounds.height);
 
         UIElement* curr = this;
@@ -151,8 +168,9 @@ void MenuBar::OpenMenu(int index) {
 
 void MenuBar::CloseActiveMenu() {
     const int previousOpen = m_activeOpenIndex;
-    HideAllMenusExcept(-1);
+    // Clear open index before Hide so ClosedCallback does not double-invalidate.
     m_activeOpenIndex = -1;
+    HideAllMenusExcept(-1);
     SyncHoverAnimationTargets();
     InvalidateMenuChrome(previousOpen, m_hoveredIndex);
     RequestAnimationTicks();

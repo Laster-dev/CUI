@@ -528,6 +528,12 @@ void ContextMenu::Hide() {
         if (PopupHost* host = PopupHost::Current()) {
             host->Close(this);
         }
+        // Move callback out first so re-entrant Hide from the handler is a no-op.
+        ClosedCallback closed = std::move(m_closedCallback);
+        m_closedCallback = nullptr;
+        if (closed) {
+            closed();
+        }
     }
 }
 
@@ -694,26 +700,18 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
     if (!m_isOpen || m_items.empty()) return;
 
     float radius = GetCornerRadius();
+    // Windows-style menu open: opacity fade only (no slide / height grow).
     const float alpha = (std::clamp)(m_openProgress, 0.0f, 1.0f);
     const float t = 1.0f - (1.0f - alpha) * (1.0f - alpha);
 
     D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
     D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
 
-    const float slide = (1.0f - t) * 4.0f;
-    Rect drawBounds(m_bounds.x, m_bounds.y + slide, m_bounds.width, m_bounds.height);
+    const Rect drawBounds = m_bounds;
 
     ctx.PushOpacity(t);
     ctx.FillRoundedRect(drawBounds, radius, bg);
     ctx.DrawRoundedRect(drawBounds, radius, border, 1.0f);
-
-    const float dy = drawBounds.y - m_bounds.y;
-    if (std::abs(dy) > 0.01f) {
-        for (auto& item : m_items) {
-            Rect b = item->GetBounds();
-            item->Arrange(Rect(b.x, b.y + dy, b.width, b.height));
-        }
-    }
 
     ctx.PushClip(drawBounds);
     for (auto& item : m_items) {
@@ -747,10 +745,6 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
 
     ctx.PopClip();
     ctx.PopOpacity();
-
-    if (std::abs(dy) > 0.01f) {
-        RelayoutItems();
-    }
 
     if (m_activeSubMenu && m_activeSubMenu->IsOpen() && !m_activeSubMenu->IsExternallyHosted()) {
         m_activeSubMenu->RenderPopup(ctx);

@@ -248,6 +248,7 @@
     <ClInclude Include="ui\framework\controls\ListView.h" />
     <ClInclude Include="ui\framework\controls\MenuBar.h" />
     <ClInclude Include="ui\framework\controls\MessageBox.h" />
+    <ClInclude Include="ui\framework\controls\MiddleClickAutoscroll.h" />
     <ClInclude Include="ui\framework\controls\NavigationView.h" />
     <ClInclude Include="ui\framework\controls\NavigationViewItem.h" />
     <ClInclude Include="ui\framework\controls\NumberBox.h" />

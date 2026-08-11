@@ -382,6 +382,7 @@ void WindowTitleBar::OnBlur() {
 
 bool WindowTitleBar::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
+    bool menu = m_menuBar.OnAnimationTick();
     const float dt = UIElement::GetAnimationDeltaSeconds();
     bool any = false;
     if (m_minHoverAnim.Tick(dt, kCaptionHoverSpec)) {
@@ -393,21 +394,22 @@ bool WindowTitleBar::OnAnimationTick() {
     if (m_closeHoverAnim.Tick(dt, kCaptionHoverSpec)) {
         any = true;
     }
-    if (any) {
+    if (any || menu) {
         m_menuChromeDirty = true;
         if (!m_bounds.IsEmpty()) {
             MarkRenderRectDirty(m_bounds.Inflate(4.0f));
         }
         RequestAnimationTicks();
     }
-    return base || any;
+    return base || any || menu;
 }
 
 bool WindowTitleBar::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
         || m_minHoverAnim.IsAnimating()
         || m_maxHoverAnim.IsAnimating()
-        || m_closeHoverAnim.IsAnimating();
+        || m_closeHoverAnim.IsAnimating()
+        || m_menuBar.HasSelfAnimation();
 }
 
 UIElement* WindowTitleBar::HitTest(float x, float y) {

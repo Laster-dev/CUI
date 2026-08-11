@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ScrollViewer.h"
+#include "MiddleClickAutoscroll.h"
 #include "../animation/FrameScheduler.h"
 #include "../render/CompositionContext.h"
 #include "../style/ThemeManager.h"
@@ -9,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <windows.h>
 
 namespace CUI {
 
@@ -460,6 +462,20 @@ void ScrollViewer::Render(GraphicsContext& ctx) {
         RenderContentImmediate(ctx);
     }
     RenderScrollChrome(ctx);
+    if (m_middleScrollActive) {
+        const bool dark = ThemeManager::Instance().GetThemeMode() == ThemeMode::Dark;
+        D2D1_COLOR_F fill = dark
+            ? D2D1::ColorF(0.18f, 0.18f, 0.20f, 0.92f)
+            : D2D1::ColorF(0.96f, 0.96f, 0.97f, 0.95f);
+        D2D1_COLOR_F stroke = dark
+            ? D2D1::ColorF(0.70f, 0.70f, 0.74f, 0.95f)
+            : D2D1::ColorF(0.35f, 0.35f, 0.40f, 0.90f);
+        D2D1_COLOR_F arrow = dark
+            ? D2D1::ColorF(0.92f, 0.92f, 0.95f, 1.0f)
+            : D2D1::ColorF(0.20f, 0.20f, 0.24f, 1.0f);
+        MiddleClickAutoscroll::PaintOriginIndicator(
+            ctx, m_middleOrigin, false, GetMaxScroll() > 0.0f, fill, stroke, arrow);
+    }
 
     ctx.PopClip();
 }
@@ -876,6 +892,10 @@ UIElement* ScrollViewer::HitTest(float x, float y) {
 }
 
 HCURSOR ScrollViewer::GetCursor() const {
+    if (m_middleScrollActive) {
+        const float dy = m_middleLastMouse.y - m_middleOrigin.y;
+        return MiddleClickAutoscroll::CursorForDelta(0.0f, dy, false, GetMaxScroll() > 0.0f);
+    }
     if (m_scrollbarHovered || m_isDraggingThumb) {
         return LoadCursor(nullptr, IDC_ARROW);
     }
@@ -926,6 +946,16 @@ void ScrollViewer::OnMouseDown(Point pt) {
 void ScrollViewer::OnMouseMove(Point pt) {
     UIElement::OnMouseMove(pt);
 
+    if (m_middleScrollActive) {
+        m_middleLastMouse = pt;
+        ::SetCursor(GetCursor());
+        RequestAnimationTicks();
+        // Keep the origin badge + cursor responsive while mouse wanders.
+        const float r = MiddleClickAutoscroll::kIndicatorRadius + 4.0f;
+        UIElement::MarkRenderRectDirty(Rect(m_middleOrigin.x - r, m_middleOrigin.y - r, r * 2.0f, r * 2.0f));
+        return;
+    }
+
     bool wasHovered = m_scrollbarHovered;
     m_scrollbarHovered = (m_contentHeight > m_bounds.height) && GetScrollbarTrackRect().Contains(pt.x, pt.y);
     m_scrollbarAutoHide.SetPointerOver(m_scrollbarHovered, this);
@@ -968,6 +998,57 @@ void ScrollViewer::OnMouseLeave() {
         UIElement::MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
     }
     m_scrollbarAutoHide.SetPointerOver(false, this);
+    RequestAnimationTicks();
+}
+
+bool ScrollViewer::OnMiddleButtonDown(Point pt) {
+    if (GetMaxScroll() <= 0.0f) return false;
+    if (!m_bounds.Contains(pt.x, pt.y)) return false;
+
+    m_middleScrollActive = true;
+    m_middleOrigin = pt;
+    m_middleLastMouse = pt;
+    StopSmoothScroll();
+    m_scrollbarAutoHide.NotifyActivity(this);
+    RequestAnimationTicks();
+    ::SetCursor(GetCursor());
+    const float r = MiddleClickAutoscroll::kIndicatorRadius + 4.0f;
+    UIElement::MarkRenderRectDirty(Rect(m_middleOrigin.x - r, m_middleOrigin.y - r, r * 2.0f, r * 2.0f));
+    return true;
+}
+
+void ScrollViewer::OnMiddleButtonUp(Point pt) {
+    (void)pt;
+    if (!m_middleScrollActive) return;
+    m_middleScrollActive = false;
+    const float r = MiddleClickAutoscroll::kIndicatorRadius + 4.0f;
+    UIElement::MarkRenderRectDirty(Rect(m_middleOrigin.x - r, m_middleOrigin.y - r, r * 2.0f, r * 2.0f));
+    RequestAnimationTicks();
+}
+
+void ScrollViewer::OnAutoScrollTick() {
+    if (!m_middleScrollActive) return;
+
+    const float dt = UIElement::GetAnimationDeltaSeconds();
+    if (dt <= 0.0f) return;
+
+    const float dy = m_middleLastMouse.y - m_middleOrigin.y;
+    const float vel = MiddleClickAutoscroll::VelocityFromDelta(dy);
+    if (std::abs(vel) < 0.01f) {
+        RequestAnimationTicks();
+        return;
+    }
+
+    float previousOffset = m_offsetY;
+    StopSmoothScroll();
+    m_offsetY = m_offsetY + vel * dt;
+    ClampOffset();
+    m_scrollAnimator.JumpTo(m_offsetY);
+    PositionChildren();
+    if (std::abs(previousOffset - m_offsetY) > 0.01f) {
+        MarkScrollVisualDirty(previousOffset);
+    }
+    m_scrollbarAutoHide.NotifyActivity(this);
     RequestAnimationTicks();
 }
 
@@ -1071,7 +1152,8 @@ bool ScrollViewer::OnAnimationTick() {
 
 bool ScrollViewer::HasSelfAnimation() const {
     return (UIElement::AreAnimationsEnabled() && m_scrollAnimator.IsActive())
-        || m_scrollbarAutoHide.NeedsTicks();
+        || m_scrollbarAutoHide.NeedsTicks()
+        || m_middleScrollActive;
 }
 
 void ScrollViewer::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {

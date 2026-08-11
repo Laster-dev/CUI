@@ -3,6 +3,7 @@
 #endif
 #include "ListView.h"
 #include "ContextMenu.h"
+#include "MiddleClickAutoscroll.h"
 #include "../style/ThemeManager.h"
 #include <cmath>
 #include <algorithm>
@@ -81,6 +82,11 @@ ListView::ListView() {
 
 HCURSOR ListView::GetCursor() const {
     if (!IsEnabled()) return nullptr;
+    if (m_middleScrollActive) {
+        const float dx = m_middleLastMouse.x - m_middleOrigin.x;
+        const float dy = m_middleLastMouse.y - m_middleOrigin.y;
+        return MiddleClickAutoscroll::CursorForDelta(dx, dy, m_maxScrollX > 0.0f, m_maxScrollY > 0.0f);
+    }
     if (m_hoveredColumnSplitter != -1 || m_isResizingColumn) {
         return LoadCursor(nullptr, IDC_SIZEWE);
     }
@@ -386,6 +392,12 @@ void ListView::RebuildHeaderContextMenu() {
 }
 
 bool ListView::OnContextMenuRelease(Point pt) {
+    const bool didRubberBand = m_rightDragDidRubberBand || m_isRubberBandSelecting;
+    m_isRightMouseDown = false;
+    m_isRubberBandSelecting = false;
+    m_rightDragDidRubberBand = false;
+    InvalidateRowsLayer();
+
     if (m_headerContextMenuPending && m_headerContextMenu) {
         m_headerContextMenuPending = false;
         m_headerContextMenu->ShowAt(pt.x, pt.y);
@@ -396,6 +408,10 @@ bool ListView::OnContextMenuRelease(Point pt) {
         for (int r : m_selectedIndices) rows.push_back(r);
         if (rows.empty() && m_caretIndex >= 0) rows.push_back(m_caretIndex);
         return m_shellContextMenuHandler(pt, rows);
+    }
+    // After a right-button marquee, suppress the default empty context menu.
+    if (didRubberBand) {
+        return true;
     }
     return false;
 }
@@ -880,6 +896,27 @@ void ListView::OnRender(GraphicsContext& ctx) {
     }
 
     ctx.PopClip();
+
+    if (m_middleScrollActive) {
+        const bool dark = ThemeManager::Instance().GetThemeMode() == ThemeMode::Dark;
+        D2D1_COLOR_F fill = dark
+            ? D2D1::ColorF(0.18f, 0.18f, 0.20f, 0.92f)
+            : D2D1::ColorF(0.96f, 0.96f, 0.97f, 0.95f);
+        D2D1_COLOR_F stroke = dark
+            ? D2D1::ColorF(0.70f, 0.70f, 0.74f, 0.95f)
+            : D2D1::ColorF(0.35f, 0.35f, 0.40f, 0.90f);
+        D2D1_COLOR_F arrow = dark
+            ? D2D1::ColorF(0.92f, 0.92f, 0.95f, 1.0f)
+            : D2D1::ColorF(0.20f, 0.20f, 0.24f, 1.0f);
+        MiddleClickAutoscroll::PaintOriginIndicator(
+            ctx,
+            m_middleOrigin,
+            m_maxScrollX > 0.0f,
+            m_maxScrollY > 0.0f,
+            fill,
+            stroke,
+            arrow);
+    }
 }
 
 void ListView::OnMouseDown(Point pt) {
@@ -978,6 +1015,15 @@ void ListView::OnMouseDown(Point pt) {
 void ListView::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
 
+    if (m_middleScrollActive) {
+        m_middleLastMouse = pt;
+        ::SetCursor(GetCursor());
+        RequestAnimationTicks();
+        const float r = MiddleClickAutoscroll::kIndicatorRadius + 4.0f;
+        MarkRenderRectDirty(Rect(m_middleOrigin.x - r, m_middleOrigin.y - r, r * 2.0f, r * 2.0f));
+        return;
+    }
+
     const bool overBar = IsOverScrollbar(m_bounds, m_headerHeight, pt, m_maxScrollY > 0.0f);
     m_scrollbarAutoHide.SetPointerOver(overBar, this);
     if (overBar) {
@@ -1026,12 +1072,17 @@ void ListView::OnMouseMove(Point pt) {
         }
     }
 
-    // 4. Start Rubber-Band Drag Selection when dragging mouse
-    if (m_isMouseDown && !m_isResizingColumn && !m_isReorderingColumn && !m_isDraggingScrollbar && !m_isRubberBandSelecting) {
+    // 4. Start Rubber-Band Drag Selection when dragging mouse (left or right button)
+    if ((m_isMouseDown || m_isRightMouseDown)
+        && !m_isResizingColumn && !m_isReorderingColumn && !m_isDraggingScrollbar && !m_isRubberBandSelecting
+        && !m_middleScrollActive) {
         float dx = pt.x - m_mouseDownPoint.x;
         float dy = pt.y - m_mouseDownPoint.y;
         if (std::sqrt(dx * dx + dy * dy) > 4.0f) {
             m_isRubberBandSelecting = true;
+            if (m_isRightMouseDown) {
+                m_rightDragDidRubberBand = true;
+            }
             m_rubberBandStart.x = m_mouseDownPoint.x - m_bounds.x + m_scrollX;
             m_rubberBandStart.y = m_mouseDownPoint.y - m_bounds.y - m_headerHeight + m_scrollY;
             m_rubberBandScrollOffsetY = m_scrollY;
@@ -1159,6 +1210,12 @@ void ListView::OnMouseLeave() {
 void ListView::OnMouseRightClick(Point pt) {
     Control::OnMouseRightClick(pt);
     m_headerContextMenuPending = false;
+    m_isRightMouseDown = false;
+    m_rightDragDidRubberBand = false;
+    m_mouseDownPoint = pt;
+    m_initialSelectedBeforeDrag = m_selectedIndices;
+    m_targetScrollY = m_scrollY;
+    m_scrollYAnim.Reset(m_scrollY);
 
     if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
         RebuildHeaderContextMenu();
@@ -1166,18 +1223,58 @@ void ListView::OnMouseRightClick(Point pt) {
         return;
     }
 
-    int row = GetRowIndexFromY(pt.y);
-    if (row < 0 || row >= static_cast<int>(GetRowCount())) return;
+    m_isRightMouseDown = true;
 
-    // Keep rubber-band / multi-selection when right-clicking an already selected row.
-    if (!IsRowSelected(row)) {
-        m_selectedIndices.clear();
-        m_selectedIndices.insert(row);
-        m_anchorIndex = row;
-        m_onSelectionChangedEvent.Invoke(this, row);
-        InvalidateRowsLayer();
+    int row = GetRowIndexFromY(pt.y);
+    if (row >= 0 && row < static_cast<int>(GetRowCount())) {
+        // Keep rubber-band / multi-selection when right-clicking an already selected row.
+        if (!IsRowSelected(row)) {
+            m_selectedIndices.clear();
+            m_selectedIndices.insert(row);
+            m_anchorIndex = row;
+            m_onSelectionChangedEvent.Invoke(this, row);
+            InvalidateRowsLayer();
+        }
+        m_caretIndex = row;
+        m_initialSelectedBeforeDrag = m_selectedIndices;
+        return;
     }
-    m_caretIndex = row;
+
+    // Empty space — prepare marquee select (starts after move threshold).
+    bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    if (!ctrlDown) {
+        m_selectedIndices.clear();
+        m_onSelectionChangedEvent.Invoke(this, -1);
+    }
+    m_caretIndex = -1;
+    m_initialSelectedBeforeDrag = m_selectedIndices;
+    InvalidateRowsLayer();
+}
+
+bool ListView::OnMiddleButtonDown(Point pt) {
+    if (m_maxScrollY <= 0.0f && m_maxScrollX <= 0.0f) return false;
+    if (!m_bounds.Contains(pt.x, pt.y)) return false;
+
+    m_middleScrollActive = true;
+    m_middleOrigin = pt;
+    m_middleLastMouse = pt;
+    m_targetScrollY = m_scrollY;
+    m_scrollYAnim.Reset(m_scrollY);
+    m_scrollbarAutoHide.NotifyActivity(this);
+    RequestAnimationTicks();
+    ::SetCursor(GetCursor());
+    const float r = MiddleClickAutoscroll::kIndicatorRadius + 4.0f;
+    MarkRenderRectDirty(Rect(m_middleOrigin.x - r, m_middleOrigin.y - r, r * 2.0f, r * 2.0f));
+    return true;
+}
+
+void ListView::OnMiddleButtonUp(Point pt) {
+    (void)pt;
+    if (!m_middleScrollActive) return;
+    m_middleScrollActive = false;
+    const float r = MiddleClickAutoscroll::kIndicatorRadius + 4.0f;
+    MarkRenderRectDirty(Rect(m_middleOrigin.x - r, m_middleOrigin.y - r, r * 2.0f, r * 2.0f));
+    RequestAnimationTicks();
 }
 
 void ListView::OnMouseWheel(float delta) {
@@ -1272,6 +1369,34 @@ bool ListView::ApplyAutoScroll() {
 }
 
 void ListView::OnAutoScrollTick() {
+    if (m_middleScrollActive) {
+        const float dt = UIElement::GetAnimationDeltaSeconds();
+        if (dt > 0.0f) {
+            const float dx = m_middleLastMouse.x - m_middleOrigin.x;
+            const float dy = m_middleLastMouse.y - m_middleOrigin.y;
+            const float velY = (m_maxScrollY > 0.0f) ? MiddleClickAutoscroll::VelocityFromDelta(dy) : 0.0f;
+            const float velX = (m_maxScrollX > 0.0f) ? MiddleClickAutoscroll::VelocityFromDelta(dx) : 0.0f;
+            bool moved = false;
+            if (std::abs(velY) > 0.01f) {
+                m_targetScrollY = std::clamp(m_targetScrollY + velY * dt, 0.0f, m_maxScrollY);
+                m_scrollY = m_targetScrollY;
+                m_scrollYAnim.Reset(m_scrollY);
+                moved = true;
+            }
+            if (std::abs(velX) > 0.01f) {
+                m_scrollX = std::clamp(m_scrollX + velX * dt, 0.0f, m_maxScrollX);
+                moved = true;
+            }
+            if (moved) {
+                ClampScroll();
+                m_scrollbarAutoHide.NotifyActivity(this);
+                MarkRenderRectDirty(m_bounds);
+            }
+        }
+        RequestAnimationTicks();
+        return;
+    }
+
     if (!m_isRubberBandSelecting) return;
 
     if (ApplyAutoScroll()) {

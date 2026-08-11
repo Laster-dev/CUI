@@ -61,10 +61,13 @@ public:
     virtual void OnMouseLeave() override;
     virtual void OnMouseRightClick(Point pt) override;
     virtual bool OnContextMenuRelease(Point pt) override;
+    virtual bool OnMiddleButtonDown(Point pt) override;
+    virtual void OnMiddleButtonUp(Point pt) override;
+    virtual bool IsMiddleScrollActive() const override { return m_middleScrollActive; }
     virtual void OnKeyDown(int vkCode) override;
     virtual void OnMouseWheel(float delta) override;
     virtual void OnAutoScrollTick() override;
-    virtual bool NeedsAutoScrollTick() const override { return m_isRubberBandSelecting; }
+    virtual bool NeedsAutoScrollTick() const override { return m_isRubberBandSelecting || m_middleScrollActive; }
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
     virtual void OnThemeChanged() override;
@@ -185,6 +188,8 @@ private:
 
     // Rubber-band selection state
     bool m_isMouseDown = false;
+    bool m_isRightMouseDown = false;
+    bool m_rightDragDidRubberBand = false;
     Point m_mouseDownPoint;
     int m_pendingRowClick = -1;
     std::unordered_set<int> m_initialSelectedBeforeDrag;
@@ -193,6 +198,11 @@ private:
     Point m_rubberBandStart;     // content coordinates
     Point m_rubberBandCurrent;   // screen coordinates
     float m_rubberBandScrollOffsetY = 0.0f;
+
+    // Middle-click browser-style autoscroll
+    bool m_middleScrollActive = false;
+    Point m_middleOrigin{};
+    Point m_middleLastMouse{};
 
     // Auto-scroll state
     float m_autoScrollLastMouseX = 0.0f;
