@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../UIElement.h"
+#include "../../animation/AnimationSystem.h"
 #include "DockTypes.h"
 #include "DockFloatWindow.h"
 #include <memory>
@@ -54,8 +55,9 @@ public:
     void OnMouseLeave() override;
     HCURSOR GetCursor() const override;
     bool OnAnimationTick() override;
+    bool HasSelfAnimation() const override;
+    void OnMouseWheel(float delta) override;
 
-    // Used by DockFloatWindow / serializer.
     void NotifyFloatClosed(DockFloatWindow* wnd);
     Point LocalToScreenDip(Point local) const;
     HWND OwnerHwnd() const;
@@ -80,21 +82,21 @@ private:
     struct HitResult {
         HitPart part = HitPart::None;
         DockSide side = DockSide::None;
-        int groupPaneLocal = -1; // index within group
+        int groupPaneLocal = -1;
         int paneIndex = -1;
-        int splitter = -1; // 0=L,1=R,2=T,3=B
+        int splitter = -1;
     };
 
     struct SlotGeom {
         Rect outer;
         Rect header;
         Rect content;
-        Rect tabStrip;   // clipped region for tabs (excludes chrome buttons)
+        Rect tabStrip;
         Rect pinBtn;
         Rect closeBtn;
         Rect scrollLeft;
         Rect scrollRight;
-        std::vector<Rect> tabs; // absolute positions (may extend past strip; clipped when drawn/hit)
+        std::vector<Rect> tabs;
         float totalTabsWidth = 0.0f;
         bool showScroll = false;
         bool visible = false;
@@ -103,11 +105,19 @@ private:
     struct LayoutGeom {
         SlotGeom left, right, top, bottom, center;
         Rect splitL, splitR, splitT, splitB;
+        Rect visSplitL, visSplitR, visSplitT, visSplitB;
         float strip = 22.0f;
     };
 
+    struct SideChromeAnim {
+        AnimatedScalar underlineX{ 0.0f };
+        AnimatedScalar underlineW{ 0.0f };
+        AnimatedScalar contentFade{ 1.0f };
+        bool underlineInited = false;
+    };
+
     static constexpr float kHeaderH = 28.0f;
-    static constexpr float kSplitThick = 5.0f;
+    static constexpr float kSplitHit = 5.0f;
     static constexpr float kDragThreshold = 6.0f;
     static constexpr float kMinSide = 80.0f;
     static constexpr float kMinCenter = 120.0f;
@@ -120,6 +130,8 @@ private:
     std::string MakePaneId();
     DockTabGroup& SlotGroup(DockSide side);
     const DockTabGroup& SlotGroup(DockSide side) const;
+    SideChromeAnim& SideAnim(DockSide side);
+    const SideChromeAnim& SideAnim(DockSide side) const;
     DockSide SideOfPane(int paneIndex) const;
     void RemovePaneFromAllSlots(int paneIndex);
     void AddPaneToSlot(int paneIndex, DockSide side, bool select = true);
@@ -127,6 +139,9 @@ private:
     void RelayoutContents();
     void ApplyLayoutNow();
     void EnsureTabVisible(DockSide side);
+    void SyncSideUnderline(DockSide side, bool jump);
+    void BeginContentFade(DockSide side);
+    void ApplyContentFadeOpacities();
     float MeasureTabWidth(const std::string& title) const;
     LayoutGeom ComputeGeom(const Rect& bounds);
     void FillSlotGeom(SlotGeom& slot, DockTabGroup& group, DockSide side, Rect outer);
@@ -141,10 +156,13 @@ private:
     void DrawGuides(GraphicsContext& ctx) const;
     void DrawDragGhost(GraphicsContext& ctx) const;
     void DrawAutoHideStrips(GraphicsContext& ctx) const;
+    void DrawChromeButtonBg(GraphicsContext& ctx, const Rect& r, float hoverT, bool danger) const;
+    void DrawCloseGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR_F color) const;
+    void DrawPinGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR_F color, bool autoHide) const;
     int SelectedPaneOf(const DockTabGroup& g) const;
     void SelectInGroup(DockSide side, int localIndex);
     void CloseFloatForPane(int paneIndex);
-    void OnMouseWheel(float delta) override;
+    const SlotGeom* SlotGeomFor(DockSide side) const;
 
     Window* m_ownerWindow = nullptr;
     std::vector<DockPaneData> m_panes;
@@ -160,16 +178,22 @@ private:
     LayoutGeom m_geom{};
     HitResult m_hover{};
 
-    // Drag
     bool m_dragArmed = false;
     bool m_dragging = false;
     int m_dragPane = -1;
     Point m_dragStart{};
     Point m_dragPt{};
     DockDropKind m_dropHighlight = DockDropKind::None;
-    float m_guideOpacity = 0.0f;
+    AnimatedScalar m_guideOpacity{ 0.0f };
+    AnimatedScalar m_dropPulse{ 0.0f };
 
-    // Splitter drag
+    SideChromeAnim m_animLeft, m_animRight, m_animTop, m_animBottom, m_animCenter;
+    AnimatedScalar m_hoverPin{ 0.0f };
+    AnimatedScalar m_hoverClose{ 0.0f };
+    AnimatedScalar m_hoverScrollL{ 0.0f };
+    AnimatedScalar m_hoverScrollR{ 0.0f };
+    DockSide m_hoverBtnSide = DockSide::None;
+
     int m_activeSplitter = -1;
     float m_splitStartSize = 0.0f;
     Point m_splitStartPt{};

@@ -11,6 +11,33 @@
 
 namespace CUI {
 
+namespace {
+AnimationSpec HoverSpec() {
+    AnimationSpec s;
+    s.responseAt60Hz = 0.28f;
+    s.epsilon = 0.01f;
+    return s;
+}
+AnimationSpec TabSpec() {
+    AnimationSpec s;
+    s.responseAt60Hz = 0.22f;
+    s.epsilon = 0.5f;
+    return s;
+}
+AnimationSpec FadeSpec() {
+    AnimationSpec s;
+    s.maxDurationSeconds = 0.14f;
+    s.epsilon = 0.01f;
+    return s;
+}
+AnimationSpec GuideSpec() {
+    AnimationSpec s;
+    s.maxDurationSeconds = 0.12f;
+    s.epsilon = 0.01f;
+    return s;
+}
+} // namespace
+
 DockManager::DockManager() {
     SetBackgroundToken(ThemeTokenId::WindowBackground);
     SetClipToBounds(true);
@@ -66,6 +93,36 @@ const DockTabGroup& DockManager::SlotGroup(DockSide side) const {
     }
 }
 
+DockManager::SideChromeAnim& DockManager::SideAnim(DockSide side) {
+    switch (side) {
+    case DockSide::Left: return m_animLeft;
+    case DockSide::Right: return m_animRight;
+    case DockSide::Top: return m_animTop;
+    case DockSide::Bottom: return m_animBottom;
+    default: return m_animCenter;
+    }
+}
+
+const DockManager::SideChromeAnim& DockManager::SideAnim(DockSide side) const {
+    switch (side) {
+    case DockSide::Left: return m_animLeft;
+    case DockSide::Right: return m_animRight;
+    case DockSide::Top: return m_animTop;
+    case DockSide::Bottom: return m_animBottom;
+    default: return m_animCenter;
+    }
+}
+
+const DockManager::SlotGeom* DockManager::SlotGeomFor(DockSide side) const {
+    switch (side) {
+    case DockSide::Left: return &m_geom.left;
+    case DockSide::Right: return &m_geom.right;
+    case DockSide::Top: return &m_geom.top;
+    case DockSide::Bottom: return &m_geom.bottom;
+    default: return &m_geom.center;
+    }
+}
+
 void DockManager::SetSideSize(DockSide side, float size) {
     size = (std::max)(kMinSide, size);
     switch (side) {
@@ -102,13 +159,81 @@ void DockManager::SelectInGroup(DockSide side, int localIndex) {
     if (localIndex < 0 || localIndex >= static_cast<int>(g.paneIndices.size())) {
         return;
     }
+    if (g.selected == localIndex) {
+        EnsureTabVisible(side);
+        SyncSideUnderline(side, false);
+        ApplyLayoutNow();
+        return;
+    }
     g.selected = localIndex;
     EnsureTabVisible(side);
+    BeginContentFade(side);
+    SyncSideUnderline(side, false);
     ApplyLayoutNow();
+}
+
+void DockManager::BeginContentFade(DockSide side) {
+    auto& anim = SideAnim(side);
+    if (AreAnimationsEnabled()) {
+        anim.contentFade.Reset(0.15f);
+        anim.contentFade.SetTarget(1.0f);
+        RequestAnimationTicks();
+    } else {
+        anim.contentFade.Reset(1.0f);
+    }
+}
+
+void DockManager::ApplyContentFadeOpacities() {
+    auto apply = [&](DockSide side) {
+        const auto& group = SlotGroup(side);
+        const int sel = SelectedPaneOf(group);
+        const float t = SideAnim(side).contentFade.Current();
+        for (int idx : group.paneIndices) {
+            if (idx < 0 || idx >= static_cast<int>(m_panes.size()) || !m_panes[idx].content) {
+                continue;
+            }
+            if (idx == sel) {
+                m_panes[idx].content->PromoteLayer(true);
+                m_panes[idx].content->SetComposeOpacity(std::clamp(t, 0.0f, 1.0f));
+            }
+        }
+    };
+    apply(DockSide::Left);
+    apply(DockSide::Right);
+    apply(DockSide::Top);
+    apply(DockSide::Bottom);
+    apply(DockSide::Center);
+}
+
+void DockManager::SyncSideUnderline(DockSide side, bool jump) {
+    auto& anim = SideAnim(side);
+    const auto* slot = SlotGeomFor(side);
+    const auto& group = SlotGroup(side);
+    if (!slot || !slot->visible || group.paneIndices.empty()
+        || group.selected < 0 || group.selected >= static_cast<int>(slot->tabs.size())) {
+        return;
+    }
+    const Rect& tr = slot->tabs[group.selected];
+    const float x = tr.x;
+    const float w = tr.width;
+    if (jump || !anim.underlineInited || !AreAnimationsEnabled()) {
+        anim.underlineX.Reset(x);
+        anim.underlineW.Reset(w);
+        anim.underlineInited = true;
+    } else {
+        anim.underlineX.SetTarget(x);
+        anim.underlineW.SetTarget(w);
+        anim.underlineInited = true;
+        RequestAnimationTicks();
+    }
 }
 
 void DockManager::ApplyLayoutNow() {
     RelayoutContents();
+    for (DockSide s : { DockSide::Left, DockSide::Right, DockSide::Top, DockSide::Bottom, DockSide::Center }) {
+        SyncSideUnderline(s, !SideAnim(s).underlineInited);
+    }
+    ApplyContentFadeOpacities();
     MarkRenderRectDirty(m_bounds);
     RequestAnimationTicks();
 }
@@ -559,13 +684,13 @@ DockManager::LayoutGeom DockManager::ComputeGeom(const Rect& bounds) {
 
     float leftW = hasL ? (std::min)(m_leftSize, (std::max)(kMinSide, w - kMinCenter - (hasR ? m_rightSize : 0.0f))) : 0.0f;
     float rightW = hasR ? (std::min)(m_rightSize, (std::max)(kMinSide, w - kMinCenter - leftW)) : 0.0f;
-    float midW = w - leftW - rightW - (hasL ? kSplitThick : 0.0f) - (hasR ? kSplitThick : 0.0f);
+    float midW = w - leftW - rightW - (hasL ? kSplitHit : 0.0f) - (hasR ? kSplitHit : 0.0f);
     midW = (std::max)(kMinCenter, midW);
 
     // Recalc if mid squeezed.
-    if (leftW + rightW + midW + (hasL ? kSplitThick : 0) + (hasR ? kSplitThick : 0) > w) {
-        midW = (std::max)(kMinCenter, w - (hasL ? kMinSide + kSplitThick : 0) - (hasR ? kMinSide + kSplitThick : 0));
-        float rem = w - midW - (hasL ? kSplitThick : 0) - (hasR ? kSplitThick : 0);
+    if (leftW + rightW + midW + (hasL ? kSplitHit : 0) + (hasR ? kSplitHit : 0) > w) {
+        midW = (std::max)(kMinCenter, w - (hasL ? kMinSide + kSplitHit : 0) - (hasR ? kMinSide + kSplitHit : 0));
+        float rem = w - midW - (hasL ? kSplitHit : 0) - (hasR ? kSplitHit : 0);
         if (hasL && hasR) {
             const float sum = m_leftSize + m_rightSize;
             leftW = rem * (m_leftSize / (std::max)(1.0f, sum));
@@ -577,10 +702,10 @@ DockManager::LayoutGeom DockManager::ComputeGeom(const Rect& bounds) {
         }
     }
 
-    float midX = x + leftW + (hasL ? kSplitThick : 0.0f);
+    float midX = x + leftW + (hasL ? kSplitHit : 0.0f);
     float topH = hasT ? (std::min)(m_topSize, (std::max)(kMinSide, h - kMinCenter - (hasB ? m_bottomSize : 0.0f))) : 0.0f;
     float botH = hasB ? (std::min)(m_bottomSize, (std::max)(kMinSide, h - kMinCenter - topH)) : 0.0f;
-    float midH = h - topH - botH - (hasT ? kSplitThick : 0.0f) - (hasB ? kSplitThick : 0.0f);
+    float midH = h - topH - botH - (hasT ? kSplitHit : 0.0f) - (hasB ? kSplitHit : 0.0f);
     midH = (std::max)(40.0f, midH);
 
     auto fillSlot = [&](SlotGeom& slot, DockTabGroup& group, DockSide side, Rect outer) {
@@ -589,23 +714,27 @@ DockManager::LayoutGeom DockManager::ComputeGeom(const Rect& bounds) {
 
     if (hasL) {
         fillSlot(g.left, m_left, DockSide::Left, Rect(x, y, leftW, h));
-        g.splitL = Rect(x + leftW, y, kSplitThick, h);
+        g.splitL = Rect(x + leftW, y, kSplitHit, h);
+        g.visSplitL = Rect(x + leftW + (kSplitHit - 1.0f) * 0.5f, y, 1.0f, h);
     }
     if (hasR) {
         fillSlot(g.right, m_right, DockSide::Right, Rect(x + w - rightW, y, rightW, h));
-        g.splitR = Rect(x + w - rightW - kSplitThick, y, kSplitThick, h);
+        g.splitR = Rect(x + w - rightW - kSplitHit, y, kSplitHit, h);
+        g.visSplitR = Rect(x + w - rightW - kSplitHit + (kSplitHit - 1.0f) * 0.5f, y, 1.0f, h);
     }
 
     float colY = y;
     if (hasT) {
         fillSlot(g.top, m_top, DockSide::Top, Rect(midX, colY, midW, topH));
-        g.splitT = Rect(midX, colY + topH, midW, kSplitThick);
-        colY += topH + kSplitThick;
+        g.splitT = Rect(midX, colY + topH, midW, kSplitHit);
+        g.visSplitT = Rect(midX, colY + topH + (kSplitHit - 1.0f) * 0.5f, midW, 1.0f);
+        colY += topH + kSplitHit;
     }
     float centerH = midH;
     if (hasB) {
         fillSlot(g.bottom, m_bottom, DockSide::Bottom, Rect(midX, y + h - botH, midW, botH));
-        g.splitB = Rect(midX, y + h - botH - kSplitThick, midW, kSplitThick);
+        g.splitB = Rect(midX, y + h - botH - kSplitHit, midW, kSplitHit);
+        g.visSplitB = Rect(midX, y + h - botH - kSplitHit + (kSplitHit - 1.0f) * 0.5f, midW, 1.0f);
     }
     if (hasC || (!hasT && !hasB)) {
         fillSlot(g.center, m_center, DockSide::Center, Rect(midX, colY, midW, centerH));
@@ -878,7 +1007,8 @@ void DockManager::BeginDrag(int paneIndex, Point pt) {
     m_dragging = true;
     m_dragPane = paneIndex;
     m_dragPt = pt;
-    m_guideOpacity = 0.0f;
+    m_guideOpacity.Reset(0.0f);
+    m_guideOpacity.SetTarget(1.0f);
     m_dropHighlight = HitTestDrop(pt.x, pt.y);
     RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds);
@@ -896,6 +1026,8 @@ void DockManager::CancelDrag() {
     m_dragArmed = false;
     m_dragPane = -1;
     m_dropHighlight = DockDropKind::None;
+    m_guideOpacity.SetTarget(0.0f);
+    RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds);
 }
 
@@ -908,12 +1040,13 @@ void DockManager::EndDrag(Point pt) {
     const DockDropKind drop = HitTestDrop(pt.x, pt.y);
     CancelDrag();
 
+    DockSide landed = DockSide::None;
     switch (drop) {
-    case DockDropKind::EdgeLeft: DockPane(pane, DockSide::Left); break;
-    case DockDropKind::EdgeRight: DockPane(pane, DockSide::Right); break;
-    case DockDropKind::EdgeTop: DockPane(pane, DockSide::Top); break;
-    case DockDropKind::EdgeBottom: DockPane(pane, DockSide::Bottom); break;
-    case DockDropKind::IntoCenter: DockPane(pane, DockSide::Center); break;
+    case DockDropKind::EdgeLeft: landed = DockSide::Left; DockPane(pane, landed); break;
+    case DockDropKind::EdgeRight: landed = DockSide::Right; DockPane(pane, landed); break;
+    case DockDropKind::EdgeTop: landed = DockSide::Top; DockPane(pane, landed); break;
+    case DockDropKind::EdgeBottom: landed = DockSide::Bottom; DockPane(pane, landed); break;
+    case DockDropKind::IntoCenter: landed = DockSide::Center; DockPane(pane, landed); break;
     case DockDropKind::None:
         if (!m_bounds.Contains(pt.x, pt.y)) {
             FloatPane(pane, LocalToScreenDip(pt));
@@ -921,6 +1054,14 @@ void DockManager::EndDrag(Point pt) {
         break;
     default:
         break;
+    }
+    if (landed != DockSide::None) {
+        BeginContentFade(landed);
+        m_dropPulse.Reset(1.0f);
+        m_dropPulse.SetTarget(0.0f);
+        RequestAnimationTicks();
+        ApplyContentFadeOpacities();
+        MarkRenderRectDirty(m_bounds);
     }
 }
 
@@ -983,8 +1124,28 @@ void DockManager::OnMouseMove(Point pt) {
 
     const HitResult prev = m_hover;
     m_hover = HitTestChrome(pt.x, pt.y);
-    if (prev.part != m_hover.part || prev.paneIndex != m_hover.paneIndex || prev.groupPaneLocal != m_hover.groupPaneLocal) {
+    if (prev.part != m_hover.part || prev.paneIndex != m_hover.paneIndex
+        || prev.groupPaneLocal != m_hover.groupPaneLocal || prev.side != m_hover.side) {
         MarkRenderContentDirty();
+    }
+
+    // VS-style chrome hover fade
+    m_hoverBtnSide = m_hover.side;
+    const bool pinHot = (m_hover.part == HitPart::Pin);
+    const bool closeHot = (m_hover.part == HitPart::Close);
+    const bool scrollL = (m_hover.part == HitPart::TabScrollLeft);
+    const bool scrollR = (m_hover.part == HitPart::TabScrollRight);
+    m_hoverPin.SetTarget(pinHot ? 1.0f : 0.0f);
+    m_hoverClose.SetTarget(closeHot ? 1.0f : 0.0f);
+    m_hoverScrollL.SetTarget(scrollL ? 1.0f : 0.0f);
+    m_hoverScrollR.SetTarget(scrollR ? 1.0f : 0.0f);
+    if (!AreAnimationsEnabled()) {
+        m_hoverPin.Reset(pinHot ? 1.0f : 0.0f);
+        m_hoverClose.Reset(closeHot ? 1.0f : 0.0f);
+        m_hoverScrollL.Reset(scrollL ? 1.0f : 0.0f);
+        m_hoverScrollR.Reset(scrollR ? 1.0f : 0.0f);
+    } else {
+        RequestAnimationTicks();
     }
 }
 
@@ -1008,6 +1169,11 @@ void DockManager::OnMouseLeave() {
         m_hover = {};
         MarkRenderContentDirty();
     }
+    m_hoverPin.SetTarget(0.0f);
+    m_hoverClose.SetTarget(0.0f);
+    m_hoverScrollL.SetTarget(0.0f);
+    m_hoverScrollR.SetTarget(0.0f);
+    RequestAnimationTicks();
 }
 
 HCURSOR DockManager::GetCursor() const {
@@ -1023,25 +1189,95 @@ HCURSOR DockManager::GetCursor() const {
     return nullptr;
 }
 
+bool DockManager::HasSelfAnimation() const {
+    if (m_dragging || m_guideOpacity.Current() > 0.01f || m_dropPulse.Current() > 0.01f) {
+        return true;
+    }
+    auto busy = [](const SideChromeAnim& a) {
+        return std::abs(a.underlineX.Current() - a.underlineX.Target()) > 0.2f
+            || std::abs(a.underlineW.Current() - a.underlineW.Target()) > 0.2f
+            || std::abs(a.contentFade.Current() - a.contentFade.Target()) > 0.01f;
+    };
+    return busy(m_animLeft) || busy(m_animRight) || busy(m_animTop) || busy(m_animBottom) || busy(m_animCenter)
+        || std::abs(m_hoverPin.Current() - m_hoverPin.Target()) > 0.01f
+        || std::abs(m_hoverClose.Current() - m_hoverClose.Target()) > 0.01f
+        || std::abs(m_hoverScrollL.Current() - m_hoverScrollL.Target()) > 0.01f
+        || std::abs(m_hoverScrollR.Current() - m_hoverScrollR.Target()) > 0.01f;
+}
+
 bool DockManager::OnAnimationTick() {
     bool any = UIElement::OnAnimationTick();
-    const float target = m_dragging ? 1.0f : 0.0f;
-    if (std::abs(m_guideOpacity - target) > 0.01f) {
-        constexpr float step = 8.0f / 60.0f;
-        if (m_guideOpacity < target) {
-            m_guideOpacity = (std::min)(target, m_guideOpacity + step);
-        } else {
-            m_guideOpacity = (std::max)(target, m_guideOpacity - step);
-        }
+    const float dt = GetAnimationDeltaSeconds();
+
+    m_guideOpacity.SetTarget(m_dragging ? 1.0f : 0.0f);
+    any = m_guideOpacity.Tick(dt, GuideSpec()) || any;
+    any = m_dropPulse.Tick(dt, FadeSpec()) || any;
+    any = m_hoverPin.Tick(dt, HoverSpec()) || any;
+    any = m_hoverClose.Tick(dt, HoverSpec()) || any;
+    any = m_hoverScrollL.Tick(dt, HoverSpec()) || any;
+    any = m_hoverScrollR.Tick(dt, HoverSpec()) || any;
+
+    auto tickSide = [&](SideChromeAnim& a) {
+        any = a.underlineX.Tick(dt, TabSpec()) || any;
+        any = a.underlineW.Tick(dt, TabSpec()) || any;
+        any = a.contentFade.Tick(dt, FadeSpec()) || any;
+    };
+    tickSide(m_animLeft);
+    tickSide(m_animRight);
+    tickSide(m_animTop);
+    tickSide(m_animBottom);
+    tickSide(m_animCenter);
+
+    ApplyContentFadeOpacities();
+
+    if (any || m_dragging || HasSelfAnimation()) {
         MarkRenderRectDirty(m_bounds);
-        any = true;
-    } else {
-        m_guideOpacity = target;
-    }
-    if (m_dragging) {
         any = true;
     }
     return any;
+}
+
+void DockManager::DrawChromeButtonBg(GraphicsContext& ctx, const Rect& r, float hoverT, bool danger) const {
+    if (r.IsEmpty() || hoverT <= 0.01f) {
+        return;
+    }
+    const auto& tokens = ThemeManager::Instance().GetTokens();
+    if (danger) {
+        D2D1_COLOR_F bg = tokens.dangerColor;
+        bg.a = 0.85f * hoverT;
+        ctx.FillRect(r, bg);
+    } else {
+        const bool light = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
+        const float peak = light ? 0.10f : 0.18f;
+        ctx.FillRect(r, D2D1::ColorF(
+            tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, peak * hoverT));
+    }
+}
+
+void DockManager::DrawCloseGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR_F color) const {
+    const float cx = r.x + r.width * 0.5f;
+    const float cy = r.y + r.height * 0.5f;
+    const float arm = 4.2f;
+    ctx.DrawLine(Point(cx - arm, cy - arm), Point(cx + arm, cy + arm), color, 1.15f);
+    ctx.DrawLine(Point(cx + arm, cy - arm), Point(cx - arm, cy + arm), color, 1.15f);
+}
+
+void DockManager::DrawPinGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR_F color, bool autoHide) const {
+    const float cx = r.x + r.width * 0.5f;
+    const float cy = r.y + r.height * 0.5f;
+    if (!autoHide) {
+        ctx.DrawLine(Point(cx, cy + 0.5f), Point(cx, cy + 5.5f), color, 1.2f);
+        ctx.DrawLine(Point(cx - 3.5f, cy - 4.0f), Point(cx + 3.5f, cy - 4.0f), color, 1.15f);
+        ctx.DrawLine(Point(cx - 3.5f, cy - 4.0f), Point(cx - 4.5f, cy - 0.5f), color, 1.1f);
+        ctx.DrawLine(Point(cx + 3.5f, cy - 4.0f), Point(cx + 4.5f, cy - 0.5f), color, 1.1f);
+        ctx.DrawLine(Point(cx - 4.5f, cy - 0.5f), Point(cx + 4.5f, cy - 0.5f), color, 1.15f);
+    } else {
+        ctx.DrawLine(Point(cx - 0.5f, cy), Point(cx - 5.5f, cy), color, 1.2f);
+        ctx.DrawLine(Point(cx + 4.0f, cy - 3.5f), Point(cx + 4.0f, cy + 3.5f), color, 1.15f);
+        ctx.DrawLine(Point(cx + 4.0f, cy - 3.5f), Point(cx + 0.5f, cy - 4.5f), color, 1.1f);
+        ctx.DrawLine(Point(cx + 4.0f, cy + 3.5f), Point(cx + 0.5f, cy + 4.5f), color, 1.1f);
+        ctx.DrawLine(Point(cx + 0.5f, cy - 4.5f), Point(cx + 0.5f, cy + 4.5f), color, 1.15f);
+    }
 }
 
 void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& g) const {
@@ -1050,6 +1286,7 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
     }
     const auto& tokens = ThemeManager::Instance().GetTokens();
     const DockTabGroup& group = SlotGroup(side);
+    const auto& anim = SideAnim(side);
 
     ctx.FillRect(g.outer, tokens.paneBackground);
     ctx.DrawRect(g.outer, tokens.cardBorder, 1.0f);
@@ -1060,15 +1297,18 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
         tokens.cardBorder,
         1.0f);
 
+    const bool sideHover = (m_hoverBtnSide == side);
+    const float scrollLT = sideHover ? m_hoverScrollL.Current() : 0.0f;
+    const float scrollRT = sideHover ? m_hoverScrollR.Current() : 0.0f;
+    const float pinT = sideHover ? m_hoverPin.Current() : 0.0f;
+    const float closeT = sideHover ? m_hoverClose.Current() : 0.0f;
     if (g.showScroll) {
-        const bool leftHot = (m_hover.part == HitPart::TabScrollLeft && m_hover.side == side);
-        const bool rightHot = (m_hover.part == HitPart::TabScrollRight && m_hover.side == side);
-        ctx.FillRect(g.scrollLeft, leftHot ? tokens.windowBackground : tokens.cardBackground);
-        ctx.FillRect(g.scrollRight, rightHot ? tokens.windowBackground : tokens.cardBackground);
-        ctx.DrawText("<", g.scrollLeft, leftHot ? tokens.accentColor : tokens.textSecondary,
-                     "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        ctx.DrawText(">", g.scrollRight, rightHot ? tokens.accentColor : tokens.textSecondary,
-                     "Segoe UI", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        DrawChromeButtonBg(ctx, g.scrollLeft, scrollLT, false);
+        DrawChromeButtonBg(ctx, g.scrollRight, scrollRT, false);
+        D2D1_COLOR_F cL = (scrollLT > 0.01f) ? tokens.textPrimary : tokens.textSecondary;
+        D2D1_COLOR_F cR = (scrollRT > 0.01f) ? tokens.textPrimary : tokens.textSecondary;
+        ctx.DrawChevron(g.scrollLeft, cL, GraphicsContext::ChevronDirection::Left, 1.4f);
+        ctx.DrawChevron(g.scrollRight, cR, GraphicsContext::ChevronDirection::Right, 1.4f);
     }
 
     // Clip tabs to strip so overflow never paints over pin/close (VS behavior).
@@ -1083,18 +1323,17 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
             const bool hot = (m_hover.part == HitPart::Tab && m_hover.side == side && m_hover.groupPaneLocal == i);
             if (sel) {
                 ctx.FillRect(tr, tokens.windowBackground);
-                ctx.FillRect(Rect(tr.x, tr.y + tr.height - 2.0f, tr.width, 2.0f), tokens.accentColor);
             } else if (hot) {
-                D2D1_COLOR_F hov = tokens.accentColor;
-                hov.a = 0.12f;
-                ctx.FillRect(tr, hov);
+                ctx.FillRect(tr, D2D1::ColorF(
+                    tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, 0.06f));
             }
-            // Separator like VS tool-window tabs
-            ctx.DrawLine(
-                Point(tr.x + tr.width - 0.5f, tr.y + 6.0f),
-                Point(tr.x + tr.width - 0.5f, tr.y + tr.height - 6.0f),
-                tokens.cardBorder,
-                1.0f);
+            if (i + 1 < static_cast<int>(g.tabs.size())) {
+                ctx.DrawLine(
+                    Point(tr.x + tr.width - 0.5f, tr.y + 7.0f),
+                    Point(tr.x + tr.width - 0.5f, tr.y + tr.height - 7.0f),
+                    tokens.cardBorder,
+                    1.0f);
+            }
 
             const int paneIdx = group.paneIndices[i];
             const std::string& title = (paneIdx >= 0 && paneIdx < static_cast<int>(m_panes.size()))
@@ -1111,34 +1350,31 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
                 sel ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
                 true);
         }
+        if (!group.paneIndices.empty() && anim.underlineInited) {
+            const float ux = anim.underlineX.Current();
+            const float uw = (std::max)(8.0f, anim.underlineW.Current());
+            ctx.FillRect(Rect(ux, g.tabStrip.y + g.tabStrip.height - 2.0f, uw, 2.0f), tokens.accentColor);
+        }
         ctx.PopClip();
     }
 
-    // Chrome buttons drawn AFTER clip so they stay sharp and never overlap tab text.
+    if (m_dropPulse.Current() > 0.02f && anim.contentFade.Current() < 0.99f) {
+        D2D1_COLOR_F flash = tokens.accentColor;
+        flash.a = 0.12f * m_dropPulse.Current();
+        ctx.FillRect(g.outer, flash);
+    }
+
     if (side != DockSide::Center && !group.paneIndices.empty() && !g.pinBtn.IsEmpty()) {
-        const bool pinHot = (m_hover.part == HitPart::Pin && m_hover.side == side);
-        ctx.FillRect(g.pinBtn, tokens.cardBackground);
-        ctx.DrawText(
-            "^",
-            g.pinBtn,
-            pinHot ? tokens.accentColor : tokens.textSecondary,
-            "Segoe UI",
-            13.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_BOLD);
+        DrawChromeButtonBg(ctx, g.pinBtn, pinT, false);
+        const int sel = SelectedPaneOf(group);
+        const bool ah = (sel >= 0 && sel < static_cast<int>(m_panes.size()) && m_panes[sel].autoHide);
+        D2D1_COLOR_F icon = (pinT > 0.4f) ? tokens.textPrimary : tokens.textSecondary;
+        DrawPinGlyph(ctx, g.pinBtn, icon, ah);
     }
     if (!group.paneIndices.empty() && !g.closeBtn.IsEmpty()) {
-        const bool closeHot = (m_hover.part == HitPart::Close && m_hover.side == side);
-        ctx.FillRect(g.closeBtn, tokens.cardBackground);
-        ctx.DrawText(
-            "×",
-            g.closeBtn,
-            closeHot ? tokens.accentColor : tokens.textSecondary,
-            "Segoe UI",
-            14.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        DrawChromeButtonBg(ctx, g.closeBtn, closeT, true);
+        D2D1_COLOR_F icon = (closeT > 0.4f) ? tokens.accentForeground : tokens.textSecondary;
+        DrawCloseGlyph(ctx, g.closeBtn, icon);
     }
 
     if (side == DockSide::Center && group.paneIndices.empty()) {
@@ -1200,7 +1436,8 @@ void DockManager::DrawAutoHideStrips(GraphicsContext& ctx) const {
 }
 
 void DockManager::DrawGuides(GraphicsContext& ctx) const {
-    if (m_guideOpacity <= 0.01f) {
+    const float guideOp = m_guideOpacity.Current();
+    if (guideOp <= 0.01f) {
         return;
     }
     const auto& tokens = ThemeManager::Instance().GetTokens();
@@ -1210,15 +1447,15 @@ void DockManager::DrawGuides(GraphicsContext& ctx) const {
         const Rect r = GuideHot(k, m_bounds);
         const bool hot = (k == m_dropHighlight);
         D2D1_COLOR_F fill = tokens.accentColor;
-        fill.a = (hot ? 0.55f : 0.28f) * m_guideOpacity;
+        fill.a = (hot ? 0.55f : 0.28f) * guideOp;
         ctx.FillRoundedRect(r, 3.0f, fill);
         D2D1_COLOR_F stroke = tokens.accentColor;
-        stroke.a *= m_guideOpacity;
+        stroke.a *= guideOp;
         ctx.DrawRoundedRect(r, 3.0f, stroke, 1.0f);
     }
     if (m_dropHighlight != DockDropKind::None) {
         D2D1_COLOR_F preview = tokens.accentColor;
-        preview.a = 0.16f * m_guideOpacity;
+        preview.a = 0.16f * guideOp;
         Rect band = m_bounds;
         switch (m_dropHighlight) {
         case DockDropKind::EdgeLeft: band.width *= 0.28f; break;
@@ -1263,15 +1500,15 @@ void DockManager::OnRender(GraphicsContext& ctx) {
     const auto& tokens = ThemeManager::Instance().GetTokens();
     ctx.FillRect(m_bounds, tokens.windowBackground);
 
-    // Splitters
+    // VS: 1px visual splitter, larger invisible hit target.
     auto drawSplit = [&](const Rect& r) {
         if (r.IsEmpty()) return;
         ctx.FillRect(r, tokens.cardBorder);
     };
-    drawSplit(m_geom.splitL);
-    drawSplit(m_geom.splitR);
-    drawSplit(m_geom.splitT);
-    drawSplit(m_geom.splitB);
+    drawSplit(m_geom.visSplitL);
+    drawSplit(m_geom.visSplitR);
+    drawSplit(m_geom.visSplitT);
+    drawSplit(m_geom.visSplitB);
 
     DrawSlot(ctx, DockSide::Left, m_geom.left);
     DrawSlot(ctx, DockSide::Right, m_geom.right);
