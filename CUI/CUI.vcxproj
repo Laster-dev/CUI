@@ -191,6 +191,7 @@
     <ClCompile Include="showcase\app\pages\CanvasPage.cpp" />
     <ClCompile Include="showcase\app\pages\WrapPage.cpp" />
     <ClCompile Include="showcase\app\pages\DockPage.cpp" />
+    <ClCompile Include="showcase\app\pages\DockingPage.cpp" />
     <ClCompile Include="showcase\app\pages\UniformPage.cpp" />
     <ClCompile Include="showcase\app\pages\StackPanelPage.cpp" />
     <ClCompile Include="showcase\app\pages\ScrollViewerPage.cpp" />

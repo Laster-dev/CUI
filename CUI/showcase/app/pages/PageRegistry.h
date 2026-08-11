@@ -39,6 +39,7 @@ ShowcasePage BuildGridPage(const ShowcaseContext& ctx);
 ShowcasePage BuildCanvasPage(const ShowcaseContext& ctx);
 ShowcasePage BuildWrapPage(const ShowcaseContext& ctx);
 ShowcasePage BuildDockPage(const ShowcaseContext& ctx);
+ShowcasePage BuildDockingPage(const ShowcaseContext& ctx);
 ShowcasePage BuildUniformPage(const ShowcaseContext& ctx);
 ShowcasePage BuildStackPanelPage(const ShowcaseContext& ctx);
 ShowcasePage BuildScrollViewerPage(const ShowcaseContext& ctx);

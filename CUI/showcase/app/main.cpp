@@ -85,6 +85,7 @@ public:
         add("grid", "布局", "Grid", [ctx = m_ctx] { return BuildGridPage(ctx); });
         add("wrap", "布局", "Wrap", [ctx = m_ctx] { return BuildWrapPage(ctx); });
         add("dock", "布局", "Dock", [ctx = m_ctx] { return BuildDockPage(ctx); });
+        add("docking", "布局", "Docking", [ctx = m_ctx] { return BuildDockingPage(ctx); });
         add("uniformgrid", "布局", "UniformGrid", [ctx = m_ctx] { return BuildUniformPage(ctx); });
         add("stackpanel", "布局", "StackPanel", [ctx = m_ctx] { return BuildStackPanelPage(ctx); });
         add("scrollviewer", "布局", "ScrollViewer", [ctx = m_ctx] { return BuildScrollViewerPage(ctx); });
