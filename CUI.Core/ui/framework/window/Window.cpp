@@ -1094,23 +1094,18 @@ void Window::RunMessageLoop() {
         }
         animationActive = animating;
 
-        bool presented = false;
         if (didFrame) {
             CommitFrame(animating || wasAnimationActive);
 
-            // Never UpdateWindow during theme ripple: sync Present+full paints
-            // were starving WM_LBUTTONDOWN until the wave finished.
-            if (!m_themeRippleActive && HasPendingNativePaint()) {
+            // Sync paint is safe again: OnPaint no longer InvalidateRect during
+            // ripple, so UpdateWindow cannot re-enter until the wave ends.
+            if (HasPendingNativePaint()) {
                 UpdateWindow(m_hwnd);
             }
-            // One paint per frame tick. Pumping all WM_PAINTs is wrong while
-            // ripple (or any path) re-invalidates from OnPaint — it would spin
-            // until the animation ends and never see the next theme click.
             MSG paintMsg = {};
-            if (PeekMessage(&paintMsg, m_hwnd, WM_PAINT, WM_PAINT, PM_REMOVE)) {
+            while (PeekMessage(&paintMsg, m_hwnd, WM_PAINT, WM_PAINT, PM_REMOVE)) {
                 TranslateMessage(&paintMsg);
                 DispatchMessage(&paintMsg);
-                presented = true;
             }
             if (animating || m_themeRippleActive) {
                 m_frameScheduler.ScheduleFrame();
@@ -1126,7 +1121,9 @@ void Window::RunMessageLoop() {
             }
             const bool wantContinuous = animationActive || m_animationManager.HasAnimating() || m_themeRippleActive;
             if (wantContinuous) {
-                const DWORD waitMs = (didFrame && presented) ? 0
+                // After a frame, do not sleep — DXGI Present(1) already paced us.
+                // Sleeping targetFrame here stacked on Present and halved FPS.
+                const DWORD waitMs = didFrame ? 0
                     : static_cast<DWORD>((std::max)(1, static_cast<int>(
                         std::chrono::duration_cast<std::chrono::milliseconds>(targetFrame).count())));
                 MsgWaitForMultipleObjectsEx(0, nullptr, waitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
@@ -1781,17 +1778,71 @@ void Window::OnPaint() {
 
     bool scenePatched = false;
     Rect unionPatch;
-    // During theme ripple the destination scene is owned by SetThemeModeWithRipple.
-    // Never rebuild it here — hover dirties were causing full-tree redraw every frame
-    // and blocking WM_LBUTTONDOWN until the wave finished.
-    const bool rippleComposeOnly =
+    // Theme ripple: keep the destination scene alive for control animations.
+    // Freeze-only compose swallowed dirties and locked every other animator for
+    // the whole wave. Patch dirty rects into m_sceneLayer; skip work only when
+    // nothing interactive/animating actually changed.
+    const bool rippleLayersReady =
         m_themeRippleActive
         && m_sceneLayer.IsValid()
         && m_sceneLayer.GetCacheBitmap() != nullptr
         && m_themeOldSceneLayer.IsValid()
         && m_themeOldSceneLayer.GetCacheBitmap() != nullptr;
 
-    if (!rippleComposeOnly) {
+    if (rippleLayersReady) {
+        DirtyRegion ripplePatchRegion = m_pendingDirtyRegion;
+        if (m_rootElement) {
+            m_rootElement->CollectRenderDirtyRegion(ripplePatchRegion, false);
+        }
+
+        bool hasPatch = false;
+        for (const Rect& rect : ripplePatchRegion.GetRects()) {
+            if (rect.IsEmpty()) {
+                continue;
+            }
+            const Rect patch = GraphicsContext::SnapExpandRect(rect, dpiScale, patchPad);
+            unionPatch = hasPatch ? unionPatch.Union(patch) : patch;
+            hasPatch = true;
+        }
+
+        // Full-window pending is usually the ripple InvalidateRect itself — that
+        // must not force a whole-tree scene rebuild every frame.
+        if (hasPatch && CoversRect(unionPatch, viewportBounds) && m_pendingDirtyRegion.IsEmpty()) {
+            hasPatch = false;
+        }
+
+        if (hasPatch
+            && m_gfxContext.PushLayerTarget(
+                m_sceneLayer,
+                sceneSize,
+                unionPatch,
+                sceneClearColor,
+                false)) {
+            for (const Rect& rect : ripplePatchRegion.GetRects()) {
+                if (!rect.IsEmpty()) {
+                    m_gfxContext.ClearRect(
+                        GraphicsContext::SnapExpandRect(rect, dpiScale, patchPad),
+                        sceneClearColor);
+                }
+            }
+            m_gfxContext.SetPaintBounds(unionPatch);
+            m_gfxContext.PushClip(unionPatch);
+            renderScene();
+            m_gfxContext.PopClip();
+            m_gfxContext.PopLayerTarget(m_sceneLayer);
+            m_sceneLayer.Validate();
+            scenePatched = true;
+        } else {
+            unionPatch = viewportBounds;
+            scenePatched = true;
+        }
+
+        if (m_rootElement) {
+            DirtyRegion sink;
+            m_rootElement->CollectRenderDirtyRegion(sink, true);
+        }
+        m_pendingDirtyRegion.Clear();
+    } else {
         if (canRestoreScene) {
             bool hasPatch = false;
             const auto& dirtyRects = frameDirtyRegion.GetRects();
@@ -1839,16 +1890,6 @@ void Window::OnPaint() {
             m_sceneLayer.Validate();
             unionPatch = viewportBounds;
         }
-    } else {
-        unionPatch = viewportBounds;
-        scenePatched = true;
-        // Swallow hover/theme dirties so they don't fire a full rebuild the
-        // instant the ripple ends (or trip non-compose paths mid-wave).
-        if (m_rootElement) {
-            DirtyRegion sink;
-            m_rootElement->CollectRenderDirtyRegion(sink, true);
-        }
-        m_pendingDirtyRegion.Clear();
     }
 
     // Dirty-rect Present on flip-model swapchains is not reliable enough for this
