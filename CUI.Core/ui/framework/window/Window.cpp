@@ -1456,7 +1456,20 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             const Point logicalPt = ClientPointToLogical(clientPt.x, clientPt.y);
             if (IWindowChrome* chrome = FindWindowChrome(m_rootElement.get())) {
                 chrome->NotifyNonClientMouseMove(logicalPt.x, logicalPt.y);
-                if (chrome->ConsumeChromeDirty()) {
+                bool dirty = chrome->ConsumeChromeDirty();
+                // Chrome that paints caption hover from the cursor (or forgets to
+                // dirty in NotifyNonClient) still needs a paint while over HTMIN/MAX/CLOSE.
+                if (!dirty
+                    && chrome->HitTestNonClient(logicalPt.x, logicalPt.y) != HTNOWHERE) {
+                    if (UIElement* el = chrome->GetChromeElement()) {
+                        const Rect bounds = el->GetBounds();
+                        if (!bounds.IsEmpty()) {
+                            el->MarkRenderRectDirty(bounds.Inflate(2.0f));
+                            dirty = true;
+                        }
+                    }
+                }
+                if (dirty) {
                     m_flushInputDirty = true;
                 }
             }
@@ -1648,18 +1661,38 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         break;
 
     case WM_MOUSELEAVE:
-        if (auto hovered = LockElement(m_hoveredElement)) {
-            hovered->OnMouseLeave();
-            m_hoveredElement.reset();
-            if (m_rootElement) {
-                DirtyRegion probe;
-                m_rootElement->CollectRenderDirtyRegion(probe, false);
-                if (!probe.IsEmpty()) {
-                    InvalidatePendingRenderRegions(false);
+        // Leaving HTCLIENT only. Min/max/close are HTMIN/MAX/CLOSE, so moving onto
+        // them fires WM_MOUSELEAVE after (or before) WM_NCMOUSEMOVE. Calling
+        // chrome OnMouseLeave here would wipe the caption hover that NC just set.
+        {
+            bool overCaptionButtons = false;
+            if (IWindowChrome* chrome = FindWindowChrome(m_rootElement.get())) {
+                float lx = 0.0f;
+                float ly = 0.0f;
+                if (TryGetCursorClientLogical(m_hwnd, lx, ly)
+                    && chrome->HitTestNonClient(lx, ly) != HTNOWHERE) {
+                    overCaptionButtons = true;
                 }
             }
+
+            if (auto hovered = LockElement(m_hoveredElement)) {
+                if (overCaptionButtons && dynamic_cast<IWindowChrome*>(hovered.get())) {
+                    m_hoveredElement.reset();
+                    m_trackingMouse = false;
+                    return 0;
+                }
+                hovered->OnMouseLeave();
+                m_hoveredElement.reset();
+                if (m_rootElement) {
+                    DirtyRegion probe;
+                    m_rootElement->CollectRenderDirtyRegion(probe, false);
+                    if (!probe.IsEmpty()) {
+                        InvalidatePendingRenderRegions(false);
+                    }
+                }
+            }
+            m_trackingMouse = false;
         }
-        m_trackingMouse = false;
         return 0;
 
     case WM_DESTROY:

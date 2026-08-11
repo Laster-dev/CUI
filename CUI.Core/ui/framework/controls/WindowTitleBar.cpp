@@ -370,12 +370,28 @@ void WindowTitleBar::OnMouseMove(Point pt) {
 
 void WindowTitleBar::OnMouseLeave() {
     Control::OnMouseLeave();
+    // WM_MOUSELEAVE is client-only. Entering HTMIN/MAX/CLOSE still synthesizes it;
+    // keep caption hover — WM_NCMOUSELEAVE clears when the cursor really leaves.
+    float lx = 0.0f;
+    float ly = 0.0f;
+    HWND hwnd = Window::Current() ? Window::Current()->GetHWND() : nullptr;
+    if (hwnd && TryGetCursorClientLogical(hwnd, lx, ly) && IsCaptionButtonHit(lx, ly)) {
+        m_menuBar.OnMouseLeave();
+        return;
+    }
     ApplyHoverRegion(-1, true);
     m_menuBar.OnMouseLeave();
 }
 
 void WindowTitleBar::OnBlur() {
     Control::OnBlur();
+    float lx = 0.0f;
+    float ly = 0.0f;
+    HWND hwnd = Window::Current() ? Window::Current()->GetHWND() : nullptr;
+    if (hwnd && TryGetCursorClientLogical(hwnd, lx, ly) && IsCaptionButtonHit(lx, ly)) {
+        m_menuBar.OnBlur();
+        return;
+    }
     ApplyHoverRegion(-1, true);
     m_menuBar.OnBlur();
 }
