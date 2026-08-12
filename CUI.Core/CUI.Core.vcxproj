@@ -155,6 +155,9 @@
     <ClCompile Include="ui\framework\controls\Control.cpp" />
     <ClCompile Include="ui\framework\controls\DatePicker.cpp" />
     <ClCompile Include="ui\framework\controls\Expander.cpp" />
+    <ClCompile Include="ui\framework\controls\FileDialogHelper.cpp" />
+    <ClCompile Include="ui\framework\controls\FilePicker.cpp" />
+    <ClCompile Include="ui\framework\controls\FolderPicker.cpp" />
     <ClCompile Include="ui\framework\controls\Flyout.cpp" />
     <ClCompile Include="ui\framework\controls\HyperlinkButton.cpp" />
     <ClCompile Include="ui\framework\controls\Image.cpp" />
@@ -169,6 +172,7 @@
     <ClCompile Include="ui\framework\controls\Panel.cpp" />
     <ClCompile Include="ui\framework\controls\PasswordBox.cpp" />
     <ClCompile Include="ui\framework\controls\ProgressBar.cpp" />
+    <ClCompile Include="ui\framework\controls\ProgressRing.cpp" />
     <ClCompile Include="ui\framework\controls\PropertyGrid.cpp" />
     <ClCompile Include="ui\framework\controls\RadioButton.cpp" />
     <ClCompile Include="ui\framework\controls\ScrollViewer.cpp" />
@@ -244,6 +248,9 @@
     <ClInclude Include="ui\framework\controls\Control.h" />
     <ClInclude Include="ui\framework\controls\DatePicker.h" />
     <ClInclude Include="ui\framework\controls\Expander.h" />
+    <ClInclude Include="ui\framework\controls\FileDialogHelper.h" />
+    <ClInclude Include="ui\framework\controls\FilePicker.h" />
+    <ClInclude Include="ui\framework\controls\FolderPicker.h" />
     <ClInclude Include="ui\framework\controls\Flyout.h" />
     <ClInclude Include="ui\framework\controls\HyperlinkButton.h" />
     <ClInclude Include="ui\framework\controls\Image.h" />
@@ -265,6 +272,7 @@
     <ClInclude Include="ui\framework\controls\PasswordBox.h" />
     <ClInclude Include="ui\framework\controls\ProgressBar.h" />
     <ClInclude Include="ui\framework\controls\ProgressBarDiag.h" />
+    <ClInclude Include="ui\framework\controls\ProgressRing.h" />
     <ClInclude Include="ui\framework\controls\PropertyGrid.h" />
     <ClInclude Include="ui\framework\controls\RadioButton.h" />
     <ClInclude Include="ui\framework\controls\ScrollbarAutoHide.h" />

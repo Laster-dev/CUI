@@ -7,11 +7,14 @@
 #include "RadioButton.h"
 #include "Slider.h"
 #include "ProgressBar.h"
+#include "ProgressRing.h"
 #include "NumberBox.h"
 #include "ToggleSwitch.h"
 #include "DatePicker.h"
 #include "TimePicker.h"
 #include "ColorPicker.h"
+#include "FilePicker.h"
+#include "FolderPicker.h"
 #include "PagingControl.h"
 #include "../style/ThemeManager.h"
 #include <sstream>
@@ -138,6 +141,16 @@ void ApplyTargetProperty(UIElement* target, PropertyId propId, const Value& valu
     if (auto progress = dynamic_cast<ProgressBar*>(target)) {
         if (propId == PropertyId::ControlValue) { progress->SetValue(value.AsFloat()); return; }
         if (propId == PropertyId::IsIndeterminate) { progress->SetIsIndeterminate(value.AsBool()); return; }
+    }
+    if (auto ring = dynamic_cast<ProgressRing*>(target)) {
+        if (propId == PropertyId::ControlValue) { ring->SetValue(value.AsFloat()); return; }
+        if (propId == PropertyId::IsIndeterminate) { ring->SetIsIndeterminate(value.AsBool()); return; }
+    }
+    if (auto filePicker = dynamic_cast<FilePicker*>(target)) {
+        if (propId == PropertyId::Text) { filePicker->SetPath(value.AsString()); return; }
+    }
+    if (auto folderPicker = dynamic_cast<FolderPicker*>(target)) {
+        if (propId == PropertyId::Text) { folderPicker->SetPath(value.AsString()); return; }
     }
     if (auto number = dynamic_cast<NumberBox*>(target)) {
         if (propId == PropertyId::ControlValue) { number->SetValue(value.AsFloat()); return; }

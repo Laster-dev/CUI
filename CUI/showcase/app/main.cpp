@@ -68,6 +68,7 @@ public:
 
         add("slider", "值/进度", "Slider", [ctx = m_ctx] { return BuildSliderPage(ctx); });
         add("progressbar", "值/进度", "ProgressBar", [ctx = m_ctx] { return BuildProgressBarPage(ctx); });
+        add("filepicker", "值/进度", "FilePicker", [ctx = m_ctx] { return BuildFilePickerPage(ctx); });
         add("numberbox", "值/进度", "NumberBox", [ctx = m_ctx] { return BuildNumberBoxPage(ctx); });
         add("datepicker", "值/进度", "DatePicker", [ctx = m_ctx] { return BuildDatePickerPage(ctx); });
         add("timepicker", "值/进度", "TimePicker", [ctx = m_ctx] { return BuildTimePickerPage(ctx); });

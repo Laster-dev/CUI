@@ -18,7 +18,6 @@
 #include "../controls/PropertyGrid.h"
 #include "../controls/TreeView.h"
 #include "../controls/Slider.h"
-#include "../controls/ProgressBar.h"
 #include "../controls/NumberBox.h"
 #include "../controls/RadioButton.h"
 #include "../controls/ToggleSwitch.h"
@@ -26,6 +25,10 @@
 #include "../controls/TimePicker.h"
 #include "../controls/ColorPicker.h"
 #include "../controls/BreadcrumbBar.h"
+#include "../controls/ProgressBar.h"
+#include "../controls/ProgressRing.h"
+#include "../controls/FilePicker.h"
+#include "../controls/FolderPicker.h"
 #include "../controls/PagingControl.h"
 #include "../controls/Splitter.h"
 #include "../controls/Expander.h"
@@ -376,6 +379,29 @@ inline ElementBuilder<ProgressBar> ProgressBarWidget(float val = 0.0f, bool isIn
     p->SetValue(val);
     p->SetIsIndeterminate(isIndeterminate);
     return p;
+}
+
+inline ElementBuilder<ProgressRing> ProgressRingWidget(float val = 0.0f, bool isIndeterminate = true) {
+    auto p = ElementBuilder<ProgressRing>();
+    p->SetValue(val);
+    p->SetIsIndeterminate(isIndeterminate);
+    return p;
+}
+
+inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") {
+    auto f = ElementBuilder<FilePicker>();
+    if (!path.empty()) {
+        f->SetPath(path);
+    }
+    return f;
+}
+
+inline ElementBuilder<FolderPicker> FolderPickerWidget(const std::string& path = "") {
+    auto f = ElementBuilder<FolderPicker>();
+    if (!path.empty()) {
+        f->SetPath(path);
+    }
+    return f;
 }
 
 inline ElementBuilder<NumberBox> NumberBoxWidget(double val = 0.0) {

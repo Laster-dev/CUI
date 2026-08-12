@@ -229,7 +229,7 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
         if (element->GetColorToken() == ThemeTokenId::Unset) {
             element->SetColor(tokens.textSecondary);
         }
-    } else if (className == "TextBox") {
+    } else if (className == "TextBox" || className == "FilePicker" || className == "FolderPicker") {
         if (element->GetColorToken() == ThemeTokenId::Unset) {
             element->SetColor(tokens.textPrimary);
         }
