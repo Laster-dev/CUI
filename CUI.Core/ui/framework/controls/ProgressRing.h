@@ -39,11 +39,14 @@ private:
         float startRad,
         float sweepRad) const;
 
+    // WinUI indeterminate: expand/contract sweep + multi-turn eased rotation.
+    void SampleIndeterminate(float& outStartRad, float& outSweepRad) const;
+
     float m_value = 0.0f;
     float m_minimum = 0.0f;
     float m_maximum = 100.0f;
     bool m_isIndeterminate = true;
-    float m_spinAngle = 0.0f;
+    float m_cycleTime = 0.0f;
     float m_displayValue = 0.0f;
 };
 

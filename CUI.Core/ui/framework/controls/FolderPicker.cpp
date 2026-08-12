@@ -2,9 +2,8 @@
 #define NOMINMAX
 #endif
 #include "FolderPicker.h"
-#include "FileDialogHelper.h"
 #include "../style/ThemeManager.h"
-#include "../window/Window.h"
+#include "../window/PopupPlacement.h"
 #include <windows.h>
 
 namespace CUI {
@@ -12,6 +11,7 @@ namespace CUI {
 namespace {
 constexpr float kBrowseW = 34.0f;
 constexpr float kDefaultH = 32.0f;
+constexpr auto kDoubleClickMs = std::chrono::milliseconds(400);
 } // namespace
 
 FolderPicker::FolderPicker() {
@@ -32,6 +32,26 @@ FolderPicker::FolderPicker() {
     SetCornerRadius(4.0f);
     SetWidth(320.0f);
     SetHeight(kDefaultH);
+
+    m_breadcrumbHost.SetNavigateHandler([this](const std::string& path) {
+        m_browser.NavigateTo(path);
+        SyncBrowserChrome();
+        MarkPickerDirty();
+    });
+}
+
+void FolderPicker::SyncBrowserChrome() {
+    m_breadcrumbHost.Sync(m_browser);
+    if (m_isPopupOpen) {
+        m_breadcrumbHost.Layout(m_browser, GetPopupBounds());
+    }
+}
+
+void FolderPicker::SyncBrowserPopupMetrics() {
+    if (!m_isPopupOpen) {
+        return;
+    }
+    m_browser.UpdateScrollMetrics(GetPopupBounds());
 }
 
 void FolderPicker::SetPath(const std::string& path) {
@@ -80,10 +100,10 @@ FolderPicker::HitPart FolderPicker::HitTestPart(Point pt) const {
 }
 
 HCURSOR FolderPicker::GetCursor() const {
-    if (!IsEnabled() || m_hover == HitPart::None) {
+    if (!IsEnabled() || (m_hover == HitPart::None && !m_isPopupOpen)) {
         return nullptr;
     }
-    return LoadCursor(nullptr, m_hover == HitPart::Path ? IDC_IBEAM : IDC_HAND);
+    return LoadCursor(nullptr, IDC_HAND);
 }
 
 Size FolderPicker::Measure(Size availableSize) {
@@ -97,18 +117,132 @@ Size FolderPicker::Measure(Size availableSize) {
 
 void FolderPicker::MarkPickerDirty() {
     MarkRenderRectDirty(m_bounds.Inflate(2.0f));
+    if (m_isPopupOpen || m_popupAnim.Current() > 0.001f) {
+        MarkRenderRectDirty(GetPopupBounds().Inflate(4.0f));
+    }
 }
 
-void FolderPicker::OpenDialog() {
-    if (!IsEnabled()) {
+void FolderPicker::SetPopupOpen(bool open) {
+    if (m_isPopupOpen == open) {
         return;
     }
-    HWND owner = Window::Current() ? Window::Current()->GetHWND() : nullptr;
-    std::string selected;
-    if (!ShowOpenFolderDialog(owner, selected, Utf8ToUtf16(m_dialogTitle))) {
+    m_isPopupOpen = open;
+    if (open) {
+        m_browser.Configure(FileBrowserMode::OpenFolder, GetText(), {}, 0);
+        m_hoverRow = -1;
+        m_lastClickRow = -1;
+        SyncBrowserChrome();
+    }
+    if (PopupHost* host = PopupHost::Current()) {
+        if (open) {
+            host->Open(this);
+        } else {
+            host->Close(this);
+        }
+    }
+    RequestAnimationTicks();
+    MarkPickerDirty();
+}
+
+Rect FolderPicker::GetPopupBounds() const {
+    return PlacePopupNearAnchor(
+        m_bounds,
+        FileBrowserSession::kPopupW,
+        FileBrowserSession::kPopupH,
+        GetPopupViewportOrDefault(),
+        4.0f);
+}
+
+bool FolderPicker::HitDismissExempt(float x, float y) const {
+    if (m_bounds.Contains(x, y)) {
+        return true;
+    }
+    return GetPopupBounds().Contains(x, y);
+}
+
+UIElement* FolderPicker::OnHitTestOverlay(float x, float y) {
+    const float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
+    if (progress <= 0.5f) {
+        return nullptr;
+    }
+    const Rect pop = GetPopupBounds();
+    const float currentH = (m_isPopupOpen && progress >= 0.98f) ? pop.height : (pop.height * progress);
+    if (Rect(pop.x, pop.y, pop.width, currentH).Contains(x, y)) {
+        return this;
+    }
+    return nullptr;
+}
+
+void FolderPicker::UpdateHover(Point pt) {
+    if (!m_isPopupOpen) {
         return;
     }
-    SetPath(selected);
+    const Rect pop = GetPopupBounds();
+    const bool up = m_browser.UpButtonRect(pop).Contains(pt.x, pt.y);
+    const bool cancel = m_browser.CancelButtonRect(pop).Contains(pt.x, pt.y);
+    const bool confirm = m_browser.ConfirmButtonRect(pop).Contains(pt.x, pt.y);
+    const int row = m_browser.HitTestRow(pop, pt);
+    if (up != m_hoverUp || cancel != m_hoverCancel || confirm != m_hoverConfirm || row != m_hoverRow) {
+        m_hoverUp = up;
+        m_hoverCancel = cancel;
+        m_hoverConfirm = confirm;
+        m_hoverRow = row;
+        MarkPickerDirty();
+    }
+}
+
+bool FolderPicker::HandleBrowserClick(Point pt) {
+    const Rect pop = GetPopupBounds();
+
+    if (m_breadcrumbHost.HandleMouseDown(pt)) {
+        return true;
+    }
+
+    if (m_browser.UpButtonRect(pop).Contains(pt.x, pt.y)) {
+        m_browser.GoUp();
+        SyncBrowserChrome();
+        MarkPickerDirty();
+        return true;
+    }
+    if (m_browser.CancelButtonRect(pop).Contains(pt.x, pt.y)) {
+        SetPopupOpen(false);
+        return true;
+    }
+    if (m_browser.ConfirmButtonRect(pop).Contains(pt.x, pt.y)) {
+        std::string path;
+        if (m_browser.TryConfirm(path)) {
+            SetPath(path);
+            SetPopupOpen(false);
+        }
+        return true;
+    }
+
+    const Rect list = m_browser.ListRect(pop);
+    if (m_browser.Scroll().HandleMouseDown(pt, this)) {
+        return true;
+    }
+    if (list.Contains(pt.x, pt.y)) {
+        const int row = m_browser.HitTestRow(pop, pt);
+        if (row >= 0) {
+            const auto now = std::chrono::steady_clock::now();
+            const bool isDouble = (row == m_lastClickRow)
+                && (now - m_lastClickTime) <= kDoubleClickMs;
+            m_browser.SetSelectedIndex(row);
+            m_lastClickRow = row;
+            m_lastClickTime = now;
+
+            if (isDouble) {
+                std::string path;
+                m_browser.ActivateSelected(path);
+                SyncBrowserChrome();
+                MarkPickerDirty();
+            } else {
+                MarkPickerDirty();
+            }
+            return true;
+        }
+    }
+    return false;
 }
 
 void FolderPicker::OnRender(GraphicsContext& ctx) {
@@ -126,7 +260,7 @@ void FolderPicker::OnRender(GraphicsContext& ctx) {
     }
 
     const Rect browse = BrowseRect();
-    const bool browseHot = (m_hover == HitPart::Browse || m_pressed == HitPart::Browse);
+    const bool browseHot = (m_hover == HitPart::Browse || m_pressed == HitPart::Browse || m_isPopupOpen);
     D2D1_COLOR_F browseFill = browseHot ? tokens.hoverBackground : tokens.cardBackground;
     if (m_pressed == HitPart::Browse) {
         browseFill = tokens.pressedBackground;
@@ -143,7 +277,11 @@ void FolderPicker::OnRender(GraphicsContext& ctx) {
         browse.y + (browse.height - 14.0f) * 0.5f,
         14.0f,
         14.0f);
-    ctx.DrawChevron(glyph, tokens.textSecondary, GraphicsContext::ChevronDirection::Down, 1.5f);
+    ctx.DrawChevron(
+        glyph,
+        tokens.textSecondary,
+        m_isPopupOpen ? GraphicsContext::ChevronDirection::Up : GraphicsContext::ChevronDirection::Down,
+        1.5f);
 
     const std::string& path = GetText();
     const std::string& display = path.empty() ? GetPlaceholder() : path;
@@ -162,25 +300,71 @@ void FolderPicker::OnRender(GraphicsContext& ctx) {
         true);
 }
 
+void FolderPicker::RenderPopup(GraphicsContext& ctx) {
+    SyncBrowserPopupMetrics();
+    const float progress = UIElement::AreAnimationsEnabled()
+        ? m_popupAnim.Current()
+        : (m_isPopupOpen ? 1.0f : 0.0f);
+    m_browser.Render(
+        ctx,
+        GetPopupBounds(),
+        progress,
+        m_hoverRow,
+        m_hoverUp,
+        false,
+        m_hoverCancel,
+        m_hoverConfirm);
+    m_breadcrumbHost.Layout(m_browser, GetPopupBounds());
+    m_breadcrumbHost.Render(ctx);
+}
+
+void FolderPicker::OnRenderOverlay(GraphicsContext& ctx) {
+    if (PopupHost::Current() && m_isPopupOpen) {
+        return;
+    }
+    RenderPopup(ctx);
+}
+
 void FolderPicker::OnMouseDown(Point pt) {
     if (!IsEnabled()) {
         return;
     }
+
+    if (m_isPopupOpen) {
+        const Rect pop = GetPopupBounds();
+        const float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : 1.0f;
+        const float currentH = (progress >= 0.98f) ? pop.height : (pop.height * progress);
+        if (Rect(pop.x, pop.y, pop.width, currentH).Contains(pt.x, pt.y)) {
+            HandleBrowserClick(pt);
+            return;
+        }
+        SetPopupOpen(false);
+        return;
+    }
+
     m_pressed = HitTestPart(pt);
     MarkPickerDirty();
 }
 
 void FolderPicker::OnMouseUp(Point pt) {
+    if (m_isPopupOpen) {
+        m_browser.Scroll().HandleMouseUp(this);
+    }
     const HitPart pressed = m_pressed;
     m_pressed = HitPart::None;
-    if (pressed != HitPart::None && HitTestPart(pt) == pressed) {
-        OpenDialog();
+    if (!m_isPopupOpen && pressed != HitPart::None && HitTestPart(pt) == pressed) {
+        SetPopupOpen(true);
     }
     MarkPickerDirty();
 }
 
 void FolderPicker::OnMouseMove(Point pt) {
     if (!IsEnabled()) {
+        return;
+    }
+    if (m_isPopupOpen) {
+        UpdateHover(pt);
+        m_browser.Scroll().HandleMouseMove(pt, this);
         return;
     }
     const HitPart next = HitTestPart(pt);
@@ -193,6 +377,26 @@ void FolderPicker::OnMouseMove(Point pt) {
 void FolderPicker::OnMouseLeave() {
     m_hover = HitPart::None;
     m_pressed = HitPart::None;
+    m_hoverRow = -1;
+    m_hoverUp = false;
+    m_hoverCancel = false;
+    m_hoverConfirm = false;
+    if (m_isPopupOpen) {
+        m_browser.Scroll().HandleMouseLeave(this);
+    }
+    MarkPickerDirty();
+}
+
+void FolderPicker::OnMouseWheel(float delta) {
+    if (!m_isPopupOpen) {
+        return;
+    }
+    SyncBrowserPopupMetrics();
+    if (m_browser.Scroll().GetMaxScroll() <= 0.001f) {
+        return;
+    }
+    m_browser.Scroll().ScrollWheel(delta, this);
+    RequestAnimationTicks();
     MarkPickerDirty();
 }
 
@@ -200,11 +404,74 @@ void FolderPicker::OnKeyDown(int vkCode) {
     if (!IsEnabled()) {
         return;
     }
+    if (m_isPopupOpen) {
+        if (vkCode == VK_ESCAPE) {
+            SetPopupOpen(false);
+            return;
+        }
+        if (vkCode == VK_RETURN) {
+            std::string path;
+            if (m_browser.TryConfirm(path)) {
+                SetPath(path);
+                SetPopupOpen(false);
+            } else {
+                m_browser.ActivateSelected(path);
+                SyncBrowserChrome();
+                MarkPickerDirty();
+            }
+            return;
+        }
+        if (vkCode == VK_BACK) {
+            m_browser.GoUp();
+            SyncBrowserChrome();
+            MarkPickerDirty();
+            return;
+        }
+        if (vkCode == VK_UP || vkCode == VK_DOWN) {
+            const int count = static_cast<int>(m_browser.GetEntries().size());
+            if (count <= 0) {
+                return;
+            }
+            int next = m_browser.GetSelectedIndex();
+            if (vkCode == VK_UP) {
+                next = (next <= 0) ? 0 : (next - 1);
+            } else {
+                next = (next < 0) ? 0 : (std::min)(count - 1, next + 1);
+            }
+            m_browser.SetSelectedIndex(next);
+            SyncBrowserPopupMetrics();
+            m_browser.EnsureRowVisible(next, this);
+            RequestAnimationTicks();
+            MarkPickerDirty();
+            return;
+        }
+        return;
+    }
     if (vkCode == VK_RETURN || vkCode == VK_SPACE) {
-        OpenDialog();
+        SetPopupOpen(true);
         return;
     }
     Control::OnKeyDown(vkCode);
+}
+
+bool FolderPicker::OnAnimationTick() {
+    const float dt = UIElement::GetAnimationDeltaSeconds();
+    m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
+    bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    if (m_isPopupOpen && m_browser.Scroll().Tick(this, dt)) {
+        animating = true;
+    }
+    if (animating || m_isPopupOpen || m_popupAnim.Current() > 0.001f) {
+        MarkPickerDirty();
+        RequestAnimationTicks();
+    }
+    return animating || m_browser.Scroll().NeedsAnimationTicks()
+        || std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f;
+}
+
+bool FolderPicker::HasSelfAnimation() const {
+    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f
+        || m_browser.Scroll().NeedsAnimationTicks();
 }
 
 } // namespace CUI

@@ -29,12 +29,12 @@ ShowcasePage BuildFilePickerPage(const ShowcaseContext& ctx) {
 
     return { "FilePicker 文件/文件夹", CreatePage(
         "FilePicker / FolderPicker",
-        "自绘路径框 + 浏览按钮，调用系统 IFileOpenDialog 选择文件或文件夹。",
+        "自绘路径框 + 自绘文件浏览器。顶部路径为 BreadcrumbBar，点击节点可跳转；右上角筛选为下拉框。",
         CreateDemoSurface({
-            CreateShowcaseText("FilePicker — 点击路径或 ▼ 按钮打开文件对话框", 12.0f, "textMuted"),
+            CreateShowcaseText("FilePicker — 面包屑路径 + 文件类型下拉筛选，双击打开文件", 12.0f, "textMuted"),
             filePicker,
             pathLabel,
-            CreateShowcaseText("FolderPicker — 选择文件夹", 12.0f, "textMuted"),
+            CreateShowcaseText("FolderPicker — 浏览目录后点击「选择」确认当前或选中文件夹", 12.0f, "textMuted"),
             folderPicker,
             folderLabel
         }),

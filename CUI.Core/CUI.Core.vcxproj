@@ -155,7 +155,7 @@
     <ClCompile Include="ui\framework\controls\Control.cpp" />
     <ClCompile Include="ui\framework\controls\DatePicker.cpp" />
     <ClCompile Include="ui\framework\controls\Expander.cpp" />
-    <ClCompile Include="ui\framework\controls\FileDialogHelper.cpp" />
+    <ClCompile Include="ui\framework\controls\FileBrowserHelper.cpp" />
     <ClCompile Include="ui\framework\controls\FilePicker.cpp" />
     <ClCompile Include="ui\framework\controls\FolderPicker.cpp" />
     <ClCompile Include="ui\framework\controls\Flyout.cpp" />
@@ -248,7 +248,7 @@
     <ClInclude Include="ui\framework\controls\Control.h" />
     <ClInclude Include="ui\framework\controls\DatePicker.h" />
     <ClInclude Include="ui\framework\controls\Expander.h" />
-    <ClInclude Include="ui\framework\controls\FileDialogHelper.h" />
+    <ClInclude Include="ui\framework\controls\FileBrowserHelper.h" />
     <ClInclude Include="ui\framework\controls\FilePicker.h" />
     <ClInclude Include="ui\framework\controls\FolderPicker.h" />
     <ClInclude Include="ui\framework\controls\Flyout.h" />

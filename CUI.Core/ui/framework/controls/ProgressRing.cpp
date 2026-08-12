@@ -10,7 +10,13 @@ namespace CUI {
 
 namespace {
 constexpr float kTwoPi = 6.28318530718f;
-constexpr int kArcSegments = 48;
+constexpr float kHalfPi = 1.57079632679f;
+constexpr int kArcSegments = 64;
+// WinUI ProgressRing indeterminate Lottie cycle length.
+constexpr float kIndeterminateCycleSec = 2.0f;
+// Visible arc length as a fraction of the circle (Fluent look).
+constexpr float kMinSweepFrac = 0.08f;
+constexpr float kMaxSweepFrac = 0.75f;
 
 float NormalizeAngle(float radians) {
     while (radians < 0.0f) {
@@ -20,6 +26,33 @@ float NormalizeAngle(float radians) {
         radians -= kTwoPi;
     }
     return radians;
+}
+
+float EaseInOutCubic(float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    if (t < 0.5f) {
+        return 4.0f * t * t * t;
+    }
+    const float u = -2.0f * t + 2.0f;
+    return 1.0f - (u * u * u) * 0.5f;
+}
+
+// Rotation keyframes matching WinUI ProgressRingIndeterminate feel:
+// 0% → 0°, 50% → 450°, 100% → 1080° (3 turns), with cubic ease between.
+float WinUIRotationTurns(float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    if (t <= 0.5f) {
+        return 1.25f * EaseInOutCubic(t / 0.5f);
+    }
+    return 1.25f + 1.75f * EaseInOutCubic((t - 0.5f) / 0.5f);
+}
+
+float WinUISweepFraction(float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    const float u = (t < 0.5f)
+        ? EaseInOutCubic(t * 2.0f)
+        : EaseInOutCubic(2.0f - t * 2.0f);
+    return kMinSweepFrac + (kMaxSweepFrac - kMinSweepFrac) * u;
 }
 } // namespace
 
@@ -71,10 +104,11 @@ void ProgressRing::SetIsIndeterminate(bool ind) {
     }
     m_isIndeterminate = ind;
     NotifyFieldChanged(PropertyId::IsIndeterminate, Value(ind));
-    MarkRenderRectDirty(m_bounds);
     if (ind) {
+        m_cycleTime = 0.0f;
         RequestAnimationTicks();
     }
+    MarkRenderRectDirty(m_bounds);
 }
 
 Size ProgressRing::Measure(Size availableSize) {
@@ -98,7 +132,7 @@ void ProgressRing::DrawRingArc(
         return;
     }
 
-    const int segments = (std::max)(4, static_cast<int>(std::ceil(kArcSegments * std::abs(sweepRad) / kTwoPi)));
+    const int segments = (std::max)(6, static_cast<int>(std::ceil(kArcSegments * std::abs(sweepRad) / kTwoPi)));
     Point prev(
         center.x + std::cos(startRad) * radius,
         center.y + std::sin(startRad) * radius);
@@ -114,12 +148,21 @@ void ProgressRing::DrawRingArc(
     }
 }
 
+void ProgressRing::SampleIndeterminate(float& outStartRad, float& outSweepRad) const {
+    const float t = std::fmod(m_cycleTime, kIndeterminateCycleSec) / kIndeterminateCycleSec;
+    const float sweepFrac = WinUISweepFraction(t);
+    const float rotationRad = WinUIRotationTurns(t) * kTwoPi;
+    // 12 o'clock origin, clockwise visual via increasing angle in screen space
+    // (Y grows downward, so +angle is clockwise from +X — subtract π/2 for top).
+    outSweepRad = sweepFrac * kTwoPi;
+    outStartRad = NormalizeAngle(rotationRad - kHalfPi - outSweepRad);
+}
+
 void ProgressRing::OnRender(GraphicsContext& ctx) {
     if (m_bounds.IsEmpty()) {
         return;
     }
 
-    const auto& tokens = ThemeManager::Instance().GetTokens();
     const D2D1_COLOR_F accent = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
     D2D1_COLOR_F track = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
     track.a *= 0.55f;
@@ -131,11 +174,12 @@ void ProgressRing::OnRender(GraphicsContext& ctx) {
         m_bounds.x + m_bounds.width * 0.5f,
         m_bounds.y + m_bounds.height * 0.5f);
 
-    DrawRingArc(ctx, center, radius, stroke, track, -kTwoPi * 0.25f, kTwoPi);
+    DrawRingArc(ctx, center, radius, stroke, track, -kHalfPi, kTwoPi);
 
     if (IsIndeterminate()) {
-        const float sweep = kTwoPi * 0.72f;
-        const float start = NormalizeAngle(m_spinAngle - kTwoPi * 0.25f);
+        float start = 0.0f;
+        float sweep = 0.0f;
+        SampleIndeterminate(start, sweep);
         DrawRingArc(ctx, center, radius, stroke, accent, start, sweep);
         return;
     }
@@ -144,7 +188,7 @@ void ProgressRing::OnRender(GraphicsContext& ctx) {
     const float progress = std::clamp((m_displayValue - GetMinimum()) / range, 0.0f, 1.0f);
     const float sweep = kTwoPi * progress;
     if (sweep > 0.001f) {
-        DrawRingArc(ctx, center, radius, stroke, accent, -kTwoPi * 0.25f, sweep);
+        DrawRingArc(ctx, center, radius, stroke, accent, -kHalfPi, sweep);
     }
 }
 
@@ -154,9 +198,9 @@ bool ProgressRing::OnAnimationTick() {
 
     if (IsIndeterminate()) {
         if (m_visibility == Visibility::Visible && !m_bounds.IsEmpty()) {
-            m_spinAngle += kTwoPi * dt * 0.85f;
-            if (m_spinAngle > kTwoPi) {
-                m_spinAngle = std::fmod(m_spinAngle, kTwoPi);
+            m_cycleTime += dt;
+            if (m_cycleTime >= kIndeterminateCycleSec) {
+                m_cycleTime = std::fmod(m_cycleTime, kIndeterminateCycleSec);
             }
             MarkRenderRectDirty(m_bounds);
             animating = true;
