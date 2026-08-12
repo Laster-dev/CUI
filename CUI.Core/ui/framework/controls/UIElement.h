@@ -282,6 +282,7 @@ public:
     virtual bool IsMiddleScrollActive() const { return false; }
     virtual void OnKeyDown(int vkCode);
     virtual void OnCharInput(wchar_t ch) {}
+    virtual bool AcceptsTabFocus() const { return false; }
     virtual void OnAutoScrollTick() {}
     virtual bool NeedsAutoScrollTick() const { return false; }
     virtual bool OnAnimationTick();

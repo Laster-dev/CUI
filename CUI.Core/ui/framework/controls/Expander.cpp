@@ -252,6 +252,11 @@ void Expander::UpdateContentVisibility() {
 }
 
 void Expander::InvalidateExpanderLayout() {
+    m_measureDirty = true;
+    m_arrangeDirty = true;
+    if (UIElement* parent = GetParent()) {
+        parent->InvalidateMeasure();
+    }
     for (UIElement* walk = GetParent(); walk; walk = walk->GetParent()) {
         if (auto* scroll = dynamic_cast<ScrollViewer*>(walk)) {
             ProgressBarDiag::Log("[EXP] InvalidateContentLayout via ScrollViewer this=%p header=%s scroll=%p",
@@ -261,7 +266,6 @@ void Expander::InvalidateExpanderLayout() {
         }
     }
     MarkRenderContentDirty();
-    InvalidateMeasure();
     if (Window* window = Window::Current()) {
         ProgressBarDiag::Log("[EXP] Force Window::Relayout this=%p header=%s window=%p",
             (void*)this, m_header.c_str(), (void*)window);
@@ -293,6 +297,8 @@ Size Expander::Measure(Size availableSize) {
     m_desiredSize = Size(
         width + margin.left + margin.right,
         height + margin.top + margin.bottom);
+    m_lastMeasureAvailable = availableSize;
+    m_measureDirty = false;
     ProgressBarDiag::Log("[EXP] Measure this=%p header=%s isExpanded=%d progress=%.3f availW=%.1f body=%.1f desired=%.1f x %.1f",
         (void*)this, m_header.c_str(), m_isExpanded ? 1 : 0, GetExpandProgress(), availableWidth, m_measuredBodyHeight,
         m_desiredSize.width, m_desiredSize.height);
@@ -306,11 +312,13 @@ void Expander::Arrange(Rect finalRect) {
     m_headerHeight = MeasureHeaderHeight(width);
 
     if (!m_content) {
+        m_arrangeDirty = false;
         return;
     }
 
     if (m_measuredBodyHeight <= 0.0f || (!m_isExpanded && m_expandAnim.Target() <= 0.01f && m_expandAnim.Current() <= 0.01f)) {
         m_content->Arrange(Rect(finalRect.x, finalRect.y, width, 0.0f));
+        m_arrangeDirty = false;
         return;
     }
 
@@ -327,6 +335,7 @@ void Expander::Arrange(Rect finalRect) {
     }
 
     m_content->Arrange(contentRect);
+    m_arrangeDirty = false;
 }
 
 UIElement* Expander::HitTest(float x, float y) {

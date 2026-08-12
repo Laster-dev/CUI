@@ -688,7 +688,7 @@ bool Window::TryMoveFocus(bool forward) {
             return;
         }
         // TextBox and similar accept focus via classic focus path.
-        if (dynamic_cast<TextBox*>(el)) {
+        if (el->AcceptsTabFocus()) {
             focusable.push_back(el);
         }
         for (auto& child : el->GetChildren()) {

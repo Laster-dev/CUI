@@ -23,6 +23,7 @@ public:
     virtual const char* GetClassName() const override { return "TextBox"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual HCURSOR GetCursor() const override;
+    bool AcceptsTabFocus() const override { return true; }
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;

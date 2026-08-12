@@ -91,7 +91,13 @@ void UIElement::RequestAnimationTicks() {
 }
 
 void UIElement::InvalidateMeasure() {
+    // Controls that override Measure without clearing m_measureDirty can stay
+    // dirty forever. The old early-out then never walked to a clean parent, so
+    // nested hosts (e.g. Expander inside a Column) kept a stale DesiredSize.
     if (m_measureDirty) {
+        if (m_parent && !m_parent->m_measureDirty) {
+            m_parent->InvalidateMeasure();
+        }
         return;
     }
     m_measureDirty = true;

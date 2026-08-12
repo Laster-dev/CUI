@@ -8,7 +8,7 @@ ShowcasePage BuildPagingPage(const ShowcaseContext& ctx) {
     auto target = PagingControlWidget(1, 10).Build();
     return { "PagingControl 分页条", CreatePage(
         "PagingControl 数据表格/列表分页条控件",
-        "支持页码快速切换、上一页/下一页导航与总页数约束。",
+        "Fluent 风格自绘分页：Chevron 导航、滑动选中胶囊、省略号窗口与滚轮/键盘切换。",
         CreateDemoSurface({ target }, 0.0f),
         CreatePropertyGrid(ctx, target), target) };
 }
