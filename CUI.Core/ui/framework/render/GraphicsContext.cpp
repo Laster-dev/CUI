@@ -1134,6 +1134,44 @@ void GraphicsContext::DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float str
     }
 }
 
+void GraphicsContext::DrawSmoothLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth) {
+    if (!m_d2dContext) {
+        return;
+    }
+    auto brush = m_resources.GetSolidBrush(color);
+    if (!brush) {
+        return;
+    }
+    ComPtr<ID2D1Factory> factory;
+    m_d2dContext->GetFactory(&factory);
+    if (!factory) {
+        return;
+    }
+    ComPtr<ID2D1StrokeStyle> stroke;
+    const HRESULT hr = factory->CreateStrokeStyle(
+        D2D1::StrokeStyleProperties(
+            D2D1_CAP_STYLE_ROUND,
+            D2D1_CAP_STYLE_ROUND,
+            D2D1_CAP_STYLE_ROUND,
+            D2D1_LINE_JOIN_ROUND,
+            10.0f,
+            D2D1_DASH_STYLE_SOLID,
+            0.0f),
+        nullptr,
+        0,
+        &stroke);
+    if (FAILED(hr) || !stroke) {
+        m_d2dContext->DrawLine(D2D1::Point2F(p1.x, p1.y), D2D1::Point2F(p2.x, p2.y), brush, strokeWidth);
+        return;
+    }
+    m_d2dContext->DrawLine(
+        D2D1::Point2F(p1.x, p1.y),
+        D2D1::Point2F(p2.x, p2.y),
+        brush,
+        (std::max)(0.75f, strokeWidth),
+        stroke.Get());
+}
+
 void GraphicsContext::DrawChevron(const Rect& bounds, D2D1_COLOR_F color, ChevronDirection direction, float strokeWidth) {
     if (bounds.IsEmpty() || !m_d2dContext) {
         return;
@@ -1274,6 +1312,87 @@ void GraphicsContext::DrawTextLayoutOnTarget(
         D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT
     );
     target->SetTextAntialiasMode(previousMode);
+}
+
+void GraphicsContext::DrawTextRotated(
+    const std::string& text,
+    Point center,
+    float degrees,
+    D2D1_COLOR_F color,
+    const std::string& fontName,
+    float fontSize,
+    DWRITE_FONT_WEIGHT weight) {
+    if (text.empty() || !m_d2dContext) {
+        return;
+    }
+
+    TextLayoutOptions opt;
+    opt.maxWidth = 4096.0f;
+    opt.maxHeight = 256.0f;
+    opt.wrapping = DWRITE_WORD_WRAPPING_NO_WRAP;
+    opt.paragraphAlignment = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+    ComPtr<IDWriteTextLayout> layout = CreateTextLayout(
+        Utf8ToUtf16(text),
+        fontName,
+        SnapFontSizeToDevicePixels(fontSize, m_dpiScale),
+        opt,
+        weight);
+    if (!layout) {
+        return;
+    }
+
+    DWRITE_TEXT_METRICS metrics = {};
+    layout->GetMetrics(&metrics);
+    const float textW = (std::max)(1.0f,
+        metrics.widthIncludingTrailingWhitespace > 0.1f
+            ? metrics.widthIncludingTrailingWhitespace
+            : metrics.width);
+    const float textH = (std::max)(1.0f, metrics.height);
+
+    // Blit a grayscale snapshot. ClearType + a world transform is ignored by D2D,
+    // which is why side auto-hide labels were staying horizontal.
+    const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+    const UINT pixelW = static_cast<UINT>((std::max)(1.0f, std::ceil(textW * scale)));
+    const UINT pixelH = static_cast<UINT>((std::max)(1.0f, std::ceil(textH * scale)));
+    D2D1_BITMAP_PROPERTIES1 props = D2D1::BitmapProperties1(
+        D2D1_BITMAP_OPTIONS_TARGET,
+        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+        96.0f * scale,
+        96.0f * scale);
+    ComPtr<ID2D1Bitmap1> bmp;
+    if (FAILED(m_d2dContext->CreateBitmap(D2D1::SizeU(pixelW, pixelH), nullptr, 0, &props, &bmp)) || !bmp) {
+        return;
+    }
+
+    D2D1_MATRIX_3X2_F savedTf = D2D1::IdentityMatrix();
+    m_d2dContext->GetTransform(&savedTf);
+    ComPtr<ID2D1Image> oldTarget;
+    m_d2dContext->GetTarget(&oldTarget);
+    if (!oldTarget) {
+        return;
+    }
+    m_d2dContext->SetTarget(bmp.Get());
+    m_d2dContext->SetTransform(D2D1::IdentityMatrix());
+    m_d2dContext->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+    DrawTextLayoutOnTarget(
+        m_d2dContext.Get(),
+        layout.Get(),
+        Rect(0.0f, 0.0f, textW, textH),
+        color,
+        D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+    m_d2dContext->SetTarget(oldTarget.Get());
+    m_d2dContext->SetTransform(savedTf);
+
+    const float destX = center.x - textW * 0.5f;
+    const float destY = center.y - textH * 0.5f;
+    D2D1_RECT_F dest = D2D1::RectF(destX, destY, destX + textW, destY + textH);
+    PushTransform(D2D1::Matrix3x2F::Rotation(degrees, D2D1::Point2F(center.x, center.y)));
+    m_d2dContext->DrawBitmap(
+        bmp.Get(),
+        &dest,
+        1.0f,
+        D2D1_INTERPOLATION_MODE_LINEAR);
+    PopTransform();
 }
 
 void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,

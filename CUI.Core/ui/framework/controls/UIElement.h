@@ -300,6 +300,10 @@ public:
     void RequestAnimationTicks();
     void CancelAnimationTicks();
     bool IsAnimationTicksRegistered() const { return m_animationTicksRegistered; }
+    // False while this subtree is presented on another HWND (dock float window).
+    // Stays in the live tree so AnimationManager ticks it; owner Window must not paint it.
+    void SetPresentsOnOwnerWindow(bool enabled) { m_presentsOnOwnerWindow = enabled; }
+    bool PresentsOnOwnerWindow() const { return m_presentsOnOwnerWindow; }
     static void SetAnimationsEnabled(bool enabled);
     static bool AreAnimationsEnabled();
     static void SetAnimationDeltaSeconds(float dtSeconds);
@@ -461,6 +465,7 @@ protected:
     bool m_isPressed = false;
     bool m_isFocused = false;
     bool m_animationTicksRegistered = false;
+    bool m_presentsOnOwnerWindow = true;
     Point m_lastMousePos{ 0.0f, 0.0f };
     Point m_tooltipAnchorPos{ 0.0f, 0.0f };
     std::chrono::steady_clock::time_point m_lastMouseMoveTime;

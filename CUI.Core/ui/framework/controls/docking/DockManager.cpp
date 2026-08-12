@@ -67,6 +67,91 @@ Point DockManager::LocalToScreenDip(Point local) const {
     return Point(static_cast<float>(pt.x) / scale, static_cast<float>(pt.y) / scale);
 }
 
+Point DockManager::ScreenDipToLocal(Point screenDip) const {
+    HWND hwnd = OwnerHwnd();
+    if (!hwnd) {
+        return screenDip;
+    }
+    const float scale = GetDpiScaleForWindow(hwnd);
+    POINT pt{
+        static_cast<LONG>(std::lround(screenDip.x * scale)),
+        static_cast<LONG>(std::lround(screenDip.y * scale))
+    };
+    ScreenToClient(hwnd, &pt);
+    return Point(static_cast<float>(pt.x) / scale, static_cast<float>(pt.y) / scale);
+}
+
+void DockManager::InvalidateOwner() {
+    if (HWND hwnd = OwnerHwnd()) {
+        InvalidateRect(hwnd, nullptr, FALSE);
+        UpdateWindow(hwnd);
+    } else {
+        MarkRenderRectDirty(m_bounds);
+    }
+}
+
+void DockManager::BeginFloatRedock(int paneIndex) {
+    if (paneIndex < 0 || paneIndex >= static_cast<int>(m_panes.size())) {
+        return;
+    }
+    m_dragging = true;
+    m_dragArmed = false;
+    m_dragPane = paneIndex;
+    m_guideOpacity.Reset(1.0f);
+    m_dropHighlight = DockDropKind::None;
+    RequestAnimationTicks();
+    InvalidateOwner();
+}
+
+void DockManager::UpdateFloatRedock(Point screenDip) {
+    if (!m_dragging || m_dragPane < 0) {
+        return;
+    }
+    const Point local = ScreenDipToLocal(screenDip);
+    m_dragPt = local;
+    m_dropHighlight = HitTestDrop(local.x, local.y);
+    RequestAnimationTicks();
+    InvalidateOwner();
+}
+
+bool DockManager::CompleteFloatRedock(Point screenDip) {
+    if (!m_dragging || m_dragPane < 0) {
+        CancelFloatRedock();
+        return false;
+    }
+    const int pane = m_dragPane;
+    const Point local = ScreenDipToLocal(screenDip);
+    const DockDropKind drop = HitTestDrop(local.x, local.y);
+    CancelDrag();
+
+    DockSide landed = DockSide::None;
+    switch (drop) {
+    case DockDropKind::EdgeLeft: landed = DockSide::Left; break;
+    case DockDropKind::EdgeRight: landed = DockSide::Right; break;
+    case DockDropKind::EdgeTop: landed = DockSide::Top; break;
+    case DockDropKind::EdgeBottom: landed = DockSide::Bottom; break;
+    case DockDropKind::IntoCenter: landed = DockSide::Center; break;
+    default: break;
+    }
+    if (landed == DockSide::None) {
+        InvalidateOwner();
+        return false;
+    }
+    DockPane(pane, landed);
+    BeginContentFade(landed);
+    m_dropPulse.Reset(1.0f);
+    m_dropPulse.SetTarget(0.0f);
+    RequestAnimationTicks();
+    ApplyContentFadeOpacities();
+    InvalidateOwner();
+    return true;
+}
+
+void DockManager::CancelFloatRedock() {
+    CancelDrag();
+    InvalidateOwner();
+}
+
 std::string DockManager::MakePaneId() {
     std::ostringstream oss;
     oss << "pane-" << (m_nextPaneId++);
@@ -159,17 +244,17 @@ void DockManager::SelectInGroup(DockSide side, int localIndex) {
     if (localIndex < 0 || localIndex >= static_cast<int>(g.paneIndices.size())) {
         return;
     }
-    if (g.selected == localIndex) {
-        EnsureTabVisible(side);
-        SyncSideUnderline(side, false);
-        ApplyLayoutNow();
-        return;
-    }
+    const bool sameTab = (g.selected == localIndex);
     g.selected = localIndex;
     EnsureTabVisible(side);
-    BeginContentFade(side);
-    SyncSideUnderline(side, false);
-    ApplyLayoutNow();
+    if (!sameTab) {
+        BeginContentFade(side);
+    }
+    RelayoutContents();
+    SyncSideUnderline(side, sameTab);
+    ApplyContentFadeOpacities();
+    MarkRenderRectDirty(m_bounds);
+    RequestAnimationTicks();
 }
 
 void DockManager::BeginContentFade(DockSide side) {
@@ -211,10 +296,12 @@ void DockManager::SyncSideUnderline(DockSide side, bool jump) {
     const auto& group = SlotGroup(side);
     if (!slot || !slot->visible || group.paneIndices.empty()
         || group.selected < 0 || group.selected >= static_cast<int>(slot->tabs.size())) {
+        anim.underlineInited = false;
         return;
     }
+    // Store offset inside the tab strip so splitter/resize cannot leave a stale world X.
     const Rect& tr = slot->tabs[group.selected];
-    const float x = tr.x;
+    const float x = tr.x - slot->tabStrip.x;
     const float w = tr.width;
     if (jump || !anim.underlineInited || !AreAnimationsEnabled()) {
         anim.underlineX.Reset(x);
@@ -228,11 +315,15 @@ void DockManager::SyncSideUnderline(DockSide side, bool jump) {
     }
 }
 
+void DockManager::JumpAllUnderlines() {
+    for (DockSide s : { DockSide::Left, DockSide::Right, DockSide::Top, DockSide::Bottom, DockSide::Center }) {
+        SyncSideUnderline(s, true);
+    }
+}
+
 void DockManager::ApplyLayoutNow() {
     RelayoutContents();
-    for (DockSide s : { DockSide::Left, DockSide::Right, DockSide::Top, DockSide::Bottom, DockSide::Center }) {
-        SyncSideUnderline(s, !SideAnim(s).underlineInited);
-    }
+    JumpAllUnderlines();
     ApplyContentFadeOpacities();
     MarkRenderRectDirty(m_bounds);
     RequestAnimationTicks();
@@ -242,6 +333,181 @@ float DockManager::MeasureTabWidth(const std::string& title) const {
     GraphicsContext probe;
     const float textW = probe.MeasureText(title, "Segoe UI", 12.0f, DWRITE_FONT_WEIGHT_NORMAL).width;
     return std::clamp(textW + kTabPadX * 2.0f, kTabMinW, kTabMaxW);
+}
+
+bool DockManager::HasAutoHideOn(DockSide side) const {
+    for (const auto& it : m_autoHide) {
+        if (it.side == side) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void DockManager::AutoHideStripInsets(float& left, float& top, float& right, float& bottom) const {
+    left = HasAutoHideOn(DockSide::Left) ? kAutoHideStrip : 0.0f;
+    top = HasAutoHideOn(DockSide::Top) ? kAutoHideStrip : 0.0f;
+    right = HasAutoHideOn(DockSide::Right) ? kAutoHideStrip : 0.0f;
+    bottom = HasAutoHideOn(DockSide::Bottom) ? kAutoHideStrip : 0.0f;
+}
+
+float DockManager::MeasureAutoHideTabExtent(const std::string& title) const {
+    GraphicsContext probe;
+    const float textW = probe.MeasureText(title, "Segoe UI", 11.0f, DWRITE_FONT_WEIGHT_NORMAL).width;
+    return std::clamp(textW + 10.0f, 22.0f, 220.0f);
+}
+
+float DockManager::AutoHideTabOrigin(DockSide side, int indexOnSide) const {
+    float origin = 0.0f;
+    int n = 0;
+    for (const auto& it : m_autoHide) {
+        if (it.paneIndex < 0 || it.paneIndex >= static_cast<int>(m_panes.size())) {
+            continue;
+        }
+        if (it.side != side) {
+            continue;
+        }
+        if (n >= indexOnSide) {
+            break;
+        }
+        origin += MeasureAutoHideTabExtent(m_panes[it.paneIndex].title);
+        ++n;
+    }
+    return origin;
+}
+
+Rect DockManager::AutoHideTabRect(DockSide side, int indexOnSide, const std::string& title) const {
+    const float t = kAutoHideStrip;
+    const float extent = MeasureAutoHideTabExtent(title);
+    const float origin = AutoHideTabOrigin(side, indexOnSide);
+    const float insetT = HasAutoHideOn(DockSide::Top) ? kAutoHideStrip : 0.0f;
+    switch (side) {
+    case DockSide::Left:
+        return Rect(m_bounds.x, m_bounds.y + insetT + origin, t, extent);
+    case DockSide::Right:
+        return Rect(m_bounds.x + m_bounds.width - t, m_bounds.y + insetT + origin, t, extent);
+    case DockSide::Top:
+        return Rect(m_bounds.x + origin, m_bounds.y, extent, t);
+    case DockSide::Bottom:
+        return Rect(m_bounds.x + origin, m_bounds.y + m_bounds.height - t, extent, t);
+    default:
+        return Rect();
+    }
+}
+
+void DockManager::DrawAutoHideLabel(GraphicsContext& ctx, const Rect& btn, const std::string& title,
+                                    DockSide side, D2D1_COLOR_F color) const {
+    if (btn.IsEmpty() || title.empty()) {
+        return;
+    }
+    const bool vertical = (side == DockSide::Left || side == DockSide::Right);
+    if (!vertical) {
+        ctx.DrawText(
+            title,
+            Rect(btn.x + 4.0f, btn.y, (std::max)(0.0f, btn.width - 8.0f), btn.height),
+            color,
+            "Segoe UI",
+            11.0f,
+            DWRITE_TEXT_ALIGNMENT_CENTER,
+            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+            DWRITE_FONT_WEIGHT_NORMAL,
+            true);
+        return;
+    }
+
+    // VS: left reads bottom→top (−90°), right reads top→bottom (+90°).
+    const float cx = btn.x + btn.width * 0.5f;
+    const float cy = btn.y + btn.height * 0.5f;
+    const float deg = (side == DockSide::Left) ? -90.0f : 90.0f;
+    ctx.DrawTextRotated(title, Point(cx, cy), deg, color, "Segoe UI", 11.0f, DWRITE_FONT_WEIGHT_NORMAL);
+}
+
+DockSide DockManager::PeekSide() const {
+    for (const auto& it : m_autoHide) {
+        if (it.paneIndex == m_peekPane) {
+            return it.side;
+        }
+    }
+    return DockSide::None;
+}
+
+Rect DockManager::PeekOuterRect() const {
+    if (m_peekPane < 0) {
+        return Rect();
+    }
+    const DockSide side = PeekSide();
+    if (side == DockSide::None) {
+        return Rect();
+    }
+    float insetL = 0.0f, insetT = 0.0f, insetR = 0.0f, insetB = 0.0f;
+    AutoHideStripInsets(insetL, insetT, insetR, insetB);
+    const float x = m_bounds.x + insetL;
+    const float y = m_bounds.y + insetT;
+    const float w = (std::max)(0.0f, m_bounds.width - insetL - insetR);
+    const float h = (std::max)(0.0f, m_bounds.height - insetT - insetB);
+    switch (side) {
+    case DockSide::Left: {
+        const float pw = std::clamp(m_leftSize, kMinSide, (std::max)(kMinSide, w * 0.62f));
+        return Rect(x, y, pw, h);
+    }
+    case DockSide::Right: {
+        const float pw = std::clamp(m_rightSize, kMinSide, (std::max)(kMinSide, w * 0.62f));
+        return Rect(x + w - pw, y, pw, h);
+    }
+    case DockSide::Top: {
+        const float ph = std::clamp(m_topSize, kMinSide, (std::max)(kMinSide, h * 0.5f));
+        return Rect(x, y, w, ph);
+    }
+    case DockSide::Bottom: {
+        const float ph = std::clamp(m_bottomSize, kMinSide, (std::max)(kMinSide, h * 0.5f));
+        return Rect(x, y + h - ph, w, ph);
+    }
+    default:
+        return Rect();
+    }
+}
+
+DockManager::SlotGeom DockManager::MakePeekGeom() const {
+    SlotGeom slot;
+    const Rect outer = PeekOuterRect();
+    slot.outer = outer;
+    slot.visible = !outer.IsEmpty() && outer.width > 2.0f && outer.height > 2.0f;
+    if (!slot.visible) {
+        return slot;
+    }
+    slot.header = Rect(outer.x, outer.y, outer.width, kHeaderH);
+    slot.content = Rect(outer.x, outer.y + kHeaderH, outer.width, (std::max)(0.0f, outer.height - kHeaderH));
+    const float btnY = outer.y + (kHeaderH - kChromeBtn) * 0.5f;
+    slot.closeBtn = Rect(outer.x + outer.width - kChromeBtn - 4.0f, btnY, kChromeBtn, kChromeBtn);
+    slot.pinBtn = Rect(slot.closeBtn.x - kChromeBtn - 2.0f, btnY, kChromeBtn, kChromeBtn);
+    slot.tabStrip = Rect(
+        outer.x + 8.0f,
+        outer.y + 2.0f,
+        (std::max)(0.0f, slot.pinBtn.x - outer.x - 12.0f),
+        kHeaderH - 4.0f);
+    slot.tabs.push_back(slot.tabStrip);
+    return slot;
+}
+
+void DockManager::ShowPeek(int paneIndex) {
+    if (paneIndex < 0 || paneIndex >= static_cast<int>(m_panes.size()) || !m_panes[paneIndex].autoHide) {
+        HidePeek();
+        return;
+    }
+    if (m_peekPane == paneIndex) {
+        HidePeek();
+        return;
+    }
+    m_peekPane = paneIndex;
+    ApplyLayoutNow();
+}
+
+void DockManager::HidePeek() {
+    if (m_peekPane < 0) {
+        return;
+    }
+    m_peekPane = -1;
+    ApplyLayoutNow();
 }
 
 void DockManager::EnsureTabVisible(DockSide side) {
@@ -291,10 +557,11 @@ void DockManager::FillSlotGeom(SlotGeom& slot, DockTabGroup& group, DockSide sid
     slot.content = Rect(outer.x, outer.y + kHeaderH, outer.width, (std::max)(0.0f, outer.height - kHeaderH));
 
     const bool hasPin = (side != DockSide::Center);
-    const float chromeW = kChromeBtn + (hasPin ? kChromeBtn : 0.0f) + 8.0f;
-    slot.closeBtn = Rect(outer.x + outer.width - kChromeBtn - 4.0f, outer.y + 5.0f, kChromeBtn, 18.0f);
+    const float chromeW = kChromeBtn + (hasPin ? kChromeBtn + 2.0f : 0.0f) + 8.0f;
+    const float btnY = outer.y + (kHeaderH - kChromeBtn) * 0.5f;
+    slot.closeBtn = Rect(outer.x + outer.width - kChromeBtn - 4.0f, btnY, kChromeBtn, kChromeBtn);
     if (hasPin) {
-        slot.pinBtn = Rect(slot.closeBtn.x - kChromeBtn, outer.y + 5.0f, kChromeBtn, 18.0f);
+        slot.pinBtn = Rect(slot.closeBtn.x - kChromeBtn - 2.0f, btnY, kChromeBtn, kChromeBtn);
     }
 
     // Measure natural tab widths (VS: size to title, never squash into overlap).
@@ -416,10 +683,19 @@ void DockManager::SyncContentChildren() {
 void DockManager::RelayoutContents() {
     SyncContentChildren();
 
-    // Collapse every content first so a just-moved pane cannot keep painting
-    // in its old slot until the next focus/arrange pass.
+    auto isFloated = [&](int index) {
+        for (const auto& f : m_floats) {
+            if (f && f->GetPaneIndex() == index) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // Collapse docked content first so a just-moved pane cannot keep painting
+    // in its old slot. Floated panes stay Visible — they live in a sibling HWND.
     for (int i = 0; i < static_cast<int>(m_panes.size()); ++i) {
-        if (!m_panes[i].content) {
+        if (!m_panes[i].content || isFloated(i)) {
             continue;
         }
         m_panes[i].content->SetVisibility(Visibility::Collapsed);
@@ -438,15 +714,7 @@ void DockManager::RelayoutContents() {
             if (!content) {
                 continue;
             }
-            bool floated = false;
-            for (const auto& f : m_floats) {
-                if (f && f->GetPaneIndex() == idx) {
-                    floated = true;
-                    break;
-                }
-            }
-            if (floated || m_panes[idx].autoHide) {
-                content->SetVisibility(Visibility::Collapsed);
+            if (isFloated(idx) || m_panes[idx].autoHide) {
                 continue;
             }
             if (idx == sel && g.visible && g.content.height > 1.0f && g.content.width > 1.0f) {
@@ -462,6 +730,19 @@ void DockManager::RelayoutContents() {
     place(DockSide::Top, m_geom.top);
     place(DockSide::Bottom, m_geom.bottom);
     place(DockSide::Center, m_geom.center);
+
+    if (m_peekPane >= 0 && m_peekPane < static_cast<int>(m_panes.size())
+        && m_panes[m_peekPane].autoHide && m_panes[m_peekPane].content) {
+        const SlotGeom peek = MakePeekGeom();
+        if (peek.visible && peek.content.width > 1.0f && peek.content.height > 1.0f) {
+            auto& content = m_panes[m_peekPane].content;
+            content->SetVisibility(Visibility::Visible);
+            content->Measure(Size(peek.content.width, peek.content.height));
+            content->Arrange(peek.content);
+            RemoveChildQuiet(content);
+            AddChildQuiet(content);
+        }
+    }
 }
 
 int DockManager::AddToolPane(const std::string& title, std::shared_ptr<UIElement> content, DockSide side) {
@@ -526,6 +807,11 @@ void DockManager::ClosePane(int paneIndex) {
         return;
     }
     CloseFloatForPane(paneIndex);
+    if (m_peekPane == paneIndex) {
+        m_peekPane = -1;
+    } else if (m_peekPane > paneIndex) {
+        --m_peekPane;
+    }
     if (m_panes[paneIndex].content) {
         RemoveChildQuiet(m_panes[paneIndex].content);
     }
@@ -584,6 +870,9 @@ void DockManager::SetPaneAutoHide(int paneIndex, bool autoHide) {
         item.paneIndex = paneIndex;
         item.side = side;
         m_autoHide.push_back(item);
+        if (m_peekPane == paneIndex) {
+            m_peekPane = -1;
+        }
     } else {
         m_panes[paneIndex].autoHide = false;
         m_autoHide.erase(
@@ -592,6 +881,7 @@ void DockManager::SetPaneAutoHide(int paneIndex, bool autoHide) {
             m_autoHide.end());
         AddPaneToSlot(paneIndex, side, true);
         EnsureTabVisible(side);
+        m_peekPane = -1;
     }
     ApplyLayoutNow();
 }
@@ -615,9 +905,18 @@ void DockManager::FloatPane(int paneIndex, Point screenDipTopLeft) {
         screenDipTopLeft = LocalToScreenDip(Point(m_bounds.x + 64.0f, m_bounds.y + 64.0f));
     }
 
+    Size floatSize(360.0f, 320.0f);
+    if (m_panes[paneIndex].content) {
+        const Rect b = m_panes[paneIndex].content->GetBounds();
+        if (b.width > 8.0f && b.height > 8.0f) {
+            floatSize.width = (std::max)(280.0f, b.width);
+            floatSize.height = (std::max)(200.0f, b.height + 36.0f);
+        }
+    }
+
     auto flt = std::make_unique<DockFloatWindow>();
     flt->SetCloseCallback([this](DockFloatWindow* wnd) { NotifyFloatClosed(wnd); });
-    if (!flt->Show(this, paneIndex, owner, screenDipTopLeft, Size(380.0f, 280.0f))) {
+    if (!flt->Show(this, paneIndex, owner, screenDipTopLeft, floatSize)) {
         AddPaneToSlot(paneIndex, DockSide::Left, true);
         return;
     }
@@ -630,21 +929,21 @@ void DockManager::NotifyFloatClosed(DockFloatWindow* wnd) {
         return;
     }
     const int pane = wnd->GetPaneIndex();
+    if (pane >= 0 && pane < static_cast<int>(m_panes.size())) {
+        ClosePane(pane);
+        return;
+    }
     for (auto it = m_floats.begin(); it != m_floats.end(); ++it) {
         if (it->get() == wnd) {
             m_floats.erase(it);
             break;
         }
     }
-    if (pane >= 0 && pane < static_cast<int>(m_panes.size())) {
-        AddPaneToSlot(pane, DockSide::Left, true);
-        EnsureTabVisible(DockSide::Left);
-        ApplyLayoutNow();
-    }
 }
 
 DockManager::LayoutGeom DockManager::ComputeGeom(const Rect& bounds) {
     LayoutGeom g;
+    g.strip = kAutoHideStrip;
     if (bounds.width < 2.0f || bounds.height < 2.0f) {
         return g;
     }
@@ -660,26 +959,24 @@ DockManager::LayoutGeom DockManager::ComputeGeom(const Rect& bounds) {
     const bool hasB = !m_bottom.paneIndices.empty();
     const bool hasC = !m_center.paneIndices.empty();
 
-    // Auto-hide strips reserve edge when slot empty but AH items exist.
-    auto hasAh = [&](DockSide s) {
-        for (const auto& it : m_autoHide) {
-            if (it.side == s) return true;
+    // Only carve out AH strips when a docked slot still needs the interior.
+    // All-auto-hide: the empty document well fills the host; tabs overlay the edges.
+    const bool reserveAh = hasL || hasR || hasT || hasB || hasC;
+    if (reserveAh) {
+        if (HasAutoHideOn(DockSide::Left)) {
+            x += g.strip;
+            w -= g.strip;
         }
-        return false;
-    };
-    if (!hasL && hasAh(DockSide::Left)) {
-        x += g.strip;
-        w -= g.strip;
-    }
-    if (!hasR && hasAh(DockSide::Right)) {
-        w -= g.strip;
-    }
-    if (!hasT && hasAh(DockSide::Top)) {
-        y += g.strip;
-        h -= g.strip;
-    }
-    if (!hasB && hasAh(DockSide::Bottom)) {
-        h -= g.strip;
+        if (HasAutoHideOn(DockSide::Right)) {
+            w -= g.strip;
+        }
+        if (HasAutoHideOn(DockSide::Top)) {
+            y += g.strip;
+            h -= g.strip;
+        }
+        if (HasAutoHideOn(DockSide::Bottom)) {
+            h -= g.strip;
+        }
     }
 
     float leftW = hasL ? (std::min)(m_leftSize, (std::max)(kMinSide, w - kMinCenter - (hasR ? m_rightSize : 0.0f))) : 0.0f;
@@ -776,6 +1073,7 @@ void DockManager::Arrange(Rect finalRect) {
         (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
     SetBounds(arranged);
     RelayoutContents();
+    JumpAllUnderlines();
     m_arrangeDirty = false;
 }
 
@@ -839,6 +1137,57 @@ DockManager::HitResult DockManager::HitTestChrome(float x, float y) const {
         return true;
     };
 
+    // AH tabs sit on the host edge and must win over splitters / slots.
+    int nL = 0, nR = 0, nT = 0, nB = 0;
+    for (const auto& it : m_autoHide) {
+        if (it.paneIndex < 0 || it.paneIndex >= static_cast<int>(m_panes.size())) {
+            continue;
+        }
+        int indexOnSide = 0;
+        switch (it.side) {
+        case DockSide::Left: indexOnSide = nL++; break;
+        case DockSide::Right: indexOnSide = nR++; break;
+        case DockSide::Top: indexOnSide = nT++; break;
+        case DockSide::Bottom: indexOnSide = nB++; break;
+        default: continue;
+        }
+        const Rect btn = AutoHideTabRect(it.side, indexOnSide, m_panes[it.paneIndex].title);
+        if (btn.Contains(x, y)) {
+            hr.part = HitPart::AutoHide;
+            hr.paneIndex = it.paneIndex;
+            hr.side = it.side;
+            return hr;
+        }
+    }
+
+    const SlotGeom peek = MakePeekGeom();
+    if (peek.visible && peek.outer.Contains(x, y)) {
+        if (peek.closeBtn.Contains(x, y)) {
+            hr.part = HitPart::Close;
+            hr.side = PeekSide();
+            hr.paneIndex = m_peekPane;
+            return hr;
+        }
+        if (peek.pinBtn.Contains(x, y)) {
+            hr.part = HitPart::Pin;
+            hr.side = PeekSide();
+            hr.paneIndex = m_peekPane;
+            return hr;
+        }
+        if (peek.header.Contains(x, y)) {
+            hr.part = HitPart::Header;
+            hr.side = PeekSide();
+            hr.paneIndex = m_peekPane;
+            return hr;
+        }
+        if (peek.content.Contains(x, y)) {
+            hr.part = HitPart::Content;
+            hr.side = PeekSide();
+            hr.paneIndex = m_peekPane;
+            return hr;
+        }
+    }
+
     if (m_geom.splitL.Contains(x, y)) {
         hr.part = HitPart::Splitter;
         hr.splitter = 0;
@@ -858,41 +1207,6 @@ DockManager::HitResult DockManager::HitTestChrome(float x, float y) const {
         hr.part = HitPart::Splitter;
         hr.splitter = 3;
         return hr;
-    }
-
-    // AH buttons
-    int ahIndex = 0;
-    for (const auto& it : m_autoHide) {
-        Rect strip;
-        Rect btn;
-        const float t = m_geom.strip;
-        switch (it.side) {
-        case DockSide::Left:
-            strip = Rect(m_bounds.x, m_bounds.y, t, m_bounds.height);
-            btn = Rect(strip.x, strip.y + 4.0f + ahIndex * 72.0f, t, 68.0f);
-            break;
-        case DockSide::Right:
-            strip = Rect(m_bounds.x + m_bounds.width - t, m_bounds.y, t, m_bounds.height);
-            btn = Rect(strip.x, strip.y + 4.0f + ahIndex * 72.0f, t, 68.0f);
-            break;
-        case DockSide::Top:
-            strip = Rect(m_bounds.x, m_bounds.y, m_bounds.width, t);
-            btn = Rect(strip.x + 4.0f + ahIndex * 100.0f, strip.y, 96.0f, t);
-            break;
-        case DockSide::Bottom:
-            strip = Rect(m_bounds.x, m_bounds.y + m_bounds.height - t, m_bounds.width, t);
-            btn = Rect(strip.x + 4.0f + ahIndex * 100.0f, strip.y, 96.0f, t);
-            break;
-        default:
-            break;
-        }
-        if (btn.Contains(x, y)) {
-            hr.part = HitPart::AutoHide;
-            hr.paneIndex = it.paneIndex;
-            hr.side = it.side;
-            return hr;
-        }
-        ++ahIndex;
     }
 
     if (testSlot(DockSide::Left, m_geom.left, m_left)) return hr;
@@ -957,8 +1271,15 @@ void DockManager::OnMouseDown(Point pt) {
         return;
     }
     if (hr.part == HitPart::AutoHide && hr.paneIndex >= 0) {
-        SetPaneAutoHide(hr.paneIndex, false);
+        ShowPeek(hr.paneIndex);
         return;
+    }
+    if (m_peekPane >= 0) {
+        const Rect peek = PeekOuterRect();
+        if (hr.part != HitPart::Pin && hr.part != HitPart::Close && hr.part != HitPart::Header
+            && hr.part != HitPart::Content && !peek.Contains(pt.x, pt.y)) {
+            HidePeek();
+        }
     }
     if (hr.part == HitPart::TabScrollLeft && hr.side != DockSide::None) {
         auto& g = SlotGroup(hr.side);
@@ -1108,7 +1429,8 @@ void DockManager::OnMouseMove(Point pt) {
         default: break;
         }
         RelayoutContents();
-        MarkRenderContentDirty();
+        JumpAllUnderlines();
+        MarkRenderRectDirty(m_bounds);
         return;
     }
 
@@ -1238,45 +1560,43 @@ bool DockManager::OnAnimationTick() {
 }
 
 void DockManager::DrawChromeButtonBg(GraphicsContext& ctx, const Rect& r, float hoverT, bool danger) const {
-    if (r.IsEmpty() || hoverT <= 0.01f) {
+    if (r.IsEmpty()) {
         return;
     }
     const auto& tokens = ThemeManager::Instance().GetTokens();
-    if (danger) {
+    const bool light = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
+    if (danger && hoverT > 0.01f) {
         D2D1_COLOR_F bg = tokens.dangerColor;
-        bg.a = 0.85f * hoverT;
-        ctx.FillRect(r, bg);
-    } else {
-        const bool light = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
-        const float peak = light ? 0.10f : 0.18f;
-        ctx.FillRect(r, D2D1::ColorF(
-            tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, peak * hoverT));
+        bg.a = 0.92f * hoverT;
+        ctx.FillRoundedRect(r, 4.0f, bg);
+        return;
     }
+    const float idle = light ? 0.07f : 0.12f;
+    const float peak = light ? 0.14f : 0.24f;
+    const float a = idle + (peak - idle) * std::clamp(hoverT, 0.0f, 1.0f);
+    ctx.FillRoundedRect(r, 4.0f, D2D1::ColorF(
+        tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, a));
 }
 
 void DockManager::DrawCloseGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR_F color) const {
     const float cx = r.x + r.width * 0.5f;
     const float cy = r.y + r.height * 0.5f;
-    const float arm = 4.2f;
-    ctx.DrawLine(Point(cx - arm, cy - arm), Point(cx + arm, cy + arm), color, 1.15f);
-    ctx.DrawLine(Point(cx + arm, cy - arm), Point(cx - arm, cy + arm), color, 1.15f);
+    const float arm = 4.6f;
+    ctx.DrawSmoothLine(Point(cx - arm, cy - arm), Point(cx + arm, cy + arm), color, 1.7f);
+    ctx.DrawSmoothLine(Point(cx + arm, cy - arm), Point(cx - arm, cy + arm), color, 1.7f);
 }
 
 void DockManager::DrawPinGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR_F color, bool autoHide) const {
     const float cx = r.x + r.width * 0.5f;
     const float cy = r.y + r.height * 0.5f;
     if (!autoHide) {
-        ctx.DrawLine(Point(cx, cy + 0.5f), Point(cx, cy + 5.5f), color, 1.2f);
-        ctx.DrawLine(Point(cx - 3.5f, cy - 4.0f), Point(cx + 3.5f, cy - 4.0f), color, 1.15f);
-        ctx.DrawLine(Point(cx - 3.5f, cy - 4.0f), Point(cx - 4.5f, cy - 0.5f), color, 1.1f);
-        ctx.DrawLine(Point(cx + 3.5f, cy - 4.0f), Point(cx + 4.5f, cy - 0.5f), color, 1.1f);
-        ctx.DrawLine(Point(cx - 4.5f, cy - 0.5f), Point(cx + 4.5f, cy - 0.5f), color, 1.15f);
+        ctx.FillRoundedRect(Rect(cx - 3.6f, cy - 5.4f, 7.2f, 6.4f), 1.4f, color);
+        ctx.FillRect(Rect(cx - 4.6f, cy + 0.6f, 9.2f, 1.7f), color);
+        ctx.FillRect(Rect(cx - 0.85f, cy + 2.1f, 1.7f, 4.4f), color);
     } else {
-        ctx.DrawLine(Point(cx - 0.5f, cy), Point(cx - 5.5f, cy), color, 1.2f);
-        ctx.DrawLine(Point(cx + 4.0f, cy - 3.5f), Point(cx + 4.0f, cy + 3.5f), color, 1.15f);
-        ctx.DrawLine(Point(cx + 4.0f, cy - 3.5f), Point(cx + 0.5f, cy - 4.5f), color, 1.1f);
-        ctx.DrawLine(Point(cx + 4.0f, cy + 3.5f), Point(cx + 0.5f, cy + 4.5f), color, 1.1f);
-        ctx.DrawLine(Point(cx + 0.5f, cy - 4.5f), Point(cx + 0.5f, cy + 4.5f), color, 1.15f);
+        ctx.FillRoundedRect(Rect(cx - 1.0f, cy - 3.6f, 6.4f, 7.2f), 1.4f, color);
+        ctx.FillRect(Rect(cx - 2.3f, cy - 4.6f, 1.7f, 9.2f), color);
+        ctx.FillRect(Rect(cx - 6.5f, cy - 0.85f, 4.4f, 1.7f), color);
     }
 }
 
@@ -1289,13 +1609,15 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
     const auto& anim = SideAnim(side);
 
     ctx.FillRect(g.outer, tokens.paneBackground);
-    ctx.DrawRect(g.outer, tokens.cardBorder, 1.0f);
-    ctx.FillRect(g.header, tokens.cardBackground);
-    ctx.DrawLine(
-        Point(g.header.x, g.header.y + g.header.height - 0.5f),
-        Point(g.header.x + g.header.width, g.header.y + g.header.height - 0.5f),
-        tokens.cardBorder,
-        1.0f);
+    const bool emptyCenter = (side == DockSide::Center && group.paneIndices.empty());
+    if (!emptyCenter) {
+        ctx.FillRect(g.header, tokens.cardBackground);
+        ctx.DrawLine(
+            Point(g.header.x, g.header.y + g.header.height - 0.5f),
+            Point(g.header.x + g.header.width, g.header.y + g.header.height - 0.5f),
+            tokens.cardBorder,
+            1.0f);
+    }
 
     const bool sideHover = (m_hoverBtnSide == side);
     const float scrollLT = sideHover ? m_hoverScrollL.Current() : 0.0f;
@@ -1350,12 +1672,27 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
                 sel ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
                 true);
         }
-        if (!group.paneIndices.empty() && anim.underlineInited) {
-            const float ux = anim.underlineX.Current();
-            const float uw = (std::max)(8.0f, anim.underlineW.Current());
-            ctx.FillRect(Rect(ux, g.tabStrip.y + g.tabStrip.height - 2.0f, uw, 2.0f), tokens.accentColor);
-        }
         ctx.PopClip();
+        if (group.selected >= 0 && group.selected < static_cast<int>(g.tabs.size())) {
+            const Rect& tr = g.tabs[group.selected];
+            const bool animating = anim.underlineInited
+                && (std::abs(anim.underlineX.Current() - anim.underlineX.Target()) > 0.5f
+                    || std::abs(anim.underlineW.Current() - anim.underlineW.Target()) > 0.5f);
+            float ux = tr.x;
+            float uw = tr.width;
+            if (animating) {
+                ux = g.tabStrip.x + anim.underlineX.Current();
+                uw = anim.underlineW.Current();
+            }
+            uw = (std::max)(8.0f, uw);
+            const float x0 = (std::max)(ux, g.tabStrip.x);
+            const float x1 = (std::min)(ux + uw, g.tabStrip.x + g.tabStrip.width);
+            if (x1 > x0 + 0.5f) {
+                ctx.FillRect(
+                    Rect(x0, g.tabStrip.y + g.tabStrip.height - 2.0f, x1 - x0, 2.0f),
+                    tokens.accentColor);
+            }
+        }
     }
 
     if (m_dropPulse.Current() > 0.02f && anim.contentFade.Current() < 0.99f) {
@@ -1380,7 +1717,7 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
     if (side == DockSide::Center && group.paneIndices.empty()) {
         ctx.DrawText(
             "Documents",
-            g.content,
+            g.outer,
             tokens.textSecondary,
             "Segoe UI",
             13.0f,
@@ -1389,49 +1726,91 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
     }
 }
 
+void DockManager::DrawPeek(GraphicsContext& ctx) const {
+    if (m_peekPane < 0 || m_peekPane >= static_cast<int>(m_panes.size())) {
+        return;
+    }
+    const SlotGeom g = MakePeekGeom();
+    if (!g.visible) {
+        return;
+    }
+    const auto& tokens = ThemeManager::Instance().GetTokens();
+    ctx.FillRect(g.header, tokens.cardBackground);
+    ctx.DrawRect(g.outer, tokens.accentColor, 1.5f);
+    ctx.DrawLine(
+        Point(g.header.x, g.header.y + g.header.height - 0.5f),
+        Point(g.header.x + g.header.width, g.header.y + g.header.height - 0.5f),
+        tokens.cardBorder,
+        1.0f);
+
+    const bool sideHover = (m_hover.paneIndex == m_peekPane);
+    const float pinT = (sideHover && m_hover.part == HitPart::Pin) ? m_hoverPin.Current() : 0.0f;
+    const float closeT = (sideHover && m_hover.part == HitPart::Close) ? m_hoverClose.Current() : 0.0f;
+    DrawChromeButtonBg(ctx, g.pinBtn, pinT, false);
+    DrawPinGlyph(ctx, g.pinBtn, (pinT > 0.4f) ? tokens.textPrimary : tokens.textSecondary, true);
+    DrawChromeButtonBg(ctx, g.closeBtn, closeT, true);
+    DrawCloseGlyph(ctx, g.closeBtn, (closeT > 0.4f) ? tokens.accentForeground : tokens.textSecondary);
+
+    ctx.DrawText(
+        m_panes[m_peekPane].title,
+        g.tabStrip,
+        tokens.textPrimary,
+        "Segoe UI",
+        12.0f,
+        DWRITE_TEXT_ALIGNMENT_LEADING,
+        DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+        DWRITE_FONT_WEIGHT_SEMI_BOLD,
+        true);
+}
+
 void DockManager::DrawAutoHideStrips(GraphicsContext& ctx) const {
     if (m_autoHide.empty()) {
         return;
     }
     const auto& tokens = ThemeManager::Instance().GetTokens();
-    int i = 0;
+    int nL = 0, nR = 0, nT = 0, nB = 0;
     for (const auto& it : m_autoHide) {
         if (it.paneIndex < 0 || it.paneIndex >= static_cast<int>(m_panes.size())) {
-            ++i;
             continue;
         }
-        Rect btn;
-        const float t = m_geom.strip;
+        int indexOnSide = 0;
         switch (it.side) {
-        case DockSide::Left:
-            btn = Rect(m_bounds.x, m_bounds.y + 4.0f + i * 72.0f, t, 68.0f);
-            break;
-        case DockSide::Right:
-            btn = Rect(m_bounds.x + m_bounds.width - t, m_bounds.y + 4.0f + i * 72.0f, t, 68.0f);
-            break;
-        case DockSide::Top:
-            btn = Rect(m_bounds.x + 4.0f + i * 100.0f, m_bounds.y, 96.0f, t);
-            break;
-        case DockSide::Bottom:
-            btn = Rect(m_bounds.x + 4.0f + i * 100.0f, m_bounds.y + m_bounds.height - t, 96.0f, t);
-            break;
-        default:
-            ++i;
-            continue;
+        case DockSide::Left: indexOnSide = nL++; break;
+        case DockSide::Right: indexOnSide = nR++; break;
+        case DockSide::Top: indexOnSide = nT++; break;
+        case DockSide::Bottom: indexOnSide = nB++; break;
+        default: continue;
         }
-        ctx.FillRect(btn, tokens.cardBackground);
+        const Rect btn = AutoHideTabRect(it.side, indexOnSide, m_panes[it.paneIndex].title);
+        const bool hot = (m_hover.part == HitPart::AutoHide && m_hover.paneIndex == it.paneIndex)
+            || (m_peekPane == it.paneIndex);
+        ctx.FillRect(btn, hot ? tokens.windowBackground : tokens.cardBackground);
         ctx.DrawRect(btn, tokens.cardBorder, 1.0f);
-        ctx.DrawText(
-            m_panes[it.paneIndex].title,
+        if (hot) {
+            D2D1_COLOR_F accent = tokens.accentColor;
+            switch (it.side) {
+            case DockSide::Left:
+                ctx.FillRect(Rect(btn.x + btn.width - 2.0f, btn.y, 2.0f, btn.height), accent);
+                break;
+            case DockSide::Right:
+                ctx.FillRect(Rect(btn.x, btn.y, 2.0f, btn.height), accent);
+                break;
+            case DockSide::Top:
+                ctx.FillRect(Rect(btn.x, btn.y + btn.height - 2.0f, btn.width, 2.0f), accent);
+                break;
+            case DockSide::Bottom:
+                ctx.FillRect(Rect(btn.x, btn.y, btn.width, 2.0f), accent);
+                break;
+            default:
+                break;
+            }
+        }
+        DrawAutoHideLabel(
+            ctx,
             btn,
-            tokens.textSecondary,
-            "Segoe UI",
-            10.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_NORMAL,
-            true);
-        ++i;
+            m_panes[it.paneIndex].title,
+            it.side,
+            hot ? tokens.textPrimary : tokens.textSecondary);
     }
 }
 
@@ -1478,6 +1857,11 @@ void DockManager::DrawDragGhost(GraphicsContext& ctx) const {
     if (!m_dragging || m_dragPane < 0 || m_dragPane >= static_cast<int>(m_panes.size())) {
         return;
     }
+    for (const auto& f : m_floats) {
+        if (f && f->GetPaneIndex() == m_dragPane) {
+            return;
+        }
+    }
     const auto& tokens = ThemeManager::Instance().GetTokens();
     Rect ghost(m_dragPt.x + 14.0f, m_dragPt.y + 14.0f, 168.0f, 30.0f);
     D2D1_COLOR_F fill = tokens.cardBackground;
@@ -1498,7 +1882,7 @@ void DockManager::DrawDragGhost(GraphicsContext& ctx) const {
 
 void DockManager::OnRender(GraphicsContext& ctx) {
     const auto& tokens = ThemeManager::Instance().GetTokens();
-    ctx.FillRect(m_bounds, tokens.windowBackground);
+    ctx.FillRect(m_bounds, tokens.paneBackground);
 
     // VS: 1px visual splitter, larger invisible hit target.
     auto drawSplit = [&](const Rect& r) {
@@ -1515,12 +1899,19 @@ void DockManager::OnRender(GraphicsContext& ctx) {
     DrawSlot(ctx, DockSide::Top, m_geom.top);
     DrawSlot(ctx, DockSide::Bottom, m_geom.bottom);
     DrawSlot(ctx, DockSide::Center, m_geom.center);
-    DrawAutoHideStrips(ctx);
-
+    {
+        const SlotGeom peek = MakePeekGeom();
+        if (peek.visible) {
+            ctx.FillRect(peek.outer, tokens.paneBackground);
+            ctx.FillRect(peek.header, tokens.cardBackground);
+        }
+    }
     ctx.DrawRect(m_bounds, tokens.cardBorder, 1.0f);
 }
 
 void DockManager::RenderOverlay(GraphicsContext& ctx) {
+    DrawPeek(ctx);
+    DrawAutoHideStrips(ctx);
     DrawGuides(ctx);
     DrawDragGhost(ctx);
     UIElement::RenderOverlay(ctx);

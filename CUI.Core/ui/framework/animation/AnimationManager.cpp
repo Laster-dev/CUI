@@ -212,7 +212,7 @@ bool AnimationManager::Tick() {
 
 void AnimationManager::CollectAnimatingBounds(Rect& dirtyRect, bool& hasDirty) const {
     for (UIElement* el : m_animating) {
-        if (!el || !IsInLiveTree(el)) {
+        if (!el || !IsInLiveTree(el) || !el->PresentsOnOwnerWindow()) {
             continue;
         }
         el->CollectSelfAnimationBounds(dirtyRect, hasDirty);
@@ -221,7 +221,7 @@ void AnimationManager::CollectAnimatingBounds(Rect& dirtyRect, bool& hasDirty) c
 
 void AnimationManager::CollectComposePresentBounds(Rect& dirtyRect, bool& hasDirty) const {
     for (UIElement* el : m_animating) {
-        if (!el || !IsInLiveTree(el) || !el->IsComposeOnlyAnimation()) {
+        if (!el || !IsInLiveTree(el) || !el->PresentsOnOwnerWindow() || !el->IsComposeOnlyAnimation()) {
             continue;
         }
         const Rect bounds = el->GetBounds();
@@ -235,7 +235,7 @@ void AnimationManager::CollectComposePresentBounds(Rect& dirtyRect, bool& hasDir
 
 bool AnimationManager::HasComposeOnlyAnimating() const {
     for (UIElement* el : m_animating) {
-        if (el && IsInLiveTree(el) && el->IsComposeOnlyAnimation()) {
+        if (el && IsInLiveTree(el) && el->PresentsOnOwnerWindow() && el->IsComposeOnlyAnimation()) {
             return true;
         }
     }
@@ -244,7 +244,7 @@ bool AnimationManager::HasComposeOnlyAnimating() const {
 
 bool AnimationManager::HasSceneContributingAnimators() const {
     for (UIElement* el : m_animating) {
-        if (!el || !IsInLiveTree(el)) {
+        if (!el || !IsInLiveTree(el) || !el->PresentsOnOwnerWindow()) {
             continue;
         }
         if (!el->IsComposeOnlyAnimation()) {
@@ -257,7 +257,7 @@ bool AnimationManager::HasSceneContributingAnimators() const {
 bool AnimationManager::FlushComposePresent(GraphicsContext& ctx) {
     bool any = false;
     for (UIElement* el : m_animating) {
-        if (!el || !IsInLiveTree(el) || !el->IsComposeOnlyAnimation()) {
+        if (!el || !IsInLiveTree(el) || !el->PresentsOnOwnerWindow() || !el->IsComposeOnlyAnimation()) {
             continue;
         }
         if (el->ComposePresent(ctx)) {

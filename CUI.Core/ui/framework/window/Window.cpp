@@ -14,6 +14,7 @@
 #include "../controls/ComboBox.h"
 #include "../controls/Flyout.h"
 #include "../controls/ProgressBarDiag.h"
+#include "../controls/docking/DockFloatWindow.h"
 #include "../animation/FrameScheduler.h"
 #include "../input/RoutedEvent.h"
 #include <windowsx.h>
@@ -1077,6 +1078,7 @@ void Window::RunMessageLoop() {
             if (m_popupHost.TickAnimations()) {
                 animating = true;
             }
+            DockFloatWindow::PresentAll();
             if (auto focused = LockElement(m_focusedElement)) {
                 if (focused->NeedsAutoScrollTick()) {
                     focused->OnAutoScrollTick();

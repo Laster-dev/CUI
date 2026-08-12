@@ -95,6 +95,8 @@ public:
     void FillRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color);
     void DrawRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color, float strokeWidth = 1.0f);
     void DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth = 1.0f);
+    // Antialiased stroke with round caps — for icons. DrawLine pixel-snaps and looks jagged on diagonals.
+    void DrawSmoothLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth = 1.5f);
 
     enum class ChevronDirection { Down, Up, Left, Right };
     // Vector chevron (two strokes). Prefer this over glyph characters under DPI scaling.
@@ -107,6 +109,15 @@ public:
                   DWRITE_PARAGRAPH_ALIGNMENT vAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
                   DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL,
                   bool truncateWithEllipsis = false);
+    // VS auto-hide tabs: rotate the whole run around `center` (ClearType cannot).
+    void DrawTextRotated(
+        const std::string& text,
+        Point center,
+        float degrees,
+        D2D1_COLOR_F color,
+        const std::string& fontName = "Segoe UI",
+        float fontSize = 11.0f,
+        DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL);
 
     Size MeasureText(const std::string& text, const std::string& fontName = "微软雅黑",
                      float fontSize = 13.0f, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL);

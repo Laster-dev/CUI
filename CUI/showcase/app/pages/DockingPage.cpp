@@ -96,16 +96,20 @@ ShowcasePage BuildDockingPage(const ShowcaseContext& ctx) {
     title->SetColorToken(ThemeTokenId::TextPrimary);
 
     auto subtitle = std::make_shared<TextBlock>();
-    subtitle->SetText("单一自绘宿主 · 拖标签出引导 · 拖出窗口撕成 HWND · AH 自动隐藏");
+    subtitle->SetText("拖标签停靠 · 撕出为 CUI 窗口 · 标题栏拖回引导区还原");
     subtitle->SetFontSize(12.0f);
     subtitle->SetColorToken(ThemeTokenId::TextSecondary);
 
     auto toolbar = Row(8).Height(36).Children({ floatBtn, saveBtn, loadBtn }).Build();
 
-    auto page = Column(10).Padding(16).FlexGrow(1.0f).Children({
+    auto header = Column(8).Padding(16, 16, 16, 8).Children({
         title,
         subtitle,
-        toolbar,
+        toolbar
+    }).Build();
+
+    auto page = Column(0).FlexGrow(1.0f).Children({
+        header,
         dock
     }).Build();
     page->SetBackgroundToken(ThemeTokenId::WindowBackground);

@@ -60,7 +60,13 @@ public:
 
     void NotifyFloatClosed(DockFloatWindow* wnd);
     Point LocalToScreenDip(Point local) const;
+    Point ScreenDipToLocal(Point screenDip) const;
+    void BeginFloatRedock(int paneIndex);
+    void UpdateFloatRedock(Point screenDip);
+    bool CompleteFloatRedock(Point screenDip);
+    void CancelFloatRedock();
     HWND OwnerHwnd() const;
+    void InvalidateOwner();
 
 private:
     friend class DockLayoutSerializer;
@@ -106,7 +112,7 @@ private:
         SlotGeom left, right, top, bottom, center;
         Rect splitL, splitR, splitT, splitB;
         Rect visSplitL, visSplitR, visSplitT, visSplitB;
-        float strip = 22.0f;
+        float strip = 24.0f;
     };
 
     struct SideChromeAnim {
@@ -124,8 +130,9 @@ private:
     static constexpr float kTabMinW = 64.0f;
     static constexpr float kTabMaxW = 160.0f;
     static constexpr float kTabPadX = 10.0f;
-    static constexpr float kChromeBtn = 22.0f;
+    static constexpr float kChromeBtn = 20.0f;
     static constexpr float kScrollBtn = 18.0f;
+    static constexpr float kAutoHideStrip = 24.0f;
 
     std::string MakePaneId();
     DockTabGroup& SlotGroup(DockSide side);
@@ -140,9 +147,23 @@ private:
     void ApplyLayoutNow();
     void EnsureTabVisible(DockSide side);
     void SyncSideUnderline(DockSide side, bool jump);
+    void JumpAllUnderlines();
     void BeginContentFade(DockSide side);
     void ApplyContentFadeOpacities();
     float MeasureTabWidth(const std::string& title) const;
+    bool HasAutoHideOn(DockSide side) const;
+    void AutoHideStripInsets(float& left, float& top, float& right, float& bottom) const;
+    float MeasureAutoHideTabExtent(const std::string& title) const;
+    float AutoHideTabOrigin(DockSide side, int indexOnSide) const;
+    Rect AutoHideTabRect(DockSide side, int indexOnSide, const std::string& title) const;
+    void DrawAutoHideLabel(GraphicsContext& ctx, const Rect& btn, const std::string& title,
+                           DockSide side, D2D1_COLOR_F color) const;
+    DockSide PeekSide() const;
+    Rect PeekOuterRect() const;
+    SlotGeom MakePeekGeom() const;
+    void ShowPeek(int paneIndex);
+    void HidePeek();
+    void DrawPeek(GraphicsContext& ctx) const;
     LayoutGeom ComputeGeom(const Rect& bounds);
     void FillSlotGeom(SlotGeom& slot, DockTabGroup& group, DockSide side, Rect outer);
     HitResult HitTestChrome(float x, float y) const;
@@ -197,6 +218,7 @@ private:
     int m_activeSplitter = -1;
     float m_splitStartSize = 0.0f;
     Point m_splitStartPt{};
+    int m_peekPane = -1;
 
     unsigned long long m_nextPaneId = 1;
 };

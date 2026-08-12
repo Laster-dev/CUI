@@ -251,11 +251,9 @@
     <ClInclude Include="ui\framework\controls\ListView.h" />
     <ClInclude Include="ui\framework\controls\MenuBar.h" />
     <ClInclude Include="ui\framework\controls\docking\DockTypes.h" />
-    <ClInclude Include="ui\framework\controls\docking\DockTypes.h" />
     <ClInclude Include="ui\framework\controls\docking\DockFloatWindow.h" />
     <ClInclude Include="ui\framework\controls\docking\DockManager.h" />
     <ClInclude Include="ui\framework\controls\docking\DockLayoutSerializer.h" />
-    <ClInclude Include="ui\framework\controls\docking\Docking.h" />
     <ClInclude Include="ui\framework\controls\docking\Docking.h" />
     <ClInclude Include="ui\framework\controls\MessageBox.h" />
     <ClInclude Include="ui\framework\controls\MiddleClickAutoscroll.h" />

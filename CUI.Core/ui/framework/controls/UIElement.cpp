@@ -393,7 +393,7 @@ void UIElement::Render(GraphicsContext& ctx) {
                 }
                 OnRender(ctx);
                 for (auto& child : m_children) {
-                    if (child) {
+                    if (child && child->PresentsOnOwnerWindow()) {
                         child->Render(ctx);
                     }
                 }
@@ -443,7 +443,7 @@ void UIElement::Render(GraphicsContext& ctx) {
     OnRender(ctx);
 
     for (auto& child : m_children) {
-        if (child) {
+        if (child && child->PresentsOnOwnerWindow()) {
             child->Render(ctx);
         }
     }
@@ -503,7 +503,9 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
     }
 
     for (auto& child : m_children) {
-        child->RenderOverlay(ctx);
+        if (child && child->PresentsOnOwnerWindow()) {
+            child->RenderOverlay(ctx);
+        }
     }
 }
 
@@ -541,6 +543,9 @@ UIElement* UIElement::HitTestOverlay(float x, float y) {
     if (selfOverlay) return selfOverlay;
 
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+        if (!(*it) || !(*it)->PresentsOnOwnerWindow()) {
+            continue;
+        }
         UIElement* hit = (*it)->HitTestOverlay(x, y);
         if (hit) return hit;
     }
@@ -559,6 +564,9 @@ UIElement* UIElement::HitTest(float x, float y) {
     }
 
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+        if (!(*it) || !(*it)->PresentsOnOwnerWindow()) {
+            continue;
+        }
         UIElement* hit = (*it)->HitTest(x, y);
         if (hit) return hit;
     }
@@ -671,7 +679,7 @@ bool UIElement::OnAnimationTick() {
 }
 
 void UIElement::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
-    if (m_visibility != Visibility::Visible) {
+    if (m_visibility != Visibility::Visible || !m_presentsOnOwnerWindow) {
         return;
     }
     if (HasSelfAnimation() && !m_bounds.IsEmpty()) {
@@ -690,6 +698,9 @@ void UIElement::CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
 }
 
 void UIElement::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume) {
+    if (!m_presentsOnOwnerWindow) {
+        return;
+    }
     // Prune subtrees that were never marked — PropertyGrid has dozens of inputs;
     // a full walk on every hover transit dominated CPU while sliding.
     if (!m_subtreeRenderDirty && m_renderNode.GetWorldDirtyRegion().IsEmpty()) {
