@@ -7,6 +7,7 @@
 #include "../input/RoutedEvent.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <sstream>
 #include <iomanip>
 #include <windows.h>
@@ -21,8 +22,185 @@ AnimationSpec SpinnerHoverSpec() {
     return s;
 }
 
-bool IsNumericEditChar(wchar_t ch) {
-    return (ch >= L'0' && ch <= L'9') || ch == L'.' || ch == L'-';
+bool IsExprEditChar(wchar_t ch) {
+    if ((ch >= L'0' && ch <= L'9') || ch == L'.' || ch == L'-' || ch == L'+') {
+        return true;
+    }
+    if (ch == L'*' || ch == L'/' || ch == L'%' || ch == L'^' || ch == L'(' || ch == L')') {
+        return true;
+    }
+    if (ch == L'e' || ch == L'E' || ch == L' ') {
+        return true;
+    }
+    return false;
+}
+
+struct ExprParser {
+    const char* p = nullptr;
+    const char* end = nullptr;
+    bool ok = true;
+
+    void Skip() {
+        while (p < end && (*p == ' ' || *p == '\t')) {
+            ++p;
+        }
+    }
+
+    bool Eat(char c) {
+        Skip();
+        if (p < end && *p == c) {
+            ++p;
+            return true;
+        }
+        return false;
+    }
+
+    double Number() {
+        Skip();
+        if (p >= end) {
+            ok = false;
+            return 0.0;
+        }
+        char* next = nullptr;
+        const double v = std::strtod(p, &next);
+        if (!next || next == p || !std::isfinite(v)) {
+            ok = false;
+            return 0.0;
+        }
+        p = next;
+        return v;
+    }
+
+    double Expr();
+
+    double Primary() {
+        Skip();
+        if (Eat('(')) {
+            const double v = Expr();
+            if (!Eat(')')) {
+                ok = false;
+            }
+            return v;
+        }
+        return Number();
+    }
+
+    double Unary() {
+        Skip();
+        if (Eat('-')) {
+            return -Unary();
+        }
+        if (Eat('+')) {
+            return Unary();
+        }
+        return Primary();
+    }
+
+    double Power() {
+        double v = Unary();
+        Skip();
+        if (Eat('^')) {
+            const double exp = Power();
+            if (!ok) {
+                return 0.0;
+            }
+            v = std::pow(v, exp);
+            if (!std::isfinite(v)) {
+                ok = false;
+                return 0.0;
+            }
+        }
+        return v;
+    }
+
+    double Term() {
+        double v = Power();
+        for (;;) {
+            Skip();
+            if (Eat('*')) {
+                v *= Power();
+            } else if (Eat('/')) {
+                const double r = Power();
+                if (!ok || std::abs(r) < 1.0e-12) {
+                    ok = false;
+                    return 0.0;
+                }
+                v /= r;
+            } else if (Eat('%')) {
+                const double r = Power();
+                if (!ok || std::abs(r) < 1.0e-12) {
+                    ok = false;
+                    return 0.0;
+                }
+                v = std::fmod(v, r);
+            } else {
+                break;
+            }
+            if (!ok || !std::isfinite(v)) {
+                ok = false;
+                return 0.0;
+            }
+        }
+        return v;
+    }
+};
+
+double ExprParser::Expr() {
+    double v = Term();
+    for (;;) {
+        Skip();
+        if (Eat('+')) {
+            v += Term();
+        } else if (Eat('-')) {
+            v -= Term();
+        } else {
+            break;
+        }
+        if (!ok || !std::isfinite(v)) {
+            ok = false;
+            return 0.0;
+        }
+    }
+    return v;
+}
+
+bool TryParsePlainNumber(const std::string& text, float& out) {
+    const char* p = text.c_str();
+    while (*p == ' ' || *p == '\t') {
+        ++p;
+    }
+    if (*p == '\0') {
+        return false;
+    }
+    char* end = nullptr;
+    const double v = std::strtod(p, &end);
+    if (!end || end == p || !std::isfinite(v)) {
+        return false;
+    }
+    while (*end == ' ' || *end == '\t') {
+        ++end;
+    }
+    if (*end != '\0') {
+        return false;
+    }
+    out = static_cast<float>(v);
+    return true;
+}
+
+bool TryEvalExpression(const std::string& text, float& out) {
+    if (text.empty()) {
+        return false;
+    }
+    ExprParser parser;
+    parser.p = text.data();
+    parser.end = text.data() + text.size();
+    const double v = parser.Expr();
+    parser.Skip();
+    if (!parser.ok || parser.p != parser.end || !std::isfinite(v)) {
+        return false;
+    }
+    out = static_cast<float>(v);
+    return true;
 }
 } // namespace
 
@@ -38,7 +216,7 @@ void NumberBox::Field::OnRoutedEvent(RoutedEventArgs& args) {
 }
 
 void NumberBox::Field::OnCharInput(wchar_t ch) {
-    if (ch >= 32 && !IsNumericEditChar(ch)) {
+    if (ch >= 32 && !IsExprEditChar(ch)) {
         return;
     }
     TextBox::OnCharInput(ch);
@@ -182,11 +360,22 @@ HCURSOR NumberBox::GetCursor() const {
 }
 
 std::string NumberBox::FormatValue(float val) const {
+    if (!std::isfinite(val)) {
+        return "0";
+    }
     std::stringstream ss;
-    ss << std::fixed << std::setprecision(1) << val;
+    ss << std::fixed << std::setprecision(6) << val;
     std::string s = ss.str();
-    if (s.size() > 2 && s.substr(s.size() - 2) == ".0") {
-        s = s.substr(0, s.size() - 2);
+    if (s.find('.') != std::string::npos) {
+        while (!s.empty() && s.back() == '0') {
+            s.pop_back();
+        }
+        if (!s.empty() && s.back() == '.') {
+            s.pop_back();
+        }
+    }
+    if (s.empty() || s == "-") {
+        return "0";
     }
     return s;
 }
@@ -217,21 +406,17 @@ void NumberBox::OnFieldTextChanged() {
     if (m_syncingText || !m_field) {
         return;
     }
-    const std::string& text = m_field->GetText();
-    if (text.empty() || text == "-" || text == "." || text == "-.") {
+    float parsed = 0.0f;
+    if (!TryParsePlainNumber(m_field->GetText(), parsed)) {
         return;
     }
-    try {
-        const float parsed = std::stof(text);
-        const float clamped = std::clamp(parsed, m_minimum, m_maximum);
-        if (std::abs(clamped - m_value) <= 0.0001f) {
-            return;
-        }
-        m_value = clamped;
-        NotifyFieldChanged(PropertyId::ControlValue, Value(clamped));
-        m_onValueChangedEvent.Invoke(this, clamped);
-    } catch (...) {
+    const float clamped = std::clamp(parsed, m_minimum, m_maximum);
+    if (std::abs(clamped - m_value) <= 0.0001f) {
+        return;
     }
+    m_value = clamped;
+    NotifyFieldChanged(PropertyId::ControlValue, Value(clamped));
+    m_onValueChangedEvent.Invoke(this, clamped);
 }
 
 void NumberBox::CommitEdit() {
@@ -240,11 +425,7 @@ void NumberBox::CommitEdit() {
     }
     float parsed = m_value;
     const std::string& text = m_field->GetText();
-    try {
-        if (!text.empty() && text != "-" && text != "." && text != "-.") {
-            parsed = std::stof(text);
-        }
-    } catch (...) {
+    if (!TryEvalExpression(text, parsed) && !TryParsePlainNumber(text, parsed)) {
         parsed = m_value;
     }
     SetValue(parsed);

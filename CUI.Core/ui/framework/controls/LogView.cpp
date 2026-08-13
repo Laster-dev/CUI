@@ -1012,8 +1012,6 @@ void LogView::PaintChips(GraphicsContext& ctx) {
         return;
     }
     const auto muted = ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary);
-    const Rect group = ChipGroupRect();
-    ctx.FillRoundedRect(group, 4.0f, WithAlpha(muted, 0.10f));
     for (int i = 0; i < 6; ++i) {
         const Rect chip = ChipRect(i);
         const float on = std::clamp(m_chipAnim[i].Current(), 0.0f, 1.0f);
