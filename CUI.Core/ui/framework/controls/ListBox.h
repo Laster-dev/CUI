@@ -5,6 +5,7 @@
 #include "Control.h"
 #include "ScrollbarAutoHide.h"
 #include "../render/RenderLayer.h"
+#include "../dnd/DragDropService.h"
 #include <vector>
 #include <string>
 #include <unordered_set>
@@ -18,10 +19,10 @@ enum class ListBoxSelectionMode {
     Extended
 };
 
-class ListBox : public Control {
+class ListBox : public Control, public IDragSource, public IDropTarget {
 public:
     ListBox();
-    virtual ~ListBox() = default;
+    virtual ~ListBox() override;
 
     virtual const char* GetClassName() const override { return "ListBox"; }
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_ARROW) : nullptr; }
@@ -46,6 +47,8 @@ public:
     // Items & Data Management
     void AddItem(const std::string& item);
     void AddItem(std::shared_ptr<UIElement> customElement);
+    void InsertItem(int index, const std::string& item);
+    void RemoveItem(int index);
     void SetItems(const std::vector<std::string>& items);
     void SetItems(const std::string& itemsCsv);
     void ClearItems();
@@ -86,6 +89,19 @@ public:
     Event<ListBox*, int, const std::string&>& OnSelectionChanged() { return m_onSelectionChangedEvent; }
     Event<ListBox*, int, const std::string&>& OnItemDoubleClicked() { return m_onItemDoubleClickedEvent; }
 
+    void SetAllowDrag(bool allow) { m_allowDrag = allow; }
+    bool GetAllowDrag() const { return m_allowDrag; }
+    void SetAllowDrop(bool allow) { m_allowDrop = allow; }
+    bool GetAllowDrop() const { return m_allowDrop; }
+
+    DataPackage BeginDrag(Point pt) override;
+    DragDropEffects AllowedEffects() const override;
+    void OnDragCompleted(DragDropEffects effect, IDropTarget* target) override;
+    DragDropEffects OnDragOver(Point pt, const DataPackage& data, DragDropEffects allowed) override;
+    void OnDragLeave() override;
+    bool OnDrop(Point pt, DataPackage& data, DragDropEffects effect) override;
+    Rect DropHighlightRect() const override { return m_bounds; }
+
     struct ListBoxItemData {
         std::string text;
         std::shared_ptr<UIElement> customElement = nullptr;
@@ -98,6 +114,9 @@ private:
     void SelectRange(int fromIdx, int toIdx, bool keepExisting = false);
     void PerformTypeSearch(wchar_t ch);
     void InvalidateItemsLayer();
+    int GetDropInsertIndex(Point pt) const;
+    void NormalizeSelection();
+    void ClearDropInsert();
     bool CanCacheFullItems() const;
     float GetItemsContentHeight() const;
     Rect GetItemsViewportRect() const;
@@ -137,6 +156,13 @@ private:
 
     Event<ListBox*, int, const std::string&> m_onSelectionChangedEvent;
     Event<ListBox*, int, const std::string&> m_onItemDoubleClickedEvent;
+
+    bool m_allowDrag = false;
+    bool m_allowDrop = false;
+    int m_pressIndex = -1;
+    Point m_pressPt{};
+    int m_dragSourceIndex = -1;
+    int m_dropInsertIndex = -1;
 };
 
 } // namespace CUI

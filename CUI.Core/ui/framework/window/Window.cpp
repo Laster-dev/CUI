@@ -26,9 +26,16 @@
 #include <cstring>
 #include <functional>
 #include <sstream>
+#include <vector>
+#include <new>
+
+#include <shellapi.h>
+#include <ole2.h>
 
 #pragma comment(lib, "imm32.lib")
 #pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "ole32.lib")
 
 #ifndef DWMWA_WINDOW_CORNER_PREFERENCE
 #define DWMWA_WINDOW_CORNER_PREFERENCE 33
@@ -45,6 +52,165 @@ Window* Window::Current() {
 namespace {
 constexpr UINT WM_CUI_RASTER_COMPLETE = WM_APP + 45;
 constexpr UINT WM_CUI_CLOSE_POPUPS = WM_APP + 46;
+
+class WindowOleDropTarget final : public ::IDropTarget {
+public:
+    explicit WindowOleDropTarget(Window* window) : m_window(window) {}
+
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppv) override {
+        if (!ppv) {
+            return E_POINTER;
+        }
+        if (riid == IID_IUnknown || riid == IID_IDropTarget) {
+            *ppv = static_cast<::IDropTarget*>(this);
+            AddRef();
+            return S_OK;
+        }
+        *ppv = nullptr;
+        return E_NOINTERFACE;
+    }
+
+    ULONG STDMETHODCALLTYPE AddRef() override {
+        return static_cast<ULONG>(InterlockedIncrement(&m_ref));
+    }
+
+    ULONG STDMETHODCALLTYPE Release() override {
+        const ULONG n = static_cast<ULONG>(InterlockedDecrement(&m_ref));
+        if (n == 0) {
+            delete this;
+        }
+        return n;
+    }
+
+    HRESULT STDMETHODCALLTYPE DragEnter(::IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
+        (void)grfKeyState;
+        if (!pdwEffect) {
+            return E_POINTER;
+        }
+        *pdwEffect = DROPEFFECT_NONE;
+        if (!m_window || !pDataObj) {
+            return E_INVALIDARG;
+        }
+        DataPackage pkg = ToPackage(pDataObj);
+        if (!pkg.HasFiles() && !pkg.HasText()) {
+            return S_OK;
+        }
+        m_window->GetDragDrop().BeginExternal(std::move(pkg));
+        const Point logical = ToLogical(pt);
+        m_window->GetDragDrop().Update(logical, m_window->GetRootElement().get());
+        *pdwEffect = ToOleEffect(m_window->GetDragDrop().GetCurrentEffect());
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE DragOver(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
+        (void)grfKeyState;
+        if (!pdwEffect) {
+            return E_POINTER;
+        }
+        *pdwEffect = DROPEFFECT_NONE;
+        if (!m_window || !m_window->GetDragDrop().IsDragging()) {
+            return S_OK;
+        }
+        const Point logical = ToLogical(pt);
+        m_window->GetDragDrop().Update(logical, m_window->GetRootElement().get());
+        *pdwEffect = ToOleEffect(m_window->GetDragDrop().GetCurrentEffect());
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE DragLeave() override {
+        if (m_window) {
+            m_window->GetDragDrop().EndExternal();
+        }
+        return S_OK;
+    }
+
+    HRESULT STDMETHODCALLTYPE Drop(::IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
+        (void)grfKeyState;
+        if (!pdwEffect) {
+            return E_POINTER;
+        }
+        *pdwEffect = DROPEFFECT_NONE;
+        if (!m_window) {
+            return E_INVALIDARG;
+        }
+        const Point logical = ToLogical(pt);
+        if (pDataObj) {
+            DataPackage pkg = ToPackage(pDataObj);
+            if (pkg.HasFiles() || pkg.HasText()) {
+                m_window->GetDragDrop().BeginExternal(std::move(pkg));
+            }
+        }
+        m_window->GetDragDrop().CompleteDrop(logical, m_window->GetRootElement().get());
+        *pdwEffect = DROPEFFECT_COPY;
+        return S_OK;
+    }
+
+private:
+    static DWORD ToOleEffect(DragDropEffects effect) {
+        if (effect == DragDropEffects::Copy) {
+            return DROPEFFECT_COPY;
+        }
+        if (effect == DragDropEffects::Move) {
+            return DROPEFFECT_MOVE;
+        }
+        if (effect == DragDropEffects::Link) {
+            return DROPEFFECT_LINK;
+        }
+        return DROPEFFECT_NONE;
+    }
+
+    Point ToLogical(POINTL pt) const {
+        POINT client{ pt.x, pt.y };
+        ScreenToClient(m_window->GetHWND(), &client);
+        return m_window->ClientPointToLogical(client.x, client.y);
+    }
+
+    static DataPackage ToPackage(::IDataObject* data) {
+        DataPackage pkg;
+        if (!data) {
+            return pkg;
+        }
+
+        FORMATETC dropFmt{ CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+        STGMEDIUM stg{};
+        if (SUCCEEDED(data->GetData(&dropFmt, &stg))) {
+            if (stg.hGlobal) {
+                auto hdrop = static_cast<HDROP>(GlobalLock(stg.hGlobal));
+                if (hdrop) {
+                    const UINT count = DragQueryFileW(hdrop, 0xFFFFFFFF, nullptr, 0);
+                    std::vector<std::string> files;
+                    files.reserve(count);
+                    for (UINT i = 0; i < count; ++i) {
+                        const UINT len = DragQueryFileW(hdrop, i, nullptr, 0);
+                        std::wstring path(len, L'\0');
+                        if (len > 0) {
+                            DragQueryFileW(hdrop, i, path.data(), len + 1);
+                            files.push_back(Utf16ToUtf8(path));
+                        }
+                    }
+                    pkg.SetFiles(std::move(files));
+                    GlobalUnlock(stg.hGlobal);
+                }
+            }
+            ReleaseStgMedium(&stg);
+        }
+
+        FORMATETC textFmt{ CF_UNICODETEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+        if (SUCCEEDED(data->GetData(&textFmt, &stg))) {
+            if (stg.hGlobal) {
+                if (const auto* text = static_cast<const wchar_t*>(GlobalLock(stg.hGlobal))) {
+                    pkg.SetText(Utf16ToUtf8(text));
+                    GlobalUnlock(stg.hGlobal);
+                }
+            }
+            ReleaseStgMedium(&stg);
+        }
+        return pkg;
+    }
+
+    Window* m_window = nullptr;
+    volatile LONG m_ref = 1;
+};
 
 float GetWindowRefreshRateHz(HWND hwnd) {
     // EnumDisplaySettings is relatively expensive — cache per monitor briefly.
@@ -458,6 +624,62 @@ void Window::RequestFullRepaint() {
     RedrawWindow(m_hwnd, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
+void Window::InvalidateLogicalRect(const Rect& rect) {
+    if (rect.IsEmpty() || !m_hwnd) {
+        return;
+    }
+    m_pendingDirtyRegion.AddRect(rect);
+    InvalidatePendingRenderRegions(false);
+}
+
+void Window::InvalidateDragFeedback() {
+    if (!m_hwnd) {
+        return;
+    }
+    Rect all(0.0f, 0.0f, m_logicalClientSize.width, m_logicalClientSize.height);
+    if (all.IsEmpty() && m_rootElement) {
+        all = m_rootElement->GetBounds();
+    }
+    if (!all.IsEmpty()) {
+        m_pendingDirtyRegion.AddRect(all);
+    }
+    InvalidateRect(m_hwnd, nullptr, FALSE);
+}
+
+void Window::RegisterShellDropTarget() {
+    if (!m_hwnd || m_oleDropRegistered) {
+        return;
+    }
+    const HRESULT ole = OleInitialize(nullptr);
+    if (ole == S_OK) {
+        m_needOleUninit = true;
+    }
+    auto* target = new (std::nothrow) WindowOleDropTarget(this);
+    if (!target) {
+        DragAcceptFiles(m_hwnd, TRUE);
+        return;
+    }
+    const HRESULT hr = RegisterDragDrop(m_hwnd, target);
+    if (SUCCEEDED(hr)) {
+        m_oleDropRegistered = true;
+        m_oleDropTarget = target;
+        return;
+    }
+    target->Release();
+    DragAcceptFiles(m_hwnd, TRUE);
+}
+
+void Window::RevokeShellDropTarget() {
+    if (m_oleDropRegistered && m_hwnd) {
+        RevokeDragDrop(m_hwnd);
+        m_oleDropRegistered = false;
+    }
+    if (m_oleDropTarget) {
+        static_cast<::IDropTarget*>(m_oleDropTarget)->Release();
+        m_oleDropTarget = nullptr;
+    }
+}
+
 void Window::InvalidatePendingRenderRegions(bool fallbackToFullWindow) {
     if (!m_hwnd) {
         return;
@@ -515,6 +737,7 @@ void Window::InvalidateAnimatedRegions(bool animationStillActive) {
     bool hasFresh = false;
     m_animationManager.CollectAnimatingBounds(freshDirty, hasFresh);
     m_popupHost.CollectDirty(freshDirty, hasFresh);
+    m_dragDrop.CollectDirty(freshDirty, hasFresh);
 
     // Stale footprint from a previous frame must be erased once — but must NOT be
     // re-stored as lastAnimDirty while animationStillActive (that locked ProgressBar
@@ -730,9 +953,18 @@ Window::~Window() {
     if (PopupHost::Current() == &m_popupHost) {
         PopupHost::SetCurrent(nullptr);
     }
+    if (DragDropService::Current() == &m_dragDrop) {
+        m_dragDrop.Cancel();
+        DragDropService::SetCurrent(nullptr);
+    }
     m_popupHost.CloseAll();
+    RevokeShellDropTarget();
     if (m_hwnd) {
         DestroyWindow(m_hwnd);
+    }
+    if (m_needOleUninit) {
+        OleUninitialize();
+        m_needOleUninit = false;
     }
 }
 
@@ -822,6 +1054,8 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     m_popupHost.SetOwnerHwnd(m_hwnd);
     AnimationManager::SetCurrent(&m_animationManager);
     FrameScheduler::SetCurrent(&m_frameScheduler);
+    DragDropService::SetCurrent(&m_dragDrop);
+    RegisterShellDropTarget();
     return true;
 }
 
@@ -1577,6 +1811,18 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         break;
 
     case WM_KEYDOWN:
+        if (wParam == VK_ESCAPE && m_dragDrop.IsDragging()) {
+            m_dragDrop.Cancel();
+            if (auto pressed = LockElement(m_pressedElement)) {
+                pressed->OnMouseUp(Point());
+            }
+            m_pressedElement.reset();
+            if (GetCapture() == m_hwnd && !LockElement(m_rpressedElement) && !LockElement(m_middleScrollElement)) {
+                ReleaseCapture();
+            }
+            InvalidatePendingRenderRegions(false);
+            return 0;
+        }
         if (wParam == VK_ESCAPE && IsMiddleClickAutoscrollActive()) {
             StopMiddleClickAutoscroll();
             InvalidatePendingRenderRegions(false);
@@ -1713,6 +1959,36 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         }
         return 0;
 
+    case WM_DROPFILES:
+        {
+            const HDROP hdrop = reinterpret_cast<HDROP>(wParam);
+            POINT clientPt{};
+            if (!DragQueryPoint(hdrop, &clientPt)) {
+                POINT screen{};
+                GetCursorPos(&screen);
+                ScreenToClient(m_hwnd, &screen);
+                clientPt = screen;
+            }
+            const Point logical = ClientPointToLogical(clientPt.x, clientPt.y);
+            const UINT count = DragQueryFileW(hdrop, 0xFFFFFFFF, nullptr, 0);
+            std::vector<std::string> files;
+            files.reserve(count);
+            for (UINT i = 0; i < count; ++i) {
+                const UINT len = DragQueryFileW(hdrop, i, nullptr, 0);
+                std::wstring path(len, L'\0');
+                if (len > 0) {
+                    DragQueryFileW(hdrop, i, path.data(), len + 1);
+                    files.push_back(Utf16ToUtf8(path));
+                }
+            }
+            DragFinish(hdrop);
+            DataPackage pkg;
+            pkg.SetFiles(std::move(files));
+            m_dragDrop.DeliverExternal(logical, std::move(pkg), m_rootElement.get());
+            InvalidatePendingRenderRegions(true);
+        }
+        return 0;
+
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
@@ -1810,6 +2086,7 @@ void Window::OnPaint() {
             m_rootElement->RenderOverlay(m_gfxContext);
         }
         m_popupHost.Render(m_gfxContext);
+        m_dragDrop.RenderOverlay(m_gfxContext);
         m_gfxContext.SetPaintBounds(savedPaintBounds);
     };
 
@@ -2189,8 +2466,17 @@ bool Window::OnMouseMove(int x, int y) {
         m_middleScrollElement.reset();
     }
 
+    if (m_dragDrop.IsDragging()) {
+        m_dragDrop.Update(Point(fx, fy), m_rootElement.get());
+        return true;
+    }
+
     if (auto pressed = LockElement(m_pressedElement)) {
         pressed->OnMouseMove(Point(fx, fy));
+        if (m_dragDrop.IsDragging()) {
+            m_dragDrop.Update(Point(fx, fy), m_rootElement.get());
+            return true;
+        }
         if (NeedsContinuousMouseRedraw(pressed.get())) {
             return true;
         }
@@ -2378,6 +2664,11 @@ bool Window::OnLButtonUp(int x, int y) {
     float fx = logicalPt.x;
     float fy = logicalPt.y;
     bool dirty = false;
+
+    if (m_dragDrop.IsDragging()) {
+        m_dragDrop.CompleteDrop(Point(fx, fy), m_rootElement.get());
+        dirty = true;
+    }
 
     if (auto pressed = LockElement(m_pressedElement)) {
         pressed->OnMouseUp(Point(fx, fy));

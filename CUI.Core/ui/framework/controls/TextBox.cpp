@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstring>
 #include <cwctype>
+#include <sstream>
 
 namespace CUI {
 
@@ -60,6 +61,62 @@ TextBox::TextBox() {
 
 TextBox::TextBox(const std::string& placeholder) : TextBox() {
     SetPlaceholder(placeholder);
+}
+
+TextBox::~TextBox() {
+    if (auto* dnd = DragDropService::Current()) {
+        dnd->AbortIfParticipant(nullptr, this);
+    }
+}
+
+DragDropEffects TextBox::OnDragOver(Point pt, const DataPackage& data, DragDropEffects allowed) {
+    (void)pt;
+    if (!m_allowDrop || m_isReadOnly) {
+        return DragDropEffects::None;
+    }
+    if (!data.HasText() && !data.HasFiles()) {
+        return DragDropEffects::None;
+    }
+    if (!m_dropHover) {
+        m_dropHover = true;
+        MarkRenderRectDirty(m_bounds);
+    }
+    if (HasEffect(allowed, DragDropEffects::Copy)) {
+        return DragDropEffects::Copy;
+    }
+    return allowed;
+}
+
+void TextBox::OnDragLeave() {
+    if (m_dropHover) {
+        m_dropHover = false;
+        MarkRenderRectDirty(m_bounds);
+    }
+}
+
+bool TextBox::OnDrop(Point pt, DataPackage& data, DragDropEffects effect) {
+    (void)pt;
+    (void)effect;
+    m_dropHover = false;
+    if (!m_allowDrop || m_isReadOnly) {
+        return false;
+    }
+    if (data.HasFiles()) {
+        std::ostringstream oss;
+        for (size_t i = 0; i < data.GetFiles().size(); ++i) {
+            if (i) {
+                oss << (m_acceptsReturn ? "\n" : "; ");
+            }
+            oss << data.GetFiles()[i];
+        }
+        SetText(oss.str());
+        return true;
+    }
+    if (data.HasText()) {
+        SetText(data.GetText());
+        return true;
+    }
+    return false;
 }
 
 void TextBox::SetCompositionString(const std::wstring& compStr) {
@@ -486,6 +543,13 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         }
     }
 
+    if (m_dropHover && enabled) {
+        const auto accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+        const float dropRadius = radius > 0.0f ? radius : 6.0f;
+        ctx.FillRoundedRect(m_bounds, dropRadius, D2D1::ColorF(accent.r, accent.g, accent.b, 0.18f));
+        ctx.DrawRoundedRect(m_bounds, dropRadius, accent, 2.0f);
+    }
+
     std::string text = GetText();
     std::string placeholder = GetPlaceholder();
     bool hasFloatingLabel = !placeholder.empty();
@@ -606,7 +670,15 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         activeUnderlineColor = underlineColor;
     }
     float lineY = m_bounds.y + m_bounds.height - 2.0f;
-    ctx.DrawLine(Point(m_bounds.x, lineY), Point(m_bounds.x + m_bounds.width, lineY), underlineColor, 1.0f);
+    if (m_dropHover && enabled) {
+        ctx.DrawLine(
+            Point(m_bounds.x, lineY),
+            Point(m_bounds.x + m_bounds.width, lineY),
+            activeUnderlineColor,
+            2.5f);
+    } else {
+        ctx.DrawLine(Point(m_bounds.x, lineY), Point(m_bounds.x + m_bounds.width, lineY), underlineColor, 1.0f);
+    }
 
     float focusFactor = enabled ? std::clamp(focusLineProgress, 0.0f, 1.0f) : 0.0f;
     if (focusFactor > 0.01f) {

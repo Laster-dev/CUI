@@ -3,6 +3,7 @@
 #endif
 #include "ListBox.h"
 #include "../style/ThemeManager.h"
+#include "../dnd/DragDropService.h"
 #include <cmath>
 #include <algorithm>
 #include <sstream>
@@ -35,15 +36,65 @@ void ListBox::SetProperty(PropertyId id, const Value& val) {
     Control::SetProperty(id, val);
 }
 
+ListBox::~ListBox() {
+    if (auto* dnd = DragDropService::Current()) {
+        dnd->AbortIfParticipant(this, this);
+    }
+}
+
 void ListBox::AddItem(const std::string& item) {
-    m_itemDatas.push_back({ item, nullptr });
+    InsertItem(static_cast<int>(m_itemDatas.size()), item);
 }
 
 void ListBox::AddItem(std::shared_ptr<UIElement> customElement) {
     if (customElement) {
         m_itemDatas.push_back({ "", customElement });
         AddChild(customElement);
+        InvalidateItemsLayer();
     }
+}
+
+void ListBox::InsertItem(int index, const std::string& item) {
+    if (m_virtualMode) {
+        return;
+    }
+    if (index < 0) {
+        index = 0;
+    }
+    if (index > static_cast<int>(m_itemDatas.size())) {
+        index = static_cast<int>(m_itemDatas.size());
+    }
+    m_itemDatas.insert(m_itemDatas.begin() + index, { item, nullptr });
+    if (m_selectedIndex >= index) {
+        ++m_selectedIndex;
+    }
+    if (m_caretIndex >= index) {
+        ++m_caretIndex;
+    }
+    NormalizeSelection();
+    InvalidateItemsLayer();
+}
+
+void ListBox::RemoveItem(int index) {
+    if (m_virtualMode || index < 0 || index >= static_cast<int>(m_itemDatas.size())) {
+        return;
+    }
+    if (m_itemDatas[static_cast<size_t>(index)].customElement) {
+        RemoveChild(m_itemDatas[static_cast<size_t>(index)].customElement);
+    }
+    m_itemDatas.erase(m_itemDatas.begin() + index);
+    if (m_selectedIndex == index) {
+        m_selectedIndex = -1;
+    } else if (m_selectedIndex > index) {
+        --m_selectedIndex;
+    }
+    if (m_caretIndex == index) {
+        m_caretIndex = -1;
+    } else if (m_caretIndex > index) {
+        --m_caretIndex;
+    }
+    NormalizeSelection();
+    InvalidateItemsLayer();
 }
 
 void ListBox::SetVirtualCount(size_t count) {
@@ -458,9 +509,23 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
     D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     float borderThick = GetBorderThickness();
+    const bool dropReady = m_dropInsertIndex >= 0;
 
-    ctx.FillRoundedRect(m_bounds, radius, bg);
-    ctx.DrawRoundedRect(m_bounds, radius, border, borderThick);
+    if (dropReady) {
+        const auto accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+        ctx.FillRoundedRect(
+            m_bounds,
+            radius,
+            D2D1::ColorF(
+                bg.r * 0.72f + accent.r * 0.28f,
+                bg.g * 0.72f + accent.g * 0.28f,
+                bg.b * 0.72f + accent.b * 0.28f,
+                1.0f));
+        ctx.DrawRoundedRect(m_bounds, radius, accent, 2.5f);
+    } else {
+        ctx.FillRoundedRect(m_bounds, radius, bg);
+        ctx.DrawRoundedRect(m_bounds, radius, border, borderThick);
+    }
 
     float itemH = GetItemHeight();
     float sbWidth = (m_maxScrollY > 0.0f) ? 8.0f : 0.0f;
@@ -494,6 +559,19 @@ void ListBox::OnRender(GraphicsContext& ctx) {
 
         ctx.FillRoundedRect(thumbRect, 3.0f, thumbBg);
     }
+
+    if (m_dropInsertIndex >= 0) {
+        const float itemH = GetItemHeight();
+        float lineY = m_bounds.y + 2.0f + static_cast<float>(m_dropInsertIndex) * itemH - m_scrollY;
+        lineY = std::clamp(lineY, m_bounds.y + 2.0f, m_bounds.y + m_bounds.height - 3.0f);
+        const auto accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+        ctx.FillRoundedRect(
+            Rect(m_bounds.x + 6.0f, lineY - 2.0f, m_bounds.width - 16.0f, 4.0f),
+            2.0f,
+            accent);
+        ctx.FillRoundedRect(Rect(m_bounds.x + 4.0f, lineY - 5.0f, 10.0f, 10.0f), 5.0f, accent);
+        ctx.FillRoundedRect(Rect(m_bounds.x + m_bounds.width - 16.0f, lineY - 5.0f, 10.0f, 10.0f), 5.0f, accent);
+    }
 }
 
 void ListBox::OnMouseDown(Point pt) {
@@ -514,6 +592,8 @@ void ListBox::OnMouseDown(Point pt) {
     }
 
     int clickedIdx = GetItemIndexFromY(pt.y);
+    m_pressIndex = clickedIdx;
+    m_pressPt = pt;
     if (clickedIdx < 0 || static_cast<size_t>(clickedIdx) >= GetItemCount()) return;
 
     bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
@@ -559,6 +639,21 @@ void ListBox::OnMouseMove(Point pt) {
         RequestAnimationTicks();
     }
 
+    if (m_allowDrag && m_isPressed && !m_isDraggingScrollbar && !m_virtualMode
+        && m_pressIndex >= 0 && static_cast<size_t>(m_pressIndex) < GetItemCount()) {
+        const float dx = pt.x - m_pressPt.x;
+        const float dy = pt.y - m_pressPt.y;
+        if (dx * dx + dy * dy >= 36.0f) {
+            if (auto* dnd = DragDropService::Current()) {
+                if (!dnd->IsDragging()) {
+                    DataPackage pkg = BeginDrag(pt);
+                    dnd->BeginDrag(this, pt, std::move(pkg), AllowedEffects());
+                    return;
+                }
+            }
+        }
+    }
+
     if (m_isDraggingScrollbar && m_isPressed) {
         float deltaY = pt.y - m_dragStartY;
         float trackH = m_bounds.height - 4.0f;
@@ -593,6 +688,7 @@ void ListBox::OnMouseMove(Point pt) {
 void ListBox::OnMouseUp(Point pt) {
     Control::OnMouseUp(pt);
     m_isDraggingScrollbar = false;
+    m_pressIndex = -1;
     m_scrollbarAutoHide.SetDragging(false, this);
     RequestAnimationTicks();
 }
@@ -774,6 +870,121 @@ void ListBox::PerformTypeSearch(wchar_t ch) {
             break;
         }
     }
+}
+
+void ListBox::NormalizeSelection() {
+    const int n = static_cast<int>(GetItemCount());
+    if (m_selectedIndex >= n) {
+        m_selectedIndex = n - 1;
+    }
+    m_selectedIndices.clear();
+    if (m_selectedIndex >= 0) {
+        m_selectedIndices.insert(m_selectedIndex);
+    }
+}
+
+int ListBox::GetDropInsertIndex(Point pt) const {
+    const float itemH = GetItemHeight();
+    if (itemH <= 0.0f) {
+        return static_cast<int>(GetItemCount());
+    }
+    const float relativeY = pt.y - m_bounds.y - 2.0f + m_scrollY;
+    int idx = static_cast<int>(std::floor((relativeY + itemH * 0.5f) / itemH));
+    idx = std::clamp(idx, 0, static_cast<int>(GetItemCount()));
+    return idx;
+}
+
+void ListBox::ClearDropInsert() {
+    if (m_dropInsertIndex != -1) {
+        m_dropInsertIndex = -1;
+        MarkRenderRectDirty(m_bounds);
+    }
+}
+
+DataPackage ListBox::BeginDrag(Point pt) {
+    (void)pt;
+    DataPackage pkg;
+    m_dragSourceIndex = m_pressIndex;
+    if (m_dragSourceIndex >= 0 && static_cast<size_t>(m_dragSourceIndex) < GetItemCount()) {
+        pkg.SetText(GetItemAt(static_cast<size_t>(m_dragSourceIndex)));
+        pkg.SetFormat("cui/list-item", std::to_string(m_dragSourceIndex));
+    }
+    return pkg;
+}
+
+DragDropEffects ListBox::AllowedEffects() const {
+    return DragDropEffects::Copy | DragDropEffects::Move;
+}
+
+void ListBox::OnDragCompleted(DragDropEffects effect, IDropTarget* target) {
+    if (effect == DragDropEffects::Move && target != static_cast<IDropTarget*>(this)
+        && m_dragSourceIndex >= 0 && !m_virtualMode) {
+        RemoveItem(m_dragSourceIndex);
+    }
+    m_dragSourceIndex = -1;
+    m_pressIndex = -1;
+}
+
+DragDropEffects ListBox::OnDragOver(Point pt, const DataPackage& data, DragDropEffects allowed) {
+    if (!m_allowDrop || m_virtualMode) {
+        return DragDropEffects::None;
+    }
+    if (!data.HasText() && !data.HasFiles()) {
+        return DragDropEffects::None;
+    }
+    const int insertAt = GetDropInsertIndex(pt);
+    if (insertAt != m_dropInsertIndex) {
+        m_dropInsertIndex = insertAt;
+        MarkRenderRectDirty(m_bounds);
+    }
+    return allowed;
+}
+
+void ListBox::OnDragLeave() {
+    ClearDropInsert();
+}
+
+bool ListBox::OnDrop(Point pt, DataPackage& data, DragDropEffects effect) {
+    if (!m_allowDrop || m_virtualMode) {
+        ClearDropInsert();
+        return false;
+    }
+
+    int insertAt = GetDropInsertIndex(pt);
+    auto* selfSource = dynamic_cast<ListBox*>(
+        DragDropService::Current() ? DragDropService::Current()->GetSource() : nullptr);
+
+    if (data.HasFiles()) {
+        for (const auto& path : data.GetFiles()) {
+            InsertItem(insertAt++, path);
+        }
+        ClearDropInsert();
+        return true;
+    }
+
+    if (!data.HasText()) {
+        ClearDropInsert();
+        return false;
+    }
+
+    const std::string text = data.GetText();
+    if (selfSource == this && effect == DragDropEffects::Move && m_dragSourceIndex >= 0) {
+        int from = m_dragSourceIndex;
+        if (insertAt > from) {
+            --insertAt;
+        }
+        if (insertAt != from) {
+            RemoveItem(from);
+            InsertItem(insertAt, text);
+        }
+        m_dragSourceIndex = -1;
+        ClearDropInsert();
+        return true;
+    }
+
+    InsertItem(insertAt, text);
+    ClearDropInsert();
+    return true;
 }
 
 } // namespace CUI

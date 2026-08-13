@@ -1,6 +1,7 @@
 #pragma once
 #include "Control.h"
 #include "../text/TextLayoutCache.h"
+#include "../dnd/DragDropService.h"
 #include <vector>
 #include <dwrite.h>
 #include <wrl/client.h>
@@ -14,11 +15,11 @@ struct TextBoxUndoState {
     int selectionEnd = 0;
 };
 
-class TextBox : public Control {
+class TextBox : public Control, public IDropTarget {
 public:
     TextBox();
     explicit TextBox(const std::string& placeholder);
-    virtual ~TextBox() = default;
+    virtual ~TextBox() override;
 
     virtual const char* GetClassName() const override { return "TextBox"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
@@ -118,6 +119,13 @@ public:
 
     Event<TextBox*, const std::string&>& OnTextChanged() { return m_onTextChangedEvent; }
 
+    void SetAllowDrop(bool allow) { m_allowDrop = allow; }
+    bool GetAllowDrop() const { return m_allowDrop; }
+    DragDropEffects OnDragOver(Point pt, const DataPackage& data, DragDropEffects allowed) override;
+    void OnDragLeave() override;
+    bool OnDrop(Point pt, DataPackage& data, DragDropEffects effect) override;
+    Rect DropHighlightRect() const override { return m_bounds; }
+
 protected:
     Rect GetRevealButtonRect() const;
 
@@ -174,6 +182,8 @@ private:
     mutable TextLayoutCache m_textLayoutCache;
 
     Event<TextBox*, const std::string&> m_onTextChangedEvent;
+    bool m_allowDrop = false;
+    bool m_dropHover = false;
 };
 
 } // namespace CUI

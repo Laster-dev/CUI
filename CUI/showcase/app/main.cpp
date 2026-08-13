@@ -97,6 +97,7 @@ public:
 
         add("flyout", "交互/浮层", "Flyout", [ctx = m_ctx] { return BuildFlyoutPage(ctx); });
         add("teachingtip", "交互/浮层", "TeachingTip", [ctx = m_ctx] { return BuildTeachingTipPage(ctx); });
+        add("dragdrop", "交互/浮层", "DragDrop", [ctx = m_ctx] { return BuildDragDropPage(ctx); });
         add("dialog", "交互/浮层", "Dialog", [ctx = m_ctx] { return BuildDialogPage(ctx); });
         add("toast", "交互/浮层", "Toast", [ctx = m_ctx] { return BuildToastPage(ctx); });
         add("stream", "终端/媒体", "Stream", [ctx = m_ctx] { return BuildStreamPage(ctx); });

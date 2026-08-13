@@ -10,6 +10,7 @@
 #include "../input/RoutedEvent.h"
 #include "WindowBackdrop.h"
 #include "PopupHost.h"
+#include "../dnd/DragDropService.h"
 #include <windows.h>
 #include <chrono>
 #include <memory>
@@ -59,6 +60,9 @@ public:
     float GetDisplayFps() const;
 
     Point ClientPointToLogical(int x, int y) const;
+    void InvalidateLogicalRect(const Rect& rect);
+    void InvalidateDragFeedback();
+    DragDropService& GetDragDrop() { return m_dragDrop; }
 
     void SetActiveContextMenu(std::shared_ptr<ContextMenu> menu) { m_activeContextMenu = menu; }
 
@@ -100,6 +104,12 @@ private:
     void SampleDisplayFps();
     void DrawRenderStatsOverlay();
     void ApplyVisualState();
+    void RegisterShellDropTarget();
+    void RevokeShellDropTarget();
+
+    void* m_oleDropTarget = nullptr;
+    bool m_oleDropRegistered = false;
+    bool m_needOleUninit = false;
 
     HWND m_hwnd = nullptr;
     float m_dpiScale = 1.0f;
@@ -117,6 +127,7 @@ private:
     Point m_pendingContextMenuPt{};
     std::shared_ptr<ContextMenu> m_pendingContextMenu;
     PopupHost m_popupHost;
+    DragDropService m_dragDrop;
     bool m_trackingMouse = false;
     bool m_transparentMode = false;
     Rect m_lastAnimationDirtyRect;

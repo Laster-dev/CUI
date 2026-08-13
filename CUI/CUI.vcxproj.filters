@@ -60,6 +60,9 @@
     <ClCompile Include="showcase\app\pages\ChartPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="showcase\app\pages\DragDropPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="showcase\app\pages\GridPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>

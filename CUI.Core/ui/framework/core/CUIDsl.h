@@ -35,6 +35,7 @@
 #include "../controls/RatingControl.h"
 #include "../controls/TeachingTip.h"
 #include "../controls/chart/Chart.h"
+#include "../dnd/DragDropService.h"
 #include "../controls/FilePicker.h"
 #include "../controls/FolderPicker.h"
 #include "../controls/PagingControl.h"

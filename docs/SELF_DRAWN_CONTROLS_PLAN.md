@@ -1,7 +1,7 @@
 # CUI 自绘控件与能力扩展计划
 
 > 创建日期: 2026-08-13  
-> 状态: **进行中** — A–D、F、G 已完成（Chart 折线/柱状/饼图独立页）；E Markdown、H 拖放未做  
+> 状态: **进行中** — A–D、F、G、H 已完成；E Markdown 未做  
 > 原则: **全部纯自绘**（Direct2D 几何/文本/命中/动画自管），禁止用现有 Button/TextBox/ListBox 等控件拼接出“假控件”。可复用的仅限框架基础设施：`UIElement` / `Control` / `PopupHost` / `AnimationManager` / `ThemeManager` / `GraphicsContext`。  
 > Showcase: Toggle / Split / DropDown 按钮族统一放在 **Button** 页演示；其余各自独立页。
 
@@ -331,7 +331,7 @@ CUI/showcase/app/pages/
 - [ ] Showcase 可键盘操作核心路径
 - [ ] Button 页可看到 Toggle / Split / DropDown
 - [ ] Markdown 样例只读渲染正确；Chart 三类图可交互读值
-- [ ] 拖放：应用内 + 文件拖入至少一种外部路径
+- [x] 拖放：应用内 + 文件拖入至少一种外部路径
 
 ---
 
