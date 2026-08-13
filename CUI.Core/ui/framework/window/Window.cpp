@@ -2004,6 +2004,7 @@ void Window::OnPaint() {
         }
 
         renderOverlaysOnly();
+        SampleDisplayFps();
         DrawRenderStatsOverlay();
         m_gfxContext.EndDraw();
     }
@@ -2015,22 +2016,34 @@ void Window::OnPaint() {
     EndPaint(m_hwnd, &ps);
 }
 
-void Window::DrawRenderStatsOverlay() {
-    if (!m_showRenderStatsOverlay) {
-        return;
+void Window::SampleDisplayFps() {
+    using clock = std::chrono::steady_clock;
+    if (m_overlayFpsSampleStart.time_since_epoch().count() == 0) {
+        m_overlayFpsSampleStart = clock::now();
     }
+    ++m_overlayFrameCounter;
+}
 
+float Window::GetDisplayFps() const {
     using clock = std::chrono::steady_clock;
     const auto now = clock::now();
     if (m_overlayFpsSampleStart.time_since_epoch().count() == 0) {
-        m_overlayFpsSampleStart = now;
+        return 0.0f;
     }
-    ++m_overlayFrameCounter;
-    const auto elapsed = std::chrono::duration<float>(now - m_overlayFpsSampleStart).count();
+    const float elapsed = std::chrono::duration<float>(now - m_overlayFpsSampleStart).count();
+    // Flush on the same cadence as the status bar (~0.5s) so idle mouse-move
+    // no longer shows the last Present storm's Hz.
     if (elapsed >= 0.5f) {
-        m_overlayFps = m_overlayFrameCounter / elapsed;
+        m_overlayFps = static_cast<float>(m_overlayFrameCounter) / elapsed;
         m_overlayFrameCounter = 0;
         m_overlayFpsSampleStart = now;
+    }
+    return m_overlayFps;
+}
+
+void Window::DrawRenderStatsOverlay() {
+    if (!m_showRenderStatsOverlay) {
+        return;
     }
 
     const auto& stats = m_compositionContext.GetStats();
@@ -2044,7 +2057,7 @@ void Window::DrawRenderStatsOverlay() {
         << "  未命中: " << stats.layerCacheMissCount
         << "  重录: " << stats.layerCacheRerenderCount
         << "  复用: " << stats.layerCacheReuseCount
-        << "  显示帧率: " << static_cast<int>(std::round(m_overlayFps));
+        << "  显示帧率: " << static_cast<int>(std::round(GetDisplayFps()));
 
     const std::string text = ss.str();
     Rect panel(12.0f, (std::max)(12.0f, m_rootElement ? (m_rootElement->GetBounds().height - 40.0f) : 12.0f), 820.0f, 28.0f);
@@ -2146,6 +2159,8 @@ bool Window::OnMouseMove(int x, int y) {
         m_trackingMouse = true;
     }
 
+    const uint64_t dirtyAtStart = UIElement::GetRenderDirtySerial();
+
     Point logicalPt = ClientPointToLogical(x, y);
     float fx = logicalPt.x;
     float fy = logicalPt.y;
@@ -2153,12 +2168,7 @@ bool Window::OnMouseMove(int x, int y) {
     if (auto middle = LockElement(m_middleScrollElement)) {
         if (middle->IsMiddleScrollActive()) {
             middle->OnMouseMove(Point(fx, fy));
-            if (m_rootElement) {
-                DirtyRegion probe;
-                m_rootElement->CollectRenderDirtyRegion(probe, false);
-                return !probe.IsEmpty();
-            }
-            return false;
+            return UIElement::GetRenderDirtySerial() != dirtyAtStart;
         }
         m_middleScrollElement.reset();
     }
@@ -2170,22 +2180,12 @@ bool Window::OnMouseMove(int x, int y) {
         }
         // Thumb-drag / splitter etc. mark local dirty — flush those.
         // Idle press+move (e.g. holding on a rippling nav item) must NOT invalidate.
-        if (m_rootElement) {
-            DirtyRegion probe;
-            m_rootElement->CollectRenderDirtyRegion(probe, false);
-            return !probe.IsEmpty();
-        }
-        return false;
+        return UIElement::GetRenderDirtySerial() != dirtyAtStart;
     }
 
     if (auto rpressed = LockElement(m_rpressedElement)) {
         rpressed->OnMouseMove(Point(fx, fy));
-        if (m_rootElement) {
-            DirtyRegion probe;
-            m_rootElement->CollectRenderDirtyRegion(probe, false);
-            return !probe.IsEmpty();
-        }
-        return false;
+        return UIElement::GetRenderDirtySerial() != dirtyAtStart;
     }
 
     // Same hit order as LButtonDown (no dismiss): popup → chrome → overlay → tree.
@@ -2232,17 +2232,7 @@ bool Window::OnMouseMove(int x, int y) {
 
     // Cursor-only / no-chrome hover must NOT Present. Only flush when someone
     // actually MarkRender*Dirty during enter/leave/move.
-    if (m_rootElement) {
-        DirtyRegion probe;
-        m_rootElement->CollectRenderDirtyRegion(probe, false);
-        if (!probe.IsEmpty()) {
-            return true;
-        }
-    }
-    Rect popupDirty;
-    bool hasPopupDirty = false;
-    m_popupHost.CollectDirty(popupDirty, hasPopupDirty);
-    return hasPopupDirty;
+    return UIElement::GetRenderDirtySerial() != dirtyAtStart;
 }
 
 bool Window::OnLButtonDown(int x, int y) {

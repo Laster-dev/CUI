@@ -832,16 +832,20 @@ void ScrollViewer::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consu
         }
     }
     if (!childRegion.IsEmpty()) {
-        // Soft content dirty only. Add the *individual* child dirty rects — using
-        // GetBounds() of a tall PropertyGrid document made every hover look like a
-        // full-viewport dirty (85% rule) and FULL_RERASTER'd every frame.
-        m_contentLayer.Invalidate(RenderLayer::ContentDirty);
         const Rect viewport = GetContentViewportRect();
+        if (consume) {
+            // Soft content dirty only. Add the *individual* child dirty rects — using
+            // GetBounds() of a tall PropertyGrid document made every hover look like a
+            // full-viewport dirty (85% rule) and FULL_RERASTER'd every frame.
+            m_contentLayer.Invalidate(RenderLayer::ContentDirty);
+        }
         for (const Rect& r : childRegion.GetRects()) {
             if (r.IsEmpty()) {
                 continue;
             }
-            m_contentLayerDirty.AddRect(r.Inflate(2.0f));
+            if (consume) {
+                m_contentLayerDirty.AddRect(r.Inflate(2.0f));
+            }
             if (!viewport.IsEmpty()) {
                 const float x0 = (std::max)(r.x, viewport.x);
                 const float y0 = (std::max)(r.y, viewport.y);
@@ -861,9 +865,10 @@ void ScrollViewer::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consu
         // Publish content dirties to the window invalidate list, but keep
         // m_contentLayerDirty until RenderContentLayer consumes it (strip/full).
         dirtyRegion.UnionWith(m_contentLayerDirty);
-    } else {
-        dirtyRegion.UnionWith(m_contentLayerDirty);
     }
+    // Probe (consume=false) must NOT union m_contentLayerDirty: that queue stays
+    // until the next paint, and mouse-move probes would otherwise Present every
+    // pixel at display refresh while waving over empty content.
 }
 
 UIElement* ScrollViewer::HitTest(float x, float y) {

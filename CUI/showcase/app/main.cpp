@@ -67,6 +67,7 @@ public:
         add("toggleswitch", "基础 Controls", "ToggleSwitch", [ctx = m_ctx] { return BuildToggleSwitchPage(ctx); });
         add("combobox", "基础 Controls", "ComboBox", [ctx = m_ctx] { return BuildComboBoxPage(ctx); });
         add("autosuggest", "基础 Controls", "AutoSuggestBox", [ctx = m_ctx] { return BuildAutoSuggestPage(ctx); });
+        add("statusbar", "基础 Controls", "StatusBar", [ctx = m_ctx] { return BuildStatusBarPage(ctx); });
 
         add("slider", "值/进度", "Slider", [ctx = m_ctx] { return BuildSliderPage(ctx); });
         add("progressbar", "值/进度", "ProgressBar", [ctx = m_ctx] { return BuildProgressBarPage(ctx); });
@@ -437,7 +438,8 @@ public:
         return Column(0).Children({
             titleBar,
             Expanded(GalleryNavigation(effectiveContext, context).Build()),
-            toastCenter
+            toastCenter,
+            std::make_shared<GalleryPerfStatusBar>()
         }).Build();
     }
 

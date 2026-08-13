@@ -2,8 +2,22 @@
 #include "framework/window/Window.h"
 #include "framework/window/Dpi.h"
 #include "framework/style/ThemeManager.h"
+#include "framework/animation/AnimationManager.h"
+#include <d3d11.h>
+#include <dxgi1_4.h>
+#include <psapi.h>
+#include <algorithm>
+#include <cstddef>
+#include <cstdio>
+#include <cmath>
+#include <vector>
+#include <wrl/client.h>
+
+#pragma comment(lib, "psapi.lib")
 
 namespace CUI {
+
+using Microsoft::WRL::ComPtr;
 
 // ==========================================
 // 1. TitleBar Implementation
@@ -712,9 +726,9 @@ void EditorView::OnMouseDown(Point pt) {
 }
 
 // ==========================================
-// 6. StatusBar Implementation
+// 6. VSCodeStatusBar Implementation (chrome mock)
 // ==========================================
-StatusBar::StatusBar() {
+VSCodeStatusBar::VSCodeStatusBar() {
     SetHeight(22.0f);
     SetBackgroundToken(ThemeTokenId::AccentColor);
     SetColorToken(ThemeTokenId::AccentForeground);
@@ -722,7 +736,7 @@ StatusBar::StatusBar() {
     SetColor(ThemeManager::Instance().GetTokens().accentForeground);
 }
 
-void StatusBar::OnRender(GraphicsContext& ctx) {
+void VSCodeStatusBar::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
     D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground);
@@ -745,6 +759,202 @@ void StatusBar::OnRender(GraphicsContext& ctx) {
     ctx.DrawText("Spaces: 4", Rect(rightX + 100, m_bounds.y, 70, m_bounds.height), textColor, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     ctx.DrawText("UTF-8", Rect(rightX + 170, m_bounds.y, 60, m_bounds.height), textColor, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     ctx.DrawText("C++20", Rect(rightX + 230, m_bounds.y, 60, m_bounds.height), textColor, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+}
+
+// ==========================================
+// 7. GalleryPerfStatusBar — live Mem/CPU/GPU/FPS/DPI
+// ==========================================
+GalleryPerfStatusBar::GalleryPerfStatusBar() {
+    SetHeight(24.0f);
+    SetWidth(-1.0f);
+    EnsureItems();
+}
+
+void GalleryPerfStatusBar::EnsureItems() {
+    if (m_itemsReady) {
+        return;
+    }
+    AddTextItem("CUI Gallery", StatusBarItemAlignment::Left);
+    AddSeparator(StatusBarItemAlignment::Right);
+    m_memId = AddTextItem("Mem —", StatusBarItemAlignment::Right, 148.0f);
+    AddSeparator(StatusBarItemAlignment::Right);
+    m_cpuId = AddTextItem("CPU —", StatusBarItemAlignment::Right, 72.0f);
+    AddSeparator(StatusBarItemAlignment::Right);
+    m_gpuId = AddTextItem("GPU —", StatusBarItemAlignment::Right, 72.0f);
+    AddSeparator(StatusBarItemAlignment::Right);
+    m_fpsId = AddTextItem("— FPS", StatusBarItemAlignment::Right, 72.0f);
+    AddSeparator(StatusBarItemAlignment::Right);
+    m_dpiId = AddTextItem("DPI —", StatusBarItemAlignment::Right, 72.0f);
+    AddSeparator(StatusBarItemAlignment::Right);
+    m_zoomId = AddTextItem("缩放 —", StatusBarItemAlignment::Right, 80.0f);
+    m_itemsReady = true;
+}
+
+void GalleryPerfStatusBar::OnRender(GraphicsContext& ctx) {
+    if (!m_kickstarted) {
+        m_kickstarted = true;
+        RequestAnimationTicks();
+    }
+    StatusBar::OnRender(ctx);
+}
+
+void GalleryPerfStatusBar::ScheduleNextSample() {
+    if (AnimationManager* mgr = AnimationManager::Current()) {
+        mgr->RequestWake(this, AnimationManager::clock::now() + std::chrono::milliseconds(500));
+    }
+}
+
+float GalleryPerfStatusBar::SampleGpuUsage01(ID3D11Device* device) const {
+    if (!device) {
+        return -1.0f;
+    }
+    ComPtr<IDXGIDevice> dxgiDevice;
+    if (FAILED(device->QueryInterface(IID_PPV_ARGS(&dxgiDevice))) || !dxgiDevice) {
+        return -1.0f;
+    }
+    ComPtr<IDXGIAdapter> adapter;
+    if (FAILED(dxgiDevice->GetAdapter(&adapter)) || !adapter) {
+        return -1.0f;
+    }
+    ComPtr<IDXGIAdapter3> adapter3;
+    if (FAILED(adapter.As(&adapter3)) || !adapter3) {
+        return -1.0f;
+    }
+    DXGI_QUERY_VIDEO_MEMORY_INFO info{};
+    if (FAILED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info))) {
+        return -1.0f;
+    }
+    if (info.Budget == 0) {
+        return -1.0f;
+    }
+    return static_cast<float>(
+        (std::min)(1.0, static_cast<double>(info.CurrentUsage) / static_cast<double>(info.Budget)));
+}
+
+// Sum resident pages that are not shareable — aligns with Task Manager "Memory"
+// (private working set). PROCESS_MEMORY_COUNTERS_EX2 is too new / often unavailable.
+static SIZE_T SamplePrivateWorkingSetBytes(HANDLE process) {
+    SYSTEM_INFO si{};
+    GetSystemInfo(&si);
+    const SIZE_T pageSize = si.dwPageSize ? si.dwPageSize : 4096;
+
+    DWORD bytes = 64 * 1024;
+    for (int attempt = 0; attempt < 8; ++attempt) {
+        std::vector<unsigned char> buf(bytes);
+        auto* ws = reinterpret_cast<PSAPI_WORKING_SET_INFORMATION*>(buf.data());
+        if (QueryWorkingSet(process, ws, bytes)) {
+            SIZE_T priv = 0;
+            const ULONG_PTR n = ws->NumberOfEntries;
+            // WorkingSetInfo is a flexible array; ensure we don't read past buffer.
+            const size_t maxEntries =
+                (bytes >= sizeof(PSAPI_WORKING_SET_INFORMATION))
+                    ? (bytes - offsetof(PSAPI_WORKING_SET_INFORMATION, WorkingSetInfo))
+                          / sizeof(PSAPI_WORKING_SET_BLOCK)
+                    : 0;
+            const ULONG_PTR count = (std::min)(n, static_cast<ULONG_PTR>(maxEntries));
+            for (ULONG_PTR i = 0; i < count; ++i) {
+                if (!ws->WorkingSetInfo[i].Shared) {
+                    priv += pageSize;
+                }
+            }
+            return priv;
+        }
+        if (GetLastError() != ERROR_BAD_LENGTH) {
+            break;
+        }
+        bytes *= 2;
+    }
+    return 0;
+}
+
+void GalleryPerfStatusBar::RefreshMetrics() {
+    EnsureItems();
+
+    SIZE_T workingSet = 0;
+    PROCESS_MEMORY_COUNTERS_EX pmc{};
+    pmc.cb = sizeof(pmc);
+    if (GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc))) {
+        workingSet = pmc.WorkingSetSize;
+    }
+    SIZE_T privateWs = SamplePrivateWorkingSetBytes(GetCurrentProcess());
+    if (privateWs > workingSet) {
+        privateWs = workingSet;
+    }
+    const double privMb = static_cast<double>(privateWs) / (1024.0 * 1024.0);
+    const double wsMb = static_cast<double>(workingSet) / (1024.0 * 1024.0);
+
+    FILETIME create{}, exit{}, kernel{}, user{};
+    if (GetProcessTimes(GetCurrentProcess(), &create, &exit, &kernel, &user)) {
+        ULARGE_INTEGER k{}, u{};
+        k.LowPart = kernel.dwLowDateTime;
+        k.HighPart = kernel.dwHighDateTime;
+        u.LowPart = user.dwLowDateTime;
+        u.HighPart = user.dwHighDateTime;
+        const ULONGLONG cpu100ns = k.QuadPart + u.QuadPart;
+        const auto now = std::chrono::steady_clock::now();
+        if (m_hasCpuSample) {
+            const double deltaCpu = static_cast<double>(cpu100ns - m_lastCpu100ns);
+            const double deltaWallSec = std::chrono::duration<double>(now - m_lastCpuSample).count();
+            SYSTEM_INFO si{};
+            GetSystemInfo(&si);
+            const double cores = (std::max)(1.0, static_cast<double>(si.dwNumberOfProcessors));
+            if (deltaWallSec > 0.001) {
+                // FILETIME is 100ns units.
+                const double cpuSec = deltaCpu * 1e-7;
+                m_cpuPct = static_cast<float>(std::clamp((cpuSec / deltaWallSec) / cores * 100.0, 0.0, 100.0));
+            }
+        }
+        m_lastCpu100ns = cpu100ns;
+        m_lastCpuSample = now;
+        m_hasCpuSample = true;
+    }
+
+    float dpiScale = 1.0f;
+    float fps = 0.0f;
+    ID3D11Device* d3d = nullptr;
+    if (Window* win = Window::Current()) {
+        dpiScale = win->GetDpiScale();
+        if (dpiScale <= 0.001f) {
+            dpiScale = win->GetGraphicsContext().GetDpiScale();
+        }
+        fps = win->GetDisplayFps();
+        d3d = win->GetGraphicsContext().GetD3DDevice();
+    }
+    const float gpu01 = SampleGpuUsage01(d3d);
+    if (gpu01 >= 0.0f) {
+        m_gpuPct = gpu01 * 100.0f;
+    }
+
+    const int dpi = static_cast<int>(std::lround(dpiScale * 96.0f));
+    const int zoomPct = static_cast<int>(std::lround(dpiScale * 100.0f));
+
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "内存:私有%.0fMB 完整%.0fMB", privMb, wsMb);
+    SetItemText(m_memId, buf);
+    std::snprintf(buf, sizeof(buf), "CPU %.0f%%", m_cpuPct);
+    SetItemText(m_cpuId, buf);
+    if (gpu01 >= 0.0f) {
+        std::snprintf(buf, sizeof(buf), "GPU %.0f%%", m_gpuPct);
+    } else {
+        std::snprintf(buf, sizeof(buf), "GPU —");
+    }
+    SetItemText(m_gpuId, buf);
+    if (fps > 0.5f) {
+        std::snprintf(buf, sizeof(buf), "%.0f FPS", fps);
+    } else {
+        std::snprintf(buf, sizeof(buf), "— FPS");
+    }
+    SetItemText(m_fpsId, buf);
+    std::snprintf(buf, sizeof(buf), "DPI %d", dpi);
+    SetItemText(m_dpiId, buf);
+    std::snprintf(buf, sizeof(buf), "缩放 %d%%", zoomPct);
+    SetItemText(m_zoomId, buf);
+}
+
+bool GalleryPerfStatusBar::OnAnimationTick() {
+    RefreshMetrics();
+    ScheduleNextSample();
+    return false;
 }
 
 } // namespace CUI

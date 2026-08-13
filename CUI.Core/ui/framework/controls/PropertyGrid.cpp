@@ -227,7 +227,9 @@ PropertyGrid::PropertyGrid() {
     // 右侧检查器是 chrome 玻璃，不是实心 card —— 否则整列盖死 SystemBackdrop。
     SetBackgroundToken(ThemeTokenId::PaneBackground);
     SetBorderToken(ThemeTokenId::CardBorder);
-    SetBorderThickness(1.0f);
+    // No full box; left hairline is drawn in OnRender.
+    SetBorderThickness(0.0f);
+    SetCornerRadius(0.0f);
 
     m_container = std::make_shared<StackPanel>();
     m_container->SetOrientation(Orientation::Vertical);
@@ -238,6 +240,25 @@ PropertyGrid::PropertyGrid() {
     m_container->SetClipToBounds(false);
 
     AddChild(m_container);
+}
+
+void PropertyGrid::OnRender(GraphicsContext& ctx) {
+    ScrollViewer::OnRender(ctx);
+    if (m_bounds.IsEmpty()) {
+        return;
+    }
+    D2D1_COLOR_F border = (GetBorderToken() != ThemeTokenId::Unset)
+        ? ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder)
+        : ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder);
+    if (border.a <= 0.0f) {
+        return;
+    }
+    const float x = m_bounds.x + 0.5f;
+    ctx.DrawLine(
+        Point(x, m_bounds.y),
+        Point(x, m_bounds.y + m_bounds.height),
+        border,
+        1.0f);
 }
 
 void PropertyGrid::SetTargetElement(std::shared_ptr<UIElement> target, void* windowHost) {

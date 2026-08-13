@@ -13,6 +13,7 @@ namespace CUI {
 
 bool UIElement::s_animationsEnabled = true;
 float UIElement::s_animationDeltaSeconds = 1.0f / 60.0f;
+uint64_t UIElement::s_renderDirtySerial = 0;
 
 namespace {
 // Inflate cull bounds so ripples/shadows that draw slightly outside still get painted.
@@ -747,6 +748,7 @@ void UIElement::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume)
 }
 
 void UIElement::MarkRenderContentDirty() {
+    ++s_renderDirtySerial;
     m_renderNode.MarkContentDirty();
     if (m_layerPromoted) {
         m_renderNode.GetLayer().Invalidate(RenderLayer::ContentDirty);
@@ -769,6 +771,7 @@ void UIElement::MarkRenderContentDirty() {
 }
 
 void UIElement::MarkRenderRectDirty(const Rect& rect) {
+    ++s_renderDirtySerial;
     m_renderNode.MarkDirtyRect(rect);
     m_subtreeRenderDirty = true;
     // Flag ancestors only — do NOT stamp the same rect onto every ancestor's

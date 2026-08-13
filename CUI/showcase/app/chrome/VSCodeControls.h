@@ -2,10 +2,15 @@
 #include "framework/controls/UIElement.h"
 #include "framework/controls/Control.h"
 #include "framework/controls/MenuBar.h"
+#include "framework/controls/StatusBar.h"
 #include "framework/core/Event.h"
 #include "framework/window/IWindowChrome.h"
+#include <chrono>
 #include <string>
 #include <vector>
+#include <windows.h>
+
+struct ID3D11Device;
 
 namespace CUI {
 
@@ -146,12 +151,13 @@ private:
     int m_cursorCol = 28;
 };
 
-class StatusBar : public Control {
+// Showcase chrome mock only — framework control is CUI::StatusBar in StatusBar.h.
+class VSCodeStatusBar : public Control {
 public:
-    StatusBar();
-    virtual ~StatusBar() = default;
+    VSCodeStatusBar();
+    virtual ~VSCodeStatusBar() = default;
 
-    virtual const char* GetClassName() const override { return "StatusBar"; }
+    virtual const char* GetClassName() const override { return "VSCodeStatusBar"; }
     virtual void OnRender(GraphicsContext& ctx) override;
 
     const std::string& GetBranch() const { return m_branch; }
@@ -171,6 +177,39 @@ private:
     std::string m_status{ "Ready" };
     int m_line = 14;
     int m_col = 28;
+};
+
+// Live gallery chrome StatusBar: Mem | CPU | GPU | FPS | DPI | 缩放.
+class GalleryPerfStatusBar : public StatusBar {
+public:
+    GalleryPerfStatusBar();
+    virtual ~GalleryPerfStatusBar() = default;
+
+    virtual const char* GetClassName() const override { return "GalleryPerfStatusBar"; }
+    virtual void OnRender(GraphicsContext& ctx) override;
+    virtual bool OnAnimationTick() override;
+    virtual bool HasSelfAnimation() const override { return false; }
+
+private:
+    void EnsureItems();
+    void ScheduleNextSample();
+    void RefreshMetrics();
+    float SampleGpuUsage01(ID3D11Device* device) const;
+
+    int m_memId = 0;
+    int m_cpuId = 0;
+    int m_gpuId = 0;
+    int m_fpsId = 0;
+    int m_dpiId = 0;
+    int m_zoomId = 0;
+    bool m_itemsReady = false;
+    bool m_kickstarted = false;
+
+    ULONGLONG m_lastCpu100ns = 0;
+    std::chrono::steady_clock::time_point m_lastCpuSample{};
+    bool m_hasCpuSample = false;
+    float m_cpuPct = 0.0f;
+    float m_gpuPct = 0.0f;
 };
 
 } // namespace CUI

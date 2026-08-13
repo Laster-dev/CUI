@@ -53,6 +53,11 @@ public:
     void SetRenderStatsOverlayVisible(bool visible) { m_showRenderStatsOverlay = visible; }
     bool IsRenderStatsOverlayVisible() const { return m_showRenderStatsOverlay; }
 
+    float GetDpiScale() const { return m_dpiScale; }
+    // Rolling display FPS from actual OnPaint presents. Ages to 0 when idle
+    // (otherwise the last storm's Hz sticks forever on the status bar).
+    float GetDisplayFps() const;
+
     Point ClientPointToLogical(int x, int y) const;
 
     void SetActiveContextMenu(std::shared_ptr<ContextMenu> menu) { m_activeContextMenu = menu; }
@@ -92,6 +97,7 @@ private:
     void RequestFullRepaint();
     void InvalidatePendingRenderRegions(bool fallbackToFullWindow);
     bool HasPendingNativePaint() const;
+    void SampleDisplayFps();
     void DrawRenderStatsOverlay();
     void ApplyVisualState();
 
@@ -132,9 +138,9 @@ private:
     BackdropType m_backdropType = BackdropType::None;
     ThemeMode m_themeMode = ThemeMode::Dark;
     Event<Window*, ThemeMode> m_onThemeChanged;
-    std::chrono::steady_clock::time_point m_overlayFpsSampleStart{};
-    unsigned m_overlayFrameCounter = 0;
-    float m_overlayFps = 0.0f;
+    mutable std::chrono::steady_clock::time_point m_overlayFpsSampleStart{};
+    mutable unsigned m_overlayFrameCounter = 0;
+    mutable float m_overlayFps = 0.0f;
 };
 
 } // namespace CUI

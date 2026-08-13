@@ -149,6 +149,7 @@
     <ClCompile Include="ui\framework\controls\BreadcrumbBar.cpp" />
     <ClCompile Include="ui\framework\controls\Button.cpp" />
     <ClCompile Include="ui\framework\controls\AutoSuggestBox.cpp" />
+    <ClCompile Include="ui\framework\controls\StatusBar.cpp" />
     <ClCompile Include="ui\framework\controls\CheckBox.cpp" />
     <ClCompile Include="ui\framework\controls\ColorPicker.cpp" />
     <ClCompile Include="ui\framework\controls\ComboBox.cpp" />

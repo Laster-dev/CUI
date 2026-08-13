@@ -140,14 +140,17 @@ float Expander::MeasureBodyHeight(float width) {
 
     const float innerWidth = (std::max)(0.0f, width - kBodyPadding * 2.0f);
     const Visibility previousVisibility = m_content->GetVisibility();
+    // Must not call SetVisibility: that InvalidateMeasure()s up to the window
+    // root, so a collapsed Expander keeps the tree dirty forever (mouse-move
+    // FlushLayout storm at display refresh).
     if (previousVisibility == Visibility::Collapsed) {
-        m_content->SetVisibility(Visibility::Visible);
+        m_content->SetVisibilityForMeasureProbe(Visibility::Visible);
     }
 
     const Size bodySize = m_content->Measure(Size(innerWidth, (std::numeric_limits<float>::max)()));
 
     if (previousVisibility == Visibility::Collapsed) {
-        m_content->SetVisibility(previousVisibility);
+        m_content->SetVisibilityForMeasureProbe(previousVisibility);
     }
 
     return (std::max)(0.0f, bodySize.height + kBodyPadding * 2.0f);

@@ -12,6 +12,7 @@
 #include <string>
 #include <unordered_map>
 #include <chrono>
+#include <cstdint>
 #include <limits>
 
 namespace CUI {
@@ -61,6 +62,9 @@ public:
 
     Visibility GetVisibility() const { return m_visibility; }
     void SetVisibility(Visibility v);
+    // Assign visibility without InvalidateMeasure / property notify.
+    // For measure probes (e.g. Expander measuring collapsed body height).
+    void SetVisibilityForMeasureProbe(Visibility v) { m_visibility = v; }
     bool IsEnabled() const { return m_isEnabled; }
     void SetIsEnabled(bool enabled);
 
@@ -329,6 +333,9 @@ public:
     static bool AreAnimationsEnabled();
     static void SetAnimationDeltaSeconds(float dtSeconds);
     static float GetAnimationDeltaSeconds();
+    // Bumps on MarkRender*; Window uses this so mouse-move does not Present
+    // just because a leftover dirty region is still queued for the next paint.
+    static uint64_t GetRenderDirtySerial() { return s_renderDirtySerial; }
     RenderNode& GetRenderNode() { return m_renderNode; }
     const RenderNode& GetRenderNode() const { return m_renderNode; }
     virtual void SyncRenderState();
@@ -504,6 +511,7 @@ protected:
 
     static bool s_animationsEnabled;
     static float s_animationDeltaSeconds;
+    static uint64_t s_renderDirtySerial;
 };
 
 } // namespace CUI

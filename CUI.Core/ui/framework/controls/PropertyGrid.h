@@ -15,6 +15,7 @@ public:
     virtual ~PropertyGrid() = default;
 
     virtual const char* GetClassName() const override { return "PropertyGrid"; }
+    virtual void OnRender(GraphicsContext& ctx) override;
 
     void SetTargetElement(std::shared_ptr<UIElement> target, void* windowHost = nullptr);
     std::shared_ptr<UIElement> GetTargetElement() const { return m_target.lock(); }
