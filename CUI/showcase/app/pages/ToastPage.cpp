@@ -54,6 +54,5 @@ ShowcasePage BuildToastPage(const ShowcaseContext& ctx) {
     return { "Toast 通知中心", CreatePage(
         "Toast 通知中心 / Toast Notification Center",
         "声明式 Widget + 入场/出场动画 + 多条堆叠通知。",
-        demo,
-        CreatePropertyGrid(ctx, ctx.toastTemplate), ctx.toastTemplate) };
+        demo) };
 }

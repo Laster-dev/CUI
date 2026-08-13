@@ -37,6 +37,5 @@ ShowcasePage BuildFilePickerPage(const ShowcaseContext& ctx) {
             CreateShowcaseText("FolderPicker — 树形选择文件夹后点击「选择」确认", 12.0f, "textMuted"),
             folderPicker,
             folderLabel
-        }),
-        CreatePropertyGrid(ctx, filePicker), filePicker) };
+        })) };
 }

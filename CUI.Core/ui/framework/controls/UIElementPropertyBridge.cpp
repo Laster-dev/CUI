@@ -1026,46 +1026,6 @@ PropertyDescSpan UIElement::GetPropertyDescs() const {
     return PropertyDescSpan{ kUIElementDescs, kUIElementDescCount };
 }
 
-namespace {
-const char* PropertyKindToMetaType(PropertyKind kind) {
-    switch (kind) {
-    case PropertyKind::Bool: return "bool";
-    case PropertyKind::Int: return "int";
-    case PropertyKind::Float: return "float";
-    case PropertyKind::String: return "string";
-    case PropertyKind::Color: return "color";
-    case PropertyKind::Thickness: return "thickness";
-    case PropertyKind::Enum: return "enum";
-    case PropertyKind::ThemeToken: return "themeToken";
-    default: return "string";
-    }
-}
-} // namespace
-
-std::vector<PropertyMeta> UIElement::GetPropertyMetas() const {
-    PropertyDescSpan span = GetPropertyDescs();
-    std::vector<PropertyMeta> metas;
-    if (!span.data || span.count == 0) {
-        return metas;
-    }
-    metas.reserve(span.count);
-    for (size_t i = 0; i < span.count; ++i) {
-        const PropertyDesc& desc = span.data[i];
-        PropertyMeta meta;
-        meta.id = desc.id;
-        meta.displayName = desc.displayName ? desc.displayName : PropertyIdToName(desc.id);
-        meta.category = desc.category ? desc.category : "";
-        meta.type = PropertyKindToMetaType(desc.kind);
-        if (desc.enumOptions) {
-            for (const char* const* p = desc.enumOptions; *p; ++p) {
-                meta.options.emplace_back(*p);
-            }
-        }
-        metas.push_back(std::move(meta));
-    }
-    return metas;
-}
-
 const PropertyDesc* FindPropertyDescById(PropertyId id) {
     const auto idx = static_cast<size_t>(id);
     if (id == PropertyId::None || idx >= static_cast<size_t>(PropertyId::Count)) {

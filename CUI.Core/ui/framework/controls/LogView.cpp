@@ -268,16 +268,6 @@ void LogView::LayoutChrome() {
     place(m_btnFollow, ToolBtnRect(2));
 }
 
-std::vector<PropertyMeta> LogView::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "text", "搜索过滤 (Filter)", "日志配置", "string" });
-    metas.push_back({ "isOn", "持久化 (Persist)", "日志配置", "bool" });
-    metas.push_back({ "isExpanded", "展开 (IsExpanded)", "日志配置", "bool" });
-    metas.push_back({ "followTail", "跟随尾部 (FollowTail)", "日志配置", "bool" });
-    metas.push_back({ "maxEntries", "最大条数 (MaxEntries)", "日志配置", "number" });
-    return metas;
-}
-
 Value LogView::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::Text: return Value(GetFilterText());

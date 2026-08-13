@@ -36,7 +36,6 @@ public:
     virtual ~StatusBar() = default;
 
     virtual const char* GetClassName() const override { return "StatusBar"; }
-    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;

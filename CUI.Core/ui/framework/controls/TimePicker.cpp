@@ -65,12 +65,6 @@ TimePicker::TimePicker() {
     m_minuteTarget = m_minutePosition;
 }
 
-std::vector<PropertyMeta> TimePicker::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "timeStr", "当前时间 (Time)", "时间配置", "string" });
-    return metas;
-}
-
 Value TimePicker::GetProperty(PropertyId id) const {
     if (id == PropertyId::TimeStr) return Value(GetFormattedTime());
     return UIElement::GetProperty(id);

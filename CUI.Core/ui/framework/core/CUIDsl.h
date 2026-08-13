@@ -19,7 +19,6 @@
 #include "../controls/ScrollViewer.h"
 #include "../controls/TabView.h"
 #include "../controls/MenuBar.h"
-#include "../controls/PropertyGrid.h"
 #include "../controls/TreeView.h"
 #include "../controls/Slider.h"
 #include "../controls/RangeSlider.h"

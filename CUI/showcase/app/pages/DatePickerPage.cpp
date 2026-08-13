@@ -9,6 +9,5 @@ ShowcasePage BuildDatePickerPage(const ShowcaseContext& ctx) {
     return { "DatePicker 日期选择", CreatePage(
         "DatePicker 日期选择器控件",
         "支持年月日读取、快捷切换与标准格式化输出。",
-        CreateDemoSurface({ target }, 0.0f),
-        CreatePropertyGrid(ctx, target), target) };
+        CreateDemoSurface({ target }, 0.0f)) };
 }

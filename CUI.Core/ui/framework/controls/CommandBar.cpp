@@ -60,12 +60,6 @@ CommandBar::~CommandBar() {
     }
 }
 
-std::vector<PropertyMeta> CommandBar::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "labelPosition", "标签位置 (LabelPosition)", "命令栏", "enum", { "Collapsed", "Right" } });
-    return metas;
-}
-
 Value CommandBar::GetProperty(PropertyId id) const {
     if (id == PropertyId::LabelPosition) {
         return Value(m_labelPosition == CommandBarLabelPosition::Collapsed ? "Collapsed" : "Right");

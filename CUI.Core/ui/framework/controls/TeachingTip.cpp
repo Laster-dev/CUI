@@ -74,16 +74,6 @@ TeachingTip::TeachingTip() {
     SetAccentColorToken(ThemeTokenId::AccentColor);
 }
 
-std::vector<PropertyMeta> TeachingTip::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "title", "标题 (Title)", "教学提示", "string" });
-    metas.push_back({ "message", "正文 (Message)", "教学提示", "string" });
-    metas.push_back({ "actionText", "操作文本 (ActionText)", "教学提示", "string" });
-    metas.push_back({ "isClosable", "显示关闭 (IsClosable)", "教学提示", "bool" });
-    metas.push_back({ "isOpen", "是否打开 (IsOpen)", "教学提示", "bool" });
-    return metas;
-}
-
 Value TeachingTip::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::Title: return Value(m_title);

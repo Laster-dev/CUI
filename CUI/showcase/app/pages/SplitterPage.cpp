@@ -83,7 +83,5 @@ ShowcasePage BuildSplitterPage(const ShowcaseContext& ctx) {
     return { "Splitter 拆分条", CreatePage(
         "Splitter / GridSplitter",
         "WinUI 风格细分割条：悬停/拖拽时显示强调色指示线，拖拽即可联动面板尺寸。",
-        demo,
-        CreatePropertyGrid(ctx, splitterLR),
-        splitterLR) };
+        demo) };
 }

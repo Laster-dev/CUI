@@ -26,6 +26,5 @@ ShowcasePage BuildProgressBarPage(const ShowcaseContext& ctx) {
             ProgressRingWidget(0.0f, true).Width(40).Height(40).Build(),
             CreateShowcaseText("4. ProgressRing 确定进度 (Value = 65%):", 12.0f, "#AAAAAA"),
             ProgressRingWidget(65.0f, false).Width(40).Height(40).Build()
-        }),
-        CreatePropertyGrid(ctx, target), target) };
+        })) };
 }

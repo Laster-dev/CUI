@@ -35,6 +35,5 @@ ShowcasePage BuildSegmentedPage(const ShowcaseContext& ctx) {
     return { "SegmentedControl 分段", CreatePage(
         "SegmentedControl 分段选择",
         "ComboBox 的平铺变体：同一条上的互斥分段，选中项填强调色。左右方向键切换。",
-        demo,
-        CreatePropertyGrid(ctx, target), target) };
+        demo) };
 }

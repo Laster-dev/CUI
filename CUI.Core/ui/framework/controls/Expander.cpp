@@ -46,15 +46,6 @@ Expander::Expander(const std::string& headerText) : Expander() {
     m_header = headerText;
 }
 
-std::vector<PropertyMeta> Expander::GetPropertyMetas() const {
-    auto metas = Control::GetPropertyMetas();
-    metas.push_back({ "header", "标题 (Header)", "基本信息", "string" });
-    metas.push_back({ "subtitle", "副标题 (Subtitle)", "基本信息", "string" });
-    metas.push_back({ "isExpanded", "展开 (IsExpanded)", "Expander", "bool" });
-    metas.push_back({ "expandDirection", "展开方向 (ExpandDirection)", "Expander", "enum", { "Down", "Up" } });
-    return metas;
-}
-
 Value Expander::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::Header: return Value(m_header);

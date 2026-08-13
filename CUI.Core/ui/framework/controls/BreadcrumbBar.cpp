@@ -32,10 +32,6 @@ BreadcrumbBar::BreadcrumbBar() {
     SetHeight(34.0f);
 }
 
-std::vector<PropertyMeta> BreadcrumbBar::GetPropertyMetas() const {
-    return UIElement::GetPropertyMetas();
-}
-
 Size BreadcrumbBar::Measure(Size availableSize) {
     float expW = GetWidth();
     float expH = GetHeight();

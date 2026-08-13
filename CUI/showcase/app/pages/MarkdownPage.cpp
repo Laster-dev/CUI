@@ -128,6 +128,5 @@ ShowcasePage BuildMarkdownPage(const ShowcaseContext& ctx) {
     return { "Markdown", CreatePage(
         "Markdown 渲染器",
         "MarkdownView：自研子集解析 + Direct2D 排版绘制。只读，支持选区复制与链接。",
-        demo,
-        CreatePropertyGrid(ctx, view), view) };
+        demo) };
 }

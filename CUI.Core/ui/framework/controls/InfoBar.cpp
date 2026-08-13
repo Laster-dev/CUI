@@ -72,17 +72,6 @@ InfoBar::InfoBar() {
     m_openAnim.Reset(1.0f);
 }
 
-std::vector<PropertyMeta> InfoBar::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "title", "标题 (Title)", "内容", "string" });
-    metas.push_back({ "message", "正文 (Message)", "内容", "string" });
-    metas.push_back({ "severity", "级别 (Severity)", "内容", "enum", { "Informational", "Success", "Warning", "Error" } });
-    metas.push_back({ "isOpen", "是否打开 (IsOpen)", "内容", "bool" });
-    metas.push_back({ "isClosable", "可关闭 (IsClosable)", "内容", "bool" });
-    metas.push_back({ "actionText", "操作文本 (ActionText)", "内容", "string" });
-    return metas;
-}
-
 namespace {
 const char* SeverityName(InfoBarSeverity s) {
     switch (s) {

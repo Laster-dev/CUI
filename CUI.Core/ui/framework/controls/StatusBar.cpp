@@ -32,13 +32,6 @@ StatusBar::StatusBar() {
     SetCornerRadius(0.0f);
 }
 
-std::vector<PropertyMeta> StatusBar::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "微软雅黑", "Consolas" } });
-    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    return metas;
-}
-
 Size StatusBar::Measure(Size availableSize) {
     float w = GetWidth();
     if (w < 0.0f) {

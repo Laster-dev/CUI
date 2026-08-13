@@ -38,6 +38,5 @@ ShowcasePage BuildFlyoutPage(const ShowcaseContext& ctx) {
     return { "Flyout 弹出框", CreatePage(
         "Flyout 弹出框",
         "浮层不参与文档流布局；背景始终不透明，不受系统材质 alpha 影响。点击外部关闭。",
-        demo,
-        CreatePropertyGrid(ctx, btnTrigger), btnTrigger) };
+        demo) };
 }

@@ -103,6 +103,5 @@ ShowcasePage BuildTeachingTipPage(const ShowcaseContext& ctx) {
     return { "TeachingTip", CreatePage(
         "TeachingTip / Tooltip",
         "Tooltip 是框架能力（SetToolTip）；TeachingTip 是自绘 IPopup 气泡，可模态，指向锚点。",
-        demo,
-        CreatePropertyGrid(ctx, wrapTip), wrapTip) };
+        demo) };
 }

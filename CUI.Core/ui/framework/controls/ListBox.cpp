@@ -41,13 +41,6 @@ void ListBox::SetProperty(PropertyId id, const Value& val) {
     Control::SetProperty(id, val);
 }
 
-std::vector<PropertyMeta> ListBox::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "items", "选项 (Items)", "列表", "string" });
-    metas.push_back({ "selectedIndex", "选中项 (SelectedIndex)", "列表", "number" });
-    return metas;
-}
-
 Value ListBox::GetProperty(PropertyId id) const {
     if (id == PropertyId::Items) {
         std::string csv;

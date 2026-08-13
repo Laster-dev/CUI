@@ -15,6 +15,5 @@ ShowcasePage BuildDialogPage(const ShowcaseContext& ctx) {
     return { "ContentDialog 弹窗", CreatePage(
         "WinUI ContentDialog 模态弹窗控制台",
         "WinUI 3 风格半透明遮罩与自定义消息弹窗。",
-        CreateDemoSurface({ target }, 0.0f),
-        CreateRightPanel({ CreateShowcaseText("弹窗属性控制表 (ContentDialog)", 12.0f, "#569CD6", true) })) };
+        CreateDemoSurface({ target }, 0.0f)) };
 }

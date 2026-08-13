@@ -409,7 +409,11 @@ void UIElement::Arrange(Rect finalRect) {
 
 void UIElement::Render(GraphicsContext& ctx) {
     if (m_visibility != Visibility::Visible) return;
-    const float drawOpacity = m_layerPromoted ? m_composeOpacity : m_opacity;
+    float drawOpacity = m_layerPromoted ? m_composeOpacity : m_opacity;
+    // Fade only this node so a disabled parent does not double-dim children.
+    if (!m_isEnabled) {
+        drawOpacity *= 0.42f;
+    }
     if (drawOpacity <= 0.001f) return;
     if (CanCullElementForCurrentPass(this, ctx)) {
         return;

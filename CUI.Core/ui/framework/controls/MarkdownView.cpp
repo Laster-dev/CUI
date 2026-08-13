@@ -96,13 +96,6 @@ MarkdownView::MarkdownView(const std::string& markdown) : MarkdownView() {
     SetMarkdown(markdown);
 }
 
-std::vector<PropertyMeta> MarkdownView::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "text", "Markdown 源 (Markdown)", "内容", "string" });
-    metas.push_back({ "showLineNumbers", "代码行号 (LineNumbers)", "代码", "bool" });
-    return metas;
-}
-
 Value MarkdownView::GetProperty(PropertyId id) const {
     if (id == PropertyId::Text) {
         return Value(GetText());

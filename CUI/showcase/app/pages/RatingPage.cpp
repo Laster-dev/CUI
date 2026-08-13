@@ -86,6 +86,5 @@ ShowcasePage BuildRatingPage(const ShowcaseContext& ctx) {
     return { "RatingControl 评分", CreatePage(
         "RatingControl 星级评分",
         "纯自绘五角星：半星填充、hover 预览、点击定值、点同一星或 × 清除；主题色跟随 Accent。",
-        demo,
-        CreatePropertyGrid(ctx, interactive), interactive) };
+        demo) };
 }

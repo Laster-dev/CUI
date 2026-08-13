@@ -33,23 +33,6 @@ enum class KeyboardNavigationMode {
     None
 };
 
-struct PropertyMeta {
-    PropertyId id = PropertyId::None;
-    std::string displayName;
-    std::string category;
-    std::string type;
-    std::vector<std::string> options;
-
-    PropertyMeta() = default;
-    PropertyMeta(const char* name, std::string display, std::string cat, std::string propertyType,
-                 std::vector<std::string> enumOptions = {})
-        : id(PropertyIdFromName(name))
-        , displayName(std::move(display))
-        , category(std::move(cat))
-        , type(std::move(propertyType))
-        , options(std::move(enumOptions)) {}
-};
-
 class UIElement : public Object {
 public:
     static constexpr float kAttachedUnset = -999999.0f;
@@ -58,7 +41,6 @@ public:
     virtual ~UIElement();
     virtual const char* GetClassName() const override { return "UIElement"; }
 
-    virtual std::vector<PropertyMeta> GetPropertyMetas() const;
     virtual PropertyDescSpan GetPropertyDescs() const;
 
     float GetWidth() const { return m_width; }
@@ -79,7 +61,14 @@ public:
     // Assign visibility without InvalidateMeasure / property notify.
     // For measure probes (e.g. Expander measuring collapsed body height).
     void SetVisibilityForMeasureProbe(Visibility v) { m_visibility = v; }
-    bool IsEnabled() const { return m_isEnabled; }
+    bool IsEnabled() const {
+        for (const UIElement* walk = this; walk; walk = walk->m_parent) {
+            if (!walk->m_isEnabled) {
+                return false;
+            }
+        }
+        return true;
+    }
     void SetIsEnabled(bool enabled);
 
     float GetOpacity() const { return m_opacity; }

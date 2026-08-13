@@ -9,7 +9,6 @@ public:
     virtual ~RatingControl() = default;
 
     virtual const char* GetClassName() const override { return "RatingControl"; }
-    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual HCURSOR GetCursor() const override;
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;

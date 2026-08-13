@@ -6,16 +6,6 @@
 
 namespace CUI {
 
-std::vector<PropertyMeta> TextBlock::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
-    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    metas.push_back({ "fontWeight", "字体粗细 (FontWeight)", "字体文本", "enum", { "Normal", "Bold", "Light" } });
-    metas.push_back({ "lineSpacing", "行间距 (LineSpacing)", "高级排版", "number" });
-    metas.push_back({ "lineHeight", "固定行高 (LineHeight)", "高级排版", "number" });
-    return metas;
-}
-
 Value TextBlock::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::LineSpacing: return Value(m_lineSpacing);

@@ -6,6 +6,7 @@
   <Project Path="Calc/Calc.vcxproj" Id="25d3f652-0d3a-4d57-81a8-3b3617494cd8" />
   <Project Path="CUI.Core/CUI.Core.vcxproj" Id="3e8b5749-34b8-4a1c-8a95-e2a421319b1a" />
   <Project Path="CUI/CUI.vcxproj" Id="9687d945-cdef-4ef3-958d-f1a53c184af9" />
+  <Project Path="CUI.Gallery/CUI.Gallery.vcxproj" Id="9b2fa898-ae36-4d3f-ad8a-a0ae46d8ac53" />
   <Project Path="EverythingNEO/EverythingNEO.vcxproj" Id="a73af082-a28f-4c6d-82a1-b5b48033a617" />
   <Project Path="RegeditPlus/RegeditPlus.vcxproj" Id="dfb6ed75-af30-40f8-afd1-08d6b48c8cb2" />
 </Solution>

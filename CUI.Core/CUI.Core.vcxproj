@@ -193,7 +193,6 @@
     <ClCompile Include="ui\framework\controls\PasswordBox.cpp" />
     <ClCompile Include="ui\framework\controls\ProgressBar.cpp" />
     <ClCompile Include="ui\framework\controls\ProgressRing.cpp" />
-    <ClCompile Include="ui\framework\controls\PropertyGrid.cpp" />
     <ClCompile Include="ui\framework\controls\RadioButton.cpp" />
     <ClCompile Include="ui\framework\controls\RangeSlider.cpp" />
     <ClCompile Include="ui\framework\controls\SegmentedControl.cpp" />
@@ -302,7 +301,6 @@
     <ClInclude Include="ui\framework\controls\ProgressBar.h" />
     <ClInclude Include="ui\framework\controls\ProgressBarDiag.h" />
     <ClInclude Include="ui\framework\controls\ProgressRing.h" />
-    <ClInclude Include="ui\framework\controls\PropertyGrid.h" />
     <ClInclude Include="ui\framework\controls\RadioButton.h" />
     <ClInclude Include="ui\framework\controls\RatingControl.h" />
     <ClInclude Include="ui\framework\controls\TeachingTip.h" />

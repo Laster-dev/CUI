@@ -24,12 +24,6 @@ ColorPicker::ColorPicker() {
     };
 }
 
-std::vector<PropertyMeta> ColorPicker::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "selectedColor", "已选色彩 (SelectedColor)", "色彩拾取", "color" });
-    return metas;
-}
-
 Value ColorPicker::GetProperty(PropertyId id) const {
     if (id == PropertyId::SelectedColor) return Value(m_selectedColor);
     return UIElement::GetProperty(id);
@@ -58,6 +52,7 @@ void ColorPicker::SetSelectedColor(D2D1_COLOR_F color) {
     m_selectedColor = color;
     NotifyFieldChanged(PropertyId::SelectedColor, Value(color));
     m_onColorChangedEvent.Invoke(this, color);
+    MarkPopupDirty();
 }
 
 static D2D1_COLOR_F HSVToRGB(float h, float s, float v) {
@@ -85,15 +80,86 @@ UIElement* ColorPicker::OnHitTestOverlay(float x, float y) {
     return nullptr;
 }
 
+void ColorPicker::MarkPopupDirty() {
+    MarkRenderRectDirty(m_bounds.Inflate(2.0f));
+    if (m_isPopupOpen || m_popupAnim.Current() > 0.001f) {
+        MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
+    }
+}
+
+Rect ColorPicker::CanvasRect(const Rect& popRect) const {
+    return Rect(popRect.x + 12.0f, popRect.y + 28.0f, 160.0f, 100.0f);
+}
+
+Rect ColorPicker::HueRect(const Rect& popRect) const {
+    return Rect(popRect.x + 184.0f, popRect.y + 28.0f, 20.0f, 100.0f);
+}
+
+Rect ColorPicker::SwatchRect(const Rect& popRect, size_t index) const {
+    constexpr float boxW = 22.0f;
+    return Rect(popRect.x + 12.0f + static_cast<float>(index) * (boxW + 6.0f), popRect.y + 140.0f, boxW, boxW);
+}
+
+ColorPicker::PopupPart ColorPicker::HitTestPopupPart(Point pt, int* swatchIndex) const {
+    if (swatchIndex) {
+        *swatchIndex = -1;
+    }
+    const Rect popRect = GetPopupBounds();
+    if (!popRect.Contains(pt.x, pt.y)) {
+        return PopupPart::None;
+    }
+    if (CanvasRect(popRect).Contains(pt.x, pt.y)) {
+        return PopupPart::Canvas;
+    }
+    if (HueRect(popRect).Contains(pt.x, pt.y)) {
+        return PopupPart::Hue;
+    }
+    for (size_t i = 0; i < m_swatches.size(); ++i) {
+        if (SwatchRect(popRect, i).Contains(pt.x, pt.y)) {
+            if (swatchIndex) {
+                *swatchIndex = static_cast<int>(i);
+            }
+            return PopupPart::Swatch;
+        }
+    }
+    return PopupPart::None;
+}
+
+bool ColorPicker::ApplyPopupPoint(Point pt, bool allowSwatch) {
+    const Rect popRect = GetPopupBounds();
+    const Rect canvasRect = CanvasRect(popRect);
+    if (canvasRect.Contains(pt.x, pt.y)) {
+        m_sat = std::clamp((pt.x - canvasRect.x) / canvasRect.width, 0.0f, 1.0f);
+        m_val = std::clamp(1.0f - (pt.y - canvasRect.y) / canvasRect.height, 0.0f, 1.0f);
+        SetSelectedColor(HSVToRGB(m_hue, m_sat, m_val));
+        return true;
+    }
+
+    const Rect hueRect = HueRect(popRect);
+    if (hueRect.Contains(pt.x, pt.y)) {
+        m_hue = std::clamp((pt.y - hueRect.y) / hueRect.height, 0.0f, 1.0f) * 360.0f;
+        SetSelectedColor(HSVToRGB(m_hue, m_sat, m_val));
+        return true;
+    }
+
+    if (!allowSwatch) {
+        return popRect.Contains(pt.x, pt.y);
+    }
+    for (size_t i = 0; i < m_swatches.size(); ++i) {
+        if (SwatchRect(popRect, i).Contains(pt.x, pt.y)) {
+            SetSelectedColor(m_swatches[i]);
+            return true;
+        }
+    }
+    return popRect.Contains(pt.x, pt.y);
+}
+
 bool ColorPicker::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
     bool animating = m_popupAnim.Tick(dt, PopupReveal::kSpec);
     if (animating) {
-        MarkRenderRectDirty(m_bounds.Inflate(4.0f));
-        if (m_isPopupOpen || m_popupAnim.Current() > 0.001f) {
-            MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
-        }
+        MarkPopupDirty();
         RequestAnimationTicks();
     }
     return animating;
@@ -105,51 +171,50 @@ bool ColorPicker::HasSelfAnimation() const {
 
 void ColorPicker::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
+    m_dragPart = PopupPart::None;
 
     if (m_isPopupOpen) {
-        Rect popRect = GetPopupBounds();
-        float popW = popRect.width;
-        float popH = popRect.height;
-
-        if (popRect.Contains(pt.x, pt.y)) {
-            // Swatch selection
-            float boxW = 22.0f;
-            float startX = popRect.x + 12.0f;
-            float startY = popRect.y + 140.0f;
-
-            for (size_t i = 0; i < m_swatches.size(); ++i) {
-                Rect rect(startX + i * (boxW + 6.0f), startY, boxW, boxW);
-                if (rect.Contains(pt.x, pt.y)) {
-                    SetSelectedColor(m_swatches[i]);
-                    return;
-                }
-            }
-
-            // High Precision Saturation / Value Canvas Click
-            Rect canvasRect(popRect.x + 12.0f, popRect.y + 28.0f, 160.0f, 100.0f);
-            if (canvasRect.Contains(pt.x, pt.y)) {
-                float sat = std::clamp((pt.x - canvasRect.x) / canvasRect.width, 0.0f, 1.0f);
-                float val = std::clamp(1.0f - (pt.y - canvasRect.y) / canvasRect.height, 0.0f, 1.0f);
-                SetSelectedColor(HSVToRGB(m_hue, sat, val));
-                return;
-            }
-
-            // Hue Slider Click
-            Rect hueRect(popRect.x + 184.0f, popRect.y + 28.0f, 20.0f, 100.0f);
-            if (hueRect.Contains(pt.x, pt.y)) {
-                m_hue = std::clamp((pt.y - hueRect.y) / hueRect.height, 0.0f, 1.0f) * 360.0f;
-                SetSelectedColor(HSVToRGB(m_hue, 1.0f, 1.0f));
-                return;
-            }
+        const PopupPart part = HitTestPopupPart(pt);
+        if (part != PopupPart::None) {
+            m_dragPart = (part == PopupPart::Canvas || part == PopupPart::Hue) ? part : PopupPart::None;
+            ApplyPopupPoint(pt, true);
             return;
         }
-
-        SetPopupOpen(false);
-    } else {
-        if (m_bounds.Contains(pt.x, pt.y)) {
-            SetPopupOpen(true);
+        if (GetPopupBounds().Contains(pt.x, pt.y)) {
+            return;
         }
+        SetPopupOpen(false);
+        return;
     }
+
+    if (m_bounds.Contains(pt.x, pt.y)) {
+        SetPopupOpen(true);
+    }
+}
+
+void ColorPicker::OnMouseMove(Point pt) {
+    Control::OnMouseMove(pt);
+    if (!m_isPopupOpen || m_dragPart == PopupPart::None) {
+        return;
+    }
+    const Rect popRect = GetPopupBounds();
+    if (m_dragPart == PopupPart::Canvas) {
+        const Rect canvasRect = CanvasRect(popRect);
+        m_sat = std::clamp((pt.x - canvasRect.x) / canvasRect.width, 0.0f, 1.0f);
+        m_val = std::clamp(1.0f - (pt.y - canvasRect.y) / canvasRect.height, 0.0f, 1.0f);
+        SetSelectedColor(HSVToRGB(m_hue, m_sat, m_val));
+        return;
+    }
+    if (m_dragPart == PopupPart::Hue) {
+        const Rect hueRect = HueRect(popRect);
+        m_hue = std::clamp((pt.y - hueRect.y) / hueRect.height, 0.0f, 1.0f) * 360.0f;
+        SetSelectedColor(HSVToRGB(m_hue, m_sat, m_val));
+    }
+}
+
+void ColorPicker::OnMouseUp(Point pt) {
+    Control::OnMouseUp(pt);
+    m_dragPart = PopupPart::None;
 }
 
 void ColorPicker::OnRender(GraphicsContext& ctx) {
@@ -170,6 +235,9 @@ void ColorPicker::OnRender(GraphicsContext& ctx) {
 void ColorPicker::SetPopupOpen(bool open) {
     if (m_isPopupOpen == open) return;
     m_isPopupOpen = open;
+    if (!open) {
+        m_dragPart = PopupPart::None;
+    }
     if (PopupHost* host = PopupHost::Current()) {
         if (open) {
             host->Open(this);
@@ -177,7 +245,8 @@ void ColorPicker::SetPopupOpen(bool open) {
             host->Close(this);
         }
     }
-    MarkRenderContentDirty();
+    RequestAnimationTicks();
+    MarkPopupDirty();
 }
 
 Rect ColorPicker::GetPopupBounds() const {
@@ -219,7 +288,7 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
     ctx.DrawText("高精度 HSV 调色盘面板", headerRect, accentCol, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
     // Render High Precision Color Canvas (Grid Sampling Saturation / Value)
-    Rect canvasRect(popRect.x + 12.0f, popRect.y + 28.0f, 160.0f, 100.0f);
+    Rect canvasRect = CanvasRect(popRect);
     ctx.DrawRoundedRect(canvasRect, 2.0f, border, 1.0f);
 
     float stepX = canvasRect.width / 16.0f;
@@ -235,7 +304,7 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
     }
 
     // Render Hue Rainbow Bar (20x100)
-    Rect hueRect(popRect.x + 184.0f, popRect.y + 28.0f, 20.0f, 100.0f);
+    Rect hueRect = HueRect(popRect);
     float hueStepH = hueRect.height / 12.0f;
     for (int i = 0; i < 12; ++i) {
         float hVal = (static_cast<float>(i) / 12.0f) * 360.0f;
@@ -246,12 +315,8 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
     ctx.DrawRect(hueRect, border);
 
     // Render Presets Bar on Bottom
-    float boxW = 22.0f;
-    float startX = popRect.x + 12.0f;
-    float startY = popRect.y + 140.0f;
-
     for (size_t i = 0; i < m_swatches.size(); ++i) {
-        Rect rect(startX + i * (boxW + 6.0f), startY, boxW, boxW);
+        Rect rect = SwatchRect(popRect, i);
         ctx.FillRoundedRect(rect, 4.0f, m_swatches[i]);
         if (m_swatches[i].r == selColor.r && m_swatches[i].g == selColor.g && m_swatches[i].b == selColor.b) {
             ctx.DrawRoundedRect(rect, 4.0f, textCol, 2.0f);

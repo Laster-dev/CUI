@@ -277,15 +277,6 @@ NumberBox::NumberBox() {
     SyncTextFromValue();
 }
 
-std::vector<PropertyMeta> NumberBox::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "value", "当前数值 (Value)", "数值配置", "number" });
-    metas.push_back({ "minimum", "最小值 (Minimum)", "数值配置", "number" });
-    metas.push_back({ "maximum", "最大值 (Maximum)", "数值配置", "number" });
-    metas.push_back({ "step", "步进 (Step)", "数值配置", "number" });
-    return metas;
-}
-
 Value NumberBox::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::ControlValue: return Value(m_value);

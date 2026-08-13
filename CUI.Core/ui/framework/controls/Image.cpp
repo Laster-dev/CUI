@@ -61,13 +61,6 @@ Image::Image(ImageType type, const std::string& text, D2D1_COLOR_F color)
     SetClipToBounds(true);
 }
 
-std::vector<PropertyMeta> Image::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "source", "源路径 (Source)", "图像", "string" });
-    metas.push_back({ "stretch", "拉伸 (Stretch)", "图像", "enum", { "None", "Fill", "Uniform", "UniformToFill" } });
-    return metas;
-}
-
 namespace {
 const char* StretchName(Stretch s) {
     switch (s) {

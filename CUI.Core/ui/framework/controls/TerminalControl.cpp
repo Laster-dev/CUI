@@ -175,14 +175,6 @@ void TerminalControl::InitTerminal(const std::string& shellPath) {
     BuildContextMenu();
 }
 
-std::vector<PropertyMeta> TerminalControl::GetPropertyMetas() const {
-    auto metas = Control::GetPropertyMetas();
-    metas.push_back({ "shell", "Shell 程序 (Shell Path)", "终端设置", "string" });
-    metas.push_back({ "fontSize", "字体大小 (Font Size)", "外观", "number" });
-    metas.push_back({ "fontFamily", "字体族 (Font Family)", "外观", "string" });
-    return metas;
-}
-
 Value TerminalControl::GetProperty(PropertyId id) const {
     if (id == PropertyId::Shell) {
         return Value(m_pendingShell);

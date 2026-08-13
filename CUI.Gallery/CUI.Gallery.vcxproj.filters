@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{a1b2c3d4-e5f6-7890-abcd-ef1234567890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\catalog">
+      <UniqueIdentifier>{b2c3d4e5-f6a7-8901-bcde-f12345678901}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\chrome">
+      <UniqueIdentifier>{c3d4e5f6-a7b8-9012-cdef-123456789012}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\page">
+      <UniqueIdentifier>{d4e5f6a7-b8c9-0123-def0-234567890123}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\BasicInput">
+      <UniqueIdentifier>{e5f6a7b8-c9d0-1234-ef01-345678901234}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GalleryHost.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\catalog\Catalog.cpp">
+      <Filter>src\catalog</Filter>
+    </ClCompile>
+    <ClCompile Include="src\page\SamplePage.cpp">
+      <Filter>src\page</Filter>
+    </ClCompile>
+    <ClCompile Include="src\chrome\GalleryShell.cpp">
+      <Filter>src\chrome</Filter>
+    </ClCompile>
+    <ClCompile Include="src\chrome\HomePage.cpp">
+      <Filter>src\chrome</Filter>
+    </ClCompile>
+    <ClCompile Include="src\chrome\SettingsPage.cpp">
+      <Filter>src\chrome</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\ButtonPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\DropDownButtonPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\HyperlinkButtonPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\SplitButtonPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\ToggleButtonPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\CheckBoxPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\RadioButtonPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\ComboBoxPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\SliderPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\RangeSliderPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\RatingPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\ToggleSwitchPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\ColorPickerPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\SegmentedPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\GalleryHost.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\catalog\Catalog.h">
+      <Filter>src\catalog</Filter>
+    </ClInclude>
+    <ClInclude Include="src\page\SamplePage.h">
+      <Filter>src\page</Filter>
+    </ClInclude>
+    <ClInclude Include="src\chrome\GalleryShell.h">
+      <Filter>src\chrome</Filter>
+    </ClInclude>
+    <ClInclude Include="src\chrome\HomePage.h">
+      <Filter>src\chrome</Filter>
+    </ClInclude>
+    <ClInclude Include="src\chrome\SettingsPage.h">
+      <Filter>src\chrome</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pages\BasicInput\Pages.h">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pages\BasicInput\ButtonPage.h">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

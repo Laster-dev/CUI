@@ -59,6 +59,5 @@ ShowcasePage BuildAutoSuggestPage(const ShowcaseContext& ctx) {
     return { "AutoSuggestBox 搜索建议", CreatePage(
         "AutoSuggestBox / SearchBox",
         "输入复用 TextBox；建议弹出层自绘，不嵌套 ListBox。",
-        demo,
-        CreatePropertyGrid(ctx, box), box) };
+        demo) };
 }

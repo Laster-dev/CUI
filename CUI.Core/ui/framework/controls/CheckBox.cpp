@@ -42,16 +42,6 @@ CheckBox::CheckBox(const std::string& text) : CheckBox() {
     SetText(text);
 }
 
-std::vector<PropertyMeta> CheckBox::GetPropertyMetas() const {
-    auto metas = Control::GetPropertyMetas();
-    metas.push_back({ "text", "标签文本 (Text)", "基本信息", "string" });
-    metas.push_back({ "checkState", "选中状态 (CheckState)", "复选配置", "enum", { "Unchecked", "Checked", "Indeterminate" } });
-    metas.push_back({ "isThreeState", "三态模式 (ThreeState)", "复选配置", "bool" });
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
-    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    return metas;
-}
-
 Value CheckBox::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::CheckState:

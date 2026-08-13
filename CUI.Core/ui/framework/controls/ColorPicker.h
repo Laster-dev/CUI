@@ -12,7 +12,6 @@ public:
     virtual ~ColorPicker() = default;
 
     virtual const char* GetClassName() const override { return "ColorPicker"; }
-    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
     void SetProperty(PropertyId id, const Value& val) override;
@@ -24,6 +23,8 @@ public:
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
     virtual bool NeedsOverlayHitTest() const override { return true; }
     virtual void OnMouseDown(Point pt) override;
+    virtual void OnMouseMove(Point pt) override;
+    virtual void OnMouseUp(Point pt) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
@@ -43,9 +44,19 @@ public:
     Event<ColorPicker*, D2D1_COLOR_F>& OnColorChanged() { return m_onColorChangedEvent; }
 
 private:
+    enum class PopupPart { None, Canvas, Hue, Swatch };
+
+    void MarkPopupDirty();
+    Rect CanvasRect(const Rect& popRect) const;
+    Rect HueRect(const Rect& popRect) const;
+    Rect SwatchRect(const Rect& popRect, size_t index) const;
+    PopupPart HitTestPopupPart(Point pt, int* swatchIndex = nullptr) const;
+    bool ApplyPopupPoint(Point pt, bool allowSwatch);
+
     D2D1_COLOR_F m_selectedColor{ 0, 0, 0, 1 };
     std::vector<D2D1_COLOR_F> m_swatches;
     bool m_isPopupOpen = false;
+    PopupPart m_dragPart = PopupPart::None;
     AnimatedScalar m_popupAnim{};
     float m_hue = 200.0f; // 0..360
     float m_sat = 1.0f;   // 0..1

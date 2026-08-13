@@ -17,9 +17,5 @@ ShowcasePage BuildDockPage(const ShowcaseContext&) {
     return { "DockPanel 侧边停靠", CreatePage(
         "DockPanel 侧边停靠控制台",
         "支持 Top/Bottom/Left/Right 侧边停靠与中央填充。",
-        CreateDemoSurface({ target }, 0.0f),
-        CreateRightPanel({
-            CreateShowcaseText("停靠面板属性表 (DockPanel)", 12.0f, "#569CD6", true),
-            CheckboxTile("末尾填充 (LastChildFill)").Build()
-        })) };
+        CreateDemoSurface({ target }, 0.0f)) };
 }

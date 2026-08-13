@@ -12,7 +12,6 @@ public:
     virtual ~FolderPicker() = default;
 
     virtual const char* GetClassName() const override { return "FolderPicker"; }
-    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual HCURSOR GetCursor() const override;
     bool AcceptsTabFocus() const override { return true; }
 

@@ -45,16 +45,6 @@ RatingControl::RatingControl() {
     m_displayValueAnim.Reset(m_value);
 }
 
-std::vector<PropertyMeta> RatingControl::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "value", "当前评分 (Value)", "评分配置", "number" });
-    metas.push_back({ "maximum", "最大星数 (MaxRating)", "评分配置", "number" });
-    metas.push_back({ "step", "步进 (Step)", "评分配置", "number" });
-    metas.push_back({ "isReadOnly", "只读 (IsReadOnly)", "评分配置", "bool" });
-    metas.push_back({ "isClearEnabled", "允许清除 (IsClearEnabled)", "评分配置", "bool" });
-    return metas;
-}
-
 HCURSOR RatingControl::GetCursor() const {
     return CanInteract() ? LoadCursor(nullptr, IDC_HAND) : nullptr;
 }
@@ -407,9 +397,6 @@ void RatingControl::DrawStar(
 
 void RatingControl::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
-    if (!IsEnabled()) {
-        ctx.PushOpacity(0.45f);
-    }
 
     const D2D1_COLOR_F fill = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
     D2D1_COLOR_F empty = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
@@ -443,10 +430,6 @@ void RatingControl::OnRender(GraphicsContext& ctx) {
 
     if (IsFocused() && CanInteract()) {
         ctx.DrawRoundedRect(m_bounds, 4.0f, WithAlpha(fill, 0.85f), 1.5f);
-    }
-
-    if (!IsEnabled()) {
-        ctx.PopOpacity();
     }
 }
 

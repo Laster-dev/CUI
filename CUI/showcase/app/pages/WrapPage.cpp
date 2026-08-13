@@ -23,10 +23,5 @@ ShowcasePage BuildWrapPage(const ShowcaseContext&) {
     return { "WrapPanel 流式布局", CreatePage(
         "WrapPanel 流式布局控制台",
         "多行流式排版，达到边缘时自动折行或折列。",
-        CreateDemoSurface({ target }, 0.0f),
-        CreateRightPanel({
-            CreateShowcaseText("流式面板属性表 (WrapPanel)", 12.0f, "#569CD6", true),
-            CreateShowcaseText("排版方向 (Orientation):", 11.0f, "#AAAAAA"),
-            combo
-        })) };
+        CreateDemoSurface({ target }, 0.0f)) };
 }

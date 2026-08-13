@@ -290,6 +290,5 @@ ShowcasePage BuildChartPage(const ShowcaseContext& ctx) {
     return { "Chart 图表", CreatePage(
         "Chart 数据可视化",
         "上块为固定演示数据；下块对接进程私有/完整工作集、CPU、GPU 显存占用与显示 FPS，约 30 秒滚动窗口。",
-        demo,
-        CreatePropertyGrid(ctx, line), line) };
+        demo) };
 }

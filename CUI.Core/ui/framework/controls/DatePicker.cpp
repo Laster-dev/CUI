@@ -30,12 +30,6 @@ DatePicker::DatePicker() {
     SetHeight(30.0f);
 }
 
-std::vector<PropertyMeta> DatePicker::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "dateStr", "当前日期 (Date)", "日期配置", "string" });
-    return metas;
-}
-
 Value DatePicker::GetProperty(PropertyId id) const {
     if (id == PropertyId::DateStr) return Value(GetFormattedDate());
     return UIElement::GetProperty(id);

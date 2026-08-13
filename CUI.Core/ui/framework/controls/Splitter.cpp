@@ -25,12 +25,6 @@ Splitter::Splitter() {
     SetAlign(Alignment::Stretch);
 }
 
-std::vector<PropertyMeta> Splitter::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "orientation", "拆分方向 (Orientation)", "拆分配置", "enum", { "Vertical", "Horizontal" } });
-    return metas;
-}
-
 HCURSOR Splitter::GetCursor() const {
     if (!IsEnabled()) return nullptr;
     return LoadCursor(nullptr, IsVerticalSplitter() ? IDC_SIZEWE : IDC_SIZENS);

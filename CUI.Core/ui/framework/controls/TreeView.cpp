@@ -50,15 +50,6 @@ TreeView::TreeView() {
     m_scrollAnimator.Reset(0.0f);
 }
 
-std::vector<PropertyMeta> TreeView::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
-    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    metas.push_back({ "itemHeight", "节点行高 (ItemHeight)", "树形配置", "number" });
-    metas.push_back({ "indentWidth", "层级缩进 (IndentWidth)", "树形配置", "number" });
-    return metas;
-}
-
 Value TreeView::GetProperty(PropertyId id) const {
     if (id == PropertyId::IndentWidth) {
         return Value(m_indentWidth);

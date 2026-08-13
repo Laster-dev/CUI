@@ -36,18 +36,6 @@ RangeSlider::RangeSlider() {
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
-std::vector<PropertyMeta> RangeSlider::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "lowerValue", "下限 (Lower)", "区间配置", "number" });
-    metas.push_back({ "upperValue", "上限 (Upper)", "区间配置", "number" });
-    metas.push_back({ "minimum", "最小值 (Minimum)", "区间配置", "number" });
-    metas.push_back({ "maximum", "最大值 (Maximum)", "区间配置", "number" });
-    metas.push_back({ "step", "步长 (Step)", "区间配置", "number" });
-    metas.push_back({ "minimumRange", "最小跨度 (MinRange)", "区间配置", "number" });
-    metas.push_back({ "orientation", "方向 (Orientation)", "区间配置", "enum", { "Horizontal", "Vertical" } });
-    return metas;
-}
-
 Value RangeSlider::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::LowerValue: return Value(m_lower);

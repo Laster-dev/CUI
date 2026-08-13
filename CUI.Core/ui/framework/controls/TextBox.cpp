@@ -13,22 +13,6 @@
 
 namespace CUI {
 
-std::vector<PropertyMeta> TextBox::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
-    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    metas.push_back({ "fontWeight", "字体粗细 (FontWeight)", "字体文本", "enum", { "Normal", "Bold", "Light" } });
-    metas.push_back({ "lineSpacing", "行间距 (LineSpacing)", "高级排版", "number" });
-    metas.push_back({ "lineHeight", "固定行高 (LineHeight)", "高级排版", "number" });
-    metas.push_back({ "placeholder", "占位提示词 (Placeholder)", "输入控制", "string" });
-    metas.push_back({ "caretWidth", "光标宽度 (CaretWidth)", "光标排版", "number" });
-    metas.push_back({ "caretBlinkRate", "光标闪烁频率 (BlinkMs)", "光标排版", "number" });
-    metas.push_back({ "textWrapping", "自动换行 (TextWrapping)", "输入控制", "enum", { "NoWrap", "Wrap" } });
-    metas.push_back({ "acceptsReturn", "允许回车 (AcceptsReturn)", "输入控制", "bool" });
-    metas.push_back({ "isReadOnly", "只读 (IsReadOnly)", "输入控制", "bool" });
-    return metas;
-}
-
 Value TextBox::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::LineSpacing: return Value(m_lineSpacing);
@@ -584,15 +568,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         ? ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground)
         : (m_hasBackgroundColor ? m_backgroundColor : D2D1::ColorF(0, 0, 0, 0));
     const bool enabled = IsEnabled();
-    if (!enabled) {
-        D2D1_COLOR_F disabledBg = ThemeManager::Instance().GetColor(ThemeTokenId::HoverBackground);
-        disabledBg.a = 0.45f;
-        if (radius > 0.0f) {
-            ctx.FillRoundedRect(m_bounds, radius, disabledBg);
-        } else {
-            ctx.FillRect(m_bounds, disabledBg);
-        }
-    } else if (bg.a > 0.0f) {
+    if (bg.a > 0.0f) {
         if (radius > 0.0f) {
             ctx.FillRoundedRect(m_bounds, radius, bg);
         } else {
@@ -614,10 +590,6 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     float fontSize = GetFontSize();
     D2D1_COLOR_F phBase = ResolveThemeColor(GetPlaceholderColorToken(), ThemeTokenId::TextMuted);
     D2D1_COLOR_F phActive = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
-    if (!enabled) {
-        phBase.a *= 0.55f;
-        phActive = phBase;
-    }
     Rect textRect = GetTextRect();
     const float labelProgress = std::clamp(m_labelAnim.Current(), 0.0f, 1.0f);
     // Single Fluent ease-out — avoid dual-draw ghosting of the same placeholder.
@@ -691,10 +663,6 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     }
 
     D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-    if (!enabled) {
-        textColor = ResolveThemeColor(GetPlaceholderColorToken(), ThemeTokenId::TextMuted);
-        textColor.a *= 0.65f;
-    }
     ctx.DrawTextLayout(layout.Get(), layoutRect, textColor);
 
     if (!m_compString.empty()) {
@@ -736,10 +704,6 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     if (drawUnderline) {
         D2D1_COLOR_F underlineColor = ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::InputBorder);
         D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
-        if (!enabled) {
-            underlineColor.a *= 0.4f;
-            activeUnderlineColor = underlineColor;
-        }
         float lineY = m_bounds.y + m_bounds.height - 2.0f;
         if (m_dropHover && enabled) {
             ctx.DrawLine(

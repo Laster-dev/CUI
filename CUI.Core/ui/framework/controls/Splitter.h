@@ -9,7 +9,6 @@ public:
     virtual ~Splitter() = default;
 
     virtual const char* GetClassName() const override { return "Splitter"; }
-    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual HCURSOR GetCursor() const override;
 
     virtual Size Measure(Size availableSize) override;

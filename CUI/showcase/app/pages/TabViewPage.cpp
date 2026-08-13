@@ -33,7 +33,5 @@ ShowcasePage BuildTabViewPage(const ShowcaseContext& ctx) {
     return { "TabView 标签页", CreatePage(
         "TabView 多标签页控件",
         "WinUI 风格标签栏：切换、关闭、溢出横向滚动与选中指示动画。",
-        CreateDemoSurface({ tabView }, 0.0f),
-        CreatePropertyGrid(ctx, tabView),
-        tabView) };
+        CreateDemoSurface({ tabView }, 0.0f)) };
 }

@@ -43,16 +43,6 @@ NavigationView::NavigationView() {
     m_paneWidthAnim.Reset(m_openPaneLength);
 }
 
-std::vector<PropertyMeta> NavigationView::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "paneTitle", "窗格标题 (PaneTitle)", "外观", "string" });
-    metas.push_back({ "header", "页眉 (Header)", "外观", "string" });
-    metas.push_back({ "openPaneLength", "展开宽度 (OpenPaneLength)", "外观", "number" });
-    metas.push_back({ "compactPaneLength", "紧凑宽度 (CompactPaneLength)", "外观", "number" });
-    metas.push_back({ "isPaneOpen", "窗格打开 (IsPaneOpen)", "外观", "bool" });
-    return metas;
-}
-
 Value NavigationView::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::PaneTitle: return Value(m_paneTitle);

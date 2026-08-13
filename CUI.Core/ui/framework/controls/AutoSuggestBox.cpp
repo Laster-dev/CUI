@@ -112,14 +112,6 @@ void AutoSuggestBox::StyleField() {
     m_field->SetPadding(Thickness(8.0f, 18.0f, 8.0f, 8.0f));
 }
 
-std::vector<PropertyMeta> AutoSuggestBox::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "placeholder", "占位文本 (Placeholder)", "内容", "string" });
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "Segoe UI", "微软雅黑", "Consolas" } });
-    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    return metas;
-}
-
 HCURSOR AutoSuggestBox::GetCursor() const {
     return nullptr;
 }

@@ -122,6 +122,5 @@ ShowcasePage BuildButtonPage(const ShowcaseContext& ctx) {
     return { "Button 按钮", CreatePage(
         "Button 按钮控件全属性交互控制台",
         "标准 Button + Toggle / Split / DropDown。Split 主区与箭头分命中；下拉为自绘 IPopup 菜单。",
-        demo,
-        CreatePropertyGrid(ctx, target), target) };
+        demo) };
 }

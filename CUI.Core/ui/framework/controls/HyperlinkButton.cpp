@@ -17,12 +17,6 @@ HyperlinkButton::HyperlinkButton(const std::string& text, const std::string& uri
     SetNavigateUri(uri);
 }
 
-std::vector<PropertyMeta> HyperlinkButton::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "navigateUri", "链接 (NavigateUri)", "超链接", "string" });
-    return metas;
-}
-
 Value HyperlinkButton::GetProperty(PropertyId id) const {
     if (id == PropertyId::NavigateUri) {
         return Value(m_navigateUri);

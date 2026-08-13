@@ -12,13 +12,6 @@ PasswordBox::PasswordBox(const std::string& placeholder) : TextBox(placeholder) 
     SetShowRevealButton(true);
 }
 
-std::vector<PropertyMeta> PasswordBox::GetPropertyMetas() const {
-    auto metas = TextBox::GetPropertyMetas();
-    metas.push_back({ "isPasswordRevealed", "显示明文 (IsRevealed)", "密码配置", "bool" });
-    metas.push_back({ "showRevealButton", "显示眼睛按钮 (ShowRevealBtn)", "密码配置", "bool" });
-    return metas;
-}
-
 Value PasswordBox::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::IsPasswordRevealed: return Value(IsPasswordRevealed());

@@ -64,12 +64,11 @@ D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
     D2D1_COLOR_F pressedBg = (m_pressedBackgroundToken != ThemeTokenId::Unset)
         ? ResolveThemeColor(m_pressedBackgroundToken, ThemeTokenId::PressedBackground)
         : hoverBg;
-    D2D1_COLOR_F disabledBg = (m_disabledBackgroundToken != ThemeTokenId::Unset)
-        ? ResolveThemeColor(m_disabledBackgroundToken, ThemeTokenId::HoverBackground)
-        : ThemeManager::Instance().GetColor(ThemeTokenId::HoverBackground);
-    disabledBg.a = (std::min)(disabledBg.a, 0.6f);
 
-    if (!IsEnabled()) return disabledBg;
+    // Disabled uses the resting fill; UIElement::Render fades the whole control.
+    if (!IsEnabled()) {
+        return bg;
+    }
     float visualState = m_visualStateAnim.Current();
     if (visualState <= 0.0f) return bg;
     if (visualState <= 0.55f) return BlendColor(bg, hoverBg, visualState / 0.55f);
@@ -110,15 +109,9 @@ void Control::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    D2D1_COLOR_F borderBrush = IsEnabled()
-        ? ((m_borderToken != ThemeTokenId::Unset)
-            ? ResolveThemeColor(m_borderToken, ThemeTokenId::CardBorder)
-            : (m_hasBorderBrushColor ? m_borderBrushColor : D2D1::ColorF(0, 0, 0, 0)))
-        : [&]() {
-            D2D1_COLOR_F c = ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder);
-            c.a = 0.5f;
-            return c;
-        }();
+    D2D1_COLOR_F borderBrush = (m_borderToken != ThemeTokenId::Unset)
+        ? ResolveThemeColor(m_borderToken, ThemeTokenId::CardBorder)
+        : (m_hasBorderBrushColor ? m_borderBrushColor : D2D1::ColorF(0, 0, 0, 0));
     float borderThickness = GetBorderThickness();
     if (borderBrush.a > 0.0f && borderThickness > 0.0f) {
         if (radius > 0.0f) {

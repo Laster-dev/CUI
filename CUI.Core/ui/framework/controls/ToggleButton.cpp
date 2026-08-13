@@ -15,12 +15,6 @@ ToggleButton::ToggleButton(const std::string& text) : ToggleButton() {
     SetText(text);
 }
 
-std::vector<PropertyMeta> ToggleButton::GetPropertyMetas() const {
-    auto metas = Button::GetPropertyMetas();
-    metas.push_back({ "isOn", "选中 (IsChecked)", "按钮配置", "bool" });
-    return metas;
-}
-
 Value ToggleButton::GetProperty(PropertyId id) const {
     if (id == PropertyId::IsOn) {
         return Value(m_isChecked);

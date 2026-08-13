@@ -20,16 +20,6 @@ Slider::Slider() {
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
-std::vector<PropertyMeta> Slider::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "value", "当前数值 (Value)", "滑块配置", "number" });
-    metas.push_back({ "minimum", "最小值 (Minimum)", "滑块配置", "number" });
-    metas.push_back({ "maximum", "最大值 (Maximum)", "滑块配置", "number" });
-    metas.push_back({ "step", "步长 (Step)", "滑块配置", "number" });
-    metas.push_back({ "orientation", "方向 (Orientation)", "滑块配置", "enum", { "Horizontal", "Vertical" } });
-    return metas;
-}
-
 Value Slider::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::ControlValue: return Value(m_value);

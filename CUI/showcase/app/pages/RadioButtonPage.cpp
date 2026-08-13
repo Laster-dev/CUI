@@ -13,6 +13,5 @@ ShowcasePage BuildRadioButtonPage(const ShowcaseContext& ctx) {
     return { "RadioButton 单选框", CreatePage(
         "RadioButton 单选框控件",
         "支持 GroupName 互斥分组逻辑，同组内切换自动取消其他选项。",
-        CreateDemoSurface({ radioA, radioB, radioC }, 12.0f),
-        CreatePropertyGrid(ctx, radioA), radioA) };
+        CreateDemoSurface({ radioA, radioB, radioC }, 12.0f)) };
 }

@@ -77,12 +77,6 @@ void FolderPicker::SetPath(const std::string& path) {
     MarkPickerDirty();
 }
 
-std::vector<PropertyMeta> FolderPicker::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "text", "文件夹路径 (Path)", "文件夹选择", "string" });
-    return metas;
-}
-
 Rect FolderPicker::PathRect() const {
     const Thickness pad = GetPadding();
     const float border = GetBorderThickness();

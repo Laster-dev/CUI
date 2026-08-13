@@ -54,14 +54,6 @@ ChartBase::ChartBase() {
     m_reveal.SetTarget(1.0f);
 }
 
-std::vector<PropertyMeta> ChartBase::GetPropertyMetas() const {
-    auto metas = Control::GetPropertyMetas();
-    metas.push_back({ "showGrid", "网格 (ShowGrid)", "图表", "bool" });
-    metas.push_back({ "showLegend", "图例 (ShowLegend)", "图表", "bool" });
-    metas.push_back({ "showTooltip", "提示 (ShowTooltip)", "图表", "bool" });
-    return metas;
-}
-
 Value ChartBase::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::ShowGrid: return Value(m_showGrid);

@@ -40,13 +40,6 @@ ToggleSwitch::ToggleSwitch() {
     m_knobPosAnim.Reset(0.0f);
 }
 
-std::vector<PropertyMeta> ToggleSwitch::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "header", "标题文本 (Header)", "开关配置", "string" });
-    metas.push_back({ "isOn", "开启状态 (IsOn)", "开关配置", "bool" });
-    return metas;
-}
-
 Value ToggleSwitch::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::Header: return Value(m_header);

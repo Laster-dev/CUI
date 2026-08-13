@@ -4,7 +4,6 @@
 #include "framework/controls/docking/Docking.h"
 #include "framework/controls/Button.h"
 #include "framework/controls/TreeView.h"
-#include "framework/controls/PropertyGrid.h"
 #include "framework/controls/TextBlock.h"
 #include "framework/style/ThemeManager.h"
 #include "framework/style/ThemeTokenId.h"
@@ -55,8 +54,7 @@ ShowcasePage BuildDockingPage(const ShowcaseContext& ctx) {
     dock->AddToolPane("Solution Explorer", tree, DockSide::Left);
     dock->AddToolPane("Git", MakePaneBody("Git Changes\n M DockManager.cpp\n M DockFloatWindow.cpp"), DockSide::Left);
 
-    auto props = std::make_shared<PropertyGrid>();
-    dock->AddToolPane("Properties", props, DockSide::Right);
+    dock->AddToolPane("Properties", MakePaneBody("Selected object\nDockManager\nLeft: 220\nRight: 240"), DockSide::Right);
 
     dock->AddToolPane("Toolbox", MakePaneBody("Common controls\n- Button\n- TextBox\n- ListView"), DockSide::Top);
     dock->AddToolPane("Output", MakePaneBody("Build started...\n1>------ Build started: Project: CUI.Core ------"), DockSide::Bottom);

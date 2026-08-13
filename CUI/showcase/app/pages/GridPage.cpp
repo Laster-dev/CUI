@@ -19,12 +19,5 @@ ShowcasePage BuildGridPage(const ShowcaseContext&) {
     return { "Grid 网格布局", CreatePage(
         "Grid 网格布局属性控制台",
         "修改列定义 (ColumnDefinitions) 与 行定义 (RowDefinitions) 实时切割网格。",
-        CreateDemoSurface({ target }, 0.0f),
-        CreateRightPanel({
-            CreateShowcaseText("网格属性控制表 (Grid)", 12.0f, "#569CD6", true),
-            CreateShowcaseText("列定义 (ColumnDefinitions):", 11.0f, "#AAAAAA"),
-            TextField("1*,2*,100").Width(280).Height(26).Build(),
-            CreateShowcaseText("行定义 (RowDefinitions):", 11.0f, "#AAAAAA"),
-            TextField("40,1*,1*").Width(280).Height(26).Build()
-        })) };
+        CreateDemoSurface({ target }, 0.0f)) };
 }

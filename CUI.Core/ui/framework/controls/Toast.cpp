@@ -144,20 +144,6 @@ int Toast::GetAutoCloseRemainMs() const {
     return static_cast<int>(std::ceil(remain));
 }
 
-std::vector<PropertyMeta> Toast::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "title", "Title", "Toast", "string" });
-    metas.push_back({ "message", "Message", "Toast", "string" });
-    metas.push_back({ "corner", "Corner", "Toast", "enum", { "TopLeft", "TopRight", "BottomLeft", "BottomRight" } });
-    metas.push_back({ "durationMs", "DurationMs", "Toast", "number" });
-    metas.push_back({ "autoClose", "AutoClose", "Toast", "bool" });
-    metas.push_back({ "closeable", "Closeable", "Toast", "bool" });
-    metas.push_back({ "offsetX", "OffsetX", "Toast", "number" });
-    metas.push_back({ "offsetY", "OffsetY", "Toast", "number" });
-    metas.push_back({ "spacing", "StackSpacing", "Toast", "number" });
-    return metas;
-}
-
 Value Toast::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::Title: return Value(m_titleText);

@@ -30,12 +30,6 @@ RadioButton::RadioButton(const std::string& text) : CheckBox(text) {
     SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
 }
 
-std::vector<PropertyMeta> RadioButton::GetPropertyMetas() const {
-    auto metas = CheckBox::GetPropertyMetas();
-    metas.push_back({ "groupName", "互斥分组 (GroupName)", "单选配置", "string" });
-    return metas;
-}
-
 Value RadioButton::GetProperty(PropertyId id) const {
     if (id == PropertyId::GroupName) return Value(m_groupName);
     return CheckBox::GetProperty(id);

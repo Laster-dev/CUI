@@ -34,6 +34,5 @@ ShowcasePage BuildCollapsePage(const ShowcaseContext& ctx) {
     return { "Expander 折叠面板", CreatePage(
         "Expander (WinUI 3)",
         "参照 WinUI 3 Expander：固定 Header + 可折叠 Content，展开时推开布局而非浮层；支持 IsExpanded、ExpandDirection、Expanding/Collapsed 事件。",
-        CreateDemoSurface({ panel1, panel2, panel3 }),
-        CreatePropertyGrid(ctx, panel1), panel1) };
+        CreateDemoSurface({ panel1, panel2, panel3 })) };
 }

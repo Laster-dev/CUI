@@ -27,14 +27,6 @@ TabView::TabView() {
     });
 }
 
-std::vector<PropertyMeta> TabView::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "minTabWidth", "最小标签宽度 (MinTabWidth)", "标签栏配置", "number" });
-    metas.push_back({ "maxTabWidth", "最大标签宽度 (MaxTabWidth)", "标签栏配置", "number" });
-    metas.push_back({ "selectedIndex", "选中标签 (SelectedIndex)", "标签栏配置", "number" });
-    return metas;
-}
-
 Value TabView::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::MinTabWidth: return Value(m_minTabWidth);

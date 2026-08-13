@@ -106,6 +106,5 @@ ShowcasePage BuildInfoBarPage(const ShowcaseContext& ctx) {
     return { "InfoBar 横幅", CreatePage(
         "InfoBar 信息栏",
         "信息 / 成功 / 警告 / 错误。自绘色条与图标；操作与关闭复用 Button；打开关闭有高度动画。",
-        demo,
-        CreatePropertyGrid(ctx, bar), bar) };
+        demo) };
 }

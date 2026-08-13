@@ -90,15 +90,6 @@ void ProgressBar::ReleaseComposeOverlay(GraphicsContext* ctx) {
     m_releaseOverlay = false;
 }
 
-std::vector<PropertyMeta> ProgressBar::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "value", "进度数值 (Value)", "进度配置", "number" });
-    metas.push_back({ "minimum", "最小值 (Minimum)", "进度配置", "number" });
-    metas.push_back({ "maximum", "最大值 (Maximum)", "进度配置", "number" });
-    metas.push_back({ "isIndeterminate", "不确定模式 (IsIndeterminate)", "进度配置", "bool" });
-    return metas;
-}
-
 Value ProgressBar::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::ControlValue: return Value(m_value);

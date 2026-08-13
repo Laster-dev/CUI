@@ -13,23 +13,18 @@ ShowcasePage BuildStreamPage(const ShowcaseContext& ctx) {
     startBtn->OnClick().Connect([window = ctx.windowRef, image = ctx.streamImage, status](UIElement*) {
         StartStreamingThread(window, image);
         status->SetText("状态: 推流中 (手动启动)。");
-        });
+    });
     stopBtn->OnClick().Connect([status](UIElement*) {
         StopStreamingThread();
         status->SetText("状态: 已暂停。");
-        });
-
-    auto side = CreateRightPanel({
-        CreateShowcaseText("推流控制台", 12.0f, "#569CD6", true),
-        status,
-        Row(8).Children({ startBtn, stopBtn }).Build(),
-        CreateShowcaseText("数据源: 桌面实时截图", 11.0f, "#AAAAAA"),
-        CreateShowcaseText("目标尺寸: 420 x 240", 11.0f, "#AAAAAA")
-        });
+    });
 
     return { "1000+ FPS 动态推流", CreatePage(
         "1000+ FPS 动态图像推流控制台",
         "Direct2D ID2D1Bitmap1 硬件位图实时推流，支持在线暂停与恢复播放。",
-        CreateDemoSurface({ ctx.streamImage }, 0.0f),
-        side) };
+        CreateDemoSurface({
+            ctx.streamImage,
+            status,
+            Row(8).Children({ startBtn, stopBtn }).Build(),
+        }, 12.0f)) };
 }

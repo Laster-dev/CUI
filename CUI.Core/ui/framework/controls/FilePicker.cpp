@@ -96,12 +96,6 @@ void FilePicker::ClearFilters() {
     m_filters.clear();
 }
 
-std::vector<PropertyMeta> FilePicker::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "text", "文件路径 (Path)", "文件选择", "string" });
-    return metas;
-}
-
 Rect FilePicker::PathRect() const {
     const Thickness pad = GetPadding();
     const float border = GetBorderThickness();

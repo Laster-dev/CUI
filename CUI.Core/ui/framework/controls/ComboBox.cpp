@@ -28,16 +28,6 @@ std::string JoinCsv(const std::vector<std::string>& items) {
 }
 } // namespace
 
-std::vector<PropertyMeta> ComboBox::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
-    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    metas.push_back({ "itemHeight", "下拉项高度 (ItemHeight)", "下拉控制", "number" });
-    metas.push_back({ "items", "选项 (Items)", "下拉控制", "string" });
-    metas.push_back({ "selectedIndex", "选中项 (SelectedIndex)", "下拉控制", "number" });
-    return metas;
-}
-
 Value ComboBox::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::Items: return Value(JoinCsv(m_items));

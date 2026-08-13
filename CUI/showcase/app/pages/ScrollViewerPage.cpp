@@ -22,10 +22,5 @@ ShowcasePage BuildScrollViewerPage(const ShowcaseContext&) {
     return { "ScrollViewer 滚动容器", CreatePage(
         "ScrollViewer 滚动视口容器控制台",
         "支持溢出大尺寸子内容的平滑像素滚动与 Direct2D 滚动条渲染。",
-        CreateDemoSurface({ target }, 0.0f),
-        CreateRightPanel({
-            CreateShowcaseText("滚动容器属性表 (ScrollViewer)", 12.0f, "#569CD6", true),
-            CreateShowcaseText("纵向滚动偏移量 (ScrollOffsetY) [px]:", 11.0f, "#AAAAAA"),
-            TextField("0").Width(280).Height(26).Build()
-        })) };
+        CreateDemoSurface({ target }, 0.0f)) };
 }

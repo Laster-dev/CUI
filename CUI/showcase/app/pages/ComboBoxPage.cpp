@@ -40,7 +40,6 @@ ShowcasePage BuildComboBoxPage(const ShowcaseContext& ctx) {
 
     return { "ComboBox 下拉框", CreatePage(
         "ComboBox 下拉选择框全属性控制台",
-        "由 PropertyGrid 反射绑定；颜色仅通过 theme.*Token 走 ThemeManager。",
-        demo,
-        CreatePropertyGrid(ctx, target), target) };
+        "ComboBox 下拉选择。",
+        demo) };
 }

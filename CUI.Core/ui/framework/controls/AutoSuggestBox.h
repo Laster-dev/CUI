@@ -22,7 +22,6 @@ public:
     virtual ~AutoSuggestBox() = default;
 
     virtual const char* GetClassName() const override { return "AutoSuggestBox"; }
-    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual HCURSOR GetCursor() const override;
     bool AcceptsTabFocus() const override { return false; }
 

@@ -286,6 +286,5 @@ ShowcasePage BuildDragDropPage(const ShowcaseContext& ctx) {
     return { "DragDrop", CreatePage(
         "拖放 API",
         "框架 DataPackage + IDragSource / IDropTarget + DragDropService。列表互拖、控件接入、外部文件拖入。",
-        demo,
-        CreatePropertyGrid(ctx, left), left) };
+        demo) };
 }

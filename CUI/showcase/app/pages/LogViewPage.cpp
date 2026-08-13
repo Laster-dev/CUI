@@ -99,6 +99,5 @@ ShowcasePage BuildLogViewPage(const ShowcaseContext& ctx) {
     return { "LogView 日志框", CreatePage(
         "LogView 日志框",
         "搜索用 TextBox，操作为 SVG 图标按钮；折叠头、级别、日志列表为自绘虚拟化（环形缓冲，追加 O(1)）。",
-        demo,
-        CreatePropertyGrid(ctx, log), log) };
+        demo) };
 }

@@ -37,13 +37,6 @@ PagingControl::PagingControl() {
     RebuildPageList();
 }
 
-std::vector<PropertyMeta> PagingControl::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "currentPage", "当前页 (CurrentPage)", "分页配置", "number" });
-    metas.push_back({ "totalPages", "总页数 (TotalPages)", "分页配置", "number" });
-    return metas;
-}
-
 Value PagingControl::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::CurrentPage: return Value(m_currentPage);

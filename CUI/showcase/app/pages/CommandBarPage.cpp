@@ -140,6 +140,5 @@ ShowcasePage BuildCommandBarPage(const ShowcaseContext& ctx) {
     return { "CommandBar 命令条", CreatePage(
         "CommandBar 命令条",
         "主命令 + 分隔 + 溢出菜单。按钮复用 Button / ToggleButton / Command，栏本身自绘。",
-        demo,
-        CreatePropertyGrid(ctx, full), full) };
+        demo) };
 }

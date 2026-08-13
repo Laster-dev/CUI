@@ -11,7 +11,6 @@ public:
     virtual ~TimePicker() = default;
 
     virtual const char* GetClassName() const override { return "TimePicker"; }
-    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
     void SetProperty(PropertyId id, const Value& val) override;

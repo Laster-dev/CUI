@@ -43,15 +43,6 @@ SegmentedControl::SegmentedControl() {
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
-std::vector<PropertyMeta> SegmentedControl::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "items", "选项 (Items)", "分段", "string" });
-    metas.push_back({ "selectedIndex", "选中项 (SelectedIndex)", "分段", "number" });
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
-    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    return metas;
-}
-
 namespace {
 std::string JoinCsv(const std::vector<std::string>& items) {
     std::string out;
@@ -211,13 +202,6 @@ void SegmentedControl::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F selectedFill = ResolveThemeColor(GetSelectedItemBackgroundToken(), ThemeTokenId::AccentColor);
     D2D1_COLOR_F idleText = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentColor);
     D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
-
-    if (!IsEnabled()) {
-        accent.a *= 0.45f;
-        selectedFill.a *= 0.45f;
-        idleText.a *= 0.45f;
-        accentFg.a *= 0.55f;
-    }
 
     if (radius > 0.0f) {
         ctx.FillRoundedRect(m_bounds, radius, bg);

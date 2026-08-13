@@ -141,6 +141,5 @@ ShowcasePage BuildRangeSliderPage(const ShowcaseContext& ctx) {
     return { "RangeSlider 区间滑块", CreatePage(
         "RangeSlider 双滑块区间",
         "纯自绘双拇指：不可交叉、步长吸附、拖动数值气泡；筛选场景可直接绑下限/上限。",
-        demo,
-        CreatePropertyGrid(ctx, price), price) };
+        demo) };
 }

@@ -257,6 +257,5 @@ ShowcasePage BuildImagePage(const ShowcaseContext& ctx) {
     return { "Image 图像", CreatePage(
         "Image 图像",
         "WIC 解码 PNG/JPEG 等到 Direct2D 位图；Stretch 四种适配；亮暗切换不丢源图。",
-        demo,
-        CreatePropertyGrid(ctx, preview), preview) };
+        demo) };
 }

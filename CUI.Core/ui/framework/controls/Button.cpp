@@ -16,14 +16,6 @@ float FrameBlend(float factorAt60Hz) {
 }
 }
 
-std::vector<PropertyMeta> Button::GetPropertyMetas() const {
-    auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "icon", "前置图标 (Icon)", "基本信息", "string" });
-    metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
-    metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
-    return metas;
-}
-
 Button::Button() {
     SetText("Button");
     SetBackgroundToken(ThemeTokenId::AccentColor);
@@ -175,9 +167,7 @@ void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_
     if (text.empty() && icon.empty()) {
         return;
     }
-    D2D1_COLOR_F textColor = IsEnabled()
-        ? ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground)
-        : ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
+    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground);
     if (icon.empty()) {
         ctx.DrawText(
             text,

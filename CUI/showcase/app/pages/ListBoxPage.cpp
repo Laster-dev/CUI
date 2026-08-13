@@ -9,7 +9,6 @@ ShowcasePage BuildListBoxPage(const ShowcaseContext& ctx) {
     target->SetSelectedIndex(0);
     return { "ListBox (100k)", CreatePage(
         "ListBox 100k 虚拟化列表全属性控制台",
-        "由 PropertyGrid 反射绑定；颜色仅通过 theme.*Token 走 ThemeManager。",
-        CreateDemoSurface({ target }, 0.0f),
-        CreatePropertyGrid(ctx, target), target) };
+        "ListBox 可滚动列表。",
+        CreateDemoSurface({ target }, 0.0f)) };
 }

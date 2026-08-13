@@ -58,6 +58,5 @@ ShowcasePage BuildStatusBarPage(const ShowcaseContext& ctx) {
     return { "StatusBar 状态栏", CreatePage(
         "StatusBar 状态栏",
         "自绘多段底栏：左 / Fill / 右对齐，分隔线与进度条；不嵌套 TextBlock / ProgressBar。",
-        demo,
-        CreatePropertyGrid(ctx, bar), bar) };
+        demo) };
 }
