@@ -382,9 +382,31 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
     ctx.DrawText("‹", btnPrev, btnCol, "微软雅黑", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     ctx.DrawText("›", btnNext, btnCol, "微软雅黑", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
+    auto drawHeaderWithChevron = [&](const std::string& label, const Rect& rect) {
+        const Size ts = ctx.MeasureText(label, "微软雅黑", 12.0f, DWRITE_FONT_WEIGHT_BOLD);
+        const float chev = 10.0f;
+        const float gap = 3.0f;
+        const float total = ts.width + gap + chev;
+        const float start = rect.x + (rect.width - total) * 0.5f;
+        ctx.DrawText(
+            label,
+            Rect(start, rect.y, ts.width, rect.height),
+            textCol,
+            "微软雅黑",
+            12.0f,
+            DWRITE_TEXT_ALIGNMENT_LEADING,
+            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+            DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawChevron(
+            Rect(start + ts.width + gap, rect.y + (rect.height - chev) * 0.5f, chev, chev),
+            textCol,
+            GraphicsContext::ChevronDirection::Down,
+            1.4f);
+    };
+
     if (m_viewMode == DatePickerViewMode::DayGrid) {
-        ctx.DrawText(std::to_string(m_year) + "年 ▼", yrRect, textCol, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
-        ctx.DrawText(std::to_string(m_month) + "月 ▼", moRect, textCol, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        drawHeaderWithChevron(std::to_string(m_year) + "年", yrRect);
+        drawHeaderWithChevron(std::to_string(m_month) + "月", moRect);
     } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
         Rect fullTitle(popRect.x + 28.0f, popRect.y + 6.0f, popW - 56.0f, 22.0f);
         ctx.DrawText(std::to_string(m_year) + "年 (选择月份)", fullTitle, textCol, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);

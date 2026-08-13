@@ -139,18 +139,25 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
 
-    Rect textRect(m_bounds.x + padding.left, m_bounds.y + padding.top, m_bounds.width - padding.left - padding.right - 20.0f, m_bounds.height - padding.top - padding.bottom);
+    constexpr float kChevron = 12.0f;
+    constexpr float kChevronPad = 8.0f;
+    Rect textRect(
+        m_bounds.x + padding.left,
+        m_bounds.y + padding.top,
+        (std::max)(0.0f, m_bounds.width - padding.left - padding.right - kChevron - kChevronPad),
+        m_bounds.height - padding.top - padding.bottom);
     ctx.DrawText(displayText, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-    // Vector chevron: down when closed, up when open (ignore glyph fonts / DPI blur).
-    Rect arrowRect(m_bounds.x + m_bounds.width - 24.0f, m_bounds.y, 20.0f, m_bounds.height);
     const bool open = m_isDropDownOpen || m_arrowAnim.Current() > 0.5f;
+    const Rect arrowRect(
+        m_bounds.x + m_bounds.width - padding.right - kChevron,
+        m_bounds.y + (m_bounds.height - kChevron) * 0.5f,
+        kChevron,
+        kChevron);
     ctx.DrawChevron(
         arrowRect,
         ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary),
-        open ? GraphicsContext::ChevronDirection::Up : GraphicsContext::ChevronDirection::Down,
-        1.7f
-    );
+        open ? GraphicsContext::ChevronDirection::Up : GraphicsContext::ChevronDirection::Down);
 }
 
 Rect ComboBox::GetPopupBounds() const {

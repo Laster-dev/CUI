@@ -56,6 +56,7 @@ ShowcasePage BuildMarkdownPage(const ShowcaseContext& ctx);
 ShowcasePage BuildLogViewPage(const ShowcaseContext& ctx);
 ShowcasePage BuildImagePage(const ShowcaseContext& ctx);
 ShowcasePage BuildInfoBarPage(const ShowcaseContext& ctx);
+ShowcasePage BuildCommandBarPage(const ShowcaseContext& ctx);
 ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx);
 ShowcasePage BuildTabViewPage(const ShowcaseContext& ctx);
 ShowcasePage BuildTerminalPage(const ShowcaseContext& ctx);

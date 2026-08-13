@@ -75,6 +75,9 @@
     <ClCompile Include="showcase\app\pages\InfoBarPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="showcase\app\pages\CommandBarPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="showcase\app\pages\GridPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>

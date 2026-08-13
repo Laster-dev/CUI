@@ -110,7 +110,7 @@ public:
         float strokeWidth = 1.5f);
 
     enum class ChevronDirection { Down, Up, Left, Right };
-    // Vector chevron (two strokes). Prefer this over glyph characters under DPI scaling.
+    // Theme-tinted SVG chevron (source points right; rotated for other directions).
     void DrawChevron(const Rect& bounds, D2D1_COLOR_F color, ChevronDirection direction, float strokeWidth = 1.6f);
     void FillPolygon(const Point* points, int count, D2D1_COLOR_F color);
     void DrawPolygon(const Point* points, int count, D2D1_COLOR_F color, float strokeWidth = 1.0f);

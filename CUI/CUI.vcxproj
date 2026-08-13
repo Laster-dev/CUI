@@ -209,6 +209,7 @@
     <ClCompile Include="showcase\app\pages\LogViewPage.cpp" />
     <ClCompile Include="showcase\app\pages\ImagePage.cpp" />
     <ClCompile Include="showcase\app\pages\InfoBarPage.cpp" />
+    <ClCompile Include="showcase\app\pages\CommandBarPage.cpp" />
     <ClCompile Include="showcase\app\pages\NavigationViewPage.cpp" />
     <ClCompile Include="showcase\app\pages\TabViewPage.cpp" />
     <ClCompile Include="showcase\app\chrome\VSCodeControls.cpp" />

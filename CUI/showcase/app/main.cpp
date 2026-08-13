@@ -102,6 +102,7 @@ public:
         add("dialog", "交互/浮层", "Dialog", [ctx = m_ctx] { return BuildDialogPage(ctx); });
         add("toast", "交互/浮层", "Toast", [ctx = m_ctx] { return BuildToastPage(ctx); });
         add("infobar", "交互/浮层", "InfoBar", [ctx = m_ctx] { return BuildInfoBarPage(ctx); });
+        add("commandbar", "交互/浮层", "CommandBar", [ctx = m_ctx] { return BuildCommandBarPage(ctx); });
         add("stream", "终端/媒体", "Stream", [ctx = m_ctx] { return BuildStreamPage(ctx); });
         add("terminal", "终端/媒体", "Terminal", [ctx = m_ctx] { return BuildTerminalPage(ctx); });
 

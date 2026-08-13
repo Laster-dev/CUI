@@ -39,6 +39,7 @@
 #include "../controls/MarkdownView.h"
 #include "../controls/LogView.h"
 #include "../controls/InfoBar.h"
+#include "../controls/CommandBar.h"
 #include "../dnd/DragDropService.h"
 #include "../controls/FilePicker.h"
 #include "../controls/FolderPicker.h"
@@ -493,6 +494,10 @@ inline ElementBuilder<LogView> LogViewWidget() {
 
 inline ElementBuilder<InfoBar> InfoBarWidget() {
     return ElementBuilder<InfoBar>();
+}
+
+inline ElementBuilder<CommandBar> CommandBarWidget() {
+    return ElementBuilder<CommandBar>();
 }
 
 inline ElementBuilder<Image> ImageWidget() {

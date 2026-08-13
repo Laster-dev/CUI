@@ -1628,43 +1628,60 @@ void GraphicsContext::DrawSmoothArc(
 }
 
 void GraphicsContext::DrawChevron(const Rect& bounds, D2D1_COLOR_F color, ChevronDirection direction, float strokeWidth) {
-    if (bounds.IsEmpty() || !m_d2dContext) {
+    (void)strokeWidth;
+    if (bounds.IsEmpty() || bounds.width < 2.0f || bounds.height < 2.0f) {
         return;
     }
+
+    // Fit a square glyph into whatever slot the control passed (ComboBox used a
+    // tall 20×height strip, which made the SVG look like the old two-stroke V).
+    const float side = (std::min)(bounds.width, bounds.height);
     const float cx = bounds.x + bounds.width * 0.5f;
     const float cy = bounds.y + bounds.height * 0.5f;
-    // Keep the V readable; scale with the smaller side of the slot.
-    const float extent = (std::min)(bounds.width, bounds.height) * 0.28f;
-    const float arm = extent * 1.15f;
+    const float originX = cx - side * 0.5f;
+    const float originY = cy - side * 0.5f;
 
-    Point a{};
-    Point tip{};
-    Point c{};
+    // Right-pointing chevron from the provided 1024 SVG, normalized, no arcs
+    // (D2D SVG often drops elliptical `a` commands → empty glyph).
+    const Point local[6] = {
+        Point(0.382f, 0.172f),
+        Point(0.739f, 0.500f),
+        Point(0.382f, 0.828f),
+        Point(0.306f, 0.752f),
+        Point(0.586f, 0.500f),
+        Point(0.306f, 0.248f),
+    };
+
+    // y-down clockwise: Right=0, Down=90, Left=180, Up=270.
+    float c = 1.0f;
+    float s = 0.0f;
     switch (direction) {
-    case ChevronDirection::Up:
-        a = Point(cx - arm, cy + extent * 0.55f);
-        tip = Point(cx, cy - extent * 0.55f);
-        c = Point(cx + arm, cy + extent * 0.55f);
+    case ChevronDirection::Down:
+        c = 0.0f;
+        s = 1.0f;
         break;
     case ChevronDirection::Left:
-        a = Point(cx + extent * 0.55f, cy - arm);
-        tip = Point(cx - extent * 0.55f, cy);
-        c = Point(cx + extent * 0.55f, cy + arm);
+        c = -1.0f;
+        s = 0.0f;
+        break;
+    case ChevronDirection::Up:
+        c = 0.0f;
+        s = -1.0f;
         break;
     case ChevronDirection::Right:
-        a = Point(cx - extent * 0.55f, cy - arm);
-        tip = Point(cx + extent * 0.55f, cy);
-        c = Point(cx - extent * 0.55f, cy + arm);
-        break;
-    case ChevronDirection::Down:
     default:
-        a = Point(cx - arm, cy - extent * 0.55f);
-        tip = Point(cx, cy + extent * 0.55f);
-        c = Point(cx + arm, cy - extent * 0.55f);
         break;
     }
-    DrawLine(a, tip, color, strokeWidth);
-    DrawLine(tip, c, color, strokeWidth);
+
+    Point pts[6];
+    for (int i = 0; i < 6; ++i) {
+        const float u = local[i].x - 0.5f;
+        const float v = local[i].y - 0.5f;
+        const float ru = u * c - v * s;
+        const float rv = u * s + v * c;
+        pts[i] = Point(originX + (ru + 0.5f) * side, originY + (rv + 0.5f) * side);
+    }
+    FillPolygon(pts, 6, color);
 }
 
 void GraphicsContext::FillPolygon(const Point* points, int count, D2D1_COLOR_F color) {

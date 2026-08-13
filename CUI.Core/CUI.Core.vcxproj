@@ -180,6 +180,7 @@
     <ClCompile Include="ui\framework\controls\HyperlinkButton.cpp" />
     <ClCompile Include="ui\framework\controls\Image.cpp" />
     <ClCompile Include="ui\framework\controls\InfoBar.cpp" />
+    <ClCompile Include="ui\framework\controls\CommandBar.cpp" />
     <ClCompile Include="ui\framework\controls\ListBox.cpp" />
     <ClCompile Include="ui\framework\controls\ListView.cpp" />
     <ClCompile Include="ui\framework\controls\MenuBar.cpp" />
@@ -280,6 +281,7 @@
     <ClInclude Include="ui\framework\controls\HyperlinkButton.h" />
     <ClInclude Include="ui\framework\controls\Image.h" />
     <ClInclude Include="ui\framework\controls\InfoBar.h" />
+    <ClInclude Include="ui\framework\controls\CommandBar.h" />
     <ClInclude Include="ui\framework\controls\ListBox.h" />
     <ClInclude Include="ui\framework\controls\ListView.h" />
     <ClInclude Include="ui\framework\controls\MenuBar.h" />
