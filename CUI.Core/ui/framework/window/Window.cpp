@@ -1564,6 +1564,18 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return 0;
     }
 
+    case WM_SYSKEYDOWN:
+        if (wParam == VK_DOWN || wParam == VK_UP || wParam == VK_F4) {
+            if (auto focused = LockElement(m_focusedElement)) {
+                if (focused->IsEnabled()) {
+                    focused->OnKeyDown(static_cast<int>(wParam));
+                    InvalidatePendingRenderRegions(true);
+                    return 0;
+                }
+            }
+        }
+        break;
+
     case WM_KEYDOWN:
         if (wParam == VK_ESCAPE && IsMiddleClickAutoscrollActive()) {
             StopMiddleClickAutoscroll();

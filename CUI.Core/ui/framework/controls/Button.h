@@ -22,7 +22,13 @@ public:
     void SetText(const std::string& text) { UIElement::SetText(text); }
     const std::string& GetText() const { return UIElement::GetText(); }
 
-private:
+protected:
+    void BeginRipple(Point pt);
+    bool TickRipple();
+    void DrawRipple(GraphicsContext& ctx);
+    void DrawButtonFace(GraphicsContext& ctx, D2D1_COLOR_F bg, D2D1_COLOR_F border, float borderThickness);
+    void DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_TEXT_ALIGNMENT align);
+
     Point m_rippleCenter{};
     float m_rippleRadius = 0.0f;
     float m_rippleOpacity = 0.0f;

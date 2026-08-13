@@ -1,7 +1,7 @@
 # CUI 自绘控件与能力扩展计划
 
 > 创建日期: 2026-08-13  
-> 状态: **进行中** — A AutoSuggestBox 已完成；B StatusBar 已实现（Showcase `statusbar`）；C RatingControl 已实现（Showcase `rating`）  
+> 状态: **进行中** — A–D 已完成（Button 页含 Toggle / Split / DropDown）；E Markdown 起未做  
 > 原则: **全部纯自绘**（Direct2D 几何/文本/命中/动画自管），禁止用现有 Button/TextBox/ListBox 等控件拼接出“假控件”。可复用的仅限框架基础设施：`UIElement` / `Control` / `PopupHost` / `AnimationManager` / `ThemeManager` / `GraphicsContext`。  
 > Showcase: Toggle / Split / DropDown 按钮族统一放在 **Button** 页演示；其余各自独立页。
 

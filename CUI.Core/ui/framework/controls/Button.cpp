@@ -72,11 +72,7 @@ Size Button::Measure(Size availableSize) {
     return m_desiredSize;
 }
 
-void Button::OnMouseDown(Point pt) {
-    if (!IsEnabled()) {
-        return;
-    }
-    Control::OnMouseDown(pt);
+void Button::BeginRipple(Point pt) {
     if (!UIElement::AreAnimationsEnabled()) {
         m_rippleActive = false;
         m_rippleOpacity = 0.0f;
@@ -84,26 +80,22 @@ void Button::OnMouseDown(Point pt) {
     }
     m_rippleCenter = pt;
     m_rippleRadius = 4.0f;
-    m_rippleOpacity = 0.35f; // Soft translucent Telegram ripple
+    m_rippleOpacity = 0.35f;
     m_rippleActive = true;
     RequestAnimationTicks();
-    // Local rect only — MarkRenderContentDirty bubbles and dirties the whole
-    // NavigationView (content page included), which makes chrome clicks stutter.
     MarkRenderRectDirty(m_bounds);
 }
 
-bool Button::OnAnimationTick() {
-    bool base = Control::OnAnimationTick();
+bool Button::TickRipple() {
     if (!UIElement::AreAnimationsEnabled()) {
         m_rippleActive = false;
         m_rippleOpacity = 0.0f;
-        return base;
+        return false;
     }
     if (!m_rippleActive) {
-        return base;
+        return false;
     }
 
-    // Expand toward farthest corner; keep fading after radius settles (don't cut on fill).
     float cornerX = (m_rippleCenter.x - m_bounds.x > m_bounds.width * 0.5f) ? m_bounds.x : (m_bounds.x + m_bounds.width);
     float cornerY = (m_rippleCenter.y - m_bounds.y > m_bounds.height * 0.5f) ? m_bounds.y : (m_bounds.y + m_bounds.height);
     float dx = m_rippleCenter.x - cornerX;
@@ -125,6 +117,73 @@ bool Button::OnAnimationTick() {
     return true;
 }
 
+void Button::DrawRipple(GraphicsContext& ctx) {
+    if (!m_rippleActive || m_rippleOpacity <= 0.0f) {
+        return;
+    }
+    const float radius = GetCornerRadius();
+    ctx.PushRoundedClip(m_bounds, radius);
+    D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+    rippleColor.a = m_rippleOpacity;
+    Rect rippleRect(
+        m_rippleCenter.x - m_rippleRadius,
+        m_rippleCenter.y - m_rippleRadius,
+        m_rippleRadius * 2.0f,
+        m_rippleRadius * 2.0f);
+    ctx.FillRoundedRect(rippleRect, m_rippleRadius, rippleColor);
+    ctx.PopClip();
+}
+
+void Button::DrawButtonFace(GraphicsContext& ctx, D2D1_COLOR_F bg, D2D1_COLOR_F border, float borderThickness) {
+    const float radius = GetCornerRadius();
+    if (radius > 0.0f) {
+        ctx.FillRoundedRect(m_bounds, radius, bg);
+    } else {
+        ctx.FillRect(m_bounds, bg);
+    }
+    DrawRipple(ctx);
+    if (border.a > 0.0f && borderThickness > 0.0f) {
+        if (radius > 0.0f) {
+            ctx.DrawRoundedRect(m_bounds, radius, border, borderThickness);
+        } else {
+            ctx.DrawRect(m_bounds, border, borderThickness);
+        }
+    }
+}
+
+void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_TEXT_ALIGNMENT align) {
+    const std::string& text = GetText();
+    const std::string& icon = GetIcon();
+    const std::string fullText = icon.empty() ? text : (icon + " " + text);
+    if (fullText.empty()) {
+        return;
+    }
+    D2D1_COLOR_F textColor = IsEnabled()
+        ? ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground)
+        : ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
+    ctx.DrawText(
+        fullText,
+        textRect,
+        textColor,
+        GetFontFamily(),
+        GetFontSize(),
+        align,
+        DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+}
+
+void Button::OnMouseDown(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
+    Control::OnMouseDown(pt);
+    BeginRipple(pt);
+}
+
+bool Button::OnAnimationTick() {
+    bool base = Control::OnAnimationTick();
+    return TickRipple() || base;
+}
+
 bool Button::HasSelfAnimation() const {
     return Control::HasSelfAnimation() || m_rippleActive;
 }
@@ -132,63 +191,15 @@ bool Button::HasSelfAnimation() const {
 void Button::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor));
     D2D1_COLOR_F baseBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
-    float radius = GetCornerRadius();
+    DrawButtonFace(ctx, bg, baseBorder, GetBorderThickness());
 
-    // 1. Draw Base Button Background
-    if (radius > 0.0f) {
-        ctx.FillRoundedRect(m_bounds, radius, bg);
-    } else {
-        ctx.FillRect(m_bounds, bg);
-    }
-
-    // Telegram-Style Ripple: soft expanding circle. Use TextPrimary so chrome /
-    // secondary buttons (CardBackground) stay visible — AccentForeground can vanish there.
-    if (m_rippleActive && m_rippleOpacity > 0.0f) {
-        ctx.PushRoundedClip(m_bounds, radius);
-        D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
-        rippleColor.a = m_rippleOpacity;
-        Rect rippleRect(
-            m_rippleCenter.x - m_rippleRadius,
-            m_rippleCenter.y - m_rippleRadius,
-            m_rippleRadius * 2.0f,
-            m_rippleRadius * 2.0f
-        );
-        ctx.FillRoundedRect(rippleRect, m_rippleRadius, rippleColor);
-        ctx.PopClip();
-    }
-
-    // 3. Draw Clean Border (Only if borderThickness > 0 explicitly set)
-    float borderThickness = GetBorderThickness();
-    if (baseBorder.a > 0.0f && borderThickness > 0.0f) {
-        if (radius > 0.0f) {
-            ctx.DrawRoundedRect(m_bounds, radius, baseBorder, borderThickness);
-        } else {
-            ctx.DrawRect(m_bounds, baseBorder, borderThickness);
-        }
-    }
-
-    // 4. Render Text & Icon Content
-    const std::string& text = GetText();
-    const std::string& icon = GetIcon();
-    std::string fullText = icon.empty() ? text : (icon + " " + text);
-
-    if (!fullText.empty()) {
-        D2D1_COLOR_F textColor = IsEnabled()
-            ? ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground)
-            : ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
-        const std::string& font = GetFontFamily();
-        float fontSize = GetFontSize();
-        Thickness padding = GetPadding();
-
-        Rect textRect(
-            m_bounds.x + padding.left,
-            m_bounds.y + padding.top,
-            m_bounds.width - padding.left - padding.right,
-            m_bounds.height - padding.top - padding.bottom
-        );
-
-        ctx.DrawText(fullText, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    }
+    Thickness padding = GetPadding();
+    Rect textRect(
+        m_bounds.x + padding.left,
+        m_bounds.y + padding.top,
+        m_bounds.width - padding.left - padding.right,
+        m_bounds.height - padding.top - padding.bottom);
+    DrawButtonLabel(ctx, textRect, DWRITE_TEXT_ALIGNMENT_CENTER);
 }
 
 } // namespace CUI

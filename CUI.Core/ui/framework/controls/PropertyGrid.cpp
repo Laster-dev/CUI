@@ -10,6 +10,7 @@
 #include "ProgressRing.h"
 #include "NumberBox.h"
 #include "ToggleSwitch.h"
+#include "ToggleButton.h"
 #include "DatePicker.h"
 #include "TimePicker.h"
 #include "ColorPicker.h"
@@ -155,6 +156,9 @@ void ApplyTargetProperty(UIElement* target, PropertyId propId, const Value& valu
     }
     if (auto number = dynamic_cast<NumberBox*>(target)) {
         if (propId == PropertyId::ControlValue) { number->SetValue(value.AsFloat()); return; }
+    }
+    if (auto toggleBtn = dynamic_cast<ToggleButton*>(target)) {
+        if (propId == PropertyId::IsOn) { toggleBtn->SetIsChecked(value.AsBool()); return; }
     }
     if (auto toggle = dynamic_cast<ToggleSwitch*>(target)) {
         if (propId == PropertyId::IsOn) { toggle->SetIsOn(value.AsBool()); return; }

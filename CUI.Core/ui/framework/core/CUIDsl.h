@@ -3,6 +3,9 @@
 #include "../controls/UIElement.h"
 #include "../controls/Panel.h"
 #include "../controls/Button.h"
+#include "../controls/ToggleButton.h"
+#include "../controls/DropDownButton.h"
+#include "../controls/SplitButton.h"
 #include "../controls/TextBox.h"
 #include "../controls/PasswordBox.h"
 #include "../controls/TextBlock.h"
@@ -306,6 +309,24 @@ inline ElementBuilder<Button> ElevatedButton(const std::string& text = "", std::
     auto b = ElementBuilder<Button>();
     if (!text.empty()) b.Text(text);
     if (onPressed) b.OnClick(onPressed);
+    return b;
+}
+
+inline ElementBuilder<ToggleButton> ToggleButtonWidget(const std::string& text = "") {
+    auto b = ElementBuilder<ToggleButton>();
+    if (!text.empty()) b.Text(text);
+    return b;
+}
+
+inline ElementBuilder<DropDownButton> DropDownButtonWidget(const std::string& text = "") {
+    auto b = ElementBuilder<DropDownButton>();
+    if (!text.empty()) b.Text(text);
+    return b;
+}
+
+inline ElementBuilder<SplitButton> SplitButtonWidget(const std::string& text = "") {
+    auto b = ElementBuilder<SplitButton>();
+    if (!text.empty()) b.Text(text);
     return b;
 }
 

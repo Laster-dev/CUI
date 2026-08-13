@@ -148,6 +148,9 @@
     <ClCompile Include="ui\framework\controls\docking\DockLayoutSerializer.cpp" />
     <ClCompile Include="ui\framework\controls\BreadcrumbBar.cpp" />
     <ClCompile Include="ui\framework\controls\Button.cpp" />
+    <ClCompile Include="ui\framework\controls\ToggleButton.cpp" />
+    <ClCompile Include="ui\framework\controls\DropDownButton.cpp" />
+    <ClCompile Include="ui\framework\controls\SplitButton.cpp" />
     <ClCompile Include="ui\framework\controls\AutoSuggestBox.cpp" />
     <ClCompile Include="ui\framework\controls\StatusBar.cpp" />
     <ClCompile Include="ui\framework\controls\RatingControl.cpp" />
@@ -243,6 +246,9 @@
     <ClInclude Include="ui\framework\controls\terminal\UnicodeWidth.h" />
     <ClInclude Include="ui\framework\controls\BreadcrumbBar.h" />
     <ClInclude Include="ui\framework\controls\Button.h" />
+    <ClInclude Include="ui\framework\controls\ToggleButton.h" />
+    <ClInclude Include="ui\framework\controls\DropDownButton.h" />
+    <ClInclude Include="ui\framework\controls\SplitButton.h" />
     <ClInclude Include="ui\framework\controls\CheckBox.h" />
     <ClInclude Include="ui\framework\controls\ChromiumScrollAnimator.h" />
     <ClInclude Include="ui\framework\controls\ColorPicker.h" />
