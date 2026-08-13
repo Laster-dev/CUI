@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\VC-LTL.5.3.1\build\native\VC-LTL.props" Condition="Exists('..\packages\VC-LTL.5.3.1\build\native\VC-LTL.props')" />
   <Import Project="..\packages\YY.NuGet.Import.Helper.1.0.1\build\native\YY.NuGet.Import.Helper.props" Condition="Exists('..\packages\YY.NuGet.Import.Helper.1.0.1\build\native\YY.NuGet.Import.Helper.props')" />
@@ -155,6 +155,11 @@
     <ClCompile Include="ui\framework\controls\StatusBar.cpp" />
     <ClCompile Include="ui\framework\controls\RatingControl.cpp" />
     <ClCompile Include="ui\framework\controls\TeachingTip.cpp" />
+    <ClCompile Include="ui\framework\controls\chart\ChartData.cpp" />
+    <ClCompile Include="ui\framework\controls\chart\ChartBase.cpp" />
+    <ClCompile Include="ui\framework\controls\chart\LineChart.cpp" />
+    <ClCompile Include="ui\framework\controls\chart\BarChart.cpp" />
+    <ClCompile Include="ui\framework\controls\chart\PieChart.cpp" />
     <ClCompile Include="ui\framework\controls\CheckBox.cpp" />
     <ClCompile Include="ui\framework\controls\ColorPicker.cpp" />
     <ClCompile Include="ui\framework\controls\ComboBox.cpp" />
@@ -288,6 +293,12 @@
     <ClInclude Include="ui\framework\controls\RadioButton.h" />
     <ClInclude Include="ui\framework\controls\RatingControl.h" />
     <ClInclude Include="ui\framework\controls\TeachingTip.h" />
+    <ClInclude Include="ui\framework\controls\chart\Chart.h" />
+    <ClInclude Include="ui\framework\controls\chart\ChartData.h" />
+    <ClInclude Include="ui\framework\controls\chart\ChartBase.h" />
+    <ClInclude Include="ui\framework\controls\chart\LineChart.h" />
+    <ClInclude Include="ui\framework\controls\chart\BarChart.h" />
+    <ClInclude Include="ui\framework\controls\chart\PieChart.h" />
     <ClInclude Include="ui\framework\controls\ScrollbarAutoHide.h" />
     <ClInclude Include="ui\framework\controls\ScrollViewer.h" />
     <ClInclude Include="ui\framework\controls\Slider.h" />

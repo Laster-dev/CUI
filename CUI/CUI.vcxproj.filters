@@ -57,6 +57,9 @@
     <ClCompile Include="showcase\app\pages\TeachingTipPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="showcase\app\pages\ChartPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="showcase\app\pages\GridPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -91,6 +94,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="showcase\app\ShowcaseHelpers.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\PerfMetrics.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="showcase\app\pages\SliderPage.cpp">
@@ -147,6 +153,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="showcase\app\ShowcaseHelpers.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="showcase\app\PerfMetrics.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="showcase\app\ShowcaseContext.h">

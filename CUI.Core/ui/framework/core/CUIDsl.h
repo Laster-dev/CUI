@@ -34,6 +34,7 @@
 #include "../controls/StatusBar.h"
 #include "../controls/RatingControl.h"
 #include "../controls/TeachingTip.h"
+#include "../controls/chart/Chart.h"
 #include "../controls/FilePicker.h"
 #include "../controls/FolderPicker.h"
 #include "../controls/PagingControl.h"
@@ -437,6 +438,18 @@ inline ElementBuilder<RatingControl> RatingWidget(float value = 3.5f, int maxRat
 
 inline ElementBuilder<TeachingTip> TeachingTipWidget() {
     return ElementBuilder<TeachingTip>();
+}
+
+inline ElementBuilder<LineChart> LineChartWidget() {
+    return ElementBuilder<LineChart>();
+}
+
+inline ElementBuilder<BarChart> BarChartWidget() {
+    return ElementBuilder<BarChart>();
+}
+
+inline ElementBuilder<PieChart> PieChartWidget() {
+    return ElementBuilder<PieChart>();
 }
 
 inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") {

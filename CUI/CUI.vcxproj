@@ -161,6 +161,7 @@
   <ItemGroup>
     <ClCompile Include="showcase\app\main.cpp" />
     <ClCompile Include="showcase\app\ShowcaseHelpers.cpp" />
+    <ClCompile Include="showcase\app\PerfMetrics.cpp" />
     <ClCompile Include="showcase\app\Streaming.cpp" />
     <ClCompile Include="showcase\app\pages\ButtonPage.cpp" />
     <ClCompile Include="showcase\app\pages\TextBlockPage.cpp" />
@@ -201,6 +202,7 @@
     <ClCompile Include="showcase\app\pages\ScrollViewerPage.cpp" />
     <ClCompile Include="showcase\app\pages\FlyoutPage.cpp" />
     <ClCompile Include="showcase\app\pages\TeachingTipPage.cpp" />
+    <ClCompile Include="showcase\app\pages\ChartPage.cpp" />
     <ClCompile Include="showcase\app\pages\NavigationViewPage.cpp" />
     <ClCompile Include="showcase\app\pages\TabViewPage.cpp" />
     <ClCompile Include="showcase\app\chrome\VSCodeControls.cpp" />
@@ -209,6 +211,7 @@
   <ItemGroup>
     <ClInclude Include="showcase\app\ShowcaseContext.h" />
     <ClInclude Include="showcase\app\ShowcaseHelpers.h" />
+    <ClInclude Include="showcase\app\PerfMetrics.h" />
     <ClInclude Include="showcase\app\Streaming.h" />
     <ClInclude Include="showcase\app\chrome\VSCodeControls.h" />
     <ClInclude Include="showcase\app\pages\PageRegistry.h" />

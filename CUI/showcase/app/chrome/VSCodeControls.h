@@ -5,12 +5,9 @@
 #include "framework/controls/StatusBar.h"
 #include "framework/core/Event.h"
 #include "framework/window/IWindowChrome.h"
-#include <chrono>
 #include <string>
 #include <vector>
 #include <windows.h>
-
-struct ID3D11Device;
 
 namespace CUI {
 
@@ -194,7 +191,6 @@ private:
     void EnsureItems();
     void ScheduleNextSample();
     void RefreshMetrics();
-    float SampleGpuUsage01(ID3D11Device* device) const;
 
     int m_memId = 0;
     int m_cpuId = 0;
@@ -204,12 +200,6 @@ private:
     int m_zoomId = 0;
     bool m_itemsReady = false;
     bool m_kickstarted = false;
-
-    ULONGLONG m_lastCpu100ns = 0;
-    std::chrono::steady_clock::time_point m_lastCpuSample{};
-    bool m_hasCpuSample = false;
-    float m_cpuPct = 0.0f;
-    float m_gpuPct = 0.0f;
 };
 
 } // namespace CUI
