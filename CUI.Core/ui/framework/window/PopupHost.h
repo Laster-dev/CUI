@@ -22,14 +22,8 @@ public:
     virtual void RenderPopup(GraphicsContext& ctx) = 0;
     virtual void OnLightDismiss() = 0;
     virtual bool TickPopupAnimation() { return false; }
-    // Popup-owned UIElements that are painted here but NOT AddChild'd into the
-    // layout tree (e.g. FilePicker's TreeView). Override to list them.
-    //
-    // Callers must also SetAnimationHost(the IPopup UIElement) on each owned
-    // control so AnimationManager::IsInLiveTree allows RequestAnimationTicks
-    // (live-tree gate exists to kill detached gallery pages — not to block
-    // visible popup content). PopupHost::TickAnimations re-arms owned elements
-    // that still report HasSelfAnimation().
+    // Overlay-composed children painted in RenderPopup. Listed so PopupHost can
+    // re-arm animation ticks if a RequestAnimationTicks raced attach.
     virtual void CollectPopupOwnedElements(std::vector<UIElement*>& out) const { (void)out; }
     // True when the popup paints on its own top-level HWND (outside owner client).
     virtual bool IsExternallyHosted() const { return false; }

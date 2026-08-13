@@ -35,8 +35,8 @@ FilePicker::FilePicker() {
     SetHeight(kDefaultH);
     SetFilter("所有文件", "*.*");
 
-    m_breadcrumbHost.AttachAnimationHost(this);
-    m_treeHost.AttachAnimationHost(this); // popup TreeView → live-tree via this IPopup
+    m_breadcrumbHost.AttachTo(this);
+    m_treeHost.AttachTo(this);
 
     m_breadcrumbHost.SetNavigateHandler([this](const std::string& path) {
         m_browser.SetCurrentPath(path);
@@ -145,6 +145,14 @@ Size FilePicker::Measure(Size availableSize) {
     m_desiredSize = Size(w, h);
     m_measureDirty = false;
     return m_desiredSize;
+}
+
+void FilePicker::Arrange(Rect finalRect) {
+    m_bounds = finalRect;
+    m_arrangeDirty = false;
+    if (PopupProgress() > 0.001f) {
+        SyncBrowserChrome();
+    }
 }
 
 void FilePicker::MarkPickerDirty() {
@@ -538,11 +546,6 @@ void FilePicker::OnKeyDown(int vkCode) {
             RequestAnimationTicks();
             return;
         }
-        if (TreeView* tree = m_treeHost.GetTree()) {
-            tree->OnKeyDown(vkCode);
-        }
-        MarkPickerDirty();
-        RequestAnimationTicks();
         return;
     }
     if (vkCode == VK_RETURN || vkCode == VK_SPACE) {

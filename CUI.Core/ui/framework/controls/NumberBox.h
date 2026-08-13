@@ -1,6 +1,8 @@
 #pragma once
 #include "Control.h"
+#include "TextBox.h"
 #include <cstdint>
+#include <memory>
 
 namespace CUI {
 
@@ -12,7 +14,7 @@ public:
     virtual const char* GetClassName() const override { return "NumberBox"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual HCURSOR GetCursor() const override;
-    bool AcceptsTabFocus() const override { return true; }
+    bool AcceptsTabFocus() const override { return false; }
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;
@@ -23,9 +25,6 @@ public:
     virtual void OnMouseLeave() override;
     virtual void OnMouseWheel(float delta) override;
     virtual void OnKeyDown(int vkCode) override;
-    virtual void OnCharInput(wchar_t ch) override;
-    virtual void OnFocus() override;
-    virtual void OnBlur() override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
@@ -52,8 +51,22 @@ public:
 
     Event<NumberBox*, float>& OnValueChanged() { return m_onValueChangedEvent; }
 
+    bool HandleFieldKey(int vkCode);
+    void OnFieldTextChanged();
+    void StepBy(float dir);
+    void CommitEdit();
+
 private:
     enum class HitPart : uint8_t { None, Text, Up, Down };
+
+    class Field : public TextBox {
+    public:
+        NumberBox* host = nullptr;
+        void OnRoutedEvent(RoutedEventArgs& args) override;
+        void OnCharInput(wchar_t ch) override;
+        void OnMouseWheel(float delta) override;
+        void OnBlur() override;
+    };
 
     static constexpr float kSpinnerW = 18.0f;
 
@@ -64,21 +77,14 @@ private:
     HitPart HitTestPart(Point pt) const;
     std::string FormatValue(float val) const;
     void SyncTextFromValue();
-    void CommitEdit();
-    void StepBy(float dir);
-    void SetCaret(int pos);
-    void InsertChar(char ch);
-    void DeleteBackward();
-    void DeleteForward();
+    void LayoutField();
 
+    std::shared_ptr<Field> m_field;
     float m_value = 0.0f;
     float m_minimum = -100000.0f;
     float m_maximum = 100000.0f;
     float m_step = 1.0f;
-    std::string m_editText = "0";
-    int m_caret = 1;
-    bool m_caretVisible = true;
-    float m_caretBlink = 0.0f;
+    bool m_syncingText = false;
     HitPart m_hover = HitPart::None;
     HitPart m_pressed = HitPart::None;
     float m_holdAcc = 0.0f;

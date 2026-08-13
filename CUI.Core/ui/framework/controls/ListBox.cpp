@@ -338,7 +338,7 @@ UIElement* ListBox::HitTest(float x, float y) {
                 m_itemDatas[idx].customElement->Arrange(itemRect);
 
                 UIElement* childHit = m_itemDatas[idx].customElement->HitTest(x, y);
-                if (childHit && childHit != m_itemDatas[idx].customElement.get()) return childHit;
+                if (childHit) return childHit;
             }
         }
         return this;

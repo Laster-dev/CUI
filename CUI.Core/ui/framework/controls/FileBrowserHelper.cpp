@@ -483,10 +483,12 @@ FileBrowserBreadcrumbHost::FileBrowserBreadcrumbHost() {
     });
 }
 
-void FileBrowserBreadcrumbHost::AttachAnimationHost(UIElement* host) {
-    if (m_bar) {
-        m_bar->SetAnimationHost(host);
+void FileBrowserBreadcrumbHost::AttachTo(UIElement* owner) {
+    if (!owner || !m_bar) {
+        return;
     }
+    m_bar->SetOverlayComposed(true);
+    owner->AddChildQuiet(m_bar);
 }
 
 void FileBrowserBreadcrumbHost::SetNavigateHandler(NavigateCallback handler) {
@@ -582,10 +584,12 @@ FileBrowserTreeHost::FileBrowserTreeHost() {
     });
 }
 
-void FileBrowserTreeHost::AttachAnimationHost(UIElement* host) {
-    if (m_tree) {
-        m_tree->SetAnimationHost(host);
+void FileBrowserTreeHost::AttachTo(UIElement* owner) {
+    if (!owner || !m_tree) {
+        return;
     }
+    m_tree->SetOverlayComposed(true);
+    owner->AddChildQuiet(m_tree);
 }
 
 FileBrowserSession FileBrowserTreeHost::MakeSession(const std::string& pathHint) const {

@@ -99,8 +99,7 @@ public:
     using NavigateCallback = std::function<void(const std::string& path)>;
 
     FileBrowserBreadcrumbHost();
-    // Wire BreadcrumbBar into AnimationManager via the IPopup host (live-tree gate).
-    void AttachAnimationHost(UIElement* host);
+    void AttachTo(UIElement* owner);
     void SetNavigateHandler(NavigateCallback handler);
     void Sync(const std::string& currentPath);
     void Layout(const FileBrowserSession& session, const Rect& pop);
@@ -125,12 +124,7 @@ public:
     using ConfirmCallback = std::function<void(const std::string& path)>;
 
     FileBrowserTreeHost();
-    // Wire TreeView into AnimationManager via the IPopup host. Required: TreeView
-    // is painted in the popup without AddChild, so without AnimationHost its
-    // RequestAnimationTicks is rejected by the live-tree gate (that gate exists
-    // to stop detached gallery pages from spinning the frame pump — not to block
-    // visible popup content).
-    void AttachAnimationHost(UIElement* host);
+    void AttachTo(UIElement* owner);
 
     void SetPathChangedHandler(PathChangedCallback handler);
     void SetConfirmHandler(ConfirmCallback handler);

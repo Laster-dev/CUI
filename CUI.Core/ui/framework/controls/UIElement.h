@@ -347,6 +347,10 @@ public:
     // Stays in the live tree so AnimationManager ticks it; owner Window must not paint it.
     void SetPresentsOnOwnerWindow(bool enabled) { m_presentsOnOwnerWindow = enabled; }
     bool PresentsOnOwnerWindow() const { return m_presentsOnOwnerWindow; }
+    // In the live tree (AddChild) but painted/hit via the owner's overlay/popup
+    // pass — skip scene Render/HitTest so Flex layout cannot steal events.
+    void SetOverlayComposed(bool enabled) { m_overlayComposed = enabled; }
+    bool IsOverlayComposed() const { return m_overlayComposed; }
     static void SetAnimationsEnabled(bool enabled);
     static bool AreAnimationsEnabled();
     static void SetAnimationDeltaSeconds(float dtSeconds);
@@ -517,6 +521,7 @@ protected:
     bool m_isFocused = false;
     bool m_animationTicksRegistered = false;
     bool m_presentsOnOwnerWindow = true;
+    bool m_overlayComposed = false;
     bool m_subtreeNeedsOverlayHit = false;
     void MarkSubtreeNeedsOverlayHitTest();
     Point m_lastMousePos{ 0.0f, 0.0f };

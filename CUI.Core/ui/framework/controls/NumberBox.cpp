@@ -4,6 +4,7 @@
 #include "NumberBox.h"
 #include "../style/ThemeManager.h"
 #include "../core/Value.h"
+#include "../input/RoutedEvent.h"
 #include <algorithm>
 #include <cmath>
 #include <sstream>
@@ -25,6 +26,39 @@ bool IsNumericEditChar(wchar_t ch) {
 }
 } // namespace
 
+void NumberBox::Field::OnRoutedEvent(RoutedEventArgs& args) {
+    if (args.handled) {
+        return;
+    }
+    if (args.type == RoutedEventType::KeyDown && host && host->HandleFieldKey(args.keyCode)) {
+        args.handled = true;
+        return;
+    }
+    TextBox::OnRoutedEvent(args);
+}
+
+void NumberBox::Field::OnCharInput(wchar_t ch) {
+    if (ch >= 32 && !IsNumericEditChar(ch)) {
+        return;
+    }
+    TextBox::OnCharInput(ch);
+}
+
+void NumberBox::Field::OnMouseWheel(float delta) {
+    if (host) {
+        host->StepBy(delta > 0.0f ? 1.0f : -1.0f);
+        return;
+    }
+    TextBox::OnMouseWheel(delta);
+}
+
+void NumberBox::Field::OnBlur() {
+    if (host) {
+        host->CommitEdit();
+    }
+    TextBox::OnBlur();
+}
+
 NumberBox::NumberBox() {
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     SetWidth(120.0f);
@@ -43,6 +77,25 @@ NumberBox::NumberBox() {
     SetBorderBrush(tokens.inputBorder);
     SetColor(tokens.textPrimary);
     SetBorderThickness(1.0f);
+
+    m_field = std::make_shared<Field>();
+    m_field->host = this;
+    m_field->SetFontFamily(GetFontFamily());
+    m_field->SetFontSize(GetFontSize());
+    m_field->SetPadding(Thickness(2.0f, 0.0f, 2.0f, 0.0f));
+    m_field->SetBorderThickness(0.0f);
+    m_field->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    m_field->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    m_field->SetBackgroundToken(ThemeTokenId::Unset);
+    m_field->SetHoverBackgroundToken(ThemeTokenId::Unset);
+    m_field->SetUnderlineColorToken(ThemeTokenId::Unset);
+    m_field->SetActiveUnderlineColorToken(ThemeTokenId::Unset);
+    m_field->SetColorToken(ThemeTokenId::TextPrimary);
+    m_field->SetAcceptsReturn(false);
+    m_field->OnTextChanged().Connect([this](TextBox*, const std::string&) {
+        OnFieldTextChanged();
+    });
+    AddChild(m_field);
     SyncTextFromValue();
 }
 
@@ -65,6 +118,15 @@ Size NumberBox::Measure(Size availableSize) {
 
 void NumberBox::Arrange(Rect finalRect) {
     m_bounds = finalRect;
+    m_arrangeDirty = false;
+    LayoutField();
+}
+
+void NumberBox::LayoutField() {
+    if (!m_field) {
+        return;
+    }
+    m_field->Arrange(TextRect());
 }
 
 Rect NumberBox::SpinnerCol() const {
@@ -116,9 +178,6 @@ HCURSOR NumberBox::GetCursor() const {
     if (m_hover == HitPart::Up || m_hover == HitPart::Down) {
         return LoadCursor(nullptr, IDC_HAND);
     }
-    if (m_hover == HitPart::Text || m_isFocused) {
-        return LoadCursor(nullptr, IDC_IBEAM);
-    }
     return nullptr;
 }
 
@@ -133,13 +192,18 @@ std::string NumberBox::FormatValue(float val) const {
 }
 
 void NumberBox::SyncTextFromValue() {
-    m_editText = FormatValue(m_value);
-    m_caret = static_cast<int>(m_editText.size());
+    if (!m_field) {
+        return;
+    }
+    m_syncingText = true;
+    m_field->SetText(FormatValue(m_value));
+    m_syncingText = false;
 }
 
 void NumberBox::SetValue(float val) {
     const float clamped = std::clamp(val, m_minimum, m_maximum);
     if (std::abs(clamped - m_value) <= 0.0001f) {
+        SyncTextFromValue();
         return;
     }
     m_value = clamped;
@@ -149,11 +213,36 @@ void NumberBox::SetValue(float val) {
     MarkRenderContentDirty();
 }
 
-void NumberBox::CommitEdit() {
-    float parsed = m_value;
+void NumberBox::OnFieldTextChanged() {
+    if (m_syncingText || !m_field) {
+        return;
+    }
+    const std::string& text = m_field->GetText();
+    if (text.empty() || text == "-" || text == "." || text == "-.") {
+        return;
+    }
     try {
-        if (!m_editText.empty() && m_editText != "-" && m_editText != "." && m_editText != "-.") {
-            parsed = std::stof(m_editText);
+        const float parsed = std::stof(text);
+        const float clamped = std::clamp(parsed, m_minimum, m_maximum);
+        if (std::abs(clamped - m_value) <= 0.0001f) {
+            return;
+        }
+        m_value = clamped;
+        NotifyFieldChanged(PropertyId::ControlValue, Value(clamped));
+        m_onValueChangedEvent.Invoke(this, clamped);
+    } catch (...) {
+    }
+}
+
+void NumberBox::CommitEdit() {
+    if (!m_field) {
+        return;
+    }
+    float parsed = m_value;
+    const std::string& text = m_field->GetText();
+    try {
+        if (!text.empty() && text != "-" && text != "." && text != "-.") {
+            parsed = std::stof(text);
         }
     } catch (...) {
         parsed = m_value;
@@ -166,38 +255,24 @@ void NumberBox::StepBy(float dir) {
     SetValue(m_value + dir * m_step);
 }
 
-void NumberBox::SetCaret(int pos) {
-    m_caret = std::clamp(pos, 0, static_cast<int>(m_editText.size()));
-    m_caretVisible = true;
-    m_caretBlink = 0.0f;
-    MarkRenderContentDirty();
-}
-
-void NumberBox::InsertChar(char ch) {
-    if (ch == '-' && (m_caret != 0 || (!m_editText.empty() && m_editText[0] == '-'))) {
-        return;
+bool NumberBox::HandleFieldKey(int vkCode) {
+    if (vkCode == VK_UP) {
+        StepBy(1.0f);
+        return true;
     }
-    if (ch == '.' && m_editText.find('.') != std::string::npos) {
-        return;
+    if (vkCode == VK_DOWN) {
+        StepBy(-1.0f);
+        return true;
     }
-    m_editText.insert(m_editText.begin() + m_caret, ch);
-    SetCaret(m_caret + 1);
-}
-
-void NumberBox::DeleteBackward() {
-    if (m_caret <= 0 || m_editText.empty()) {
-        return;
+    if (vkCode == VK_RETURN) {
+        CommitEdit();
+        return true;
     }
-    m_editText.erase(m_editText.begin() + (m_caret - 1));
-    SetCaret(m_caret - 1);
-}
-
-void NumberBox::DeleteForward() {
-    if (m_caret >= static_cast<int>(m_editText.size())) {
-        return;
+    if (vkCode == VK_ESCAPE) {
+        SyncTextFromValue();
+        return true;
     }
-    m_editText.erase(m_editText.begin() + m_caret);
-    SetCaret(m_caret);
+    return false;
 }
 
 void NumberBox::OnRender(GraphicsContext& ctx) {
@@ -209,10 +284,11 @@ void NumberBox::OnRender(GraphicsContext& ctx) {
         ctx.FillRect(m_bounds, bg);
     }
 
-    D2D1_COLOR_F border = m_isFocused
+    const bool fieldFocused = m_field && m_field->IsFocused();
+    D2D1_COLOR_F border = (m_isFocused || fieldFocused)
         ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
         : ResolveThemeColor(GetBorderToken(), ThemeTokenId::InputBorder);
-    const float borderW = m_isFocused ? 1.5f : GetBorderThickness();
+    const float borderW = (m_isFocused || fieldFocused) ? 1.5f : GetBorderThickness();
     if (borderW > 0.0f) {
         if (radius > 0.0f) {
             ctx.DrawRoundedRect(m_bounds, radius, border, borderW);
@@ -252,28 +328,6 @@ void NumberBox::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F chevron = tokens.textSecondary;
     ctx.DrawChevron(up, chevron, GraphicsContext::ChevronDirection::Up, 1.3f);
     ctx.DrawChevron(down, chevron, GraphicsContext::ChevronDirection::Down, 1.3f);
-
-    const Rect textRect = TextRect();
-    ctx.DrawText(
-        m_editText,
-        textRect,
-        ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary),
-        GetFontFamily(),
-        GetFontSize(),
-        DWRITE_TEXT_ALIGNMENT_LEADING,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-
-    if (m_isFocused && m_caretVisible && IsEnabled()) {
-        GraphicsContext probe;
-        const std::string prefix = m_editText.substr(0, static_cast<size_t>(m_caret));
-        const float prefixW = probe.MeasureText(prefix, GetFontFamily(), GetFontSize()).width;
-        const float caretX = textRect.x + prefixW;
-        const float caretH = (std::max)(12.0f, textRect.height - 8.0f);
-        const float caretY = textRect.y + (textRect.height - caretH) * 0.5f;
-        ctx.FillRect(
-            Rect(caretX, caretY, 1.0f, caretH),
-            ResolveThemeColor(GetCaretColorToken(), ThemeTokenId::AccentColor));
-    }
 }
 
 void NumberBox::OnMouseDown(Point pt) {
@@ -287,19 +341,6 @@ void NumberBox::OnMouseDown(Point pt) {
     } else if (m_pressed == HitPart::Down) {
         StepBy(-1.0f);
         RequestAnimationTicks();
-    } else if (m_pressed == HitPart::Text) {
-        GraphicsContext probe;
-        const Rect textRect = TextRect();
-        const float rel = pt.x - textRect.x;
-        int pos = static_cast<int>(m_editText.size());
-        for (int i = 0; i <= static_cast<int>(m_editText.size()); ++i) {
-            const float w = probe.MeasureText(m_editText.substr(0, static_cast<size_t>(i)), GetFontFamily(), GetFontSize()).width;
-            if (rel <= w + 3.0f) {
-                pos = i;
-                break;
-            }
-        }
-        SetCaret(pos);
     }
 }
 
@@ -339,73 +380,10 @@ void NumberBox::OnMouseWheel(float delta) {
 }
 
 void NumberBox::OnKeyDown(int vkCode) {
-    if (vkCode == VK_UP) {
-        StepBy(1.0f);
-        return;
-    }
-    if (vkCode == VK_DOWN) {
-        StepBy(-1.0f);
-        return;
-    }
-    if (vkCode == VK_LEFT) {
-        SetCaret(m_caret - 1);
-        return;
-    }
-    if (vkCode == VK_RIGHT) {
-        SetCaret(m_caret + 1);
-        return;
-    }
-    if (vkCode == VK_HOME) {
-        SetCaret(0);
-        return;
-    }
-    if (vkCode == VK_END) {
-        SetCaret(static_cast<int>(m_editText.size()));
-        return;
-    }
-    if (vkCode == VK_BACK) {
-        DeleteBackward();
-        return;
-    }
-    if (vkCode == VK_DELETE) {
-        DeleteForward();
-        return;
-    }
-    if (vkCode == VK_RETURN) {
-        CommitEdit();
-        return;
-    }
-    if (vkCode == VK_ESCAPE) {
-        SyncTextFromValue();
-        MarkRenderContentDirty();
+    if (HandleFieldKey(vkCode)) {
         return;
     }
     Control::OnKeyDown(vkCode);
-}
-
-void NumberBox::OnCharInput(wchar_t ch) {
-    if (!IsEnabled() || ch < 32) {
-        return;
-    }
-    if (!IsNumericEditChar(ch)) {
-        return;
-    }
-    InsertChar(static_cast<char>(ch));
-}
-
-void NumberBox::OnFocus() {
-    Control::OnFocus();
-    m_caretVisible = true;
-    m_caretBlink = 0.0f;
-    RequestAnimationTicks();
-    MarkRenderContentDirty();
-}
-
-void NumberBox::OnBlur() {
-    CommitEdit();
-    Control::OnBlur();
-    m_caretVisible = false;
-    MarkRenderContentDirty();
 }
 
 bool NumberBox::OnAnimationTick() {
@@ -413,15 +391,6 @@ bool NumberBox::OnAnimationTick() {
     const float dt = GetAnimationDeltaSeconds();
     any = m_hotUp.Tick(dt, SpinnerHoverSpec()) || any;
     any = m_hotDown.Tick(dt, SpinnerHoverSpec()) || any;
-
-    if (m_isFocused) {
-        m_caretBlink += dt;
-        if (m_caretBlink >= 0.53f) {
-            m_caretBlink = 0.0f;
-            m_caretVisible = !m_caretVisible;
-            any = true;
-        }
-    }
 
     if (m_pressed == HitPart::Up || m_pressed == HitPart::Down) {
         m_holdAcc += dt;
@@ -445,7 +414,6 @@ bool NumberBox::OnAnimationTick() {
 
 bool NumberBox::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
-        || m_isFocused
         || m_pressed == HitPart::Up || m_pressed == HitPart::Down
         || std::abs(m_hotUp.Current() - m_hotUp.Target()) > 0.01f
         || std::abs(m_hotDown.Current() - m_hotDown.Target()) > 0.01f;

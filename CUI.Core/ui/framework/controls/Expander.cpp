@@ -364,7 +364,7 @@ UIElement* Expander::HitTest(float x, float y) {
         }
     }
 
-    return IsPointInHeader(Point(x, y)) ? this : this;
+    return this;
 }
 
 void Expander::OnMouseMove(Point pt) {

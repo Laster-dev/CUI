@@ -17,6 +17,7 @@ public:
     bool AcceptsTabFocus() const override { return true; }
 
     virtual Size Measure(Size availableSize) override;
+    virtual void Arrange(Rect finalRect) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
@@ -35,7 +36,7 @@ public:
     virtual UIElement* HitTestPopup(float x, float y) override { return OnHitTestOverlay(x, y); }
     virtual void RenderPopup(GraphicsContext& ctx) override;
     virtual void OnLightDismiss() override { SetPopupOpen(false); }
-    // TreeView painted in popup body — re-arm ticks if AnimationHost was late.
+    // Overlay-composed TreeView / BreadcrumbBar — re-arm ticks if attach raced.
     virtual void CollectPopupOwnedElements(std::vector<UIElement*>& out) const override;
 
     void SetPopupOpen(bool open);

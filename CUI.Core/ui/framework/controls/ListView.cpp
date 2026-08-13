@@ -555,7 +555,7 @@ UIElement* ListView::HitTest(float x, float y) {
                     cellElem->Arrange(cellRect);
 
                     UIElement* childHit = cellElem->HitTest(x, y);
-                    if (childHit && childHit != cellElem.get()) return childHit;
+                    if (childHit) return childHit;
                 }
                 cellX += colW;
             }

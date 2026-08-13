@@ -59,6 +59,8 @@ public:
     // (otherwise the last storm's Hz sticks forever on the status bar).
     float GetDisplayFps() const;
 
+    UIElement* GetHoveredElement() const { return m_hoveredRaw; }
+
     Point ClientPointToLogical(int x, int y) const;
     void InvalidateLogicalRect(const Rect& rect);
     void InvalidateDragFeedback();
@@ -119,6 +121,8 @@ private:
 
     std::weak_ptr<UIElement> m_hoveredElement;
     std::weak_ptr<UIElement> m_pressedElement;
+    UIElement* m_hoveredRaw = nullptr;
+    UIElement* m_pressedRaw = nullptr;
     std::weak_ptr<UIElement> m_rpressedElement;
     std::weak_ptr<UIElement> m_middleScrollElement;
     std::weak_ptr<UIElement> m_focusedElement;

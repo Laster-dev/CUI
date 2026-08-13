@@ -438,7 +438,7 @@ void UIElement::Render(GraphicsContext& ctx) {
                 }
                 OnRender(ctx);
                 for (auto& child : m_children) {
-                    if (child && child->PresentsOnOwnerWindow()) {
+                    if (child && child->PresentsOnOwnerWindow() && !child->IsOverlayComposed()) {
                         child->Render(ctx);
                     }
                 }
@@ -488,7 +488,7 @@ void UIElement::Render(GraphicsContext& ctx) {
     OnRender(ctx);
 
     for (auto& child : m_children) {
-        if (child && child->PresentsOnOwnerWindow()) {
+        if (child && child->PresentsOnOwnerWindow() && !child->IsOverlayComposed()) {
             child->Render(ctx);
         }
     }
@@ -601,7 +601,7 @@ UIElement* UIElement::HitTestOverlay(float x, float y) {
     if (selfOverlay) return selfOverlay;
 
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-        if (!(*it) || !(*it)->PresentsOnOwnerWindow()) {
+        if (!(*it) || !(*it)->PresentsOnOwnerWindow() || (*it)->IsOverlayComposed()) {
             continue;
         }
         UIElement* hit = (*it)->HitTestOverlay(x, y);
@@ -622,7 +622,7 @@ UIElement* UIElement::HitTest(float x, float y) {
     }
 
     for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
-        if (!(*it) || !(*it)->PresentsOnOwnerWindow()) {
+        if (!(*it) || !(*it)->PresentsOnOwnerWindow() || (*it)->IsOverlayComposed()) {
             continue;
         }
         UIElement* hit = (*it)->HitTest(x, y);

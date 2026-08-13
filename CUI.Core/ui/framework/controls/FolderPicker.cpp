@@ -34,8 +34,8 @@ FolderPicker::FolderPicker() {
     SetWidth(320.0f);
     SetHeight(kDefaultH);
 
-    m_breadcrumbHost.AttachAnimationHost(this);
-    m_treeHost.AttachAnimationHost(this); // popup TreeView → live-tree via this IPopup
+    m_breadcrumbHost.AttachTo(this);
+    m_treeHost.AttachTo(this);
 
     m_breadcrumbHost.SetNavigateHandler([this](const std::string& path) {
         m_browser.SetCurrentPath(path);
@@ -126,6 +126,14 @@ Size FolderPicker::Measure(Size availableSize) {
     m_desiredSize = Size(w, h);
     m_measureDirty = false;
     return m_desiredSize;
+}
+
+void FolderPicker::Arrange(Rect finalRect) {
+    m_bounds = finalRect;
+    m_arrangeDirty = false;
+    if (PopupProgress() > 0.001f) {
+        SyncBrowserChrome();
+    }
 }
 
 void FolderPicker::MarkPickerDirty() {
@@ -416,11 +424,6 @@ void FolderPicker::OnKeyDown(int vkCode) {
             RequestAnimationTicks();
             return;
         }
-        if (TreeView* tree = m_treeHost.GetTree()) {
-            tree->OnKeyDown(vkCode);
-        }
-        MarkPickerDirty();
-        RequestAnimationTicks();
         return;
     }
     if (vkCode == VK_RETURN || vkCode == VK_SPACE) {

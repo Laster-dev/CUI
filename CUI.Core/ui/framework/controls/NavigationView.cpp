@@ -2,6 +2,7 @@
 #include "ProgressBarDiag.h"
 #include "../style/ThemeManager.h"
 #include "../window/Dpi.h"
+#include "../window/Window.h"
 #include <algorithm>
 #include <cmath>
 #include <unordered_set>
@@ -1419,17 +1420,16 @@ void NavigationView::OnMouseWheel(float delta) {
         Control::OnMouseWheel(delta);
         return;
     }
-    // Scroll the pane menu only when the cursor is over the pane; otherwise let
-    // bubbled wheel reach the content ScrollViewer (showcase page, etc.).
     if (m_menuScroll && m_menuScroll->GetVisibility() == Visibility::Visible) {
-        POINT screenPt{};
-        if (GetCursorPos(&screenPt)) {
-            HWND hwnd = WindowFromPoint(screenPt);
-            float lx = 0.0f;
-            float ly = 0.0f;
-            if (hwnd && TryGetCursorClientLogical(hwnd, lx, ly) && GetPaneRect().Contains(lx, ly)) {
-                m_menuScroll->OnMouseWheel(delta);
-                return;
+        if (auto* win = Window::Current()) {
+            for (UIElement* walk = win->GetHoveredElement(); walk; walk = walk->GetParent()) {
+                if (walk == m_menuScroll.get()) {
+                    m_menuScroll->OnMouseWheel(delta);
+                    return;
+                }
+                if (walk == this) {
+                    break;
+                }
             }
         }
     }
