@@ -49,7 +49,8 @@ WindowTitleBar::WindowTitleBar() {
     SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
     SetColorToken(ThemeTokenId::TextPrimary);
     SetTitle("CUI Application");
-    m_menuBar.SetParent(this);
+    m_menuBar = std::make_shared<MenuBar>();
+    AddChild(m_menuBar);
 }
 
 WindowTitleBar::~WindowTitleBar() {
@@ -175,7 +176,7 @@ Rect WindowTitleBar::GetCloseButtonRect() const {
 }
 
 bool WindowTitleBar::IsMenuBarHit(float x, float y) const {
-    return const_cast<MenuBar&>(m_menuBar).HitTest(x, y) != nullptr;
+    return m_menuBar && m_menuBar->HitTest(x, y) != nullptr;
 }
 
 bool WindowTitleBar::IsCaptionButtonHit(float x, float y) const {
@@ -285,10 +286,7 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    const float menuWidth = m_menuBar.GetTotalWidth(ctx);
-    Rect menuBarRect(m_bounds.x + 36.0f, m_bounds.y, menuWidth, m_bounds.height);
-    m_menuBar.Arrange(menuBarRect);
-    m_menuBar.OnRender(ctx);
+    const Rect menuBarRect = LayoutMenuBar(ctx);
 
     const D2D1_COLOR_F titleColor = tokens.textPrimary;
     const float captionHoverPeak = lightTheme ? 0.08f : 0.14f;
@@ -353,27 +351,26 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     );
 }
 
-void WindowTitleBar::OnMouseDown(Point pt) {
-    Control::OnMouseDown(pt);
-    m_menuBar.OnMouseDown(pt);
+Rect WindowTitleBar::LayoutMenuBar(GraphicsContext& ctx) {
+    const float menuWidth = m_menuBar->GetTotalWidth(ctx);
+    const Rect menuBarRect(m_bounds.x + 36.0f, m_bounds.y, menuWidth, m_bounds.height);
+    m_menuBar->Arrange(menuBarRect);
+    return menuBarRect;
 }
 
-void WindowTitleBar::OnMouseUp(Point pt) {
-    Control::OnMouseUp(pt);
-    m_menuBar.OnMouseUp(pt);
-    // MenuBar is embedded (not a layout child); copy its open dropdown onto the
-    // title bar so Window can track / light-dismiss the active context menu.
-    if (auto menu = m_menuBar.GetActiveDropDown()) {
-        SetContextMenu(menu);
-    }
+void WindowTitleBar::Arrange(Rect finalRect) {
+    UIElement::Arrange(finalRect);
+    GraphicsContext ctx;
+    LayoutMenuBar(ctx);
+}
+
+void WindowTitleBar::ResetMenuInteraction() {
+    m_menuBar->ResetInteractionState();
 }
 
 void WindowTitleBar::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
     ApplyHoverRegion(HitTestHoverRegion(pt.x, pt.y), false);
-    if (m_menuBar.HandleMouseMove(pt)) {
-        m_menuChromeDirty = true;
-    }
 }
 
 void WindowTitleBar::OnMouseLeave() {
@@ -384,29 +381,13 @@ void WindowTitleBar::OnMouseLeave() {
     float ly = 0.0f;
     HWND hwnd = Window::Current() ? Window::Current()->GetHWND() : nullptr;
     if (hwnd && TryGetCursorClientLogical(hwnd, lx, ly) && IsCaptionButtonHit(lx, ly)) {
-        m_menuBar.OnMouseLeave();
         return;
     }
     ApplyHoverRegion(-1, true);
-    m_menuBar.OnMouseLeave();
-}
-
-void WindowTitleBar::OnBlur() {
-    Control::OnBlur();
-    float lx = 0.0f;
-    float ly = 0.0f;
-    HWND hwnd = Window::Current() ? Window::Current()->GetHWND() : nullptr;
-    if (hwnd && TryGetCursorClientLogical(hwnd, lx, ly) && IsCaptionButtonHit(lx, ly)) {
-        m_menuBar.OnBlur();
-        return;
-    }
-    ApplyHoverRegion(-1, true);
-    m_menuBar.OnBlur();
 }
 
 bool WindowTitleBar::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
-    bool menu = m_menuBar.OnAnimationTick();
     const float dt = UIElement::GetAnimationDeltaSeconds();
     bool any = false;
     if (m_minHoverAnim.Tick(dt, kCaptionHoverSpec)) {
@@ -418,29 +399,21 @@ bool WindowTitleBar::OnAnimationTick() {
     if (m_closeHoverAnim.Tick(dt, kCaptionHoverSpec)) {
         any = true;
     }
-    if (any || menu) {
+    if (any) {
         m_menuChromeDirty = true;
         if (!m_bounds.IsEmpty()) {
             MarkRenderRectDirty(m_bounds.Inflate(4.0f));
         }
         RequestAnimationTicks();
     }
-    return base || any || menu;
+    return base || any;
 }
 
 bool WindowTitleBar::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
         || m_minHoverAnim.IsAnimating()
         || m_maxHoverAnim.IsAnimating()
-        || m_closeHoverAnim.IsAnimating()
-        || m_menuBar.HasSelfAnimation();
-}
-
-UIElement* WindowTitleBar::HitTest(float x, float y) {
-    if (IsMenuBarHit(x, y)) {
-        return this;
-    }
-    return Control::HitTest(x, y);
+        || m_closeHoverAnim.IsAnimating();
 }
 
 bool WindowTitleBar::IsInteractiveHit(float x, float y) const {

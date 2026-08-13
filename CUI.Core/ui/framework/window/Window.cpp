@@ -7,7 +7,6 @@
 #include "../controls/TextBox.h"
 #include "../controls/ContextMenu.h"
 #include "../controls/MenuBar.h"
-#include "../controls/WindowTitleBar.h"
 #include "../controls/DatePicker.h"
 #include "../controls/TimePicker.h"
 #include "../controls/ColorPicker.h"
@@ -365,16 +364,18 @@ void ApplyThemeToTree(UIElement* element, bool systemBackdrop) {
         if (element->GetColorToken() == ThemeTokenId::Unset) {
             element->SetColor(tokens.accentForeground);
         }
-        if (element->GetBackgroundToken() == ThemeTokenId::Unset) {
+        // Ghost icon buttons keep Unset tokens + an explicit transparent fill.
+        // Do not stamp accent onto those — that made copy/clear look like solid squares.
+        if (element->GetBackgroundToken() == ThemeTokenId::Unset && !element->HasBackgroundColor()) {
             element->SetBackground(tokens.accentColor);
         }
-        if (element->GetHoverBackgroundToken() == ThemeTokenId::Unset) {
+        if (element->GetHoverBackgroundToken() == ThemeTokenId::Unset && !element->HasHoverBackgroundColor()) {
             element->SetHoverBackground(tokens.accentColor);
         }
-        if (element->GetPressedBackgroundToken() == ThemeTokenId::Unset) {
+        if (element->GetPressedBackgroundToken() == ThemeTokenId::Unset && !element->HasPressedBackgroundColor()) {
             element->SetPressedBackground(tokens.accentColor);
         }
-        if (element->GetBorderToken() == ThemeTokenId::Unset) {
+        if (element->GetBorderToken() == ThemeTokenId::Unset && !element->HasBorderBrushColor()) {
             element->SetBorderBrush(tokens.accentColor);
         }
     } else if (className == "PropertyGrid") {
@@ -2653,7 +2654,16 @@ void Window::OnLButtonDblClick(int x, int y) {
     float fx = logicalPt.x;
     float fy = logicalPt.y;
 
-    UIElement* target = m_rootElement ? m_rootElement->HitTest(fx, fy) : nullptr;
+    UIElement* target = m_popupHost.HitTest(fx, fy);
+    if (!target) {
+        target = HitTestChrome(fx, fy);
+    }
+    if (!target && m_rootElement) {
+        target = m_rootElement->HitTestOverlay(fx, fy);
+    }
+    if (!target && m_rootElement) {
+        target = m_rootElement->HitTest(fx, fy);
+    }
     if (target && target->IsEnabled()) {
         target->OnMouseDblClick(Point(fx, fy));
     }
@@ -2692,11 +2702,8 @@ bool Window::OnLButtonUp(int x, int y) {
 }
 
 void Window::ClearMenuBarInteractionState() {
-    // WindowTitleBar embeds MenuBar as a composed member (not a layout child).
     if (IWindowChrome* chrome = FindWindowChrome(m_rootElement.get())) {
-        if (auto* titleBar = dynamic_cast<WindowTitleBar*>(chrome)) {
-            titleBar->GetMenuBar().ResetInteractionState();
-        }
+        chrome->ResetMenuInteraction();
     }
     if (!m_rootElement) return;
     std::function<void(UIElement*)> clearMenuBar = [&](UIElement* elem) {

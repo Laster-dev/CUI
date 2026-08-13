@@ -17,15 +17,13 @@ public:
 
     virtual const char* GetClassName() const override { return "WindowTitleBar"; }
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual void Arrange(Rect finalRect) override;
     virtual void OnThemeChanged() override;
-    virtual void OnMouseDown(Point pt) override;
-    virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseLeave() override;
-    virtual void OnBlur() override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
-    virtual UIElement* HitTest(float x, float y) override;
+    virtual void ResetMenuInteraction() override;
 
     virtual UIElement* GetChromeElement() override { return this; }
     virtual const UIElement* GetChromeElement() const override { return this; }
@@ -36,8 +34,8 @@ public:
     virtual void NotifyNonClientMouseMove(float x, float y) override;
     virtual void NotifyNonClientMouseLeave() override;
 
-    MenuBar& GetMenuBar() { return m_menuBar; }
-    const MenuBar& GetMenuBar() const { return m_menuBar; }
+    MenuBar& GetMenuBar() { return *m_menuBar; }
+    const MenuBar& GetMenuBar() const { return *m_menuBar; }
 
     void SetTitle(const std::string& title);
     const std::string& GetTitle() const { return m_title; }
@@ -58,11 +56,12 @@ private:
     bool IsMenuBarHit(float x, float y) const;
     bool IsCaptionButtonHit(float x, float y) const;
     int HitTestHoverRegion(float x, float y) const;
+    Rect LayoutMenuBar(GraphicsContext& ctx);
     bool EnsureNativeIconBitmap(GraphicsContext& ctx);
     void ApplyHoverRegion(int region, bool forceDirty);
     void SyncCaptionHoverTargets();
 
-    MenuBar m_menuBar;
+    std::shared_ptr<MenuBar> m_menuBar;
     std::string m_title;
     std::string m_iconText;
     HICON m_nativeIcon = nullptr;

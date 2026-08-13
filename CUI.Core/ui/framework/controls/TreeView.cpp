@@ -704,6 +704,19 @@ void TreeView::OnMouseUp(Point pt) {
     m_scrollbarAutoHide.SetDragging(false, this);
 }
 
+void TreeView::OnMouseDblClick(Point pt) {
+    Control::OnMouseDblClick(pt);
+    RebuildVisibleItems();
+    const int idx = GetVisibleIndexFromY(pt.y);
+    if (idx < 0 || idx >= static_cast<int>(m_visibleItems.size())) {
+        return;
+    }
+    std::shared_ptr<TreeViewItem> item = m_visibleItems[static_cast<size_t>(idx)].item;
+    if (item) {
+        m_onItemDoubleClickedEvent.Invoke(this, item);
+    }
+}
+
 void TreeView::OnMouseLeave() {
     Control::OnMouseLeave();
     if (m_scrollbarHovered) {

@@ -12,7 +12,6 @@ using namespace CUI::DSL;
 ShowcasePage BuildAutoSuggestPage(const ShowcaseContext& ctx) {
     auto box = std::make_shared<AutoSuggestBox>();
     box->SetWidth(320.0f);
-    box->SetHeight(36.0f);
     box->SetPlaceholder("搜索水果…");
     box->SetSuggestionItems({
         "苹果 Apple",
@@ -50,16 +49,16 @@ ShowcasePage BuildAutoSuggestPage(const ShowcaseContext& ctx) {
 
     auto demo = Column(12).Children({
         CreateDemoSurface({
-            CreateShowcaseText("纯自绘 SearchBox / AutoSuggestBox", 13.0f, "textPrimary", true),
+            CreateShowcaseText("TextBox 输入 + 自绘建议层", 13.0f, "textPrimary", true),
             box,
             status
         }, 10.0f),
-        CreateShowcaseText("空查询时按 ↓ 可展开完整目录；清除按钮在右侧。", 11.0f, "textMuted", false)
+        CreateShowcaseText("空查询时按 ↓ 可展开完整目录。", 11.0f, "textMuted", false)
     }).Build();
 
     return { "AutoSuggestBox 搜索建议", CreatePage(
         "AutoSuggestBox / SearchBox",
-        "自绘输入、清除与建议弹出层；不嵌套 TextBox / ListBox。",
+        "输入复用 TextBox；建议弹出层自绘，不嵌套 ListBox。",
         demo,
         CreatePropertyGrid(ctx, box), box) };
 }

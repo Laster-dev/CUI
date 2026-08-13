@@ -145,8 +145,6 @@ public:
         // Sidebar control search (AutoSuggestBox slot on NavigationView).
         auto search = std::make_shared<AutoSuggestBox>();
         search->SetPlaceholder("搜索控件…");
-        search->SetHeight(32.0f);
-        search->SetFontSize(12.0f);
         search->SetMaxVisibleSuggestions(10);
         {
             std::vector<std::string> labels;

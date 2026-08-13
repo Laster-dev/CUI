@@ -4,6 +4,7 @@
 #include "framework/window/Dpi.h"
 #include "framework/style/ThemeManager.h"
 #include "framework/animation/AnimationManager.h"
+#include "framework/controls/Toast.h"
 #include <algorithm>
 #include <cstdio>
 #include <cmath>
@@ -23,62 +24,78 @@ TitleBar::TitleBar() {
     SetHoverBackground(ThemeManager::Instance().GetColor("paneBackground"));
     SetPressedBackground(ThemeManager::Instance().GetColor("paneBackground"));
     SetTitle("CUI - Visual Studio Code [Direct2D UI Engine]");
-    m_menuBar.SetParent(this);
+    m_menuBar = std::make_shared<MenuBar>();
+    AddChild(m_menuBar);
 
-    // Populate real interactive MenuBar dropdown menus
-    auto fileMenu = m_menuBar.AddMenu("File");
-    fileMenu->AddItem("New Text File", "Ctrl+N");
-    fileMenu->AddItem("New File...", "Ctrl+Alt+Windows+N");
-    fileMenu->AddItem("New Window", "Ctrl+Shift+N");
-    fileMenu->AddSeparator();
-    fileMenu->AddItem("Open File...", "Ctrl+O");
-    fileMenu->AddItem("Open Folder...", "Ctrl+K Ctrl+O");
-    fileMenu->AddSeparator();
-    fileMenu->AddItem("Save", "Ctrl+S");
-    fileMenu->AddItem("Save As...", "Ctrl+Shift+S");
-    fileMenu->AddSeparator();
-    fileMenu->AddItem("Exit", "Alt+F4");
+    auto toast = [](const std::string& msg) {
+        if (auto* win = Window::Current()) {
+            if (auto root = win->GetRootElement()) {
+                Toast::Show(root.get(), "菜单", msg, ToastCorner::BottomRight, 1600);
+            }
+        }
+    };
 
-    auto editMenu = m_menuBar.AddMenu("Edit");
-    editMenu->AddItem("Undo", "Ctrl+Z");
-    editMenu->AddItem("Redo", "Ctrl+Y");
+    auto fileMenu = m_menuBar->AddMenu("File");
+    fileMenu->AddItem("New Text File", "Ctrl+N", [toast] { toast("New Text File（Gallery 演示）"); });
+    fileMenu->AddItem("New File...", "Ctrl+Alt+Windows+N", [toast] { toast("New File（Gallery 演示）"); });
+    fileMenu->AddItem("New Window", "Ctrl+Shift+N", [toast] { toast("New Window（Gallery 演示）"); });
+    fileMenu->AddSeparator();
+    fileMenu->AddItem("Open File...", "Ctrl+O", [toast] { toast("Open File（Gallery 演示）"); });
+    fileMenu->AddItem("Open Folder...", "Ctrl+K Ctrl+O", [toast] { toast("Open Folder（Gallery 演示）"); });
+    fileMenu->AddSeparator();
+    fileMenu->AddItem("Save", "Ctrl+S", [toast] { toast("Save（Gallery 演示）"); });
+    fileMenu->AddItem("Save As...", "Ctrl+Shift+S", [toast] { toast("Save As（Gallery 演示）"); });
+    fileMenu->AddSeparator();
+    fileMenu->AddItem("Exit", "Alt+F4", [] {
+        if (auto* win = Window::Current()) {
+            if (HWND hwnd = win->GetHWND()) {
+                PostMessage(hwnd, WM_CLOSE, 0, 0);
+            }
+        }
+    });
+
+    auto editMenu = m_menuBar->AddMenu("Edit");
+    editMenu->AddItem("Undo", "Ctrl+Z", [toast] { toast("Undo（Gallery 演示）"); });
+    editMenu->AddItem("Redo", "Ctrl+Y", [toast] { toast("Redo（Gallery 演示）"); });
     editMenu->AddSeparator();
-    editMenu->AddItem("Cut", "Ctrl+X");
-    editMenu->AddItem("Copy", "Ctrl+C");
-    editMenu->AddItem("Paste", "Ctrl+V");
+    editMenu->AddItem("Cut", "Ctrl+X", [toast] { toast("Cut（Gallery 演示）"); });
+    editMenu->AddItem("Copy", "Ctrl+C", [toast] { toast("Copy（Gallery 演示）"); });
+    editMenu->AddItem("Paste", "Ctrl+V", [toast] { toast("Paste（Gallery 演示）"); });
     editMenu->AddSeparator();
-    editMenu->AddItem("Find", "Ctrl+F");
-    editMenu->AddItem("Replace", "Ctrl+H");
+    editMenu->AddItem("Find", "Ctrl+F", [toast] { toast("Find（Gallery 演示）"); });
+    editMenu->AddItem("Replace", "Ctrl+H", [toast] { toast("Replace（Gallery 演示）"); });
 
-    auto selMenu = m_menuBar.AddMenu("Selection");
-    selMenu->AddItem("Select All", "Ctrl+A");
-    selMenu->AddItem("Expand Selection", "Shift+Alt+Right");
-    selMenu->AddItem("Shrink Selection", "Shift+Alt+Left");
+    auto selMenu = m_menuBar->AddMenu("Selection");
+    selMenu->AddItem("Select All", "Ctrl+A", [toast] { toast("Select All（Gallery 演示）"); });
+    selMenu->AddItem("Expand Selection", "Shift+Alt+Right", [toast] { toast("Expand Selection（Gallery 演示）"); });
+    selMenu->AddItem("Shrink Selection", "Shift+Alt+Left", [toast] { toast("Shrink Selection（Gallery 演示）"); });
 
-    auto viewMenu = m_menuBar.AddMenu("View");
-    viewMenu->AddItem("Command Palette...", "Ctrl+Shift+P");
-    viewMenu->AddItem("Open View...", "Ctrl+Q");
+    auto viewMenu = m_menuBar->AddMenu("View");
+    viewMenu->AddItem("Command Palette...", "Ctrl+Shift+P", [toast] { toast("Command Palette（Gallery 演示）"); });
+    viewMenu->AddItem("Open View...", "Ctrl+Q", [toast] { toast("Open View（Gallery 演示）"); });
     viewMenu->AddSeparator();
-    viewMenu->AddItem("Appearance");
-    viewMenu->AddItem("Editor Layout");
+    viewMenu->AddItem("Toggle Dark / Light", "", [this] { m_onToggleTheme.Invoke(this); });
+    viewMenu->AddItem("Editor Layout", "", [toast] { toast("Editor Layout（Gallery 演示）"); });
 
-    auto goMenu = m_menuBar.AddMenu("Go");
-    goMenu->AddItem("Back", "Alt+Left");
-    goMenu->AddItem("Forward", "Alt+Right");
-    goMenu->AddItem("Go to File...", "Ctrl+P");
+    auto goMenu = m_menuBar->AddMenu("Go");
+    goMenu->AddItem("Back", "Alt+Left", [toast] { toast("Back（Gallery 演示）"); });
+    goMenu->AddItem("Forward", "Alt+Right", [toast] { toast("Forward（Gallery 演示）"); });
+    goMenu->AddItem("Go to File...", "Ctrl+P", [toast] { toast("Go to File（Gallery 演示）"); });
 
-    auto runMenu = m_menuBar.AddMenu("Run");
-    runMenu->AddItem("Start Debugging", "F5");
-    runMenu->AddItem("Run Without Debugging", "Ctrl+F5");
+    auto runMenu = m_menuBar->AddMenu("Run");
+    runMenu->AddItem("Start Debugging", "F5", [toast] { toast("Start Debugging（Gallery 演示）"); });
+    runMenu->AddItem("Run Without Debugging", "Ctrl+F5", [toast] { toast("Run Without Debugging（Gallery 演示）"); });
 
-    auto termMenu = m_menuBar.AddMenu("Terminal");
-    termMenu->AddItem("New Terminal", "Ctrl+Shift+`");
-    termMenu->AddItem("Run Task...");
+    auto termMenu = m_menuBar->AddMenu("Terminal");
+    termMenu->AddItem("New Terminal", "Ctrl+Shift+`", [toast] { toast("New Terminal（Gallery 演示）"); });
+    termMenu->AddItem("Run Task...", "", [toast] { toast("Run Task（Gallery 演示）"); });
 
-    auto helpMenu = m_menuBar.AddMenu("Help");
-    helpMenu->AddItem("Welcome");
-    helpMenu->AddItem("Documentation");
-    helpMenu->AddItem("About CUI Engine");
+    auto helpMenu = m_menuBar->AddMenu("Help");
+    helpMenu->AddItem("Welcome", "", [toast] { toast("Welcome to CUI Control Gallery"); });
+    helpMenu->AddItem("Documentation", "", [toast] { toast("见 docs/SELF_DRAWN_CONTROLS_PLAN.md"); });
+    helpMenu->AddItem("About CUI Engine", "", [toast] {
+        toast("CUI — Direct2D 自绘 UI 框架");
+    });
 }
 
 void TitleBar::OnRender(GraphicsContext& ctx) {
@@ -92,11 +109,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     ctx.FillRoundedRect(iconRect, 4.0f, tokens.accentColor);
     ctx.DrawText("C", iconRect, tokens.accentForeground, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
-    // Render Real Interactive MenuBar with dynamic content-fit width
-    float calcMenuBarW = m_menuBar.GetTotalWidth(ctx);
-    Rect menuBarRect(m_bounds.x + 36, m_bounds.y, calcMenuBarW, m_bounds.height);
-    m_menuBar.Arrange(menuBarRect);
-    m_menuBar.OnRender(ctx);
+    LayoutMenuBar(ctx);
 
     // Render Windows 11 Native Vector System Action Buttons (Minimize, Maximize, Close)
     float btnW = 46.0f;
@@ -234,18 +247,32 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     );
 }
 
+Rect TitleBar::LayoutMenuBar(GraphicsContext& ctx) {
+    const float w = m_menuBar->GetTotalWidth(ctx);
+    const Rect menuBarRect(m_bounds.x + 36.0f, m_bounds.y, w, m_bounds.height);
+    m_menuBar->Arrange(menuBarRect);
+    return menuBarRect;
+}
+
+void TitleBar::Arrange(Rect finalRect) {
+    UIElement::Arrange(finalRect);
+    GraphicsContext ctx;
+    LayoutMenuBar(ctx);
+}
+
+void TitleBar::ResetMenuInteraction() {
+    m_menuBar->ResetInteractionState();
+}
+
 void TitleBar::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
-
     if (IsLowPerformanceToggleHit(pt.x, pt.y)) {
         m_onToggleLowPerformance.Invoke(this);
         return;
     }
     if (IsThemeToggleHit(pt.x, pt.y)) {
         m_onToggleTheme.Invoke(this);
-        return;
     }
-    m_menuBar.OnMouseDown(pt);
 }
 
 void TitleBar::OnMouseMove(Point pt) {
@@ -256,9 +283,6 @@ void TitleBar::OnMouseMove(Point pt) {
         m_menuChromeDirty = true;
         MarkRenderRectDirty(m_bounds.Inflate(2.0f));
     }
-    if (m_menuBar.HandleMouseMove(pt)) {
-        m_menuChromeDirty = true;
-    }
 }
 
 void TitleBar::OnMouseLeave() {
@@ -268,21 +292,10 @@ void TitleBar::OnMouseLeave() {
         m_menuChromeDirty = true;
         MarkRenderRectDirty(m_bounds.Inflate(2.0f));
     }
-    m_menuBar.OnMouseLeave();
-}
-
-void TitleBar::OnBlur() {
-    Control::OnBlur();
-    if (m_hoverRegion != -1) {
-        m_hoverRegion = -1;
-        m_menuChromeDirty = true;
-        MarkRenderRectDirty(m_bounds.Inflate(2.0f));
-    }
-    m_menuBar.OnBlur();
 }
 
 bool TitleBar::IsMenuBarHit(float x, float y) const {
-    return const_cast<MenuBar&>(m_menuBar).HitTest(x, y) != nullptr;
+    return m_menuBar && m_menuBar->HitTest(x, y) != nullptr;
 }
 
 bool TitleBar::IsInteractiveHit(float x, float y) const {
@@ -385,15 +398,6 @@ bool TitleBar::ConsumeChromeDirty() {
     const bool dirty = m_menuChromeDirty;
     m_menuChromeDirty = false;
     return dirty;
-}
-
-UIElement* TitleBar::HitTest(float x, float y) {
-    if (IsInteractiveHit(x, y)) {
-        return this;
-    }
-    UIElement* mbHit = m_menuBar.HitTest(x, y);
-    if (mbHit) return this;
-    return Control::HitTest(x, y);
 }
 
 // ==========================================

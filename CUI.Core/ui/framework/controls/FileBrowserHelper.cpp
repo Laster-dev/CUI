@@ -509,13 +509,8 @@ void FileBrowserBreadcrumbHost::Render(GraphicsContext& ctx) {
     m_bar->OnRender(ctx);
 }
 
-bool FileBrowserBreadcrumbHost::HandleMouseDown(Point pt) {
-    if (!m_bounds.Contains(pt.x, pt.y)) {
-        return false;
-    }
-    m_bar->SetBounds(m_bounds);
-    m_bar->OnMouseDown(pt);
-    return true;
+UIElement* FileBrowserBreadcrumbHost::HitTest(float x, float y) {
+    return m_bar ? m_bar->HitTest(x, y) : nullptr;
 }
 
 void FileBrowserBreadcrumbHost::DismissOverflowMenu() {
@@ -567,6 +562,22 @@ FileBrowserTreeHost::FileBrowserTreeHost() {
         }
         if (item->isExpanded) {
             EnsureChildrenLoaded(item, MakeSession(item->tag));
+        }
+    });
+
+    m_tree->OnItemDoubleClicked().Connect([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
+        if (!item || item->tag.empty() || IsPlaceholderChild(item)) {
+            return;
+        }
+        if (IsDirectoryUtf8(item->tag) || item->tag.empty()) {
+            m_tree->ToggleExpanded(item);
+            if (item->isExpanded) {
+                EnsureChildrenLoaded(item, MakeSession(item->tag));
+            }
+            return;
+        }
+        if (m_mode == FileBrowserMode::OpenFile && m_onConfirm) {
+            m_onConfirm(item->tag);
         }
     });
 }
@@ -861,54 +872,8 @@ void FileBrowserTreeHost::Render(GraphicsContext& ctx) {
     m_tree->Render(ctx);
 }
 
-bool FileBrowserTreeHost::HandleMouseDown(Point pt) {
-    if (!m_tree->GetBounds().Contains(pt.x, pt.y)) {
-        return false;
-    }
-    m_tree->OnMouseDown(pt);
-    return true;
-}
-
-bool FileBrowserTreeHost::HandleMouseDblClick(Point pt) {
-    if (!m_tree->GetBounds().Contains(pt.x, pt.y)) {
-        return false;
-    }
-    auto selected = m_tree->GetSelectedItem();
-    if (!selected || selected->tag.empty() || IsPlaceholderChild(selected)) {
-        return true;
-    }
-    if (IsDirectoryUtf8(selected->tag) || selected->tag.empty()) {
-        // Single-click already expands when collapsed; double-click toggles.
-        m_tree->ToggleExpanded(selected);
-        if (selected->isExpanded) {
-            EnsureChildrenLoaded(selected, MakeSession(selected->tag));
-        }
-        return true;
-    }
-    if (m_mode == FileBrowserMode::OpenFile && m_onConfirm) {
-        m_onConfirm(selected->tag);
-    }
-    return true;
-}
-
-void FileBrowserTreeHost::HandleMouseMove(Point pt) {
-    m_tree->OnMouseMove(pt);
-}
-
-void FileBrowserTreeHost::HandleMouseUp(Point pt) {
-    m_tree->OnMouseUp(pt);
-}
-
-void FileBrowserTreeHost::HandleMouseLeave() {
-    m_tree->OnMouseLeave();
-}
-
-void FileBrowserTreeHost::HandleMouseWheel(float delta) {
-    m_tree->OnMouseWheel(delta);
-}
-
-void FileBrowserTreeHost::HandleKeyDown(int vkCode) {
-    m_tree->OnKeyDown(vkCode);
+UIElement* FileBrowserTreeHost::HitTest(float x, float y) {
+    return m_tree ? m_tree->HitTest(x, y) : nullptr;
 }
 
 bool FileBrowserTreeHost::Tick() {

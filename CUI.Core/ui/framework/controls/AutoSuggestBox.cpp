@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "AutoSuggestBox.h"
+#include "TextBox.h"
 #include "../core/Value.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
@@ -10,6 +11,37 @@
 #include <cmath>
 
 namespace CUI {
+
+class AutoSuggestField : public TextBox {
+public:
+    AutoSuggestBox* host = nullptr;
+
+    void OnRoutedEvent(RoutedEventArgs& args) override {
+        if (args.handled) {
+            return;
+        }
+        if (args.type == RoutedEventType::KeyDown && host
+            && host->HandleSuggestionKey(args.keyCode)) {
+            args.handled = true;
+            return;
+        }
+        TextBox::OnRoutedEvent(args);
+    }
+
+    void OnFocus() override {
+        TextBox::OnFocus();
+        if (host) {
+            host->NotifyFieldFocus();
+        }
+    }
+
+    void OnBlur() override {
+        TextBox::OnBlur();
+        if (host) {
+            host->NotifyFieldBlur();
+        }
+    }
+};
 
 namespace {
 std::string ToLowerAscii(std::string s) {
@@ -30,46 +62,54 @@ bool ContainsInsensitive(const std::string& hay, const std::string& needle) {
     return h.find(n) != std::string::npos;
 }
 
-void DrawSearchGlyph(GraphicsContext& ctx, const Rect& slot, D2D1_COLOR_F color) {
-    const float cx = slot.x + slot.width * 0.42f;
-    const float cy = slot.y + slot.height * 0.48f;
-    const float r = (std::min)(slot.width, slot.height) * 0.18f;
-    constexpr int kSeg = 20;
-    Point prev(cx + r, cy);
-    for (int i = 1; i <= kSeg; ++i) {
-        const float a = (static_cast<float>(i) / static_cast<float>(kSeg)) * 6.28318530718f;
-        Point next(cx + std::cos(a) * r, cy + std::sin(a) * r);
-        ctx.DrawSmoothLine(prev, next, color, 1.5f);
-        prev = next;
-    }
-    const float handle = r * 0.95f;
-    ctx.DrawSmoothLine(
-        Point(cx + r * 0.65f, cy + r * 0.65f),
-        Point(cx + r * 0.65f + handle, cy + r * 0.65f + handle),
-        color,
-        1.7f);
-}
 } // namespace
 
 AutoSuggestBox::AutoSuggestBox() {
     SetPlaceholder("搜索…");
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetBorderToken(ThemeTokenId::InputBorder);
-    SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    SetBackgroundToken(ThemeTokenId::Unset);
+    SetHoverBackgroundToken(ThemeTokenId::Unset);
+    SetBorderToken(ThemeTokenId::Unset);
+    SetFocusedBorderToken(ThemeTokenId::Unset);
     SetColorToken(ThemeTokenId::TextPrimary);
     SetPlaceholderColorToken(ThemeTokenId::TextMuted);
-    SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::InputBackground));
-    SetBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::InputBorder));
-    SetBorderThickness(1.0f);
+    SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
+    SetBorderThickness(0.0f);
     SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary));
-    SetFontFamily("Segoe UI");
+    SetFontFamily("微软雅黑");
     SetFontSize(13.0f);
-    SetPadding(Thickness(4, 6, 4, 6));
-    SetCornerRadius(4.0f);
+    SetPadding(Thickness(0, 0, 0, 0));
+    SetCornerRadius(0.0f);
     SetWidth(280.0f);
-    SetHeight(34.0f);
+    SetHeight(48.0f);
     UIElement::SetText("");
+
+    auto field = std::make_shared<AutoSuggestField>();
+    field->host = this;
+    m_field = field;
+    StyleField();
+    m_field->OnTextChanged().Connect([this](TextBox*, const std::string& text) {
+        if (m_syncingField) {
+            return;
+        }
+        SetTextInternal(text, true, true);
+    });
+    AddChild(m_field);
+}
+
+void AutoSuggestBox::StyleField() {
+    if (!m_field) {
+        return;
+    }
+    m_field->SetPlaceholder(GetPlaceholder());
+    m_field->SetFontFamily(GetFontFamily());
+    m_field->SetFontSize(GetFontSize());
+    m_field->SetColorToken(GetColorToken());
+    m_field->SetPlaceholderColorToken(GetPlaceholderColorToken());
+    m_field->SetWidth(GetWidth() >= 0.0f ? GetWidth() : 280.0f);
+    m_field->SetHeight(GetHeight() >= 0.0f ? GetHeight() : 48.0f);
+    m_field->SetPadding(Thickness(8.0f, 18.0f, 8.0f, 8.0f));
 }
 
 std::vector<PropertyMeta> AutoSuggestBox::GetPropertyMetas() const {
@@ -81,14 +121,14 @@ std::vector<PropertyMeta> AutoSuggestBox::GetPropertyMetas() const {
 }
 
 HCURSOR AutoSuggestBox::GetCursor() const {
-    if (!IsEnabled()) {
-        return nullptr;
-    }
-    return LoadCursor(nullptr, IDC_IBEAM);
+    return nullptr;
 }
 
 void AutoSuggestBox::SetPlaceholder(const std::string& text) {
     UIElement::SetPlaceholder(text);
+    if (m_field) {
+        m_field->SetPlaceholder(text);
+    }
     MarkRenderContentDirty();
 }
 
@@ -104,11 +144,11 @@ void AutoSuggestBox::SetTextInternal(const std::string& text, bool fireChanged, 
         return;
     }
     UIElement::SetText(text);
-    const int len = static_cast<int>(Utf8ToUtf16(text).length());
-    m_caret = std::clamp(m_caret, 0, len);
-    m_selAnchor = -1;
-    EnsureCaretVisible();
-    ResetCaretBlink();
+    if (m_field && m_field->GetText() != text) {
+        m_syncingField = true;
+        m_field->SetText(text);
+        m_syncingField = false;
+    }
     MarkRenderContentDirty();
     if (fireChanged) {
         m_onTextChanged.Invoke(this, GetText());
@@ -138,120 +178,65 @@ void AutoSuggestBox::SetSuggestionProvider(SuggestionProvider provider) {
 Size AutoSuggestBox::Measure(Size availableSize) {
     (void)availableSize;
     const float w = GetWidth() >= 0.0f ? GetWidth() : 280.0f;
-    const float h = GetHeight() >= 0.0f ? GetHeight() : 34.0f;
+    const float h = GetHeight() >= 0.0f ? GetHeight() : 48.0f;
     m_desiredSize = Size(w, h);
     return m_desiredSize;
 }
 
-Rect AutoSuggestBox::IconRect() const {
-    return Rect(m_bounds.x, m_bounds.y, kIconSlot, m_bounds.height);
-}
-
-Rect AutoSuggestBox::ClearRect() const {
-    return Rect(m_bounds.x + m_bounds.width - kClearSlot, m_bounds.y, kClearSlot, m_bounds.height);
-}
-
-Rect AutoSuggestBox::TextRect() const {
-    const float rightPad = GetText().empty() ? 4.0f : kClearSlot;
-    return Rect(
-        m_bounds.x + kIconSlot,
-        m_bounds.y,
-        (std::max)(8.0f, m_bounds.width - kIconSlot - rightPad),
-        m_bounds.height);
-}
-
-AutoSuggestBox::HitPart AutoSuggestBox::HitTestPart(Point pt) const {
-    if (!m_bounds.Contains(pt.x, pt.y)) {
-        return HitPart::None;
+void AutoSuggestBox::Arrange(Rect finalRect) {
+    if (GetVisibility() == Visibility::Collapsed) {
+        SetBounds(Rect());
+        m_arrangeDirty = false;
+        return;
     }
-    if (!GetText().empty() && ClearRect().Contains(pt.x, pt.y)) {
-        return HitPart::Clear;
-    }
-    return HitPart::Text;
+    const Thickness margin = GetMargin();
+    Rect arranged(
+        finalRect.x + margin.left,
+        finalRect.y + margin.top,
+        (std::max)(0.0f, finalRect.width - margin.left - margin.right),
+        (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
+    SetBounds(arranged);
+    LayoutField();
+    m_arrangeDirty = false;
 }
 
-void AutoSuggestBox::SetCaret(int utf16Pos) {
-    const int len = static_cast<int>(Utf8ToUtf16(GetText()).length());
-    m_caret = std::clamp(utf16Pos, 0, len);
-    m_selAnchor = -1;
-    EnsureCaretVisible();
-    ResetCaretBlink();
+void AutoSuggestBox::LayoutField() {
+    if (!m_field) {
+        return;
+    }
+    if (m_field->GetFontSize() != GetFontSize()) {
+        m_field->SetFontSize(GetFontSize());
+    }
+    if (m_field->GetFontFamily() != GetFontFamily()) {
+        m_field->SetFontFamily(GetFontFamily());
+    }
+    const Rect r = m_bounds;
+    m_field->Measure(Size(r.width, r.height));
+    m_field->Arrange(r);
+}
+
+bool AutoSuggestBox::InputActive() const {
+    return IsFocused() || (m_field && m_field->IsFocused());
+}
+
+void AutoSuggestBox::NotifyFieldFocus() {
+    m_pendingClose = false;
     MarkRenderContentDirty();
 }
 
-void AutoSuggestBox::EnsureCaretVisible() {
-    GraphicsContext ctx;
-    const Rect textRect = TextRect();
-    const std::wstring w = Utf8ToUtf16(GetText());
-    const float caretX = ctx.MeasureText(
-        Utf16ToUtf8(w.substr(0, static_cast<size_t>(m_caret))),
-        GetFontFamily(),
-        GetFontSize(),
-        DWRITE_FONT_WEIGHT_NORMAL).width;
-    const float viewW = (std::max)(8.0f, textRect.width - 4.0f);
-    if (caretX - m_textScrollX > viewW) {
-        m_textScrollX = caretX - viewW;
-    }
-    if (caretX - m_textScrollX < 0.0f) {
-        m_textScrollX = caretX;
-    }
-    m_textScrollX = (std::max)(0.0f, m_textScrollX);
-}
-
-void AutoSuggestBox::ResetCaretBlink() {
-    m_caretBlink = 0.0f;
-    m_caretVisible = true;
+void AutoSuggestBox::NotifyFieldBlur() {
+    m_pendingClose = true;
     RequestAnimationTicks();
 }
 
-void AutoSuggestBox::InsertUtf16(const std::wstring& chunk) {
-    if (chunk.empty()) {
+void AutoSuggestBox::FlushPendingClose() {
+    if (!m_pendingClose) {
         return;
     }
-    std::wstring w = Utf8ToUtf16(GetText());
-    int start = m_caret;
-    int end = m_caret;
-    if (m_selAnchor >= 0) {
-        start = (std::min)(m_caret, m_selAnchor);
-        end = (std::max)(m_caret, m_selAnchor);
+    m_pendingClose = false;
+    if (!InputActive()) {
+        CloseSuggestions();
     }
-    w.replace(static_cast<size_t>(start), static_cast<size_t>(end - start), chunk);
-    m_caret = start + static_cast<int>(chunk.length());
-    m_selAnchor = -1;
-    SetTextInternal(Utf16ToUtf8(w), true, true);
-    EnsureCaretVisible();
-}
-
-void AutoSuggestBox::DeleteSelectionOrBackward() {
-    std::wstring w = Utf8ToUtf16(GetText());
-    if (m_selAnchor >= 0 && m_selAnchor != m_caret) {
-        const int start = (std::min)(m_caret, m_selAnchor);
-        const int end = (std::max)(m_caret, m_selAnchor);
-        w.erase(static_cast<size_t>(start), static_cast<size_t>(end - start));
-        m_caret = start;
-        m_selAnchor = -1;
-        SetTextInternal(Utf16ToUtf8(w), true, true);
-        return;
-    }
-    if (m_caret <= 0) {
-        return;
-    }
-    w.erase(static_cast<size_t>(m_caret - 1), 1);
-    m_caret -= 1;
-    SetTextInternal(Utf16ToUtf8(w), true, true);
-}
-
-void AutoSuggestBox::DeleteForward() {
-    std::wstring w = Utf8ToUtf16(GetText());
-    if (m_selAnchor >= 0 && m_selAnchor != m_caret) {
-        DeleteSelectionOrBackward();
-        return;
-    }
-    if (m_caret >= static_cast<int>(w.length())) {
-        return;
-    }
-    w.erase(static_cast<size_t>(m_caret), 1);
-    SetTextInternal(Utf16ToUtf8(w), true, true);
 }
 
 void AutoSuggestBox::ScheduleSuggestRefresh() {
@@ -281,7 +266,7 @@ void AutoSuggestBox::RefreshSuggestionsNow() {
         }
     }
 
-    if (m_filtered.empty() || !m_isFocused) {
+    if (m_filtered.empty() || !InputActive()) {
         CloseSuggestions();
         return;
     }
@@ -302,8 +287,6 @@ void AutoSuggestBox::RefreshSuggestionsNow() {
 
 void AutoSuggestBox::BeginKeyboardNavigation() {
     m_keyboardNavActive = true;
-    // Snapshot pointer in client DIPs so a no-op MOVE after scroll does not
-    // steal the highlight back to whatever row sits under the cursor.
     if (PopupHost* host = PopupHost::Current()) {
         if (HWND hwnd = host->GetOwnerHwnd()) {
             POINT sp{};
@@ -372,9 +355,6 @@ void AutoSuggestBox::ChooseSuggestion(int index) {
     }
     const std::string chosen = m_filtered[static_cast<size_t>(index)];
     SetTextInternal(chosen, true, false);
-    m_caret = static_cast<int>(Utf8ToUtf16(chosen).length());
-    m_selAnchor = -1;
-    EnsureCaretVisible();
     CloseSuggestions();
     m_onSuggestionChosen.Invoke(this, chosen);
     MarkRenderContentDirty();
@@ -445,7 +425,6 @@ int AutoSuggestBox::HitTestSuggestionIndex(Point pt) const {
     if (!Rect(menu.x, menu.y, menu.width, currentH).Contains(pt.x, pt.y)) {
         return -1;
     }
-    // Match RenderPopup: rows start at menu.y + 2 - scroll.
     const float localY = pt.y - (menu.y + 2.0f) + m_suggestScroll;
     if (localY < 0.0f) {
         return -1;
@@ -461,7 +440,15 @@ UIElement* AutoSuggestBox::HitTest(float x, float y) {
     if (GetVisibility() != Visibility::Visible) {
         return nullptr;
     }
+    if (m_field) {
+        if (UIElement* hit = m_field->HitTest(x, y)) {
+            return hit;
+        }
+    }
     if (m_bounds.Contains(x, y)) {
+        if (m_field) {
+            return m_field.get();
+        }
         return this;
     }
     return nullptr;
@@ -481,93 +468,7 @@ UIElement* AutoSuggestBox::HitTestOverlay(float x, float y) {
 }
 
 void AutoSuggestBox::OnRender(GraphicsContext& ctx) {
-    const float radius = GetCornerRadius() >= 0.0f ? GetCornerRadius() : 4.0f;
-    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetFlatColor(ThemeTokenId::InputBackground));
-    ctx.FillRoundedRect(m_bounds, radius, bg);
-
-    D2D1_COLOR_F border = (m_isFocused || m_suggestionsOpen)
-        ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
-        : ResolveThemeColor(GetBorderToken(), ThemeTokenId::InputBorder);
-    const float borderW = (m_isFocused || m_suggestionsOpen) ? 1.5f : GetBorderThickness();
-    if (borderW > 0.0f) {
-        ctx.DrawRoundedRect(m_bounds, radius, border, borderW);
-    }
-
-    const auto& tokens = ThemeManager::Instance().GetTokens();
-    DrawSearchGlyph(ctx, IconRect(), tokens.textSecondary);
-
-    const Rect textRect = TextRect();
-    ctx.PushClip(textRect);
-
-    const std::string& text = GetText();
-    if (text.empty() && !m_isFocused) {
-        ctx.DrawText(
-            GetPlaceholder(),
-            Rect(textRect.x + 2.0f, textRect.y, textRect.width - 4.0f, textRect.height),
-            ResolveThemeColor(GetPlaceholderColorToken(), ThemeTokenId::TextMuted),
-            GetFontFamily(),
-            GetFontSize(),
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_NORMAL,
-            true);
-    } else {
-        const std::wstring w = Utf8ToUtf16(text);
-        D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-
-        if (m_selAnchor >= 0 && m_selAnchor != m_caret) {
-            const int a = (std::min)(m_caret, m_selAnchor);
-            const int b = (std::max)(m_caret, m_selAnchor);
-            const float x0 = ctx.MeasureText(
-                Utf16ToUtf8(w.substr(0, static_cast<size_t>(a))),
-                GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
-            const float x1 = ctx.MeasureText(
-                Utf16ToUtf8(w.substr(0, static_cast<size_t>(b))),
-                GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
-            D2D1_COLOR_F sel = tokens.accentColor;
-            sel.a = 0.28f;
-            ctx.FillRect(
-                Rect(textRect.x + 2.0f + x0 - m_textScrollX, textRect.y + 6.0f, (std::max)(1.0f, x1 - x0), textRect.height - 12.0f),
-                sel);
-        }
-
-        ctx.DrawText(
-            text,
-            Rect(textRect.x + 2.0f - m_textScrollX, textRect.y, textRect.width + m_textScrollX + 40.0f, textRect.height),
-            textColor,
-            GetFontFamily(),
-            GetFontSize(),
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-
-        if (m_isFocused && m_caretVisible) {
-            const float caretX = ctx.MeasureText(
-                Utf16ToUtf8(w.substr(0, static_cast<size_t>(m_caret))),
-                GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
-            const float x = textRect.x + 2.0f + caretX - m_textScrollX;
-            ctx.FillRect(Rect(x, textRect.y + 7.0f, 1.5f, textRect.height - 14.0f), textColor);
-        }
-    }
-    ctx.PopClip();
-
-    if (!text.empty()) {
-        const Rect clear = ClearRect();
-        D2D1_COLOR_F clearBg = m_clearHovered ? tokens.hoverBackground : D2D1::ColorF(0, 0, 0, 0);
-        if (m_clearHovered) {
-            ctx.FillRoundedRect(
-                Rect(clear.x + 4.0f, clear.y + 5.0f, clear.width - 8.0f, clear.height - 10.0f),
-                3.0f,
-                clearBg);
-        }
-        ctx.DrawText(
-            "×",
-            clear,
-            tokens.textSecondary,
-            "Segoe UI",
-            16.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    }
+    (void)ctx;
 }
 
 void AutoSuggestBox::RenderPopup(GraphicsContext& ctx) {
@@ -581,7 +482,7 @@ void AutoSuggestBox::RenderPopup(GraphicsContext& ctx) {
     ctx.PushClip(Rect(menu.x, menu.y, menu.width, currentH));
 
     const auto& tokens = ThemeManager::Instance().GetTokens();
-    const float radius = GetCornerRadius() >= 0.0f ? GetCornerRadius() : 4.0f;
+    constexpr float radius = 4.0f;
     ctx.FillRoundedRect(menu, radius, tokens.cardBackground);
     ctx.DrawRoundedRect(menu, radius, tokens.cardBorder, 1.25f);
 
@@ -647,56 +548,17 @@ void AutoSuggestBox::OnMouseDown(Point pt) {
         const int sug = HitTestSuggestionIndex(pt);
         if (sug >= 0) {
             ChooseSuggestion(sug);
-            return;
-        }
-    }
-
-    m_pressed = HitTestPart(pt);
-    if (m_pressed == HitPart::Clear) {
-        SetTextInternal("", true, true);
-        CloseSuggestions();
-        m_pressed = HitPart::None;
-        return;
-    }
-
-    if (m_pressed == HitPart::Text) {
-        // Click-to-caret: approximate by measuring prefixes.
-        GraphicsContext ctx;
-        const Rect textRect = TextRect();
-        const std::wstring w = Utf8ToUtf16(GetText());
-        const float localX = pt.x - (textRect.x + 2.0f) + m_textScrollX;
-        int best = 0;
-        float bestDist = 1.0e9f;
-        for (int i = 0; i <= static_cast<int>(w.length()); ++i) {
-            const float x = ctx.MeasureText(
-                Utf16ToUtf8(w.substr(0, static_cast<size_t>(i))),
-                GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
-            const float d = std::abs(x - localX);
-            if (d < bestDist) {
-                bestDist = d;
-                best = i;
-            }
-        }
-        SetCaret(best);
-        if (!m_filtered.empty() && !GetText().empty()) {
-            OpenSuggestions();
         }
     }
 }
 
 void AutoSuggestBox::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
-    const bool clearHot = !GetText().empty() && ClearRect().Contains(pt.x, pt.y);
-    if (clearHot != m_clearHovered) {
-        m_clearHovered = clearHot;
-        MarkRenderContentDirty();
-    }
 
     if (m_keyboardNavActive) {
         const float dx = pt.x - m_keyboardNavMousePt.x;
         const float dy = pt.y - m_keyboardNavMousePt.y;
         if ((dx * dx + dy * dy) < 4.0f) {
-            // Spurious MOVE after scroll / key — keep keyboard highlight.
             return;
         }
         m_keyboardNavActive = false;
@@ -714,11 +576,6 @@ void AutoSuggestBox::OnMouseMove(Point pt) {
 
 void AutoSuggestBox::OnMouseLeave() {
     Control::OnMouseLeave();
-    if (m_clearHovered) {
-        m_clearHovered = false;
-        MarkRenderContentDirty();
-    }
-    m_pressed = HitPart::None;
 }
 
 void AutoSuggestBox::OnMouseWheel(float delta) {
@@ -735,15 +592,13 @@ void AutoSuggestBox::OnMouseWheel(float delta) {
     MarkRenderRectDirty(GetPopupBounds().Inflate(2.0f));
 }
 
-void AutoSuggestBox::OnKeyDown(int vkCode) {
-    const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-    const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-
+bool AutoSuggestBox::HandleSuggestionKey(int vkCode) {
     if (vkCode == VK_ESCAPE) {
         if (m_suggestionsOpen) {
             CloseSuggestions();
+            return true;
         }
-        return;
+        return false;
     }
 
     if (vkCode == VK_RETURN) {
@@ -752,7 +607,7 @@ void AutoSuggestBox::OnKeyDown(int vkCode) {
         } else {
             SubmitQuery();
         }
-        return;
+        return true;
     }
 
     if (vkCode == VK_DOWN) {
@@ -767,124 +622,49 @@ void AutoSuggestBox::OnKeyDown(int vkCode) {
         } else {
             MoveHighlightBy(+1);
         }
-        return;
+        return true;
     }
 
     if (vkCode == VK_UP) {
         if (m_suggestionsOpen) {
             MoveHighlightBy(-1);
+            return true;
         }
-        return;
+        return false;
     }
 
-    if (vkCode == VK_LEFT || vkCode == VK_RIGHT || vkCode == VK_HOME || vkCode == VK_END) {
-        const int len = static_cast<int>(Utf8ToUtf16(GetText()).length());
-        int next = m_caret;
-        if (vkCode == VK_LEFT) {
-            next = (std::max)(0, m_caret - 1);
-        } else if (vkCode == VK_RIGHT) {
-            next = (std::min)(len, m_caret + 1);
-        } else if (vkCode == VK_HOME) {
-            next = 0;
-        } else {
-            next = len;
-        }
-        if (shift) {
-            if (m_selAnchor < 0) {
-                m_selAnchor = m_caret;
-            }
-            m_caret = next;
-            EnsureCaretVisible();
-            ResetCaretBlink();
-            MarkRenderContentDirty();
-        } else {
-            SetCaret(next);
-        }
-        return;
-    }
+    return false;
+}
 
-    if (vkCode == VK_BACK) {
-        DeleteSelectionOrBackward();
+void AutoSuggestBox::OnKeyDown(int vkCode) {
+    if (m_field && m_field->IsFocused()) {
         return;
     }
-    if (vkCode == VK_DELETE) {
-        DeleteForward();
+    if (HandleSuggestionKey(vkCode)) {
         return;
     }
-
-    if (ctrl && (vkCode == 'A')) {
-        const int len = static_cast<int>(Utf8ToUtf16(GetText()).length());
-        m_selAnchor = 0;
-        m_caret = len;
-        MarkRenderContentDirty();
-        return;
-    }
-    if (ctrl && (vkCode == 'C' || vkCode == 'X')) {
-        if (m_selAnchor >= 0 && m_selAnchor != m_caret) {
-            const std::wstring w = Utf8ToUtf16(GetText());
-            const int a = (std::min)(m_caret, m_selAnchor);
-            const int b = (std::max)(m_caret, m_selAnchor);
-            const std::wstring slice = w.substr(static_cast<size_t>(a), static_cast<size_t>(b - a));
-            if (OpenClipboard(nullptr)) {
-                EmptyClipboard();
-                const size_t bytes = (slice.size() + 1) * sizeof(wchar_t);
-                HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, bytes);
-                if (mem) {
-                    void* ptr = GlobalLock(mem);
-                    if (ptr) {
-                        memcpy(ptr, slice.c_str(), bytes);
-                        GlobalUnlock(mem);
-                        SetClipboardData(CF_UNICODETEXT, mem);
-                    }
-                }
-                CloseClipboard();
-            }
-            if (vkCode == 'X') {
-                DeleteSelectionOrBackward();
-            }
-        }
-        return;
-    }
-    if (ctrl && vkCode == 'V') {
-        if (OpenClipboard(nullptr)) {
-            HANDLE data = GetClipboardData(CF_UNICODETEXT);
-            if (data) {
-                const wchar_t* text = static_cast<const wchar_t*>(GlobalLock(data));
-                if (text) {
-                    std::wstring clip(text);
-                    GlobalUnlock(data);
-                    // Single-line: strip newlines.
-                    clip.erase(std::remove(clip.begin(), clip.end(), L'\r'), clip.end());
-                    clip.erase(std::remove(clip.begin(), clip.end(), L'\n'), clip.end());
-                    InsertUtf16(clip);
-                }
-            }
-            CloseClipboard();
-        }
-        return;
+    if (m_field) {
+        m_field->OnKeyDown(vkCode);
     }
 }
 
 void AutoSuggestBox::OnCharInput(wchar_t ch) {
-    if (ch < 32 && ch != L'\t') {
-        return;
+    if (m_field) {
+        m_field->OnCharInput(ch);
     }
-    if (ch == L'\t') {
-        return;
-    }
-    InsertUtf16(std::wstring(1, ch));
 }
 
 void AutoSuggestBox::OnFocus() {
     Control::OnFocus();
-    ResetCaretBlink();
+    m_pendingClose = false;
     MarkRenderContentDirty();
 }
 
 void AutoSuggestBox::OnBlur() {
     Control::OnBlur();
-    CloseSuggestions();
-    m_selAnchor = -1;
+    if (!m_field || !m_field->IsFocused()) {
+        CloseSuggestions();
+    }
     MarkRenderContentDirty();
 }
 
@@ -892,15 +672,7 @@ bool AutoSuggestBox::OnAnimationTick() {
     const float dt = UIElement::GetAnimationDeltaSeconds();
     bool animating = Control::OnAnimationTick();
 
-    if (m_isFocused) {
-        m_caretBlink += dt;
-        if (m_caretBlink >= 0.53f) {
-            m_caretBlink = 0.0f;
-            m_caretVisible = !m_caretVisible;
-            MarkRenderRectDirty(TextRect().Inflate(2.0f));
-            animating = true;
-        }
-    }
+    FlushPendingClose();
 
     if (m_debounceLeft >= 0.0f) {
         m_debounceLeft -= dt;
@@ -922,7 +694,7 @@ bool AutoSuggestBox::OnAnimationTick() {
         MarkRenderRectDirty(GetPopupBounds().Inflate(2.0f));
     }
 
-    if (animating) {
+    if (animating || m_pendingClose) {
         RequestAnimationTicks();
     }
     return animating;
@@ -930,7 +702,7 @@ bool AutoSuggestBox::OnAnimationTick() {
 
 bool AutoSuggestBox::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
-        || m_isFocused
+        || m_pendingClose
         || m_debounceLeft >= 0.0f
         || std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f
         || m_scrollbarAutoHide.NeedsTicks();

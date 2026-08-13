@@ -16,6 +16,41 @@ namespace {
 
 constexpr float kPad = 16.0f;
 constexpr float kSb = 10.0f;
+constexpr float kCopyBtn = 26.0f;
+constexpr float kCopyInset = 4.0f;
+
+constexpr const char* kSvgCopy =
+    "<svg viewBox=\"0 0 1024 1024\" xmlns=\"http://www.w3.org/2000/svg\">"
+    "<path d=\"M661.333333 234.666667A64 64 0 0 1 725.333333 298.666667v597.333333a64 64 0 0 1-64 64h-469.333333A64 64 0 0 1 128 896V298.666667a64 64 0 0 1 64-64z m-21.333333 85.333333H213.333333v554.666667h426.666667v-554.666667z m191.829333-256a64 64 0 0 1 63.744 57.856l0.256 6.144v575.701333a42.666667 42.666667 0 0 1-85.034666 4.992l-0.298667-4.992V149.333333H384a42.666667 42.666667 0 0 1-42.368-37.674666L341.333333 106.666667a42.666667 42.666667 0 0 1 37.674667-42.368L384 64h447.829333z\"/>"
+    "</svg>";
+
+std::string JoinCodeLines(const std::vector<std::string>& lines) {
+    std::string out;
+    for (size_t i = 0; i < lines.size(); ++i) {
+        if (i > 0) {
+            out += '\n';
+        }
+        out += lines[i];
+    }
+    return out;
+}
+
+void StyleCopyButton(Button& btn) {
+    btn.SetText("");
+    btn.SetIcon(kSvgCopy);
+    btn.SetToolTip("复制");
+    btn.SetWidth(kCopyBtn);
+    btn.SetHeight(kCopyBtn);
+    btn.SetFontSize(16.0f);
+    btn.SetPadding(Thickness(5.0f));
+    btn.SetCornerRadius(4.0f);
+    btn.SetBorderThickness(0.0f);
+    btn.SetBackgroundToken(ThemeTokenId::Unset);
+    btn.SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    btn.SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    btn.SetBackground(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+    btn.SetColorToken(ThemeTokenId::AccentColor);
+}
 
 bool CopyUtf8(const std::string& text) {
     const std::wstring w = Utf8ToUtf16(text);
@@ -128,6 +163,86 @@ void MarkdownView::EnsureLayout(GraphicsContext& ctx) {
     m_layoutWidth = inner;
     m_layoutDirty = false;
     ClampScroll();
+    SyncCopyButtons();
+    LayoutCopyButtons();
+}
+
+void MarkdownView::Arrange(Rect finalRect) {
+    if (GetVisibility() == Visibility::Collapsed) {
+        SetBounds(Rect());
+        m_arrangeDirty = false;
+        return;
+    }
+    const Thickness margin = GetMargin();
+    Rect arranged(
+        finalRect.x + margin.left,
+        finalRect.y + margin.top,
+        (std::max)(0.0f, finalRect.width - margin.left - margin.right),
+        (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
+    SetBounds(arranged);
+    LayoutCopyButtons();
+    m_arrangeDirty = false;
+}
+
+void MarkdownView::SyncCopyButtons() {
+    std::vector<std::string> texts;
+    texts.reserve(m_layout.blocks.size());
+    for (const auto& block : m_layout.blocks) {
+        if (block.type == MdPaintBlock::Type::Code) {
+            texts.push_back(JoinCodeLines(block.codeLines));
+        }
+    }
+    m_copyTexts = texts;
+
+    while (m_copyBtns.size() < m_copyTexts.size()) {
+        const size_t index = m_copyBtns.size();
+        auto btn = std::make_shared<Button>();
+        StyleCopyButton(*btn);
+        btn->OnClick().Connect([this, index](UIElement*) { CopyCodeBlock(index); });
+        AddChildQuiet(btn);
+        m_copyBtns.push_back(std::move(btn));
+    }
+    while (m_copyBtns.size() > m_copyTexts.size()) {
+        RemoveChildQuiet(m_copyBtns.back());
+        m_copyBtns.pop_back();
+    }
+}
+
+void MarkdownView::LayoutCopyButtons() {
+    const float ox = m_bounds.x + kPad;
+    const float oy = m_bounds.y + kPad - m_scrollY;
+    size_t i = 0;
+    for (const auto& block : m_layout.blocks) {
+        if (block.type != MdPaintBlock::Type::Code) {
+            continue;
+        }
+        if (i >= m_copyBtns.size()) {
+            break;
+        }
+        auto& btn = m_copyBtns[i];
+        const Rect world(block.bounds.x + ox, block.bounds.y + oy, block.bounds.width, block.bounds.height);
+        const bool visible = world.y + kCopyBtn + kCopyInset > m_bounds.y
+            && world.y < m_bounds.y + m_bounds.height
+            && world.width > kCopyBtn + kCopyInset * 2.0f;
+        btn->SetVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
+        if (visible) {
+            const Rect slot(
+                world.x + world.width - kCopyBtn - kCopyInset,
+                world.y + kCopyInset,
+                kCopyBtn,
+                kCopyBtn);
+            btn->Measure(Size(kCopyBtn, kCopyBtn));
+            btn->Arrange(slot);
+        }
+        ++i;
+    }
+}
+
+void MarkdownView::CopyCodeBlock(size_t index) {
+    if (index >= m_copyTexts.size()) {
+        return;
+    }
+    CopyUtf8(m_copyTexts[index]);
 }
 
 void MarkdownView::ClampScroll() {
@@ -291,7 +406,9 @@ void MarkdownView::OnRender(GraphicsContext& ctx) {
             ctx.FillRoundedRect(world, 4.0f, D2D1::ColorF(accent.r, accent.g, accent.b, 0.08f));
             ctx.FillRect(Rect(world.x, world.y, 3.0f, world.height), accent);
         } else if (block.type == MdPaintBlock::Type::Code) {
-            ctx.FillRoundedRect(world, 6.0f, codeBg);
+            D2D1_COLOR_F fill = codeBg;
+            fill.a = 1.0f;
+            ctx.FillRoundedRect(world, 6.0f, fill);
             ctx.DrawRoundedRect(world, 6.0f, border, 1.0f);
         } else if (block.type == MdPaintBlock::Type::Hr) {
             ctx.FillRect(
@@ -424,6 +541,7 @@ void MarkdownView::OnMouseMove(Point pt) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
         m_scrollbarAutoHide.NotifyActivity(this);
+        LayoutCopyButtons();
         MarkRenderRectDirty(m_bounds);
         return;
     }
@@ -500,6 +618,7 @@ void MarkdownView::OnMouseWheel(float delta) {
         RequestAnimationTicks();
     }
     m_scrollbarAutoHide.NotifyActivity(this);
+    LayoutCopyButtons();
     MarkRenderRectDirty(m_bounds);
 }
 
@@ -517,6 +636,7 @@ void MarkdownView::OnKeyDown(int vkCode) {
         m_targetScrollY = 0.0f;
         ClampScroll();
         m_scrollYAnim.SetTarget(m_targetScrollY);
+        LayoutCopyButtons();
         RequestAnimationTicks();
         MarkRenderRectDirty(m_bounds);
     }
@@ -524,6 +644,7 @@ void MarkdownView::OnKeyDown(int vkCode) {
         m_targetScrollY = m_maxScrollY;
         ClampScroll();
         m_scrollYAnim.SetTarget(m_targetScrollY);
+        LayoutCopyButtons();
         RequestAnimationTicks();
         MarkRenderRectDirty(m_bounds);
     }
@@ -544,6 +665,7 @@ bool MarkdownView::OnAnimationTick() {
         any = true;
     }
     if (any || std::abs(m_scrollY - prev) > 0.1f) {
+        LayoutCopyButtons();
         MarkRenderRectDirty(m_bounds);
     }
     return any;
@@ -554,8 +676,16 @@ bool MarkdownView::HasSelfAnimation() const {
 }
 
 void MarkdownView::OnThemeChanged() {
-    UIElement::OnThemeChanged();
+    m_layout = {};
     m_layoutDirty = true;
+    m_layoutWidth = -1.0f;
+    m_renderNode.GetLayer().ResetCache();
+    for (auto& btn : m_copyBtns) {
+        if (btn) {
+            StyleCopyButton(*btn);
+        }
+    }
+    UIElement::OnThemeChanged();
     MarkRenderRectDirty(m_bounds);
 }
 

@@ -20,6 +20,10 @@ public:
     // messages — not client WM_MOUSEMOVE. Chrome must update hover here.
     virtual void NotifyNonClientMouseMove(float x, float y) {}
     virtual void NotifyNonClientMouseLeave() {}
+
+    // MenuBar is composed into the title bar; light-dismiss must reset it
+    // without the window walking private members.
+    virtual void ResetMenuInteraction() {}
 };
 
 } // namespace CUI

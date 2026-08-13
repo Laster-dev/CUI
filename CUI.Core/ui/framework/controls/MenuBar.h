@@ -36,8 +36,10 @@ public:
     }
 
     float GetTotalWidth(GraphicsContext& ctx);
+    void LayoutItems(GraphicsContext& ctx);
 
     virtual Size Measure(Size availableSize) override;
+    virtual void Arrange(Rect finalRect) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseUp(Point pt) override;

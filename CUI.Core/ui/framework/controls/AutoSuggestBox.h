@@ -3,13 +3,17 @@
 #include "ScrollbarAutoHide.h"
 #include "../window/PopupHost.h"
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 #include <algorithm>
 
 namespace CUI {
 
-// WinUI-style search field with self-drawn suggestion popup (not composed of TextBox/ListBox).
+class TextBox;
+class AutoSuggestField;
+
+// TextBox plus a self-drawn suggestion popup (not ListBox). No wrap chrome.
 class AutoSuggestBox : public Control, public IPopup {
 public:
     using SuggestionProvider = std::function<std::vector<std::string>(const std::string& query)>;
@@ -20,9 +24,10 @@ public:
     virtual const char* GetClassName() const override { return "AutoSuggestBox"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
     virtual HCURSOR GetCursor() const override;
-    bool AcceptsTabFocus() const override { return true; }
+    bool AcceptsTabFocus() const override { return false; }
 
     virtual Size Measure(Size availableSize) override;
+    virtual void Arrange(Rect finalRect) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* HitTest(float x, float y) override;
@@ -72,24 +77,19 @@ public:
     Event<AutoSuggestBox*, const std::string&>& OnQuerySubmitted() { return m_onQuerySubmitted; }
 
 private:
-    enum class HitPart : uint8_t { None, Text, Clear };
+    friend class AutoSuggestField;
 
-    static constexpr float kIconSlot = 28.0f;
-    static constexpr float kClearSlot = 28.0f;
     static constexpr float kDebounceSec = 0.12f;
 
-    Rect IconRect() const;
-    Rect TextRect() const;
-    Rect ClearRect() const;
-    HitPart HitTestPart(Point pt) const;
+    void StyleField();
+    void LayoutField();
+    bool InputActive() const;
+    bool HandleSuggestionKey(int vkCode);
+    void NotifyFieldFocus();
+    void NotifyFieldBlur();
+    void FlushPendingClose();
 
     void SetTextInternal(const std::string& text, bool fireChanged, bool scheduleSuggest);
-    void InsertUtf16(const std::wstring& chunk);
-    void DeleteSelectionOrBackward();
-    void DeleteForward();
-    void SetCaret(int utf16Pos);
-    void EnsureCaretVisible();
-    void ResetCaretBlink();
 
     void ScheduleSuggestRefresh();
     void RefreshSuggestionsNow();
@@ -106,15 +106,13 @@ private:
     void MoveHighlightBy(int delta);
     void BeginKeyboardNavigation();
 
+    std::shared_ptr<TextBox> m_field;
+    bool m_syncingField = false;
+    bool m_pendingClose = false;
+
     std::vector<std::string> m_catalog;
     std::vector<std::string> m_filtered;
     SuggestionProvider m_provider;
-
-    int m_caret = 0;          // UTF-16 index
-    int m_selAnchor = -1;     // -1 = no selection; otherwise selection is [min,max) with caret
-    float m_textScrollX = 0.0f;
-    bool m_caretVisible = true;
-    float m_caretBlink = 0.0f;
 
     bool m_suggestionsOpen = false;
     int m_highlightedIndex = -1;
@@ -127,9 +125,6 @@ private:
     // leaves the cursor over another row and the highlight "jumps" back).
     bool m_keyboardNavActive = false;
     Point m_keyboardNavMousePt{};
-
-    bool m_clearHovered = false;
-    HitPart m_pressed = HitPart::None;
 
     AnimatedScalar m_popupAnim{};
     ScrollbarAutoHide m_scrollbarAutoHide;

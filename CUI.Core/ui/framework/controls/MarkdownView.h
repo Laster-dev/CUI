@@ -1,8 +1,10 @@
 #pragma once
 #include "Control.h"
+#include "Button.h"
 #include "ScrollbarAutoHide.h"
 #include "../text/markdown/MarkdownAst.h"
 #include "../text/markdown/MarkdownLayout.h"
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -20,7 +22,9 @@ public:
     bool AcceptsTabFocus() const override { return true; }
 
     virtual Size Measure(Size availableSize) override;
+    virtual void Arrange(Rect finalRect) override;
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual bool ShouldClipToBounds() const override { return true; }
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
@@ -49,6 +53,9 @@ public:
 private:
     void EnsureLayout(GraphicsContext& ctx);
     void ClampScroll();
+    void SyncCopyButtons();
+    void LayoutCopyButtons();
+    void CopyCodeBlock(size_t index);
     Point ToDoc(Point pt) const;
     int HitChar(Point docPt) const;
     const MdRun* HitRun(Point docPt) const;
@@ -77,6 +84,9 @@ private:
     bool m_selecting = false;
     std::string m_hoverHref;
     Event<MarkdownView*, const std::string&> m_onLinkClicked;
+
+    std::vector<std::shared_ptr<Button>> m_copyBtns;
+    std::vector<std::string> m_copyTexts;
 };
 
 } // namespace CUI

@@ -34,15 +34,30 @@ float MenuBar::GetTotalWidth(GraphicsContext& ctx) {
     return totalW;
 }
 
+void MenuBar::LayoutItems(GraphicsContext& ctx) {
+    float curX = m_bounds.x + 6.0f;
+    for (size_t i = 0; i < m_menus.size(); ++i) {
+        const Size txtSize = ctx.MeasureText(m_menus[i].title, "微软雅黑", 16.0f, DWRITE_FONT_WEIGHT_NORMAL);
+        const float itemW = txtSize.width + 16.0f;
+        m_menus[i].bounds = Rect(curX, m_bounds.y + 3.0f, itemW, m_bounds.height - 6.0f);
+        curX += itemW + 4.0f;
+    }
+}
+
 Size MenuBar::Measure(Size availableSize) {
     float h = GetHeight(); if (h < 0) h = 30.0f;
     m_desiredSize = Size(availableSize.width, h);
     return m_desiredSize;
 }
 
+void MenuBar::Arrange(Rect finalRect) {
+    UIElement::Arrange(finalRect);
+    GraphicsContext ctx;
+    LayoutItems(ctx);
+}
+
 void MenuBar::InvalidateMenuChrome(int indexA, int indexB) {
-    // MenuBar is composed inside TitleBar (not a layout child); stamp the dirty
-    // rect onto the parent as well so CollectRenderDirtyRegion can see it.
+    // Title bar may layer-cache; stamp the parent so hover/open chrome invalidates.
     auto dirtyRect = [&](const Rect& r) {
         if (r.IsEmpty()) return;
         const Rect inflated = r.Inflate(4.0f);
@@ -94,13 +109,10 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
         ? D2D1::ColorF(ThemeManager::Instance().GetTokens().accentColor.r, ThemeManager::Instance().GetTokens().accentColor.g, ThemeManager::Instance().GetTokens().accentColor.b, 0.10f)
         : D2D1::ColorF(ThemeManager::Instance().GetTokens().accentColor.r, ThemeManager::Instance().GetTokens().accentColor.g, ThemeManager::Instance().GetTokens().accentColor.b, 0.18f);
 
-    float curX = m_bounds.x + 6.0f;
+    LayoutItems(ctx);
 
     for (size_t i = 0; i < m_menus.size(); ++i) {
-        Size txtSize = ctx.MeasureText(m_menus[i].title, "微软雅黑", 16.0f, DWRITE_FONT_WEIGHT_NORMAL);
-        float itemW = txtSize.width + 16.0f;
-        Rect itemRect(curX, m_bounds.y + 3.0f, itemW, m_bounds.height - 6.0f);
-        m_menus[i].bounds = itemRect;
+        const Rect& itemRect = m_menus[i].bounds;
 
         const bool isOpen = (static_cast<int>(i) == m_activeOpenIndex);
         const float hoverT = m_menus[i].hoverAnim.Current();
@@ -126,8 +138,6 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
             DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
             DWRITE_FONT_WEIGHT_NORMAL
         );
-
-        curX += itemW + 4.0f;
     }
 }
 

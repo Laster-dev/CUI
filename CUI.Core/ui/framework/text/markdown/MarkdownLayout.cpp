@@ -357,16 +357,17 @@ void LayoutBlocks(
             const float gutter = showLineNumbers ? 36.0f : 10.0f;
             const float codeSize = 12.5f;
             const float rowH = 20.0f;
-            const float padY = 10.0f;
+            const float padTop = 30.0f;
+            const float padBot = 10.0f;
             MdPaintBlock pb;
             pb.type = MdPaintBlock::Type::Code;
             pb.codeLines = lines;
-            const float h = padY * 2.0f + rowH * static_cast<float>(lines.size());
+            const float h = padTop + padBot + rowH * static_cast<float>(lines.size());
             pb.bounds = Rect(x0, y, width, h);
             Style cs;
             cs.font = "Consolas";
             cs.size = codeSize;
-            float cy = y + padY;
+            float cy = y + padTop;
             int lineNo = 1;
             for (const auto& codeLine : lines) {
                 if (showLineNumbers) {
@@ -381,7 +382,7 @@ void LayoutBlocks(
                     pb.runs.push_back(num);
                 }
                 Style lineStyle = cs;
-                Flow flow{ ctx, out, x0 + gutter, x0 + width - 10.0f, x0 + gutter, cy, rowH, cy, {} };
+                Flow flow{ ctx, out, x0 + gutter, x0 + width - 36.0f, x0 + gutter, cy, rowH, cy, {} };
                 const size_t begin = out.runs.size();
                 flow.AppendText(codeLine.empty() ? " " : codeLine, lineStyle);
                 out.plain.push_back('\n');

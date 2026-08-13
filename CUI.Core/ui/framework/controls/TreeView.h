@@ -44,6 +44,7 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual UIElement* HitTest(float x, float y) override;
     virtual void OnMouseDown(Point pt) override;
+    virtual void OnMouseDblClick(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseLeave() override;
@@ -82,6 +83,7 @@ public:
 
     Event<TreeView*, std::shared_ptr<TreeViewItem>>& OnSelectionChanged() { return m_onSelectionChangedEvent; }
     Event<TreeView*, std::shared_ptr<TreeViewItem>>& OnItemToggled() { return m_onItemToggledEvent; }
+    Event<TreeView*, std::shared_ptr<TreeViewItem>>& OnItemDoubleClicked() { return m_onItemDoubleClickedEvent; }
 
 private:
     struct VisibleItem {
@@ -136,6 +138,7 @@ private:
     int m_pressedVisibleIndex = -1;
     Event<TreeView*, std::shared_ptr<TreeViewItem>> m_onSelectionChangedEvent;
     Event<TreeView*, std::shared_ptr<TreeViewItem>> m_onItemToggledEvent;
+    Event<TreeView*, std::shared_ptr<TreeViewItem>> m_onItemDoubleClickedEvent;
 
     // Selection reveal ripple (same as ListView, ~2x Button speed).
     std::weak_ptr<TreeViewItem> m_selectRippleItem;

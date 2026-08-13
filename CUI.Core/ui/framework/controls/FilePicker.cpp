@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "FilePicker.h"
+#include "BreadcrumbBar.h"
 #include "TreeView.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
@@ -230,10 +231,20 @@ UIElement* FilePicker::OnHitTestOverlay(float x, float y) {
     }
     const Rect pop = GetPopupBounds();
     const float currentH = (m_isPopupOpen && progress >= 0.98f) ? pop.height : (pop.height * progress);
-    if (Rect(pop.x, pop.y, pop.width, currentH).Contains(x, y)) {
+    const Rect clip(pop.x, pop.y, pop.width, currentH);
+    if (m_filterDropDownOpen && m_browser.FilterDropdownRect(pop).Contains(x, y)) {
         return this;
     }
-    return nullptr;
+    if (!clip.Contains(x, y)) {
+        return nullptr;
+    }
+    if (UIElement* hit = m_breadcrumbHost.HitTest(x, y)) {
+        return hit;
+    }
+    if (UIElement* hit = m_treeHost.HitTest(x, y)) {
+        return hit;
+    }
+    return this;
 }
 
 void FilePicker::UpdateHover(Point pt) {
@@ -281,10 +292,6 @@ bool FilePicker::HandleBrowserClick(Point pt) {
         SetFilterDropDownOpen(false);
     }
 
-    if (m_breadcrumbHost.HandleMouseDown(pt)) {
-        return true;
-    }
-
     if (m_browser.FilterButtonRect(pop).Contains(pt.x, pt.y)) {
         if (m_browser.GetFilters().size() > 1) {
             SetFilterDropDownOpen(true);
@@ -309,10 +316,6 @@ bool FilePicker::HandleBrowserClick(Point pt) {
             SetPath(path);
             SetPopupOpen(false);
         }
-        return true;
-    }
-
-    if (m_treeHost.HandleMouseDown(pt)) {
         return true;
     }
     return false;
@@ -409,6 +412,9 @@ void FilePicker::CollectPopupOwnedElements(std::vector<UIElement*>& out) const {
     if (TreeView* tree = m_treeHost.GetTree()) {
         out.push_back(tree);
     }
+    if (BreadcrumbBar* bar = m_breadcrumbHost.GetBar()) {
+        out.push_back(bar);
+    }
 }
 
 void FilePicker::OnRenderOverlay(GraphicsContext& ctx) {
@@ -442,17 +448,7 @@ void FilePicker::OnMouseDown(Point pt) {
     MarkPickerDirty();
 }
 
-void FilePicker::OnMouseDblClick(Point pt) {
-    if (!m_isPopupOpen) {
-        return;
-    }
-    m_treeHost.HandleMouseDblClick(pt);
-}
-
 void FilePicker::OnMouseUp(Point pt) {
-    if (m_isPopupOpen) {
-        m_treeHost.HandleMouseUp(pt);
-    }
     const HitPart pressed = m_pressed;
     m_pressed = HitPart::None;
     if (!m_isPopupOpen && pressed != HitPart::None && HitTestPart(pt) == pressed) {
@@ -467,7 +463,6 @@ void FilePicker::OnMouseMove(Point pt) {
     }
     if (m_isPopupOpen) {
         UpdateHover(pt);
-        m_treeHost.HandleMouseMove(pt);
         return;
     }
     const HitPart next = HitTestPart(pt);
@@ -485,18 +480,6 @@ void FilePicker::OnMouseLeave() {
     m_hoverCancel = false;
     m_hoverConfirm = false;
     m_hoverFilterItem = -1;
-    if (m_isPopupOpen) {
-        m_treeHost.HandleMouseLeave();
-    }
-    MarkPickerDirty();
-}
-
-void FilePicker::OnMouseWheel(float delta) {
-    if (!m_isPopupOpen) {
-        return;
-    }
-    m_treeHost.HandleMouseWheel(delta);
-    RequestAnimationTicks();
     MarkPickerDirty();
 }
 
@@ -555,7 +538,9 @@ void FilePicker::OnKeyDown(int vkCode) {
             RequestAnimationTicks();
             return;
         }
-        m_treeHost.HandleKeyDown(vkCode);
+        if (TreeView* tree = m_treeHost.GetTree()) {
+            tree->OnKeyDown(vkCode);
+        }
         MarkPickerDirty();
         RequestAnimationTicks();
         return;

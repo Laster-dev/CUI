@@ -1182,9 +1182,11 @@ void NavigationView::RelayoutChildren(bool measureContent) {
 
         if (m_autoSuggestBox && !compactList && pane.width > 80.0f) {
             m_autoSuggestBox->SetVisibility(Visibility::Visible);
-            const float boxH = 32.0f;
-            m_autoSuggestBox->Measure(Size(pane.width - 16.0f, boxH));
-            m_autoSuggestBox->Arrange(Rect(pane.x + 8.0f, y, pane.width - 16.0f, boxH));
+            constexpr float kSuggestInset = 16.0f;
+            const float availW = (std::max)(40.0f, pane.width - kSuggestInset * 2.0f);
+            m_autoSuggestBox->Measure(Size(availW, 80.0f));
+            const float boxH = (std::max)(32.0f, m_autoSuggestBox->GetDesiredSize().height);
+            m_autoSuggestBox->Arrange(Rect(pane.x + kSuggestInset, y, availW, boxH));
             y += boxH + 8.0f;
         } else if (m_autoSuggestBox) {
             m_autoSuggestBox->SetVisibility(Visibility::Collapsed);

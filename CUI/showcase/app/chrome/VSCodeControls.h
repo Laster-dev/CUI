@@ -18,11 +18,11 @@ public:
 
     virtual const char* GetClassName() const override { return "TitleBar"; }
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual void Arrange(Rect finalRect) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseLeave() override;
-    virtual void OnBlur() override;
-    virtual UIElement* HitTest(float x, float y) override;
+    virtual void ResetMenuInteraction() override;
 
     virtual UIElement* GetChromeElement() override { return this; }
     virtual const UIElement* GetChromeElement() const override { return this; }
@@ -31,7 +31,7 @@ public:
     virtual LRESULT HitTestNonClient(float x, float y) const override;
     virtual bool ConsumeChromeDirty() override;
 
-    MenuBar& GetMenuBar() { return m_menuBar; }
+    MenuBar& GetMenuBar() { return *m_menuBar; }
     bool IsMenuBarHit(float x, float y) const;
     Rect GetLowPerformanceToggleRect() const;
     bool IsLowPerformanceToggleHit(float x, float y) const;
@@ -49,7 +49,8 @@ public:
     Event<TitleBar*>& OnToggleTheme() { return m_onToggleTheme; }
 
 private:
-    MenuBar m_menuBar;
+    Rect LayoutMenuBar(GraphicsContext& ctx);
+    std::shared_ptr<MenuBar> m_menuBar;
     std::string m_title;
     bool m_menuChromeDirty = false;
     int m_hoverRegion = -1;

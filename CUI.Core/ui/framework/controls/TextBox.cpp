@@ -587,7 +587,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         const float inlineY = m_bounds.y + 15.0f;
         const float drawY = inlineY + (labelY - inlineY) * labelEased;
         const float drawSize = fontSize + (labelFontSize - fontSize) * labelEased;
-        Rect drawRect(m_bounds.x, drawY, m_bounds.width, (std::max)(16.0f, m_bounds.height - 18.0f));
+        Rect drawRect(textRect.x, drawY, textRect.width, (std::max)(16.0f, m_bounds.height - 18.0f));
         D2D1_COLOR_F drawColor = labelColor;
         if (text.empty() && m_compString.empty() && labelEased < 0.001f) {
             drawColor = phBase;
@@ -685,29 +685,33 @@ void TextBox::OnRender(GraphicsContext& ctx) {
 
     ctx.PopClip();
 
-    D2D1_COLOR_F underlineColor = ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::InputBorder);
-    D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
-    if (!enabled) {
-        underlineColor.a *= 0.4f;
-        activeUnderlineColor = underlineColor;
-    }
-    float lineY = m_bounds.y + m_bounds.height - 2.0f;
-    if (m_dropHover && enabled) {
-        ctx.DrawLine(
-            Point(m_bounds.x, lineY),
-            Point(m_bounds.x + m_bounds.width, lineY),
-            activeUnderlineColor,
-            2.5f);
-    } else {
-        ctx.DrawLine(Point(m_bounds.x, lineY), Point(m_bounds.x + m_bounds.width, lineY), underlineColor, 1.0f);
-    }
+    const bool drawUnderline = GetUnderlineColorToken() != ThemeTokenId::Unset
+        || GetActiveUnderlineColorToken() != ThemeTokenId::Unset;
+    if (drawUnderline) {
+        D2D1_COLOR_F underlineColor = ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::InputBorder);
+        D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
+        if (!enabled) {
+            underlineColor.a *= 0.4f;
+            activeUnderlineColor = underlineColor;
+        }
+        float lineY = m_bounds.y + m_bounds.height - 2.0f;
+        if (m_dropHover && enabled) {
+            ctx.DrawLine(
+                Point(m_bounds.x, lineY),
+                Point(m_bounds.x + m_bounds.width, lineY),
+                activeUnderlineColor,
+                2.5f);
+        } else {
+            ctx.DrawLine(Point(m_bounds.x, lineY), Point(m_bounds.x + m_bounds.width, lineY), underlineColor, 1.0f);
+        }
 
-    float focusFactor = enabled ? std::clamp(focusLineProgress, 0.0f, 1.0f) : 0.0f;
-    if (focusFactor > 0.01f) {
-        float eased = 1.0f - std::pow(1.0f - focusFactor, 2.4f);
-        float activeWidth = m_bounds.width * eased;
-        float activeX = m_bounds.x + (m_bounds.width - activeWidth) * 0.5f;
-        ctx.DrawLine(Point(activeX, lineY), Point(activeX + activeWidth, lineY), activeUnderlineColor, 1.0f + eased);
+        float focusFactor = enabled ? std::clamp(focusLineProgress, 0.0f, 1.0f) : 0.0f;
+        if (focusFactor > 0.01f) {
+            float eased = 1.0f - std::pow(1.0f - focusFactor, 2.4f);
+            float activeWidth = m_bounds.width * eased;
+            float activeX = m_bounds.x + (m_bounds.width - activeWidth) * 0.5f;
+            ctx.DrawLine(Point(activeX, lineY), Point(activeX + activeWidth, lineY), activeUnderlineColor, 1.0f + eased);
+        }
     }
 
     if (IsPasswordMode() && GetShowRevealButton()) {

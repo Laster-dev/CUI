@@ -49,6 +49,7 @@ public:
     virtual void OnKeyDown(int vkCode) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
+    virtual void OnThemeChanged() override;
 
     void Append(LogLevel level, std::string message);
     void Append(LogLevel level, std::string category, std::string message);

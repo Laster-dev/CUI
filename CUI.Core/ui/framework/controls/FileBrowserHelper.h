@@ -105,11 +105,12 @@ public:
     void Sync(const std::string& currentPath);
     void Layout(const FileBrowserSession& session, const Rect& pop);
     void Render(GraphicsContext& ctx);
-    bool HandleMouseDown(Point pt);
+    UIElement* HitTest(float x, float y);
     void DismissOverflowMenu();
     bool IsOverflowMenuOpen() const;
     Rect GetOverflowMenuClientBounds() const;
     const Rect& GetBounds() const { return m_bounds; }
+    BreadcrumbBar* GetBar() const { return m_bar.get(); }
 
 private:
     std::shared_ptr<BreadcrumbBar> m_bar;
@@ -141,13 +142,7 @@ public:
 
     void Layout(const Rect& listRect);
     void Render(GraphicsContext& ctx);
-    bool HandleMouseDown(Point pt);
-    bool HandleMouseDblClick(Point pt);
-    void HandleMouseMove(Point pt);
-    void HandleMouseUp(Point pt);
-    void HandleMouseLeave();
-    void HandleMouseWheel(float delta);
-    void HandleKeyDown(int vkCode);
+    UIElement* HitTest(float x, float y);
 
     bool Tick();
     bool NeedsAnimationTicks() const;

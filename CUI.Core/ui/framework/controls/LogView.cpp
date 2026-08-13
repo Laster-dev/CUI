@@ -1407,4 +1407,19 @@ bool LogView::HasSelfAnimation() const {
     return false;
 }
 
+void LogView::OnThemeChanged() {
+    if (m_btnCopy) {
+        StyleIconButton(*m_btnCopy, kSvgCopy, "复制", ThemeTokenId::AccentColor);
+    }
+    if (m_btnClear) {
+        StyleIconButton(*m_btnClear, kSvgClear, "清空", ThemeTokenId::AccentColor);
+    }
+    if (m_btnFollow) {
+        StyleIconButton(*m_btnFollow, kSvgFollow, "跟随", ThemeTokenId::TextPrimary);
+    }
+    SyncActionButtons();
+    UIElement::OnThemeChanged();
+    MarkRenderRectDirty(m_bounds);
+}
+
 } // namespace CUI
