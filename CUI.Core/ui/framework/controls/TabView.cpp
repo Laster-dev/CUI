@@ -404,7 +404,13 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         // Draw Icon if available
         float titleX = tabX + 12.0f;
         if (!tab.icon.empty()) {
-            ctx.DrawText(tab.icon, Rect(titleX, tabRect.y, 16, tabRect.height), ThemeManager::Instance().GetTokens().accentColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            const float iconSize = 16.0f;
+            const Rect iconRect(
+                titleX,
+                tabRect.y + (tabRect.height - iconSize) * 0.5f,
+                iconSize,
+                iconSize);
+            ctx.DrawIcon(tab.icon, iconRect, ThemeManager::Instance().GetTokens().accentColor, 1.0f, "微软雅黑", 12.0f);
             titleX += 20.0f;
         }
 

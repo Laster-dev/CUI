@@ -49,22 +49,36 @@ Size Button::Measure(Size availableSize) {
     const std::string& text = GetText();
     const std::string& icon = GetIcon();
     const std::string& font = GetFontFamily();
-    float fontSize = GetFontSize();
-
-    std::string fullText = icon.empty() ? text : (icon + " " + text);
+    const float fontSize = GetFontSize();
 
     GraphicsContext ctx;
-    Size measured = ctx.MeasureText(fullText, font, fontSize, DWRITE_FONT_WEIGHT_NORMAL);
+    float contentW = 0.0f;
+    float contentH = fontSize + 4.0f;
+    if (!icon.empty()) {
+        if (GraphicsContext::LooksLikeSvg(icon)) {
+            contentW += fontSize + 2.0f;
+        } else {
+            const Size iconSize = ctx.MeasureText(icon, font, fontSize, DWRITE_FONT_WEIGHT_NORMAL);
+            contentW += iconSize.width;
+            contentH = (std::max)(contentH, iconSize.height);
+        }
+    }
+    if (!text.empty()) {
+        const Size textSize = ctx.MeasureText(text, font, fontSize, DWRITE_FONT_WEIGHT_NORMAL);
+        if (contentW > 0.0f) {
+            contentW += 6.0f;
+        }
+        contentW += textSize.width;
+        contentH = (std::max)(contentH, textSize.height);
+    }
 
-    Thickness margin = GetMargin();
-    Thickness padding = GetPadding();
+    const Thickness margin = GetMargin();
+    const Thickness padding = GetPadding();
+    float w = contentW + margin.left + margin.right + padding.left + padding.right;
+    float h = contentH + margin.top + margin.bottom + padding.top + padding.bottom;
 
-    float w = measured.width + margin.left + margin.right + padding.left + padding.right;
-    float h = measured.height + margin.top + margin.bottom + padding.top + padding.bottom;
-
-    float expW = GetWidth();
-    float expH = GetHeight();
-
+    const float expW = GetWidth();
+    const float expH = GetHeight();
     if (expW >= 0.0f) w = expW;
     if (expH >= 0.0f) h = expH;
 
@@ -154,20 +168,58 @@ void Button::DrawButtonFace(GraphicsContext& ctx, D2D1_COLOR_F bg, D2D1_COLOR_F 
 void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_TEXT_ALIGNMENT align) {
     const std::string& text = GetText();
     const std::string& icon = GetIcon();
-    const std::string fullText = icon.empty() ? text : (icon + " " + text);
-    if (fullText.empty()) {
+    if (text.empty() && icon.empty()) {
         return;
     }
     D2D1_COLOR_F textColor = IsEnabled()
         ? ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground)
         : ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
+    if (icon.empty()) {
+        ctx.DrawText(
+            text,
+            textRect,
+            textColor,
+            GetFontFamily(),
+            GetFontSize(),
+            align,
+            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        return;
+    }
+
+    const float fontSize = GetFontSize();
+    const float iconSize = (std::min)(textRect.height - 2.0f, fontSize + 4.0f);
+    if (text.empty()) {
+        const Rect iconRect(
+            textRect.x + (textRect.width - iconSize) * 0.5f,
+            textRect.y + (textRect.height - iconSize) * 0.5f,
+            iconSize,
+            iconSize);
+        ctx.DrawIcon(icon, iconRect, textColor);
+        return;
+    }
+
+    const Size textSize = ctx.MeasureText(text, GetFontFamily(), fontSize, DWRITE_FONT_WEIGHT_NORMAL);
+    const float gap = 6.0f;
+    const float total = iconSize + gap + textSize.width;
+    float startX = textRect.x;
+    if (align == DWRITE_TEXT_ALIGNMENT_CENTER) {
+        startX = textRect.x + (textRect.width - total) * 0.5f;
+    } else if (align == DWRITE_TEXT_ALIGNMENT_TRAILING) {
+        startX = textRect.x + textRect.width - total;
+    }
+    const Rect iconRect(
+        startX,
+        textRect.y + (textRect.height - iconSize) * 0.5f,
+        iconSize,
+        iconSize);
+    ctx.DrawIcon(icon, iconRect, textColor);
     ctx.DrawText(
-        fullText,
-        textRect,
+        text,
+        Rect(startX + iconSize + gap, textRect.y, textSize.width, textRect.height),
         textColor,
         GetFontFamily(),
-        GetFontSize(),
-        align,
+        fontSize,
+        DWRITE_TEXT_ALIGNMENT_LEADING,
         DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 

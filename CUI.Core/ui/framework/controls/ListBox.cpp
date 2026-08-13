@@ -108,6 +108,23 @@ void ListBox::SetVirtualCount(size_t count) {
     ClampScroll();
 }
 
+void ListBox::RefreshVirtualCount(size_t count) {
+    m_virtualMode = true;
+    if (m_virtualCount == count) {
+        InvalidateItemsLayer();
+        return;
+    }
+    m_virtualCount = count;
+    if (m_selectedIndex >= static_cast<int>(count)) {
+        ClearSelection();
+    }
+    if (m_caretIndex >= static_cast<int>(count)) {
+        m_caretIndex = count > 0 ? static_cast<int>(count) - 1 : -1;
+    }
+    ClampScroll();
+    InvalidateItemsLayer();
+}
+
 void ListBox::SetVirtualMode(size_t count, ListBoxDataSource* dataSource) {
     m_virtualMode = true;
     m_virtualCount = count;
@@ -121,6 +138,18 @@ void ListBox::SetVirtualMode(size_t count, ListBoxDataSource* dataSource) {
 }
 
 void ListBox::SetItems(const std::vector<std::string>& items) {
+    if (!m_virtualMode && items.size() == m_itemDatas.size()) {
+        bool same = true;
+        for (size_t i = 0; i < items.size(); ++i) {
+            if (m_itemDatas[i].customElement || m_itemDatas[i].text != items[i]) {
+                same = false;
+                break;
+            }
+        }
+        if (same) {
+            return;
+        }
+    }
     m_virtualMode = false;
     m_virtualCount = 0;
     m_dataSource = nullptr;

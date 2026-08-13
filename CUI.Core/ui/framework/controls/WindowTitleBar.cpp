@@ -267,17 +267,22 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
         drewNative = true;
     }
     if (!drewNative) {
-        ctx.FillRoundedRect(iconRect, 4.0f, tokens.accentColor);
-        ctx.DrawText(
-            m_iconText.empty() ? DefaultIconTextFromTitle(m_title) : m_iconText,
-            iconRect,
-            tokens.accentForeground,
-            "微软雅黑",
-            11.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_BOLD
-        );
+        const std::string& icon = m_iconText.empty() ? DefaultIconTextFromTitle(m_title) : m_iconText;
+        if (GraphicsContext::LooksLikeSvg(icon)) {
+            ctx.DrawIcon(icon, iconRect, tokens.accentForeground);
+        } else {
+            ctx.FillRoundedRect(iconRect, 4.0f, tokens.accentColor);
+            ctx.DrawText(
+                icon,
+                iconRect,
+                tokens.accentForeground,
+                "微软雅黑",
+                11.0f,
+                DWRITE_TEXT_ALIGNMENT_CENTER,
+                DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+                DWRITE_FONT_WEIGHT_BOLD
+            );
+        }
     }
 
     const float menuWidth = m_menuBar.GetTotalWidth(ctx);

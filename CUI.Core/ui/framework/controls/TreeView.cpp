@@ -561,10 +561,8 @@ void TreeView::OnRender(GraphicsContext& ctx) {
             if (iconText.empty()) {
                 iconText = !item->children.empty() ? (item->expandAnim.Current() > 0.5f ? "📂" : "📁") : "📄";
             }
-            Rect glyphRect(contentX, drawCellRect.y, 16.0f, baseH);
-            D2D1_COLOR_F iconColor = accentColor;
-            iconColor.a *= rowAlpha;
-            ctx.DrawText(iconText, glyphRect, iconColor, "Segoe UI Emoji", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            Rect glyphRect(contentX, drawCellRect.y + (baseH - 16.0f) * 0.5f, 16.0f, 16.0f);
+            ctx.DrawIcon(iconText, glyphRect, accentColor, rowAlpha, "Segoe UI Emoji", 11.0f);
         }
         contentX += 20.0f;
 

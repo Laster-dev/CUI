@@ -133,6 +133,7 @@ private:
     bool GetAcceptsReturn() const { return m_acceptsReturn; }
     bool IsTextWrapping() const { return m_textWrapping; }
     bool IsMultiline() const;
+    bool UsesFloatingLabel() const;
 
     Rect GetTextRect() const;
     Point GetLayoutOrigin(const Rect& textRect) const;

@@ -220,8 +220,13 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
 
     Rect iconRect(x, m_bounds.y, kIconSlot, m_bounds.height);
     if (!m_icon.empty()) {
-        ctx.DrawText(m_icon, iconRect, textColor, "微软雅黑", 14.0f,
-                     DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        const float iconSize = 16.0f;
+        const Rect glyph(
+            iconRect.x + (iconRect.width - iconSize) * 0.5f,
+            iconRect.y + (iconRect.height - iconSize) * 0.5f,
+            iconSize,
+            iconSize);
+        ctx.DrawIcon(m_icon, glyph, textColor, 1.0f, "微软雅黑", 14.0f);
     }
     x += kIconSlot;
 

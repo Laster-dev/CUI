@@ -37,6 +37,7 @@
 #include "../controls/TeachingTip.h"
 #include "../controls/chart/Chart.h"
 #include "../controls/MarkdownView.h"
+#include "../controls/LogView.h"
 #include "../dnd/DragDropService.h"
 #include "../controls/FilePicker.h"
 #include "../controls/FolderPicker.h"
@@ -478,6 +479,10 @@ inline ElementBuilder<PieChart> PieChartWidget() {
 
 inline ElementBuilder<MarkdownView> MarkdownViewWidget() {
     return ElementBuilder<MarkdownView>();
+}
+
+inline ElementBuilder<LogView> LogViewWidget() {
+    return ElementBuilder<LogView>();
 }
 
 inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") {

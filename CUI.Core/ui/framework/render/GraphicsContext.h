@@ -3,6 +3,7 @@
 #include "RenderLayer.h"
 #include "../core/Value.h"
 #include <d2d1_1.h>
+#include <d2d1_3.h>
 #include <d3d11.h>
 #include <dwrite.h>
 #include <wincodec.h>
@@ -10,6 +11,7 @@
 #include <dcomp.h>
 #include <wrl/client.h>
 #include <windows.h>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include <functional>
@@ -113,6 +115,23 @@ public:
     void DrawPolygon(const Point* points, int count, D2D1_COLOR_F color, float strokeWidth = 1.0f);
     // Draw a native HICON (e.g. extracted from regedit.exe) into dest DIPs.
     void DrawHIcon(HICON icon, const Rect& dest, float opacity = 1.0f);
+
+    // Inline `<svg>…</svg>` markup, or a filesystem path ending in `.svg`.
+    static bool LooksLikeSvg(const std::string& source);
+    // Native Direct2D SVG. `tint` recolors fill/stroke (monochrome theme icons).
+    void DrawSvg(
+        const std::string& source,
+        const Rect& dest,
+        const D2D1_COLOR_F* tint = nullptr,
+        float opacity = 1.0f);
+    // SVG markup/path, else emoji/glyph text centered in dest.
+    void DrawIcon(
+        const std::string& icon,
+        const Rect& dest,
+        D2D1_COLOR_F color,
+        float opacity = 1.0f,
+        const std::string& glyphFont = "Segoe UI Emoji",
+        float glyphSize = 0.0f);
     void DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,
                   const std::string& fontName = "微软雅黑", float fontSize = 13.0f,
                   DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING,
@@ -232,6 +251,14 @@ private:
     // Cached HICON → D2D bitmap conversions (cleared with device resources).
     std::unordered_map<HICON, ComPtr<ID2D1Bitmap>> m_iconBitmapCache;
     ID2D1Bitmap* GetOrCreateIconBitmap(HICON icon);
+
+    struct SvgCacheEntry {
+        ComPtr<ID2D1SvgDocument> doc;
+        D2D1_SIZE_F viewport{ 24.0f, 24.0f };
+    };
+    std::unordered_map<std::string, SvgCacheEntry> m_svgCache;
+    ComPtr<ID2D1DeviceContext5> GetSvgContext();
+    const SvgCacheEntry* GetOrCreateSvg(const std::string& source, const D2D1_COLOR_F* tint);
 };
 
 } // namespace CUI

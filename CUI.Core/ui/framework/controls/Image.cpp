@@ -104,6 +104,15 @@ void Image::OnRender(GraphicsContext& ctx) {
         return;
     }
 
+    if (GraphicsContext::LooksLikeSvg(GetIcon())) {
+        ctx.DrawSvg(GetIcon(), m_bounds);
+        return;
+    }
+    if (GraphicsContext::LooksLikeSvg(m_badgeText)) {
+        ctx.DrawSvg(m_badgeText, m_bounds);
+        return;
+    }
+
     if (m_imageType == ImageType::Avatar) {
         // Draw Circular Avatar Badge
         float minDim = (std::min)(m_bounds.width, m_bounds.height);

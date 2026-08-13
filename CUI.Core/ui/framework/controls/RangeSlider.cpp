@@ -168,16 +168,15 @@ void RangeSlider::SetLowerValue(float val) {
     if (std::abs(m_lower - val) < 0.0001f) {
         return;
     }
-    const Rect prevL = GetLowerThumbRect();
-    const Rect prevU = GetUpperThumbRect();
+    const Rect prev = GetLowerThumbRect();
     m_lower = val;
-    NotifyFieldChanged(PropertyId::LowerValue, Value(m_lower));
     if (m_dragging) {
         m_lowerAnim.Reset(m_lower);
     } else {
+        NotifyFieldChanged(PropertyId::LowerValue, Value(m_lower));
         RequestAnimationTicks();
     }
-    MarkRangeDirty(prevL, prevU);
+    MarkThumbMoved(prev, GetLowerThumbRect());
     FireChanged();
 }
 
@@ -186,16 +185,15 @@ void RangeSlider::SetUpperValue(float val) {
     if (std::abs(m_upper - val) < 0.0001f) {
         return;
     }
-    const Rect prevL = GetLowerThumbRect();
-    const Rect prevU = GetUpperThumbRect();
+    const Rect prev = GetUpperThumbRect();
     m_upper = val;
-    NotifyFieldChanged(PropertyId::UpperValue, Value(m_upper));
     if (m_dragging) {
         m_upperAnim.Reset(m_upper);
     } else {
+        NotifyFieldChanged(PropertyId::UpperValue, Value(m_upper));
         RequestAnimationTicks();
     }
-    MarkRangeDirty(prevL, prevU);
+    MarkThumbMoved(prev, GetUpperThumbRect());
     FireChanged();
 }
 
@@ -220,16 +218,21 @@ void RangeSlider::SetRange(float lower, float upper) {
     const Rect prevU = GetUpperThumbRect();
     m_lower = lower;
     m_upper = upper;
-    NotifyFieldChanged(PropertyId::LowerValue, Value(m_lower));
-    NotifyFieldChanged(PropertyId::UpperValue, Value(m_upper));
     if (m_dragging) {
         m_lowerAnim.Reset(m_lower);
         m_upperAnim.Reset(m_upper);
     } else {
+        NotifyFieldChanged(PropertyId::LowerValue, Value(m_lower));
+        NotifyFieldChanged(PropertyId::UpperValue, Value(m_upper));
         RequestAnimationTicks();
     }
-    MarkRangeDirty(prevL, prevU);
+    MarkBothThumbsDirty(prevL, prevU);
     FireChanged();
+}
+
+void RangeSlider::FlushPropertyNotify() {
+    NotifyFieldChanged(PropertyId::LowerValue, Value(m_lower));
+    NotifyFieldChanged(PropertyId::UpperValue, Value(m_upper));
 }
 
 void RangeSlider::FireChanged() {
@@ -287,10 +290,40 @@ Rect RangeSlider::GetFillRect() const {
     return Rect(track.x, y0, track.width, (std::max)(0.0f, y1 - y0));
 }
 
-void RangeSlider::MarkRangeDirty(const Rect& prevLower, const Rect& prevUpper) {
-    Rect dirty = prevLower.Union(prevUpper).Union(GetLowerThumbRect()).Union(GetUpperThumbRect());
-    dirty = dirty.Union(GetTrackRect()).Inflate(28.0f);
+Rect RangeSlider::ChipFootprint(const Rect& thumb) const {
+    const bool horizontal = GetOrientation() != Orientation::Vertical;
+    if (horizontal) {
+        return Rect(thumb.x + thumb.width * 0.5f - 28.0f, thumb.y - 28.0f, 56.0f, 28.0f);
+    }
+    return Rect(thumb.x + thumb.width, thumb.y - 4.0f, 48.0f, thumb.height + 8.0f);
+}
+
+void RangeSlider::MarkThumbMoved(const Rect& prevThumb, const Rect& currThumb) {
+    Rect dirty = prevThumb.Union(currThumb).Inflate(2.0f);
+    const Rect track = GetTrackRect();
+    const bool horizontal = GetOrientation() != Orientation::Vertical;
+    if (horizontal) {
+        const float a = prevThumb.x + prevThumb.width * 0.5f;
+        const float b = currThumb.x + currThumb.width * 0.5f;
+        const float left = (std::min)(a, b);
+        const float right = (std::max)(a, b);
+        dirty = dirty.Union(Rect(left, track.y, (std::max)(0.0f, right - left), track.height).Inflate(2.0f));
+    } else {
+        const float a = prevThumb.y + prevThumb.height * 0.5f;
+        const float b = currThumb.y + currThumb.height * 0.5f;
+        const float top = (std::min)(a, b);
+        const float bottom = (std::max)(a, b);
+        dirty = dirty.Union(Rect(track.x, top, track.width, (std::max)(0.0f, bottom - top)).Inflate(2.0f));
+    }
+    if (m_dragging || m_hover != Thumb::None || m_isFocused) {
+        dirty = dirty.Union(ChipFootprint(prevThumb)).Union(ChipFootprint(currThumb));
+    }
     MarkRenderRectDirty(dirty);
+}
+
+void RangeSlider::MarkBothThumbsDirty(const Rect& prevLower, const Rect& prevUpper) {
+    MarkThumbMoved(prevLower, GetLowerThumbRect());
+    MarkThumbMoved(prevUpper, GetUpperThumbRect());
 }
 
 float RangeSlider::ValueFromPoint(Point pt) const {
@@ -339,7 +372,9 @@ void RangeSlider::OnMouseDown(Point pt) {
     if (!IsEnabled()) {
         return;
     }
-    Control::OnMouseDown(pt);
+    // Skip Control::OnMouseDown — it RequestAnimationTicks a visual-state fade
+    // that dirties the full bounds every frame while the thumb is already moving.
+    UIElement::OnMouseDown(pt);
     Thumb hit = HitTestThumb(pt);
     if (hit == Thumb::None) {
         hit = CloserThumb(pt);
@@ -359,7 +394,7 @@ void RangeSlider::OnMouseMove(Point pt) {
     if (!IsEnabled()) {
         return;
     }
-    Control::OnMouseMove(pt);
+    UIElement::OnMouseMove(pt);
     if (m_dragging) {
         const float v = ValueFromPoint(pt);
         if (m_active == Thumb::Upper) {
@@ -371,24 +406,34 @@ void RangeSlider::OnMouseMove(Point pt) {
     }
     const Thumb hover = HitTestThumb(pt);
     if (hover != m_hover) {
+        const Rect prevL = GetLowerThumbRect();
+        const Rect prevU = GetUpperThumbRect();
         m_hover = hover;
-        MarkRenderRectDirty(m_bounds);
+        MarkRenderRectDirty(prevL.Union(ChipFootprint(prevL)).Union(prevU).Union(ChipFootprint(prevU)).Inflate(2.0f));
     }
 }
 
 void RangeSlider::OnMouseUp(Point pt) {
-    Control::OnMouseUp(pt);
+    UIElement::OnMouseUp(pt);
+    const bool wasDragging = m_dragging;
     m_dragging = false;
     m_hover = HitTestThumb(pt);
-    RequestAnimationTicks();
-    MarkRenderRectDirty(m_bounds);
+    if (wasDragging) {
+        FlushPropertyNotify();
+    }
+    if (std::abs(m_lower - m_lowerAnim.Current()) > 0.01f
+        || std::abs(m_upper - m_upperAnim.Current()) > 0.01f) {
+        RequestAnimationTicks();
+    }
 }
 
 void RangeSlider::OnMouseLeave() {
-    Control::OnMouseLeave();
+    UIElement::OnMouseLeave();
     if (m_hover != Thumb::None) {
+        const Rect lo = GetLowerThumbRect();
+        const Rect hi = GetUpperThumbRect();
         m_hover = Thumb::None;
-        MarkRenderRectDirty(m_bounds);
+        MarkRenderRectDirty(lo.Union(ChipFootprint(lo)).Union(hi).Union(ChipFootprint(hi)).Inflate(2.0f));
     }
 }
 
@@ -443,12 +488,12 @@ void RangeSlider::OnKeyDown(int vkCode) {
 }
 
 bool RangeSlider::OnAnimationTick() {
-    bool base = Control::OnAnimationTick();
     if (m_dragging) {
         m_lowerAnim.Reset(m_lower);
         m_upperAnim.Reset(m_upper);
-        return base;
+        return false;
     }
+    bool base = Control::OnAnimationTick();
     m_lowerAnim.SetTarget(m_lower);
     m_upperAnim.SetTarget(m_upper);
     const bool moving = m_lowerAnim.IsAnimating(0.01f) || m_upperAnim.IsAnimating(0.01f);
@@ -462,13 +507,13 @@ bool RangeSlider::OnAnimationTick() {
     const float dt = UIElement::GetAnimationDeltaSeconds();
     m_lowerAnim.Tick(dt, kSlideSpec);
     m_upperAnim.Tick(dt, kSlideSpec);
-    MarkRangeDirty(prevL, prevU);
+    MarkBothThumbsDirty(prevL, prevU);
     return true;
 }
 
 bool RangeSlider::HasSelfAnimation() const {
     if (m_dragging) {
-        return Control::HasSelfAnimation();
+        return false;
     }
     return Control::HasSelfAnimation()
         || std::abs(m_lower - m_lowerAnim.Current()) > 0.01f
@@ -479,8 +524,7 @@ void RangeSlider::DrawValueChip(GraphicsContext& ctx, const Rect& thumb, float v
     const auto accent = ResolveThemeColor(GetActiveTrackColorToken(), ThemeTokenId::AccentColor);
     const auto onAccent = ResolveThemeColor(ThemeTokenId::AccentForeground, ThemeTokenId::AccentForeground);
     const std::string label = FormatRangeValue(value);
-    const Size sz = ctx.MeasureText(label, "微软雅黑", 11.0f, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-    const float w = (std::max)(28.0f, sz.width + 12.0f);
+    const float w = (std::max)(28.0f, static_cast<float>(label.size()) * 7.5f + 12.0f);
     const float h = 20.0f;
     const bool horizontal = GetOrientation() != Orientation::Vertical;
     Rect chip;

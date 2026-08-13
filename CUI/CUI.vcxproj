@@ -206,6 +206,7 @@
     <ClCompile Include="showcase\app\pages\ChartPage.cpp" />
     <ClCompile Include="showcase\app\pages\DragDropPage.cpp" />
     <ClCompile Include="showcase\app\pages\MarkdownPage.cpp" />
+    <ClCompile Include="showcase\app\pages\LogViewPage.cpp" />
     <ClCompile Include="showcase\app\pages\NavigationViewPage.cpp" />
     <ClCompile Include="showcase\app\pages\TabViewPage.cpp" />
     <ClCompile Include="showcase\app\chrome\VSCodeControls.cpp" />

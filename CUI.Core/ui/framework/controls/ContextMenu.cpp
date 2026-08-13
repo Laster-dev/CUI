@@ -115,9 +115,9 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
         Rect iconRect(m_bounds.x + 6.0f, m_bounds.y + (m_bounds.height - iconSize) * 0.5f, iconSize, iconSize);
         ctx.DrawHIcon(m_nativeIcon, iconRect, enabled ? 1.0f : 0.45f);
     } else if (!icon.empty()) {
-        Rect iconRect(m_bounds.x + 4.0f, m_bounds.y, 22.0f, m_bounds.height);
-        ctx.DrawText(icon, iconRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER,
-                     DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+        const float iconSize = 16.0f;
+        Rect iconRect(m_bounds.x + 6.0f, m_bounds.y + (m_bounds.height - iconSize) * 0.5f, iconSize, iconSize);
+        ctx.DrawIcon(icon, iconRect, textColor, enabled ? 1.0f : 0.45f, font, fontSize);
     }
 
     float rightReserve = 12.0f;

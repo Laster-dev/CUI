@@ -3,9 +3,13 @@
 #include <d3d11.h>
 #include <d3d11_4.h>
 #include <dxgi1_2.h>
+#include <shlwapi.h>
 #include <stdexcept>
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "dwrite.lib")
@@ -13,6 +17,7 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dcomp.lib")
 #pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "shlwapi.lib")
 
 namespace CUI {
 
@@ -321,6 +326,7 @@ void GraphicsContext::Resize(UINT width, UINT height) {
 }
 
 void GraphicsContext::ReleaseDeviceResources() {
+    m_svgCache.clear();
     m_iconBitmapCache.clear();
     m_resources.ReleaseDeviceResources();
     if (m_d2dContext) {
@@ -937,6 +943,358 @@ void GraphicsContext::DrawHIcon(HICON icon, const Rect& dest, float opacity) {
         D2D1_INTERPOLATION_MODE_LINEAR,
         nullptr
     );
+}
+
+namespace {
+
+bool PaintIsNoneOrUrl(ID2D1SvgElement* element, PCWSTR attr) {
+    if (!element || !attr) {
+        return false;
+    }
+    UINT32 len = 0;
+    if (FAILED(element->GetAttributeValueLength(attr, D2D1_SVG_ATTRIBUTE_STRING_TYPE_SVG, &len)) || len == 0) {
+        return false;
+    }
+    std::wstring value(static_cast<size_t>(len) + 1, L'\0');
+    if (FAILED(element->GetAttributeValue(
+            attr, D2D1_SVG_ATTRIBUTE_STRING_TYPE_SVG, value.data(), len + 1))) {
+        return false;
+    }
+    const wchar_t* s = value.c_str();
+    while (*s == L' ' || *s == L'\t') {
+        ++s;
+    }
+    if (_wcsicmp(s, L"none") == 0) {
+        return true;
+    }
+    return wcsncmp(s, L"url(", 4) == 0;
+}
+
+bool IsSvgShapeTag(ID2D1SvgElement* element) {
+    if (!element || element->IsTextContent()) {
+        return false;
+    }
+    const UINT32 len = element->GetTagNameLength();
+    if (len == 0) {
+        return false;
+    }
+    std::wstring tag(static_cast<size_t>(len) + 1, L'\0');
+    if (FAILED(element->GetTagName(tag.data(), len + 1))) {
+        return false;
+    }
+    static const wchar_t* kShapes[] = {
+        L"path", L"rect", L"circle", L"ellipse", L"polygon", L"polyline", L"line", L"text", L"tspan"
+    };
+    for (const wchar_t* name : kShapes) {
+        if (_wcsicmp(tag.c_str(), name) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void TintSvgElement(ID2D1SvgElement* element, const D2D1_COLOR_F& color) {
+    if (!element || element->IsTextContent()) {
+        return;
+    }
+    auto tintAttr = [&](PCWSTR name, bool setIfMissing) {
+        if (!element->IsAttributeSpecified(name, nullptr)) {
+            if (setIfMissing) {
+                element->SetAttributeValue(name, color);
+            }
+            return;
+        }
+        if (PaintIsNoneOrUrl(element, name)) {
+            return;
+        }
+        element->SetAttributeValue(name, color);
+    };
+    tintAttr(L"fill", IsSvgShapeTag(element));
+    tintAttr(L"stroke", false);
+    element->SetAttributeValue(L"color", color);
+
+    ComPtr<ID2D1SvgElement> child;
+    element->GetFirstChild(&child);
+    while (child) {
+        TintSvgElement(child.Get(), color);
+        ComPtr<ID2D1SvgElement> next;
+        element->GetNextChild(child.Get(), &next);
+        child = next;
+    }
+}
+
+bool ReadFileUtf8(const std::string& path, std::string& out) {
+    const std::wstring wpath = Utf8ToUtf16(path);
+    FILE* file = nullptr;
+    if (_wfopen_s(&file, wpath.c_str(), L"rb") != 0 || !file) {
+        return false;
+    }
+    if (fseek(file, 0, SEEK_END) != 0) {
+        fclose(file);
+        return false;
+    }
+    const long size = ftell(file);
+    if (size < 0) {
+        fclose(file);
+        return false;
+    }
+    rewind(file);
+    out.resize(static_cast<size_t>(size));
+    const size_t read = fread(out.data(), 1, out.size(), file);
+    fclose(file);
+    out.resize(read);
+    if (out.size() >= 3
+        && static_cast<unsigned char>(out[0]) == 0xEF
+        && static_cast<unsigned char>(out[1]) == 0xBB
+        && static_cast<unsigned char>(out[2]) == 0xBF) {
+        out.erase(0, 3);
+    }
+    return !out.empty();
+}
+
+const char* FindAttrValue(const std::string& svg, const char* name, char& quote, size_t& len) {
+    quote = 0;
+    len = 0;
+    const size_t nameLen = std::strlen(name);
+    size_t pos = 0;
+    while (pos + nameLen + 2 < svg.size()) {
+        const size_t found = svg.find(name, pos);
+        if (found == std::string::npos) {
+            return nullptr;
+        }
+        size_t i = found + nameLen;
+        while (i < svg.size() && (svg[i] == ' ' || svg[i] == '\t')) {
+            ++i;
+        }
+        if (i >= svg.size() || svg[i] != '=') {
+            pos = found + 1;
+            continue;
+        }
+        ++i;
+        while (i < svg.size() && (svg[i] == ' ' || svg[i] == '\t')) {
+            ++i;
+        }
+        if (i >= svg.size() || (svg[i] != '"' && svg[i] != '\'')) {
+            pos = found + 1;
+            continue;
+        }
+        quote = svg[i];
+        const char* start = svg.c_str() + i + 1;
+        const char* end = std::strchr(start, quote);
+        if (!end) {
+            return nullptr;
+        }
+        len = static_cast<size_t>(end - start);
+        return start;
+    }
+    return nullptr;
+}
+
+float ParseSvgNumber(const char* s, const char* end, const char** next) {
+    while (s < end && (*s == ' ' || *s == ',' || *s == '\t' || *s == '\n' || *s == '\r')) {
+        ++s;
+    }
+    char* parsed = nullptr;
+    const float v = std::strtof(s, &parsed);
+    if (next) {
+        *next = (parsed && parsed > s) ? parsed : s;
+    }
+    return v;
+}
+
+D2D1_SIZE_F ParseSvgViewport(const std::string& svg) {
+    D2D1_SIZE_F size = D2D1::SizeF(24.0f, 24.0f);
+    char quote = 0;
+    size_t len = 0;
+    if (const char* viewBox = FindAttrValue(svg, "viewBox", quote, len)) {
+        const char* end = viewBox + len;
+        const char* p = viewBox;
+        ParseSvgNumber(p, end, &p);
+        ParseSvgNumber(p, end, &p);
+        const float w = ParseSvgNumber(p, end, &p);
+        const float h = ParseSvgNumber(p, end, &p);
+        if (w > 0.5f && h > 0.5f) {
+            return D2D1::SizeF(w, h);
+        }
+    }
+    if (const char* width = FindAttrValue(svg, "width", quote, len)) {
+        const float w = ParseSvgNumber(width, width + len, nullptr);
+        if (w > 0.5f) {
+            size.width = w;
+        }
+    }
+    if (const char* height = FindAttrValue(svg, "height", quote, len)) {
+        const float h = ParseSvgNumber(height, height + len, nullptr);
+        if (h > 0.5f) {
+            size.height = h;
+        }
+    }
+    return size;
+}
+
+std::string TintCacheKey(const D2D1_COLOR_F* tint) {
+    if (!tint) {
+        return "none";
+    }
+    char buf[16];
+    const int r = std::clamp(static_cast<int>(tint->r * 255.0f + 0.5f), 0, 255);
+    const int g = std::clamp(static_cast<int>(tint->g * 255.0f + 0.5f), 0, 255);
+    const int b = std::clamp(static_cast<int>(tint->b * 255.0f + 0.5f), 0, 255);
+    const int a = std::clamp(static_cast<int>(tint->a * 255.0f + 0.5f), 0, 255);
+    std::snprintf(buf, sizeof(buf), "%02x%02x%02x%02x", r, g, b, a);
+    return buf;
+}
+
+} // namespace
+
+bool GraphicsContext::LooksLikeSvg(const std::string& source) {
+    if (source.size() < 4) {
+        return false;
+    }
+    size_t i = 0;
+    if (source.size() >= 3
+        && static_cast<unsigned char>(source[0]) == 0xEF
+        && static_cast<unsigned char>(source[1]) == 0xBB
+        && static_cast<unsigned char>(source[2]) == 0xBF) {
+        i = 3;
+    }
+    while (i < source.size() && static_cast<unsigned char>(source[i]) <= 32) {
+        ++i;
+    }
+    if (source.compare(i, 4, "<svg") == 0 || source.compare(i, 5, "<?xml") == 0) {
+        return true;
+    }
+    if (source.size() >= 4) {
+        const char* ext = source.c_str() + source.size() - 4;
+        if (ext[0] == '.'
+            && (ext[1] == 's' || ext[1] == 'S')
+            && (ext[2] == 'v' || ext[2] == 'V')
+            && (ext[3] == 'g' || ext[3] == 'G')) {
+            return true;
+        }
+    }
+    return false;
+}
+
+ComPtr<ID2D1DeviceContext5> GraphicsContext::GetSvgContext() {
+    ComPtr<ID2D1DeviceContext5> ctx5;
+    if (m_d2dContext) {
+        m_d2dContext.As(&ctx5);
+    }
+    return ctx5;
+}
+
+const GraphicsContext::SvgCacheEntry* GraphicsContext::GetOrCreateSvg(
+    const std::string& source,
+    const D2D1_COLOR_F* tint) {
+    ComPtr<ID2D1DeviceContext5> ctx5 = GetSvgContext();
+    if (!ctx5 || source.empty()) {
+        return nullptr;
+    }
+
+    const std::string key = source + "|" + TintCacheKey(tint);
+    if (const auto it = m_svgCache.find(key); it != m_svgCache.end() && it->second.doc) {
+        return &it->second;
+    }
+
+    std::string markup = source;
+    const bool inlineSvg = (source.find("<svg") != std::string::npos) || (source.find("<SVG") != std::string::npos);
+    if (!inlineSvg) {
+        if (!ReadFileUtf8(source, markup)) {
+            return nullptr;
+        }
+    }
+
+    ComPtr<IStream> stream;
+    stream.Attach(SHCreateMemStream(
+        reinterpret_cast<const BYTE*>(markup.data()),
+        static_cast<UINT>(markup.size())));
+    if (!stream) {
+        return nullptr;
+    }
+
+    const D2D1_SIZE_F viewport = ParseSvgViewport(markup);
+    ComPtr<ID2D1SvgDocument> doc;
+    if (FAILED(ctx5->CreateSvgDocument(stream.Get(), viewport, &doc)) || !doc) {
+        return nullptr;
+    }
+    if (tint) {
+        ComPtr<ID2D1SvgElement> root;
+        doc->GetRoot(&root);
+        TintSvgElement(root.Get(), *tint);
+    }
+
+    SvgCacheEntry entry;
+    entry.doc = std::move(doc);
+    entry.viewport = viewport;
+    auto [it, _] = m_svgCache.emplace(key, std::move(entry));
+    return &it->second;
+}
+
+void GraphicsContext::DrawSvg(
+    const std::string& source,
+    const Rect& dest,
+    const D2D1_COLOR_F* tint,
+    float opacity) {
+    if (source.empty() || dest.width <= 0.5f || dest.height <= 0.5f) {
+        return;
+    }
+    ComPtr<ID2D1DeviceContext5> ctx5 = GetSvgContext();
+    const SvgCacheEntry* entry = GetOrCreateSvg(source, tint);
+    if (!ctx5 || !entry || !entry->doc) {
+        return;
+    }
+
+    const float vpW = (std::max)(1.0f, entry->viewport.width);
+    const float vpH = (std::max)(1.0f, entry->viewport.height);
+    const float scale = (std::min)(dest.width / vpW, dest.height / vpH);
+    const float drawW = vpW * scale;
+    const float drawH = vpH * scale;
+    const float x = dest.x + (dest.width - drawW) * 0.5f;
+    const float y = dest.y + (dest.height - drawH) * 0.5f;
+    const D2D1_MATRIX_3X2_F xform =
+        D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(x, y);
+
+    opacity = std::clamp(opacity, 0.0f, 1.0f);
+    const bool fade = opacity < 0.999f;
+    if (fade) {
+        PushOpacity(opacity);
+    }
+    PushTransform(xform);
+    ctx5->DrawSvgDocument(entry->doc.Get());
+    PopTransform();
+    if (fade) {
+        PopOpacity();
+    }
+}
+
+void GraphicsContext::DrawIcon(
+    const std::string& icon,
+    const Rect& dest,
+    D2D1_COLOR_F color,
+    float opacity,
+    const std::string& glyphFont,
+    float glyphSize) {
+    if (icon.empty() || dest.width <= 0.5f || dest.height <= 0.5f) {
+        return;
+    }
+    if (LooksLikeSvg(icon)) {
+        DrawSvg(icon, dest, &color, opacity);
+        return;
+    }
+    const float size = (glyphSize > 0.5f) ? glyphSize : (std::max)(8.0f, dest.height * 0.78f);
+    opacity = std::clamp(opacity, 0.0f, 1.0f);
+    if (opacity < 0.999f) {
+        color.a *= opacity;
+    }
+    DrawText(
+        icon,
+        dest,
+        color,
+        glyphFont,
+        size,
+        DWRITE_TEXT_ALIGNMENT_CENTER,
+        DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
 bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, D2D1_COLOR_F clearColor, bool clearTarget) {

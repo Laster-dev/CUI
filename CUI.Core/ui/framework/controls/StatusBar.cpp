@@ -181,7 +181,11 @@ float StatusBar::MeasureItemWidth(GraphicsContext& ctx, const StatusBarItem& ite
 
     float w = 0.0f;
     if (!item.icon.empty()) {
-        w += ctx.MeasureText(item.icon, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width + 4.0f;
+        if (GraphicsContext::LooksLikeSvg(item.icon)) {
+            w += GetFontSize() + 6.0f;
+        } else {
+            w += ctx.MeasureText(item.icon, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width + 4.0f;
+        }
     }
     if (!item.text.empty()) {
         w += ctx.MeasureText(item.text, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
@@ -326,16 +330,12 @@ void StatusBar::DrawItem(GraphicsContext& ctx, const StatusBarItem& item, const 
 
     float x = bounds.x;
     if (!item.icon.empty()) {
-        const float iw = ctx.MeasureText(item.icon, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
-        ctx.DrawText(
-            item.icon,
-            Rect(x, bounds.y, iw + 2.0f, bounds.height),
-            textColor,
-            GetFontFamily(),
-            GetFontSize(),
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        x += iw + 4.0f;
+        const float iconSize = GraphicsContext::LooksLikeSvg(item.icon)
+            ? GetFontSize() + 2.0f
+            : ctx.MeasureText(item.icon, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
+        const Rect iconRect(x, bounds.y + (bounds.height - iconSize) * 0.5f, iconSize, iconSize);
+        ctx.DrawIcon(item.icon, iconRect, textColor, 1.0f, GetFontFamily(), GetFontSize());
+        x += iconSize + 4.0f;
     }
 
     if (item.kind == StatusBarItemKind::Progress) {

@@ -162,16 +162,27 @@ Rect TextBox::GetRevealButtonRect() const {
     return Rect(btnX, btnY, btnSize, btnSize);
 }
 
+bool TextBox::UsesFloatingLabel() const {
+    if (GetPlaceholder().empty() || IsMultiline()) {
+        return false;
+    }
+    const float h = (m_bounds.height > 0.5f) ? m_bounds.height : GetHeight();
+    return h >= 40.0f;
+}
+
 Rect TextBox::GetTextRect() const {
-    std::string placeholder = GetPlaceholder();
-    bool hasFloatingLabel = !placeholder.empty();
+    const bool floating = UsesFloatingLabel();
     // Floating-label mode keeps Material-style top/bottom padding.
-    // Plain single-line mode must not shrink the layout below the font size —
+    // Compact / no-label mode must not shrink the layout below the font size —
     // otherwise descenders (g/y/p) are clipped by PushClip(textRect).
-    Thickness padding = hasFloatingLabel
-        ? GetPadding()
-        : Thickness(8.0f, 2.0f, 8.0f, 2.0f);
-    float extraTop = hasFloatingLabel ? ((1.0f - m_labelAnim.Current()) * 8.0f) : 0.0f;
+    Thickness padding = GetPadding();
+    if (!floating) {
+        const float h = (m_bounds.height > 0.5f) ? m_bounds.height : GetHeight();
+        if (padding.top + padding.bottom > h - GetFontSize() || padding.top >= 12.0f) {
+            padding = Thickness(8.0f, 2.0f, 8.0f, 2.0f);
+        }
+    }
+    float extraTop = floating ? ((1.0f - m_labelAnim.Current()) * 8.0f) : 0.0f;
     float rightMargin = (IsPasswordMode() && GetShowRevealButton()) ? 32.0f : 0.0f;
     return Rect(
         m_bounds.x + padding.left,
@@ -426,7 +437,7 @@ Size TextBox::Measure(Size availableSize) {
 
 bool TextBox::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
-    bool hasFloatingLabel = !GetPlaceholder().empty();
+    bool hasFloatingLabel = UsesFloatingLabel();
     bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetText().empty() || !m_compString.empty());
     float target = shouldFloat ? 1.0f : 0.0f;
     float focusTarget = m_isFocused ? 1.0f : 0.0f;
@@ -484,7 +495,7 @@ bool TextBox::OnAnimationTick() {
 }
 
 bool TextBox::HasSelfAnimation() const {
-    bool hasFloatingLabel = !GetPlaceholder().empty();
+    bool hasFloatingLabel = UsesFloatingLabel();
     bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetText().empty() || !m_compString.empty());
     float labelTarget = shouldFloat ? 1.0f : 0.0f;
     float focusTarget = m_isFocused ? 1.0f : 0.0f;
@@ -552,7 +563,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
 
     std::string text = GetText();
     std::string placeholder = GetPlaceholder();
-    bool hasFloatingLabel = !placeholder.empty();
+    const bool floating = UsesFloatingLabel();
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
     D2D1_COLOR_F phBase = ResolveThemeColor(GetPlaceholderColorToken(), ThemeTokenId::TextMuted);
@@ -569,10 +580,9 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     float focusLineProgress = enabled ? m_focusLineAnim.Current() : 0.0f;
     float labelFontSize = fontSize + (11.0f - fontSize) * labelEased;
     float labelY = m_bounds.y + 16.0f + (4.0f - 16.0f) * labelEased;
-    Rect labelRect(m_bounds.x, labelY, m_bounds.width, 16.0f);
     D2D1_COLOR_F labelColor = BlendColor(phBase, phActive, m_isFocused ? labelEased : labelEased * 0.35f);
 
-    if (hasFloatingLabel && (labelEased > 0.001f || text.empty())) {
+    if (floating && (labelEased > 0.001f || text.empty())) {
         // One glyph only: floats from inline position up to the caption band.
         const float inlineY = m_bounds.y + 15.0f;
         const float drawY = inlineY + (labelY - inlineY) * labelEased;
@@ -591,6 +601,18 @@ void TextBox::OnRender(GraphicsContext& ctx) {
             DWRITE_TEXT_ALIGNMENT_LEADING,
             DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
             DWRITE_FONT_WEIGHT_NORMAL
+        );
+    } else if (!floating && text.empty() && m_compString.empty() && !placeholder.empty()) {
+        ctx.DrawText(
+            placeholder,
+            textRect,
+            phBase,
+            font,
+            fontSize,
+            DWRITE_TEXT_ALIGNMENT_LEADING,
+            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+            DWRITE_FONT_WEIGHT_NORMAL,
+            true
         );
     }
 

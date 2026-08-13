@@ -57,7 +57,10 @@ private:
     Rect GetFillRect() const;
     Thumb HitTestThumb(Point pt) const;
     Thumb CloserThumb(Point pt) const;
-    void MarkRangeDirty(const Rect& prevLower, const Rect& prevUpper);
+    void MarkThumbMoved(const Rect& prevThumb, const Rect& currThumb);
+    void MarkBothThumbsDirty(const Rect& prevLower, const Rect& prevUpper);
+    Rect ChipFootprint(const Rect& thumb) const;
+    void FlushPropertyNotify();
     void FireChanged();
     void DrawValueChip(GraphicsContext& ctx, const Rect& thumb, float value, bool active);
 

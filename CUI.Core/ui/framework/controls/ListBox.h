@@ -77,6 +77,7 @@ public:
 
     // Virtual Mode (0 memory allocation for 100k/1M items)
     void SetVirtualCount(size_t count);
+    void RefreshVirtualCount(size_t count);
 
     struct ListBoxDataSource {
         virtual ~ListBoxDataSource() = default;

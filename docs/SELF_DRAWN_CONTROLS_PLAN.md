@@ -20,6 +20,7 @@
 | G | Chart | 控件 | 独立页 `chart` |
 | H | 拖放 API | 框架 API（非单一控件） | 独立页 `dragdrop` + 若干控件接入示例 |
 | I | RangeSlider | 控件（双滑块区间） | 独立页 `rangeslider` |
+| J | LogView | 控件（可折叠虚拟化日志框） | 独立页 `logview` |
 
 ---
 
@@ -289,6 +290,7 @@ CUI.Core/ui/framework/controls/
   SplitButton.h/.cpp
   DropDownButton.h/.cpp
   MarkdownView.h/.cpp          // 或 RichTextBlock + Markdown*
+  LogView.h/.cpp
   TeachingTip.h/.cpp
   chart/LineChart.h/.cpp ...
 CUI.Core/ui/framework/text/     // Markdown AST / layout（可选）
@@ -301,6 +303,7 @@ CUI/showcase/app/pages/
   RatingPage.cpp
   RangeSliderPage.cpp
   MarkdownPage.cpp
+  LogViewPage.cpp
   TeachingTipPage.cpp
   ChartPage.cpp
   DragDropPage.cpp

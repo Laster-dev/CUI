@@ -844,6 +844,8 @@ void UIElement::SetIcon(const std::string& icon) {
     if (m_icon == icon) return;
     m_icon = icon;
     NotifyFieldChanged(PropertyId::Icon, Value(icon));
+    InvalidateMeasure();
+    MarkRenderContentDirty();
 }
 
 // --- Theme resolve ---

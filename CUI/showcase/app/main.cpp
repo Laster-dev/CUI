@@ -109,6 +109,7 @@ public:
         add("canvas", "画布与渲染", "Canvas", [ctx = m_ctx] { return BuildCanvasPage(ctx); });
         add("chart", "画布与渲染", "Chart", [ctx = m_ctx] { return BuildChartPage(ctx); });
         add("markdown", "画布与渲染", "Markdown", [ctx = m_ctx] { return BuildMarkdownPage(ctx); });
+        add("logview", "画布与渲染", "LogView", [ctx = m_ctx] { return BuildLogViewPage(ctx); });
 
         // --- Settings content ---
         std::shared_ptr<UIElement> settingsContent;

@@ -6,6 +6,7 @@
 #include "framework/controls/TextBlock.h"
 #include "framework/controls/ListBox.h"
 #include <sstream>
+#include <vector>
 
 using namespace CUI;
 using namespace CUI::DSL;
@@ -40,17 +41,19 @@ std::string FormatPlainRange(float lo, float hi, const char* unit) {
 }
 
 void FillCatalog(ListBox& list, float lo, float hi) {
-    list.ClearItems();
+    std::vector<std::string> rows;
+    rows.reserve(8);
     for (const auto& item : kCatalog) {
         if (item.price >= lo && item.price <= hi) {
             std::ostringstream oss;
             oss << item.name << "    ¥" << static_cast<int>(item.price);
-            list.AddItem(oss.str());
+            rows.push_back(oss.str());
         }
     }
-    if (list.GetItemCount() == 0) {
-        list.AddItem("（当前区间没有商品）");
+    if (rows.empty()) {
+        rows.emplace_back("（当前区间没有商品）");
     }
+    list.SetItems(rows);
 }
 } // namespace
 
