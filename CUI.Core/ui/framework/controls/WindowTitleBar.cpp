@@ -218,6 +218,9 @@ void WindowTitleBar::SyncCaptionHoverTargets() {
 
 void WindowTitleBar::ApplyHoverRegion(int region, bool forceDirty) {
     const int previous = m_hoverRegion;
+    if (!forceDirty && previous == region) {
+        return;
+    }
     m_hoverRegion = region;
     SyncCaptionHoverTargets();
     if (forceDirty || previous != m_hoverRegion || HasSelfAnimation()) {

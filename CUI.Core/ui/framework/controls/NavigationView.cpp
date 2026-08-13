@@ -522,18 +522,27 @@ void NavigationView::ApplyPendingContent() {
 }
 
 void NavigationView::SetHeader(const std::string& header) {
+    if (m_header == header) {
+        return;
+    }
     m_header = header;
     RelayoutChildren();
     MarkRenderRectDirty(m_bounds);
 }
 
 void NavigationView::SetAlwaysShowHeader(bool always) {
+    if (m_alwaysShowHeader == always) {
+        return;
+    }
     m_alwaysShowHeader = always;
     RelayoutChildren();
     MarkRenderRectDirty(m_bounds);
 }
 
 void NavigationView::SetPaneTitle(const std::string& title) {
+    if (m_paneTitle == title) {
+        return;
+    }
     m_paneTitle = title;
     MarkRenderRectDirty(m_bounds);
 }

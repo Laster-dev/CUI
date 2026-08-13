@@ -1446,12 +1446,13 @@ void DockManager::OnMouseMove(Point pt) {
 
     const HitResult prev = m_hover;
     m_hover = HitTestChrome(pt.x, pt.y);
-    if (prev.part != m_hover.part || prev.paneIndex != m_hover.paneIndex
-        || prev.groupPaneLocal != m_hover.groupPaneLocal || prev.side != m_hover.side) {
+    const bool hoverChanged = prev.part != m_hover.part || prev.paneIndex != m_hover.paneIndex
+        || prev.groupPaneLocal != m_hover.groupPaneLocal || prev.side != m_hover.side;
+    if (hoverChanged) {
         MarkRenderContentDirty();
     }
 
-    // VS-style chrome hover fade
+    // VS-style chrome hover fade — do not arm ticks on every move over the same part.
     m_hoverBtnSide = m_hover.side;
     const bool pinHot = (m_hover.part == HitPart::Pin);
     const bool closeHot = (m_hover.part == HitPart::Close);
@@ -1466,7 +1467,7 @@ void DockManager::OnMouseMove(Point pt) {
         m_hoverClose.Reset(closeHot ? 1.0f : 0.0f);
         m_hoverScrollL.Reset(scrollL ? 1.0f : 0.0f);
         m_hoverScrollR.Reset(scrollR ? 1.0f : 0.0f);
-    } else {
+    } else if (hoverChanged) {
         RequestAnimationTicks();
     }
 }
@@ -1487,7 +1488,8 @@ void DockManager::OnMouseUp(Point pt) {
 
 void DockManager::OnMouseLeave() {
     UIElement::OnMouseLeave();
-    if (m_hover.part != HitPart::None) {
+    const bool hadHover = m_hover.part != HitPart::None;
+    if (hadHover) {
         m_hover = {};
         MarkRenderContentDirty();
     }
@@ -1495,7 +1497,9 @@ void DockManager::OnMouseLeave() {
     m_hoverClose.SetTarget(0.0f);
     m_hoverScrollL.SetTarget(0.0f);
     m_hoverScrollR.SetTarget(0.0f);
-    RequestAnimationTicks();
+    if (hadHover) {
+        RequestAnimationTicks();
+    }
 }
 
 HCURSOR DockManager::GetCursor() const {

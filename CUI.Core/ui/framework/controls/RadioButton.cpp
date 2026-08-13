@@ -156,8 +156,16 @@ bool RadioButton::HasSelfAnimation() const {
 }
 
 void RadioButton::SetChecked(bool checked) {
-    SetState(checked ? CheckState::Checked : CheckState::Unchecked);
-    float target = checked ? 1.0f : 0.0f;
+    const CheckState next = checked ? CheckState::Checked : CheckState::Unchecked;
+    const float target = checked ? 1.0f : 0.0f;
+    const bool stateChanged = GetState() != next;
+    const bool animSettled = std::abs(m_selectionAnim.Current() - target) <= 0.01f
+        && !m_selectionAnim.IsAnimating(0.01f);
+    SetState(next);
+    if (!stateChanged && animSettled) {
+        m_selectionAnim.Reset(target);
+        return;
+    }
     m_selectionAnim.SetTarget(target);
     if (!UIElement::AreAnimationsEnabled()) {
         m_selectionAnim.Reset(target);

@@ -18,6 +18,11 @@ struct Thickness {
     Thickness(float uniform) : left(uniform), top(uniform), right(uniform), bottom(uniform) {}
     Thickness(float l, float t, float r, float b) : left(l), top(t), right(r), bottom(b) {}
 
+    bool operator==(const Thickness& o) const {
+        return left == o.left && top == o.top && right == o.right && bottom == o.bottom;
+    }
+    bool operator!=(const Thickness& o) const { return !(*this == o); }
+
     static Thickness Parse(const std::string& str);
 };
 

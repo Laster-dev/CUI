@@ -249,9 +249,12 @@ void Expander::UpdateContentVisibility() {
         || m_expandAnim.Target() > 0.01f
         || m_expandAnim.Current() > 0.01f
         || m_expandAnim.IsAnimating(0.01f);
-    m_content->SetVisibility(keepVisible ? Visibility::Visible : Visibility::Collapsed);
-    ProgressBarDiag::Log("[EXP] UpdateContentVisibility this=%p header=%s keepVisible=%d target=%.3f current=%.3f",
-        (void*)this, m_header.c_str(), keepVisible ? 1 : 0, m_expandAnim.Target(), m_expandAnim.Current());
+    const Visibility next = keepVisible ? Visibility::Visible : Visibility::Collapsed;
+    if (m_content->GetVisibility() != next) {
+        ProgressBarDiag::Log("[EXP] UpdateContentVisibility this=%p header=%s keepVisible=%d target=%.3f current=%.3f",
+            (void*)this, m_header.c_str(), keepVisible ? 1 : 0, m_expandAnim.Target(), m_expandAnim.Current());
+    }
+    m_content->SetVisibility(next);
 }
 
 void Expander::InvalidateExpanderLayout() {
@@ -297,14 +300,20 @@ Size Expander::Measure(Size availableSize) {
         ? GetHeight()
         : (m_headerHeight + animatedBody);
 
+    const Size prevDesired = m_desiredSize;
     m_desiredSize = Size(
         width + margin.left + margin.right,
         height + margin.top + margin.bottom);
+    const bool availChanged = m_lastMeasureAvailable.width != availableSize.width
+        || m_lastMeasureAvailable.height != availableSize.height;
     m_lastMeasureAvailable = availableSize;
     m_measureDirty = false;
-    ProgressBarDiag::Log("[EXP] Measure this=%p header=%s isExpanded=%d progress=%.3f availW=%.1f body=%.1f desired=%.1f x %.1f",
-        (void*)this, m_header.c_str(), m_isExpanded ? 1 : 0, GetExpandProgress(), availableWidth, m_measuredBodyHeight,
-        m_desiredSize.width, m_desiredSize.height);
+    if (availChanged || prevDesired.width != m_desiredSize.width
+        || prevDesired.height != m_desiredSize.height) {
+        ProgressBarDiag::Log("[EXP] Measure this=%p header=%s isExpanded=%d progress=%.3f availW=%.1f body=%.1f desired=%.1f x %.1f",
+            (void*)this, m_header.c_str(), m_isExpanded ? 1 : 0, GetExpandProgress(), availableWidth, m_measuredBodyHeight,
+            m_desiredSize.width, m_desiredSize.height);
+    }
     return m_desiredSize;
 }
 

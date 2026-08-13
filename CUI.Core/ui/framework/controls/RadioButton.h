@@ -20,6 +20,9 @@ public:
 
     const std::string& GetGroupName() const { return m_groupName; }
     void SetGroupName(const std::string& group) {
+        if (m_groupName == group) {
+            return;
+        }
         m_groupName = group;
         MarkRenderContentDirty();
     }

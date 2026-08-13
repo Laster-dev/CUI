@@ -173,13 +173,19 @@ void Control::OnMouseMove(Point pt) {
 void Control::OnFocus() {
     UIElement::OnFocus();
     UpdateVisualStateTarget();
-    RequestAnimationTicks();
+    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    if (VisualStateChromeDiffers() || m_visualStateAnim.IsAnimating(0.04f)) {
+        RequestAnimationTicks();
+    }
 }
 
 void Control::OnBlur() {
     UIElement::OnBlur();
     UpdateVisualStateTarget();
-    RequestAnimationTicks();
+    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    if (VisualStateChromeDiffers() || m_visualStateAnim.IsAnimating(0.04f)) {
+        RequestAnimationTicks();
+    }
 }
 
 } // namespace CUI

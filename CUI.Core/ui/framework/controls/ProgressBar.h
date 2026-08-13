@@ -26,6 +26,9 @@ public:
 
     float GetValue() const { return m_value; }
     void SetValue(float val) {
+        if (m_value == val) {
+            return;
+        }
         m_value = val;
         NotifyFieldChanged(PropertyId::ControlValue, Value(val));
         if (!UIElement::AreAnimationsEnabled() || m_bounds.IsEmpty()) {
@@ -37,6 +40,9 @@ public:
 
     float GetMinimum() const { return m_minimum; }
     void SetMinimum(float minVal) {
+        if (m_minimum == minVal) {
+            return;
+        }
         m_minimum = minVal;
         NotifyFieldChanged(PropertyId::Minimum, Value(minVal));
         MarkRenderRectDirty(m_bounds);
@@ -44,6 +50,9 @@ public:
 
     float GetMaximum() const { return m_maximum; }
     void SetMaximum(float maxVal) {
+        if (m_maximum == maxVal) {
+            return;
+        }
         m_maximum = maxVal;
         NotifyFieldChanged(PropertyId::Maximum, Value(maxVal));
         MarkRenderRectDirty(m_bounds);

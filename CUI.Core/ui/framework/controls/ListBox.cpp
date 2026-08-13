@@ -138,6 +138,11 @@ bool ListBox::IsItemSelected(int index) const {
 void ListBox::SetSelectedIndex(int index) {
     size_t count = GetItemCount();
     if (index < -1 || index >= static_cast<int>(count)) return;
+    if (index == m_selectedIndex
+        && ((index < 0 && m_selectedIndices.empty())
+            || (index >= 0 && m_selectedIndices.size() == 1 && m_selectedIndices.count(index)))) {
+        return;
+    }
 
     m_selectedIndices.clear();
     if (index >= 0) {

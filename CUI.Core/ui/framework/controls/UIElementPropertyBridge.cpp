@@ -3,10 +3,15 @@
 #include "../style/ThemeManager.h"
 #include "../style/ThemeTokenId.h"
 #include <algorithm>
+#include <cmath>
 
 namespace CUI {
 
 namespace {
+
+bool ColorUnchanged(bool has, const D2D1_COLOR_F& cur, const D2D1_COLOR_F& next) {
+    return has && cur.r == next.r && cur.g == next.g && cur.b == next.b && cur.a == next.a;
+}
 
 const char* VisibilityToString(Visibility v) {
     switch (v) {
@@ -382,38 +387,46 @@ void UIElement::NotifyFieldChanged(PropertyId id, const Value& val) {
 }
 
 // --- Typed layout / chrome setters ---
+// Same-value writes must not InvalidateMeasure / MarkRenderContentDirty.
+// FileBrowser / RelayoutChildren / theme walks call these every pass.
 
 void UIElement::SetWidth(float v) {
+    if (m_width == v) return;
     m_width = v;
     NotifyFieldChanged(PropertyId::Width, Value(v));
     InvalidateMeasure();
 }
 
 void UIElement::SetHeight(float v) {
+    if (m_height == v) return;
     m_height = v;
     NotifyFieldChanged(PropertyId::Height, Value(v));
     InvalidateMeasure();
 }
 
 void UIElement::SetMinWidth(float v) {
+    if (m_minWidth == v) return;
     m_minWidth = v;
     NotifyFieldChanged(PropertyId::MinWidth, Value(v));
     InvalidateMeasure();
 }
 
 void UIElement::SetMinHeight(float v) {
+    if (m_minHeight == v) return;
     m_minHeight = v;
     NotifyFieldChanged(PropertyId::MinHeight, Value(v));
     InvalidateMeasure();
 }
 
 void UIElement::SetMargin(const Thickness& margin) {
+    if (m_margin == margin) return;
     m_margin = margin;
     NotifyFieldChanged(PropertyId::Margin, Value(margin));
     InvalidateMeasure();
 }
 
 void UIElement::SetPadding(const Thickness& padding) {
+    if (m_padding == padding) return;
     m_padding = padding;
     NotifyFieldChanged(PropertyId::Padding, Value(padding));
     InvalidateMeasure();
@@ -429,131 +442,159 @@ void UIElement::SetVisibility(Visibility v) {
 }
 
 void UIElement::SetIsEnabled(bool enabled) {
+    if (m_isEnabled == enabled) return;
     m_isEnabled = enabled;
     NotifyFieldChanged(PropertyId::IsEnabled, Value(enabled));
 }
 
 void UIElement::SetOpacity(float v) {
     if (m_layerPromoted) {
+        if (std::abs(v - m_composeOpacity) < 0.0005f) {
+            return;
+        }
         SetComposeOpacity(v);
         NotifyFieldChanged(PropertyId::Opacity, Value(v));
         return;
     }
+    if (m_opacity == v) return;
     m_opacity = v;
     NotifyFieldChanged(PropertyId::Opacity, Value(v));
 }
 
 void UIElement::SetCornerRadius(float v) {
+    if (m_cornerRadius == v) return;
     m_cornerRadius = v;
     NotifyFieldChanged(PropertyId::CornerRadius, Value(v));
 }
 
 void UIElement::SetBorderThickness(float v) {
+    if (m_borderThickness == v) return;
     m_borderThickness = v;
     NotifyFieldChanged(PropertyId::BorderThickness, Value(v));
 }
 
 void UIElement::SetFlexGrow(float v) {
+    if (m_flexGrow == v) return;
     m_flexGrow = v;
     NotifyFieldChanged(PropertyId::FlexGrow, Value(v));
 }
 
 void UIElement::SetAlign(Alignment a) {
+    if (m_align == a) return;
     m_align = a;
     NotifyFieldChanged(PropertyId::Align, Value(AlignmentToString(a)));
 }
 
 void UIElement::SetAlignHorizontal(Alignment a) {
+    if (m_alignHorizontal == a) return;
     m_alignHorizontal = a;
     NotifyFieldChanged(PropertyId::AlignHorizontal, Value(AlignmentToString(a)));
 }
 
 void UIElement::SetAlignVertical(Alignment a) {
+    if (m_alignVertical == a) return;
     m_alignVertical = a;
     NotifyFieldChanged(PropertyId::AlignVertical, Value(AlignmentToString(a)));
 }
 
 void UIElement::SetOrientation(Orientation o) {
+    if (m_orientation == o) return;
     m_orientation = o;
     NotifyFieldChanged(PropertyId::Orientation, Value(OrientationToString(o)));
 }
 
 void UIElement::SetGap(float v) {
+    if (m_gap == v) return;
     m_gap = v;
     NotifyFieldChanged(PropertyId::Gap, Value(v));
 }
 
 void UIElement::SetItemWidth(float v) {
+    if (m_itemWidth == v) return;
     m_itemWidth = v;
     NotifyFieldChanged(PropertyId::ItemWidth, Value(v));
 }
 
 void UIElement::SetItemHeight(float v) {
+    if (m_itemHeight == v) return;
     m_itemHeight = v;
     NotifyFieldChanged(PropertyId::ItemHeight, Value(v));
 }
 
 void UIElement::SetLastChildFill(bool v) {
+    if (m_lastChildFill == v) return;
     m_lastChildFill = v;
     NotifyFieldChanged(PropertyId::LastChildFill, Value(v));
 }
 
 void UIElement::SetRows(int v) {
+    if (m_rows == v) return;
     m_rows = v;
     NotifyFieldChanged(PropertyId::Rows, Value(v));
 }
 
 void UIElement::SetColumns(int v) {
+    if (m_columns == v) return;
     m_columns = v;
     NotifyFieldChanged(PropertyId::Columns, Value(v));
 }
 
 void UIElement::SetClipToBounds(bool v) {
+    if (m_clipToBounds == v) return;
     m_clipToBounds = v;
     NotifyFieldChanged(PropertyId::ClipToBounds, Value(v));
 }
 
 void UIElement::SetCanvasLeft(float v) {
+    if (m_canvasLeft == v) return;
     m_canvasLeft = v;
     NotifyFieldChanged(PropertyId::CanvasLeft, Value(v));
 }
 
 void UIElement::SetCanvasTop(float v) {
+    if (m_canvasTop == v) return;
     m_canvasTop = v;
     NotifyFieldChanged(PropertyId::CanvasTop, Value(v));
 }
 
 void UIElement::SetCanvasRight(float v) {
+    if (m_canvasRight == v) return;
     m_canvasRight = v;
     NotifyFieldChanged(PropertyId::CanvasRight, Value(v));
 }
 
 void UIElement::SetCanvasBottom(float v) {
+    if (m_canvasBottom == v) return;
     m_canvasBottom = v;
     NotifyFieldChanged(PropertyId::CanvasBottom, Value(v));
 }
 
 void UIElement::SetGridColumn(int v) {
+    if (m_gridColumn == v) return;
     m_gridColumn = v;
     NotifyFieldChanged(PropertyId::GridColumn, Value(v));
 }
 
 void UIElement::SetGridRow(int v) {
+    if (m_gridRow == v) return;
     m_gridRow = v;
     NotifyFieldChanged(PropertyId::GridRow, Value(v));
 }
 
 void UIElement::SetGridColumnSpan(int v) {
+    if (m_gridColumnSpan == v) return;
     m_gridColumnSpan = v;
     NotifyFieldChanged(PropertyId::GridColumnSpan, Value(v));
 }
 
 void UIElement::SetGridRowSpan(int v) {
+    if (m_gridRowSpan == v) return;
     m_gridRowSpan = v;
     NotifyFieldChanged(PropertyId::GridRowSpan, Value(v));
 }
 
 void UIElement::SetDock(Dock d) {
+    if (m_dock == d) return;
     m_dock = d;
     NotifyFieldChanged(PropertyId::Dock, Value(DockToString(d)));
 }
@@ -561,166 +602,199 @@ void UIElement::SetDock(Dock d) {
 // --- Theme token setters ---
 
 void UIElement::SetBackgroundToken(ThemeTokenId id) {
+    if (m_backgroundToken == id) return;
     m_backgroundToken = id;
     NotifyFieldChanged(PropertyId::BackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetHoverBackgroundToken(ThemeTokenId id) {
+    if (m_hoverBackgroundToken == id) return;
     m_hoverBackgroundToken = id;
     NotifyFieldChanged(PropertyId::HoverBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetPressedBackgroundToken(ThemeTokenId id) {
+    if (m_pressedBackgroundToken == id) return;
     m_pressedBackgroundToken = id;
     NotifyFieldChanged(PropertyId::PressedBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetDisabledBackgroundToken(ThemeTokenId id) {
+    if (m_disabledBackgroundToken == id) return;
     m_disabledBackgroundToken = id;
     NotifyFieldChanged(PropertyId::DisabledBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetBorderToken(ThemeTokenId id) {
+    if (m_borderToken == id) return;
     m_borderToken = id;
     NotifyFieldChanged(PropertyId::BorderToken, TokenValue(id));
 }
 
 void UIElement::SetFocusedBorderToken(ThemeTokenId id) {
+    if (m_focusedBorderToken == id) return;
     m_focusedBorderToken = id;
     NotifyFieldChanged(PropertyId::FocusedBorderToken, TokenValue(id));
 }
 
 void UIElement::SetColorToken(ThemeTokenId id) {
+    if (m_colorToken == id) return;
     m_colorToken = id;
     NotifyFieldChanged(PropertyId::ColorToken, TokenValue(id));
 }
 
 void UIElement::SetSecondaryColorToken(ThemeTokenId id) {
+    if (m_secondaryColorToken == id) return;
     m_secondaryColorToken = id;
     NotifyFieldChanged(PropertyId::SecondaryColorToken, TokenValue(id));
 }
 
 void UIElement::SetPlaceholderColorToken(ThemeTokenId id) {
+    if (m_placeholderColorToken == id) return;
     m_placeholderColorToken = id;
     NotifyFieldChanged(PropertyId::PlaceholderColorToken, TokenValue(id));
 }
 
 void UIElement::SetSelectedBackgroundToken(ThemeTokenId id) {
+    if (m_selectedBackgroundToken == id) return;
     m_selectedBackgroundToken = id;
     NotifyFieldChanged(PropertyId::SelectedBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetHeaderBackgroundToken(ThemeTokenId id) {
+    if (m_headerBackgroundToken == id) return;
     m_headerBackgroundToken = id;
     NotifyFieldChanged(PropertyId::HeaderBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetPaneBackgroundToken(ThemeTokenId id) {
+    if (m_paneBackgroundToken == id) return;
     m_paneBackgroundToken = id;
     NotifyFieldChanged(PropertyId::PaneBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetIndicatorColorToken(ThemeTokenId id) {
+    if (m_indicatorColorToken == id) return;
     m_indicatorColorToken = id;
     NotifyFieldChanged(PropertyId::IndicatorColorToken, TokenValue(id));
 }
 
 void UIElement::SetDropdownBackgroundToken(ThemeTokenId id) {
+    if (m_dropdownBackgroundToken == id) return;
     m_dropdownBackgroundToken = id;
     NotifyFieldChanged(PropertyId::DropdownBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetSelectedItemBackgroundToken(ThemeTokenId id) {
+    if (m_selectedItemBackgroundToken == id) return;
     m_selectedItemBackgroundToken = id;
     NotifyFieldChanged(PropertyId::SelectedItemBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetFillColorToken(ThemeTokenId id) {
+    if (m_fillColorToken == id) return;
     m_fillColorToken = id;
     NotifyFieldChanged(PropertyId::FillColorToken, TokenValue(id));
 }
 
 void UIElement::SetTrackColorToken(ThemeTokenId id) {
+    if (m_trackColorToken == id) return;
     m_trackColorToken = id;
     NotifyFieldChanged(PropertyId::TrackColorToken, TokenValue(id));
 }
 
 void UIElement::SetActiveTrackColorToken(ThemeTokenId id) {
+    if (m_activeTrackColorToken == id) return;
     m_activeTrackColorToken = id;
     NotifyFieldChanged(PropertyId::ActiveTrackColorToken, TokenValue(id));
 }
 
 void UIElement::SetThumbColorToken(ThemeTokenId id) {
+    if (m_thumbColorToken == id) return;
     m_thumbColorToken = id;
     NotifyFieldChanged(PropertyId::ThumbColorToken, TokenValue(id));
 }
 
 void UIElement::SetOnColorToken(ThemeTokenId id) {
+    if (m_onColorToken == id) return;
     m_onColorToken = id;
     NotifyFieldChanged(PropertyId::OnColorToken, TokenValue(id));
 }
 
 void UIElement::SetOffColorToken(ThemeTokenId id) {
+    if (m_offColorToken == id) return;
     m_offColorToken = id;
     NotifyFieldChanged(PropertyId::OffColorToken, TokenValue(id));
 }
 
 void UIElement::SetKnobColorToken(ThemeTokenId id) {
+    if (m_knobColorToken == id) return;
     m_knobColorToken = id;
     NotifyFieldChanged(PropertyId::KnobColorToken, TokenValue(id));
 }
 
 void UIElement::SetCheckedBackgroundToken(ThemeTokenId id) {
+    if (m_checkedBackgroundToken == id) return;
     m_checkedBackgroundToken = id;
     NotifyFieldChanged(PropertyId::CheckedBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetAccentColorToken(ThemeTokenId id) {
+    if (m_accentColorToken == id) return;
     m_accentColorToken = id;
     NotifyFieldChanged(PropertyId::AccentColorToken, TokenValue(id));
 }
 
 void UIElement::SetActiveColorToken(ThemeTokenId id) {
+    if (m_activeColorToken == id) return;
     m_activeColorToken = id;
     NotifyFieldChanged(PropertyId::ActiveColorToken, TokenValue(id));
 }
 
 void UIElement::SetUnderlineColorToken(ThemeTokenId id) {
+    if (m_underlineColorToken == id) return;
     m_underlineColorToken = id;
     NotifyFieldChanged(PropertyId::UnderlineColorToken, TokenValue(id));
 }
 
 void UIElement::SetActiveUnderlineColorToken(ThemeTokenId id) {
+    if (m_activeUnderlineColorToken == id) return;
     m_activeUnderlineColorToken = id;
     NotifyFieldChanged(PropertyId::ActiveUnderlineColorToken, TokenValue(id));
 }
 
 void UIElement::SetActiveTabBackgroundToken(ThemeTokenId id) {
+    if (m_activeTabBackgroundToken == id) return;
     m_activeTabBackgroundToken = id;
     NotifyFieldChanged(PropertyId::ActiveTabBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetInactiveTabBackgroundToken(ThemeTokenId id) {
+    if (m_inactiveTabBackgroundToken == id) return;
     m_inactiveTabBackgroundToken = id;
     NotifyFieldChanged(PropertyId::InactiveTabBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetGridLineBrushToken(ThemeTokenId id) {
+    if (m_gridLineBrushToken == id) return;
     m_gridLineBrushToken = id;
     NotifyFieldChanged(PropertyId::GridLineBrushToken, TokenValue(id));
 }
 
 void UIElement::SetTitleColorToken(ThemeTokenId id) {
+    if (m_titleColorToken == id) return;
     m_titleColorToken = id;
     NotifyFieldChanged(PropertyId::TitleColorToken, TokenValue(id));
 }
 
 void UIElement::SetMessageColorToken(ThemeTokenId id) {
+    if (m_messageColorToken == id) return;
     m_messageColorToken = id;
     NotifyFieldChanged(PropertyId::MessageColorToken, TokenValue(id));
 }
 
 void UIElement::SetCaretColorToken(ThemeTokenId id) {
+    if (m_caretColorToken == id) return;
     m_caretColorToken = id;
     NotifyFieldChanged(PropertyId::CaretColorToken, TokenValue(id));
 }
@@ -728,36 +802,43 @@ void UIElement::SetCaretColorToken(ThemeTokenId id) {
 // --- Content setters ---
 
 void UIElement::SetText(const std::string& text) {
+    if (m_text == text) return;
     m_text = text;
     NotifyFieldChanged(PropertyId::Text, Value(text));
 }
 
 void UIElement::SetPlaceholder(const std::string& placeholder) {
+    if (m_placeholder == placeholder) return;
     m_placeholder = placeholder;
     NotifyFieldChanged(PropertyId::Placeholder, Value(placeholder));
 }
 
 void UIElement::SetFontFamily(const std::string& font) {
+    if (m_fontFamily == font) return;
     m_fontFamily = font;
     NotifyFieldChanged(PropertyId::FontFamily, Value(font));
 }
 
 void UIElement::SetFontSize(float size) {
+    if (m_fontSize == size) return;
     m_fontSize = size;
     NotifyFieldChanged(PropertyId::FontSize, Value(size));
 }
 
 void UIElement::SetFontWeight(const std::string& weight) {
+    if (m_fontWeight == weight) return;
     m_fontWeight = weight;
     NotifyFieldChanged(PropertyId::FontWeight, Value(weight));
 }
 
 void UIElement::SetToolTip(const std::string& tip) {
+    if (m_toolTip == tip) return;
     m_toolTip = tip;
     NotifyFieldChanged(PropertyId::ToolTip, Value(tip));
 }
 
 void UIElement::SetIcon(const std::string& icon) {
+    if (m_icon == icon) return;
     m_icon = icon;
     NotifyFieldChanged(PropertyId::Icon, Value(icon));
 }
@@ -857,30 +938,35 @@ void UIElement::SetProperty(PropertyId id, const Value& val) {
 }
 
 void UIElement::SetBackground(D2D1_COLOR_F c) {
+    if (ColorUnchanged(m_hasBackgroundColor, m_backgroundColor, c)) return;
     m_backgroundColor = c;
     m_hasBackgroundColor = true;
     NotifyFieldChanged(PropertyId::Background, Value(c));
 }
 
 void UIElement::SetHoverBackground(D2D1_COLOR_F c) {
+    if (ColorUnchanged(m_hasHoverBackgroundColor, m_hoverBackgroundColor, c)) return;
     m_hoverBackgroundColor = c;
     m_hasHoverBackgroundColor = true;
     NotifyFieldChanged(PropertyId::HoverBackground, Value(c));
 }
 
 void UIElement::SetPressedBackground(D2D1_COLOR_F c) {
+    if (ColorUnchanged(m_hasPressedBackgroundColor, m_pressedBackgroundColor, c)) return;
     m_pressedBackgroundColor = c;
     m_hasPressedBackgroundColor = true;
     NotifyFieldChanged(PropertyId::PressedBackground, Value(c));
 }
 
 void UIElement::SetBorderBrush(D2D1_COLOR_F c) {
+    if (ColorUnchanged(m_hasBorderBrushColor, m_borderBrushColor, c)) return;
     m_borderBrushColor = c;
     m_hasBorderBrushColor = true;
     NotifyFieldChanged(PropertyId::BorderBrush, Value(c));
 }
 
 void UIElement::SetColor(D2D1_COLOR_F c) {
+    if (ColorUnchanged(m_hasColorValue, m_colorValue, c)) return;
     m_colorValue = c;
     m_hasColorValue = true;
     NotifyFieldChanged(PropertyId::Color, Value(c));

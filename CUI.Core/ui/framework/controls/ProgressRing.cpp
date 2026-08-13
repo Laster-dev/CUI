@@ -77,6 +77,9 @@ std::vector<PropertyMeta> ProgressRing::GetPropertyMetas() const {
 }
 
 void ProgressRing::SetValue(float val) {
+    if (m_value == val) {
+        return;
+    }
     m_value = val;
     NotifyFieldChanged(PropertyId::ControlValue, Value(val));
     if (!UIElement::AreAnimationsEnabled()) {
@@ -87,12 +90,18 @@ void ProgressRing::SetValue(float val) {
 }
 
 void ProgressRing::SetMinimum(float minVal) {
+    if (m_minimum == minVal) {
+        return;
+    }
     m_minimum = minVal;
     NotifyFieldChanged(PropertyId::Minimum, Value(minVal));
     MarkRenderRectDirty(m_bounds);
 }
 
 void ProgressRing::SetMaximum(float maxVal) {
+    if (m_maximum == maxVal) {
+        return;
+    }
     m_maximum = maxVal;
     NotifyFieldChanged(PropertyId::Maximum, Value(maxVal));
     MarkRenderRectDirty(m_bounds);

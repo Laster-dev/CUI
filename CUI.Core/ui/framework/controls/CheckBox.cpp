@@ -49,6 +49,9 @@ std::vector<PropertyMeta> CheckBox::GetPropertyMetas() const {
 }
 
 void CheckBox::SetState(CheckState state) {
+    if (m_state == state) {
+        return;
+    }
     std::string s = "Unchecked";
     if (state == CheckState::Checked) s = "Checked";
     else if (state == CheckState::Indeterminate) s = "Indeterminate";

@@ -139,13 +139,13 @@ void NumberBox::SyncTextFromValue() {
 
 void NumberBox::SetValue(float val) {
     const float clamped = std::clamp(val, m_minimum, m_maximum);
-    const bool changed = std::abs(clamped - m_value) > 0.0001f;
+    if (std::abs(clamped - m_value) <= 0.0001f) {
+        return;
+    }
     m_value = clamped;
     NotifyFieldChanged(PropertyId::ControlValue, Value(clamped));
     SyncTextFromValue();
-    if (changed) {
-        m_onValueChangedEvent.Invoke(this, clamped);
-    }
+    m_onValueChangedEvent.Invoke(this, clamped);
     MarkRenderContentDirty();
 }
 

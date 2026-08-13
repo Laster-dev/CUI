@@ -45,6 +45,9 @@ ProgressBar::~ProgressBar() {
 }
 
 void ProgressBar::SetIsIndeterminate(bool ind) {
+    if (m_isIndeterminate == ind) {
+        return;
+    }
     ProgressBarDiag::Log(
         "[PB] SetIsIndeterminate this=%p ind=%d -> %d boundsEmpty=%d",
         (void*)this,
