@@ -17,6 +17,8 @@ class TreeView;
 struct TreeViewItem {
     std::string header;
     std::string icon;
+    // Optional host payload (e.g. full filesystem path for FilePicker).
+    std::string tag;
     // Optional native icon (non-owning). Prefer over text/emoji `icon` when set.
     HICON nativeIcon = nullptr;
     bool isExpanded = false;
@@ -60,6 +62,10 @@ public:
     std::shared_ptr<TreeViewItem> GetSelectedItem() const { return m_selectedItem; }
     void SetSelectedItem(std::shared_ptr<TreeViewItem> item);
 
+    // Expand / collapse a branch (no-op if item has no children).
+    void SetItemExpanded(std::shared_ptr<TreeViewItem> item, bool expanded);
+    void ToggleExpanded(std::shared_ptr<TreeViewItem> item);
+
     float GetIndentWidth() const { return m_indentWidth; }
     void SetIndentWidth(float w) {
         m_indentWidth = w;
@@ -101,6 +107,7 @@ private:
     int GetVisibleIndexOfItem(TreeViewItem* item) const;
     Rect GetItemRect(int visibleIndex) const;
     Rect GetToggleRect(const VisibleItem& visibleItem, const Rect& rowRect) const;
+    Rect GetToggleHitRect(const VisibleItem& visibleItem, const Rect& rowRect) const;
     void ToggleItem(std::shared_ptr<TreeViewItem> item);
     void SetParentRecursive(const std::shared_ptr<TreeViewItem>& item, TreeViewItem* parent);
     std::shared_ptr<TreeViewItem> FindFirstVisibleSelectable(int startIndex, int direction) const;

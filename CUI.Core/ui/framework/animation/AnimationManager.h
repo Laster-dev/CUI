@@ -40,10 +40,21 @@ public:
     bool HasAnimating() const { return !m_animating.empty(); }
     bool HasPendingWake() const { return !m_wakes.empty(); }
 
-    // Only elements under this root stay on the animation pump (detached gallery
-    // pages that called RequestAnimationTicks during Build must not spin forever).
+    // Live-tree gate for the animation pump.
+    //
+    // WHY: NavigationView / gallery pages often call RequestAnimationTicks during
+    // Build(). After a page swap those elements are detached (no longer under the
+    // window root) but may still be alive via shared_ptr. Without this gate they
+    // stay registered, ScheduleFrame never stops, and the app spins at full FPS
+    // with nothing on screen (CPU fan / "stuck" feel).
+    //
+    // RULE: only elements reachable from m_liveRoot may register or stay on the
+    // pump. Reachability = layout parent chain, OR AnimationHost chain (see
+    // UIElement::SetAnimationHost) for popup/overlay-hosted controls that are
+    // painted without being AddChild'd into the layout tree.
     void SetLiveRoot(UIElement* root);
     UIElement* GetLiveRoot() const { return m_liveRoot; }
+    // True if element walks to m_liveRoot via GetParent() and/or GetAnimationHost().
     bool IsInLiveTree(const UIElement* element) const;
     bool IsRegistered(const UIElement* element) const;
     void PruneDetachedAnimators();

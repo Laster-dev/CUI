@@ -27,6 +27,7 @@
 #include "../controls/BreadcrumbBar.h"
 #include "../controls/ProgressBar.h"
 #include "../controls/ProgressRing.h"
+#include "../controls/AutoSuggestBox.h"
 #include "../controls/FilePicker.h"
 #include "../controls/FolderPicker.h"
 #include "../controls/PagingControl.h"
@@ -386,6 +387,12 @@ inline ElementBuilder<ProgressRing> ProgressRingWidget(float val = 0.0f, bool is
     p->SetValue(val);
     p->SetIsIndeterminate(isIndeterminate);
     return p;
+}
+
+inline ElementBuilder<AutoSuggestBox> AutoSuggestBoxWidget(const std::string& placeholder = "搜索…") {
+    auto a = ElementBuilder<AutoSuggestBox>();
+    a->SetPlaceholder(placeholder);
+    return a;
 }
 
 inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") {

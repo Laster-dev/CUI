@@ -6,7 +6,7 @@ ShowcasePage BuildBreadcrumbPage(const ShowcaseContext& ctx) {
     target->SetPath({ "CUI", "showcase", "Declarative Gallery" });
     return { "BreadcrumbBar 面包屑", CreatePage(
         "BreadcrumbBar 面包屑路径导航控件",
-        "支持路径深层多节点、分隔符指示与节点直接点击跳转。",
+        "过长时前方折叠为 …，点击可选择被折叠的祖先节点；节点可直接点击跳转。",
         CreateDemoSurface({ target }, 0.0f),
         CreatePropertyGrid(ctx, target), target) };
 }

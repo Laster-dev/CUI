@@ -232,6 +232,24 @@ public:
     UIElement* GetParent() const { return m_parent; }
     void SetParent(UIElement* parent);
 
+    // AnimationHost — for controls painted outside the layout tree.
+    //
+    // AnimationManager only accepts RequestAnimationTicks from elements that
+    // reach the window live root (see AnimationManager::SetLiveRoot). That gate
+    // exists to stop *detached* pages (swapped-out NavigationView content) from
+    // spinning the frame pump forever after Build()-time RequestAnimationTicks.
+    //
+    // Side effect: popup bodies that SetBounds + OnRender a real control without
+    // AddChild (FilePicker's TreeView, BreadcrumbBar, …) look "detached" and are
+    // rejected. Call SetAnimationHost(the IPopup control) once after create so
+    // IsInLiveTree follows host → live root. Dirty marks also bubble to the host
+    // so the popup region invalidates.
+    //
+    // host must itself be under the live root (usually `this` on FilePicker /
+    // FolderPicker / other IPopup). Pass nullptr to clear.
+    void SetAnimationHost(UIElement* host);
+    UIElement* GetAnimationHost() const { return m_animationHost; }
+
     const std::vector<std::shared_ptr<UIElement>>& GetChildren() const { return m_children; }
     void AddChild(std::shared_ptr<UIElement> child);
     // Same as AddChild/RemoveChild but without MarkRenderContentDirty (caller dirties locally).
@@ -298,6 +316,8 @@ public:
     virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const;
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const;
     virtual void CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume = true);
+    // Registers with AnimationManager for OnAnimationTick. No-op if not under the
+    // live root and no AnimationHost — see SetLiveRoot / SetAnimationHost.
     void RequestAnimationTicks();
     void CancelAnimationTicks();
     bool IsAnimationTicksRegistered() const { return m_animationTicksRegistered; }
@@ -339,8 +359,10 @@ public:
     virtual void OnNavigatedTo();
     virtual void OnNavigatedFrom();
     void PauseAnimationSubtree();
-    // Re-arm HasSelfAnimation() ticks after attach / OnNavigatedTo (Build-time
-    // RequestAnimationTicks is rejected while not under the live root).
+    // Re-arm HasSelfAnimation() ticks after attach / OnNavigatedTo.
+    // Build()-time RequestAnimationTicks is rejected until the element is under
+    // the live root (or has SetAnimationHost). Call this after the page is
+    // inserted into the tree so ProgressRing / scroll / expand resume.
     void ResumeAnimationSubtree();
 
     // Routed events (tunnel then bubble). Default forwards to classic OnMouse*/OnKey*.
@@ -459,6 +481,9 @@ protected:
     bool m_hasColorValue = false;
 
     UIElement* m_parent = nullptr;
+    // Non-owning. Popup/overlay paint path without AddChild — see SetAnimationHost.
+    // Used by AnimationManager::IsInLiveTree and dirty-bubble when m_parent is null.
+    UIElement* m_animationHost = nullptr;
     std::vector<std::shared_ptr<UIElement>> m_children;
     Rect m_bounds{};
     Size m_desiredSize{};

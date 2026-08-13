@@ -115,6 +115,10 @@ void AnimationManager::RegisterAnimating(UIElement* element) {
     if (!element) {
         return;
     }
+    // Reject detached / not-yet-attached elements. See SetLiveRoot comment:
+    // gallery pages that RequestAnimationTicks in Build() must not keep the
+    // frame pump alive after they leave the tree. Popup-embedded controls must
+    // SetAnimationHost(liveHost) so IsInLiveTree succeeds without AddChild.
     if (m_liveRoot && !IsInLiveTree(element)) {
         return;
     }
@@ -142,10 +146,26 @@ bool AnimationManager::IsInLiveTree(const UIElement* element) const {
     if (!m_liveRoot) {
         return true;
     }
-    for (const UIElement* walk = element; walk; walk = walk->GetParent()) {
+    // Membership test for the animation pump (not for layout/hit-test).
+    // 1) Normal controls: climb GetParent() to m_liveRoot.
+    // 2) Popup/overlay-hosted controls (FilePicker TreeView, etc.): they have no
+    //    layout parent; climb GetAnimationHost() into a host that IS under the
+    //    live root. Without (2) RequestAnimationTicks is silently dropped and
+    //    expand/scroll animations never run.
+    const UIElement* walk = element;
+    for (int guard = 0; walk && guard < 64; ++guard) {
         if (walk == m_liveRoot) {
             return true;
         }
+        if (UIElement* parent = walk->GetParent()) {
+            walk = parent;
+            continue;
+        }
+        if (UIElement* host = walk->GetAnimationHost()) {
+            walk = host;
+            continue;
+        }
+        break;
     }
     return false;
 }

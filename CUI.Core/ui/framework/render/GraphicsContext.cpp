@@ -1172,6 +1172,103 @@ void GraphicsContext::DrawSmoothLine(Point p1, Point p2, D2D1_COLOR_F color, flo
         stroke.Get());
 }
 
+void GraphicsContext::DrawSmoothArc(
+    Point center,
+    float radius,
+    float startRad,
+    float sweepRad,
+    D2D1_COLOR_F color,
+    float strokeWidth) {
+    if (!m_d2dContext || radius <= 0.5f || std::abs(sweepRad) < 0.0005f || color.a <= 0.001f) {
+        return;
+    }
+
+    auto brush = m_resources.GetSolidBrush(color);
+    if (!brush) {
+        return;
+    }
+
+    ComPtr<ID2D1Factory> factory;
+    m_d2dContext->GetFactory(&factory);
+    if (!factory) {
+        return;
+    }
+
+    // D2D arc uses counter-clockwise for positive sweep in mathematical angles;
+    // our ProgressiveRing convention is clockwise in DIP space (Y down), so flip.
+    const float absSweep = std::abs(sweepRad);
+    const bool clockwise = sweepRad >= 0.0f;
+    const float endRad = startRad + sweepRad;
+
+    const D2D1_POINT_2F startPt = D2D1::Point2F(
+        center.x + std::cos(startRad) * radius,
+        center.y + std::sin(startRad) * radius);
+    const D2D1_POINT_2F endPt = D2D1::Point2F(
+        center.x + std::cos(endRad) * radius,
+        center.y + std::sin(endRad) * radius);
+
+    ComPtr<ID2D1PathGeometry> path;
+    if (FAILED(factory->CreatePathGeometry(&path)) || !path) {
+        return;
+    }
+    ComPtr<ID2D1GeometrySink> sink;
+    if (FAILED(path->Open(&sink)) || !sink) {
+        return;
+    }
+
+    sink->BeginFigure(startPt, D2D1_FIGURE_BEGIN_HOLLOW);
+    // Full circle needs two semicircle arcs (D2D rejects a full 360° single arc).
+    if (absSweep >= 6.28318530718f - 0.001f) {
+        const float midRad = startRad + (clockwise ? 3.14159265359f : -3.14159265359f);
+        const D2D1_POINT_2F midPt = D2D1::Point2F(
+            center.x + std::cos(midRad) * radius,
+            center.y + std::sin(midRad) * radius);
+        sink->AddArc(D2D1::ArcSegment(
+            midPt,
+            D2D1::SizeF(radius, radius),
+            0.0f,
+            clockwise ? D2D1_SWEEP_DIRECTION_CLOCKWISE : D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE,
+            D2D1_ARC_SIZE_SMALL));
+        sink->AddArc(D2D1::ArcSegment(
+            endPt,
+            D2D1::SizeF(radius, radius),
+            0.0f,
+            clockwise ? D2D1_SWEEP_DIRECTION_CLOCKWISE : D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE,
+            D2D1_ARC_SIZE_SMALL));
+    } else {
+        sink->AddArc(D2D1::ArcSegment(
+            endPt,
+            D2D1::SizeF(radius, radius),
+            0.0f,
+            clockwise ? D2D1_SWEEP_DIRECTION_CLOCKWISE : D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE,
+            absSweep > 3.14159265359f ? D2D1_ARC_SIZE_LARGE : D2D1_ARC_SIZE_SMALL));
+    }
+    sink->EndFigure(D2D1_FIGURE_END_OPEN);
+    if (FAILED(sink->Close())) {
+        return;
+    }
+
+    ComPtr<ID2D1StrokeStyle> stroke;
+    factory->CreateStrokeStyle(
+        D2D1::StrokeStyleProperties(
+            D2D1_CAP_STYLE_ROUND,
+            D2D1_CAP_STYLE_ROUND,
+            D2D1_CAP_STYLE_ROUND,
+            D2D1_LINE_JOIN_ROUND,
+            10.0f,
+            D2D1_DASH_STYLE_SOLID,
+            0.0f),
+        nullptr,
+        0,
+        &stroke);
+
+    m_d2dContext->DrawGeometry(
+        path.Get(),
+        brush,
+        (std::max)(0.75f, strokeWidth),
+        stroke.Get());
+}
+
 void GraphicsContext::DrawChevron(const Rect& bounds, D2D1_COLOR_F color, ChevronDirection direction, float strokeWidth) {
     if (bounds.IsEmpty() || !m_d2dContext) {
         return;

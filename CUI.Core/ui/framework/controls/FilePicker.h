@@ -2,7 +2,6 @@
 #include "Control.h"
 #include "FileBrowserHelper.h"
 #include "../window/PopupHost.h"
-#include <chrono>
 #include <string>
 #include <vector>
 
@@ -24,6 +23,7 @@ public:
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
+    virtual void OnMouseDblClick(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseLeave() override;
     virtual void OnMouseWheel(float delta) override;
@@ -31,13 +31,14 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    // IPopup
     virtual bool IsPopupOpen() const override { return m_isPopupOpen; }
     virtual Rect GetPopupBounds() const override;
     virtual bool HitDismissExempt(float x, float y) const override;
     virtual UIElement* HitTestPopup(float x, float y) override { return OnHitTestOverlay(x, y); }
     virtual void RenderPopup(GraphicsContext& ctx) override;
     virtual void OnLightDismiss() override { SetPopupOpen(false); }
+    // TreeView painted in popup body — re-arm ticks if AnimationHost was late.
+    virtual void CollectPopupOwnedElements(std::vector<UIElement*>& out) const override;
 
     void SetPopupOpen(bool open);
 
@@ -64,7 +65,7 @@ private:
     bool HandleBrowserClick(Point pt);
     void SetFilterDropDownOpen(bool open);
     void SyncBrowserChrome();
-    void SyncBrowserPopupMetrics();
+    float PopupProgress() const;
 
     std::string m_dialogTitle{ "选择文件" };
     std::vector<std::pair<std::string, std::string>> m_filters;
@@ -75,15 +76,13 @@ private:
     AnimatedScalar m_popupAnim{};
     FileBrowserSession m_browser;
     FileBrowserBreadcrumbHost m_breadcrumbHost;
-    int m_hoverRow = -1;
+    FileBrowserTreeHost m_treeHost;
     bool m_hoverUp = false;
     bool m_hoverFilter = false;
     bool m_hoverCancel = false;
     bool m_hoverConfirm = false;
     bool m_filterDropDownOpen = false;
     int m_hoverFilterItem = -1;
-    int m_lastClickRow = -1;
-    std::chrono::steady_clock::time_point m_lastClickTime{};
 
     Event<FilePicker*, const std::string&> m_onPathChangedEvent;
 };

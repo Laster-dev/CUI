@@ -1,4 +1,5 @@
 #include "PopupHost.h"
+#include "../controls/UIElement.h"
 #include <algorithm>
 
 namespace CUI {
@@ -15,12 +16,12 @@ void PopupHost::SetCurrent(PopupHost* host) {
 
 void PopupHost::Open(IPopup* popup) {
     if (!popup) return;
-    // One primary popup stack: opening a new root popup closes others unless already open.
+    // Stack — do not close parents. Nested menus (e.g. BreadcrumbBar "..." inside
+    // FilePicker) call Open while the picker is already open; replacing the stack
+    // would light-dismiss the picker. Sibling replacement still happens because
+    // Window::OnLButtonDown runs DismissIfOutside before the new control Opens.
     auto it = std::find(m_open.begin(), m_open.end(), popup);
     if (it != m_open.end()) return;
-
-    // Close siblings that are not ancestors/exempt — keep it simple: close all others.
-    CloseAllExcept(nullptr);
     m_open.push_back(popup);
 }
 
@@ -94,8 +95,22 @@ void PopupHost::Render(GraphicsContext& ctx) {
 bool PopupHost::TickAnimations() {
     bool any = false;
     for (IPopup* p : m_open) {
-        if (p && p->TickPopupAnimation()) {
+        if (!p) {
+            continue;
+        }
+        if (p->TickPopupAnimation()) {
             any = true;
+        }
+        // Safety net: popup-owned controls (TreeView, …) must SetAnimationHost so
+        // they can register themselves. If expand/scroll started while the host
+        // link was missing, re-arm here so the pump still picks them up.
+        std::vector<UIElement*> owned;
+        p->CollectPopupOwnedElements(owned);
+        for (UIElement* el : owned) {
+            if (el && el->HasSelfAnimation()) {
+                el->RequestAnimationTicks();
+                any = true;
+            }
         }
     }
     // Prune closed entries

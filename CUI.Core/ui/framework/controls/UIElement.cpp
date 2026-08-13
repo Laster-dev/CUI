@@ -72,7 +72,23 @@ void UIElement::SetParent(UIElement* parent) {
     m_parent = parent;
 }
 
+void UIElement::SetAnimationHost(UIElement* host) {
+    if (host == this) {
+        return;
+    }
+    m_animationHost = host;
+    // Attaching the host makes IsInLiveTree true (via host → live root). Re-arm
+    // any pending self animation that RequestAnimationTicks dropped earlier
+    // while this control looked detached.
+    if (m_animationHost && HasSelfAnimation()) {
+        RequestAnimationTicks();
+    }
+}
+
 void UIElement::RequestAnimationTicks() {
+    // May no-op if AnimationManager live-tree gate rejects this element (detached
+    // after page swap, or popup-hosted without SetAnimationHost). Check
+    // IsAnimationTicksRegistered() / IsInLiveTree if ticks never arrive.
     if (AnimationManager* mgr = AnimationManager::Current()) {
         if (m_animationTicksRegistered && !mgr->IsRegistered(this)) {
             // Flag/list desync — recover so pending work (e.g. Nav content swap) can run.
@@ -745,6 +761,10 @@ void UIElement::MarkRenderContentDirty() {
     // or a tiny control animation expands into a full-window repaint.
     if (m_parent) {
         m_parent->MarkRenderRectDirty(m_bounds);
+    } else if (m_animationHost) {
+        // No layout parent (popup-hosted): invalidate through AnimationHost so
+        // Window still collects a dirty rect and PopupHost::Render runs again.
+        m_animationHost->MarkRenderRectDirty(m_bounds);
     }
 }
 
@@ -757,6 +777,12 @@ void UIElement::MarkRenderRectDirty(const Rect& rect) {
     // RequestFullRepaint() every animation frame (整帧 + ~13 FPS).
     for (UIElement* walk = m_parent; walk; walk = walk->m_parent) {
         walk->m_subtreeRenderDirty = true;
+    }
+    if (!m_parent && m_animationHost) {
+        // Same as MarkRenderContentDirty: popup-hosted controls must dirty the
+        // live-tree host or the owner window never invalidates.
+        m_animationHost->m_subtreeRenderDirty = true;
+        m_animationHost->m_renderNode.MarkDirtyRect(rect);
     }
 }
 

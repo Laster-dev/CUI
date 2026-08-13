@@ -39,7 +39,7 @@ private:
         float startRad,
         float sweepRad) const;
 
-    // WinUI indeterminate: expand/contract sweep + multi-turn eased rotation.
+    // WinUI indeterminate: TrimStart/TrimEnd chase + 0→900° rotation (Lottie).
     void SampleIndeterminate(float& outStartRad, float& outSweepRad) const;
 
     float m_value = 0.0f;

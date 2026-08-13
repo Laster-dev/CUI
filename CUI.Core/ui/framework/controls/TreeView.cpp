@@ -345,6 +345,13 @@ Rect TreeView::GetToggleRect(const VisibleItem& visibleItem, const Rect& rowRect
     return Rect(toggleX, toggleY, 14.0f, 14.0f);
 }
 
+// Full-height chevron column — easier to hit than the 14×14 glyph.
+Rect TreeView::GetToggleHitRect(const VisibleItem& visibleItem, const Rect& rowRect) const {
+    float indentW = GetIndentWidth();
+    float toggleX = rowRect.x + visibleItem.depth * indentW;
+    return Rect(toggleX, rowRect.y, (std::max)(22.0f, indentW + 6.0f), rowRect.height);
+}
+
 void TreeView::ToggleItem(std::shared_ptr<TreeViewItem> item) {
     if (!item || item->children.empty()) return;
     item->isExpanded = !item->isExpanded;
@@ -355,11 +362,31 @@ void TreeView::ToggleItem(std::shared_ptr<TreeViewItem> item) {
     } else {
         m_expandAnimActive = true;
         RequestAnimationTicks();
+        // Popup-hosted trees can miss the animation pump; snap so children aren't
+        // stuck at expandAnim==0 (zero height) after a successful toggle.
+        if (!IsAnimationTicksRegistered()) {
+            item->expandAnim.Reset(item->isExpanded ? 1.0f : 0.0f);
+            m_expandAnimActive = false;
+        }
     }
     m_visibleDirty = true;
     ClampScroll();
     MarkRenderContentDirty();
     m_onItemToggledEvent.Invoke(this, item);
+}
+
+void TreeView::SetItemExpanded(std::shared_ptr<TreeViewItem> item, bool expanded) {
+    if (!item || item->children.empty()) {
+        return;
+    }
+    if (item->isExpanded == expanded) {
+        return;
+    }
+    ToggleItem(item);
+}
+
+void TreeView::ToggleExpanded(std::shared_ptr<TreeViewItem> item) {
+    ToggleItem(item);
 }
 
 void TreeView::SetSelectedItem(std::shared_ptr<TreeViewItem> item) {
@@ -603,22 +630,33 @@ void TreeView::OnMouseDown(Point pt) {
 
     int idx = GetVisibleIndexFromY(pt.y);
     if (idx >= 0 && idx < static_cast<int>(m_visibleItems.size())) {
-        const auto& visItem = m_visibleItems[idx];
-        Rect rowRect = GetItemRect(idx);
+        // Copy before SetSelectedItem/ClampScroll rebuilds m_visibleItems
+        // (a reference into the vector would dangle and crash on item->).
+        const VisibleItem visItem = m_visibleItems[idx];
+        std::shared_ptr<TreeViewItem> item = visItem.item;
+        if (!item) {
+            return;
+        }
 
-        // Check if expander arrow clicked
-        if (!visItem.item->children.empty()) {
-            Rect toggleRect = GetToggleRect(visItem, rowRect);
-            if (toggleRect.Contains(pt.x, pt.y)) {
-                ToggleItem(visItem.item);
+        Rect rowRect = GetItemRect(idx);
+        const bool canExpand = !item->children.empty();
+
+        // Chevron column — toggle expand/collapse.
+        if (canExpand) {
+            Rect toggleHit = GetToggleHitRect(visItem, rowRect);
+            if (toggleHit.Contains(pt.x, pt.y)) {
+                ToggleItem(item);
                 return;
             }
         }
 
-        // Selection click
+        // Row click: select; collapsed branches also expand (Explorer / WinUI-like).
         m_pressedVisibleIndex = idx;
-        SetSelectedItem(visItem.item);
-        StartSelectRipple(visItem.item, pt);
+        SetSelectedItem(item);
+        StartSelectRipple(item, pt);
+        if (canExpand && !item->isExpanded) {
+            ToggleItem(item);
+        }
         MarkRenderContentDirty();
     }
 }

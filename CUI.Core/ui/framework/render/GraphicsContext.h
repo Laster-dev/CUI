@@ -97,6 +97,14 @@ public:
     void DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth = 1.0f);
     // Antialiased stroke with round caps — for icons. DrawLine pixel-snaps and looks jagged on diagonals.
     void DrawSmoothLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth = 1.5f);
+    // Circular arc with round caps (angles in radians, 0 = +X, increasing = clockwise in DIP space).
+    void DrawSmoothArc(
+        Point center,
+        float radius,
+        float startRad,
+        float sweepRad,
+        D2D1_COLOR_F color,
+        float strokeWidth = 1.5f);
 
     enum class ChevronDirection { Down, Up, Left, Right };
     // Vector chevron (two strokes). Prefer this over glyph characters under DPI scaling.

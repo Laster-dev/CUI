@@ -11,12 +11,39 @@ namespace CUI {
 namespace {
 constexpr float kTwoPi = 6.28318530718f;
 constexpr float kHalfPi = 1.57079632679f;
-constexpr int kArcSegments = 64;
-// WinUI ProgressRing indeterminate Lottie cycle length.
+// WinUI ProgressRingIndeterminate Lottie duration (c_durationTicks = 20_000_000).
 constexpr float kIndeterminateCycleSec = 2.0f;
-// Visible arc length as a fraction of the circle (Fluent look).
-constexpr float kMinSweepFrac = 0.08f;
-constexpr float kMaxSweepFrac = 0.75f;
+
+float CubicBezierSample(float t, float a, float b, float c, float d) {
+    const float t2 = t * t;
+    const float t3 = t2 * t;
+    const float u = 1.0f - t;
+    const float u2 = u * u;
+    const float u3 = u2 * u;
+    return u3 * a + 3.0f * u2 * t * b + 3.0f * u * t2 * c + t3 * d;
+}
+
+// Solve cubic-bezier(x1,y1,x2,y2) for progress t ∈ [0,1].
+float CubicBezierEase(float t, float x1, float y1, float x2, float y2) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    if (t <= 0.0f || t >= 1.0f) {
+        return t;
+    }
+    float s = t;
+    for (int i = 0; i < 8; ++i) {
+        const float x = CubicBezierSample(s, 0.0f, x1, x2, 1.0f);
+        const float dx =
+            3.0f * (1.0f - s) * (1.0f - s) * x1
+            + 6.0f * (1.0f - s) * s * (x2 - x1)
+            + 3.0f * s * s * (1.0f - x2);
+        if (std::abs(dx) < 1.0e-6f) {
+            break;
+        }
+        s -= (x - t) / dx;
+        s = std::clamp(s, 0.0f, 1.0f);
+    }
+    return CubicBezierSample(s, 0.0f, y1, y2, 1.0f);
+}
 
 float NormalizeAngle(float radians) {
     while (radians < 0.0f) {
@@ -26,33 +53,6 @@ float NormalizeAngle(float radians) {
         radians -= kTwoPi;
     }
     return radians;
-}
-
-float EaseInOutCubic(float t) {
-    t = std::clamp(t, 0.0f, 1.0f);
-    if (t < 0.5f) {
-        return 4.0f * t * t * t;
-    }
-    const float u = -2.0f * t + 2.0f;
-    return 1.0f - (u * u * u) * 0.5f;
-}
-
-// Rotation keyframes matching WinUI ProgressRingIndeterminate feel:
-// 0% → 0°, 50% → 450°, 100% → 1080° (3 turns), with cubic ease between.
-float WinUIRotationTurns(float t) {
-    t = std::clamp(t, 0.0f, 1.0f);
-    if (t <= 0.5f) {
-        return 1.25f * EaseInOutCubic(t / 0.5f);
-    }
-    return 1.25f + 1.75f * EaseInOutCubic((t - 0.5f) / 0.5f);
-}
-
-float WinUISweepFraction(float t) {
-    t = std::clamp(t, 0.0f, 1.0f);
-    const float u = (t < 0.5f)
-        ? EaseInOutCubic(t * 2.0f)
-        : EaseInOutCubic(2.0f - t * 2.0f);
-    return kMinSweepFrac + (kMaxSweepFrac - kMinSweepFrac) * u;
 }
 } // namespace
 
@@ -128,34 +128,43 @@ void ProgressRing::DrawRingArc(
     D2D1_COLOR_F color,
     float startRad,
     float sweepRad) const {
-    if (radius <= 0.5f || std::abs(sweepRad) < 0.001f || color.a <= 0.001f) {
-        return;
-    }
-
-    const int segments = (std::max)(6, static_cast<int>(std::ceil(kArcSegments * std::abs(sweepRad) / kTwoPi)));
-    Point prev(
-        center.x + std::cos(startRad) * radius,
-        center.y + std::sin(startRad) * radius);
-
-    for (int i = 1; i <= segments; ++i) {
-        const float t = static_cast<float>(i) / static_cast<float>(segments);
-        const float angle = startRad + sweepRad * t;
-        Point next(
-            center.x + std::cos(angle) * radius,
-            center.y + std::sin(angle) * radius);
-        ctx.DrawSmoothLine(prev, next, color, strokeWidth);
-        prev = next;
-    }
+    ctx.DrawSmoothArc(center, radius, startRad, sweepRad, color, strokeWidth);
 }
 
 void ProgressRing::SampleIndeterminate(float& outStartRad, float& outSweepRad) const {
+    // Structure from WinUI ProgressRingIndeterminate (2s, trim chase, 0→450→900),
+    // but rotation uses a real ease-in-out — WinUI's published bezier
+    // (0.167,0.167)-(0.833,0.833) lies on y=x and reads as constant RPM.
     const float t = std::fmod(m_cycleTime, kIndeterminateCycleSec) / kIndeterminateCycleSec;
-    const float sweepFrac = WinUISweepFraction(t);
-    const float rotationRad = WinUIRotationTurns(t) * kTwoPi;
-    // 12 o'clock origin, clockwise visual via increasing angle in screen space
-    // (Y grows downward, so +angle is clockwise from +X — subtract π/2 for top).
-    outSweepRad = sweepFrac * kTwoPi;
-    outStartRad = NormalizeAngle(rotationRad - kHalfPi - outSweepRad);
+
+    // Emphasized ease-in-out: slow → fast → slow within each half-cycle.
+    constexpr float kRotX1 = 0.45f, kRotY1 = 0.05f, kRotX2 = 0.55f, kRotY2 = 0.95f;
+    // Trim keeps a slightly softer curve so arc length still "breathes".
+    constexpr float kTrimX1 = 0.33f, kTrimY1 = 0.00f, kTrimX2 = 0.67f, kTrimY2 = 1.00f;
+
+    float rotationDeg = 0.0f;
+    float trimStart = 0.0f;
+    float trimEnd = 0.0001f;
+
+    if (t < 0.5f) {
+        const float local = t / 0.5f;
+        const float rotU = CubicBezierEase(local, kRotX1, kRotY1, kRotX2, kRotY2);
+        const float trimU = CubicBezierEase(local, kTrimX1, kTrimY1, kTrimX2, kTrimY2);
+        rotationDeg = 450.0f * rotU;
+        trimStart = 0.0f;
+        trimEnd = 0.0001f + (0.5f - 0.0001f) * trimU;
+    } else {
+        const float local = (t - 0.5f) / 0.5f;
+        const float rotU = CubicBezierEase(local, kRotX1, kRotY1, kRotX2, kRotY2);
+        const float trimU = CubicBezierEase(local, kTrimX1, kTrimY1, kTrimX2, kTrimY2);
+        rotationDeg = 450.0f + 450.0f * rotU;
+        trimStart = 0.5f * trimU;
+        trimEnd = 0.5f;
+    }
+
+    const float rotationRad = rotationDeg * (kTwoPi / 360.0f);
+    outSweepRad = (trimEnd - trimStart) * kTwoPi;
+    outStartRad = NormalizeAngle(rotationRad + trimStart * kTwoPi - kHalfPi);
 }
 
 void ProgressRing::OnRender(GraphicsContext& ctx) {
@@ -168,7 +177,8 @@ void ProgressRing::OnRender(GraphicsContext& ctx) {
     track.a *= 0.55f;
 
     const float size = (std::min)(m_bounds.width, m_bounds.height);
-    const float stroke = (std::max)(2.0f, size * 0.08f);
+    // WinUI Lottie: radius 7, stroke 1.5, scale 5 → stroke ≈ 0.094 of outer size.
+    const float stroke = (std::max)(2.0f, size * 0.094f);
     const float radius = (std::max)(2.0f, size * 0.5f - stroke);
     const Point center(
         m_bounds.x + m_bounds.width * 0.5f,
