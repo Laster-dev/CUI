@@ -61,6 +61,7 @@ public:
     HWND GetOwnerHwnd() const { return m_ownerHwnd; }
 
     bool HasOpenPopups() const { return !m_open.empty(); }
+    IPopup* GetTop() const { return m_open.empty() ? nullptr : m_open.back(); }
     // Light-dismiss the top-most popup (Esc). Returns true if one was closed.
     bool DismissTop();
 

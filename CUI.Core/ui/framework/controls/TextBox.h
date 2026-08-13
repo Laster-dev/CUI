@@ -38,7 +38,7 @@ public:
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseEnter() override;
     virtual void OnMouseLeave() override;
-    virtual void OnKeyDown(int vkCode) override;
+    virtual bool OnKeyDown(int vkCode) override;
     virtual void OnFocus() override;
     virtual void OnBlur() override;
     void OnCharInput(wchar_t ch);

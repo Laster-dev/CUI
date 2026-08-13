@@ -73,4 +73,16 @@ void HyperlinkButton::OnRender(GraphicsContext& ctx) {
     }
 }
 
+bool HyperlinkButton::OnKeyDown(int vkCode) {
+    if (!IsEnabled()) {
+        return false;
+    }
+    if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
+        ExecuteBoundCommand();
+        OnClick().Invoke(this);
+        return true;
+    }
+    return Control::OnKeyDown(vkCode);
+}
+
 } // namespace CUI

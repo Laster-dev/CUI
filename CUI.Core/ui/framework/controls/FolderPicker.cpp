@@ -400,14 +400,14 @@ void FolderPicker::OnMouseLeave() {
     MarkPickerDirty();
 }
 
-void FolderPicker::OnKeyDown(int vkCode) {
+bool FolderPicker::OnKeyDown(int vkCode) {
     if (!IsEnabled()) {
-        return;
+        return false;
     }
     if (m_isPopupOpen) {
         if (vkCode == VK_ESCAPE) {
             SetPopupOpen(false);
-            return;
+            return true;
         }
         if (vkCode == VK_RETURN) {
             std::string path;
@@ -415,22 +415,22 @@ void FolderPicker::OnKeyDown(int vkCode) {
                 SetPath(path);
                 SetPopupOpen(false);
             }
-            return;
+            return true;
         }
         if (vkCode == VK_BACK) {
             m_treeHost.GoUp(m_browser);
             SyncBrowserChrome();
             MarkPickerDirty();
             RequestAnimationTicks();
-            return;
+            return true;
         }
-        return;
+        return true;
     }
     if (vkCode == VK_RETURN || vkCode == VK_SPACE) {
         SetPopupOpen(true);
-        return;
+        return true;
     }
-    Control::OnKeyDown(vkCode);
+    return Control::OnKeyDown(vkCode);
 }
 
 bool FolderPicker::OnAnimationTick() {

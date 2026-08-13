@@ -17,6 +17,7 @@ Slider::Slider() {
     SetWidth(200.0f);
     SetHeight(24.0f);
     m_displayValueAnim.Reset(GetValue());
+    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
 std::vector<PropertyMeta> Slider::GetPropertyMetas() const {
@@ -194,14 +195,17 @@ bool Slider::HasSelfAnimation() const {
     return Control::HasSelfAnimation() || std::abs(GetValue() - m_displayValueAnim.Current()) > 0.01f;
 }
 
-void Slider::OnKeyDown(int vkCode) {
-    Control::OnKeyDown(vkCode);
+bool Slider::OnKeyDown(int vkCode) {
     float step = GetStep();
     if (vkCode == VK_LEFT || vkCode == VK_DOWN) {
         SetValue(GetValue() - step);
-    } else if (vkCode == VK_RIGHT || vkCode == VK_UP) {
-        SetValue(GetValue() + step);
+        return true;
     }
+    if (vkCode == VK_RIGHT || vkCode == VK_UP) {
+        SetValue(GetValue() + step);
+        return true;
+    }
+    return Control::OnKeyDown(vkCode);
 }
 
 void Slider::OnRender(GraphicsContext& ctx) {

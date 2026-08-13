@@ -636,16 +636,17 @@ bool AutoSuggestBox::HandleSuggestionKey(int vkCode) {
     return false;
 }
 
-void AutoSuggestBox::OnKeyDown(int vkCode) {
+bool AutoSuggestBox::OnKeyDown(int vkCode) {
     if (m_field && m_field->IsFocused()) {
-        return;
+        return false;
     }
     if (HandleSuggestionKey(vkCode)) {
-        return;
+        return true;
     }
     if (m_field) {
-        m_field->OnKeyDown(vkCode);
+        return m_field->OnKeyDown(vkCode);
     }
+    return false;
 }
 
 void AutoSuggestBox::OnCharInput(wchar_t ch) {

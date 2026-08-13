@@ -15,7 +15,7 @@ public:
     virtual bool HasProperty(PropertyId id) const override;
 
     virtual void OnMouseUp(Point pt) override;
-    virtual void OnKeyDown(int vkCode) override;
+    virtual bool OnKeyDown(int vkCode) override;
 
     bool IsChecked() const { return m_isChecked; }
     void SetIsChecked(bool checked);

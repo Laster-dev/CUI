@@ -40,6 +40,7 @@ TreeView::TreeView() {
     SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
     SetFontSize(16.0f);
     SetFontFamily("微软雅黑");
+    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     SetFontWeight("Normal");
     SetItemHeight(28.0f);
     SetCornerRadius(4.0f);
@@ -779,10 +780,9 @@ std::shared_ptr<TreeViewItem> TreeView::FindFirstVisibleSelectable(int startInde
     return m_visibleItems[idx].item;
 }
 
-void TreeView::OnKeyDown(int vkCode) {
-    Control::OnKeyDown(vkCode);
+bool TreeView::OnKeyDown(int vkCode) {
     RebuildVisibleItems();
-    if (m_visibleItems.empty()) return;
+    if (m_visibleItems.empty()) return false;
 
     int currIdx = GetVisibleIndexOfItem(m_selectedItem.get());
     auto startRippleAtSelection = [this]() {
@@ -837,8 +837,9 @@ void TreeView::OnKeyDown(int vkCode) {
         break;
     }
     default:
-        break;
+        return false;
     }
+    return true;
 }
 
 bool TreeView::TickExpandAnims(const std::vector<std::shared_ptr<TreeViewItem>>& list, float dt) {

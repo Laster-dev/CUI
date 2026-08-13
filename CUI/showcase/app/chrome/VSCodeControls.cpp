@@ -5,6 +5,7 @@
 #include "framework/style/ThemeManager.h"
 #include "framework/animation/AnimationManager.h"
 #include "framework/controls/Toast.h"
+#include "framework/input/Command.h"
 #include <algorithm>
 #include <cstdio>
 #include <cmath>
@@ -35,40 +36,52 @@ TitleBar::TitleBar() {
         }
     };
 
+    auto bind = [toast](const std::string& id, const std::string& label, const std::string& shortcut) {
+        auto cmd = std::make_shared<Command>([toast, label] { toast(label + "（Gallery 演示）"); });
+        cmd->SetId(id);
+        cmd->SetLabel(label);
+        cmd->SetGesture(shortcut);
+        return cmd;
+    };
+
     auto fileMenu = m_menuBar->AddMenu("File");
-    fileMenu->AddItem("New Text File", "Ctrl+N", [toast] { toast("New Text File（Gallery 演示）"); });
-    fileMenu->AddItem("New File...", "Ctrl+Alt+Windows+N", [toast] { toast("New File（Gallery 演示）"); });
-    fileMenu->AddItem("New Window", "Ctrl+Shift+N", [toast] { toast("New Window（Gallery 演示）"); });
+    fileMenu->AddItem("New Text File", bind("file.newText", "New Text File", "Ctrl+N"));
+    fileMenu->AddItem("New File...", bind("file.new", "New File", "Ctrl+Alt+N"));
+    fileMenu->AddItem("New Window", bind("file.newWindow", "New Window", "Ctrl+Shift+N"));
     fileMenu->AddSeparator();
-    fileMenu->AddItem("Open File...", "Ctrl+O", [toast] { toast("Open File（Gallery 演示）"); });
+    fileMenu->AddItem("Open File...", bind("file.open", "Open File", "Ctrl+O"));
     fileMenu->AddItem("Open Folder...", "Ctrl+K Ctrl+O", [toast] { toast("Open Folder（Gallery 演示）"); });
     fileMenu->AddSeparator();
-    fileMenu->AddItem("Save", "Ctrl+S", [toast] { toast("Save（Gallery 演示）"); });
-    fileMenu->AddItem("Save As...", "Ctrl+Shift+S", [toast] { toast("Save As（Gallery 演示）"); });
+    fileMenu->AddItem("Save", bind("file.save", "Save", "Ctrl+S"));
+    fileMenu->AddItem("Save As...", bind("file.saveAs", "Save As", "Ctrl+Shift+S"));
     fileMenu->AddSeparator();
-    fileMenu->AddItem("Exit", "Alt+F4", [] {
+    auto exitCmd = std::make_shared<Command>([] {
         if (auto* win = Window::Current()) {
             if (HWND hwnd = win->GetHWND()) {
                 PostMessage(hwnd, WM_CLOSE, 0, 0);
             }
         }
     });
+    exitCmd->SetId("file.exit");
+    exitCmd->SetLabel("Exit");
+    exitCmd->SetGesture("Alt+F4");
+    fileMenu->AddItem("Exit", exitCmd);
 
     auto editMenu = m_menuBar->AddMenu("Edit");
-    editMenu->AddItem("Undo", "Ctrl+Z", [toast] { toast("Undo（Gallery 演示）"); });
-    editMenu->AddItem("Redo", "Ctrl+Y", [toast] { toast("Redo（Gallery 演示）"); });
+    editMenu->AddItem("Undo", bind("edit.undo", "Undo", "Ctrl+Z"));
+    editMenu->AddItem("Redo", bind("edit.redo", "Redo", "Ctrl+Y"));
     editMenu->AddSeparator();
-    editMenu->AddItem("Cut", "Ctrl+X", [toast] { toast("Cut（Gallery 演示）"); });
-    editMenu->AddItem("Copy", "Ctrl+C", [toast] { toast("Copy（Gallery 演示）"); });
-    editMenu->AddItem("Paste", "Ctrl+V", [toast] { toast("Paste（Gallery 演示）"); });
+    editMenu->AddItem("Cut", bind("edit.cut", "Cut", "Ctrl+X"));
+    editMenu->AddItem("Copy", bind("edit.copy", "Copy", "Ctrl+C"));
+    editMenu->AddItem("Paste", bind("edit.paste", "Paste", "Ctrl+V"));
     editMenu->AddSeparator();
-    editMenu->AddItem("Find", "Ctrl+F", [toast] { toast("Find（Gallery 演示）"); });
-    editMenu->AddItem("Replace", "Ctrl+H", [toast] { toast("Replace（Gallery 演示）"); });
+    editMenu->AddItem("Find", bind("edit.find", "Find", "Ctrl+F"));
+    editMenu->AddItem("Replace", bind("edit.replace", "Replace", "Ctrl+H"));
 
     auto selMenu = m_menuBar->AddMenu("Selection");
-    selMenu->AddItem("Select All", "Ctrl+A", [toast] { toast("Select All（Gallery 演示）"); });
-    selMenu->AddItem("Expand Selection", "Shift+Alt+Right", [toast] { toast("Expand Selection（Gallery 演示）"); });
-    selMenu->AddItem("Shrink Selection", "Shift+Alt+Left", [toast] { toast("Shrink Selection（Gallery 演示）"); });
+    selMenu->AddItem("Select All", bind("sel.all", "Select All", "Ctrl+A"));
+    selMenu->AddItem("Expand Selection", bind("sel.expand", "Expand Selection", "Shift+Alt+Right"));
+    selMenu->AddItem("Shrink Selection", bind("sel.shrink", "Shrink Selection", "Shift+Alt+Left"));
 
     auto viewMenu = m_menuBar->AddMenu("View");
     viewMenu->AddItem("Command Palette...", "Ctrl+Shift+P", [toast] { toast("Command Palette（Gallery 演示）"); });

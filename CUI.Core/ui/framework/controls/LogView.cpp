@@ -1275,32 +1275,32 @@ void LogView::OnMouseWheel(float delta) {
     DirtyBody();
 }
 
-void LogView::OnKeyDown(int vkCode) {
+bool LogView::OnKeyDown(int vkCode) {
     const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     if (ctrl && vkCode == 'F') {
         if (!m_expanded) {
             SetExpanded(true);
         }
-        return;
+        return true;
     }
     if (ctrl && vkCode == 'C') {
         CopySelection();
-        return;
+        return true;
     }
     if (ctrl && vkCode == 'A') {
         SelectAllVisible();
-        return;
+        return true;
     }
     if (vkCode == VK_ESCAPE && m_expanded) {
         SetExpanded(false);
-        return;
+        return true;
     }
     if (vkCode == VK_SPACE && !m_expanded) {
         SetExpanded(true);
-        return;
+        return true;
     }
     if (!m_expanded) {
-        return;
+        return false;
     }
     const int n = static_cast<int>(GetVisibleCount());
     if (vkCode == VK_UP || vkCode == VK_DOWN) {
@@ -1319,14 +1319,14 @@ void LogView::OnKeyDown(int vkCode) {
         m_follow = false;
         SyncActionButtons();
         DirtyBody();
-        return;
+        return true;
     }
     if (vkCode == VK_HOME) {
         SetScrollTarget(0.0f, true);
         m_follow = false;
         SyncActionButtons();
         DirtyBody();
-        return;
+        return true;
     }
     if (vkCode == VK_END) {
         ClampScroll();
@@ -1334,14 +1334,14 @@ void LogView::OnKeyDown(int vkCode) {
         m_follow = true;
         SyncActionButtons();
         DirtyBody();
-        return;
+        return true;
     }
     if (vkCode == VK_PRIOR) {
         SetScrollTarget(m_scrollY - BodyRect().height, true);
         m_follow = false;
         SyncActionButtons();
         DirtyBody();
-        return;
+        return true;
     }
     if (vkCode == VK_NEXT) {
         ClampScroll();
@@ -1349,8 +1349,9 @@ void LogView::OnKeyDown(int vkCode) {
         m_follow = (m_scrollAnimator.Target() >= m_maxScrollY - 0.5f);
         SyncActionButtons();
         DirtyBody();
-        return;
+        return true;
     }
+    return false;
 }
 
 bool LogView::OnAnimationTick() {

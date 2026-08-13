@@ -64,7 +64,8 @@ public:
     virtual bool OnMiddleButtonDown(Point pt) override;
     virtual void OnMiddleButtonUp(Point pt) override;
     virtual bool IsMiddleScrollActive() const override { return m_middleScrollActive; }
-    virtual void OnKeyDown(int vkCode) override;
+    virtual bool OnKeyDown(int vkCode) override;
+    virtual bool AcceptsTabFocus() const override { return true; }
     virtual void OnMouseWheel(float delta) override;
     virtual void OnAutoScrollTick() override;
     virtual bool NeedsAutoScrollTick() const override { return m_isRubberBandSelecting || m_middleScrollActive; }

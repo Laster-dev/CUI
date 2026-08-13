@@ -1,4 +1,5 @@
 #include "UIElement.h"
+#include "../window/Window.h"
 #include "../animation/AnimationManager.h"
 #include "../animation/FrameScheduler.h"
 #include "../layout/Layout.h"
@@ -284,7 +285,7 @@ void UIElement::OnRoutedEvent(RoutedEventArgs& args) {
         OnMouseMove(args.position);
         break;
     case RoutedEventType::KeyDown:
-        OnKeyDown(args.keyCode);
+        args.handled = OnKeyDown(args.keyCode);
         break;
     }
 }
@@ -671,6 +672,7 @@ void UIElement::OnMouseUp(Point pt) {
     if (m_isPressed) {
         m_isPressed = false;
         if (IsEnabled() && m_bounds.Contains(pt.x, pt.y)) {
+            ExecuteBoundCommand();
             m_onClickEvent.Invoke(this);
         }
         MarkRenderRectDirty(m_bounds);
@@ -700,11 +702,44 @@ void UIElement::OnMouseWheel(float delta) {
     }
 }
 
-void UIElement::OnKeyDown(int vkCode) {
+bool UIElement::OnKeyDown(int vkCode) {
     (void)vkCode;
-    if (!IsEnabled()) {
-        return;
+    return false;
+}
+
+void UIElement::OnFocus() {
+    m_isFocused = true;
+    NotifyFieldChanged(PropertyId::Focused, Value(true));
+    MarkRenderRectDirty(m_bounds.Inflate(6.0f));
+}
+
+void UIElement::OnBlur() {
+    m_isFocused = false;
+    m_focusState = FocusState::Unfocused;
+    NotifyFieldChanged(PropertyId::Focused, Value(false));
+    MarkRenderRectDirty(m_bounds.Inflate(6.0f));
+}
+
+void UIElement::SetCommand(std::shared_ptr<Command> command) {
+    m_command = std::move(command);
+    if (m_command) {
+        if (Window* win = Window::Current()) {
+            win->GetCommands().Register(m_command);
+        }
+        if (m_command->GetLabel().empty() && !GetText().empty()) {
+            m_command->SetLabel(GetText());
+        }
     }
+}
+
+bool UIElement::ExecuteBoundCommand() {
+    if (!m_command) {
+        return false;
+    }
+    if (m_command->CanExecute()) {
+        m_command->Execute();
+    }
+    return true;
 }
 
 bool UIElement::OnAnimationTick() {

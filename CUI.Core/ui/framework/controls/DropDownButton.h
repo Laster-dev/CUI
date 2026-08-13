@@ -29,7 +29,7 @@ public:
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseWheel(float delta) override;
-    virtual void OnKeyDown(int vkCode) override;
+    virtual bool OnKeyDown(int vkCode) override;
     virtual void OnBlur() override;
     virtual void OnNavigatedFrom() override;
     virtual bool OnAnimationTick() override;

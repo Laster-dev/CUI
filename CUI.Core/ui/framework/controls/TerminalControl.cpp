@@ -74,22 +74,22 @@ public:
 
     const char* GetClassName() const override { return "TerminalFindBox"; }
 
-    void OnKeyDown(int vkCode) override {
+    bool OnKeyDown(int vkCode) override {
         if (!m_owner) {
-            TextBox::OnKeyDown(vkCode);
-            return;
+            return TextBox::OnKeyDown(vkCode);
         }
         if (vkCode == VK_RETURN) {
             const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
             m_owner->DoFind(!shift);
-            return;
+            return true;
         }
         if (vkCode == VK_ESCAPE) {
             m_owner->ShowFind(false);
-            return;
+            return true;
         }
-        TextBox::OnKeyDown(vkCode);
+        const bool handled = TextBox::OnKeyDown(vkCode);
         m_owner->UpdateFindStatus();
+        return handled;
     }
 
     void OnCharInput(wchar_t ch) override {
@@ -698,7 +698,7 @@ void TerminalControl::SendKeySequence(const std::string& seq) {
     m_terminal->SendData(seq);
 }
 
-void TerminalControl::OnKeyDown(int vkCode) {
+bool TerminalControl::OnKeyDown(int vkCode) {
     const unsigned mods = CurrentModifiers();
     const bool ctrl = (mods & Term::ModControl) != 0;
     const bool shift = (mods & Term::ModShift) != 0;
@@ -706,47 +706,49 @@ void TerminalControl::OnKeyDown(int vkCode) {
     if (ctrl && !shift && vkCode == 'F') {
         ShowFind(true);
         m_suppressCharCount++;
-        return;
+        return true;
     }
     if (ctrl && !shift && vkCode == 'L') {
         m_terminal->Clear();
         MarkViewportDirty();
         m_suppressCharCount++;
-        return;
+        return true;
     }
     if (ctrl && shift && vkCode == 'C') {
         CopySelectionToClipboard();
         m_suppressCharCount++;
-        return;
+        return true;
     }
     if (ctrl && !shift && vkCode == 'C') {
         if (!m_terminal->GetSelectionText().empty()) {
             CopySelectionToClipboard();
             m_suppressCharCount++;
-            return;
+            return true;
         }
     }
     if (ctrl && !shift && vkCode == 'V') {
         PasteFromClipboard();
         m_suppressCharCount++;
-        return;
+        return true;
     }
     if (shift && vkCode == VK_INSERT) {
         PasteFromClipboard();
         m_suppressCharCount++;
-        return;
+        return true;
     }
     if (ctrl && shift && vkCode == 'A') {
         SelectAll();
         m_suppressCharCount++;
-        return;
+        return true;
     }
 
     std::string seq;
     if (Term::KeyboardTranslator::Translate(vkCode, mods, m_terminal->Input().ApplicationCursorKeys(), seq)) {
         SendKeySequence(seq);
         m_suppressCharCount++;
+        return true;
     }
+    return false;
 }
 
 void TerminalControl::OnCharInput(wchar_t ch) {

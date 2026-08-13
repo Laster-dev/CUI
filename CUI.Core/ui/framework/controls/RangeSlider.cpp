@@ -33,6 +33,7 @@ RangeSlider::RangeSlider() {
     SetHeight(48.0f);
     m_lowerAnim.Reset(m_lower);
     m_upperAnim.Reset(m_upper);
+    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
 std::vector<PropertyMeta> RangeSlider::GetPropertyMetas() const {
@@ -437,20 +438,19 @@ void RangeSlider::OnMouseLeave() {
     }
 }
 
-void RangeSlider::OnKeyDown(int vkCode) {
-    Control::OnKeyDown(vkCode);
+bool RangeSlider::OnKeyDown(int vkCode) {
     if (!IsEnabled()) {
-        return;
+        return false;
     }
     if (vkCode == 'L' || vkCode == VK_OEM_4) {
         m_active = Thumb::Lower;
         MarkRenderRectDirty(m_bounds);
-        return;
+        return true;
     }
     if (vkCode == 'U' || vkCode == VK_OEM_6) {
         m_active = Thumb::Upper;
         MarkRenderRectDirty(m_bounds);
-        return;
+        return true;
     }
     const float step = m_step > 0.0f ? m_step : 1.0f;
     float delta = 0.0f;
@@ -468,23 +468,24 @@ void RangeSlider::OnKeyDown(int vkCode) {
         } else {
             SetLowerValue(m_minimum);
         }
-        return;
+        return true;
     } else if (vkCode == VK_END) {
         if (m_active == Thumb::Upper) {
             SetUpperValue(m_maximum);
         } else {
             SetLowerValue(m_upper - m_minimumRange);
         }
-        return;
+        return true;
     }
     if (delta == 0.0f) {
-        return;
+        return false;
     }
     if (m_active == Thumb::Upper) {
         SetUpperValue(m_upper + delta);
     } else {
         SetLowerValue(m_lower + delta);
     }
+    return true;
 }
 
 bool RangeSlider::OnAnimationTick() {

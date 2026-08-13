@@ -1,6 +1,10 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include "ComboBox.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
+#include <windows.h>
 #include <sstream>
 #include <algorithm>
 #include <cmath>
@@ -36,6 +40,7 @@ ComboBox::ComboBox() {
     SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
     SetBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
     SetBorderThickness(1.0f);
+    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     SetColor(ThemeManager::Instance().GetColor("textPrimary"));
     SetFontSize(13.0f);
     SetFontFamily("微软雅黑");
@@ -329,6 +334,54 @@ UIElement* ComboBox::HitTest(float x, float y) {
     }
 
     return nullptr;
+}
+
+bool ComboBox::OnKeyDown(int vkCode) {
+    if (!IsEnabled()) {
+        return false;
+    }
+    const bool altDown = (GetKeyState(VK_MENU) & 0x8000) != 0;
+    if (vkCode == VK_ESCAPE) {
+        if (m_isDropDownOpen) {
+            SetDropDownOpen(false);
+            return true;
+        }
+        return false;
+    }
+    if (vkCode == VK_F4 || (vkCode == VK_DOWN && altDown) || (vkCode == VK_DOWN && !m_isDropDownOpen)
+        || ((vkCode == VK_SPACE || vkCode == VK_RETURN) && !m_isDropDownOpen)) {
+        SetDropDownOpen(true);
+        return true;
+    }
+    if (m_isDropDownOpen && !m_items.empty()) {
+        int idx = m_selectedIndex;
+        if (idx < 0) {
+            idx = 0;
+        }
+        if (vkCode == VK_DOWN) {
+            idx = (std::min)(static_cast<int>(m_items.size()) - 1, idx + 1);
+            SetSelectedIndex(idx);
+            return true;
+        }
+        if (vkCode == VK_UP) {
+            idx = (std::max)(0, idx - 1);
+            SetSelectedIndex(idx);
+            return true;
+        }
+        if (vkCode == VK_HOME) {
+            SetSelectedIndex(0);
+            return true;
+        }
+        if (vkCode == VK_END) {
+            SetSelectedIndex(static_cast<int>(m_items.size()) - 1);
+            return true;
+        }
+        if (vkCode == VK_RETURN || vkCode == VK_SPACE) {
+            SetDropDownOpen(false);
+            return true;
+        }
+    }
+    return Control::OnKeyDown(vkCode);
 }
 
 void ComboBox::OnMouseDown(Point pt) {

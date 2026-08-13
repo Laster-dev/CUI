@@ -2,6 +2,8 @@
 #include "../window/Window.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
+#include <cctype>
+#include <functional>
 
 namespace CUI {
 
@@ -15,6 +17,7 @@ MenuBar::MenuBar() {
     SetHoverBackgroundToken(ThemeTokenId::PaneBackground);
     SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
     SetColorToken(ThemeTokenId::TextPrimary);
+    SetKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
 }
 
 std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {
@@ -23,6 +26,28 @@ std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {
     item.dropDownMenu = std::make_shared<ContextMenu>();
     m_menus.push_back(std::move(item));
     return m_menus.back().dropDownMenu;
+}
+
+void MenuBar::RegisterCommands(CommandManager& manager) const {
+    std::function<void(const ContextMenu*)> walk = [&](const ContextMenu* menu) {
+        if (!menu) {
+            return;
+        }
+        for (const auto& item : menu->GetItems()) {
+            if (!item) {
+                continue;
+            }
+            if (auto cmd = item->GetCommand()) {
+                manager.Register(cmd);
+            }
+            if (item->GetSubMenu()) {
+                walk(item->GetSubMenu().get());
+            }
+        }
+    };
+    for (const auto& item : m_menus) {
+        walk(item.dropDownMenu.get());
+    }
 }
 
 float MenuBar::GetTotalWidth(GraphicsContext& ctx) {
@@ -161,12 +186,15 @@ void MenuBar::OpenMenu(int index) {
             if (m_activeOpenIndex != index) return;
             const int previous = m_activeOpenIndex;
             m_activeOpenIndex = -1;
-            m_hoveredIndex = -1;
+            if (!IsFocused()) {
+                m_hoveredIndex = -1;
+            }
             SyncHoverAnimationTargets();
             InvalidateMenuChrome(previous, -1);
             RequestAnimationTicks();
         });
         menu->ShowAt(m_menus[index].bounds.x, m_bounds.y + m_bounds.height);
+        menu->HighlightFirst();
 
         UIElement* curr = this;
         while (curr) {
@@ -242,6 +270,104 @@ void MenuBar::ResetInteractionState() {
 void MenuBar::OnBlur() {
     Control::OnBlur();
     ResetInteractionState();
+}
+
+void MenuBar::OnFocus() {
+    Control::OnFocus();
+    if (m_hoveredIndex < 0 && !m_menus.empty()) {
+        m_hoveredIndex = 0;
+        SyncHoverAnimationTargets();
+        InvalidateMenuChrome(0);
+        RequestAnimationTicks();
+    }
+}
+
+bool MenuBar::OpenMenuByMnemonic(char ch) {
+    const char want = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+    for (int i = 0; i < static_cast<int>(m_menus.size()); ++i) {
+        const std::string& title = m_menus[i].title;
+        char mnemonic = 0;
+        for (size_t n = 0; n + 2 < title.size(); ++n) {
+            if (title[n] == '(' && title[n + 2] == ')') {
+                mnemonic = static_cast<char>(std::toupper(static_cast<unsigned char>(title[n + 1])));
+                break;
+            }
+        }
+        if (mnemonic == 0) {
+            for (char c : title) {
+                if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+                    mnemonic = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+                    break;
+                }
+            }
+        }
+        if (mnemonic == want) {
+            OpenMenu(i);
+            if (auto menu = GetActiveDropDown()) {
+                menu->HighlightFirst();
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+bool MenuBar::OnKeyDown(int vkCode) {
+    if (!IsEnabled() || m_menus.empty()) {
+        return false;
+    }
+    auto highlight = [this](int index) {
+        if (index < 0 || index >= static_cast<int>(m_menus.size())) {
+            return;
+        }
+        const int previous = m_hoveredIndex;
+        m_hoveredIndex = index;
+        SyncHoverAnimationTargets();
+        InvalidateMenuChrome(previous, index);
+        RequestAnimationTicks();
+        if (m_activeOpenIndex >= 0) {
+            OpenMenu(index);
+            if (auto menu = GetActiveDropDown()) {
+                menu->HighlightFirst();
+            }
+        }
+    };
+
+    if (vkCode == VK_LEFT) {
+        int next = (m_hoveredIndex <= 0)
+            ? static_cast<int>(m_menus.size()) - 1
+            : m_hoveredIndex - 1;
+        highlight(next);
+        return true;
+    }
+    if (vkCode == VK_RIGHT) {
+        int next = (m_hoveredIndex < 0 || m_hoveredIndex + 1 >= static_cast<int>(m_menus.size()))
+            ? 0
+            : m_hoveredIndex + 1;
+        highlight(next);
+        return true;
+    }
+    if (vkCode == VK_DOWN || vkCode == VK_RETURN || vkCode == VK_SPACE) {
+        if (m_hoveredIndex < 0) {
+            m_hoveredIndex = 0;
+        }
+        OpenMenu(m_hoveredIndex);
+        if (auto menu = GetActiveDropDown()) {
+            menu->HighlightFirst();
+        }
+        return true;
+    }
+    if (vkCode == VK_ESCAPE) {
+        if (m_activeOpenIndex >= 0) {
+            CloseActiveMenu();
+            return true;
+        }
+        return false;
+    }
+    if (vkCode >= 'A' && vkCode <= 'Z') {
+        return OpenMenuByMnemonic(static_cast<char>(vkCode));
+    }
+    return Control::OnKeyDown(vkCode);
 }
 
 void MenuBar::OnMouseDown(Point pt) {

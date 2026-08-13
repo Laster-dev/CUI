@@ -76,15 +76,17 @@ void ToggleButton::OnMouseUp(Point pt) {
     }
 }
 
-void ToggleButton::OnKeyDown(int vkCode) {
-    Button::OnKeyDown(vkCode);
+bool ToggleButton::OnKeyDown(int vkCode) {
     if (!IsEnabled()) {
-        return;
+        return false;
     }
     if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
         ToggleFromUser();
+        ExecuteBoundCommand();
         OnClick().Invoke(this);
+        return true;
     }
+    return Button::OnKeyDown(vkCode);
 }
 
 } // namespace CUI

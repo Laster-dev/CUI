@@ -209,6 +209,7 @@
     <ClCompile Include="ui\framework\controls\UIElement.cpp" />
     <ClCompile Include="ui\framework\controls\UIElementPropertyBridge.cpp" />
     <ClCompile Include="ui\framework\controls\WindowTitleBar.cpp" />
+    <ClCompile Include="ui\framework\input\Command.cpp" />
     <ClCompile Include="ui\framework\core\Binding.cpp" />
     <ClCompile Include="ui\framework\core\Object.cpp" />
     <ClCompile Include="ui\framework\core\PropertyId.cpp" />
@@ -335,6 +336,7 @@
     <ClInclude Include="ui\framework\core\PropertyDesc.h" />
     <ClInclude Include="ui\framework\core\PropertyId.h" />
     <ClInclude Include="ui\framework\core\Value.h" />
+    <ClInclude Include="ui\framework\input\Command.h" />
     <ClInclude Include="ui\framework\input\RoutedEvent.h" />
     <ClInclude Include="ui\framework\layout\Layout.h" />
     <ClInclude Include="ui\framework\parser\StyleManager.h" />

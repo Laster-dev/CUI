@@ -20,6 +20,7 @@ TabView::TabView() {
     SetBackground(tokens.windowBackground);
     m_headerLayer.SetCacheable(true);
     m_contentLayer.SetCacheable(true);
+    SetKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
     OnPropertyIdChanged().Connect([this](PropertyId, const Value&) {
         MarkHeaderDirty();
         MarkContentDirty();
@@ -522,6 +523,35 @@ void TabView::OnMouseMove(Point pt) {
     if (oldHover != m_hoveredCloseIndex) {
         MarkHeaderDirty();
     }
+}
+
+bool TabView::OnKeyDown(int vkCode) {
+    if (!IsEnabled() || m_tabs.empty()) {
+        return false;
+    }
+    if (vkCode == VK_LEFT || vkCode == VK_UP) {
+        int next = (m_selectedIndex <= 0)
+            ? static_cast<int>(m_tabs.size()) - 1
+            : m_selectedIndex - 1;
+        SetSelectedIndex(next);
+        return true;
+    }
+    if (vkCode == VK_RIGHT || vkCode == VK_DOWN) {
+        int next = (m_selectedIndex + 1 >= static_cast<int>(m_tabs.size()))
+            ? 0
+            : m_selectedIndex + 1;
+        SetSelectedIndex(next);
+        return true;
+    }
+    if (vkCode == VK_HOME) {
+        SetSelectedIndex(0);
+        return true;
+    }
+    if (vkCode == VK_END) {
+        SetSelectedIndex(static_cast<int>(m_tabs.size()) - 1);
+        return true;
+    }
+    return UIElement::OnKeyDown(vkCode);
 }
 
 void TabView::OnMouseDown(Point pt) {

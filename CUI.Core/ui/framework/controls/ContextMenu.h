@@ -54,6 +54,7 @@ public:
     bool HasSubMenu() const { return m_subMenu != nullptr; }
 
     void SetParentContextMenu(ContextMenu* menu) { m_parentMenu = menu; }
+    void SetHighlight(bool highlighted);
     void ExecuteCommand();
 
     // Preferred content width (label + icon + shortcut/arrow), excluding outer menu chrome.
@@ -64,7 +65,6 @@ private:
     bool m_isSeparator = false;
     bool m_isChecked = false;
     std::string m_shortcutText;
-    std::function<void()> m_command;
     ContextMenu* m_parentMenu = nullptr;
     std::shared_ptr<ContextMenu> m_subMenu = nullptr;
     AnimatedScalar m_hoverAnim{ 0.0f };
@@ -85,11 +85,16 @@ public:
 
     std::shared_ptr<MenuItem> AddItem(const std::string& text, std::function<void()> onClick = nullptr);
     std::shared_ptr<MenuItem> AddItem(const std::string& text, const std::string& shortcut, std::function<void()> onClick = nullptr);
+    std::shared_ptr<MenuItem> AddItem(const std::string& text, std::shared_ptr<Command> command);
+    std::shared_ptr<MenuItem> AddItem(const std::string& text, const std::string& shortcut, std::shared_ptr<Command> command);
+    bool HandleKey(int vkCode);
+    void HighlightFirst();
     std::shared_ptr<ContextMenu> AddSubMenu(const std::string& text);
     // Like AddSubMenu, but returns the parent MenuItem so callers can set icons.
     std::shared_ptr<MenuItem> AddSubMenuItem(const std::string& text);
     void AddSeparator();
     void ClearItems();
+    const std::vector<std::shared_ptr<MenuItem>>& GetItems() const { return m_items; }
 
     // Shell cascading menus (Send To, NanaZip, …) fill lazily on WM_INITMENUPOPUP.
     // When set, ShowSubMenuAt clears and re-runs this before measuring/showing.

@@ -547,11 +547,10 @@ void ChartBase::OnMouseLeave() {
     SetHover(-1, -1);
 }
 
-void ChartBase::OnKeyDown(int vkCode) {
-    Control::OnKeyDown(vkCode);
+bool ChartBase::OnKeyDown(int vkCode) {
     const int count = HoverIndexCount();
     if (count <= 0) {
-        return;
+        return false;
     }
     int next = m_hoverIndex;
     if (vkCode == VK_LEFT) {
@@ -569,9 +568,10 @@ void ChartBase::OnKeyDown(int vkCode) {
     } else if (vkCode == VK_END) {
         next = count - 1;
     } else {
-        return;
+        return false;
     }
     SetHover(next, -1);
+    return true;
 }
 
 HCURSOR ChartBase::GetCursor() const {

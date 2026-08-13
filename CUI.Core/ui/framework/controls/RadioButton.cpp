@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "RadioButton.h"
+#include "../window/Window.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -69,6 +70,74 @@ void RadioButton::UncheckSiblingsInGroup() {
         if (foundAny || !searchContainer->GetParent()) break;
         searchContainer = searchContainer->GetParent();
     }
+}
+
+bool RadioButton::OnKeyDown(int vkCode) {
+    if (!IsEnabled()) {
+        return false;
+    }
+    if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
+        if (GetState() != CheckState::Checked) {
+            UncheckSiblingsInGroup();
+            SetChecked(true);
+        }
+        ExecuteBoundCommand();
+        OnClick().Invoke(this);
+        return true;
+    }
+    if (vkCode == VK_LEFT || vkCode == VK_UP || vkCode == VK_RIGHT || vkCode == VK_DOWN) {
+        std::vector<RadioButton*> group;
+        UIElement* searchContainer = GetParent();
+        while (searchContainer) {
+            bool foundAny = false;
+            std::vector<UIElement*> queue;
+            queue.push_back(searchContainer);
+            size_t head = 0;
+            while (head < queue.size()) {
+                UIElement* curr = queue[head++];
+                for (const auto& child : curr->GetChildren()) {
+                    if (!child) continue;
+                    auto* radio = dynamic_cast<RadioButton*>(child.get());
+                    if (radio && radio->GetGroupName() == GetGroupName()
+                        && radio->IsEnabled() && radio->GetVisibility() == Visibility::Visible) {
+                        group.push_back(radio);
+                        foundAny = true;
+                    } else {
+                        queue.push_back(child.get());
+                    }
+                }
+            }
+            if (foundAny || !searchContainer->GetParent()) {
+                break;
+            }
+            searchContainer = searchContainer->GetParent();
+            group.clear();
+        }
+        if (group.size() < 2) {
+            return true;
+        }
+        int index = 0;
+        for (int i = 0; i < static_cast<int>(group.size()); ++i) {
+            if (group[i] == this) {
+                index = i;
+                break;
+            }
+        }
+        const bool forward = (vkCode == VK_RIGHT || vkCode == VK_DOWN);
+        int next = forward
+            ? (index + 1) % static_cast<int>(group.size())
+            : (index <= 0 ? static_cast<int>(group.size()) - 1 : index - 1);
+        RadioButton* target = group[next];
+        target->UncheckSiblingsInGroup();
+        target->SetChecked(true);
+        if (Window* win = Window::Current()) {
+            win->ApplyFocus(target, FocusState::Keyboard);
+        } else {
+            target->OnFocus();
+        }
+        return true;
+    }
+    return CheckBox::OnKeyDown(vkCode);
 }
 
 void RadioButton::OnMouseUp(Point pt) {

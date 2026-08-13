@@ -62,28 +62,28 @@ void SplitButton::OnMouseUp(Point pt) {
     EndPressWithoutClick();
 }
 
-void SplitButton::OnKeyDown(int vkCode) {
+bool SplitButton::OnKeyDown(int vkCode) {
     if (!IsEnabled()) {
-        return;
+        return false;
     }
     const bool altDown = (GetKeyState(VK_MENU) & 0x8000) != 0;
     if (vkCode == VK_ESCAPE) {
         SetDropDownOpen(false);
-        return;
+        return true;
     }
     if ((vkCode == VK_DOWN && altDown) || vkCode == VK_F4) {
         SetDropDownOpen(true);
-        return;
+        return true;
     }
     if (IsDropDownOpen()) {
-        DropDownButton::OnKeyDown(vkCode);
-        return;
+        return DropDownButton::OnKeyDown(vkCode);
     }
     if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
+        ExecuteBoundCommand();
         OnClick().Invoke(this);
-        return;
+        return true;
     }
-    Button::OnKeyDown(vkCode);
+    return Button::OnKeyDown(vkCode);
 }
 
 } // namespace CUI

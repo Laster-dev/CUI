@@ -491,9 +491,9 @@ void FilePicker::OnMouseLeave() {
     MarkPickerDirty();
 }
 
-void FilePicker::OnKeyDown(int vkCode) {
+bool FilePicker::OnKeyDown(int vkCode) {
     if (!IsEnabled()) {
-        return;
+        return false;
     }
     if (m_isPopupOpen) {
         if (vkCode == VK_ESCAPE) {
@@ -502,12 +502,12 @@ void FilePicker::OnKeyDown(int vkCode) {
             } else {
                 SetPopupOpen(false);
             }
-            return;
+            return true;
         }
         if (m_filterDropDownOpen && (vkCode == VK_UP || vkCode == VK_DOWN)) {
             const int count = static_cast<int>(m_browser.GetFilters().size());
             if (count <= 0) {
-                return;
+                return true;
             }
             int next = m_hoverFilterItem;
             if (next < 0) {
@@ -520,7 +520,7 @@ void FilePicker::OnKeyDown(int vkCode) {
             }
             m_hoverFilterItem = next;
             MarkPickerDirty();
-            return;
+            return true;
         }
         if (m_filterDropDownOpen && vkCode == VK_RETURN) {
             if (m_hoverFilterItem >= 0) {
@@ -529,7 +529,7 @@ void FilePicker::OnKeyDown(int vkCode) {
             }
             SetFilterDropDownOpen(false);
             SyncBrowserChrome();
-            return;
+            return true;
         }
         if (vkCode == VK_RETURN) {
             std::string path;
@@ -537,22 +537,22 @@ void FilePicker::OnKeyDown(int vkCode) {
                 SetPath(path);
                 SetPopupOpen(false);
             }
-            return;
+            return true;
         }
         if (vkCode == VK_BACK) {
             m_treeHost.GoUp(m_browser);
             SyncBrowserChrome();
             MarkPickerDirty();
             RequestAnimationTicks();
-            return;
+            return true;
         }
-        return;
+        return true;
     }
     if (vkCode == VK_RETURN || vkCode == VK_SPACE) {
         SetPopupOpen(true);
-        return;
+        return true;
     }
-    Control::OnKeyDown(vkCode);
+    return Control::OnKeyDown(vkCode);
 }
 
 bool FilePicker::OnAnimationTick() {

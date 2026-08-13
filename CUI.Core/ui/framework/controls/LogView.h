@@ -46,7 +46,7 @@ public:
     virtual void OnMouseLeave() override;
     virtual void OnMouseDblClick(Point pt) override;
     virtual void OnMouseWheel(float delta) override;
-    virtual void OnKeyDown(int vkCode) override;
+    virtual bool OnKeyDown(int vkCode) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
     virtual void OnThemeChanged() override;

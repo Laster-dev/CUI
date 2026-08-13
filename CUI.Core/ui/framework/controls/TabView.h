@@ -36,6 +36,8 @@ public:
     virtual void Arrange(Rect finalRect) override;
     virtual void Render(GraphicsContext& ctx) override;
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual bool AcceptsTabFocus() const override { return true; }
+    virtual bool OnKeyDown(int vkCode) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseWheel(float delta) override;

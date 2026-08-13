@@ -1,5 +1,9 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include "CheckBox.h"
 #include "../style/ThemeManager.h"
+#include <windows.h>
 #include <algorithm>
 #include <cmath>
 
@@ -176,12 +180,7 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     }
 }
 
-void CheckBox::OnMouseDown(Point pt) {
-    if (!IsEnabled()) {
-        return;
-    }
-    Control::OnMouseDown(pt);
-
+void CheckBox::CycleState() {
     CheckState currentState = GetState();
     bool threeState = IsThreeState();
 
@@ -195,6 +194,27 @@ void CheckBox::OnMouseDown(Point pt) {
     }
 
     SetState(newState);
+}
+
+void CheckBox::OnMouseDown(Point pt) {
+    if (!IsEnabled()) {
+        return;
+    }
+    Control::OnMouseDown(pt);
+    CycleState();
+}
+
+bool CheckBox::OnKeyDown(int vkCode) {
+    if (!IsEnabled()) {
+        return false;
+    }
+    if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
+        CycleState();
+        ExecuteBoundCommand();
+        OnClick().Invoke(this);
+        return true;
+    }
+    return Control::OnKeyDown(vkCode);
 }
 
 bool CheckBox::OnAnimationTick() {

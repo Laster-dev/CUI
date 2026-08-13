@@ -489,18 +489,20 @@ void TeachingTip::OnMouseUp(Point pt) {
     }
 }
 
-void TeachingTip::OnKeyDown(int vkCode) {
+bool TeachingTip::OnKeyDown(int vkCode) {
     if (!m_isOpen) {
-        return;
+        return false;
     }
     if (vkCode == VK_ESCAPE) {
         Close();
-        return;
+        return true;
     }
     if (vkCode == VK_RETURN && !m_actionText.empty()) {
         m_onAction.Invoke();
         Close();
+        return true;
     }
+    return false;
 }
 
 bool TeachingTip::OnAnimationTick() {

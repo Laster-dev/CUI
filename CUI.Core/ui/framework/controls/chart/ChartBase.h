@@ -36,7 +36,7 @@ public:
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseLeave() override;
-    virtual void OnKeyDown(int vkCode) override;
+    virtual bool OnKeyDown(int vkCode) override;
     virtual HCURSOR GetCursor() const override;
     virtual bool AcceptsTabFocus() const override { return true; }
     virtual bool ShouldClipToBounds() const override { return true; }

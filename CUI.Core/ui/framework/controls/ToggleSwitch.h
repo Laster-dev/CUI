@@ -15,6 +15,8 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseUp(Point pt) override;
+    virtual bool OnKeyDown(int vkCode) override;
+    virtual bool AcceptsTabFocus() const override { return true; }
     virtual void OnFocus() override;
     virtual void OnBlur() override;
     virtual bool OnAnimationTick() override;

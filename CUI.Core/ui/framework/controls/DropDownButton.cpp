@@ -249,19 +249,18 @@ void DropDownButton::OnMouseWheel(float delta) {
     }
 }
 
-void DropDownButton::OnKeyDown(int vkCode) {
-    Button::OnKeyDown(vkCode);
+bool DropDownButton::OnKeyDown(int vkCode) {
     if (!IsEnabled()) {
-        return;
+        return false;
     }
     const bool altDown = (GetKeyState(VK_MENU) & 0x8000) != 0;
     if (vkCode == VK_ESCAPE) {
         SetDropDownOpen(false);
-        return;
+        return true;
     }
     if (vkCode == VK_DOWN && (altDown || !m_isDropDownOpen)) {
         SetDropDownOpen(true);
-        return;
+        return true;
     }
     if (m_isDropDownOpen) {
         if (vkCode == VK_DOWN) {
@@ -271,11 +270,13 @@ void DropDownButton::OnKeyDown(int vkCode) {
         } else if (vkCode == VK_RETURN || vkCode == VK_SPACE) {
             ActivateHighlighted();
         }
-        return;
+        return true;
     }
     if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
         SetDropDownOpen(true);
+        return true;
     }
+    return Button::OnKeyDown(vkCode);
 }
 
 void DropDownButton::OnBlur() {

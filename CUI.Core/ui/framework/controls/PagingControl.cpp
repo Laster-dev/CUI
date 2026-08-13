@@ -402,9 +402,9 @@ void PagingControl::OnMouseWheel(float delta) {
     }
 }
 
-void PagingControl::OnKeyDown(int vkCode) {
+bool PagingControl::OnKeyDown(int vkCode) {
     if (!IsEnabled()) {
-        return;
+        return false;
     }
     switch (vkCode) {
     case VK_LEFT:
@@ -412,22 +412,21 @@ void PagingControl::OnKeyDown(int vkCode) {
         if (IsNavEnabled(true)) {
             SetCurrentPage(m_currentPage - 1);
         }
-        break;
+        return true;
     case VK_RIGHT:
     case VK_NEXT:
         if (IsNavEnabled(false)) {
             SetCurrentPage(m_currentPage + 1);
         }
-        break;
+        return true;
     case VK_HOME:
         SetCurrentPage(1);
-        break;
+        return true;
     case VK_END:
         SetCurrentPage(m_totalPages);
-        break;
+        return true;
     default:
-        Control::OnKeyDown(vkCode);
-        break;
+        return Control::OnKeyDown(vkCode);
     }
 }
 

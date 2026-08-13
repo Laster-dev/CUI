@@ -35,7 +35,8 @@ public:
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseLeave() override;
-    virtual void OnKeyDown(int vkCode) override;
+    virtual bool OnKeyDown(int vkCode) override;
+    virtual bool AcceptsTabFocus() const override { return true; }
     virtual void OnCharInput(wchar_t ch);
     virtual void OnMouseWheel(float delta) override;
     virtual bool OnAnimationTick() override;

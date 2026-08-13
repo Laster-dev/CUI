@@ -24,7 +24,9 @@ MenuItem::MenuItem() {
 
 MenuItem::MenuItem(const std::string& text, std::function<void()> onClick) : MenuItem() {
     SetText(text);
-    m_command = onClick;
+    if (onClick) {
+        SetCommand(std::make_shared<Command>(std::move(onClick)));
+    }
 }
 
 MenuItem::~MenuItem() {
@@ -218,16 +220,20 @@ void MenuItem::OnMouseWheel(float delta) {
     }
 }
 
+void MenuItem::SetHighlight(bool highlighted) {
+    m_hoverAnim.SetTarget(highlighted ? 1.0f : 0.0f);
+    RequestAnimationTicks();
+    MarkRenderRectDirty(m_bounds);
+}
+
 void MenuItem::ExecuteCommand() {
-    // Copy command first. Dismiss may tear down the popup HWND; keep lambdas
-    // (shell session shared_ptr) alive via the std::function copy.
-    auto cmd = m_command;
+    auto cmd = GetCommand();
     ContextMenu* menu = m_parentMenu;
     if (menu) {
         menu->DismissHierarchy();
     }
-    if (cmd) {
-        cmd();
+    if (cmd && cmd->CanExecute()) {
+        cmd->Execute();
     }
     OnClick().Invoke(this);
 }
@@ -246,17 +252,43 @@ ContextMenu::ContextMenu() {
 ContextMenu::~ContextMenu() = default;
 
 std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, std::function<void()> onClick) {
-    auto item = std::make_shared<MenuItem>(text, onClick);
-    item->SetParentContextMenu(this);
-    m_items.push_back(item);
-    AddChild(item);
-    return item;
+    auto cmd = onClick ? std::make_shared<Command>(std::move(onClick)) : nullptr;
+    return AddItem(text, cmd);
 }
 
 std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, const std::string& shortcut, std::function<void()> onClick) {
-    auto item = std::make_shared<MenuItem>(text, onClick);
-    item->SetShortcutText(shortcut);
+    auto cmd = onClick ? std::make_shared<Command>(std::move(onClick)) : nullptr;
+    if (cmd && !shortcut.empty()) {
+        cmd->SetGesture(shortcut);
+    }
+    return AddItem(text, shortcut, cmd);
+}
+
+std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, std::shared_ptr<Command> command) {
+    std::string shortcut;
+    if (command && !command->GetGesture().IsEmpty()) {
+        shortcut = command->GetGesture().ToDisplayString();
+    }
+    return AddItem(text, shortcut, std::move(command));
+}
+
+std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, const std::string& shortcut, std::shared_ptr<Command> command) {
+    auto item = std::make_shared<MenuItem>(text);
     item->SetParentContextMenu(this);
+    if (command) {
+        if (command->GetLabel().empty()) {
+            command->SetLabel(text);
+        }
+        if (!shortcut.empty() && command->GetGesture().IsEmpty()) {
+            command->SetGesture(shortcut);
+        }
+        item->SetCommand(std::move(command));
+    }
+    if (!shortcut.empty()) {
+        item->SetShortcutText(shortcut);
+    } else if (item->GetCommand() && !item->GetCommand()->GetGesture().IsEmpty()) {
+        item->SetShortcutText(item->GetCommand()->GetGesture().ToDisplayString());
+    }
     m_items.push_back(item);
     AddChild(item);
     return item;
@@ -782,6 +814,134 @@ UIElement* ContextMenu::HitTestOverlay(float x, float y) {
     }
 
     return nullptr;
+}
+
+void ContextMenu::HighlightFirst() {
+    int first = -1;
+    for (int i = 0; i < static_cast<int>(m_items.size()); ++i) {
+        if (m_items[i] && !m_items[i]->IsSeparator() && m_items[i]->IsEnabled()) {
+            first = i;
+            break;
+        }
+    }
+    m_hoveredIndex = first;
+    for (int i = 0; i < static_cast<int>(m_items.size()); ++i) {
+        if (m_items[i]) {
+            m_items[i]->SetHighlight(i == first);
+        }
+    }
+}
+
+bool ContextMenu::HandleKey(int vkCode) {
+    if (!m_isOpen) {
+        return false;
+    }
+    if (m_activeSubMenu && m_activeSubMenu->IsOpen()) {
+        if (m_activeSubMenu->HandleKey(vkCode)) {
+            return true;
+        }
+        if (vkCode == VK_LEFT || vkCode == VK_ESCAPE) {
+            CloseActiveSubMenu();
+            return true;
+        }
+    }
+
+    auto isSelectable = [](const std::shared_ptr<MenuItem>& item) {
+        return item && !item->IsSeparator() && item->IsEnabled();
+    };
+
+    auto moveHighlight = [&](int delta) {
+        if (m_items.empty()) {
+            return;
+        }
+        int start = m_hoveredIndex;
+        int idx = start;
+        for (int n = 0; n < static_cast<int>(m_items.size()); ++n) {
+            idx += delta;
+            if (idx < 0) {
+                idx = static_cast<int>(m_items.size()) - 1;
+            } else if (idx >= static_cast<int>(m_items.size())) {
+                idx = 0;
+            }
+            if (isSelectable(m_items[idx])) {
+                if (start >= 0 && start < static_cast<int>(m_items.size()) && m_items[start]) {
+                    m_items[start]->SetHighlight(false);
+                }
+                m_hoveredIndex = idx;
+                m_items[idx]->SetHighlight(true);
+                CloseActiveSubMenu();
+                return;
+            }
+        }
+    };
+
+    if (vkCode == VK_DOWN) {
+        if (m_hoveredIndex < 0) {
+            HighlightFirst();
+        } else {
+            moveHighlight(1);
+        }
+        return true;
+    }
+    if (vkCode == VK_UP) {
+        if (m_hoveredIndex < 0) {
+            HighlightFirst();
+        } else {
+            moveHighlight(-1);
+        }
+        return true;
+    }
+    if (vkCode == VK_HOME) {
+        HighlightFirst();
+        return true;
+    }
+    if (vkCode == VK_END) {
+        m_hoveredIndex = -1;
+        moveHighlight(-1);
+        return true;
+    }
+    if (vkCode == VK_RIGHT) {
+        if (m_hoveredIndex >= 0 && m_hoveredIndex < static_cast<int>(m_items.size())) {
+            auto& item = m_items[m_hoveredIndex];
+            if (item && item->HasSubMenu()) {
+                OpenSubMenuForItem(item.get());
+                if (m_activeSubMenu) {
+                    m_activeSubMenu->HighlightFirst();
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+    if (vkCode == VK_LEFT) {
+        if (m_ownerMenu) {
+            Hide();
+            return true;
+        }
+        return false;
+    }
+    if (vkCode == VK_RETURN || vkCode == VK_SPACE) {
+        if (m_hoveredIndex >= 0 && m_hoveredIndex < static_cast<int>(m_items.size())) {
+            auto& item = m_items[m_hoveredIndex];
+            if (!isSelectable(item)) {
+                return true;
+            }
+            if (item->HasSubMenu()) {
+                OpenSubMenuForItem(item.get());
+                if (m_activeSubMenu) {
+                    m_activeSubMenu->HighlightFirst();
+                }
+            } else {
+                item->ExecuteCommand();
+            }
+        }
+        return true;
+    }
+    if (vkCode == VK_ESCAPE) {
+        Hide();
+        return true;
+    }
+    return false;
 }
 
 } // namespace CUI

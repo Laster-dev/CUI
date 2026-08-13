@@ -8,6 +8,7 @@
 #include "../animation/AnimationManager.h"
 #include "../animation/FrameScheduler.h"
 #include "../input/RoutedEvent.h"
+#include "../input/Command.h"
 #include "WindowBackdrop.h"
 #include "PopupHost.h"
 #include "../dnd/DragDropService.h"
@@ -60,6 +61,9 @@ public:
     float GetDisplayFps() const;
 
     UIElement* GetHoveredElement() const { return m_hoveredRaw; }
+    CommandManager& GetCommands() { return m_commands; }
+    const CommandManager& GetCommands() const { return m_commands; }
+    void ApplyFocus(UIElement* target, FocusState state);
 
     Point ClientPointToLogical(int x, int y) const;
     void InvalidateLogicalRect(const Rect& rect);
@@ -100,6 +104,11 @@ private:
     void FlushLayoutIfNeeded();
     void DispatchRoutedPointer(RoutedEventType type, Point pt, UIElement* target);
     bool TryMoveFocus(bool forward);
+    bool TryMoveDirectionalFocus(UIElement* focused, int vkCode);
+    bool DispatchKey(int vkCode, bool sysKey);
+    bool ActivateMenuBar();
+    void DrawKeyboardFocusRing();
+    void CollectTabFocusable(UIElement* el, std::vector<UIElement*>& out) const;
     void RequestFullRepaint();
     void InvalidatePendingRenderRegions(bool fallbackToFullWindow);
     bool HasPendingNativePaint() const;
@@ -132,6 +141,7 @@ private:
     std::shared_ptr<ContextMenu> m_pendingContextMenu;
     PopupHost m_popupHost;
     DragDropService m_dragDrop;
+    CommandManager m_commands;
     bool m_trackingMouse = false;
     bool m_transparentMode = false;
     Rect m_lastAnimationDirtyRect;

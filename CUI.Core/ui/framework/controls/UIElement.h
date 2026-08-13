@@ -7,6 +7,7 @@
 #include "../style/ThemeTokenId.h"
 #include "../layout/Layout.h"
 #include "../input/RoutedEvent.h"
+#include "../input/Command.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -18,6 +19,19 @@
 namespace CUI {
 
 class ContextMenu;
+
+enum class FocusState {
+    Unfocused,
+    Pointer,
+    Keyboard
+};
+
+enum class KeyboardNavigationMode {
+    Continue,
+    Cycle,
+    Contained,
+    None
+};
 
 struct PropertyMeta {
     PropertyId id = PropertyId::None;
@@ -320,9 +334,20 @@ public:
     virtual bool OnMiddleButtonDown(Point pt) { (void)pt; return false; }
     virtual void OnMiddleButtonUp(Point pt) { (void)pt; }
     virtual bool IsMiddleScrollActive() const { return false; }
-    virtual void OnKeyDown(int vkCode);
+    virtual bool OnKeyDown(int vkCode);
     virtual void OnCharInput(wchar_t ch) {}
     virtual bool AcceptsTabFocus() const { return false; }
+    KeyboardNavigationMode GetKeyboardNavigationMode() const { return m_keyboardNavigationMode; }
+    void SetKeyboardNavigationMode(KeyboardNavigationMode mode) { m_keyboardNavigationMode = mode; }
+    FocusState GetFocusState() const { return m_focusState; }
+    void SetFocusState(FocusState state) { m_focusState = state; }
+    bool ShowsKeyboardFocusRing() const {
+        return m_isFocused && m_focusState == FocusState::Keyboard;
+    }
+
+    void SetCommand(std::shared_ptr<Command> command);
+    std::shared_ptr<Command> GetCommand() const { return m_command; }
+    bool ExecuteBoundCommand();
     virtual void OnAutoScrollTick() {}
     virtual bool NeedsAutoScrollTick() const { return false; }
     virtual bool OnAnimationTick();
@@ -400,8 +425,8 @@ public:
     void SetContextMenu(std::shared_ptr<ContextMenu> menu) { m_contextMenu = menu; }
     std::shared_ptr<ContextMenu> GetContextMenu() const { return m_contextMenu; }
 
-    virtual void OnFocus() { m_isFocused = true; NotifyFieldChanged(PropertyId::Focused, Value(true)); }
-    virtual void OnBlur() { m_isFocused = false; NotifyFieldChanged(PropertyId::Focused, Value(false)); }
+    virtual void OnFocus();
+    virtual void OnBlur();
 
     Event<UIElement*>& OnClick() { return m_onClickEvent; }
     Event<UIElement*, Point>& OnMouseDownEvent() { return m_onMouseDownEvent; }
@@ -519,6 +544,9 @@ protected:
     bool m_isHovered = false;
     bool m_isPressed = false;
     bool m_isFocused = false;
+    FocusState m_focusState = FocusState::Unfocused;
+    KeyboardNavigationMode m_keyboardNavigationMode = KeyboardNavigationMode::Continue;
+    std::shared_ptr<Command> m_command;
     bool m_animationTicksRegistered = false;
     bool m_presentsOnOwnerWindow = true;
     bool m_overlayComposed = false;

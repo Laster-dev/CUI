@@ -114,6 +114,19 @@ void ToggleSwitch::OnMouseUp(Point pt) {
     }
 }
 
+bool ToggleSwitch::OnKeyDown(int vkCode) {
+    if (!IsEnabled()) {
+        return false;
+    }
+    if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
+        SetIsOn(!IsOn());
+        ExecuteBoundCommand();
+        OnClick().Invoke(this);
+        return true;
+    }
+    return Control::OnKeyDown(vkCode);
+}
+
 void ToggleSwitch::OnFocus() {
     // Skip Control::OnFocus visual-state chrome (rectangular hover/focus fill).
     UIElement::OnFocus();

@@ -14,6 +14,8 @@ public:
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual bool OnKeyDown(int vkCode) override;
+    virtual bool AcceptsTabFocus() const override { return true; }
 
     const std::string& GetNavigateUri() const { return m_navigateUri; }
     void SetNavigateUri(const std::string& uri) {

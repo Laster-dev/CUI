@@ -1,5 +1,9 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include "Button.h"
 #include "../style/ThemeManager.h"
+#include <windows.h>
 #include <algorithm>
 #include <cmath>
 
@@ -229,6 +233,19 @@ void Button::OnMouseDown(Point pt) {
     }
     Control::OnMouseDown(pt);
     BeginRipple(pt);
+}
+
+bool Button::OnKeyDown(int vkCode) {
+    if (!IsEnabled()) {
+        return false;
+    }
+    if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
+        BeginRipple(Point(m_bounds.x + m_bounds.width * 0.5f, m_bounds.y + m_bounds.height * 0.5f));
+        ExecuteBoundCommand();
+        OnClick().Invoke(this);
+        return true;
+    }
+    return Control::OnKeyDown(vkCode);
 }
 
 bool Button::OnAnimationTick() {

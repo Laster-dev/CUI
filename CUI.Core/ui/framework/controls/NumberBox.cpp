@@ -379,11 +379,11 @@ void NumberBox::OnMouseWheel(float delta) {
     StepBy(delta > 0.0f ? 1.0f : -1.0f);
 }
 
-void NumberBox::OnKeyDown(int vkCode) {
+bool NumberBox::OnKeyDown(int vkCode) {
     if (HandleFieldKey(vkCode)) {
-        return;
+        return true;
     }
-    Control::OnKeyDown(vkCode);
+    return Control::OnKeyDown(vkCode);
 }
 
 bool NumberBox::OnAnimationTick() {

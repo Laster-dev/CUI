@@ -52,7 +52,7 @@ public:
     virtual void OnMouseMove(Point pt) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
-    virtual void OnKeyDown(int vkCode) override;
+    virtual bool OnKeyDown(int vkCode) override;
     virtual bool AcceptsTabFocus() const override { return m_isOpen; }
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;

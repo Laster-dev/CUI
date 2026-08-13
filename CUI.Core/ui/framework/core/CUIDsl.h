@@ -276,6 +276,11 @@ public:
         return *this;
     }
 
+    ElementBuilder& Command(std::shared_ptr<CUI::Command> command) {
+        m_element->SetCommand(std::move(command));
+        return *this;
+    }
+
     ElementBuilder& OnTextChanged(std::function<void(TextBox*, const std::string&)> handler) {
         if constexpr (std::is_same_v<TextBox, T>) {
             m_element->OnTextChanged().Connect(handler);

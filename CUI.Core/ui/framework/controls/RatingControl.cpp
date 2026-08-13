@@ -309,23 +309,32 @@ void RatingControl::OnMouseLeave() {
     }
 }
 
-void RatingControl::OnKeyDown(int vkCode) {
-    Control::OnKeyDown(vkCode);
+bool RatingControl::OnKeyDown(int vkCode) {
     if (!CanInteract()) {
-        return;
+        return false;
     }
     const float step = (m_step > 0.0f) ? m_step : 0.5f;
     if (vkCode == VK_LEFT || vkCode == VK_DOWN) {
         SetValue(m_value - step);
-    } else if (vkCode == VK_RIGHT || vkCode == VK_UP) {
-        SetValue(m_value + step);
-    } else if (vkCode == VK_HOME) {
-        SetValue(m_isClearEnabled ? 0.0f : step);
-    } else if (vkCode == VK_END) {
-        SetValue(static_cast<float>(m_maxRating));
-    } else if (m_isClearEnabled && (vkCode == VK_DELETE || vkCode == VK_BACK)) {
-        SetValue(0.0f);
+        return true;
     }
+    if (vkCode == VK_RIGHT || vkCode == VK_UP) {
+        SetValue(m_value + step);
+        return true;
+    }
+    if (vkCode == VK_HOME) {
+        SetValue(m_isClearEnabled ? 0.0f : step);
+        return true;
+    }
+    if (vkCode == VK_END) {
+        SetValue(static_cast<float>(m_maxRating));
+        return true;
+    }
+    if (m_isClearEnabled && (vkCode == VK_DELETE || vkCode == VK_BACK)) {
+        SetValue(0.0f);
+        return true;
+    }
+    return Control::OnKeyDown(vkCode);
 }
 
 bool RatingControl::OnAnimationTick() {

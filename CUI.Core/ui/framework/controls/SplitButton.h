@@ -14,7 +14,7 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseUp(Point pt) override;
-    virtual void OnKeyDown(int vkCode) override;
+    virtual bool OnKeyDown(int vkCode) override;
 
 protected:
     virtual bool OpensOnPrimaryPress() const override { return false; }

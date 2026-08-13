@@ -405,6 +405,76 @@ void Window::SetFocusedElement(UIElement* element) {
     m_focusedElement = CaptureElementRef(element);
 }
 
+void Window::CollectTabFocusable(UIElement* el, std::vector<UIElement*>& out) const {
+    if (!el || el->GetVisibility() != Visibility::Visible || !el->IsEnabled()) {
+        return;
+    }
+    if (el->IsOverlayComposed()) {
+        return;
+    }
+    if (el->AcceptsTabFocus()) {
+        out.push_back(el);
+    }
+    for (const auto& child : el->GetChildren()) {
+        CollectTabFocusable(child.get(), out);
+    }
+}
+
+void Window::ApplyFocus(UIElement* target, FocusState state) {
+    auto focused = LockElement(m_focusedElement);
+    if (target && !target->IsEnabled()) {
+        if (focused) {
+            focused->OnBlur();
+            SetFocusedElement(nullptr);
+        }
+        return;
+    }
+
+    UIElement* resolved = target;
+    if (resolved && !resolved->AcceptsTabFocus()) {
+        resolved = nullptr;
+        for (UIElement* walk = target->GetParent(); walk; walk = walk->GetParent()) {
+            if (walk->AcceptsTabFocus() && walk->IsEnabled()
+                && walk->GetVisibility() == Visibility::Visible) {
+                resolved = walk;
+                break;
+            }
+        }
+        // Click landed on chrome/label/empty panel — drop keyboard focus
+        // instead of leaving the previous TextBox caret blinking.
+    }
+
+    if (focused && focused.get() == resolved) {
+        if (resolved) {
+            resolved->SetFocusState(state);
+            resolved->MarkRenderRectDirty(resolved->GetBounds().Inflate(6.0f));
+        }
+        return;
+    }
+    if (focused) {
+        focused->OnBlur();
+    }
+    SetFocusedElement(resolved);
+    if (resolved) {
+        resolved->SetFocusState(state);
+        resolved->OnFocus();
+    }
+}
+
+void Window::DrawKeyboardFocusRing() {
+    auto focused = LockElement(m_focusedElement);
+    if (!focused || !focused->ShowsKeyboardFocusRing()) {
+        return;
+    }
+    const Rect bounds = focused->GetBounds().Inflate(3.0f);
+    if (bounds.IsEmpty()) {
+        return;
+    }
+    const float radius = focused->GetCornerRadius() + 3.0f;
+    D2D1_COLOR_F color = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+    m_gfxContext.DrawRoundedRect(bounds, radius, color, 2.0f);
+}
+
 void Window::RequestFullRepaint() {
     if (!m_hwnd) {
         return;
@@ -700,19 +770,7 @@ bool Window::TryMoveFocus(bool forward) {
         return false;
     }
     std::vector<UIElement*> focusable;
-    std::function<void(UIElement*)> walk = [&](UIElement* el) {
-        if (!el || el->GetVisibility() != Visibility::Visible || !el->IsEnabled()) {
-            return;
-        }
-        // TextBox and similar accept focus via classic focus path.
-        if (el->AcceptsTabFocus()) {
-            focusable.push_back(el);
-        }
-        for (auto& child : el->GetChildren()) {
-            walk(child.get());
-        }
-    };
-    walk(m_rootElement.get());
+    CollectTabFocusable(m_rootElement.get(), focusable);
     if (focusable.empty()) {
         return false;
     }
@@ -729,8 +787,179 @@ bool Window::TryMoveFocus(bool forward) {
     int next = forward
         ? (index + 1) % static_cast<int>(focusable.size())
         : (index <= 0 ? static_cast<int>(focusable.size()) - 1 : index - 1);
-    SetFocusedElement(focusable[next]);
+    ApplyFocus(focusable[next], FocusState::Keyboard);
     return true;
+}
+
+bool Window::TryMoveDirectionalFocus(UIElement* focused, int vkCode) {
+    if (!focused) {
+        return false;
+    }
+    const bool forward = (vkCode == VK_RIGHT || vkCode == VK_DOWN);
+    const bool isArrow = vkCode == VK_LEFT || vkCode == VK_RIGHT
+        || vkCode == VK_UP || vkCode == VK_DOWN;
+    if (!isArrow) {
+        return false;
+    }
+    if (focused->GetKeyboardNavigationMode() == KeyboardNavigationMode::Contained
+        || focused->GetKeyboardNavigationMode() == KeyboardNavigationMode::None) {
+        return false;
+    }
+
+    auto containsFocused = [focused](UIElement* peer) {
+        if (!peer) {
+            return false;
+        }
+        if (peer == focused) {
+            return true;
+        }
+        for (UIElement* walk = focused->GetParent(); walk; walk = walk->GetParent()) {
+            if (walk == peer) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (UIElement* parent = focused->GetParent(); parent; parent = parent->GetParent()) {
+        if (parent->GetKeyboardNavigationMode() == KeyboardNavigationMode::None) {
+            continue;
+        }
+        std::vector<UIElement*> peers;
+        if (parent->GetKeyboardNavigationMode() == KeyboardNavigationMode::Cycle) {
+            CollectTabFocusable(parent, peers);
+            peers.erase(std::remove(peers.begin(), peers.end(), parent), peers.end());
+        } else {
+            for (const auto& child : parent->GetChildren()) {
+                if (!child || child->IsOverlayComposed()) {
+                    continue;
+                }
+                if (child->GetVisibility() != Visibility::Visible || !child->IsEnabled()) {
+                    continue;
+                }
+                if (child->AcceptsTabFocus()) {
+                    peers.push_back(child.get());
+                }
+            }
+        }
+        if (peers.size() < 2) {
+            continue;
+        }
+        int index = -1;
+        for (int i = 0; i < static_cast<int>(peers.size()); ++i) {
+            if (containsFocused(peers[i])) {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0) {
+            continue;
+        }
+        int next = forward
+            ? (index + 1) % static_cast<int>(peers.size())
+            : (index <= 0 ? static_cast<int>(peers.size()) - 1 : index - 1);
+        if (peers[next] == focused) {
+            continue;
+        }
+        ApplyFocus(peers[next], FocusState::Keyboard);
+        return true;
+    }
+    return false;
+}
+
+bool Window::ActivateMenuBar() {
+    if (!m_rootElement) {
+        return false;
+    }
+    std::function<MenuBar*(UIElement*)> findBar = [&](UIElement* el) -> MenuBar* {
+        if (!el) {
+            return nullptr;
+        }
+        if (auto* bar = dynamic_cast<MenuBar*>(el)) {
+            return bar;
+        }
+        for (const auto& child : el->GetChildren()) {
+            if (MenuBar* found = findBar(child.get())) {
+                return found;
+            }
+        }
+        return nullptr;
+    };
+    MenuBar* bar = findBar(m_rootElement.get());
+    if (!bar || !bar->IsEnabled() || bar->GetVisibility() != Visibility::Visible) {
+        return false;
+    }
+    ApplyFocus(bar, FocusState::Keyboard);
+    return true;
+}
+
+bool Window::DispatchKey(int vkCode, bool sysKey) {
+    const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+    const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+    const bool alt = sysKey || (GetKeyState(VK_MENU) & 0x8000) != 0;
+
+    if (IPopup* top = m_popupHost.GetTop()) {
+        if (auto* menu = dynamic_cast<ContextMenu*>(top)) {
+            if (menu->HandleKey(vkCode)) {
+                return true;
+            }
+            if (vkCode == VK_LEFT || vkCode == VK_RIGHT) {
+                if (auto focused = LockElement(m_focusedElement)) {
+                    if (auto* bar = dynamic_cast<MenuBar*>(focused.get())) {
+                        if (bar->OnKeyDown(vkCode)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (auto focused = LockElement(m_focusedElement)) {
+        if (focused->IsEnabled()) {
+            RoutedEventArgs args;
+            args.type = RoutedEventType::KeyDown;
+            args.phase = RoutedEventPhase::Target;
+            args.keyCode = vkCode;
+            args.originalSource = focused.get();
+            focused->OnRoutedEvent(args);
+            if (!args.handled) {
+                args.phase = RoutedEventPhase::Bubble;
+                for (UIElement* walk = focused->GetParent(); walk && !args.handled; walk = walk->GetParent()) {
+                    walk->OnRoutedEvent(args);
+                }
+            }
+            if (args.handled) {
+                return true;
+            }
+        }
+    }
+
+    if (m_commands.TryExecute(vkCode, ctrl, shift, alt)) {
+        return true;
+    }
+
+    if (sysKey && !ctrl && vkCode >= 'A' && vkCode <= 'Z') {
+        if (ActivateMenuBar()) {
+            if (auto focused = LockElement(m_focusedElement)) {
+                if (auto* bar = dynamic_cast<MenuBar*>(focused.get())) {
+                    if (bar->OpenMenuByMnemonic(static_cast<char>(vkCode))) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    if (!sysKey && !ctrl && !alt) {
+        if (auto focused = LockElement(m_focusedElement)) {
+            if (TryMoveDirectionalFocus(focused.get(), vkCode)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 Window::~Window() {
@@ -1182,6 +1411,21 @@ void Window::SetRootElement(std::shared_ptr<UIElement> root) {
     m_rootElement = root;
     m_animationManager.SetLiveRoot(m_rootElement.get());
     if (m_rootElement) {
+        std::function<void(UIElement*)> collect = [&](UIElement* el) {
+            if (!el) {
+                return;
+            }
+            if (auto cmd = el->GetCommand()) {
+                m_commands.Register(cmd);
+            }
+            if (auto* bar = dynamic_cast<MenuBar*>(el)) {
+                bar->RegisterCommands(m_commands);
+            }
+            for (const auto& child : el->GetChildren()) {
+                collect(child.get());
+            }
+        };
+        collect(m_rootElement.get());
         ApplyVisualState();
         m_rootElement->SyncRenderState();
     }
@@ -1590,14 +1834,9 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_SYSKEYDOWN:
-        if (wParam == VK_DOWN || wParam == VK_UP || wParam == VK_F4) {
-            if (auto focused = LockElement(m_focusedElement)) {
-                if (focused->IsEnabled()) {
-                    focused->OnKeyDown(static_cast<int>(wParam));
-                    InvalidatePendingRenderRegions(true);
-                    return 0;
-                }
-            }
+        if (DispatchKey(static_cast<int>(wParam), true)) {
+            InvalidatePendingRenderRegions(true);
+            return 0;
         }
         break;
 
@@ -1634,23 +1873,15 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 return 0;
             }
         }
-        if (auto focused = LockElement(m_focusedElement)) {
-            if (focused->IsEnabled()) {
-                RoutedEventArgs args;
-                args.type = RoutedEventType::KeyDown;
-                args.phase = RoutedEventPhase::Target;
-                args.keyCode = static_cast<int>(wParam);
-                args.originalSource = focused.get();
-                focused->OnRoutedEvent(args);
-                if (!args.handled) {
-                    // Bubble key to ancestors for global shortcuts.
-                    args.phase = RoutedEventPhase::Bubble;
-                    for (UIElement* walk = focused->GetParent(); walk && !args.handled; walk = walk->GetParent()) {
-                        walk->OnRoutedEvent(args);
-                    }
-                }
+        if (wParam == VK_F10) {
+            if (ActivateMenuBar()) {
                 InvalidatePendingRenderRegions(true);
+                return 0;
             }
+        }
+        if (DispatchKey(static_cast<int>(wParam), false)) {
+            InvalidatePendingRenderRegions(true);
+            return 0;
         }
         if (wParam == VK_ESCAPE && m_popupHost.HasOpenPopups()) {
             m_popupHost.DismissTop();
@@ -1883,6 +2114,7 @@ void Window::OnPaint() {
         }
         m_popupHost.Render(m_gfxContext);
         m_dragDrop.RenderOverlay(m_gfxContext);
+        DrawKeyboardFocusRing();
         m_gfxContext.SetPaintBounds(savedPaintBounds);
     };
 
@@ -2379,21 +2611,9 @@ bool Window::OnLButtonDown(int x, int y) {
     };
 
     auto applyFocus = [&](UIElement* target) -> bool {
-        auto focused = LockElement(m_focusedElement);
+        ApplyFocus(target, FocusState::Pointer);
         if (target && !target->IsEnabled()) {
-            if (focused) {
-                focused->OnBlur();
-                SetFocusedElement(nullptr);
-            }
             return false;
-        }
-        if (focused && focused.get() != target) {
-            focused->OnBlur();
-        }
-        SetFocusedElement(target);
-        focused = LockElement(m_focusedElement);
-        if (focused) {
-            focused->OnFocus();
         }
         return target != nullptr;
     };

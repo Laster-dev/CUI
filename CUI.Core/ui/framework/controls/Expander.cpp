@@ -412,29 +412,30 @@ void Expander::OnMouseUp(Point pt) {
     }
 }
 
-void Expander::OnKeyDown(int vkCode) {
-    Control::OnKeyDown(vkCode);
+bool Expander::OnKeyDown(int vkCode) {
     if (!IsEnabled()) {
-        return;
+        return false;
     }
 
     switch (vkCode) {
     case VK_SPACE:
     case VK_RETURN:
         SetIsExpanded(!m_isExpanded);
-        break;
+        return true;
     case VK_LEFT:
     case VK_UP:
         if (m_isExpanded) {
             SetIsExpanded(false);
         }
-        break;
+        return true;
     case VK_RIGHT:
     case VK_DOWN:
         if (!m_isExpanded) {
             SetIsExpanded(true);
         }
-        break;
+        return true;
+    default:
+        return Control::OnKeyDown(vkCode);
     }
 }
 

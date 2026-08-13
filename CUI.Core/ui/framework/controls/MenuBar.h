@@ -23,6 +23,11 @@ public:
     virtual const char* GetClassName() const override { return "MenuBar"; }
 
     std::shared_ptr<ContextMenu> AddMenu(const std::string& title);
+    bool AcceptsTabFocus() const override { return true; }
+    bool OnKeyDown(int vkCode) override;
+    void OnFocus() override;
+    bool OpenMenuByMnemonic(char ch);
+    void RegisterCommands(CommandManager& manager) const;
     void ClearMenus() { m_menus.clear(); }
     void ClearActiveMenu() { CloseActiveMenu(); m_hoveredIndex = -1; }
     void ResetInteractionState();

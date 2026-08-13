@@ -55,6 +55,7 @@ TextBox::TextBox() {
     SetFontFamily("微软雅黑");
     SetFontSize(13.0f);
     SetPadding(Thickness(0, 18, 0, 8));
+    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     SetWidth(260.0f);
     SetHeight(48.0f);
 }
@@ -963,9 +964,9 @@ void TextBox::OnMouseUp(Point pt) {
     m_isDraggingSelection = false;
 }
 
-void TextBox::OnKeyDown(int vkCode) {
+bool TextBox::OnKeyDown(int vkCode) {
     if (!IsEnabled()) {
-        return;
+        return false;
     }
     m_suppressCharCount = 0;
 
@@ -977,17 +978,17 @@ void TextBox::OnKeyDown(int vkCode) {
 
     if (!readOnly && isCtrlDown && (vkCode == 'Z' || vkCode == 'z')) {
         Undo();
-        return;
+        return true;
     }
 
     if (!readOnly && isCtrlDown && (vkCode == 'Y' || vkCode == 'y')) {
         Redo();
-        return;
+        return true;
     }
 
     if (isCtrlDown && (vkCode == 'A' || vkCode == 'a')) {
         SelectAll();
-        return;
+        return true;
     }
 
     if (isCtrlDown && (vkCode == 'C' || vkCode == 'c')) {
@@ -1009,16 +1010,16 @@ void TextBox::OnKeyDown(int vkCode) {
                 CloseClipboard();
             }
         }
-        return;
+        return true;
     }
 
     if (readOnly) {
         // Navigation / selection still allowed below; block mutating shortcuts.
         if (isCtrlDown && (vkCode == 'X' || vkCode == 'x' || vkCode == 'V' || vkCode == 'v')) {
-            return;
+            return true;
         }
         if (vkCode == VK_BACK || vkCode == VK_DELETE || vkCode == VK_RETURN) {
-            return;
+            return true;
         }
     }
 
@@ -1043,7 +1044,7 @@ void TextBox::OnKeyDown(int vkCode) {
             DeleteSelection();
             wtext = Utf8ToUtf16(GetText());
         }
-        return;
+        return true;
     }
 
     if (isCtrlDown && (vkCode == 'V' || vkCode == 'v')) {
@@ -1080,14 +1081,14 @@ void TextBox::OnKeyDown(int vkCode) {
             }
             CloseClipboard();
         }
-        return;
+        return true;
     }
 
     if (vkCode == VK_RETURN && GetAcceptsReturn()) {
         InsertText(L"\n");
         GraphicsContext ctx;
         EnsureCaretVisible(ctx);
-        return;
+        return true;
     }
 
     if (vkCode == VK_BACK) {
@@ -1103,7 +1104,7 @@ void TextBox::OnKeyDown(int vkCode) {
         }
         GraphicsContext ctx;
         EnsureCaretVisible(ctx);
-        return;
+        return true;
     }
 
     if (vkCode == VK_DELETE) {
@@ -1118,7 +1119,7 @@ void TextBox::OnKeyDown(int vkCode) {
         }
         GraphicsContext ctx;
         EnsureCaretVisible(ctx);
-        return;
+        return true;
     }
 
     GraphicsContext ctx;
@@ -1130,7 +1131,7 @@ void TextBox::OnKeyDown(int vkCode) {
             m_selectionEnd = m_cursorPos;
         }
         EnsureCaretVisible(ctx);
-        return;
+        return true;
     }
 
     if (vkCode == VK_RIGHT) {
@@ -1140,11 +1141,11 @@ void TextBox::OnKeyDown(int vkCode) {
             m_selectionEnd = m_cursorPos;
         }
         EnsureCaretVisible(ctx);
-        return;
+        return true;
     }
 
     if (vkCode == VK_UP || vkCode == VK_DOWN) {
-        if (!IsMultiline()) return;
+        if (!IsMultiline()) return true;
 
         auto caret = GetCaretScreenPos(ctx, m_cursorPos);
         float targetY = caret.y + (vkCode == VK_UP ? -caret.height * 0.5f : caret.height * 1.5f);
@@ -1152,14 +1153,14 @@ void TextBox::OnKeyDown(int vkCode) {
         Rect textRect = GetTextRect();
         std::wstring displayWText = BuildDisplayText(wtext, m_cursorPos, m_compString);
         auto layout = BuildTextLayout(ctx, displayWText, textRect);
-        if (!layout) return;
+        if (!layout) return true;
 
         UINT32 newPos = ctx.HitTestTextLayout(layout.Get(), caret.x, targetY, GetLayoutOrigin(textRect));
         m_cursorPos = static_cast<int>(newPos);
         if (!isShiftDown) m_selectionStart = m_cursorPos;
         m_selectionEnd = m_cursorPos;
         EnsureCaretVisible(ctx);
-        return;
+        return true;
     }
 
     if (vkCode == VK_HOME) {
@@ -1178,7 +1179,7 @@ void TextBox::OnKeyDown(int vkCode) {
         }
         if (!isShiftDown) m_selectionStart = m_cursorPos;
         m_selectionEnd = m_cursorPos;
-        return;
+        return true;
     }
 
     if (vkCode == VK_END) {
@@ -1197,8 +1198,9 @@ void TextBox::OnKeyDown(int vkCode) {
         }
         if (!isShiftDown) m_selectionStart = m_cursorPos;
         m_selectionEnd = m_cursorPos;
-        return;
+        return true;
     }
+    return false;
 }
 
 void TextBox::CommitImeResult(const std::wstring& result) {

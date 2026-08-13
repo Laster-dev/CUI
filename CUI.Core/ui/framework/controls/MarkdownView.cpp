@@ -622,15 +622,15 @@ void MarkdownView::OnMouseWheel(float delta) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void MarkdownView::OnKeyDown(int vkCode) {
+bool MarkdownView::OnKeyDown(int vkCode) {
     const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     if (ctrl && vkCode == 'A') {
         SelectAll();
-        return;
+        return true;
     }
     if (ctrl && vkCode == 'C') {
         CopySelection();
-        return;
+        return true;
     }
     if (vkCode == VK_HOME) {
         m_targetScrollY = 0.0f;
@@ -639,6 +639,7 @@ void MarkdownView::OnKeyDown(int vkCode) {
         LayoutCopyButtons();
         RequestAnimationTicks();
         MarkRenderRectDirty(m_bounds);
+        return true;
     }
     if (vkCode == VK_END) {
         m_targetScrollY = m_maxScrollY;
@@ -647,8 +648,9 @@ void MarkdownView::OnKeyDown(int vkCode) {
         LayoutCopyButtons();
         RequestAnimationTicks();
         MarkRenderRectDirty(m_bounds);
+        return true;
     }
-    Control::OnKeyDown(vkCode);
+    return Control::OnKeyDown(vkCode);
 }
 
 bool MarkdownView::OnAnimationTick() {

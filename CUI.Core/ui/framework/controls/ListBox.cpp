@@ -24,6 +24,7 @@ ListBox::ListBox() {
     SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
     SetFontSize(13.0f);
     SetFontFamily("微软雅黑");
+    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     SetItemHeight(28.0f);
     SetCornerRadius(4.0f);
     SetWidth(240.0f);
@@ -803,9 +804,9 @@ bool ListBox::HasSelfAnimation() const {
         || m_scrollbarAutoHide.NeedsTicks();
 }
 
-void ListBox::OnKeyDown(int vkCode) {
+bool ListBox::OnKeyDown(int vkCode) {
     size_t count = GetItemCount();
-    if (count == 0) return;
+    if (count == 0) return false;
 
     bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
     bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -840,11 +841,11 @@ void ListBox::OnKeyDown(int vkCode) {
                 SetSelectedIndex(m_caretIndex);
             }
         }
-        return;
+        return true;
     case 'A':
         if (ctrlDown && m_selectionMode != ListBoxSelectionMode::Single) {
             SelectAll();
-            return;
+            return true;
         }
         break;
     }
@@ -864,7 +865,10 @@ void ListBox::OnKeyDown(int vkCode) {
             SetSelectedIndex(m_caretIndex);
         }
         InvalidateItemsLayer();
+        return true;
     }
+    return vkCode == VK_UP || vkCode == VK_DOWN || vkCode == VK_PRIOR || vkCode == VK_NEXT
+        || vkCode == VK_HOME || vkCode == VK_END;
 }
 
 void ListBox::OnCharInput(wchar_t ch) {

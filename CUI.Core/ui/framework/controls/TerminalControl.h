@@ -63,7 +63,7 @@ public:
     bool OnAnimationTick() override;
     bool HasSelfAnimation() const override;
 
-    void OnKeyDown(int vkCode) override;
+    bool OnKeyDown(int vkCode) override;
     void OnCharInput(wchar_t ch) override;
     void OnMouseDown(Point pt) override;
     void OnMouseDblClick(Point pt) override;

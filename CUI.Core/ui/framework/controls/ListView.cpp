@@ -72,6 +72,7 @@ ListView::ListView() {
     SetFontSize(16.0f);
     SetFontFamily("微软雅黑");
     SetFontWeight("Normal");
+    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     SetCornerRadius(4.0f);
     // No fixed size — let parent layout stretch ListView to the pane.
     SetWidth(-1.0f);
@@ -1405,17 +1406,17 @@ void ListView::OnAutoScrollTick() {
     }
 }
 
-void ListView::OnKeyDown(int vkCode) {
+bool ListView::OnKeyDown(int vkCode) {
     bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
 
     if (ctrlDown && vkCode == 'A') {
         SelectAll();
-        return;
+        return true;
     }
 
     int rowCount = static_cast<int>(GetRowCount());
-    if (rowCount == 0) return;
+    if (rowCount == 0) return false;
 
     int newCaret = (m_caretIndex >= 0) ? m_caretIndex : 0;
     int visibleCount = static_cast<int>((m_bounds.height - m_headerHeight - 4.0f) / m_rowHeight);
@@ -1447,7 +1448,7 @@ void ListView::OnKeyDown(int vkCode) {
                 SetRowSelected(m_caretIndex, true);
             }
         }
-        return;
+        return true;
     }
 
     if (newCaret != m_caretIndex) {
@@ -1473,7 +1474,10 @@ void ListView::OnKeyDown(int vkCode) {
         InvalidateRowsLayer();
         Rect pill = GetRowPillRect(m_caretIndex, m_scrollY);
         StartSelectRipple(m_caretIndex, Point(pill.x + pill.width * 0.5f, pill.y + pill.height * 0.5f));
+        return true;
     }
+    return vkCode == VK_UP || vkCode == VK_DOWN || vkCode == VK_PRIOR || vkCode == VK_NEXT
+        || vkCode == VK_HOME || vkCode == VK_END;
 }
 
 bool ListView::OnAnimationTick() {
