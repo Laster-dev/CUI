@@ -282,6 +282,9 @@ public:
     virtual UIElement* HitTest(float x, float y);
     virtual UIElement* HitTestOverlay(float x, float y);
     virtual UIElement* OnHitTestOverlay(float x, float y) { return nullptr; }
+    // True if this node (not descendants) can hit-test a popup/overlay painted
+    // outside its layout bounds. Used to skip full-tree overlay walks on move.
+    virtual bool NeedsOverlayHitTest() const { return false; }
 
     bool IsHovered() const { return m_isHovered; }
     bool IsPressed() const { return m_isPressed; }
@@ -499,6 +502,8 @@ protected:
     bool m_isFocused = false;
     bool m_animationTicksRegistered = false;
     bool m_presentsOnOwnerWindow = true;
+    bool m_subtreeNeedsOverlayHit = false;
+    void MarkSubtreeNeedsOverlayHitTest();
     Point m_lastMousePos{ 0.0f, 0.0f };
     Point m_tooltipAnchorPos{ 0.0f, 0.0f };
     std::chrono::steady_clock::time_point m_lastMouseMoveTime;

@@ -18,6 +18,7 @@ public:
     virtual void Arrange(Rect finalRect) override;
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
+    virtual bool NeedsOverlayHitTest() const override { return true; }
     virtual bool OnAnimationTick() override;
     virtual void CollectAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
     virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;

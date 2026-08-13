@@ -54,6 +54,7 @@ public:
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* HitTestOverlay(float x, float y) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
+    virtual bool NeedsOverlayHitTest() const override { return true; }
 
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;

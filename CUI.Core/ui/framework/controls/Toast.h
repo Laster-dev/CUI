@@ -67,6 +67,7 @@ public:
     virtual void Arrange(Rect finalRect) override;
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
+    virtual bool NeedsOverlayHitTest() const override { return true; }
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
     virtual void OnMouseEnter() override;

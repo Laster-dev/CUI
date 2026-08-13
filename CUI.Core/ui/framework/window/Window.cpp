@@ -2197,11 +2197,20 @@ bool Window::OnMouseMove(int x, int y) {
     if (!newHover && m_rootElement) {
         newHover = m_rootElement->HitTestOverlay(fx, fy);
     }
+
+    auto hovered = LockElement(m_hoveredElement);
+    if (!newHover && hovered && hovered->GetBounds().Contains(fx, fy)) {
+        // Still inside the current hover — only search that subtree instead of
+        // walking PropertyGrid / NavigationView on every pixel.
+        newHover = hovered->HitTest(fx, fy);
+        if (!newHover) {
+            newHover = hovered.get();
+        }
+    }
     if (!newHover && m_rootElement) {
         newHover = m_rootElement->HitTest(fx, fy);
     }
 
-    auto hovered = LockElement(m_hoveredElement);
     if (newHover != hovered.get()) {
         if (hovered) {
             hovered->OnMouseLeave();
@@ -2211,14 +2220,6 @@ bool Window::OnMouseMove(int x, int y) {
         if (hovered) {
             hovered->OnMouseEnter();
         }
-    }
-
-    if (hovered) {
-        hovered->OnMouseMove(Point(fx, fy));
-        if (auto* chrome = dynamic_cast<IWindowChrome*>(hovered.get())) {
-            (void)chrome->ConsumeChromeDirty();
-        }
-        // Keep m_activeContextMenu synchronized if MenuBar opened a new dropdown
         UIElement* curr = hovered.get();
         while (curr) {
             auto menu = curr->GetContextMenu();
@@ -2227,6 +2228,13 @@ bool Window::OnMouseMove(int x, int y) {
                 break;
             }
             curr = curr->GetParent();
+        }
+    }
+
+    if (hovered) {
+        hovered->OnMouseMove(Point(fx, fy));
+        if (auto* chrome = dynamic_cast<IWindowChrome*>(hovered.get())) {
+            (void)chrome->ConsumeChromeDirty();
         }
     }
 

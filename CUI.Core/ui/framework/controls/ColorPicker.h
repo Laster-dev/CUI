@@ -19,6 +19,7 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual UIElement* OnHitTestOverlay(float x, float y) override;
+    virtual bool NeedsOverlayHitTest() const override { return true; }
     virtual void OnMouseDown(Point pt) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;

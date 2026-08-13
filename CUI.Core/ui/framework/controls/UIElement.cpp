@@ -71,6 +71,21 @@ void UIElement::SetParent(UIElement* parent) {
     }
 #endif
     m_parent = parent;
+    if (NeedsOverlayHitTest()) {
+        m_subtreeNeedsOverlayHit = true;
+    }
+    if (m_subtreeNeedsOverlayHit && parent) {
+        parent->MarkSubtreeNeedsOverlayHitTest();
+    }
+}
+
+void UIElement::MarkSubtreeNeedsOverlayHitTest() {
+    for (UIElement* walk = this; walk; walk = walk->m_parent) {
+        if (walk->m_subtreeNeedsOverlayHit) {
+            break;
+        }
+        walk->m_subtreeNeedsOverlayHit = true;
+    }
 }
 
 void UIElement::SetAnimationHost(UIElement* host) {
@@ -561,6 +576,9 @@ void UIElement::OnRender(GraphicsContext& ctx) {
 
 UIElement* UIElement::HitTestOverlay(float x, float y) {
     if (m_visibility != Visibility::Visible) return nullptr;
+    if (!m_subtreeNeedsOverlayHit && !NeedsOverlayHitTest()) {
+        return nullptr;
+    }
 
     UIElement* selfOverlay = OnHitTestOverlay(x, y);
     if (selfOverlay) return selfOverlay;
