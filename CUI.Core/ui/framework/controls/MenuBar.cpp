@@ -13,9 +13,11 @@ constexpr AnimationSpec kMenuBarHoverSpec{ 0.22f, 0.01f, 0.16f };
 
 MenuBar::MenuBar() {
     SetHeight(30.0f);
-    SetBackgroundToken(ThemeTokenId::PaneBackground);
-    SetHoverBackgroundToken(ThemeTokenId::PaneBackground);
-    SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
+    // Hosted on the title bar: do not fill an opaque pane. Control::OnRender would
+    // cover the parent's 1px bottom hairline (drawn before children).
+    SetBackgroundToken(ThemeTokenId::Unset);
+    SetHoverBackgroundToken(ThemeTokenId::Unset);
+    SetPressedBackgroundToken(ThemeTokenId::Unset);
     SetColorToken(ThemeTokenId::TextPrimary);
     SetKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
 }
@@ -125,8 +127,6 @@ void MenuBar::SyncHoverAnimationTargets() {
 }
 
 void MenuBar::OnRender(GraphicsContext& ctx) {
-    Control::OnRender(ctx);
-
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
     D2D1_COLOR_F defaultTextColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     const float hoverPeak = lightTheme ? 0.12f : 0.18f;

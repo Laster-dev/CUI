@@ -343,17 +343,25 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     const float closeCenterX = closeRect.x + closeRect.width * 0.5f;
     ctx.DrawLine(Point(closeCenterX - 5.0f, iconCenterY - 5.0f), Point(closeCenterX + 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
     ctx.DrawLine(Point(closeCenterX + 5.0f, iconCenterY - 5.0f), Point(closeCenterX - 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
+}
 
+void WindowTitleBar::OnRenderOverlay(GraphicsContext& ctx) {
+    // Hairline after children: MenuBar used to FillRect the full title height and
+    // stamp over this line (UIElement paints parent OnRender, then children).
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     ctx.DrawLine(
         Point(m_bounds.x, m_bounds.y + m_bounds.height - 1.0f),
         Point(m_bounds.x + m_bounds.width, m_bounds.y + m_bounds.height - 1.0f),
-        tokens.cardBorder
-    );
+        tokens.cardBorder);
 }
 
 Rect WindowTitleBar::LayoutMenuBar(GraphicsContext& ctx) {
     const float menuWidth = m_menuBar->GetTotalWidth(ctx);
-    const Rect menuBarRect(m_bounds.x + 36.0f, m_bounds.y, menuWidth, m_bounds.height);
+    const Rect menuBarRect(
+        m_bounds.x + 36.0f,
+        m_bounds.y,
+        menuWidth,
+        (std::max)(0.0f, m_bounds.height - 1.0f));
     m_menuBar->Arrange(menuBarRect);
     return menuBarRect;
 }

@@ -396,11 +396,16 @@ void DropDownButton::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F chevron = IsEnabled()
         ? ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground)
         : ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
+    const Rect slot = ChevronRect();
+    const Rect glyph(
+        slot.x + (slot.width - kChevronGlyph) * 0.5f,
+        slot.y + (slot.height - kChevronGlyph) * 0.5f,
+        kChevronGlyph,
+        kChevronGlyph);
     ctx.DrawChevron(
-        ChevronRect(),
+        glyph,
         chevron,
-        open ? GraphicsContext::ChevronDirection::Up : GraphicsContext::ChevronDirection::Down,
-        1.7f);
+        open ? GraphicsContext::ChevronDirection::Up : GraphicsContext::ChevronDirection::Down);
 }
 
 } // namespace CUI

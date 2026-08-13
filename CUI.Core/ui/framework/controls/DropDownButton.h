@@ -57,6 +57,7 @@ public:
 
 protected:
     static constexpr float kChevronSlot = 28.0f;
+    static constexpr float kChevronGlyph = 12.0f;
     static constexpr float kItemH = 32.0f;
     static constexpr float kSepH = 8.0f;
     static constexpr float kMenuPad = 4.0f;

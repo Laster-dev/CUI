@@ -251,18 +251,23 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     float closeCenterX = rightX + btnW * 2 + 23.0f;
     ctx.DrawLine(Point(closeCenterX - 5.0f, iconCenterY - 5.0f), Point(closeCenterX + 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
     ctx.DrawLine(Point(closeCenterX + 5.0f, iconCenterY - 5.0f), Point(closeCenterX - 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
+}
 
-    // Bottom border line
+void TitleBar::OnRenderOverlay(GraphicsContext& ctx) {
+    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     ctx.DrawLine(
         Point(m_bounds.x, m_bounds.y + m_bounds.height - 1),
         Point(m_bounds.x + m_bounds.width, m_bounds.y + m_bounds.height - 1),
-        tokens.cardBorder
-    );
+        tokens.cardBorder);
 }
 
 Rect TitleBar::LayoutMenuBar(GraphicsContext& ctx) {
     const float w = m_menuBar->GetTotalWidth(ctx);
-    const Rect menuBarRect(m_bounds.x + 36.0f, m_bounds.y, w, m_bounds.height);
+    const Rect menuBarRect(
+        m_bounds.x + 36.0f,
+        m_bounds.y,
+        w,
+        (std::max)(0.0f, m_bounds.height - 1.0f));
     m_menuBar->Arrange(menuBarRect);
     return menuBarRect;
 }

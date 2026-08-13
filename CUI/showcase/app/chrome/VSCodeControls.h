@@ -18,6 +18,7 @@ public:
 
     virtual const char* GetClassName() const override { return "TitleBar"; }
     virtual void OnRender(GraphicsContext& ctx) override;
+    virtual void OnRenderOverlay(GraphicsContext& ctx) override;
     virtual void Arrange(Rect finalRect) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
