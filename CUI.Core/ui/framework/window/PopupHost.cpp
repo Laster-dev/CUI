@@ -41,6 +41,18 @@ void PopupHost::CloseAll() {
     }
 }
 
+bool PopupHost::DismissTop() {
+    if (m_open.empty()) {
+        return false;
+    }
+    IPopup* popup = m_open.back();
+    if (popup && popup->IsPopupOpen()) {
+        popup->OnLightDismiss();
+    }
+    Close(popup);
+    return true;
+}
+
 void PopupHost::CloseAllExcept(IPopup* exempt) {
     std::vector<IPopup*> copy = m_open;
     m_open.clear();

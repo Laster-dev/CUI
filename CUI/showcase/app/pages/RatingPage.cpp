@@ -25,6 +25,7 @@ ShowcasePage BuildRatingPage(const ShowcaseContext& ctx) {
     interactive->SetMaxRating(5);
     interactive->SetStep(0.5f);
     interactive->SetIsClearEnabled(true);
+    interactive->SetToolTip("拖动或点击星星评分，支持半星；同一星再点或左侧 × 清除。");
 
     auto valueLabel = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText(FormatRating(interactive->GetValue(), interactive->GetMaxRating()), 13.0f, "textPrimary", true));

@@ -67,6 +67,8 @@ public:
     HWND GetOwnerHwnd() const { return m_ownerHwnd; }
 
     bool HasOpenPopups() const { return !m_open.empty(); }
+    // Light-dismiss the top-most popup (Esc). Returns true if one was closed.
+    bool DismissTop();
 
 private:
     std::vector<IPopup*> m_open;

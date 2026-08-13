@@ -835,6 +835,9 @@ void UIElement::SetToolTip(const std::string& tip) {
     if (m_toolTip == tip) return;
     m_toolTip = tip;
     NotifyFieldChanged(PropertyId::ToolTip, Value(tip));
+    if (tip.empty()) {
+        HideToolTipNow();
+    }
 }
 
 void UIElement::SetIcon(const std::string& icon) {

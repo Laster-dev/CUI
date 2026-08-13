@@ -55,7 +55,7 @@ void WireFlyout(DropDownButton& btn, Window* window, const std::shared_ptr<UIEle
 } // namespace
 
 ShowcasePage BuildButtonPage(const ShowcaseContext& ctx) {
-    auto target = ElevatedButton("交互测试按钮").Background(Rgb(0x007ACC)).HoverBackground(Rgb(0x0098FF)).PressedBackground(Rgb(0x005A9E)).FontSize(14).Padding(16, 8, 16, 8).CornerRadius(4).Build();
+    auto target = ElevatedButton("交互测试按钮").Background(Rgb(0x007ACC)).HoverBackground(Rgb(0x0098FF)).PressedBackground(Rgb(0x005A9E)).FontSize(14).Padding(16, 8, 16, 8).CornerRadius(4).ToolTip("框架 SetToolTip：任意页可复用，支持换行与延迟显示/隐藏。").Build();
     auto log = CreateShowcaseText("[就绪] 点击目标按钮或按钮族触发事件…", 12.0f, "#B5CEA8", false, "Consolas");
     target->OnClick().Connect([window = ctx.windowRef, log](UIElement*) {
         log->SetText("[事件] OnClick 已触发，按钮交互链路正常。");

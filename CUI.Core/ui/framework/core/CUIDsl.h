@@ -33,6 +33,7 @@
 #include "../controls/AutoSuggestBox.h"
 #include "../controls/StatusBar.h"
 #include "../controls/RatingControl.h"
+#include "../controls/TeachingTip.h"
 #include "../controls/FilePicker.h"
 #include "../controls/FolderPicker.h"
 #include "../controls/PagingControl.h"
@@ -227,6 +228,11 @@ public:
     // Control Specific Extension Methods
     ElementBuilder& Text(const std::string& text) {
         m_element->SetText(text);
+        return *this;
+    }
+
+    ElementBuilder& ToolTip(const std::string& tip) {
+        m_element->SetToolTip(tip);
         return *this;
     }
 
@@ -427,6 +433,10 @@ inline ElementBuilder<RatingControl> RatingWidget(float value = 3.5f, int maxRat
     r->SetMaxRating(maxRating);
     r->SetValue(value);
     return r;
+}
+
+inline ElementBuilder<TeachingTip> TeachingTipWidget() {
+    return ElementBuilder<TeachingTip>();
 }
 
 inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") {

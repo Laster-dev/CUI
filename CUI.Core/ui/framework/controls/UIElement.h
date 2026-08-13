@@ -219,6 +219,21 @@ public:
     void SetFontWeight(const std::string& weight);
     const std::string& GetToolTip() const { return m_toolTip; }
     void SetToolTip(const std::string& tip);
+    // Per-control wrap width; <=0 uses the framework default (280).
+    void SetToolTipMaxWidth(float width);
+    float GetToolTipMaxWidth() const { return m_toolTipMaxWidth; }
+    // Auto-hide after show, in ms. <0 uses the framework default; 0 stays until leave.
+    void SetToolTipAutoHideMs(int ms);
+    int GetToolTipAutoHideMs() const { return m_toolTipAutoHideMs; }
+
+    static void SetToolTipShowDelayMs(int ms);
+    static void SetToolTipHideDelayMs(int ms);
+    static void SetDefaultToolTipMaxWidth(float width);
+    static void SetDefaultToolTipAutoHideMs(int ms);
+    static int GetToolTipShowDelayMs();
+    static int GetToolTipHideDelayMs();
+    static float GetDefaultToolTipMaxWidth();
+    static int GetDefaultToolTipAutoHideMs();
     const std::string& GetIcon() const { return m_icon; }
     void SetIcon(const std::string& icon);
 
@@ -506,8 +521,14 @@ protected:
     void MarkSubtreeNeedsOverlayHitTest();
     Point m_lastMousePos{ 0.0f, 0.0f };
     Point m_tooltipAnchorPos{ 0.0f, 0.0f };
-    std::chrono::steady_clock::time_point m_lastMouseMoveTime;
+    std::chrono::steady_clock::time_point m_lastMouseMoveTime{};
+    std::chrono::steady_clock::time_point m_tooltipShownAt{};
+    std::chrono::steady_clock::time_point m_tooltipHideAt{};
+    Rect m_tooltipPaintRect{};
+    float m_toolTipMaxWidth = -1.0f;
+    int m_toolTipAutoHideMs = -1;
     bool m_tooltipVisible = false;
+    bool m_tooltipHideArmed = false;
     RenderNode m_renderNode;
     std::shared_ptr<ContextMenu> m_contextMenu;
 
@@ -517,6 +538,16 @@ protected:
     static bool s_animationsEnabled;
     static float s_animationDeltaSeconds;
     static uint64_t s_renderDirtySerial;
+    static int s_toolTipShowDelayMs;
+    static int s_toolTipHideDelayMs;
+    static int s_toolTipAutoHideMs;
+    static float s_toolTipMaxWidth;
+
+    void ShowToolTipNow();
+    void HideToolTipNow();
+    void ArmToolTipHide();
+    void DirtyToolTipRect();
+    bool ToolTipTick(std::chrono::steady_clock::time_point now);
 };
 
 } // namespace CUI

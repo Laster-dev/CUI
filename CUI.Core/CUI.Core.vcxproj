@@ -154,6 +154,7 @@
     <ClCompile Include="ui\framework\controls\AutoSuggestBox.cpp" />
     <ClCompile Include="ui\framework\controls\StatusBar.cpp" />
     <ClCompile Include="ui\framework\controls\RatingControl.cpp" />
+    <ClCompile Include="ui\framework\controls\TeachingTip.cpp" />
     <ClCompile Include="ui\framework\controls\CheckBox.cpp" />
     <ClCompile Include="ui\framework\controls\ColorPicker.cpp" />
     <ClCompile Include="ui\framework\controls\ComboBox.cpp" />
@@ -216,6 +217,7 @@
     <ClCompile Include="ui\framework\window\Dpi.cpp" />
     <ClCompile Include="ui\framework\window\PopupHost.cpp" />
     <ClCompile Include="ui\framework\window\PopupPlacement.cpp" />
+    <ClCompile Include="ui\framework\window\BubbleChrome.cpp" />
     <ClCompile Include="ui\framework\window\MenuPopupWindow.cpp" />
     <ClCompile Include="ui\framework\window\Window.cpp" />
     <ClCompile Include="ui\framework\window\WindowBackdrop.cpp" />
@@ -285,6 +287,7 @@
     <ClInclude Include="ui\framework\controls\PropertyGrid.h" />
     <ClInclude Include="ui\framework\controls\RadioButton.h" />
     <ClInclude Include="ui\framework\controls\RatingControl.h" />
+    <ClInclude Include="ui\framework\controls\TeachingTip.h" />
     <ClInclude Include="ui\framework\controls\ScrollbarAutoHide.h" />
     <ClInclude Include="ui\framework\controls\ScrollViewer.h" />
     <ClInclude Include="ui\framework\controls\Slider.h" />
@@ -326,6 +329,7 @@
     <ClInclude Include="ui\framework\window\IWindowChrome.h" />
     <ClInclude Include="ui\framework\window\PopupHost.h" />
     <ClInclude Include="ui\framework\window\PopupPlacement.h" />
+    <ClInclude Include="ui\framework\window\BubbleChrome.h" />
     <ClInclude Include="ui\framework\window\MenuPopupWindow.h" />
     <ClInclude Include="ui\framework\window\Window.h" />
     <ClInclude Include="ui\framework\window\WindowBackdrop.h" />

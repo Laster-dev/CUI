@@ -1612,6 +1612,10 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 InvalidatePendingRenderRegions(true);
             }
         }
+        if (wParam == VK_ESCAPE && m_popupHost.HasOpenPopups()) {
+            m_popupHost.DismissTop();
+            InvalidatePendingRenderRegions(true);
+        }
         return 0;
 
     case WM_CHAR:

@@ -54,6 +54,9 @@
     <ClCompile Include="showcase\app\pages\FlyoutPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="showcase\app\pages\TeachingTipPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="showcase\app\pages\GridPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>

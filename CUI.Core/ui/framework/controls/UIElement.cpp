@@ -5,6 +5,8 @@
 #include "../render/CompositionContext.h"
 #include "../render/RenderLayer.h"
 #include "../style/ThemeManager.h"
+#include "../window/BubbleChrome.h"
+#include "../window/PopupPlacement.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -14,6 +16,10 @@ namespace CUI {
 bool UIElement::s_animationsEnabled = true;
 float UIElement::s_animationDeltaSeconds = 1.0f / 60.0f;
 uint64_t UIElement::s_renderDirtySerial = 0;
+int UIElement::s_toolTipShowDelayMs = 450;
+int UIElement::s_toolTipHideDelayMs = 180;
+int UIElement::s_toolTipAutoHideMs = 0;
+float UIElement::s_toolTipMaxWidth = 280.0f;
 
 namespace {
 // Inflate cull bounds so ripples/shadows that draw slightly outside still get painted.
@@ -233,6 +239,7 @@ void UIElement::OnNavigatedTo() {
 }
 
 void UIElement::OnNavigatedFrom() {
+    HideToolTipNow();
     PauseAnimationSubtree();
 }
 
@@ -504,39 +511,49 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
 
     OnRenderOverlay(ctx);
 
-    if (m_isHovered && m_tooltipVisible) {
+    if (m_tooltipVisible) {
         const std::string& tip = GetToolTip();
         if (!tip.empty()) {
-            std::string font = "微软雅黑";
-            float fontSize = 12.0f;
-            Size textSize = ctx.MeasureText(tip, font, fontSize);
-
-            Thickness padding(8, 5, 8, 5);
-            float cardW = textSize.width + padding.left + padding.right + 2.0f;
-            float cardH = textSize.height + padding.top + padding.bottom;
-
-            float cardX = m_tooltipAnchorPos.x + 10.0f;
-            float cardY = m_tooltipAnchorPos.y + 18.0f;
-
-            if (cardX + cardW > 1200.0f) {
-                cardX = m_tooltipAnchorPos.x - cardW - 6.0f;
+            const float maxWidth = (m_toolTipMaxWidth > 0.0f) ? m_toolTipMaxWidth : s_toolTipMaxWidth;
+            GraphicsContext::TextLayoutOptions options;
+            options.maxWidth = (std::max)(32.0f, maxWidth);
+            options.maxHeight = 400.0f;
+            options.wrapping = DWRITE_WORD_WRAPPING_WRAP;
+            ComPtr<IDWriteTextLayout> layout = GraphicsContext::CreateTextLayout(
+                Utf8ToUtf16(tip), "微软雅黑", 12.0f, options);
+            Size textSize(maxWidth, 16.0f);
+            if (layout) {
+                DWRITE_TEXT_METRICS metrics{};
+                layout->GetMetrics(&metrics);
+                textSize.width = std::ceil(metrics.widthIncludingTrailingWhitespace);
+                textSize.height = std::ceil(metrics.height);
             }
-            if (cardY + cardH > 800.0f) {
-                cardY = m_tooltipAnchorPos.y - cardH - 6.0f;
-            }
-            if (cardX < 4.0f) cardX = 4.0f;
-            if (cardY < 4.0f) cardY = 4.0f;
 
-            Rect cardRect(cardX, cardY, cardW, cardH);
+            constexpr float padX = 8.0f;
+            constexpr float padY = 6.0f;
+            const Size cardSize(textSize.width + padX * 2.0f, textSize.height + padY * 2.0f);
+            const Rect anchor(m_tooltipAnchorPos.x - 4.0f, m_tooltipAnchorPos.y - 4.0f, 8.0f, 8.0f);
+            const BubbleLayout bubble = LayoutBubble(
+                anchor,
+                cardSize,
+                GetPopupViewportOrDefault(),
+                BubblePlacement::Auto,
+                8.0f,
+                6.0f,
+                6.0f);
+
             D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
             D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
             D2D1_COLOR_F textColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+            PaintBubble(ctx, bubble, bg, border, 6.0f);
 
-            ctx.FillRoundedRect(cardRect, 4.0f, bg);
-            ctx.DrawRoundedRect(cardRect, 4.0f, border, 1.0f);
-
-            Rect textRect(cardX + padding.left, cardY + padding.top, textSize.width + 2.0f, textSize.height);
-            ctx.DrawText(tip, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            if (layout) {
+                ctx.DrawTextLayout(
+                    layout.Get(),
+                    Rect(bubble.card.x + padX, bubble.card.y + padY, textSize.width, textSize.height),
+                    textColor);
+            }
+            m_tooltipPaintRect = bubble.total.Inflate(3.0f);
         }
     }
 
@@ -621,11 +638,11 @@ UIElement* UIElement::HitTest(float x, float y) {
 
 void UIElement::OnMouseEnter() {
     m_isHovered = true;
-    m_tooltipVisible = false;
+    m_tooltipHideArmed = false;
     m_lastMouseMoveTime = std::chrono::steady_clock::now();
     // Do NOT MarkRenderContentDirty here — large panels would dirty the whole page on
     // every hover transit. Controls that paint hover chrome mark locally themselves.
-    if (!GetToolTip().empty()) {
+    if (!GetToolTip().empty() && !m_tooltipVisible) {
         RequestAnimationTicks();
     }
 }
@@ -634,8 +651,7 @@ void UIElement::OnMouseLeave() {
     m_isHovered = false;
     m_isPressed = false;
     if (m_tooltipVisible) {
-        m_tooltipVisible = false;
-        MarkRenderRectDirty(m_bounds);
+        ArmToolTipHide();
     }
 }
 
@@ -643,6 +659,7 @@ void UIElement::OnMouseDown(Point pt) {
     if (!IsEnabled()) {
         return;
     }
+    HideToolTipNow();
     m_isPressed = true;
     m_onMouseDownEvent.Invoke(this, pt);
     // Local rect only — MarkRenderContentDirty bubbles through ScrollViewer and
@@ -669,11 +686,10 @@ void UIElement::OnMouseMove(Point pt) {
     float distSq = dx * dx + dy * dy;
     m_lastMousePos = pt;
 
-    if (distSq > 4.0f) {
+    if (distSq > 4.0f && !m_tooltipVisible) {
         m_lastMouseMoveTime = std::chrono::steady_clock::now();
-        if (m_tooltipVisible) {
-            m_tooltipVisible = false;
-            MarkRenderContentDirty();
+        if (!GetToolTip().empty()) {
+            RequestAnimationTicks();
         }
     }
 }
@@ -696,21 +712,7 @@ bool UIElement::OnAnimationTick() {
         return false;
     }
 
-    bool any = false;
-
-    if (m_isHovered && !GetToolTip().empty()) {
-        auto now = std::chrono::steady_clock::now();
-        auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastMouseMoveTime).count();
-        if (elapsedMs >= 450) {
-            if (!m_tooltipVisible) {
-                m_tooltipVisible = true;
-                m_tooltipAnchorPos = m_lastMousePos;
-                MarkRenderContentDirty();
-            }
-        } else {
-            any = true;
-        }
-    }
+    bool any = ToolTipTick(std::chrono::steady_clock::now());
 
     // Do NOT recurse into children here. AnimationManager ticks only registered
     // elements; walking the tree from ScrollViewer/NavigationView on every mouse
@@ -722,6 +724,10 @@ bool UIElement::OnAnimationTick() {
 void UIElement::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
     if (m_visibility != Visibility::Visible || !m_presentsOnOwnerWindow) {
         return;
+    }
+    if (m_tooltipVisible && !m_tooltipPaintRect.IsEmpty()) {
+        dirtyRect = hasDirty ? dirtyRect.Union(m_tooltipPaintRect) : m_tooltipPaintRect;
+        hasDirty = true;
     }
     if (HasSelfAnimation() && !m_bounds.IsEmpty()) {
         dirtyRect = hasDirty ? dirtyRect.Union(m_bounds) : m_bounds;
@@ -846,6 +852,136 @@ void UIElement::SyncRenderState() {
             child->SyncRenderState();
         }
     }
+}
+
+void UIElement::SetToolTipShowDelayMs(int ms) {
+    s_toolTipShowDelayMs = (std::max)(0, ms);
+}
+
+void UIElement::SetToolTipHideDelayMs(int ms) {
+    s_toolTipHideDelayMs = (std::max)(0, ms);
+}
+
+void UIElement::SetDefaultToolTipMaxWidth(float width) {
+    s_toolTipMaxWidth = (std::max)(48.0f, width);
+}
+
+void UIElement::SetDefaultToolTipAutoHideMs(int ms) {
+    s_toolTipAutoHideMs = (std::max)(0, ms);
+}
+
+int UIElement::GetToolTipShowDelayMs() { return s_toolTipShowDelayMs; }
+int UIElement::GetToolTipHideDelayMs() { return s_toolTipHideDelayMs; }
+float UIElement::GetDefaultToolTipMaxWidth() { return s_toolTipMaxWidth; }
+int UIElement::GetDefaultToolTipAutoHideMs() { return s_toolTipAutoHideMs; }
+
+void UIElement::SetToolTipMaxWidth(float width) {
+    if (std::abs(m_toolTipMaxWidth - width) < 0.01f) {
+        return;
+    }
+    m_toolTipMaxWidth = width;
+    if (m_tooltipVisible) {
+        DirtyToolTipRect();
+    }
+}
+
+void UIElement::SetToolTipAutoHideMs(int ms) {
+    if (m_toolTipAutoHideMs == ms) {
+        return;
+    }
+    m_toolTipAutoHideMs = ms;
+    if (m_tooltipVisible) {
+        RequestAnimationTicks();
+    }
+}
+
+void UIElement::DirtyToolTipRect() {
+    if (!m_tooltipPaintRect.IsEmpty()) {
+        MarkRenderRectDirty(m_tooltipPaintRect);
+    }
+}
+
+void UIElement::ShowToolTipNow() {
+    if (GetToolTip().empty()) {
+        return;
+    }
+    m_tooltipVisible = true;
+    m_tooltipHideArmed = false;
+    m_tooltipAnchorPos = m_lastMousePos;
+    m_tooltipShownAt = std::chrono::steady_clock::now();
+    m_tooltipPaintRect = Rect(
+        m_tooltipAnchorPos.x - 8.0f,
+        m_tooltipAnchorPos.y - 8.0f,
+        320.0f,
+        120.0f);
+    DirtyToolTipRect();
+}
+
+void UIElement::HideToolTipNow() {
+    m_tooltipHideArmed = false;
+    if (!m_tooltipVisible) {
+        return;
+    }
+    m_tooltipVisible = false;
+    DirtyToolTipRect();
+    m_tooltipPaintRect = Rect();
+}
+
+void UIElement::ArmToolTipHide() {
+    if (!m_tooltipVisible || m_tooltipHideArmed) {
+        return;
+    }
+    m_tooltipHideArmed = true;
+    m_tooltipHideAt = std::chrono::steady_clock::now()
+        + std::chrono::milliseconds(s_toolTipHideDelayMs);
+    RequestAnimationTicks();
+}
+
+bool UIElement::ToolTipTick(std::chrono::steady_clock::time_point now) {
+    if (GetToolTip().empty()) {
+        if (m_tooltipVisible) {
+            HideToolTipNow();
+        }
+        return false;
+    }
+
+    if (m_tooltipHideArmed) {
+        if (m_isHovered) {
+            m_tooltipHideArmed = false;
+        } else if (now >= m_tooltipHideAt) {
+            HideToolTipNow();
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    if (m_tooltipVisible) {
+        const int autoHide = (m_toolTipAutoHideMs >= 0) ? m_toolTipAutoHideMs : s_toolTipAutoHideMs;
+        if (autoHide > 0) {
+            const auto shownMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+                now - m_tooltipShownAt).count();
+            if (shownMs >= autoHide) {
+                ArmToolTipHide();
+                return m_tooltipHideArmed;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    if (!m_isHovered) {
+        return false;
+    }
+
+    const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now - m_lastMouseMoveTime).count();
+    if (elapsedMs >= s_toolTipShowDelayMs) {
+        ShowToolTipNow();
+        const int autoHide = (m_toolTipAutoHideMs >= 0) ? m_toolTipAutoHideMs : s_toolTipAutoHideMs;
+        return autoHide > 0;
+    }
+    return true;
 }
 
 } // namespace CUI
