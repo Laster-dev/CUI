@@ -158,6 +158,53 @@ std::vector<PropertyMeta> Toast::GetPropertyMetas() const {
     return metas;
 }
 
+Value Toast::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Title: return Value(m_titleText);
+    case PropertyId::Message: return Value(m_messageText);
+    case PropertyId::Corner: return Value(CornerToString(m_corner));
+    case PropertyId::DurationMs: return Value(static_cast<float>(m_durationMs));
+    case PropertyId::AutoClose: return Value(m_autoClose);
+    case PropertyId::Closeable: return Value(m_closeable);
+    case PropertyId::OffsetX: return Value(m_offsetX);
+    case PropertyId::OffsetY: return Value(m_offsetY);
+    case PropertyId::Spacing: return Value(m_spacing);
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool Toast::HasProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Title:
+    case PropertyId::Message:
+    case PropertyId::Corner:
+    case PropertyId::DurationMs:
+    case PropertyId::AutoClose:
+    case PropertyId::Closeable:
+    case PropertyId::OffsetX:
+    case PropertyId::OffsetY:
+    case PropertyId::Spacing:
+        return true;
+    default:
+        return UIElement::HasProperty(id);
+    }
+}
+
+void Toast::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::Title: SetTitle(val.AsString()); return;
+    case PropertyId::Message: SetMessage(val.AsString()); return;
+    case PropertyId::Corner: SetCorner(ParseCorner(val.AsString(), m_corner)); return;
+    case PropertyId::DurationMs: SetDurationMs(static_cast<int>(val.AsFloat(static_cast<float>(m_durationMs)))); return;
+    case PropertyId::AutoClose: SetAutoClose(val.AsBool()); return;
+    case PropertyId::Closeable: SetCloseable(val.AsBool()); return;
+    case PropertyId::OffsetX: SetOffsetX(val.AsFloat(m_offsetX)); return;
+    case PropertyId::OffsetY: SetOffsetY(val.AsFloat(m_offsetY)); return;
+    case PropertyId::Spacing: SetSpacing(val.AsFloat(m_spacing)); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
+}
+
 void Toast::SyncMembersFromProperties() {
     // Colors may follow a theme token; re-resolve from the token if one is set.
     m_background = ResolveThemeColorHex(this, PropertyId::BackgroundToken, m_background);

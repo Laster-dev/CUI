@@ -46,14 +46,42 @@ SegmentedControl::SegmentedControl() {
 std::vector<PropertyMeta> SegmentedControl::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
     metas.push_back({ "items", "选项 (Items)", "分段", "string" });
+    metas.push_back({ "selectedIndex", "选中项 (SelectedIndex)", "分段", "number" });
     metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
     return metas;
 }
 
+namespace {
+std::string JoinCsv(const std::vector<std::string>& items) {
+    std::string out;
+    for (size_t i = 0; i < items.size(); ++i) {
+        if (i) out.push_back(',');
+        out += items[i];
+    }
+    return out;
+}
+}
+
+Value SegmentedControl::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Items: return Value(JoinCsv(m_items));
+    case PropertyId::SelectedIndex: return Value(static_cast<float>(m_selectedIndex));
+    default: return Control::GetProperty(id);
+    }
+}
+
+bool SegmentedControl::HasProperty(PropertyId id) const {
+    return id == PropertyId::Items || id == PropertyId::SelectedIndex || Control::HasProperty(id);
+}
+
 void SegmentedControl::SetProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::Items) {
         SetItems(val.AsString(""));
+        return;
+    }
+    if (id == PropertyId::SelectedIndex) {
+        SetSelectedIndex(static_cast<int>(val.AsFloat(0.0f)));
         return;
     }
     Control::SetProperty(id, val);

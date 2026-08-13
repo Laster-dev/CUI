@@ -52,6 +52,34 @@ std::vector<PropertyMeta> CheckBox::GetPropertyMetas() const {
     return metas;
 }
 
+Value CheckBox::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::CheckState:
+        if (m_state == CheckState::Checked) return Value("Checked");
+        if (m_state == CheckState::Indeterminate) return Value("Indeterminate");
+        return Value("Unchecked");
+    case PropertyId::IsThreeState: return Value(m_isThreeState);
+    default: return Control::GetProperty(id);
+    }
+}
+
+bool CheckBox::HasProperty(PropertyId id) const {
+    return id == PropertyId::CheckState || id == PropertyId::IsThreeState || Control::HasProperty(id);
+}
+
+void CheckBox::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::CheckState: {
+        const std::string s = val.AsString("Unchecked");
+        SetState(s == "Checked" ? CheckState::Checked
+            : (s == "Indeterminate" ? CheckState::Indeterminate : CheckState::Unchecked));
+        return;
+    }
+    case PropertyId::IsThreeState: SetIsThreeState(val.AsBool()); return;
+    default: Control::SetProperty(id, val); return;
+    }
+}
+
 void CheckBox::SetState(CheckState state) {
     if (m_state == state) {
         return;
@@ -176,7 +204,8 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
         const std::string& font = GetFontFamily();
         float fontSize = GetFontSize();
 
-        ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING,
+            DWRITE_PARAGRAPH_ALIGNMENT_CENTER, ResolveFontWeight());
     }
 }
 

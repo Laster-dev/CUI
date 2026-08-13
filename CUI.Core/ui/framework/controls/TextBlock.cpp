@@ -1,6 +1,8 @@
 #include "TextBlock.h"
 #include "../style/ThemeManager.h"
+#include "../core/Value.h"
 #include <algorithm>
+#include <cmath>
 
 namespace CUI {
 
@@ -12,6 +14,26 @@ std::vector<PropertyMeta> TextBlock::GetPropertyMetas() const {
     metas.push_back({ "lineSpacing", "行间距 (LineSpacing)", "高级排版", "number" });
     metas.push_back({ "lineHeight", "固定行高 (LineHeight)", "高级排版", "number" });
     return metas;
+}
+
+Value TextBlock::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::LineSpacing: return Value(m_lineSpacing);
+    case PropertyId::LineHeight: return Value(m_lineHeight);
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool TextBlock::HasProperty(PropertyId id) const {
+    return id == PropertyId::LineSpacing || id == PropertyId::LineHeight || UIElement::HasProperty(id);
+}
+
+void TextBlock::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::LineSpacing: SetLineSpacing(val.AsFloat()); return;
+    case PropertyId::LineHeight: SetLineHeight(val.AsFloat()); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
 }
 
 TextBlock::TextBlock() {
@@ -32,19 +54,26 @@ Size TextBlock::Measure(Size availableSize) {
     const std::string& text = GetText();
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
-    const std::string& weightStr = GetFontWeight();
 
-    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
-    if (weightStr == "Bold" || weightStr == "bold") weight = DWRITE_FONT_WEIGHT_BOLD;
-    else if (weightStr == "SemiBold" || weightStr == "semibold" || weightStr == "Medium" || weightStr == "medium") {
-        weight = DWRITE_FONT_WEIGHT_SEMI_BOLD;
-    } else if (weightStr == "Light" || weightStr == "light") {
-        weight = DWRITE_FONT_WEIGHT_LIGHT;
-    }
+    DWRITE_FONT_WEIGHT weight = ResolveFontWeight();
 
-    // Temporary context for measuring
     GraphicsContext ctx;
-    Size measured = ctx.MeasureText(text, font, fontSize, weight);
+    Size measured;
+    const bool customLead = m_lineHeight > 0.0f || std::abs(m_lineSpacing - 1.0f) > 0.001f;
+    if (customLead) {
+        GraphicsContext::TextLayoutOptions opt;
+        opt.lineSpacing = m_lineSpacing;
+        opt.lineHeight = m_lineHeight;
+        auto layout = GraphicsContext::CreateTextLayout(Utf8ToUtf16(text), font, fontSize, opt, weight);
+        DWRITE_TEXT_METRICS metrics{};
+        if (layout && SUCCEEDED(layout->GetMetrics(&metrics))) {
+            measured = Size(metrics.widthIncludingTrailingWhitespace, metrics.height);
+        } else {
+            measured = ctx.MeasureText(text, font, fontSize, weight);
+        }
+    } else {
+        measured = ctx.MeasureText(text, font, fontSize, weight);
+    }
 
     Thickness margin = GetMargin();
     Thickness padding = GetPadding();
@@ -71,17 +100,9 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F color = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
-    const std::string& weightStr = GetFontWeight();
     const std::string& alignStr = GetTextAlign();
     const std::string& vAlignStr = GetVerticalAlign();
-
-    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
-    if (weightStr == "Bold" || weightStr == "bold") weight = DWRITE_FONT_WEIGHT_BOLD;
-    else if (weightStr == "SemiBold" || weightStr == "semibold" || weightStr == "Medium" || weightStr == "medium") {
-        weight = DWRITE_FONT_WEIGHT_SEMI_BOLD;
-    } else if (weightStr == "Light" || weightStr == "light") {
-        weight = DWRITE_FONT_WEIGHT_LIGHT;
-    }
+    DWRITE_FONT_WEIGHT weight = ResolveFontWeight();
 
     DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING;
     if (alignStr == "Center") align = DWRITE_TEXT_ALIGNMENT_CENTER;
@@ -99,6 +120,22 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
         m_bounds.height - padding.top - padding.bottom
     );
 
+    const bool customLead = m_lineHeight > 0.0f || std::abs(m_lineSpacing - 1.0f) > 0.001f;
+    if (customLead) {
+        GraphicsContext::TextLayoutOptions opt;
+        opt.maxWidth = textRect.width;
+        opt.maxHeight = textRect.height;
+        opt.wrapping = DWRITE_WORD_WRAPPING_WRAP;
+        opt.paragraphAlignment = vAlign;
+        opt.lineSpacing = m_lineSpacing;
+        opt.lineHeight = m_lineHeight;
+        auto layout = GraphicsContext::CreateTextLayout(Utf8ToUtf16(text), font, fontSize, opt, weight);
+        if (layout) {
+            layout->SetTextAlignment(align);
+            ctx.DrawTextLayout(layout.Get(), textRect, color);
+            return;
+        }
+    }
     ctx.DrawText(text, textRect, color, font, fontSize, align, vAlign, weight);
 }
 

@@ -54,6 +54,37 @@ ChartBase::ChartBase() {
     m_reveal.SetTarget(1.0f);
 }
 
+std::vector<PropertyMeta> ChartBase::GetPropertyMetas() const {
+    auto metas = Control::GetPropertyMetas();
+    metas.push_back({ "showGrid", "网格 (ShowGrid)", "图表", "bool" });
+    metas.push_back({ "showLegend", "图例 (ShowLegend)", "图表", "bool" });
+    metas.push_back({ "showTooltip", "提示 (ShowTooltip)", "图表", "bool" });
+    return metas;
+}
+
+Value ChartBase::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::ShowGrid: return Value(m_showGrid);
+    case PropertyId::ShowLegend: return Value(m_showLegend);
+    case PropertyId::ShowTooltip: return Value(m_showTooltip);
+    default: return Control::GetProperty(id);
+    }
+}
+
+bool ChartBase::HasProperty(PropertyId id) const {
+    return id == PropertyId::ShowGrid || id == PropertyId::ShowLegend
+        || id == PropertyId::ShowTooltip || Control::HasProperty(id);
+}
+
+void ChartBase::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::ShowGrid: SetShowGrid(val.AsBool()); return;
+    case PropertyId::ShowLegend: SetShowLegend(val.AsBool()); return;
+    case PropertyId::ShowTooltip: SetShowTooltip(val.AsBool()); return;
+    default: Control::SetProperty(id, val); return;
+    }
+}
+
 void ChartBase::SetCategories(std::vector<std::string> categories, bool replayReveal) {
     if (m_categories == categories) {
         return;

@@ -36,6 +36,23 @@ std::vector<PropertyMeta> RadioButton::GetPropertyMetas() const {
     return metas;
 }
 
+Value RadioButton::GetProperty(PropertyId id) const {
+    if (id == PropertyId::GroupName) return Value(m_groupName);
+    return CheckBox::GetProperty(id);
+}
+
+bool RadioButton::HasProperty(PropertyId id) const {
+    return id == PropertyId::GroupName || CheckBox::HasProperty(id);
+}
+
+void RadioButton::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::GroupName) {
+        SetGroupName(val.AsString());
+        return;
+    }
+    CheckBox::SetProperty(id, val);
+}
+
 void RadioButton::OnMouseDown(Point pt) {
     if (!IsEnabled()) return;
     Control::OnMouseDown(pt);

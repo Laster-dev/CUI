@@ -99,6 +99,38 @@ std::vector<PropertyMeta> ProgressBar::GetPropertyMetas() const {
     return metas;
 }
 
+Value ProgressBar::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::ControlValue: return Value(m_value);
+    case PropertyId::Minimum: return Value(m_minimum);
+    case PropertyId::Maximum: return Value(m_maximum);
+    case PropertyId::IsIndeterminate: return Value(m_isIndeterminate);
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool ProgressBar::HasProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::ControlValue:
+    case PropertyId::Minimum:
+    case PropertyId::Maximum:
+    case PropertyId::IsIndeterminate:
+        return true;
+    default:
+        return UIElement::HasProperty(id);
+    }
+}
+
+void ProgressBar::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
+    case PropertyId::Minimum: SetMinimum(val.AsFloat()); return;
+    case PropertyId::Maximum: SetMaximum(val.AsFloat()); return;
+    case PropertyId::IsIndeterminate: SetIsIndeterminate(val.AsBool()); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
+}
+
 Size ProgressBar::Measure(Size availableSize) {
     (void)availableSize;
     float expW = GetWidth(); if (expW < 0) expW = 200.0f;

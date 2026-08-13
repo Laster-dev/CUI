@@ -44,6 +44,26 @@ std::vector<PropertyMeta> PagingControl::GetPropertyMetas() const {
     return metas;
 }
 
+Value PagingControl::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::CurrentPage: return Value(m_currentPage);
+    case PropertyId::TotalPages: return Value(m_totalPages);
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool PagingControl::HasProperty(PropertyId id) const {
+    return id == PropertyId::CurrentPage || id == PropertyId::TotalPages || UIElement::HasProperty(id);
+}
+
+void PagingControl::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::CurrentPage: SetCurrentPage(val.AsInt()); return;
+    case PropertyId::TotalPages: SetTotalPages(val.AsInt()); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
+}
+
 void PagingControl::RebuildPageList() {
     m_pageItems.clear();
     const int total = (std::max)(1, m_totalPages);

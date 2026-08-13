@@ -74,9 +74,81 @@ InfoBar::InfoBar() {
 
 std::vector<PropertyMeta> InfoBar::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "text", "标题 (Title)", "内容", "string" });
-    metas.push_back({ "placeholder", "正文 (Message)", "内容", "string" });
+    metas.push_back({ "title", "标题 (Title)", "内容", "string" });
+    metas.push_back({ "message", "正文 (Message)", "内容", "string" });
+    metas.push_back({ "severity", "级别 (Severity)", "内容", "enum", { "Informational", "Success", "Warning", "Error" } });
+    metas.push_back({ "isOpen", "是否打开 (IsOpen)", "内容", "bool" });
+    metas.push_back({ "isClosable", "可关闭 (IsClosable)", "内容", "bool" });
+    metas.push_back({ "actionText", "操作文本 (ActionText)", "内容", "string" });
     return metas;
+}
+
+namespace {
+const char* SeverityName(InfoBarSeverity s) {
+    switch (s) {
+    case InfoBarSeverity::Success: return "Success";
+    case InfoBarSeverity::Warning: return "Warning";
+    case InfoBarSeverity::Error: return "Error";
+    default: return "Informational";
+    }
+}
+InfoBarSeverity ParseSeverity(const std::string& s) {
+    if (s == "Success") return InfoBarSeverity::Success;
+    if (s == "Warning") return InfoBarSeverity::Warning;
+    if (s == "Error") return InfoBarSeverity::Error;
+    return InfoBarSeverity::Informational;
+}
+}
+
+Value InfoBar::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Title:
+    case PropertyId::Text:
+        return Value(m_title);
+    case PropertyId::Message:
+    case PropertyId::Placeholder:
+        return Value(m_message);
+    case PropertyId::Severity: return Value(SeverityName(m_severity));
+    case PropertyId::IsOpen: return Value(m_isOpen);
+    case PropertyId::IsClosable: return Value(m_isClosable);
+    case PropertyId::ActionText: return Value(m_actionText);
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool InfoBar::HasProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Text:
+    case PropertyId::Placeholder:
+        return false;
+    case PropertyId::Title:
+    case PropertyId::Message:
+    case PropertyId::Severity:
+    case PropertyId::IsOpen:
+    case PropertyId::IsClosable:
+    case PropertyId::ActionText:
+        return true;
+    default:
+        return UIElement::HasProperty(id);
+    }
+}
+
+void InfoBar::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::Title:
+    case PropertyId::Text:
+        SetTitle(val.AsString());
+        return;
+    case PropertyId::Message:
+    case PropertyId::Placeholder:
+        SetMessage(val.AsString());
+        return;
+    case PropertyId::Severity: SetSeverity(ParseSeverity(val.AsString())); return;
+    case PropertyId::IsOpen: SetIsOpen(val.AsBool()); return;
+    case PropertyId::IsClosable: SetIsClosable(val.AsBool()); return;
+    case PropertyId::ActionText: SetActionText(val.AsString()); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
 }
 
 void InfoBar::EnsureChrome() {
@@ -269,7 +341,7 @@ Size InfoBar::MeasureWrapped(const std::string& text, float fontSize, float maxW
     options.maxHeight = 400.0f;
     options.wrapping = DWRITE_WORD_WRAPPING_WRAP;
     ComPtr<IDWriteTextLayout> layout = GraphicsContext::CreateTextLayout(
-        Utf8ToUtf16(text), "微软雅黑", fontSize, options, weight);
+        Utf8ToUtf16(text), GetFontFamily(), fontSize, options, weight);
     if (!layout) {
         return Size(maxWidth, fontSize + 4.0f);
     }
@@ -296,7 +368,7 @@ void InfoBar::DrawWrapped(
     options.maxHeight = (std::max)(1.0f, rect.height);
     options.wrapping = DWRITE_WORD_WRAPPING_WRAP;
     ComPtr<IDWriteTextLayout> layout = GraphicsContext::CreateTextLayout(
-        Utf8ToUtf16(text), "微软雅黑", fontSize, options, weight);
+        Utf8ToUtf16(text), GetFontFamily(), fontSize, options, weight);
     if (layout) {
         ctx.DrawTextLayout(layout.Get(), rect, color);
     }
@@ -309,8 +381,10 @@ float InfoBar::ContentHeight(float width) const {
         + (actionW > 0.0f ? actionW + kGap : 0.0f)
         + (closeW > 0.0f ? closeW + 4.0f : 0.0f);
     const float textW = (std::max)(48.0f, width - reserved);
-    const Size titleSz = MeasureWrapped(m_title, 13.0f, textW, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-    const Size msgSz = MeasureWrapped(m_message, 12.0f, textW, DWRITE_FONT_WEIGHT_NORMAL);
+    const float titleSize = GetFontSize() + 1.0f;
+    const float msgSize = GetFontSize();
+    const Size titleSz = MeasureWrapped(m_title, titleSize, textW, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+    const Size msgSz = MeasureWrapped(m_message, msgSize, textW, DWRITE_FONT_WEIGHT_NORMAL);
     float textH = titleSz.height;
     if (msgSz.height > 0.0f) {
         textH += (textH > 0.0f ? 4.0f : 0.0f) + msgSz.height;
@@ -455,8 +529,10 @@ void InfoBar::OnRender(GraphicsContext& ctx) {
     }
     const float textX = icon.x + icon.width + kGap;
     const float textW = (std::max)(8.0f, right - textX);
-    const Size titleSz = MeasureWrapped(m_title, 13.0f, textW, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-    const Size msgSz = MeasureWrapped(m_message, 12.0f, textW, DWRITE_FONT_WEIGHT_NORMAL);
+    const float titleSize = GetFontSize() + 1.0f;
+    const float msgSize = GetFontSize();
+    const Size titleSz = MeasureWrapped(m_title, titleSize, textW, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+    const Size msgSz = MeasureWrapped(m_message, msgSize, textW, DWRITE_FONT_WEIGHT_NORMAL);
     float textH = titleSz.height;
     if (msgSz.height > 0.0f) {
         textH += (textH > 0.0f ? 4.0f : 0.0f) + msgSz.height;
@@ -465,13 +541,13 @@ void InfoBar::OnRender(GraphicsContext& ctx) {
     if (!m_title.empty()) {
         DrawWrapped(
             ctx, m_title, Rect(textX, y, textW, titleSz.height),
-            13.0f, tokens.textPrimary, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+            titleSize, tokens.textPrimary, DWRITE_FONT_WEIGHT_SEMI_BOLD);
         y += titleSz.height + 4.0f;
     }
     if (!m_message.empty()) {
         DrawWrapped(
             ctx, m_message, Rect(textX, y, textW, msgSz.height),
-            12.0f, tokens.textSecondary, DWRITE_FONT_WEIGHT_NORMAL);
+            msgSize, tokens.textSecondary, DWRITE_FONT_WEIGHT_NORMAL);
     }
 }
 

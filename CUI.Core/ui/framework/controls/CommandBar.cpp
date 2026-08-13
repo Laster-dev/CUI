@@ -61,7 +61,30 @@ CommandBar::~CommandBar() {
 }
 
 std::vector<PropertyMeta> CommandBar::GetPropertyMetas() const {
-    return UIElement::GetPropertyMetas();
+    auto metas = UIElement::GetPropertyMetas();
+    metas.push_back({ "labelPosition", "标签位置 (LabelPosition)", "命令栏", "enum", { "Collapsed", "Right" } });
+    return metas;
+}
+
+Value CommandBar::GetProperty(PropertyId id) const {
+    if (id == PropertyId::LabelPosition) {
+        return Value(m_labelPosition == CommandBarLabelPosition::Collapsed ? "Collapsed" : "Right");
+    }
+    return UIElement::GetProperty(id);
+}
+
+bool CommandBar::HasProperty(PropertyId id) const {
+    return id == PropertyId::LabelPosition || UIElement::HasProperty(id);
+}
+
+void CommandBar::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::LabelPosition) {
+        SetLabelPosition(val.AsString() == "Collapsed"
+            ? CommandBarLabelPosition::Collapsed
+            : CommandBarLabelPosition::Right);
+        return;
+    }
+    UIElement::SetProperty(id, val);
 }
 
 void CommandBar::EnsureOverflowChrome() {

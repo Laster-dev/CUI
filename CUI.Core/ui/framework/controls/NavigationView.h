@@ -62,6 +62,9 @@ public:
 
     const char* GetClassName() const override { return "NavigationView"; }
     std::vector<PropertyMeta> GetPropertyMetas() const override;
+    Value GetProperty(PropertyId id) const override;
+    bool HasProperty(PropertyId id) const override;
+    void SetProperty(PropertyId id, const Value& val) override;
 
     // --- Pane mode (WinUI) ---
     void SetPaneDisplayMode(NavigationViewPaneDisplayMode mode);

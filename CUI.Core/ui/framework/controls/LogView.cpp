@@ -272,6 +272,9 @@ std::vector<PropertyMeta> LogView::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
     metas.push_back({ "text", "搜索过滤 (Filter)", "日志配置", "string" });
     metas.push_back({ "isOn", "持久化 (Persist)", "日志配置", "bool" });
+    metas.push_back({ "isExpanded", "展开 (IsExpanded)", "日志配置", "bool" });
+    metas.push_back({ "followTail", "跟随尾部 (FollowTail)", "日志配置", "bool" });
+    metas.push_back({ "maxEntries", "最大条数 (MaxEntries)", "日志配置", "number" });
     return metas;
 }
 
@@ -279,18 +282,37 @@ Value LogView::GetProperty(PropertyId id) const {
     switch (id) {
     case PropertyId::Text: return Value(GetFilterText());
     case PropertyId::IsOn: return Value(m_persistEnabled);
+    case PropertyId::IsExpanded: return Value(m_expanded);
+    case PropertyId::FollowTail: return Value(m_follow);
+    case PropertyId::MaxEntries: return Value(static_cast<float>(m_cap));
     default: return Control::GetProperty(id);
     }
 }
 
 bool LogView::HasProperty(PropertyId id) const {
-    return id == PropertyId::Text || id == PropertyId::IsOn || Control::HasProperty(id);
+    switch (id) {
+    case PropertyId::Text:
+    case PropertyId::IsOn:
+    case PropertyId::IsExpanded:
+    case PropertyId::FollowTail:
+    case PropertyId::MaxEntries:
+        return true;
+    default:
+        return Control::HasProperty(id);
+    }
 }
 
 void LogView::SetProperty(PropertyId id, const Value& val) {
     switch (id) {
     case PropertyId::Text: SetFilterText(val.AsString()); return;
     case PropertyId::IsOn: SetPersistEnabled(val.AsBool()); return;
+    case PropertyId::IsExpanded: SetExpanded(val.AsBool()); return;
+    case PropertyId::FollowTail: SetFollowTail(val.AsBool()); return;
+    case PropertyId::MaxEntries: {
+        const float n = val.AsFloat(static_cast<float>(m_cap));
+        SetMaxEntries(n > 0.0f ? static_cast<uint32_t>(n) : m_cap);
+        return;
+    }
     default: UIElement::SetProperty(id, val); return;
     }
 }
@@ -976,7 +998,12 @@ void LogView::PaintHeader(GraphicsContext& ctx) {
 
     char counts[48];
     std::snprintf(counts, sizeof(counts), "日志  %u", m_size);
-    ctx.DrawText(counts, Rect(hdr.x + 28.0f, hdr.y, 72.0f, hdr.height), text, "微软雅黑", 12.0f,
+    const std::string& font = GetFontFamily();
+    const float fs = GetFontSize();
+    const float fsSmall = (std::max)(8.0f, fs - 2.0f);
+    const float fsTiny = (std::max)(8.0f, fs - 3.0f);
+    const float fsRow = (std::max)(8.0f, fs - 1.0f);
+    ctx.DrawText(counts, Rect(hdr.x + 28.0f, hdr.y, 72.0f, hdr.height), text, font, fs,
         DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
 
     float badgeX = hdr.x + 96.0f;
@@ -988,7 +1015,7 @@ void LogView::PaintHeader(GraphicsContext& ctx) {
         std::snprintf(b, sizeof(b), "E%u", errN);
         const Rect br(badgeX, hdr.y + 7.0f, 36.0f, 18.0f);
         ctx.FillRoundedRect(br, 3.0f, WithAlpha(danger, 0.18f));
-        ctx.DrawText(b, br, danger, "微软雅黑", 10.0f, DWRITE_TEXT_ALIGNMENT_CENTER,
+        ctx.DrawText(b, br, danger, font, fsSmall, DWRITE_TEXT_ALIGNMENT_CENTER,
             DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
         badgeX += 40.0f;
     }
@@ -998,12 +1025,12 @@ void LogView::PaintHeader(GraphicsContext& ctx) {
         const Rect br(badgeX, hdr.y + 7.0f, 36.0f, 18.0f);
         const auto warn = LevelColor(LogLevel::Warn);
         ctx.FillRoundedRect(br, 3.0f, WithAlpha(warn, 0.18f));
-        ctx.DrawText(b, br, warn, "微软雅黑", 10.0f, DWRITE_TEXT_ALIGNMENT_CENTER,
+        ctx.DrawText(b, br, warn, font, fsSmall, DWRITE_TEXT_ALIGNMENT_CENTER,
             DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
         badgeX += 40.0f;
     }
     if (m_persistEnabled) {
-        ctx.DrawText("●", Rect(hdr.x + hdr.width - 22.0f, hdr.y, 16.0f, hdr.height), accent, "微软雅黑", 9.0f,
+        ctx.DrawText("●", Rect(hdr.x + hdr.width - 22.0f, hdr.y, 16.0f, hdr.height), accent, font, fsTiny,
             DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
     }
     const float previewFade = 1.0f - ExpandProgress();
@@ -1017,7 +1044,7 @@ void LogView::PaintHeader(GraphicsContext& ctx) {
         const float x = badgeX + 8.0f;
         const float w = (std::max)(0.0f, hdr.x + hdr.width - x - 28.0f);
         ctx.DrawText(preview, Rect(x, hdr.y, w, hdr.height), WithAlpha(muted, muted.a * previewFade),
-            "Consolas", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+            font, fsRow, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
             DWRITE_FONT_WEIGHT_NORMAL, true);
     }
     ctx.FillRect(Rect(hdr.x, hdr.y + hdr.height - 1.0f, hdr.width, 1.0f), WithAlpha(border, 0.7f));
@@ -1038,7 +1065,7 @@ void LogView::PaintChips(GraphicsContext& ctx) {
         }
         const auto off = WithAlpha(muted, 0.45f);
         const auto tc = BlendColor(off, lc, on);
-        ctx.DrawText(kChipNames[i], chip, tc, "微软雅黑", 11.0f,
+        ctx.DrawText(kChipNames[i], chip, tc, GetFontFamily(), (std::max)(8.0f, GetFontSize() - 1.0f),
             DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
             on > 0.5f ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_SEMI_BOLD);
         if (on > 0.01f) {
@@ -1068,6 +1095,8 @@ void LogView::PaintRows(GraphicsContext& ctx) {
     const auto muted = ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary);
     const auto selBg = ThemeManager::Instance().GetColor(ThemeTokenId::SelectedBackground);
     const auto hoverBg = ThemeManager::Instance().GetColor(ThemeTokenId::HoverBackground);
+    const std::string& font = GetFontFamily();
+    const float fsRow = (std::max)(8.0f, GetFontSize() - 1.0f);
 
     for (int i = first; i < last; ++i) {
         const Record* rec = VisibleRecord(static_cast<size_t>(i));
@@ -1088,16 +1117,16 @@ void LogView::PaintRows(GraphicsContext& ctx) {
         const float levelX = timeX + kTimeCol + 6.0f;
         const float catX = levelX + kLevelCol + 8.0f;
         const float msgX = catX + kCatCol + 8.0f;
-        ctx.DrawText(rec->time, Rect(timeX, row.y, kTimeCol, row.height), muted, "Consolas", 11.0f,
+        ctx.DrawText(rec->time, Rect(timeX, row.y, kTimeCol, row.height), muted, font, fsRow,
             DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-        ctx.DrawText(LevelTag(rec->level), Rect(levelX, row.y, kLevelCol, row.height), lc, "Consolas", 11.0f,
+        ctx.DrawText(LevelTag(rec->level), Rect(levelX, row.y, kLevelCol, row.height), lc, font, fsRow,
             DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
         if (!rec->category.empty()) {
-            ctx.DrawText(rec->category, Rect(catX, row.y, kCatCol, row.height), muted, "Consolas", 11.0f,
+            ctx.DrawText(rec->category, Rect(catX, row.y, kCatCol, row.height), muted, font, fsRow,
                 DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL, true);
         }
         ctx.DrawText(rec->message, Rect(msgX, row.y, (std::max)(0.0f, row.x + row.width - msgX - 4.0f), row.height),
-            text, "Consolas", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+            text, font, fsRow, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
             DWRITE_FONT_WEIGHT_NORMAL, true);
     }
     ctx.PopClip();

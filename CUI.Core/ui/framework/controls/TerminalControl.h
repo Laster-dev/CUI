@@ -23,6 +23,9 @@ public:
 
     const char* GetClassName() const override { return "TerminalControl"; }
     std::vector<PropertyMeta> GetPropertyMetas() const override;
+    Value GetProperty(PropertyId id) const override;
+    bool HasProperty(PropertyId id) const override;
+    void SetProperty(PropertyId id, const Value& val) override;
     HCURSOR GetCursor() const override;
 
     Term::Terminal& Terminal() { return *m_terminal; }

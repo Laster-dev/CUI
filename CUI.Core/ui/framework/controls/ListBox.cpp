@@ -34,7 +34,38 @@ ListBox::ListBox() {
 
 void ListBox::SetProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::Items) { SetItems(val.AsString("")); return; }
+    if (id == PropertyId::SelectedIndex) {
+        SetSelectedIndex(static_cast<int>(val.AsFloat(-1.0f)));
+        return;
+    }
     Control::SetProperty(id, val);
+}
+
+std::vector<PropertyMeta> ListBox::GetPropertyMetas() const {
+    auto metas = UIElement::GetPropertyMetas();
+    metas.push_back({ "items", "选项 (Items)", "列表", "string" });
+    metas.push_back({ "selectedIndex", "选中项 (SelectedIndex)", "列表", "number" });
+    return metas;
+}
+
+Value ListBox::GetProperty(PropertyId id) const {
+    if (id == PropertyId::Items) {
+        std::string csv;
+        const size_t n = GetItemCount();
+        for (size_t i = 0; i < n; ++i) {
+            if (i) csv.push_back(',');
+            csv += GetItemAt(i);
+        }
+        return Value(csv);
+    }
+    if (id == PropertyId::SelectedIndex) {
+        return Value(static_cast<float>(m_selectedIndex));
+    }
+    return Control::GetProperty(id);
+}
+
+bool ListBox::HasProperty(PropertyId id) const {
+    return id == PropertyId::Items || id == PropertyId::SelectedIndex || Control::HasProperty(id);
 }
 
 ListBox::~ListBox() {

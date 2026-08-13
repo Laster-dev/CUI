@@ -25,6 +25,10 @@ public:
     virtual ~ListBox() override;
 
     virtual const char* GetClassName() const override { return "ListBox"; }
+    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
+    virtual Value GetProperty(PropertyId id) const override;
+    virtual bool HasProperty(PropertyId id) const override;
+    void SetProperty(PropertyId id, const Value& val) override;
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_ARROW) : nullptr; }
 
     virtual Size Measure(Size availableSize) override;
@@ -42,8 +46,6 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
     virtual void OnThemeChanged() override;
-
-    void SetProperty(PropertyId id, const Value& val) override;
 
     // Items & Data Management
     void AddItem(const std::string& item);

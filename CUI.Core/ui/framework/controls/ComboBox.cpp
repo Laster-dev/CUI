@@ -17,6 +17,15 @@ Rect ComboBoxMenuRect(const Rect& bounds, float itemHeight, size_t itemCount) {
     const Rect viewport = GetPopupViewportOrDefault();
     return PlacePopupNearAnchor(bounds, bounds.width, menuH, viewport, 2.0f);
 }
+
+std::string JoinCsv(const std::vector<std::string>& items) {
+    std::string out;
+    for (size_t i = 0; i < items.size(); ++i) {
+        if (i) out.push_back(',');
+        out += items[i];
+    }
+    return out;
+}
 } // namespace
 
 std::vector<PropertyMeta> ComboBox::GetPropertyMetas() const {
@@ -24,7 +33,21 @@ std::vector<PropertyMeta> ComboBox::GetPropertyMetas() const {
     metas.push_back({ "fontFamily", "字体名称 (FontFamily)", "字体文本", "enum", { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman" } });
     metas.push_back({ "fontSize", "字体大小 (FontSize)", "字体文本", "number" });
     metas.push_back({ "itemHeight", "下拉项高度 (ItemHeight)", "下拉控制", "number" });
+    metas.push_back({ "items", "选项 (Items)", "下拉控制", "string" });
+    metas.push_back({ "selectedIndex", "选中项 (SelectedIndex)", "下拉控制", "number" });
     return metas;
+}
+
+Value ComboBox::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Items: return Value(JoinCsv(m_items));
+    case PropertyId::SelectedIndex: return Value(static_cast<float>(m_selectedIndex));
+    default: return Control::GetProperty(id);
+    }
+}
+
+bool ComboBox::HasProperty(PropertyId id) const {
+    return id == PropertyId::Items || id == PropertyId::SelectedIndex || Control::HasProperty(id);
 }
 
 ComboBox::ComboBox() {
@@ -52,6 +75,10 @@ ComboBox::ComboBox() {
 
 void ComboBox::SetProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::Items) { SetItems(val.AsString("")); return; }
+    if (id == PropertyId::SelectedIndex) {
+        SetSelectedIndex(static_cast<int>(val.AsFloat(0.0f)));
+        return;
+    }
     Control::SetProperty(id, val);
 }
 

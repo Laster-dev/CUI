@@ -103,9 +103,27 @@ std::vector<PropertyMeta> MarkdownView::GetPropertyMetas() const {
     return metas;
 }
 
+Value MarkdownView::GetProperty(PropertyId id) const {
+    if (id == PropertyId::Text) {
+        return Value(GetText());
+    }
+    if (id == PropertyId::ShowLineNumbers) {
+        return Value(m_showLineNumbers);
+    }
+    return Control::GetProperty(id);
+}
+
+bool MarkdownView::HasProperty(PropertyId id) const {
+    return id == PropertyId::ShowLineNumbers || Control::HasProperty(id);
+}
+
 void MarkdownView::SetProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::Text) {
         SetMarkdown(val.AsString(""));
+        return;
+    }
+    if (id == PropertyId::ShowLineNumbers) {
+        SetShowCodeLineNumbers(val.AsBool());
         return;
     }
     Control::SetProperty(id, val);

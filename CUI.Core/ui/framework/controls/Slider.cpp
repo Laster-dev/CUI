@@ -30,6 +30,38 @@ std::vector<PropertyMeta> Slider::GetPropertyMetas() const {
     return metas;
 }
 
+Value Slider::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::ControlValue: return Value(m_value);
+    case PropertyId::Minimum: return Value(m_minimum);
+    case PropertyId::Maximum: return Value(m_maximum);
+    case PropertyId::Step: return Value(m_step);
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool Slider::HasProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::ControlValue:
+    case PropertyId::Minimum:
+    case PropertyId::Maximum:
+    case PropertyId::Step:
+        return true;
+    default:
+        return UIElement::HasProperty(id);
+    }
+}
+
+void Slider::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
+    case PropertyId::Minimum: SetMinimum(val.AsFloat()); return;
+    case PropertyId::Maximum: SetMaximum(val.AsFloat()); return;
+    case PropertyId::Step: SetStep(val.AsFloat()); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
+}
+
 Size Slider::Measure(Size availableSize) {
     (void)availableSize;
     float expW = GetWidth(); if (expW < 0) expW = 200.0f;

@@ -62,13 +62,13 @@ Size Button::Measure(Size availableSize) {
         if (GraphicsContext::LooksLikeSvg(icon)) {
             contentW += fontSize + 2.0f;
         } else {
-            const Size iconSize = ctx.MeasureText(icon, font, fontSize, DWRITE_FONT_WEIGHT_NORMAL);
+            const Size iconSize = ctx.MeasureText(icon, font, fontSize, ResolveFontWeight());
             contentW += iconSize.width;
             contentH = (std::max)(contentH, iconSize.height);
         }
     }
     if (!text.empty()) {
-        const Size textSize = ctx.MeasureText(text, font, fontSize, DWRITE_FONT_WEIGHT_NORMAL);
+        const Size textSize = ctx.MeasureText(text, font, fontSize, ResolveFontWeight());
         if (contentW > 0.0f) {
             contentW += 6.0f;
         }
@@ -186,7 +186,8 @@ void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_
             GetFontFamily(),
             GetFontSize(),
             align,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+            ResolveFontWeight());
         return;
     }
 
@@ -202,7 +203,7 @@ void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_
         return;
     }
 
-    const Size textSize = ctx.MeasureText(text, GetFontFamily(), fontSize, DWRITE_FONT_WEIGHT_NORMAL);
+    const Size textSize = ctx.MeasureText(text, GetFontFamily(), fontSize, ResolveFontWeight());
     const float gap = 6.0f;
     const float total = iconSize + gap + textSize.width;
     float startX = textRect.x;
@@ -224,7 +225,8 @@ void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_
         GetFontFamily(),
         fontSize,
         DWRITE_TEXT_ALIGNMENT_LEADING,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+        ResolveFontWeight());
 }
 
 void Button::OnMouseDown(Point pt) {

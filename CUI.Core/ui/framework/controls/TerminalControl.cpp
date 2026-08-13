@@ -183,6 +183,34 @@ std::vector<PropertyMeta> TerminalControl::GetPropertyMetas() const {
     return metas;
 }
 
+Value TerminalControl::GetProperty(PropertyId id) const {
+    if (id == PropertyId::Shell) {
+        return Value(m_pendingShell);
+    }
+    return Control::GetProperty(id);
+}
+
+bool TerminalControl::HasProperty(PropertyId id) const {
+    return id == PropertyId::Shell || Control::HasProperty(id);
+}
+
+void TerminalControl::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::Shell) {
+        SetShell(val.AsString());
+        return;
+    }
+    Control::SetProperty(id, val);
+    if ((id == PropertyId::FontSize || id == PropertyId::FontFamily) && m_terminal && m_renderer) {
+        auto& options = m_terminal->Options();
+        options.FontFamily = GetFontFamily();
+        options.FontSize = GetFontSize();
+        m_renderer->UpdateFont(options.FontFamily, options.FontSize);
+        m_lastCols = -1;
+        m_lastRows = -1;
+        MarkViewportDirty();
+    }
+}
+
 HCURSOR TerminalControl::GetCursor() const {
     const Rect surface = GetSurfaceRect();
     if (surface.Contains(m_lastMousePos.x, m_lastMousePos.y)) {

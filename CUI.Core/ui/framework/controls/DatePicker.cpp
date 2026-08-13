@@ -36,6 +36,26 @@ std::vector<PropertyMeta> DatePicker::GetPropertyMetas() const {
     return metas;
 }
 
+Value DatePicker::GetProperty(PropertyId id) const {
+    if (id == PropertyId::DateStr) return Value(GetFormattedDate());
+    return UIElement::GetProperty(id);
+}
+
+bool DatePicker::HasProperty(PropertyId id) const {
+    return id == PropertyId::DateStr || UIElement::HasProperty(id);
+}
+
+void DatePicker::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::DateStr) {
+        int y = 0, m = 0, d = 0;
+        if (sscanf_s(val.AsString().c_str(), "%d-%d-%d", &y, &m, &d) == 3) {
+            SetDate(y, m, d);
+        }
+        return;
+    }
+    UIElement::SetProperty(id, val);
+}
+
 Size DatePicker::Measure(Size availableSize) {
     float expW = GetWidth(); if (expW < 0) expW = 160.0f;
     float expH = GetHeight(); if (expH < 0) expH = 30.0f;

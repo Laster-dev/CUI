@@ -83,6 +83,17 @@ bool RatingControl::HasProperty(PropertyId id) const {
     }
 }
 
+void RatingControl::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
+    case PropertyId::Maximum: SetMaxRating(static_cast<int>(val.AsFloat(static_cast<float>(m_maxRating)))); return;
+    case PropertyId::Step: SetStep(val.AsFloat(m_step)); return;
+    case PropertyId::IsReadOnly: SetIsReadOnly(val.AsBool()); return;
+    case PropertyId::IsClearEnabled: SetIsClearEnabled(val.AsBool()); return;
+    default: Control::SetProperty(id, val); return;
+    }
+}
+
 bool RatingControl::CanInteract() const {
     return IsEnabled() && !m_isReadOnly;
 }

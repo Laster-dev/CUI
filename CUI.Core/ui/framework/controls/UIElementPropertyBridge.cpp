@@ -831,6 +831,16 @@ void UIElement::SetFontWeight(const std::string& weight) {
     NotifyFieldChanged(PropertyId::FontWeight, Value(weight));
 }
 
+DWRITE_FONT_WEIGHT UIElement::ResolveFontWeight() const {
+    const std::string& w = m_fontWeight;
+    if (w == "Bold" || w == "bold") return DWRITE_FONT_WEIGHT_BOLD;
+    if (w == "SemiBold" || w == "semibold" || w == "Medium" || w == "medium") {
+        return DWRITE_FONT_WEIGHT_SEMI_BOLD;
+    }
+    if (w == "Light" || w == "light") return DWRITE_FONT_WEIGHT_LIGHT;
+    return DWRITE_FONT_WEIGHT_NORMAL;
+}
+
 void UIElement::SetToolTip(const std::string& tip) {
     if (m_toolTip == tip) return;
     m_toolTip = tip;

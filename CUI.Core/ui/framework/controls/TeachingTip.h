@@ -14,6 +14,10 @@ public:
     virtual ~TeachingTip();
 
     virtual const char* GetClassName() const override { return "TeachingTip"; }
+    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
+    virtual Value GetProperty(PropertyId id) const override;
+    virtual bool HasProperty(PropertyId id) const override;
+    void SetProperty(PropertyId id, const Value& val) override;
 
     void SetTitle(const std::string& title);
     const std::string& GetTitle() const { return m_title; }

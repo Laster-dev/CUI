@@ -45,11 +45,47 @@ NavigationView::NavigationView() {
 
 std::vector<PropertyMeta> NavigationView::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "paneTitle", "string", "外观", "Pane Title" });
-    metas.push_back({ "header", "string", "外观", "Header" });
-    metas.push_back({ "openPaneLength", "float", "外观", "Open Pane Length" });
-    metas.push_back({ "compactPaneLength", "float", "外观", "Compact Pane Length" });
+    metas.push_back({ "paneTitle", "窗格标题 (PaneTitle)", "外观", "string" });
+    metas.push_back({ "header", "页眉 (Header)", "外观", "string" });
+    metas.push_back({ "openPaneLength", "展开宽度 (OpenPaneLength)", "外观", "number" });
+    metas.push_back({ "compactPaneLength", "紧凑宽度 (CompactPaneLength)", "外观", "number" });
+    metas.push_back({ "isPaneOpen", "窗格打开 (IsPaneOpen)", "外观", "bool" });
     return metas;
+}
+
+Value NavigationView::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::PaneTitle: return Value(m_paneTitle);
+    case PropertyId::Header: return Value(m_header);
+    case PropertyId::OpenPaneLength: return Value(m_openPaneLength);
+    case PropertyId::CompactPaneLength: return Value(m_compactPaneLength);
+    case PropertyId::IsPaneOpen: return Value(m_isPaneOpen);
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool NavigationView::HasProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::PaneTitle:
+    case PropertyId::Header:
+    case PropertyId::OpenPaneLength:
+    case PropertyId::CompactPaneLength:
+    case PropertyId::IsPaneOpen:
+        return true;
+    default:
+        return UIElement::HasProperty(id);
+    }
+}
+
+void NavigationView::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::PaneTitle: SetPaneTitle(val.AsString()); return;
+    case PropertyId::Header: SetHeader(val.AsString()); return;
+    case PropertyId::OpenPaneLength: SetOpenPaneLength(val.AsFloat(m_openPaneLength)); return;
+    case PropertyId::CompactPaneLength: SetCompactPaneLength(val.AsFloat(m_compactPaneLength)); return;
+    case PropertyId::IsPaneOpen: SetIsPaneOpen(val.AsBool()); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
 }
 
 void NavigationView::BuildChrome() {

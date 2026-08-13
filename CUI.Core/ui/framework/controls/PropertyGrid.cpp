@@ -19,6 +19,7 @@
 #include "PagingControl.h"
 #include "RatingControl.h"
 #include "RangeSlider.h"
+#include "Panel.h"
 #include "../style/ThemeManager.h"
 #include <sstream>
 #include <algorithm>
@@ -315,9 +316,19 @@ void PropertyGrid::RebuildUI() {
         for (size_t i = 0; i < descSpan.count; ++i) {
             metas.push_back(MetaFromDesc(descSpan.data[i]));
         }
-        // Keep subclass GetPropertyMetas extras (controls only override metas today).
         for (const auto& extra : target->GetPropertyMetas()) {
-            if (!MetaListContains(metas, extra.id)) {
+            if (extra.id == PropertyId::None) {
+                continue;
+            }
+            bool replaced = false;
+            for (auto& existing : metas) {
+                if (existing.id == extra.id) {
+                    existing = extra;
+                    replaced = true;
+                    break;
+                }
+            }
+            if (!replaced) {
                 metas.push_back(extra);
             }
         }
@@ -325,10 +336,24 @@ void PropertyGrid::RebuildUI() {
         metas = target->GetPropertyMetas();
     }
 
-    // Root color-system rule: never expose raw RGB color slots in the inspector.
-    // Only ColorPicker.selectedColor (data) and theme.*Token bindings are allowed.
-    metas.erase(std::remove_if(metas.begin(), metas.end(), [](const PropertyMeta& meta) {
-        return meta.type == "color" && meta.id != PropertyId::SelectedColor;
+    const bool isPanel = (dynamic_cast<Panel*>(target.get()) != nullptr);
+    metas.erase(std::remove_if(metas.begin(), metas.end(), [&](const PropertyMeta& meta) {
+        if (meta.id == PropertyId::None || meta.id == PropertyId::Focused) {
+            return true;
+        }
+        if (!target->HasProperty(meta.id)) {
+            return true;
+        }
+        if (meta.type == "color" && meta.id != PropertyId::SelectedColor) {
+            return true;
+        }
+        if (!isPanel && meta.category == "面板布局") {
+            return true;
+        }
+        if (meta.category == "Canvas" || meta.category == "Grid" || meta.category == "Dock") {
+            return true;
+        }
+        return false;
     }), metas.end());
 
     static const std::unordered_map<PropertyId, std::string> kTokenLabels = {

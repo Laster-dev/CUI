@@ -76,6 +76,38 @@ std::vector<PropertyMeta> ProgressRing::GetPropertyMetas() const {
     return metas;
 }
 
+Value ProgressRing::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::ControlValue: return Value(m_value);
+    case PropertyId::Minimum: return Value(m_minimum);
+    case PropertyId::Maximum: return Value(m_maximum);
+    case PropertyId::IsIndeterminate: return Value(m_isIndeterminate);
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool ProgressRing::HasProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::ControlValue:
+    case PropertyId::Minimum:
+    case PropertyId::Maximum:
+    case PropertyId::IsIndeterminate:
+        return true;
+    default:
+        return UIElement::HasProperty(id);
+    }
+}
+
+void ProgressRing::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
+    case PropertyId::Minimum: SetMinimum(val.AsFloat()); return;
+    case PropertyId::Maximum: SetMaximum(val.AsFloat()); return;
+    case PropertyId::IsIndeterminate: SetIsIndeterminate(val.AsBool()); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
+}
+
 void ProgressRing::SetValue(float val) {
     if (m_value == val) {
         return;

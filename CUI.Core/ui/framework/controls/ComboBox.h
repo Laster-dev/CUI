@@ -14,6 +14,8 @@ public:
 
     virtual const char* GetClassName() const override { return "ComboBox"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
+    virtual Value GetProperty(PropertyId id) const override;
+    virtual bool HasProperty(PropertyId id) const override;
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; }
 
     virtual Size Measure(Size availableSize) override;

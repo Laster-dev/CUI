@@ -31,7 +31,31 @@ std::vector<PropertyMeta> TabView::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
     metas.push_back({ "minTabWidth", "最小标签宽度 (MinTabWidth)", "标签栏配置", "number" });
     metas.push_back({ "maxTabWidth", "最大标签宽度 (MaxTabWidth)", "标签栏配置", "number" });
+    metas.push_back({ "selectedIndex", "选中标签 (SelectedIndex)", "标签栏配置", "number" });
     return metas;
+}
+
+Value TabView::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::MinTabWidth: return Value(m_minTabWidth);
+    case PropertyId::MaxTabWidth: return Value(m_maxTabWidth);
+    case PropertyId::SelectedIndex: return Value(static_cast<float>(m_selectedIndex));
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool TabView::HasProperty(PropertyId id) const {
+    return id == PropertyId::MinTabWidth || id == PropertyId::MaxTabWidth
+        || id == PropertyId::SelectedIndex || UIElement::HasProperty(id);
+}
+
+void TabView::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::MinTabWidth: SetMinTabWidth(val.AsFloat(m_minTabWidth)); return;
+    case PropertyId::MaxTabWidth: SetMaxTabWidth(val.AsFloat(m_maxTabWidth)); return;
+    case PropertyId::SelectedIndex: SetSelectedIndex(static_cast<int>(val.AsFloat(0.0f))); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
 }
 
 void TabView::AddTab(const std::string& title, std::shared_ptr<UIElement> content, const std::string& icon, bool isClosable) {

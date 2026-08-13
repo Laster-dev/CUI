@@ -74,6 +74,61 @@ TeachingTip::TeachingTip() {
     SetAccentColorToken(ThemeTokenId::AccentColor);
 }
 
+std::vector<PropertyMeta> TeachingTip::GetPropertyMetas() const {
+    auto metas = UIElement::GetPropertyMetas();
+    metas.push_back({ "title", "标题 (Title)", "教学提示", "string" });
+    metas.push_back({ "message", "正文 (Message)", "教学提示", "string" });
+    metas.push_back({ "actionText", "操作文本 (ActionText)", "教学提示", "string" });
+    metas.push_back({ "isClosable", "显示关闭 (IsClosable)", "教学提示", "bool" });
+    metas.push_back({ "isOpen", "是否打开 (IsOpen)", "教学提示", "bool" });
+    return metas;
+}
+
+Value TeachingTip::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Title: return Value(m_title);
+    case PropertyId::Message: return Value(m_message);
+    case PropertyId::ActionText: return Value(m_actionText);
+    case PropertyId::IsClosable: return Value(m_closeVisible);
+    case PropertyId::IsOpen: return Value(m_isOpen);
+    default: return Control::GetProperty(id);
+    }
+}
+
+bool TeachingTip::HasProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Title:
+    case PropertyId::Message:
+    case PropertyId::ActionText:
+    case PropertyId::IsClosable:
+    case PropertyId::IsOpen:
+        return true;
+    default:
+        return Control::HasProperty(id);
+    }
+}
+
+void TeachingTip::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::Title: SetTitle(val.AsString()); return;
+    case PropertyId::Message: SetMessage(val.AsString()); return;
+    case PropertyId::ActionText: SetActionText(val.AsString()); return;
+    case PropertyId::IsClosable: SetIsCloseVisible(val.AsBool()); return;
+    case PropertyId::IsOpen:
+        if (val.AsBool()) {
+            if (m_anchor) {
+                ShowAround(m_anchor);
+            }
+        } else {
+            Close();
+        }
+        return;
+    default:
+        Control::SetProperty(id, val);
+        return;
+    }
+}
+
 TeachingTip::~TeachingTip() {
     if (PopupHost* host = PopupHost::Current()) {
         host->Close(this);

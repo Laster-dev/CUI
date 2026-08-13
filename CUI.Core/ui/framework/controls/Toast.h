@@ -30,6 +30,9 @@ public:
 
     virtual const char* GetClassName() const override { return "Toast"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
+    virtual Value GetProperty(PropertyId id) const override;
+    virtual bool HasProperty(PropertyId id) const override;
+    void SetProperty(PropertyId id, const Value& val) override;
 
     void SetHost(ToastCenter* host) { m_host = host; }
     ToastCenter* GetHost() const { return m_host; }

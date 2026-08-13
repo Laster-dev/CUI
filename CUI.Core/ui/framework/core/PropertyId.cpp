@@ -30,6 +30,16 @@ constexpr const char* kPropertyNamesById[] = {
     "minimum", "maximum", "step",
     "isReadOnly", "isClearEnabled",
     "lowerValue", "upperValue", "minimumRange",
+    "header", "subtitle", "isExpanded", "expandDirection", "groupName",
+    "lineSpacing", "lineHeight", "caretWidth", "caretBlinkRate",
+    "textWrapping", "acceptsReturn", "isPasswordRevealed", "showRevealButton",
+    "showLineNumbers", "indentWidth", "minTabWidth", "maxTabWidth",
+    "paneTitle", "openPaneLength", "compactPaneLength", "isPaneOpen",
+    "title", "message", "navigateUri", "source", "stretch", "severity",
+    "isOpen", "isClosable", "actionText", "selectedIndex", "shell",
+    "followTail", "maxEntries", "showGrid", "showLegend", "showTooltip",
+    "labelPosition", "durationMs", "autoClose", "closeable",
+    "offsetX", "offsetY", "spacing", "corner",
 };
 
 static_assert(sizeof(kPropertyNamesById) / sizeof(kPropertyNamesById[0]) ==
@@ -39,6 +49,8 @@ static_assert(sizeof(kPropertyNamesById) / sizeof(kPropertyNamesById[0]) ==
 PropertyId AliasFromName(const char* name) {
     if (!name) return PropertyId::None;
     if (std::strcmp(name, "theme.accentToken") == 0) return PropertyId::AccentColorToken;
+    if (std::strcmp(name, "TextWrapping") == 0) return PropertyId::TextWrapping;
+    if (std::strcmp(name, "AcceptsReturn") == 0) return PropertyId::AcceptsReturn;
     return PropertyId::None;
 }
 

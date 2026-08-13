@@ -59,6 +59,25 @@ std::vector<PropertyMeta> TreeView::GetPropertyMetas() const {
     return metas;
 }
 
+Value TreeView::GetProperty(PropertyId id) const {
+    if (id == PropertyId::IndentWidth) {
+        return Value(m_indentWidth);
+    }
+    return UIElement::GetProperty(id);
+}
+
+bool TreeView::HasProperty(PropertyId id) const {
+    return id == PropertyId::IndentWidth || UIElement::HasProperty(id);
+}
+
+void TreeView::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::IndentWidth) {
+        SetIndentWidth(val.AsFloat(m_indentWidth));
+        return;
+    }
+    UIElement::SetProperty(id, val);
+}
+
 HCURSOR TreeView::GetCursor() const {
     return IsEnabled() ? LoadCursor(nullptr, IDC_ARROW) : nullptr;
 }

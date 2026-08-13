@@ -11,6 +11,9 @@ public:
 
     virtual const char* GetClassName() const override { return "RadioButton"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
+    virtual Value GetProperty(PropertyId id) const override;
+    virtual bool HasProperty(PropertyId id) const override;
+    void SetProperty(PropertyId id, const Value& val) override;
 
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
@@ -25,6 +28,7 @@ public:
             return;
         }
         m_groupName = group;
+        NotifyFieldChanged(PropertyId::GroupName, Value(group));
         MarkRenderContentDirty();
     }
 

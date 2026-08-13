@@ -63,8 +63,60 @@ Image::Image(ImageType type, const std::string& text, D2D1_COLOR_F color)
 
 std::vector<PropertyMeta> Image::GetPropertyMetas() const {
     auto metas = UIElement::GetPropertyMetas();
-    metas.push_back({ "text", "源路径 (Source)", "图像", "string" });
+    metas.push_back({ "source", "源路径 (Source)", "图像", "string" });
+    metas.push_back({ "stretch", "拉伸 (Stretch)", "图像", "enum", { "None", "Fill", "Uniform", "UniformToFill" } });
     return metas;
+}
+
+namespace {
+const char* StretchName(Stretch s) {
+    switch (s) {
+    case Stretch::Fill: return "Fill";
+    case Stretch::Uniform: return "Uniform";
+    case Stretch::UniformToFill: return "UniformToFill";
+    default: return "None";
+    }
+}
+Stretch ParseStretch(const std::string& s) {
+    if (s == "Fill") return Stretch::Fill;
+    if (s == "Uniform") return Stretch::Uniform;
+    if (s == "UniformToFill") return Stretch::UniformToFill;
+    return Stretch::None;
+}
+}
+
+Value Image::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Source:
+    case PropertyId::Text:
+        return Value(m_sourcePath);
+    case PropertyId::Stretch:
+        return Value(StretchName(m_stretch));
+    default:
+        return UIElement::GetProperty(id);
+    }
+}
+
+bool Image::HasProperty(PropertyId id) const {
+    if (id == PropertyId::Text) {
+        return false;
+    }
+    return id == PropertyId::Source || id == PropertyId::Stretch || UIElement::HasProperty(id);
+}
+
+void Image::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::Source:
+    case PropertyId::Text:
+        SetSource(val.AsString());
+        return;
+    case PropertyId::Stretch:
+        SetStretch(ParseStretch(val.AsString("Uniform")));
+        return;
+    default:
+        UIElement::SetProperty(id, val);
+        return;
+    }
 }
 
 void Image::SetImageType(ImageType type) {

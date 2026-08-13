@@ -23,10 +23,55 @@ std::vector<PropertyMeta> TextBox::GetPropertyMetas() const {
     metas.push_back({ "placeholder", "占位提示词 (Placeholder)", "输入控制", "string" });
     metas.push_back({ "caretWidth", "光标宽度 (CaretWidth)", "光标排版", "number" });
     metas.push_back({ "caretBlinkRate", "光标闪烁频率 (BlinkMs)", "光标排版", "number" });
-    metas.push_back({ "TextWrapping", "自动换行 (TextWrapping)", "输入控制", "enum", { "NoWrap", "Wrap" } });
-    metas.push_back({ "AcceptsReturn", "允许回车 (AcceptsReturn)", "输入控制", "bool" });
+    metas.push_back({ "textWrapping", "自动换行 (TextWrapping)", "输入控制", "enum", { "NoWrap", "Wrap" } });
+    metas.push_back({ "acceptsReturn", "允许回车 (AcceptsReturn)", "输入控制", "bool" });
     metas.push_back({ "isReadOnly", "只读 (IsReadOnly)", "输入控制", "bool" });
     return metas;
+}
+
+Value TextBox::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::LineSpacing: return Value(m_lineSpacing);
+    case PropertyId::LineHeight: return Value(m_lineHeight);
+    case PropertyId::CaretWidth: return Value(m_caretWidth);
+    case PropertyId::CaretBlinkRate: return Value(m_caretBlinkRate);
+    case PropertyId::TextWrapping: return Value(m_textWrapping ? "Wrap" : "NoWrap");
+    case PropertyId::AcceptsReturn: return Value(m_acceptsReturn);
+    case PropertyId::IsReadOnly: return Value(m_isReadOnly);
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool TextBox::HasProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::LineSpacing:
+    case PropertyId::LineHeight:
+    case PropertyId::CaretWidth:
+    case PropertyId::CaretBlinkRate:
+    case PropertyId::TextWrapping:
+    case PropertyId::AcceptsReturn:
+    case PropertyId::IsReadOnly:
+        return true;
+    default:
+        return UIElement::HasProperty(id);
+    }
+}
+
+void TextBox::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::LineSpacing: SetLineSpacing(val.AsFloat()); return;
+    case PropertyId::LineHeight: SetLineHeight(val.AsFloat()); return;
+    case PropertyId::CaretWidth: SetCaretWidth(val.AsFloat()); return;
+    case PropertyId::CaretBlinkRate: SetCaretBlinkRate(val.AsInt()); return;
+    case PropertyId::TextWrapping: {
+        const std::string s = val.AsString("NoWrap");
+        SetTextWrapping(s == "Wrap" || s == "true" || val.AsBool());
+        return;
+    }
+    case PropertyId::AcceptsReturn: SetAcceptsReturn(val.AsBool()); return;
+    case PropertyId::IsReadOnly: SetIsReadOnly(val.AsBool()); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
 }
 
 namespace {

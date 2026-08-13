@@ -231,6 +231,7 @@ public:
     void SetFontSize(float size);
     const std::string& GetFontWeight() const { return m_fontWeight; }
     void SetFontWeight(const std::string& weight);
+    DWRITE_FONT_WEIGHT ResolveFontWeight() const;
     const std::string& GetToolTip() const { return m_toolTip; }
     void SetToolTip(const std::string& tip);
     // Per-control wrap width; <=0 uses the framework default (280).

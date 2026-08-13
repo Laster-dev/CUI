@@ -17,6 +17,31 @@ HyperlinkButton::HyperlinkButton(const std::string& text, const std::string& uri
     SetNavigateUri(uri);
 }
 
+std::vector<PropertyMeta> HyperlinkButton::GetPropertyMetas() const {
+    auto metas = UIElement::GetPropertyMetas();
+    metas.push_back({ "navigateUri", "链接 (NavigateUri)", "超链接", "string" });
+    return metas;
+}
+
+Value HyperlinkButton::GetProperty(PropertyId id) const {
+    if (id == PropertyId::NavigateUri) {
+        return Value(m_navigateUri);
+    }
+    return Control::GetProperty(id);
+}
+
+bool HyperlinkButton::HasProperty(PropertyId id) const {
+    return id == PropertyId::NavigateUri || Control::HasProperty(id);
+}
+
+void HyperlinkButton::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::NavigateUri) {
+        SetNavigateUri(val.AsString());
+        return;
+    }
+    Control::SetProperty(id, val);
+}
+
 Size HyperlinkButton::Measure(Size availableSize) {
     (void)availableSize;
     const std::string& text = GetText();
@@ -24,7 +49,7 @@ Size HyperlinkButton::Measure(Size availableSize) {
     float fontSize = GetFontSize();
 
     GraphicsContext ctx;
-    Size measured = ctx.MeasureText(text, font, fontSize);
+    Size measured = ctx.MeasureText(text, font, fontSize, ResolveFontWeight());
 
     Thickness margin = GetMargin();
     Thickness padding = GetPadding();
@@ -63,7 +88,7 @@ void HyperlinkButton::OnRender(GraphicsContext& ctx) {
         m_bounds.height - padding.top - padding.bottom
     );
 
-    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, ResolveFontWeight());
 
     // Draw hover underline
     if (m_isHovered) {

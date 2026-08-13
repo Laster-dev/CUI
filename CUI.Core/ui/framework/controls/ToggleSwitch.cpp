@@ -47,6 +47,26 @@ std::vector<PropertyMeta> ToggleSwitch::GetPropertyMetas() const {
     return metas;
 }
 
+Value ToggleSwitch::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Header: return Value(m_header);
+    case PropertyId::IsOn: return Value(m_isOn);
+    default: return UIElement::GetProperty(id);
+    }
+}
+
+bool ToggleSwitch::HasProperty(PropertyId id) const {
+    return id == PropertyId::Header || id == PropertyId::IsOn || UIElement::HasProperty(id);
+}
+
+void ToggleSwitch::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::Header: SetHeader(val.AsString()); return;
+    case PropertyId::IsOn: SetIsOn(val.AsBool()); return;
+    default: UIElement::SetProperty(id, val); return;
+    }
+}
+
 Size ToggleSwitch::Measure(Size availableSize) {
     (void)availableSize;
     float expW = GetWidth(); if (expW < 0) expW = 180.0f;

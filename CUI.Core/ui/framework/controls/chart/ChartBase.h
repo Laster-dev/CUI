@@ -9,6 +9,12 @@ public:
     ChartBase();
     virtual ~ChartBase() = default;
 
+    virtual const char* GetClassName() const override { return "ChartBase"; }
+    virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
+    virtual Value GetProperty(PropertyId id) const override;
+    virtual bool HasProperty(PropertyId id) const override;
+    void SetProperty(PropertyId id, const Value& val) override;
+
     void SetCategories(std::vector<std::string> categories, bool replayReveal = true);
     const std::vector<std::string>& GetCategories() const { return m_categories; }
 

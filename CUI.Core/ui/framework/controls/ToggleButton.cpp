@@ -35,6 +35,14 @@ bool ToggleButton::HasProperty(PropertyId id) const {
     return Button::HasProperty(id);
 }
 
+void ToggleButton::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::IsOn) {
+        SetIsChecked(val.AsBool());
+        return;
+    }
+    Button::SetProperty(id, val);
+}
+
 void ToggleButton::ApplyCheckedChrome() {
     if (m_isChecked) {
         SetBackgroundToken(ThemeTokenId::AccentColor);

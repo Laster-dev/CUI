@@ -1441,11 +1441,11 @@ void GraphicsContext::DrawRoundedRect(const Rect& rect, float radius, D2D1_COLOR
     if (auto brush = m_resources.GetSolidBrush(color)) {
         const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
         const float snappedStroke = (std::max)(1.0f / scale, std::round(strokeWidth * scale) / scale);
-        D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(
+        D2D1_ROUNDED_RECT rounded = D2D1::RoundedRect(
             SnapRectForStroke(rect, snappedStroke, m_dpiScale),
             radius,
             radius);
-        m_d2dContext->DrawRoundedRectangle(rr, brush, snappedStroke);
+        m_d2dContext->DrawRoundedRectangle(rounded, brush, snappedStroke);
     }
 }
 

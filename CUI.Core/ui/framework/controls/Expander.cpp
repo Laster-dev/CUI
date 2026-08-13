@@ -55,6 +55,44 @@ std::vector<PropertyMeta> Expander::GetPropertyMetas() const {
     return metas;
 }
 
+Value Expander::GetProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Header: return Value(m_header);
+    case PropertyId::Subtitle: return Value(m_subtitle);
+    case PropertyId::IsExpanded: return Value(m_isExpanded);
+    case PropertyId::ExpandDirection:
+        return Value(m_expandDirection == ExpandDirection::Up ? "Up" : "Down");
+    default:
+        return Control::GetProperty(id);
+    }
+}
+
+bool Expander::HasProperty(PropertyId id) const {
+    switch (id) {
+    case PropertyId::Header:
+    case PropertyId::Subtitle:
+    case PropertyId::IsExpanded:
+    case PropertyId::ExpandDirection:
+        return true;
+    default:
+        return Control::HasProperty(id);
+    }
+}
+
+void Expander::SetProperty(PropertyId id, const Value& val) {
+    switch (id) {
+    case PropertyId::Header: SetHeader(val.AsString()); return;
+    case PropertyId::Subtitle: SetSubtitle(val.AsString()); return;
+    case PropertyId::IsExpanded: SetIsExpanded(val.AsBool()); return;
+    case PropertyId::ExpandDirection:
+        SetExpandDirection(val.AsString() == "Up" ? ExpandDirection::Up : ExpandDirection::Down);
+        return;
+    default:
+        Control::SetProperty(id, val);
+        return;
+    }
+}
+
 HCURSOR Expander::GetCursor() const {
     return (IsEnabled() && m_headerHovered) ? LoadCursor(nullptr, IDC_HAND) : nullptr;
 }

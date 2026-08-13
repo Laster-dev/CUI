@@ -30,6 +30,23 @@ std::vector<PropertyMeta> ColorPicker::GetPropertyMetas() const {
     return metas;
 }
 
+Value ColorPicker::GetProperty(PropertyId id) const {
+    if (id == PropertyId::SelectedColor) return Value(m_selectedColor);
+    return UIElement::GetProperty(id);
+}
+
+bool ColorPicker::HasProperty(PropertyId id) const {
+    return id == PropertyId::SelectedColor || UIElement::HasProperty(id);
+}
+
+void ColorPicker::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::SelectedColor) {
+        SetSelectedColor(val.AsColor());
+        return;
+    }
+    UIElement::SetProperty(id, val);
+}
+
 Size ColorPicker::Measure(Size availableSize) {
     float expW = GetWidth(); if (expW < 0) expW = 220.0f;
     float expH = GetHeight(); if (expH < 0) expH = 32.0f;

@@ -13,6 +13,9 @@ public:
 
     virtual const char* GetClassName() const override { return "NumberBox"; }
     virtual std::vector<PropertyMeta> GetPropertyMetas() const override;
+    virtual Value GetProperty(PropertyId id) const override;
+    virtual bool HasProperty(PropertyId id) const override;
+    void SetProperty(PropertyId id, const Value& val) override;
     virtual HCURSOR GetCursor() const override;
     bool AcceptsTabFocus() const override { return false; }
 

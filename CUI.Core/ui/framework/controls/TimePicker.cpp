@@ -71,6 +71,26 @@ std::vector<PropertyMeta> TimePicker::GetPropertyMetas() const {
     return metas;
 }
 
+Value TimePicker::GetProperty(PropertyId id) const {
+    if (id == PropertyId::TimeStr) return Value(GetFormattedTime());
+    return UIElement::GetProperty(id);
+}
+
+bool TimePicker::HasProperty(PropertyId id) const {
+    return id == PropertyId::TimeStr || UIElement::HasProperty(id);
+}
+
+void TimePicker::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::TimeStr) {
+        int h = 0, m = 0;
+        if (sscanf_s(val.AsString().c_str(), "%d:%d", &h, &m) == 2) {
+            SetTime(h, m);
+        }
+        return;
+    }
+    UIElement::SetProperty(id, val);
+}
+
 Size TimePicker::Measure(Size availableSize) {
     float expW = GetWidth(); if (expW < 0) expW = 140.0f;
     float expH = GetHeight(); if (expH < 0) expH = 30.0f;
