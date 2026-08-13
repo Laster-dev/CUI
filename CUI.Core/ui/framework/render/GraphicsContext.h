@@ -41,6 +41,7 @@ public:
     ID2D1Device* GetD2DDevice() const { return m_d2dDevice.Get(); }
     ID3D11Device* GetD3DDevice() const { return m_d3dDevice.Get(); }
     IDWriteFactory* GetDWriteFactory() const { return m_dwriteFactory.Get(); }
+    IWICImagingFactory2* GetWicFactory() const { return m_wicFactory.Get(); }
     RenderResources& GetResources() { return m_resources; }
     HWND GetHwnd() const { return m_hwnd; }
     bool UsesCompositionSwapChain() const { return m_usesCompositionSwapChain; }

@@ -38,6 +38,7 @@
 #include "../controls/chart/Chart.h"
 #include "../controls/MarkdownView.h"
 #include "../controls/LogView.h"
+#include "../controls/InfoBar.h"
 #include "../dnd/DragDropService.h"
 #include "../controls/FilePicker.h"
 #include "../controls/FolderPicker.h"
@@ -488,6 +489,14 @@ inline ElementBuilder<MarkdownView> MarkdownViewWidget() {
 
 inline ElementBuilder<LogView> LogViewWidget() {
     return ElementBuilder<LogView>();
+}
+
+inline ElementBuilder<InfoBar> InfoBarWidget() {
+    return ElementBuilder<InfoBar>();
+}
+
+inline ElementBuilder<Image> ImageWidget() {
+    return ElementBuilder<Image>();
 }
 
 inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") {

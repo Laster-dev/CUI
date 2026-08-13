@@ -101,6 +101,7 @@ public:
         add("dragdrop", "交互/浮层", "DragDrop", [ctx = m_ctx] { return BuildDragDropPage(ctx); });
         add("dialog", "交互/浮层", "Dialog", [ctx = m_ctx] { return BuildDialogPage(ctx); });
         add("toast", "交互/浮层", "Toast", [ctx = m_ctx] { return BuildToastPage(ctx); });
+        add("infobar", "交互/浮层", "InfoBar", [ctx = m_ctx] { return BuildInfoBarPage(ctx); });
         add("stream", "终端/媒体", "Stream", [ctx = m_ctx] { return BuildStreamPage(ctx); });
         add("terminal", "终端/媒体", "Terminal", [ctx = m_ctx] { return BuildTerminalPage(ctx); });
 
@@ -110,6 +111,7 @@ public:
         add("chart", "画布与渲染", "Chart", [ctx = m_ctx] { return BuildChartPage(ctx); });
         add("markdown", "画布与渲染", "Markdown", [ctx = m_ctx] { return BuildMarkdownPage(ctx); });
         add("logview", "画布与渲染", "LogView", [ctx = m_ctx] { return BuildLogViewPage(ctx); });
+        add("image", "画布与渲染", "Image", [ctx = m_ctx] { return BuildImagePage(ctx); });
 
         // --- Settings content ---
         std::shared_ptr<UIElement> settingsContent;

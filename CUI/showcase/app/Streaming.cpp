@@ -1,6 +1,7 @@
 #include "Streaming.h"
 #include <Windows.h>
 #include <atomic>
+#include <chrono>
 #include <thread>
 #include <vector>
 
@@ -17,6 +18,9 @@ std::shared_ptr<Image> CreateStreamImage() {
     auto image = std::make_shared<Image>();
     image->SetWidth(420.0f);
     image->SetHeight(240.0f);
+    image->SetStretch(Stretch::Fill);
+    image->SetImageType(ImageType::DynamicBitmap);
+    image->SetClipToBounds(true);
     return image;
 }
 
@@ -26,6 +30,9 @@ void StartStreamingThread(Window* window, const std::shared_ptr<Image>& image) {
 
     g_activeWindow = window;
     g_streamImage = image;
+    image->SetStretch(Stretch::Fill);
+    image->SetImageType(ImageType::DynamicBitmap);
+    image->RequestAnimationTicks();
     g_isStreaming = true;
     g_streamThread = std::thread([]() {
         uint32_t width = 640;

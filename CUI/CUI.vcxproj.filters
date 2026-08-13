@@ -69,6 +69,12 @@
     <ClCompile Include="showcase\app\pages\LogViewPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="showcase\app\pages\ImagePage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="showcase\app\pages\InfoBarPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="showcase\app\pages\GridPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
