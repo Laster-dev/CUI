@@ -71,7 +71,7 @@ UIElement* ColorPicker::OnHitTestOverlay(float x, float y) {
 bool ColorPicker::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
-    bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    bool animating = m_popupAnim.Tick(dt, PopupReveal::kSpec);
     if (animating) {
         MarkRenderRectDirty(m_bounds.Inflate(4.0f));
         if (m_isPopupOpen || m_popupAnim.Current() > 0.001f) {
@@ -185,11 +185,7 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
 
     Rect popRect = GetPopupBounds();
     float popW = popRect.width;
-    float popH = popRect.height;
-    float currentH = (m_isPopupOpen && progress >= 0.98f) ? popH : (popH * progress);
-    Rect clipRect(popRect.x, popRect.y, popRect.width, currentH);
-
-    ctx.PushClip(clipRect);
+    ctx.PushPopupReveal(popRect, progress, Point(popRect.x + popW * 0.5f, popRect.y));
 
     D2D1_COLOR_F bg = ThemeManager::Instance().GetTokens().cardBackground;
     D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder;
@@ -253,7 +249,7 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
     Rect bottomText(popRect.x + 12.0f, popRect.y + 175.0f, popW - 24.0f, 20.0f);
     ctx.DrawText(hexDetail, bottomText, textMutedCol, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
-    ctx.PopClip();
+    ctx.PopPopupReveal();
 }
 
 } // namespace CUI

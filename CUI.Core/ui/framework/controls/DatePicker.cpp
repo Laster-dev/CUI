@@ -80,12 +80,9 @@ void DatePicker::SetDate(int y, int m, int d) {
 
 UIElement* DatePicker::OnHitTestOverlay(float x, float y) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
-    if (progress <= 0.5f) return nullptr;
+    if (progress <= 0.2f) return nullptr;
     Rect popRect = GetPopupBounds();
-    const float visibleH = popRect.height;
-    const float currentH = (m_isPopupOpen && progress >= 0.98f) ? visibleH : (visibleH * progress);
-    Rect clipRect(popRect.x, popRect.y, popRect.width, currentH);
-    if (clipRect.Contains(x, y)) {
+    if (popRect.Contains(x, y)) {
         return this;
     }
     return nullptr;
@@ -94,7 +91,7 @@ UIElement* DatePicker::OnHitTestOverlay(float x, float y) {
 bool DatePicker::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
-    bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    bool animating = m_popupAnim.Tick(dt, PopupReveal::kSpec);
     if (m_scrollbarAutoHide.Tick(dt)) {
         animating = true;
     }
@@ -122,10 +119,8 @@ void DatePicker::OnMouseDown(Point pt) {
         float popH = popRect.height;
 
         float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : 1.0f;
-        float currentH = (progress >= 0.98f) ? popH : (popH * progress);
-        Rect clipRect(popRect.x, popRect.y, popW, currentH);
 
-        if (clipRect.Contains(pt.x, pt.y)) {
+        if (progress > 0.2f && popRect.Contains(pt.x, pt.y)) {
             // Header button clicks
             Rect btnPrev(popRect.x + 4.0f, popRect.y + 6.0f, 22.0f, 22.0f);
             Rect btnNext(popRect.x + popW - 26.0f, popRect.y + 6.0f, 22.0f, 22.0f);
@@ -180,7 +175,7 @@ void DatePicker::OnMouseDown(Point pt) {
             float bodyY = popRect.y + kBodyYFromTop;
 
             // 1) Scrollbar click: update m_scrollOffset (without dismissing popup)
-            const float visibleScrollH = currentH - kBodyYFromTop;
+            const float visibleScrollH = popH - kBodyYFromTop;
             if (visibleScrollH > 0.0f) {
                 float contentH = 0.0f;
                 float cellH = 0.0f;
@@ -271,13 +266,11 @@ void DatePicker::OnMouseWheel(float delta) {
 
     Rect popRect = GetPopupBounds();
     const float visibleH = popRect.height;
-    const float currentH = (progress >= 0.98f) ? visibleH : (visibleH * progress);
-    Rect clipRect(popRect.x, popRect.y, popRect.width, currentH);
-    if (clipRect.height <= 0.0f) return;
+    if (visibleH <= 0.0f) return;
 
     // Scroll region starts at bodyY (fixed header area above).
     constexpr float kBodyYFromTop = 36.0f;
-    const float visibleScrollH = currentH - kBodyYFromTop;
+    const float visibleScrollH = visibleH - kBodyYFromTop;
     if (visibleScrollH <= 0.0f) return;
 
     constexpr float kPopHDesign = 240.0f;
@@ -357,10 +350,7 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
     Rect popRect = GetPopupBounds();
     float popW = popRect.width;
     float popH = popRect.height;
-    float currentH = (m_isPopupOpen && progress >= 0.98f) ? popH : (popH * progress);
-    Rect clipRect(popRect.x, popRect.y, popRect.width, currentH);
-
-    ctx.PushClip(clipRect);
+    ctx.PushPopupReveal(popRect, progress, Point(popRect.x + popW * 0.5f, popRect.y));
 
     D2D1_COLOR_F bg = ThemeManager::Instance().GetTokens().cardBackground;
     D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder;
@@ -423,7 +413,7 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
     constexpr float kScrollBarPad = 4.0f;
 
     const float bodyY = popRect.y + kBodyYFromTop;
-    const float visibleScrollH = currentH - kBodyYFromTop;
+    const float visibleScrollH = popH - kBodyYFromTop;
 
     float contentH = 0.0f;
     float dayCellH = 26.0f;
@@ -535,7 +525,7 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
         ctx.FillRoundedRect(thumbRect, 4.0f, thumbColor);
     }
 
-    ctx.PopClip();
+    ctx.PopPopupReveal();
 }
 
 void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {

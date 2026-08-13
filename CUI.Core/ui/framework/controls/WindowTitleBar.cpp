@@ -302,7 +302,8 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
             16.0f,
             DWRITE_TEXT_ALIGNMENT_CENTER,
             DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_NORMAL
+            DWRITE_FONT_WEIGHT_NORMAL,
+            true
         );
     }
 

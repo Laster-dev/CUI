@@ -93,7 +93,7 @@ int DropDownButton::HitTestMenuItem(Point pt) const {
 
 UIElement* DropDownButton::HitTestOverlay(float x, float y) {
     const float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isDropDownOpen ? 1.0f : 0.0f);
-    if (progress <= 0.5f) {
+    if (progress <= 0.2f) {
         return nullptr;
     }
     return MenuRect().Contains(x, y) ? this : nullptr;
@@ -292,7 +292,7 @@ void DropDownButton::OnNavigatedFrom() {
 bool DropDownButton::OnAnimationTick() {
     bool any = Button::OnAnimationTick();
     const float dt = UIElement::GetAnimationDeltaSeconds();
-    const AnimationSpec spec{ 0.55f, 0.01f };
+    const AnimationSpec spec = PopupReveal::kSpec;
     m_popupAnim.SetTarget(m_isDropDownOpen ? 1.0f : 0.0f);
     if (m_popupAnim.Tick(dt, spec)) {
         any = true;
@@ -335,9 +335,7 @@ void DropDownButton::RenderPopup(GraphicsContext& ctx) {
     }
 
     const Rect menu = MenuRect();
-    Rect clip = menu;
-    clip.height = (m_isDropDownOpen && progress >= 0.98f) ? menu.height : menu.height * progress;
-    ctx.PushClip(clip);
+    ctx.PushPopupReveal(menu, progress, Point(menu.x + menu.width * 0.5f, menu.y));
 
     const float radius = (std::max)(4.0f, GetCornerRadius());
     D2D1_COLOR_F dropBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
@@ -376,7 +374,7 @@ void DropDownButton::RenderPopup(GraphicsContext& ctx) {
         y += kItemH;
     }
 
-    ctx.PopClip();
+    ctx.PopPopupReveal();
 }
 
 void DropDownButton::OnRenderOverlay(GraphicsContext& ctx) {

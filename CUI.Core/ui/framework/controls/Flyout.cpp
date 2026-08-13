@@ -222,16 +222,11 @@ void Flyout::RenderPopup(GraphicsContext& ctx) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isOpen ? 1.0f : 0.0f);
     if (progress <= 0.001f || !m_presenter) return;
 
-    float currentH = m_popupSize.height * (std::clamp)(progress, 0.0f, 1.0f);
-    if (currentH < 1.0f) return;
-
-    Rect clipRect(m_popupPos.x, m_popupPos.y, m_popupSize.width, currentH);
-    // Keep presenter bounds synced (Relayout must not have moved it).
-    m_presenter->Arrange(Rect(m_popupPos.x, m_popupPos.y, m_popupSize.width, m_popupSize.height));
-
-    ctx.PushClip(clipRect);
+    const Rect pop(m_popupPos.x, m_popupPos.y, m_popupSize.width, m_popupSize.height);
+    m_presenter->Arrange(pop);
+    ctx.PushPopupReveal(pop, progress, Point(pop.x + pop.width * 0.5f, pop.y));
     m_presenter->Render(ctx);
-    ctx.PopClip();
+    ctx.PopPopupReveal();
 }
 
 UIElement* Flyout::HitTestOverlay(float x, float y) {
@@ -249,7 +244,7 @@ UIElement* Flyout::HitTestOverlay(float x, float y) {
 bool Flyout::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isOpen ? 1.0f : 0.0f);
-    bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.22f, 0.01f });
+    bool animating = m_popupAnim.Tick(dt, PopupReveal::kSpec);
     if (m_presenter) {
         animating = m_presenter->OnAnimationTick() || animating;
         // Height reveal is clip-based; dirty popup footprint only (no full content dirty).

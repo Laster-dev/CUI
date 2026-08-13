@@ -709,6 +709,21 @@ void GraphicsContext::PopTransform() {
     m_transformStack.pop_back();
 }
 
+void GraphicsContext::PushPopupReveal(const Rect& bounds, float progress, Point origin) {
+    (void)bounds;
+    progress = std::clamp(progress, 0.0f, 1.0f);
+    const float inv = 1.0f - progress;
+    const float ease = 1.0f - inv * inv * inv;
+    const float scale = 0.92f + 0.08f * ease;
+    PushOpacity(ease);
+    PushTransform(D2D1::Matrix3x2F::Scale(scale, scale, D2D1::Point2F(origin.x, origin.y)));
+}
+
+void GraphicsContext::PopPopupReveal() {
+    PopTransform();
+    PopOpacity();
+}
+
 bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
     if (!m_d2dDevice) {
         return false;

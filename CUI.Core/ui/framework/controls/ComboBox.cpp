@@ -179,10 +179,7 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
     if (itemHeight < 0.0f) itemHeight = 28.0f;
     Rect menuRect = ComboBoxMenuRect(m_bounds, itemHeight, m_items.size());
     const float menuH = menuRect.height;
-    float currentH = (m_isDropDownOpen && progress >= 0.98f) ? menuH : (menuH * progress);
-    Rect clipRect(menuRect.x, menuRect.y, menuRect.width, currentH);
-
-    ctx.PushClip(clipRect);
+    ctx.PushPopupReveal(menuRect, progress, Point(menuRect.x + menuRect.width * 0.5f, menuRect.y));
 
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
@@ -232,7 +229,7 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
         }
     }
 
-    ctx.PopClip();
+    ctx.PopPopupReveal();
 }
 
 void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
@@ -243,17 +240,12 @@ void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
 
 UIElement* ComboBox::HitTestOverlay(float x, float y) {
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isDropDownOpen ? 1.0f : 0.0f);
-    if (progress <= 0.5f || m_items.empty()) return nullptr;
+    if (progress <= 0.2f || m_items.empty()) return nullptr;
 
     float itemHeight = GetItemHeight();
     if (itemHeight < 0.0f) itemHeight = 28.0f;
     Rect menuRect = ComboBoxMenuRect(m_bounds, itemHeight, m_items.size());
-
-    const float menuH = menuRect.height;
-    float currentH = (m_isDropDownOpen && progress >= 0.98f) ? menuH : (menuH * progress);
-    Rect clipRect(menuRect.x, menuRect.y, menuRect.width, currentH);
-
-    if (clipRect.Contains(x, y)) {
+    if (menuRect.Contains(x, y)) {
         return this;
     }
     return nullptr;
@@ -284,7 +276,7 @@ void ComboBox::OnMouseWheel(float delta) {
 
 bool ComboBox::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
-    AnimationSpec spec{ 0.55f, 0.01f };
+    const AnimationSpec spec = PopupReveal::kSpec;
 
     m_popupAnim.SetTarget(m_isDropDownOpen ? 1.0f : 0.0f);
     bool animating = m_popupAnim.Tick(dt, spec);
@@ -404,18 +396,16 @@ void ComboBox::OnMouseDown(Point pt) {
 
         float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : 1.0f;
         const float menuH = menuRect.height;
-        float currentH = (m_isDropDownOpen && progress >= 0.98f) ? menuH : (menuH * progress);
-        Rect clipRect(menuRect.x, menuRect.y, menuRect.width, currentH);
 
-        if (clipRect.Contains(pt.x, pt.y)) {
+        if (progress > 0.2f && menuRect.Contains(pt.x, pt.y)) {
             // Scrollbar click: jump scroll position without closing the dropdown.
             constexpr float kScrollW = 8.0f;
-            const Rect scrollRect(menuRect.x + menuRect.width - kScrollW, menuRect.y, kScrollW, currentH);
+            const Rect scrollRect(menuRect.x + menuRect.width - kScrollW, menuRect.y, kScrollW, menuH);
             if (scrollRect.Contains(pt.x, pt.y)) {
                 const float contentH = itemHeight * static_cast<float>(m_items.size());
                 const float maxScroll = (std::max)(0.0f, contentH - menuH);
-                if (maxScroll > 0.001f && currentH > 0.001f) {
-                    const float ratio = (std::clamp)((pt.y - menuRect.y) / currentH, 0.0f, 1.0f);
+                if (maxScroll > 0.001f && menuH > 0.001f) {
+                    const float ratio = (std::clamp)((pt.y - menuRect.y) / menuH, 0.0f, 1.0f);
                     m_scrollOffset = ratio * maxScroll;
                     MarkRenderContentDirty();
                 }

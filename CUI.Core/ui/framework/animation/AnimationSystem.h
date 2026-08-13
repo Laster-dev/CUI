@@ -13,6 +13,11 @@ struct AnimationSpec {
     float maxDurationSeconds = 0.0f;
 };
 
+// WinUI 3 flyout/menu enter: cubic ease-out over ~220ms (not exponential jump).
+struct PopupReveal {
+    static constexpr AnimationSpec kSpec{ 0.20f, 0.005f, 0.22f };
+};
+
 class AnimationSystem {
 public:
     static float BlendFactor(float responseAt60Hz, float dtSeconds);

@@ -407,12 +407,11 @@ void ContextMenu::RelayoutItems() {
 
 void ContextMenu::BeginOpenAnimation() {
     if (!UIElement::AreAnimationsEnabled()) {
-        m_openProgress = 1.0f;
-        m_openAnimating = false;
+        m_openAnim.Reset(1.0f);
         return;
     }
-    m_openProgress = 0.0f;
-    m_openAnimating = true;
+    m_openAnim.Reset(0.0f);
+    m_openAnim.SetTarget(1.0f);
     RequestAnimationTicks();
 }
 
@@ -546,8 +545,7 @@ void ContextMenu::CloseActiveSubMenu() {
 void ContextMenu::Hide() {
     const bool wasOpen = m_isOpen;
     m_isOpen = false;
-    m_openAnimating = false;
-    m_openProgress = 0.0f;
+    m_openAnim.Reset(0.0f);
     if (m_activeSubMenu) {
         m_activeSubMenu->Hide();
         m_activeSubMenu = nullptr;
@@ -656,12 +654,8 @@ bool ContextMenu::TickItemHoverAnimations() {
 
 bool ContextMenu::TickPopupAnimation() {
     bool any = TickItemHoverAnimations();
-    if (m_openAnimating) {
-        m_openProgress += UIElement::GetAnimationDeltaSeconds() / kOpenAnimSeconds;
-        if (m_openProgress >= 1.0f) {
-            m_openProgress = 1.0f;
-            m_openAnimating = false;
-        }
+    m_openAnim.SetTarget(m_isOpen ? 1.0f : 0.0f);
+    if (m_openAnim.Tick(UIElement::GetAnimationDeltaSeconds(), PopupReveal::kSpec)) {
         MarkRenderContentDirty();
         any = true;
     }
@@ -681,31 +675,15 @@ bool ContextMenu::TickPopupAnimation() {
 }
 
 bool ContextMenu::OnAnimationTick() {
-    bool child = UIElement::OnAnimationTick();
-    bool hover = TickItemHoverAnimations();
-    bool open = false;
-    if (m_openAnimating) {
-        m_openProgress += UIElement::GetAnimationDeltaSeconds() / kOpenAnimSeconds;
-        if (m_openProgress >= 1.0f) {
-            m_openProgress = 1.0f;
-            m_openAnimating = false;
-        }
-        MarkRenderContentDirty();
-        open = true;
+    // PopupHost::TickAnimations already steps this menu; don't double-advance.
+    if (PopupHost::Current() && m_isOpen) {
+        return UIElement::OnAnimationTick();
     }
-    const float prev = m_scrollbarAutoHide.Opacity();
-    const bool hideAnimating = m_scrollbarAutoHide.Tick(UIElement::GetAnimationDeltaSeconds());
-    if (std::abs(prev - m_scrollbarAutoHide.Opacity()) > 0.001f) {
-        MarkRenderContentDirty();
-    }
-    if (hover || hideAnimating || open) {
-        RequestAnimationTicks();
-    }
-    return child || hover || hideAnimating || open;
+    return TickPopupAnimation() || UIElement::OnAnimationTick();
 }
 
 bool ContextMenu::HasSelfAnimation() const {
-    if (m_openAnimating) return true;
+    if (m_openAnim.IsAnimating()) return true;
     if (m_scrollbarAutoHide.NeedsTicks()) return true;
     for (const auto& item : m_items) {
         if (item && item->HasSelfAnimation()) return true;
@@ -732,16 +710,16 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
     if (!m_isOpen || m_items.empty()) return;
 
     float radius = GetCornerRadius();
-    // Windows-style menu open: opacity fade only (no slide / height grow).
-    const float alpha = (std::clamp)(m_openProgress, 0.0f, 1.0f);
-    const float t = 1.0f - (1.0f - alpha) * (1.0f - alpha);
+    const float progress = UIElement::AreAnimationsEnabled() ? m_openAnim.Current() : 1.0f;
+    if (progress <= 0.001f) {
+        return;
+    }
 
     D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
     D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
 
     const Rect drawBounds = m_bounds;
-
-    ctx.PushOpacity(t);
+    ctx.PushPopupReveal(drawBounds, progress, Point(drawBounds.x, drawBounds.y));
     ctx.FillRoundedRect(drawBounds, radius, bg);
     ctx.DrawRoundedRect(drawBounds, radius, border, 1.0f);
 
@@ -776,7 +754,7 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
     }
 
     ctx.PopClip();
-    ctx.PopOpacity();
+    ctx.PopPopupReveal();
 
     if (m_activeSubMenu && m_activeSubMenu->IsOpen() && !m_activeSubMenu->IsExternallyHosted()) {
         m_activeSubMenu->RenderPopup(ctx);

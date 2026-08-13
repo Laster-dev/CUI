@@ -260,7 +260,7 @@ bool TimePicker::OnAnimationTick() {
     bool minuteAnimating = animateAxis(m_minutePosition, m_minuteTarget, 60);
 
     m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
-    bool popupAnimating = m_popupAnim.Tick(deltaSeconds, AnimationSpec{ 0.55f, 0.01f });
+    bool popupAnimating = m_popupAnim.Tick(deltaSeconds, PopupReveal::kSpec);
 
     ApplyAnimatedSelection();
     const bool animating = base || hourAnimating || minuteAnimating || popupAnimating;
@@ -339,19 +339,16 @@ void TimePicker::RenderPopup(GraphicsContext& ctx) {
     if (progress <= 0.001f) return;
 
     Rect popup = GetPopupRect();
-    float currentH = (m_isPopupOpen && progress >= 0.98f) ? popup.height : (popup.height * progress);
-    Rect clipRect(popup.x, popup.y, popup.width, currentH);
+    ctx.PushPopupReveal(popup, progress, Point(popup.x + popup.width * 0.5f, popup.y));
 
-    ctx.PushClip(clipRect);
-
-    D2D1_COLOR_F popupBg = ThemeManager::Instance().GetTokens().cardBackground; popupBg.a = progress;
-    D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder; border.a = progress;
-    D2D1_COLOR_F textPrimary = ThemeManager::Instance().GetTokens().textPrimary; textPrimary.a = progress;
-    D2D1_COLOR_F textSecondary = ThemeManager::Instance().GetTokens().textMuted; textSecondary.a = progress;
-    D2D1_COLOR_F headerAccent = ThemeManager::Instance().GetTokens().accentColor; headerAccent.a = progress;
-    D2D1_COLOR_F overlayFill = ThemeManager::Instance().GetTokens().inputBackground; overlayFill.a = progress;
-    D2D1_COLOR_F overlayBorder = ThemeManager::Instance().GetTokens().inputBorder; overlayBorder.a = progress;
-    D2D1_COLOR_F divider = ThemeManager::Instance().GetTokens().cardBorder; divider.a = progress;
+    D2D1_COLOR_F popupBg = ThemeManager::Instance().GetTokens().cardBackground;
+    D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder;
+    D2D1_COLOR_F textPrimary = ThemeManager::Instance().GetTokens().textPrimary;
+    D2D1_COLOR_F textSecondary = ThemeManager::Instance().GetTokens().textMuted;
+    D2D1_COLOR_F headerAccent = ThemeManager::Instance().GetTokens().accentColor;
+    D2D1_COLOR_F overlayFill = ThemeManager::Instance().GetTokens().inputBackground;
+    D2D1_COLOR_F overlayBorder = ThemeManager::Instance().GetTokens().inputBorder;
+    D2D1_COLOR_F divider = ThemeManager::Instance().GetTokens().cardBorder;
 
     ctx.FillRoundedRect(popup, 6.0f, popupBg);
     ctx.DrawRoundedRect(popup, 6.0f, border, 1.5f);
@@ -426,7 +423,7 @@ void TimePicker::RenderPopup(GraphicsContext& ctx) {
     Rect doneRect(popup.x + 12.0f, popup.y + popup.height - 32.0f, popup.width - 24.0f, 20.0f);
     ctx.DrawText("确定", doneRect, textPrimary, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
-    ctx.PopClip();
+    ctx.PopPopupReveal();
 }
 
 } // namespace CUI

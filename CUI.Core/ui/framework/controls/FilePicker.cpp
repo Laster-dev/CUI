@@ -234,16 +234,14 @@ bool FilePicker::HitDismissExempt(float x, float y) const {
 
 UIElement* FilePicker::OnHitTestOverlay(float x, float y) {
     const float progress = PopupProgress();
-    if (progress <= 0.5f) {
+    if (progress <= 0.2f) {
         return nullptr;
     }
     const Rect pop = GetPopupBounds();
-    const float currentH = (m_isPopupOpen && progress >= 0.98f) ? pop.height : (pop.height * progress);
-    const Rect clip(pop.x, pop.y, pop.width, currentH);
     if (m_filterDropDownOpen && m_browser.FilterDropdownRect(pop).Contains(x, y)) {
         return this;
     }
-    if (!clip.Contains(x, y)) {
+    if (!pop.Contains(x, y)) {
         return nullptr;
     }
     if (UIElement* hit = m_breadcrumbHost.HitTest(x, y)) {
@@ -391,6 +389,7 @@ void FilePicker::RenderPopup(GraphicsContext& ctx) {
     }
 
     const Rect pop = GetPopupBounds();
+    ctx.PushPopupReveal(pop, progress, Point(pop.x + pop.width * 0.5f, pop.y));
     m_browser.RenderChrome(
         ctx,
         pop,
@@ -401,19 +400,16 @@ void FilePicker::RenderPopup(GraphicsContext& ctx) {
         m_hoverConfirm,
         m_filterDropDownOpen);
 
-    // Clip body content to animated popup height.
-    const float currentH = (progress >= 0.98f) ? pop.height : (pop.height * progress);
-    ctx.PushClip(Rect(pop.x, pop.y, pop.width, currentH));
     m_breadcrumbHost.Layout(m_browser, pop);
     m_breadcrumbHost.Render(ctx);
     m_treeHost.Layout(m_browser.ListRect(pop));
     m_treeHost.Render(ctx);
-    ctx.PopClip();
 
     // Filter menu above tree/breadcrumb so it is not covered.
     if (m_filterDropDownOpen) {
         m_browser.RenderFilterDropdown(ctx, pop, progress, m_hoverFilterItem);
     }
+    ctx.PopPopupReveal();
 }
 
 void FilePicker::CollectPopupOwnedElements(std::vector<UIElement*>& out) const {
@@ -443,8 +439,7 @@ void FilePicker::OnMouseDown(Point pt) {
     if (m_isPopupOpen) {
         const Rect pop = GetPopupBounds();
         const float progress = PopupProgress();
-        const float currentH = (progress >= 0.98f) ? pop.height : (pop.height * progress);
-        if (Rect(pop.x, pop.y, pop.width, currentH).Contains(pt.x, pt.y)) {
+        if (progress > 0.2f && pop.Contains(pt.x, pt.y)) {
             HandleBrowserClick(pt);
             return;
         }
@@ -558,7 +553,7 @@ bool FilePicker::OnKeyDown(int vkCode) {
 bool FilePicker::OnAnimationTick() {
     const float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
-    bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
+    bool animating = m_popupAnim.Tick(dt, PopupReveal::kSpec);
     // Popup open/close only. TreeView/Breadcrumb register themselves through
     // AnimationHost(this) — do not manually Tick them here.
     if (animating || m_isPopupOpen || PopupProgress() > 0.001f) {

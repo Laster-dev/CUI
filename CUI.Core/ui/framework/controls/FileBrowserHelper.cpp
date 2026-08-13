@@ -349,10 +349,6 @@ void FileBrowserSession::RenderChrome(
         return;
     }
 
-    const float currentH = (animProgress >= 0.98f) ? popRect.height : (popRect.height * animProgress);
-    const Rect clip(popRect.x, popRect.y, popRect.width, currentH);
-    ctx.PushClip(clip);
-
     const auto& tokens = ThemeManager::Instance().GetTokens();
     ctx.FillRoundedRect(popRect, 6.0f, tokens.cardBackground);
     ctx.DrawRoundedRect(popRect, 6.0f, tokens.cardBorder, 1.5f);
@@ -413,8 +409,6 @@ void FileBrowserSession::RenderChrome(
     const char* okLabel = (m_mode == FileBrowserMode::OpenFolder) ? "选择" : "打开";
     ctx.DrawText(okLabel, confirm, D2D1::ColorF(1, 1, 1, 1), "Segoe UI", 12.0f,
         DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-
-    ctx.PopClip();
 }
 
 void FileBrowserSession::RenderFilterDropdown(
@@ -427,9 +421,6 @@ void FileBrowserSession::RenderFilterDropdown(
         || m_filters.empty()) {
         return;
     }
-
-    const float currentH = (animProgress >= 0.98f) ? popRect.height : (popRect.height * animProgress);
-    ctx.PushClip(Rect(popRect.x, popRect.y, popRect.width, currentH));
 
     const auto& tokens = ThemeManager::Instance().GetTokens();
     const Rect menu = FilterDropdownRect(popRect);
@@ -460,8 +451,6 @@ void FileBrowserSession::RenderFilterDropdown(
             selected ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
             true);
     }
-
-    ctx.PopClip();
 }
 
 FileBrowserBreadcrumbHost::FileBrowserBreadcrumbHost() {

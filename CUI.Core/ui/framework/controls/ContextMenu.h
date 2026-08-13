@@ -140,7 +140,6 @@ public:
     static constexpr float kSeparatorHeight = 6.0f;
     static constexpr float kVerticalPad = 8.0f; // 4 top + 4 bottom
     static constexpr float kMinWidth = 180.0f;
-    static constexpr float kOpenAnimSeconds = 0.16f;
 
 private:
     std::vector<std::shared_ptr<MenuItem>> m_items;
@@ -158,9 +157,7 @@ private:
     float m_itemWidth = 0.0f;
     ScrollbarAutoHide m_scrollbarAutoHide;
 
-    // Open fade (~60ms).
-    float m_openProgress = 0.0f;
-    bool m_openAnimating = false;
+    AnimatedScalar m_openAnim{ 0.0f };
     bool m_hostedExternally = false;
     std::unique_ptr<class MenuPopupWindow> m_popupSurface;
     LazyPopulateFn m_lazyPopulate;

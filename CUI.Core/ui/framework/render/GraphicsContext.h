@@ -76,6 +76,9 @@ public:
     void PopOpacity();
     void PushTransform(const D2D1_MATRIX_3X2_F& transform);
     void PopTransform();
+    // WinUI3-style popup enter: opacity + scale around origin. Pair with PopPopupReveal.
+    void PushPopupReveal(const Rect& bounds, float progress, Point origin);
+    void PopPopupReveal();
     bool EnsureLayerCache(RenderLayer& layer, Size sizeInDips);
     // Lazily allocate the twin scratch bitmap (ScrollViewer scroll-patch path only).
     bool EnsureLayerScratch(RenderLayer& layer);

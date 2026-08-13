@@ -92,9 +92,13 @@ bool MenuPopupWindow::Show(ContextMenu* menu, HWND owner, Point screenDipTopLeft
 
     // No SetWindowRgn — D2D FillRoundedRect + transparent clear gives smooth AA.
     SetWindowRgn(m_hwnd, nullptr, FALSE);
+    // Size + first paint while hidden so DWM never flashes an opaque/empty frame.
     SetWindowPos(m_hwnd, HWND_TOPMOST, px, py, pw, ph,
-                 SWP_NOACTIVATE | SWP_SHOWWINDOW);
+                 SWP_NOACTIVATE | SWP_HIDEWINDOW);
     m_gfx.Resize(static_cast<UINT>(pw), static_cast<UINT>(ph));
+    Paint();
+    SetWindowPos(m_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+                 SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     Invalidate();
     return true;
 }

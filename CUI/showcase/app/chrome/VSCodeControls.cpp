@@ -122,7 +122,7 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     ctx.FillRoundedRect(iconRect, 4.0f, tokens.accentColor);
     ctx.DrawText("C", iconRect, tokens.accentForeground, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
 
-    LayoutMenuBar(ctx);
+    const Rect menuBarRect = LayoutMenuBar(ctx);
 
     // Render Windows 11 Native Vector System Action Buttons (Minimize, Maximize, Close)
     float btnW = 46.0f;
@@ -155,9 +155,23 @@ void TitleBar::OnRender(GraphicsContext& ctx) {
     const D2D1_COLOR_F subtleChromeBg = lightTheme
         ? D2D1::ColorF(tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, isHoveredInTitle ? 0.08f : 0.04f)
         : D2D1::ColorF(tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, isHoveredInTitle ? 0.14f : 0.08f);
-    // Draw title in center
+    // Title lives in the gap between the menu and the theme toggle — drawing it
+    // on the full bar lets the long string run under File/Edit (MenuBar paints later).
     const std::string& title = GetTitle();
-    ctx.DrawText(title, m_bounds, titleColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    const float titleLeft = menuBarRect.x + menuBarRect.width + 12.0f;
+    const float titleRight = GetThemeToggleRect().x - 8.0f;
+    if (titleRight > titleLeft) {
+        ctx.DrawText(
+            title,
+            Rect(titleLeft, m_bounds.y, titleRight - titleLeft, m_bounds.height),
+            titleColor,
+            "微软雅黑",
+            12.0f,
+            DWRITE_TEXT_ALIGNMENT_CENTER,
+            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
+            DWRITE_FONT_WEIGHT_NORMAL,
+            true);
+    }
 
     // 1. LowPerf / Animation Toggle Button
     Rect lowPerfHit = GetLowPerformanceToggleRect();

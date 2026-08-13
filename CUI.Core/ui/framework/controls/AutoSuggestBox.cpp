@@ -417,12 +417,11 @@ bool AutoSuggestBox::HitDismissExempt(float x, float y) const {
 
 int AutoSuggestBox::HitTestSuggestionIndex(Point pt) const {
     const float progress = PopupProgress();
-    if (progress <= 0.5f || m_filtered.empty()) {
+    if (progress <= 0.2f || m_filtered.empty()) {
         return -1;
     }
     const Rect menu = GetPopupBounds();
-    const float currentH = (m_suggestionsOpen && progress >= 0.98f) ? menu.height : (menu.height * progress);
-    if (!Rect(menu.x, menu.y, menu.width, currentH).Contains(pt.x, pt.y)) {
+    if (!menu.Contains(pt.x, pt.y)) {
         return -1;
     }
     const float localY = pt.y - (menu.y + 2.0f) + m_suggestScroll;
@@ -456,12 +455,11 @@ UIElement* AutoSuggestBox::HitTest(float x, float y) {
 
 UIElement* AutoSuggestBox::HitTestOverlay(float x, float y) {
     const float progress = PopupProgress();
-    if (progress <= 0.5f || m_filtered.empty()) {
+    if (progress <= 0.2f || m_filtered.empty()) {
         return nullptr;
     }
     const Rect menu = GetPopupBounds();
-    const float currentH = (m_suggestionsOpen && progress >= 0.98f) ? menu.height : (menu.height * progress);
-    if (Rect(menu.x, menu.y, menu.width, currentH).Contains(x, y)) {
+    if (menu.Contains(x, y)) {
         return this;
     }
     return nullptr;
@@ -478,8 +476,7 @@ void AutoSuggestBox::RenderPopup(GraphicsContext& ctx) {
     }
 
     const Rect menu = GetPopupBounds();
-    const float currentH = (m_suggestionsOpen && progress >= 0.98f) ? menu.height : (menu.height * progress);
-    ctx.PushClip(Rect(menu.x, menu.y, menu.width, currentH));
+    ctx.PushPopupReveal(menu, progress, Point(menu.x + menu.width * 0.5f, menu.y));
 
     const auto& tokens = ThemeManager::Instance().GetTokens();
     constexpr float radius = 4.0f;
@@ -489,7 +486,7 @@ void AutoSuggestBox::RenderPopup(GraphicsContext& ctx) {
     const float itemH = m_suggestionItemHeight;
     for (int i = 0; i < static_cast<int>(m_filtered.size()); ++i) {
         const float y = menu.y + 2.0f + static_cast<float>(i) * itemH - m_suggestScroll;
-        if (y + itemH < menu.y || y > menu.y + currentH) {
+        if (y + itemH < menu.y || y > menu.y + menu.height) {
             continue;
         }
         Rect row(menu.x + 2.0f, y, menu.width - 4.0f, itemH - 2.0f);
@@ -514,21 +511,21 @@ void AutoSuggestBox::RenderPopup(GraphicsContext& ctx) {
     const float maxScroll = SuggestionMaxScroll();
     if (maxScroll > 0.001f && m_scrollbarAutoHide.IsDrawn()) {
         constexpr float kScrollW = 8.0f;
-        Rect track(menu.x + menu.width - kScrollW, menu.y, kScrollW, currentH);
+        Rect track(menu.x + menu.width - kScrollW, menu.y, kScrollW, menu.height);
         const float vis = m_scrollbarAutoHide.Opacity();
         D2D1_COLOR_F trackColor = tokens.cardBorder;
         trackColor.a = 0.35f * vis;
         ctx.DrawRoundedRect(track, 4.0f, trackColor, 1.0f);
         const float contentH = SuggestionContentHeight();
-        const float thumbH = (std::max)(16.0f, (currentH * currentH) / contentH);
-        const float travel = (std::max)(0.0f, currentH - thumbH);
+        const float thumbH = (std::max)(16.0f, (menu.height * menu.height) / contentH);
+        const float travel = (std::max)(0.0f, menu.height - thumbH);
         const float thumbY = track.y + (m_suggestScroll / maxScroll) * travel;
         D2D1_COLOR_F thumb = tokens.accentColor;
         thumb.a = 0.45f * vis;
         ctx.FillRoundedRect(Rect(track.x + 1.5f, thumbY, kScrollW - 3.0f, thumbH), 4.0f, thumb);
     }
 
-    ctx.PopClip();
+    ctx.PopPopupReveal();
 }
 
 void AutoSuggestBox::OnRenderOverlay(GraphicsContext& ctx) {
@@ -684,7 +681,7 @@ bool AutoSuggestBox::OnAnimationTick() {
     }
 
     m_popupAnim.SetTarget(m_suggestionsOpen ? 1.0f : 0.0f);
-    AnimationSpec popupSpec{ 0.55f, 0.01f };
+    const AnimationSpec popupSpec = PopupReveal::kSpec;
     if (m_popupAnim.Tick(dt, popupSpec)) {
         animating = true;
         MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
