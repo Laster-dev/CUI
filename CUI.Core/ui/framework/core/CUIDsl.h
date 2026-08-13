@@ -29,6 +29,7 @@
 #include "../controls/ProgressRing.h"
 #include "../controls/AutoSuggestBox.h"
 #include "../controls/StatusBar.h"
+#include "../controls/RatingControl.h"
 #include "../controls/FilePicker.h"
 #include "../controls/FolderPicker.h"
 #include "../controls/PagingControl.h"
@@ -398,6 +399,13 @@ inline ElementBuilder<AutoSuggestBox> AutoSuggestBoxWidget(const std::string& pl
 
 inline ElementBuilder<StatusBar> StatusBarWidget() {
     return ElementBuilder<StatusBar>();
+}
+
+inline ElementBuilder<RatingControl> RatingWidget(float value = 3.5f, int maxRating = 5) {
+    auto r = ElementBuilder<RatingControl>();
+    r->SetMaxRating(maxRating);
+    r->SetValue(value);
+    return r;
 }
 
 inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") {

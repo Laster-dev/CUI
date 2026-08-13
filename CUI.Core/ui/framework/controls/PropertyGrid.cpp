@@ -16,6 +16,7 @@
 #include "FilePicker.h"
 #include "FolderPicker.h"
 #include "PagingControl.h"
+#include "RatingControl.h"
 #include "../style/ThemeManager.h"
 #include <sstream>
 #include <algorithm>
@@ -176,6 +177,13 @@ void ApplyTargetProperty(UIElement* target, PropertyId propId, const Value& valu
     if (auto paging = dynamic_cast<PagingControl*>(target)) {
         if (propId == PropertyId::CurrentPage) { paging->SetCurrentPage(value.AsInt()); return; }
         if (propId == PropertyId::TotalPages) { paging->SetTotalPages(value.AsInt()); return; }
+    }
+    if (auto rating = dynamic_cast<RatingControl*>(target)) {
+        if (propId == PropertyId::ControlValue) { rating->SetValue(value.AsFloat()); return; }
+        if (propId == PropertyId::Maximum) { rating->SetMaxRating(static_cast<int>(value.AsFloat())); return; }
+        if (propId == PropertyId::Step) { rating->SetStep(value.AsFloat()); return; }
+        if (propId == PropertyId::IsReadOnly) { rating->SetIsReadOnly(value.AsBool()); return; }
+        if (propId == PropertyId::IsClearEnabled) { rating->SetIsClearEnabled(value.AsBool()); return; }
     }
 
     if (const PropertyDesc* desc = FindPropertyDescForElement(target, propId)) {

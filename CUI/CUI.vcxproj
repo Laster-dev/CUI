@@ -172,6 +172,7 @@
     <ClCompile Include="showcase\app\pages\ComboBoxPage.cpp" />
     <ClCompile Include="showcase\app\pages\AutoSuggestPage.cpp" />
     <ClCompile Include="showcase\app\pages\StatusBarPage.cpp" />
+    <ClCompile Include="showcase\app\pages\RatingPage.cpp" />
     <ClCompile Include="showcase\app\pages\SliderPage.cpp" />
     <ClCompile Include="showcase\app\pages\ProgressBarPage.cpp" />
     <ClCompile Include="showcase\app\pages\FilePickerPage.cpp" />

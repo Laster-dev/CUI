@@ -109,6 +109,8 @@ public:
     enum class ChevronDirection { Down, Up, Left, Right };
     // Vector chevron (two strokes). Prefer this over glyph characters under DPI scaling.
     void DrawChevron(const Rect& bounds, D2D1_COLOR_F color, ChevronDirection direction, float strokeWidth = 1.6f);
+    void FillPolygon(const Point* points, int count, D2D1_COLOR_F color);
+    void DrawPolygon(const Point* points, int count, D2D1_COLOR_F color, float strokeWidth = 1.0f);
     // Draw a native HICON (e.g. extracted from regedit.exe) into dest DIPs.
     void DrawHIcon(HICON icon, const Rect& dest, float opacity = 1.0f);
     void DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,

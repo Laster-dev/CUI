@@ -1309,6 +1309,64 @@ void GraphicsContext::DrawChevron(const Rect& bounds, D2D1_COLOR_F color, Chevro
     DrawLine(tip, c, color, strokeWidth);
 }
 
+void GraphicsContext::FillPolygon(const Point* points, int count, D2D1_COLOR_F color) {
+    if (!m_d2dContext || !points || count < 3) {
+        return;
+    }
+    ComPtr<ID2D1Factory> factory;
+    m_d2dContext->GetFactory(&factory);
+    if (!factory) {
+        return;
+    }
+    ComPtr<ID2D1PathGeometry> path;
+    if (FAILED(factory->CreatePathGeometry(&path)) || !path) {
+        return;
+    }
+    ComPtr<ID2D1GeometrySink> sink;
+    if (FAILED(path->Open(&sink)) || !sink) {
+        return;
+    }
+    sink->BeginFigure(D2D1::Point2F(points[0].x, points[0].y), D2D1_FIGURE_BEGIN_FILLED);
+    for (int i = 1; i < count; ++i) {
+        sink->AddLine(D2D1::Point2F(points[i].x, points[i].y));
+    }
+    sink->EndFigure(D2D1_FIGURE_END_CLOSED);
+    sink->Close();
+    if (auto brush = m_resources.GetSolidBrush(color)) {
+        m_d2dContext->FillGeometry(path.Get(), brush);
+    }
+}
+
+void GraphicsContext::DrawPolygon(const Point* points, int count, D2D1_COLOR_F color, float strokeWidth) {
+    if (!m_d2dContext || !points || count < 2) {
+        return;
+    }
+    ComPtr<ID2D1Factory> factory;
+    m_d2dContext->GetFactory(&factory);
+    if (!factory) {
+        return;
+    }
+    ComPtr<ID2D1PathGeometry> path;
+    if (FAILED(factory->CreatePathGeometry(&path)) || !path) {
+        return;
+    }
+    ComPtr<ID2D1GeometrySink> sink;
+    if (FAILED(path->Open(&sink)) || !sink) {
+        return;
+    }
+    sink->BeginFigure(D2D1::Point2F(points[0].x, points[0].y), D2D1_FIGURE_BEGIN_HOLLOW);
+    for (int i = 1; i < count; ++i) {
+        sink->AddLine(D2D1::Point2F(points[i].x, points[i].y));
+    }
+    sink->EndFigure(D2D1_FIGURE_END_CLOSED);
+    sink->Close();
+    if (auto brush = m_resources.GetSolidBrush(color)) {
+        const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+        const float snappedStroke = (std::max)(1.0f / scale, std::round(strokeWidth * scale) / scale);
+        m_d2dContext->DrawGeometry(path.Get(), brush, snappedStroke);
+    }
+}
+
 void GraphicsContext::DrawTextOnTarget(
     ID2D1RenderTarget* target,
     const std::wstring& text,

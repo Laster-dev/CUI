@@ -98,6 +98,8 @@ enum class PropertyId : uint16_t {
     Minimum,
     Maximum,
     Step,
+    IsReadOnly,
+    IsClearEnabled,
     Count
 };
 
