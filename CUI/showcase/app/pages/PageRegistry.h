@@ -22,6 +22,7 @@ ShowcasePage BuildAutoSuggestPage(const ShowcaseContext& ctx);
 ShowcasePage BuildStatusBarPage(const ShowcaseContext& ctx);
 ShowcasePage BuildRatingPage(const ShowcaseContext& ctx);
 ShowcasePage BuildSliderPage(const ShowcaseContext& ctx);
+ShowcasePage BuildRangeSliderPage(const ShowcaseContext& ctx);
 ShowcasePage BuildProgressBarPage(const ShowcaseContext& ctx);
 ShowcasePage BuildFilePickerPage(const ShowcaseContext& ctx);
 ShowcasePage BuildNumberBoxPage(const ShowcaseContext& ctx);

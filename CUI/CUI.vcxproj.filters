@@ -108,6 +108,9 @@
     <ClCompile Include="showcase\app\pages\SliderPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="showcase\app\pages\RangeSliderPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="showcase\app\pages\SplitterPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>

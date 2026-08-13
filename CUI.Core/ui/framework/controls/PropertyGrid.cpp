@@ -18,6 +18,7 @@
 #include "FolderPicker.h"
 #include "PagingControl.h"
 #include "RatingControl.h"
+#include "RangeSlider.h"
 #include "../style/ThemeManager.h"
 #include <sstream>
 #include <algorithm>
@@ -188,6 +189,14 @@ void ApplyTargetProperty(UIElement* target, PropertyId propId, const Value& valu
         if (propId == PropertyId::Step) { rating->SetStep(value.AsFloat()); return; }
         if (propId == PropertyId::IsReadOnly) { rating->SetIsReadOnly(value.AsBool()); return; }
         if (propId == PropertyId::IsClearEnabled) { rating->SetIsClearEnabled(value.AsBool()); return; }
+    }
+    if (auto range = dynamic_cast<RangeSlider*>(target)) {
+        if (propId == PropertyId::LowerValue) { range->SetLowerValue(value.AsFloat()); return; }
+        if (propId == PropertyId::UpperValue) { range->SetUpperValue(value.AsFloat()); return; }
+        if (propId == PropertyId::Minimum) { range->SetMinimum(value.AsFloat()); return; }
+        if (propId == PropertyId::Maximum) { range->SetMaximum(value.AsFloat()); return; }
+        if (propId == PropertyId::Step) { range->SetStep(value.AsFloat()); return; }
+        if (propId == PropertyId::MinimumRange) { range->SetMinimumRange(value.AsFloat()); return; }
     }
 
     if (const PropertyDesc* desc = FindPropertyDescForElement(target, propId)) {

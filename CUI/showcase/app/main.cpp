@@ -71,6 +71,7 @@ public:
         add("rating", "基础 Controls", "RatingControl", [ctx = m_ctx] { return BuildRatingPage(ctx); });
 
         add("slider", "值/进度", "Slider", [ctx = m_ctx] { return BuildSliderPage(ctx); });
+        add("rangeslider", "值/进度", "RangeSlider", [ctx = m_ctx] { return BuildRangeSliderPage(ctx); });
         add("progressbar", "值/进度", "ProgressBar", [ctx = m_ctx] { return BuildProgressBarPage(ctx); });
         add("filepicker", "值/进度", "FilePicker", [ctx = m_ctx] { return BuildFilePickerPage(ctx); });
         add("numberbox", "值/进度", "NumberBox", [ctx = m_ctx] { return BuildNumberBoxPage(ctx); });

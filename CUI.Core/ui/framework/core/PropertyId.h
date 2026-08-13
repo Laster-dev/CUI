@@ -100,6 +100,9 @@ enum class PropertyId : uint16_t {
     Step,
     IsReadOnly,
     IsClearEnabled,
+    LowerValue,
+    UpperValue,
+    MinimumRange,
     Count
 };
 

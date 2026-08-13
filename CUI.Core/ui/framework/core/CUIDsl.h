@@ -21,6 +21,7 @@
 #include "../controls/PropertyGrid.h"
 #include "../controls/TreeView.h"
 #include "../controls/Slider.h"
+#include "../controls/RangeSlider.h"
 #include "../controls/NumberBox.h"
 #include "../controls/RadioButton.h"
 #include "../controls/ToggleSwitch.h"
@@ -295,6 +296,13 @@ public:
         return *this;
     }
 
+    ElementBuilder& OnValueChanged(std::function<void(RangeSlider*, float, float)> handler) {
+        if constexpr (std::is_same_v<RangeSlider, T>) {
+            m_element->OnValueChanged().Connect(handler);
+        }
+        return *this;
+    }
+
 protected:
     std::shared_ptr<T> m_element;
 };
@@ -403,6 +411,20 @@ inline ElementBuilder<Slider> SliderWidget(float val = 0.0f, float min = 0.0f, f
     s->SetMinimum(min);
     s->SetMaximum(max);
     s->SetValue(val);
+    if (onChanged) s.OnValueChanged(onChanged);
+    return s;
+}
+
+inline ElementBuilder<RangeSlider> RangeSliderWidget(
+    float lower = 20.0f,
+    float upper = 80.0f,
+    float min = 0.0f,
+    float max = 100.0f,
+    std::function<void(RangeSlider*, float, float)> onChanged = nullptr) {
+    auto s = ElementBuilder<RangeSlider>();
+    s->SetMinimum(min);
+    s->SetMaximum(max);
+    s->SetRange(lower, upper);
     if (onChanged) s.OnValueChanged(onChanged);
     return s;
 }

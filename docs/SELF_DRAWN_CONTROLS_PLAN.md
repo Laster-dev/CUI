@@ -19,6 +19,7 @@
 | F | TeachingTip / Tooltip 增强 | 控件 + 框架能力 | 独立页 `teachingtip`；Tooltip 可在多页复用 |
 | G | Chart | 控件 | 独立页 `chart` |
 | H | 拖放 API | 框架 API（非单一控件） | 独立页 `dragdrop` + 若干控件接入示例 |
+| I | RangeSlider | 控件（双滑块区间） | 独立页 `rangeslider` |
 
 ---
 
@@ -283,6 +284,7 @@ CUI.Core/ui/framework/controls/
   AutoSuggestBox.h/.cpp
   StatusBar.h/.cpp
   RatingControl.h/.cpp
+  RangeSlider.h/.cpp
   ToggleButton.h/.cpp
   SplitButton.h/.cpp
   DropDownButton.h/.cpp
@@ -297,6 +299,7 @@ CUI/showcase/app/pages/
   AutoSuggestPage.cpp
   StatusBarPage.cpp
   RatingPage.cpp
+  RangeSliderPage.cpp
   MarkdownPage.cpp
   TeachingTipPage.cpp
   ChartPage.cpp
