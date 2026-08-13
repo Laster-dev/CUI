@@ -42,6 +42,9 @@
     <ClCompile Include="showcase\app\pages\ComboBoxPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="showcase\app\pages\SegmentedPage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="showcase\app\pages\DatePickerPage.cpp">
       <Filter>源文件</Filter>
     </ClCompile>

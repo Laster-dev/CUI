@@ -505,6 +505,7 @@ void LogView::Append(LogLevel level, std::string category, std::string message) 
     if (m_expanded && m_follow) {
         DirtyBody();
     }
+    NotifyChanged();
 }
 
 void LogView::Clear() {
@@ -520,6 +521,7 @@ void LogView::Clear() {
     m_scrollAnimator.JumpTo(0.0f);
     m_selA = m_selB = m_hoverRow = -1;
     MarkRenderRectDirty(m_bounds);
+    NotifyChanged();
 }
 
 void LogView::SetExpanded(bool expanded) {
@@ -544,6 +546,7 @@ void LogView::SetExpanded(bool expanded) {
     }
     ApplyExpandLayout();
     m_onExpandedChanged.Invoke(this);
+    NotifyChanged();
     MarkRenderRectDirty(prev.Union(m_bounds).Inflate(4.0f));
 }
 
@@ -583,6 +586,7 @@ void LogView::SetPersistEnabled(bool enabled) {
     SyncActionButtons();
     NotifyFieldChanged(PropertyId::IsOn, Value(enabled));
     DirtyHeader();
+    NotifyChanged();
 }
 
 void LogView::SetPersistPath(std::string path) {
@@ -638,12 +642,24 @@ void LogView::FlushPersist() {
     m_persistBuf.clear();
 }
 
-void LogView::SetFollowTail(bool follow) {
+void LogView::SetFollowFlag(bool follow) {
     if (m_follow == follow) {
         return;
     }
     m_follow = follow;
     SyncActionButtons();
+    NotifyChanged();
+}
+
+void LogView::NotifyChanged() {
+    m_onChanged.Invoke(this);
+}
+
+void LogView::SetFollowTail(bool follow) {
+    if (m_follow == follow) {
+        return;
+    }
+    SetFollowFlag(follow);
     if (m_follow) {
         ClampScroll();
         SetScrollTarget(m_maxScrollY, true);
@@ -1149,8 +1165,7 @@ void LogView::OnMouseDown(Point pt) {
             const Rect track = ScrollbarTrack();
             const float t = (track.height > 0.0f) ? std::clamp((pt.y - track.y) / track.height, 0.0f, 1.0f) : 0.0f;
             SetScrollTarget(t * m_maxScrollY, false);
-            m_follow = false;
-            SyncActionButtons();
+            SetFollowFlag(false);
             DirtyBody();
         }
         break;
@@ -1179,11 +1194,7 @@ void LogView::OnMouseMove(Point pt) {
         m_scrollY = m_dragStartScroll + (pt.y - m_dragStartY) / travel * m_maxScrollY;
         ClampScroll();
         m_scrollAnimator.JumpTo(m_scrollY);
-        const bool follow = (m_scrollY >= m_maxScrollY - 0.5f);
-        if (follow != m_follow) {
-            m_follow = follow;
-            SyncActionButtons();
-        }
+        SetFollowFlag(m_scrollY >= m_maxScrollY - 0.5f);
         DirtyBody();
         return;
     }
@@ -1264,11 +1275,7 @@ void LogView::OnMouseWheel(float delta) {
         UIElement::OnMouseWheel(delta);
         return;
     }
-    const bool follow = (newTarget >= m_maxScrollY - 0.5f);
-    if (follow != m_follow) {
-        m_follow = follow;
-        SyncActionButtons();
-    }
+    SetFollowFlag(newTarget >= m_maxScrollY - 0.5f);
     m_sbHide.NotifyActivity(this);
     DirtyBody();
 }
@@ -1314,38 +1321,33 @@ bool LogView::OnKeyDown(int vkCode) {
         } else if (y + kRowH > m_scrollY + body.height) {
             SetScrollTarget(y + kRowH - body.height, true);
         }
-        m_follow = false;
-        SyncActionButtons();
+        SetFollowFlag(false);
         DirtyBody();
         return true;
     }
     if (vkCode == VK_HOME) {
         SetScrollTarget(0.0f, true);
-        m_follow = false;
-        SyncActionButtons();
+        SetFollowFlag(false);
         DirtyBody();
         return true;
     }
     if (vkCode == VK_END) {
         ClampScroll();
         SetScrollTarget(m_maxScrollY, true);
-        m_follow = true;
-        SyncActionButtons();
+        SetFollowFlag(true);
         DirtyBody();
         return true;
     }
     if (vkCode == VK_PRIOR) {
         SetScrollTarget(m_scrollY - BodyRect().height, true);
-        m_follow = false;
-        SyncActionButtons();
+        SetFollowFlag(false);
         DirtyBody();
         return true;
     }
     if (vkCode == VK_NEXT) {
         ClampScroll();
         SetScrollTarget(m_scrollY + BodyRect().height, true);
-        m_follow = (m_scrollAnimator.Target() >= m_maxScrollY - 0.5f);
-        SyncActionButtons();
+        SetFollowFlag(m_scrollAnimator.Target() >= m_maxScrollY - 0.5f);
         DirtyBody();
         return true;
     }

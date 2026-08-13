@@ -171,6 +171,7 @@
     <ClCompile Include="showcase\app\pages\RadioButtonPage.cpp" />
     <ClCompile Include="showcase\app\pages\ToggleSwitchPage.cpp" />
     <ClCompile Include="showcase\app\pages\ComboBoxPage.cpp" />
+    <ClCompile Include="showcase\app\pages\SegmentedPage.cpp" />
     <ClCompile Include="showcase\app\pages\AutoSuggestPage.cpp" />
     <ClCompile Include="showcase\app\pages\StatusBarPage.cpp" />
     <ClCompile Include="showcase\app\pages\RatingPage.cpp" />

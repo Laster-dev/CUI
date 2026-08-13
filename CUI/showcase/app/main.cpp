@@ -66,6 +66,7 @@ public:
         add("radiobutton", "基础 Controls", "RadioButton", [ctx = m_ctx] { return BuildRadioButtonPage(ctx); });
         add("toggleswitch", "基础 Controls", "ToggleSwitch", [ctx = m_ctx] { return BuildToggleSwitchPage(ctx); });
         add("combobox", "基础 Controls", "ComboBox", [ctx = m_ctx] { return BuildComboBoxPage(ctx); });
+        add("segmented", "基础 Controls", "SegmentedControl", [ctx = m_ctx] { return BuildSegmentedPage(ctx); });
         add("autosuggest", "基础 Controls", "AutoSuggestBox", [ctx = m_ctx] { return BuildAutoSuggestPage(ctx); });
         add("statusbar", "基础 Controls", "StatusBar", [ctx = m_ctx] { return BuildStatusBarPage(ctx); });
         add("rating", "基础 Controls", "RatingControl", [ctx = m_ctx] { return BuildRatingPage(ctx); });

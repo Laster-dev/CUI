@@ -88,6 +88,7 @@ public:
     void ClearSelection();
 
     Event<LogView*>& OnExpandedChanged() { return m_onExpandedChanged; }
+    Event<LogView*>& OnChanged() { return m_onChanged; }
 
 private:
     struct Record {
@@ -143,6 +144,8 @@ private:
     std::string CollectRows(bool selectedOnly) const;
     void DirtyHeader();
     void DirtyBody();
+    void SetFollowFlag(bool follow);
+    void NotifyChanged();
     D2D1_COLOR_F LevelColor(LogLevel level) const;
     const char* LevelTag(LogLevel level) const;
 
@@ -210,6 +213,7 @@ private:
     std::shared_ptr<Button> m_btnFollow;
 
     Event<LogView*> m_onExpandedChanged;
+    Event<LogView*> m_onChanged;
 };
 
 } // namespace CUI

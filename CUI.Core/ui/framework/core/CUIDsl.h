@@ -12,6 +12,7 @@
 #include "../controls/CheckBox.h"
 #include "../controls/HyperlinkButton.h"
 #include "../controls/ComboBox.h"
+#include "../controls/SegmentedControl.h"
 #include "../controls/ListBox.h"
 #include "../controls/ListView.h"
 #include "../controls/Image.h"
@@ -518,6 +519,16 @@ inline ElementBuilder<FolderPicker> FolderPickerWidget(const std::string& path =
         f->SetPath(path);
     }
     return f;
+}
+
+inline ElementBuilder<SegmentedControl> SegmentedWidget(std::initializer_list<const char*> items = {}) {
+    auto s = ElementBuilder<SegmentedControl>();
+    for (const char* item : items) {
+        if (item && *item) {
+            s->AddItem(item);
+        }
+    }
+    return s;
 }
 
 inline ElementBuilder<NumberBox> NumberBoxWidget(double val = 0.0) {

@@ -41,49 +41,44 @@ ShowcasePage BuildLogViewPage(const ShowcaseContext& ctx) {
     log->SetMaxEntries(16384);
     log->SetExpanded(true);
     log->SetToolTip("折叠后单行最新；展开后级别芯片 + 搜索 + 虚拟化列表。Ctrl+C 复制，Ctrl+A 全选，Ctrl+F 搜索。");
-    SeedSample(*log);
 
     auto hint = std::static_pointer_cast<TextBlock>(
-        CreateShowcaseText("展开 · 跟随尾部 · 未持久化", 12.0f, "textSecondary", false));
-    auto refreshHint = [hint, log]() {
+        CreateShowcaseText("", 12.0f, "textSecondary", false));
+    auto btnToggle = std::make_shared<Button>("折叠");
+    log->OnChanged().Connect([hint, log](LogView*) {
         std::string s = log->IsExpanded() ? "展开" : "折叠";
         s += log->GetFollowTail() ? " · 跟随尾部" : " · 已停跟随";
         s += log->GetPersistEnabled() ? " · 已落盘 " + log->GetPersistPath() : " · 未持久化";
         s += " · " + std::to_string(log->GetCount()) + " 条";
         hint->SetText(s);
-    };
-    log->OnExpandedChanged().Connect([refreshHint](LogView*) { refreshHint(); });
+    });
+    log->OnExpandedChanged().Connect([btnToggle](LogView* lv) {
+        btnToggle->SetText(lv->IsExpanded() ? "折叠" : "展开");
+    });
+    SeedSample(*log);
 
-    auto btnToggle = std::make_shared<Button>(log->IsExpanded() ? "折叠" : "展开");
-    btnToggle->OnClick().Connect([log, btnToggle, refreshHint](UIElement*) {
+    btnToggle->OnClick().Connect([log](UIElement*) {
         log->SetExpanded(!log->IsExpanded());
-        btnToggle->SetText(log->IsExpanded() ? "折叠" : "展开");
-        refreshHint();
     });
     auto btnOne = std::make_shared<Button>("追加 1");
-    btnOne->OnClick().Connect([log, refreshHint](UIElement*) {
+    btnOne->OnClick().Connect([log](UIElement*) {
         log->Append(LogLevel::Info, "ui", "手动追加一条");
-        refreshHint();
     });
     auto btn100 = std::make_shared<Button>("追加 100");
-    btn100->OnClick().Connect([log, refreshHint](UIElement*) {
+    btn100->OnClick().Connect([log](UIElement*) {
         Burst(*log, 100);
-        refreshHint();
     });
     auto btn1k = std::make_shared<Button>("追加 1000");
-    btn1k->OnClick().Connect([log, refreshHint](UIElement*) {
+    btn1k->OnClick().Connect([log](UIElement*) {
         Burst(*log, 1000);
-        refreshHint();
     });
     auto btnErr = std::make_shared<Button>("打一条 Error");
-    btnErr->OnClick().Connect([log, refreshHint](UIElement*) {
+    btnErr->OnClick().Connect([log](UIElement*) {
         log->Append(LogLevel::Error, "diag", "复现：空指针检查失败 at FrameScheduler::Tick");
-        refreshHint();
     });
     auto chkPersist = std::make_shared<CheckBox>("持久化到临时文件");
-    chkPersist->OnCheckStateChanged().Connect([log, refreshHint](CheckBox*, CheckState st) {
+    chkPersist->OnCheckStateChanged().Connect([log](CheckBox*, CheckState st) {
         log->SetPersistEnabled(st == CheckState::Checked);
-        refreshHint();
     });
 
     auto demo = Column(12).Children({
