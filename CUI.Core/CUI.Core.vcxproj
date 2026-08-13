@@ -155,6 +155,9 @@
     <ClCompile Include="ui\framework\controls\StatusBar.cpp" />
     <ClCompile Include="ui\framework\controls\RatingControl.cpp" />
     <ClCompile Include="ui\framework\controls\TeachingTip.cpp" />
+    <ClCompile Include="ui\framework\controls\MarkdownView.cpp" />
+    <ClCompile Include="ui\framework\text\markdown\MarkdownParser.cpp" />
+    <ClCompile Include="ui\framework\text\markdown\MarkdownLayout.cpp" />
     <ClCompile Include="ui\framework\controls\chart\ChartData.cpp" />
     <ClCompile Include="ui\framework\controls\chart\ChartBase.cpp" />
     <ClCompile Include="ui\framework\controls\chart\LineChart.cpp" />
@@ -295,6 +298,9 @@
     <ClInclude Include="ui\framework\controls\RadioButton.h" />
     <ClInclude Include="ui\framework\controls\RatingControl.h" />
     <ClInclude Include="ui\framework\controls\TeachingTip.h" />
+    <ClInclude Include="ui\framework\controls\MarkdownView.h" />
+    <ClInclude Include="ui\framework\text\markdown\MarkdownAst.h" />
+    <ClInclude Include="ui\framework\text\markdown\MarkdownLayout.h" />
     <ClInclude Include="ui\framework\controls\chart\Chart.h" />
     <ClInclude Include="ui\framework\controls\chart\ChartData.h" />
     <ClInclude Include="ui\framework\controls\chart\ChartBase.h" />

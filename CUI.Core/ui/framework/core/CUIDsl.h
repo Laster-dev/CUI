@@ -35,6 +35,7 @@
 #include "../controls/RatingControl.h"
 #include "../controls/TeachingTip.h"
 #include "../controls/chart/Chart.h"
+#include "../controls/MarkdownView.h"
 #include "../dnd/DragDropService.h"
 #include "../controls/FilePicker.h"
 #include "../controls/FolderPicker.h"
@@ -451,6 +452,10 @@ inline ElementBuilder<BarChart> BarChartWidget() {
 
 inline ElementBuilder<PieChart> PieChartWidget() {
     return ElementBuilder<PieChart>();
+}
+
+inline ElementBuilder<MarkdownView> MarkdownViewWidget() {
+    return ElementBuilder<MarkdownView>();
 }
 
 inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") {

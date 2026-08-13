@@ -107,6 +107,7 @@ public:
         add("tabview", "交互/导航", "TabView", [ctx = m_ctx] { return BuildTabViewPage(ctx); });
         add("canvas", "画布与渲染", "Canvas", [ctx = m_ctx] { return BuildCanvasPage(ctx); });
         add("chart", "画布与渲染", "Chart", [ctx = m_ctx] { return BuildChartPage(ctx); });
+        add("markdown", "画布与渲染", "Markdown", [ctx = m_ctx] { return BuildMarkdownPage(ctx); });
 
         // --- Settings content ---
         std::shared_ptr<UIElement> settingsContent;

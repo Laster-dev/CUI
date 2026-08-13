@@ -51,6 +51,7 @@ ShowcasePage BuildFlyoutPage(const ShowcaseContext& ctx);
 ShowcasePage BuildTeachingTipPage(const ShowcaseContext& ctx);
 ShowcasePage BuildChartPage(const ShowcaseContext& ctx);
 ShowcasePage BuildDragDropPage(const ShowcaseContext& ctx);
+ShowcasePage BuildMarkdownPage(const ShowcaseContext& ctx);
 ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx);
 ShowcasePage BuildTabViewPage(const ShowcaseContext& ctx);
 ShowcasePage BuildTerminalPage(const ShowcaseContext& ctx);
