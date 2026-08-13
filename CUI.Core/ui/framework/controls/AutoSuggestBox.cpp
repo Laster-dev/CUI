@@ -5,6 +5,7 @@
 #include "../core/Value.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
+#include "../window/Dpi.h"
 #include <algorithm>
 #include <cmath>
 
@@ -260,15 +261,18 @@ void AutoSuggestBox::ScheduleSuggestRefresh() {
 
 void AutoSuggestBox::RefreshSuggestionsNow() {
     m_debounceLeft = -1.0f;
+
+    std::string keepHighlight;
+    if (m_highlightedIndex >= 0 && m_highlightedIndex < static_cast<int>(m_filtered.size())) {
+        keepHighlight = m_filtered[static_cast<size_t>(m_highlightedIndex)];
+    }
+
     const std::string query = GetText();
     if (m_provider) {
         m_filtered = m_provider(query);
     } else {
         m_filtered.clear();
-        if (query.empty()) {
-            // Empty query: show nothing (SearchBox style) unless catalog is tiny demo —
-            // plan: filter fruits as user types. Keep closed when empty.
-        } else {
+        if (!query.empty()) {
             for (const auto& item : m_catalog) {
                 if (ContainsInsensitive(item, query)) {
                     m_filtered.push_back(item);
@@ -283,8 +287,53 @@ void AutoSuggestBox::RefreshSuggestionsNow() {
     }
 
     m_highlightedIndex = 0;
+    if (!keepHighlight.empty()) {
+        for (int i = 0; i < static_cast<int>(m_filtered.size()); ++i) {
+            if (m_filtered[static_cast<size_t>(i)] == keepHighlight) {
+                m_highlightedIndex = i;
+                break;
+            }
+        }
+    }
     m_suggestScroll = 0.0f;
+    EnsureSuggestionVisible(m_highlightedIndex);
     OpenSuggestions();
+}
+
+void AutoSuggestBox::BeginKeyboardNavigation() {
+    m_keyboardNavActive = true;
+    // Snapshot pointer in client DIPs so a no-op MOVE after scroll does not
+    // steal the highlight back to whatever row sits under the cursor.
+    if (PopupHost* host = PopupHost::Current()) {
+        if (HWND hwnd = host->GetOwnerHwnd()) {
+            POINT sp{};
+            if (::GetCursorPos(&sp) && ::ScreenToClient(hwnd, &sp)) {
+                const float scale = GetDpiScaleForWindow(hwnd);
+                if (scale > 0.001f) {
+                    m_keyboardNavMousePt = Point(
+                        static_cast<float>(sp.x) / scale,
+                        static_cast<float>(sp.y) / scale);
+                }
+            }
+        }
+    }
+}
+
+void AutoSuggestBox::MoveHighlightBy(int delta) {
+    if (m_filtered.empty()) {
+        return;
+    }
+    BeginKeyboardNavigation();
+    if (m_highlightedIndex < 0) {
+        m_highlightedIndex = (delta >= 0) ? 0 : static_cast<int>(m_filtered.size()) - 1;
+    } else {
+        m_highlightedIndex = std::clamp(
+            m_highlightedIndex + delta,
+            0,
+            static_cast<int>(m_filtered.size()) - 1);
+    }
+    EnsureSuggestionVisible(m_highlightedIndex);
+    MarkRenderRectDirty(GetPopupBounds().Inflate(2.0f));
 }
 
 void AutoSuggestBox::OpenSuggestions() {
@@ -309,6 +358,7 @@ void AutoSuggestBox::CloseSuggestions() {
     }
     m_suggestionsOpen = false;
     m_highlightedIndex = -1;
+    m_keyboardNavActive = false;
     if (PopupHost* host = PopupHost::Current()) {
         host->Close(this);
     }
@@ -395,7 +445,11 @@ int AutoSuggestBox::HitTestSuggestionIndex(Point pt) const {
     if (!Rect(menu.x, menu.y, menu.width, currentH).Contains(pt.x, pt.y)) {
         return -1;
     }
-    const float localY = pt.y - menu.y + m_suggestScroll;
+    // Match RenderPopup: rows start at menu.y + 2 - scroll.
+    const float localY = pt.y - (menu.y + 2.0f) + m_suggestScroll;
+    if (localY < 0.0f) {
+        return -1;
+    }
     const int index = static_cast<int>(localY / m_suggestionItemHeight);
     if (index < 0 || index >= static_cast<int>(m_filtered.size())) {
         return -1;
@@ -638,6 +692,17 @@ void AutoSuggestBox::OnMouseMove(Point pt) {
         MarkRenderContentDirty();
     }
 
+    if (m_keyboardNavActive) {
+        const float dx = pt.x - m_keyboardNavMousePt.x;
+        const float dy = pt.y - m_keyboardNavMousePt.y;
+        if ((dx * dx + dy * dy) < 4.0f) {
+            // Spurious MOVE after scroll / key — keep keyboard highlight.
+            return;
+        }
+        m_keyboardNavActive = false;
+    }
+    m_keyboardNavMousePt = pt;
+
     if (m_suggestionsOpen || PopupProgress() > 0.5f) {
         const int sug = HitTestSuggestionIndex(pt);
         if (sug >= 0 && sug != m_highlightedIndex) {
@@ -694,24 +759,20 @@ void AutoSuggestBox::OnKeyDown(int vkCode) {
         if (!m_suggestionsOpen) {
             RefreshSuggestionsNow();
             if (m_filtered.empty() && !m_catalog.empty() && GetText().empty()) {
-                // Show full catalog when user opens with Down on empty query.
                 m_filtered = m_catalog;
                 m_highlightedIndex = 0;
                 OpenSuggestions();
             }
-        } else if (!m_filtered.empty()) {
-            m_highlightedIndex = std::clamp(m_highlightedIndex + 1, 0, static_cast<int>(m_filtered.size()) - 1);
-            EnsureSuggestionVisible(m_highlightedIndex);
-            MarkRenderRectDirty(GetPopupBounds().Inflate(2.0f));
+            BeginKeyboardNavigation();
+        } else {
+            MoveHighlightBy(+1);
         }
         return;
     }
 
     if (vkCode == VK_UP) {
-        if (m_suggestionsOpen && !m_filtered.empty()) {
-            m_highlightedIndex = std::clamp(m_highlightedIndex - 1, 0, static_cast<int>(m_filtered.size()) - 1);
-            EnsureSuggestionVisible(m_highlightedIndex);
-            MarkRenderRectDirty(GetPopupBounds().Inflate(2.0f));
+        if (m_suggestionsOpen) {
+            MoveHighlightBy(-1);
         }
         return;
     }

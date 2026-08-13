@@ -103,6 +103,8 @@ private:
     int HitTestSuggestionIndex(Point pt) const;
     float SuggestionContentHeight() const;
     float SuggestionMaxScroll() const;
+    void MoveHighlightBy(int delta);
+    void BeginKeyboardNavigation();
 
     std::vector<std::string> m_catalog;
     std::vector<std::string> m_filtered;
@@ -120,6 +122,11 @@ private:
     float m_debounceLeft = -1.0f;
     float m_suggestionItemHeight = 28.0f;
     int m_maxVisibleSuggestions = 8;
+
+    // After ↑/↓, ignore hover until the pointer actually moves (otherwise scroll
+    // leaves the cursor over another row and the highlight "jumps" back).
+    bool m_keyboardNavActive = false;
+    Point m_keyboardNavMousePt{};
 
     bool m_clearHovered = false;
     HitPart m_pressed = HitPart::None;

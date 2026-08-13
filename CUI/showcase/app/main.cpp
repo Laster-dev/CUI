@@ -8,6 +8,7 @@
 #include "chrome/VSCodeControls.h"
 #include "framework/controls/NavigationView.h"
 #include "framework/controls/NavigationViewItem.h"
+#include "framework/controls/AutoSuggestBox.h"
 #include "framework/controls/ProgressBarDiag.h"
 #include "framework/controls/Button.h"
 #include "framework/controls/TextBlock.h"
@@ -132,6 +133,44 @@ public:
         nav->SetIsBackButtonVisible(NavigationViewBackButtonVisible::Collapsed);
         nav->SetIsSettingsVisible(true);
         nav->SetIsPaneOpen(true);
+
+        // Sidebar control search (AutoSuggestBox slot on NavigationView).
+        auto search = std::make_shared<AutoSuggestBox>();
+        search->SetPlaceholder("搜索控件…");
+        search->SetHeight(32.0f);
+        search->SetFontSize(12.0f);
+        search->SetMaxVisibleSuggestions(10);
+        {
+            std::vector<std::string> labels;
+            labels.reserve(samples.size());
+            for (const auto& s : samples) {
+                labels.push_back(s.label);
+            }
+            search->SetSuggestionItems(labels);
+            // Match label / tag / category (case-insensitive substring).
+            search->SetSuggestionProvider([samples](const std::string& query) {
+                auto lower = [](std::string s) {
+                    for (char& c : s) {
+                        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+                    }
+                    return s;
+                };
+                const std::string q = lower(query);
+                std::vector<std::string> out;
+                if (q.empty()) {
+                    return out;
+                }
+                for (const auto& s : samples) {
+                    if (lower(s.label).find(q) != std::string::npos
+                        || lower(s.tag).find(q) != std::string::npos
+                        || lower(s.category).find(q) != std::string::npos) {
+                        out.push_back(s.label);
+                    }
+                }
+                return out;
+            });
+        }
+        nav->SetAutoSuggestBox(search);
 
         struct PageCache {
             std::unordered_map<std::string, std::shared_ptr<UIElement>> content;
@@ -278,24 +317,14 @@ public:
             nav->SetSelectedItem(firstItem.get());
         }
 
-        // Switch content on invocation.
-        nav->OnItemInvoked().Connect([nav, settingsContent, win, streamImg = m_ctx.streamImage,
-                                       pageCache](NavigationView*, const NavigationViewItemInvokedEventArgs& args) mutable {
-            if (args.IsSettingsInvoked) {
-                if (win) StopStreamingThread();
-                nav->SetContent(settingsContent);
+        // Navigate to a sample by tag (shared by sidebar click + search).
+        auto navigateToTag = [nav, win, streamImg = m_ctx.streamImage, pageCache](const std::string& tag) {
+            if (tag.empty()) {
                 return;
             }
-            if (!args.InvokedItem) return;
-
-            const std::string tag = args.InvokedItem->GetTag();
-            if (tag.empty()) return;
-
-            CUI::ProgressBarDiag::Log("[PB] gallery ItemInvoked tag=%s cached=%d",
+            nav->SelectByTag(tag);
+            CUI::ProgressBarDiag::Log("[PB] gallery navigate tag=%s cached=%d",
                 tag.c_str(), pageCache->Contains(tag) ? 1 : 0);
-
-            // Cached pages: cheap swap (still deferred one frame). Cold pages:
-            // build AFTER click + after selection indicator settles so item anim stays smooth.
             if (pageCache->Contains(tag)) {
                 if (auto content = pageCache->Resolve(tag)) {
                     nav->SetContent(content);
@@ -310,6 +339,62 @@ public:
                 if (tag == "stream") StartStreamingThread(win, streamImg);
                 else StopStreamingThread();
             }
+        };
+
+        auto labelToTag = std::make_shared<std::unordered_map<std::string, std::string>>();
+        for (const auto& s : samples) {
+            (*labelToTag)[s.label] = s.tag;
+        }
+
+        auto goFromSearchLabel = [navigateToTag, labelToTag, search](const std::string& label) {
+            auto it = labelToTag->find(label);
+            if (it == labelToTag->end()) {
+                return;
+            }
+            navigateToTag(it->second);
+            search->SetText("");
+        };
+
+        search->OnSuggestionChosen().Connect(
+            [goFromSearchLabel](AutoSuggestBox*, const std::string& label) {
+                goFromSearchLabel(label);
+            });
+        search->OnQuerySubmitted().Connect(
+            [goFromSearchLabel, labelToTag, search, samples](AutoSuggestBox*, const std::string& query) {
+                // Exact label hit, else first fuzzy match on label/tag.
+                if (labelToTag->count(query)) {
+                    goFromSearchLabel(query);
+                    return;
+                }
+                auto lower = [](std::string s) {
+                    for (char& c : s) {
+                        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+                    }
+                    return s;
+                };
+                const std::string q = lower(query);
+                if (q.empty()) {
+                    return;
+                }
+                for (const auto& s : samples) {
+                    if (lower(s.label).find(q) != std::string::npos
+                        || lower(s.tag).find(q) != std::string::npos) {
+                        goFromSearchLabel(s.label);
+                        return;
+                    }
+                }
+            });
+
+        // Switch content on invocation.
+        nav->OnItemInvoked().Connect([nav, settingsContent, win, navigateToTag](
+                                         NavigationView*, const NavigationViewItemInvokedEventArgs& args) mutable {
+            if (args.IsSettingsInvoked) {
+                if (win) StopStreamingThread();
+                nav->SetContent(settingsContent);
+                return;
+            }
+            if (!args.InvokedItem) return;
+            navigateToTag(args.InvokedItem->GetTag());
         });
 
         return nav;
