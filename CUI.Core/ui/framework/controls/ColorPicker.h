@@ -38,6 +38,7 @@ public:
 
     void SetPopupOpen(bool open);
 
+    PropertyRef<Color, PropertyId::SelectedColor> SelectedColor;
     D2D1_COLOR_F GetSelectedColor() const { return m_selectedColor; }
     void SetSelectedColor(D2D1_COLOR_F color);
 

@@ -7,6 +7,7 @@
 namespace CUI {
 
 ToggleButton::ToggleButton() {
+    IsOn.Initialize(*this);
     SetText("Toggle");
     ApplyCheckedChrome();
 }

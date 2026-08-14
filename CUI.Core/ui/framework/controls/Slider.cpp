@@ -10,6 +10,7 @@ namespace CUI {
 namespace {}
 
 Slider::Slider() {
+    ValueProperty.Initialize(*this);
     SetOrientation(Orientation::Horizontal);
     SetTrackColorToken(ThemeTokenId::InputBorder);
     SetActiveTrackColorToken(ThemeTokenId::AccentColor);

@@ -26,6 +26,7 @@ D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
 } // namespace
 
 SegmentedControl::SegmentedControl() {
+    SelectedIndex.Initialize(*this);
     SetHeight(32.0f);
     SetWidth(280.0f);
     SetCornerRadius(6.0f);

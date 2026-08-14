@@ -40,55 +40,55 @@ std::shared_ptr<UIElement> BuildButtonPage() {
     auto status = MakeStatus("准备就绪。尝试点击任意按钮...");
 
     // 1. 标准样式
-    auto btnAccent = std::make_shared<Button>("主要按钮 (Accent)");
+    auto btnAccent = Make<Button>("主要按钮 (Accent)");
     btnAccent->OnClick().Connect([status](UIElement*) { status->SetText("点击了：主要按钮 (Accent)"); });
 
-    auto btnStandard = std::make_shared<Button>("标准按钮 (Standard)");
+    auto btnStandard = Make<Button>("标准按钮 (Standard)");
     btnStandard->SetBackgroundToken(ThemeTokenId::CardBackground);
     btnStandard->SetColorToken(ThemeTokenId::TextPrimary);
     btnStandard->SetBorderToken(ThemeTokenId::CardBorder);
     btnStandard->SetBorderThickness(1.0f);
     btnStandard->OnClick().Connect([status](UIElement*) { status->SetText("点击了：标准按钮 (Standard)"); });
 
-    auto btnOutline = std::make_shared<Button>("轮廓按钮 (Outline)");
+    auto btnOutline = Make<Button>("轮廓按钮 (Outline)");
     btnOutline->SetBackgroundToken(ThemeTokenId::Unset);
     btnOutline->SetColorToken(ThemeTokenId::AccentColor);
     btnOutline->SetBorderToken(ThemeTokenId::AccentColor);
     btnOutline->SetBorderThickness(1.0f);
     btnOutline->OnClick().Connect([status](UIElement*) { status->SetText("点击了：轮廓按钮 (Outline)"); });
 
-    auto btnSubtle = std::make_shared<Button>("幽灵/文本按钮 (Subtle)");
+    auto btnSubtle = Make<Button>("幽灵/文本按钮 (Subtle)");
     btnSubtle->SetBackgroundToken(ThemeTokenId::Unset);
     btnSubtle->SetColorToken(ThemeTokenId::TextPrimary);
     btnSubtle->SetBorderThickness(0.0f);
     btnSubtle->OnClick().Connect([status](UIElement*) { status->SetText("点击了：文本按钮 (Subtle)"); });
 
-    auto btnDisabled = std::make_shared<Button>("禁用按钮 (Disabled)");
+    auto btnDisabled = Make<Button>("禁用按钮 (Disabled)");
     btnDisabled->SetIsEnabled(false);
 
     // 2. 颜色与预设
-    auto btnDanger = std::make_shared<Button>("危险操作 (Danger)");
+    auto btnDanger = Make<Button>("危险操作 (Danger)");
     btnDanger->SetBackground(Color::Hex("#E53935"));
     btnDanger->SetHoverBackground(Color::Hex("#D32F2F"));
     btnDanger->SetPressedBackground(Color::Hex("#B71C1C"));
     btnDanger->SetColor(Color::White);
     btnDanger->OnClick().Connect([status](UIElement*) { status->SetText("点击了：危险操作按钮 (Crimson)"); });
 
-    auto btnSuccess = std::make_shared<Button>("成功状态 (Success)");
+    auto btnSuccess = Make<Button>("成功状态 (Success)");
     btnSuccess->SetBackground(Color::Hex("#2E7D32"));
     btnSuccess->SetHoverBackground(Color::Hex("#1B5E20"));
     btnSuccess->SetPressedBackground(Color::Hex("#0D3C10"));
     btnSuccess->SetColor(Color::White);
     btnSuccess->OnClick().Connect([status](UIElement*) { status->SetText("点击了：成功状态按钮 (Emerald)"); });
 
-    auto btnWarning = std::make_shared<Button>("警告提示 (Warning)");
+    auto btnWarning = Make<Button>("警告提示 (Warning)");
     btnWarning->SetBackground(Color::Hex("#F57C00"));
     btnWarning->SetHoverBackground(Color::Hex("#E65100"));
     btnWarning->SetPressedBackground(Color::Hex("#BF360C"));
     btnWarning->SetColor(Color::White);
     btnWarning->OnClick().Connect([status](UIElement*) { status->SetText("点击了：警告提示按钮 (Amber)"); });
 
-    auto btnPurple = std::make_shared<Button>("紫色梦幻 (Purple)");
+    auto btnPurple = Make<Button>("紫色梦幻 (Purple)");
     btnPurple->SetBackground(Color::Hex("#7B1FA2"));
     btnPurple->SetHoverBackground(Color::Hex("#6A1B9A"));
     btnPurple->SetPressedBackground(Color::Hex("#4A148C"));
@@ -96,54 +96,54 @@ std::shared_ptr<UIElement> BuildButtonPage() {
     btnPurple->OnClick().Connect([status](UIElement*) { status->SetText("点击了：紫色梦幻按钮 (Purple)"); });
 
     // 3. 各种圆角
-    auto btnSquare = std::make_shared<Button>("直角方形 (r=0px)");
+    auto btnSquare = Make<Button>("直角方形 (r=0px)");
     btnSquare->SetCornerRadius(0.0f);
     btnSquare->OnClick().Connect([status](UIElement*) { status->SetText("点击了：直角方形按钮 (r=0px)"); });
 
-    auto btnRadius4 = std::make_shared<Button>("小圆角 (r=4px)");
+    auto btnRadius4 = Make<Button>("小圆角 (r=4px)");
     btnRadius4->SetCornerRadius(4.0f);
     btnRadius4->OnClick().Connect([status](UIElement*) { status->SetText("点击了：小圆角按钮 (r=4px)"); });
 
-    auto btnRadius8 = std::make_shared<Button>("中圆角 (r=8px)");
+    auto btnRadius8 = Make<Button>("中圆角 (r=8px)");
     btnRadius8->SetCornerRadius(8.0f);
     btnRadius8->OnClick().Connect([status](UIElement*) { status->SetText("点击了：中圆角按钮 (r=8px)"); });
 
-    auto btnCapsule = std::make_shared<Button>("胶囊圆角 (r=20px)");
+    auto btnCapsule = Make<Button>("胶囊圆角 (r=20px)");
     btnCapsule->SetCornerRadius(20.0f);
     btnCapsule->SetPadding(Thickness(16, 6, 16, 6));
     btnCapsule->OnClick().Connect([status](UIElement*) { status->SetText("点击了：胶囊圆角按钮 (r=20px)"); });
 
     // 4. 各种尺寸
-    auto btnSmall = std::make_shared<Button>("小尺寸 (Small)");
+    auto btnSmall = Make<Button>("小尺寸 (Small)");
     btnSmall->SetFontSize(11.0f);
     btnSmall->SetPadding(Thickness(6, 2, 6, 2));
     btnSmall->OnClick().Connect([status](UIElement*) { status->SetText("点击了：小尺寸按钮"); });
 
-    auto btnNormal = std::make_shared<Button>("标准尺寸 (Normal)");
+    auto btnNormal = Make<Button>("标准尺寸 (Normal)");
     btnNormal->SetFontSize(13.0f);
     btnNormal->SetPadding(Thickness(12, 5, 12, 5));
     btnNormal->OnClick().Connect([status](UIElement*) { status->SetText("点击了：标准尺寸按钮"); });
 
-    auto btnLarge = std::make_shared<Button>("大尺寸 (Large)");
+    auto btnLarge = Make<Button>("大尺寸 (Large)");
     btnLarge->SetFontSize(16.0f);
     btnLarge->SetPadding(Thickness(18, 9, 18, 9));
     btnLarge->OnClick().Connect([status](UIElement*) { status->SetText("点击了：大尺寸按钮"); });
 
-    auto btnFixed = std::make_shared<Button>("固定尺寸 (200 x 44)");
+    auto btnFixed = Make<Button>("固定尺寸 (200 x 44)");
     btnFixed->SetWidth(200.0f);
     btnFixed->SetHeight(44.0f);
     btnFixed->OnClick().Connect([status](UIElement*) { status->SetText("点击了：固定尺寸按钮 (200x44)"); });
 
     // 5. 图标与 SVG 矢量按钮
-    auto btnUnicode = std::make_shared<Button>("保存文件");
+    auto btnUnicode = Make<Button>("保存文件");
     btnUnicode->SetIcon("💾");
     btnUnicode->OnClick().Connect([status](UIElement*) { status->SetText("点击了：Unicode 图标按钮 (💾 保存)"); });
 
-    auto btnAdd = std::make_shared<Button>("新建项目");
+    auto btnAdd = Make<Button>("新建项目");
     btnAdd->SetIcon("➕");
     btnAdd->OnClick().Connect([status](UIElement*) { status->SetText("点击了：Unicode 图标按钮 (➕ 新建)"); });
 
-    auto btnSvgHeart = std::make_shared<Button>("点赞");
+    auto btnSvgHeart = Make<Button>("点赞");
     btnSvgHeart->SetIcon(kSvgHeart);
     btnSvgHeart->SetBackground(Color::Hex("#E91E63"));
     btnSvgHeart->SetHoverBackground(Color::Hex("#D81B60"));
@@ -151,28 +151,28 @@ std::shared_ptr<UIElement> BuildButtonPage() {
     btnSvgHeart->SetColor(Color::White);
     btnSvgHeart->OnClick().Connect([status](UIElement*) { status->SetText("点击了：SVG 心形矢量按钮"); });
 
-    auto btnSvgSearch = std::make_shared<Button>("搜索文档");
+    auto btnSvgSearch = Make<Button>("搜索文档");
     btnSvgSearch->SetIcon(kSvgSearch);
     btnSvgSearch->OnClick().Connect([status](UIElement*) { status->SetText("点击了：SVG 搜索矢量按钮"); });
 
-    auto btnSvgCopy = std::make_shared<Button>("复制文本");
+    auto btnSvgCopy = Make<Button>("复制文本");
     btnSvgCopy->SetIcon(kSvgCopy);
     btnSvgCopy->OnClick().Connect([status](UIElement*) { status->SetText("点击了：SVG 复制矢量按钮"); });
 
     // 纯图标按钮 (Icon Only)
-    auto iconBtn1 = std::make_shared<Button>("");
+    auto iconBtn1 = Make<Button>("");
     iconBtn1->SetIcon("🔍");
     iconBtn1->SetToolTip("搜索");
     iconBtn1->SetPadding(Thickness(8, 6, 8, 6));
     iconBtn1->OnClick().Connect([status](UIElement*) { status->SetText("点击了：纯图标按钮 (🔍)"); });
 
-    auto iconBtn2 = std::make_shared<Button>("");
+    auto iconBtn2 = Make<Button>("");
     iconBtn2->SetIcon("⚙️");
     iconBtn2->SetToolTip("设置");
     iconBtn2->SetPadding(Thickness(8, 6, 8, 6));
     iconBtn2->OnClick().Connect([status](UIElement*) { status->SetText("点击了：纯图标按钮 (⚙️)"); });
 
-    auto iconBtnSvg = std::make_shared<Button>("");
+    auto iconBtnSvg = Make<Button>("");
     iconBtnSvg->SetIcon(kSvgStar);
     iconBtnSvg->SetToolTip("收藏 (SVG)");
     iconBtnSvg->SetPadding(Thickness(8, 6, 8, 6));
@@ -218,16 +218,16 @@ std::shared_ptr<UIElement> BuildButtonPage() {
     };
     spec.source =
         "// 1. Accent & Standard Buttons\n"
-        "auto btn = std::make_shared<Button>(\"Accent Button\");\n"
+        "auto btn = Make<Button>(\"Accent Button\");\n"
         "btn->OnClick().Connect([](UIElement*) { /* action */ });\n\n"
         "// 2. Custom Color Button (Crimson)\n"
-        "auto danger = std::make_shared<Button>(\"Danger\");\n"
+        "auto danger = Make<Button>(\"Danger\");\n"
         "danger->SetBackground(D2D1::ColorF(0xE53935));\n\n"
         "// 3. Capsule Corner Radius\n"
-        "auto pill = std::make_shared<Button>(\"Pill\");\n"
+        "auto pill = Make<Button>(\"Pill\");\n"
         "pill->SetCornerRadius(20.0f);\n\n"
         "// 4. SVG Vector Icon Button\n"
-        "auto svgBtn = std::make_shared<Button>(\"Like\");\n"
+        "auto svgBtn = Make<Button>(\"Like\");\n"
         "svgBtn->SetIcon(\"<svg>...</svg>\");\n";
 
     return BuildSamplePage(spec);

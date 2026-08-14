@@ -34,6 +34,7 @@ void StarPoints(Point center, float radius, Point out[10]) {
 } // namespace
 
 RatingControl::RatingControl() {
+    ValueProperty.Initialize(*this);
     SetFillColorToken(ThemeTokenId::AccentColor);
     SetTrackColorToken(ThemeTokenId::CardBorder);
     SetColorToken(ThemeTokenId::TextSecondary);

@@ -2,6 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/State.h"
 #include "framework/controls/ToggleButton.h"
 
 using namespace CUI;
@@ -10,51 +11,57 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleButtonPage() {
-    auto bold = std::make_shared<ToggleButton>("粗体");
-	bold->SetFontWeight(FontWeight::Bold);
-    auto italic = std::make_shared<ToggleButton>("斜体");
-	italic->SetFontStyle(FontStyle::Italic);
-    //下划线
-    auto underline = std::make_shared<ToggleButton>("下划线");
-	underline->SetIsUnderline(true);
-    //删除线
-    auto strikethrough = std::make_shared<ToggleButton>("删除线");
-	strikethrough->SetIsStrikethrough(true);
-    //红色
-	auto redstyle = std::make_shared<ToggleButton>("红色");
-	
+    auto bold = Make<ToggleButton>("粗体");
+    bold->SetFontWeight(FontWeight::Bold);
+    
+    auto italic = Make<ToggleButton>("斜体");
+    italic->SetFontStyle(FontStyle::Italic);
+    
+    auto underline = Make<ToggleButton>("下划线");
+    underline->SetIsUnderline(true);
+    
+    auto strikethrough = Make<ToggleButton>("删除线");
+    strikethrough->SetIsStrikethrough(true);
 
-    auto status = MakeStatus("当前状态：常规。");
-    auto update = [bold, italic, underline, strikethrough, status]() {
-        const bool isBold = bold->IsChecked();
-        const bool isItalic = italic->IsChecked();
+    State<bool> boldChecked{ false };
+    State<bool> italicChecked{ false };
+    State<bool> underlineChecked{ false };
+    State<bool> strikethroughChecked{ false };
 
-        status->SetFontWeight(isBold ? FontWeight::Bold : FontWeight::Normal);
-        status->SetFontStyle(isItalic ? FontStyle::Italic : FontStyle::Normal);
-        status->SetIsUnderline(false);
-        status->SetIsStrikethrough(false);
-        status->SetIsUnderline(underline->IsChecked());
-        status->SetIsStrikethrough(strikethrough->IsChecked());
-        std::string s;
-        auto f = [&](bool b, const char* x) {
-            if (b) s += s.empty() ? x : std::string(" + ") + x;
-            };
-        f(isBold, "粗体");f(isItalic, "斜体");
-        f(underline->IsChecked(), "下划线");f(strikethrough->IsChecked(), "删除线");
-        status->SetText("当前状态：" + (s.empty() ? "常规" : s) + "。");
-    };
-    bold->OnToggled().Connect([update](ToggleButton*, bool) { update(); });
-    italic->OnToggled().Connect([update](ToggleButton*, bool) { update(); });
-    underline->OnToggled().Connect([update](ToggleButton*, bool) { update(); });
-    strikethrough->OnToggled().Connect([update](ToggleButton*, bool) { update(); });
+    bold->IsOn->Bind(boldChecked);
+    italic->IsOn->Bind(italicChecked);
+    underline->IsOn->Bind(underlineChecked);
+    strikethrough->IsOn->Bind(strikethroughChecked);
 
-    auto locked = std::make_shared<ToggleButton>("已锁定");
+    auto statusText = MakeComputed<std::string>(
+        [](bool b, bool i, bool u, bool s) {
+            std::string text;
+            if (b) text += text.empty() ? "粗体" : " + 粗体";
+            if (i) text += text.empty() ? "斜体" : " + 斜体";
+            if (u) text += text.empty() ? "下划线" : " + 下划线";
+            if (s) text += text.empty() ? "删除线" : " + 删除线";
+            return std::string("当前状态：") + (text.empty() ? "常规" : text) + "。";
+        }, boldChecked, italicChecked, underlineChecked, strikethroughChecked);
+
+    auto statusWeight = MakeComputed<CUI::FontWeight>(
+        [](bool b) { return b ? FontWeight::Bold : FontWeight::Normal; }, boldChecked);
+    auto statusStyle = MakeComputed<CUI::FontStyle>(
+        [](bool i) { return i ? FontStyle::Italic : FontStyle::Normal; }, italicChecked);
+
+    auto status = MakeStatus("");
+    status->Text->Bind(statusText, BindingMode::OneWay);
+    status->FontWeight->Bind(statusWeight, BindingMode::OneWay);
+    status->FontStyle->Bind(statusStyle, BindingMode::OneWay);
+    status->Underline->Bind(underlineChecked, BindingMode::OneWay);
+    status->Strikethrough->Bind(strikethroughChecked, BindingMode::OneWay);
+
+    auto locked = Make<ToggleButton>("已锁定");
     locked->SetIsChecked(true);
     locked->SetIsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ToggleButton(切换按钮)";
-    spec.subtitle = "保持开或关的按钮。适用于粗体等模式，或工具栏按下状态。";
+    spec.subtitle = "保持开或关的按钮。通过状态绑定同步派生样式。";
     spec.sections = {
         {
             "文本样式",
@@ -66,10 +73,8 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
         },
     };
     spec.source =
-        "auto bold = std::make_shared<ToggleButton>(\"Bold\");\n"
-        "bold->OnToggled().Connect([](ToggleButton*, bool on) {\n"
-        "    // apply style\n"
-        "});\n";
+        "State<bool> boldChecked{ false };\n"
+        "bold->IsOn->Bind(boldChecked);\n";
     return BuildSamplePage(spec);
 }
 

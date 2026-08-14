@@ -34,6 +34,7 @@ struct Color {
 
     Color() = default;
     Color(float r_, float g_, float b_, float a_ = 1.0f) : r(r_), g(g_), b(b_), a(a_) {}
+    Color(const D2D1_COLOR_F& c) : r(c.r), g(c.g), b(c.b), a(c.a) {}
 
     // Implicit conversion to D2D1_COLOR_F
     operator D2D1_COLOR_F() const {

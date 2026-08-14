@@ -25,6 +25,8 @@ std::string FormatRangeValue(float v) {
 } // namespace
 
 RangeSlider::RangeSlider() {
+    LowerValue.Initialize(*this);
+    UpperValue.Initialize(*this);
     SetOrientation(Orientation::Horizontal);
     SetTrackColorToken(ThemeTokenId::InputBorder);
     SetActiveTrackColorToken(ThemeTokenId::AccentColor);

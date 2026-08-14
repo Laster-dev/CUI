@@ -9,6 +9,7 @@
 namespace CUI {
 
 ColorPicker::ColorPicker() {
+    SelectedColor.Initialize(*this);
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     m_selectedColor = tokens.accentColor;
     SetWidth(220.0f);

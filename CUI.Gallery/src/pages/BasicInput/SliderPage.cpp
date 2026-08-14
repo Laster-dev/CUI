@@ -2,6 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/State.h"
 #include "framework/controls/Slider.h"
 #include "framework/core/Value.h"
 #include <format>
@@ -12,32 +13,38 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildSliderPage() {
-    auto volume = std::make_shared<Slider>();
+    auto volume = Make<Slider>();
     volume->SetMinimum(0.0f);
     volume->SetMaximum(100.0f);
     volume->SetStep(1.0f);
     volume->SetWidth(280.0f);
-    auto volumeStatus = MakeStatus("");
-    auto showVolume = [volumeStatus](Slider*, float value) {
-        volumeStatus->SetText(std::format("音量：{:.0f}", value));
-    };
-    volume->OnValueChanged().Connect(showVolume);
-    volume->SetValue(40.0f);
-    showVolume(volume.get(), volume->GetValue());
 
-    auto vertical = std::make_shared<Slider>();
+    State<float> volumeValue{ 40.0f };
+    volume->ValueProperty->Bind(volumeValue);
+
+    auto volumeStatusValue = MakeComputed<std::string>([](float value) {
+        return std::format("音量：{:.0f}", value);
+    }, volumeValue);
+
+    auto volumeStatus = MakeStatus("");
+    volumeStatus->Text->Bind(volumeStatusValue, BindingMode::OneWay);
+
+    auto vertical = Make<Slider>();
     vertical->SetOrientation(Orientation::Vertical);
     vertical->SetMinimum(0.0f);
     vertical->SetMaximum(100.0f);
     vertical->SetWidth(32.0f);
     vertical->SetHeight(160.0f);
+
+    State<float> verticalValue{ 70.0f };
+    vertical->ValueProperty->Bind(verticalValue);
+
+    auto verticalStatusValue = MakeComputed<std::string>([](float value) {
+        return std::format("电平：{:.0f}", value);
+    }, verticalValue);
+
     auto verticalStatus = MakeStatus("");
-    auto showVertical = [verticalStatus](Slider*, float value) {
-        verticalStatus->SetText(std::format("电平：{:.0f}", value));
-    };
-    vertical->OnValueChanged().Connect(showVertical);
-    vertical->SetValue(70.0f);
-    showVertical(vertical.get(), vertical->GetValue());
+    verticalStatus->Text->Bind(verticalStatusValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "Slider(滑块)";
@@ -57,12 +64,8 @@ std::shared_ptr<UIElement> BuildSliderPage() {
         },
     };
     spec.source =
-        "auto slider = std::make_shared<Slider>();\n"
-        "slider->SetMinimum(0.0f);\n"
-        "slider->SetMaximum(100.0f);\n"
-        "slider->OnValueChanged().Connect([](Slider*, float value) {\n"
-        "    // use value\n"
-        "});\n";
+        "State<float> volumeValue{ 40.0f };\n"
+        "volume->Value->Bind(volumeValue);\n";
     return BuildSamplePage(spec);
 }
 

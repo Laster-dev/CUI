@@ -2,6 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/State.h"
 #include "framework/controls/ColorPicker.h"
 #include "framework/controls/TextBlock.h"
 #include "framework/style/ThemeTokenId.h"
@@ -19,30 +20,35 @@ int ToByte(float c) {
     return static_cast<int>(std::clamp(c, 0.0f, 1.0f) * 255.0f + 0.5f);
 }
 
-std::string ColorHex(D2D1_COLOR_F c) {
+std::string ColorHex(Color c) {
     return std::format("#{:02X}{:02X}{:02X}", ToByte(c.r), ToByte(c.g), ToByte(c.b));
 }
 
 } // namespace
 
 std::shared_ptr<UIElement> BuildColorPickerPage() {
-    auto picker = std::make_shared<ColorPicker>();
-    auto chip = std::make_shared<TextBlock>();
+    auto picker = Make<ColorPicker>();
+    auto chip = Make<TextBlock>();
     chip->SetWidth(48.0f);
     chip->SetHeight(24.0f);
     chip->SetCornerRadius(4.0f);
     chip->SetBorderThickness(1.0f);
     chip->SetBorderToken(ThemeTokenId::CardBorder);
-    auto hex = MakeStatus("");
 
-    auto apply = [chip, hex](D2D1_COLOR_F color) {
-        chip->SetBackground(color);
-        hex->SetText(ColorHex(color));
-    };
-    picker->OnColorChanged().Connect([apply](ColorPicker*, D2D1_COLOR_F color) {
-        apply(color);
-    });
-    apply(picker->GetSelectedColor());
+    State<Color> selectedColor{ Color(0, 0, 0, 1) };
+    picker->SelectedColor->Bind(selectedColor);
+    
+    // Set default initial value from picker
+    selectedColor = picker->GetSelectedColor();
+
+    chip->Background->Bind(selectedColor, BindingMode::OneWay);
+
+    auto hexValue = MakeComputed<std::string>([](Color color) {
+        return ColorHex(color);
+    }, selectedColor);
+
+    auto hex = MakeStatus("");
+    hex->Text->Bind(hexValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "ColorPicker(颜色选择器)";
@@ -58,10 +64,8 @@ std::shared_ptr<UIElement> BuildColorPickerPage() {
         },
     };
     spec.source =
-        "auto picker = std::make_shared<ColorPicker>();\n"
-        "picker->OnColorChanged().Connect([](ColorPicker*, D2D1_COLOR_F color) {\n"
-        "    preview->SetBackground(color); // no background token\n"
-        "});\n";
+        "State<Color> selectedColor{ Color(0, 0, 0, 1) };\n"
+        "picker->SelectedColor->Bind(selectedColor);\n";
     return BuildSamplePage(spec);
 }
 

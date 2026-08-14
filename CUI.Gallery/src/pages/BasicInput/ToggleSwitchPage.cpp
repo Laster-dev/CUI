@@ -2,6 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/State.h"
 #include "framework/controls/ToggleSwitch.h"
 
 using namespace CUI;
@@ -10,24 +11,30 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleSwitchPage() {
-    auto notify = std::make_shared<ToggleSwitch>();
+    auto notify = Make<ToggleSwitch>();
     notify->SetHeader("通知");
-    auto status = MakeStatus("通知已关闭。");
-    notify->OnToggled().Connect([status](ToggleSwitch*, bool on) {
-        status->SetText(on ? "通知已开启。" : "通知已关闭。");
-    });
+    
+    State<bool> notifyOn{ false };
+    notify->IsOn->Bind(notifyOn);
 
-    auto wifi = std::make_shared<ToggleSwitch>();
+    auto statusValue = MakeComputed<std::string>([](bool on) {
+        return on ? "通知已开启。" : "通知已关闭。";
+    }, notifyOn);
+
+    auto status = MakeStatus("");
+    status->Text->Bind(statusValue, BindingMode::OneWay);
+
+    auto wifi = Make<ToggleSwitch>();
     wifi->SetHeader("Wi-Fi");
     wifi->SetIsOn(true);
 
-    auto locked = std::make_shared<ToggleSwitch>();
+    auto locked = Make<ToggleSwitch>();
     locked->SetHeader("飞行模式");
     locked->SetIsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ToggleSwitch(开关)";
-    spec.subtitle = "开关用于打开或关闭设置。用 SetHeader 设置轨道旁的标签。";
+    spec.subtitle = "开关用于打开或关闭设置。通过状态绑定同步标签值。";
     spec.sections = {
         {
             "设置",
@@ -41,11 +48,8 @@ std::shared_ptr<UIElement> BuildToggleSwitchPage() {
         },
     };
     spec.source =
-        "auto notify = std::make_shared<ToggleSwitch>();\n"
-        "notify->SetHeader(\"Notifications\");\n"
-        "notify->OnToggled().Connect([](ToggleSwitch*, bool on) {\n"
-        "    // apply setting\n"
-        "});\n";
+        "State<bool> notifyOn{ false };\n"
+        "notify->IsOn->Bind(notifyOn);\n";
     return BuildSamplePage(spec);
 }
 

@@ -2,6 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/State.h"
 #include "framework/controls/RangeSlider.h"
 #include <format>
 
@@ -11,18 +12,24 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildRangeSliderPage() {
-    auto price = std::make_shared<RangeSlider>();
+    auto price = Make<RangeSlider>();
     price->SetMinimum(0.0f);
     price->SetMaximum(1000.0f);
     price->SetStep(10.0f);
     price->SetWidth(320.0f);
+
+    State<float> lowerValue{ 200.0f };
+    State<float> upperValue{ 800.0f };
+    
+    price->LowerValue->Bind(lowerValue);
+    price->UpperValue->Bind(upperValue);
+
+    auto statusValue = MakeComputed<std::string>([](float low, float up) {
+        return std::format("价格：¥{:.0f} – ¥{:.0f}", low, up);
+    }, lowerValue, upperValue);
+
     auto status = MakeStatus("");
-    auto show = [status](RangeSlider*, float lower, float upper) {
-        status->SetText(std::format("价格：¥{:.0f} – ¥{:.0f}", lower, upper));
-    };
-    price->OnValueChanged().Connect(show);
-    price->SetRange(200.0f, 800.0f);
-    show(price.get(), price->GetLowerValue(), price->GetUpperValue());
+    status->Text->Bind(statusValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "RangeSlider(范围滑块)";
@@ -35,13 +42,10 @@ std::shared_ptr<UIElement> BuildRangeSliderPage() {
         },
     };
     spec.source =
-        "auto range = std::make_shared<RangeSlider>();\n"
-        "range->SetMinimum(0.0f);\n"
-        "range->SetMaximum(1000.0f);\n"
-        "range->OnValueChanged().Connect([](RangeSlider*, float lower, float upper) {\n"
-        "    // use range\n"
-        "});\n"
-        "range->SetRange(200.0f, 800.0f);\n";
+        "State<float> lowerValue{ 200.0f };\n"
+        "State<float> upperValue{ 800.0f };\n"
+        "range->LowerValue->Bind(lowerValue);\n"
+        "range->UpperValue->Bind(upperValue);\n";
     return BuildSamplePage(spec);
 }
 

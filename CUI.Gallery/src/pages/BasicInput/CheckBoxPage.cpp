@@ -14,10 +14,10 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildCheckBoxPage() {
-    auto wifi = std::make_shared<CheckBox>("Wi-Fi");
-    auto bluetooth = std::make_shared<CheckBox>("蓝牙");
-    auto airplane = std::make_shared<CheckBox>("飞行模式");
-    auto selectAll = std::make_shared<CheckBox>("全选");
+    auto wifi = Make<CheckBox>("Wi-Fi");
+    auto bluetooth = Make<CheckBox>("蓝牙");
+    auto airplane = Make<CheckBox>("飞行模式");
+    auto selectAll = Make<CheckBox>("全选");
     selectAll->SetIsThreeState(true);
 
     State<bool> wifiValue{ true };
@@ -40,7 +40,7 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
         bluetoothValue,
         airplaneValue);
     selectAll->State->Bind(selectAllValue, BindingMode::OneWay);
-    auto applyingSelectAll = std::make_shared<bool>(false);
+    State<bool> applyingSelectAll{ false };
 
     auto statusValue = MakeComputed<std::string>(
         [](bool wifiEnabled, bool bluetoothEnabled, bool airplaneEnabled) {
@@ -57,19 +57,19 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
 
     selectAll->OnCheckStateChanged().Connect(
         [wifiValue, bluetoothValue, airplaneValue, selectAllValue, applyingSelectAll](CheckBox* sender, CheckState) {
-            if (sender->IsUpdatingFromBinding() || *applyingSelectAll) {
+            if (sender->IsUpdatingFromBinding() || applyingSelectAll) {
                 return;
             }
 
-            *applyingSelectAll = true;
+            applyingSelectAll = true;
             const bool selectEverything = selectAllValue->Get() != CheckState::Checked;
             wifiValue = selectEverything;
             bluetoothValue = selectEverything;
             airplaneValue = selectEverything;
-            *applyingSelectAll = false;
+            applyingSelectAll = false;
         });
 
-    auto twoState = std::make_shared<CheckBox>("我同意条款");
+    auto twoState = Make<CheckBox>("我同意条款");
     auto twoStatus = MakeStatus("未同意。");
     twoState->OnCheckStateChanged().Connect([twoStatus](CheckBox*, CheckState state) {
         twoStatus->SetText(state == CheckState::Checked ? "已同意。" : "未同意。");

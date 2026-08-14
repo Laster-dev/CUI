@@ -2,6 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/State.h"
 #include "framework/controls/ComboBox.h"
 
 using namespace CUI;
@@ -10,19 +11,30 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildComboBoxPage() {
-    auto combo = std::make_shared<ComboBox>();
+    auto combo = Make<ComboBox>();
     combo->SetWidth(220.0f);
     combo->AddItem("苹果");
     combo->AddItem("香蕉");
     combo->AddItem("樱桃");
     combo->AddItem("橙子");
-    auto status = MakeStatus("请选择水果。");
-    combo->OnSelectionChanged().Connect([status](ComboBox*, int, const std::string& item) {
-        status->SetText("已选择：" + item + "。");
-    });
-    combo->SetSelectedIndex(0);
 
-    auto disabled = std::make_shared<ComboBox>();
+    State<int> selection{ 0 };
+    combo->SelectedIndex->Bind(selection);
+
+    auto statusValue = MakeComputed<std::string>([](int index) {
+        switch (index) {
+        case 0: return "已选择：苹果。";
+        case 1: return "已选择：香蕉。";
+        case 2: return "已选择：樱桃。";
+        case 3: return "已选择：橙子。";
+        default: return "请选择水果。";
+        }
+    }, selection);
+
+    auto status = MakeStatus("");
+    status->Text->Bind(statusValue, BindingMode::OneWay);
+
+    auto disabled = Make<ComboBox>();
     disabled->SetWidth(220.0f);
     disabled->AddItem("不可用");
     disabled->SetSelectedIndex(0);
@@ -43,12 +55,8 @@ std::shared_ptr<UIElement> BuildComboBoxPage() {
         },
     };
     spec.source =
-        "auto combo = std::make_shared<ComboBox>();\n"
-        "combo->AddItem(\"Apple\");\n"
-        "combo->OnSelectionChanged().Connect([](ComboBox*, int, const std::string& item) {\n"
-        "    // use item\n"
-        "});\n"
-        "combo->SetSelectedIndex(0);\n";
+        "State<int> selection{ 0 };\n"
+        "combo->SelectedIndex->Bind(selection);\n";
     return BuildSamplePage(spec);
 }
 

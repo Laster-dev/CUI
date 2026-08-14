@@ -2,6 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/State.h"
 #include "framework/controls/RatingControl.h"
 #include <format>
 
@@ -11,25 +12,28 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildRatingControlPage() {
-    auto rating = std::make_shared<RatingControl>();
+    auto rating = Make<RatingControl>();
     rating->SetMaxRating(5);
     rating->SetStep(0.5f);
-    auto status = MakeStatus("");
-    auto show = [status](RatingControl*, float value) {
-        status->SetText(std::format("你的评分：{:.1f}", value));
-    };
-    rating->OnValueChanged().Connect(show);
-    rating->SetValue(3.5f);
-    show(rating.get(), rating->GetValue());
 
-    auto readOnly = std::make_shared<RatingControl>();
+    State<float> ratingValue{ 3.5f };
+    rating->ValueProperty->Bind(ratingValue);
+
+    auto statusValue = MakeComputed<std::string>([](float val) {
+        return std::format("你的评分：{:.1f}", val);
+    }, ratingValue);
+
+    auto status = MakeStatus("");
+    status->Text->Bind(statusValue, BindingMode::OneWay);
+
+    auto readOnly = Make<RatingControl>();
     readOnly->SetMaxRating(5);
     readOnly->SetIsReadOnly(true);
     readOnly->SetValue(4.0f);
 
     SamplePageSpec spec;
     spec.title = "RatingControl(评分)";
-    spec.subtitle = "用星级表示评分。单击或悬停设置分数，也可只读显示。";
+    spec.subtitle = "用星级表示评分。通过状态绑定同步所选分数。";
     spec.sections = {
         {
             "可交互",
@@ -46,12 +50,8 @@ std::shared_ptr<UIElement> BuildRatingControlPage() {
         },
     };
     spec.source =
-        "auto rating = std::make_shared<RatingControl>();\n"
-        "rating->SetMaxRating(5);\n"
-        "rating->SetStep(0.5f);\n"
-        "rating->OnValueChanged().Connect([](RatingControl*, float value) {\n"
-        "    // use value\n"
-        "});\n";
+        "State<float> ratingValue{ 3.5f };\n"
+        "rating->Value->Bind(ratingValue);\n";
     return BuildSamplePage(spec);
 }
 

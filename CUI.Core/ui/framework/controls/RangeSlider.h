@@ -34,6 +34,8 @@ public:
     float GetMinimumRange() const { return m_minimumRange; }
     void SetMinimumRange(float range);
 
+    PropertyRef<float, PropertyId::LowerValue> LowerValue;
+    PropertyRef<float, PropertyId::UpperValue> UpperValue;
     float GetLowerValue() const { return m_lower; }
     void SetLowerValue(float val);
     float GetUpperValue() const { return m_upper; }

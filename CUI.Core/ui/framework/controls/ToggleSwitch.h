@@ -24,7 +24,8 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    bool IsOn() const { return m_isOn; }
+    PropertyRef<bool, PropertyId::IsOn> IsOn;
+    bool GetIsOn() const { return m_isOn; }
     void SetIsOn(bool on);
 
     const std::string& GetHeader() const { return m_header; }

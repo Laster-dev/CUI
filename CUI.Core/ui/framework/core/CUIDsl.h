@@ -51,6 +51,8 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 #include <initializer_list>
 #include <functional>
@@ -58,6 +60,12 @@
 namespace CUI {
 class Window;
 namespace DSL {
+
+template<typename T, typename... Args>
+std::shared_ptr<T> Make(Args&&... args) {
+    static_assert(std::is_base_of_v<UIElement, T>, "DSL::Make only creates UIElement types.");
+    return std::make_shared<T>(std::forward<Args>(args)...);
+}
 
 inline D2D1_COLOR_F Rgb(unsigned int rgb, float alpha = 1.0f) {
     return D2D1::ColorF(

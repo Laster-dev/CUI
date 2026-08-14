@@ -19,6 +19,7 @@ float FluentEaseOut(float t) {
 }
 
 ToggleSwitch::ToggleSwitch() {
+    IsOn.Initialize(*this);
     auto& theme = ThemeManager::Instance();
     SetOnColorToken(ThemeTokenId::AccentColor);
     SetOffColorToken(ThemeTokenId::InputBorder);
@@ -26,12 +27,6 @@ ToggleSwitch::ToggleSwitch() {
     SetBorderToken(ThemeTokenId::CardBorder);
     SetColorToken(ThemeTokenId::TextSecondary);
     // No control chrome fill — focus/hover must not paint a rectangular backdrop.
-    SetBackgroundToken(ThemeTokenId::Unset);
-    SetHoverBackgroundToken(ThemeTokenId::Unset);
-    SetPressedBackgroundToken(ThemeTokenId::Unset);
-    SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
     SetBorderBrush(theme.GetColor("cardBorder"));
     SetColor(theme.GetColor("textSecondary"));
     SetBorderThickness(0.0f);
@@ -87,12 +82,12 @@ void ToggleSwitch::SetIsOn(bool on) {
 bool ToggleSwitch::OnAnimationTick() {
     bool base = Control::OnAnimationTick();
     if (!UIElement::AreAnimationsEnabled()) {
-        m_knobPosAnim.Reset(IsOn() ? 1.0f : 0.0f);
+        m_knobPosAnim.Reset(GetIsOn() ? 1.0f : 0.0f);
         return base;
     }
 
     // Time-based linear progress → single Fluent ease in paint (WinUI ToggleSwitch).
-    const float target = IsOn() ? 1.0f : 0.0f;
+    const float target = GetIsOn() ? 1.0f : 0.0f;
     float current = m_knobPosAnim.Current();
     const float dt = UIElement::GetAnimationDeltaSeconds();
     const float step = (dt <= 0.0f) ? 1.0f : (dt / kToggleDurationSec);
@@ -113,7 +108,7 @@ bool ToggleSwitch::OnAnimationTick() {
 }
 
 bool ToggleSwitch::HasSelfAnimation() const {
-    float targetRatio = IsOn() ? 1.0f : 0.0f;
+    float targetRatio = GetIsOn() ? 1.0f : 0.0f;
     return Control::HasSelfAnimation() || std::abs(m_knobPosAnim.Current() - targetRatio) > 0.001f;
 }
 
@@ -123,7 +118,7 @@ void ToggleSwitch::OnMouseUp(Point pt) {
     }
     Control::OnMouseUp(pt);
     if (m_bounds.Contains(pt.x, pt.y)) {
-        SetIsOn(!IsOn());
+        SetIsOn(!GetIsOn());
     }
 }
 
@@ -132,7 +127,7 @@ bool ToggleSwitch::OnKeyDown(int vkCode) {
         return false;
     }
     if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
-        SetIsOn(!IsOn());
+        SetIsOn(!GetIsOn());
         ExecuteBoundCommand();
         OnClick().Invoke(this);
         return true;

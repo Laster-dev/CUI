@@ -74,7 +74,7 @@ save->SetIsStrikethrough(true);
 
 ```cpp
 State<bool> wifiValue{ true };
-auto wifi = std::make_shared<CheckBox>("Wi-Fi");
+auto wifi = Make<CheckBox>("Wi-Fi");
 wifi->Checked->Bind(wifiValue);
 
 wifiValue = false; // UI 自动刷新

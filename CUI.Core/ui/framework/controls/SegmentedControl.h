@@ -37,6 +37,7 @@ public:
     void SetItems(const std::string& itemsCsv);
     const std::vector<std::string>& GetItems() const { return m_items; }
 
+    PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex;
     int GetSelectedIndex() const { return m_selectedIndex; }
     void SetSelectedIndex(int index);
 

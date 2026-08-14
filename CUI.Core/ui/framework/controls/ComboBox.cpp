@@ -41,6 +41,7 @@ bool ComboBox::HasProperty(PropertyId id) const {
 }
 
 ComboBox::ComboBox() {
+    SelectedIndex.Initialize(*this);
     SetPlaceholder("Select option...");
     SetBackgroundToken(ThemeTokenId::InputBackground);
     SetHoverBackgroundToken(ThemeTokenId::HoverBackground);

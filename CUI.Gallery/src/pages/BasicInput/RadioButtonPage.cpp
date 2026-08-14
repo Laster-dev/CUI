@@ -2,6 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/State.h"
 #include "framework/controls/RadioButton.h"
 
 using namespace CUI;
@@ -10,41 +11,57 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildRadioButtonPage() {
-    auto light = std::make_shared<RadioButton>("浅色");
-    auto dark = std::make_shared<RadioButton>("深色");
-    auto system = std::make_shared<RadioButton>("跟随系统");
+    auto light = Make<RadioButton>("浅色");
+    auto dark = Make<RadioButton>("深色");
+    auto system = Make<RadioButton>("跟随系统");
     light->SetGroupName("theme");
     dark->SetGroupName("theme");
     system->SetGroupName("theme");
-    light->SetState(CheckState::Checked);
 
-    auto themeStatus = MakeStatus("主题：浅色。");
-    auto onTheme = [themeStatus](CheckBox* sender, CheckState state) {
-        if (state == CheckState::Checked) {
-            themeStatus->SetText("主题：" + sender->GetText() + "。");
-        }
-    };
-    light->OnCheckStateChanged().Connect(onTheme);
-    dark->OnCheckStateChanged().Connect(onTheme);
-    system->OnCheckStateChanged().Connect(onTheme);
+    State<bool> lightChecked{ true };
+    State<bool> darkChecked{ false };
+    State<bool> systemChecked{ false };
 
-    auto sizeS = std::make_shared<RadioButton>("小");
-    auto sizeM = std::make_shared<RadioButton>("中");
-    auto sizeL = std::make_shared<RadioButton>("大");
+    light->Checked->Bind(lightChecked);
+    dark->Checked->Bind(darkChecked);
+    system->Checked->Bind(systemChecked);
+
+    auto themeStatusValue = MakeComputed<std::string>(
+        [](bool l, bool d, bool s) {
+            if (l) return "主题：浅色。";
+            if (d) return "主题：深色。";
+            if (s) return "主题：跟随系统。";
+            return "请选择主题。";
+        }, lightChecked, darkChecked, systemChecked);
+
+    auto themeStatus = MakeStatus("");
+    themeStatus->Text->Bind(themeStatusValue, BindingMode::OneWay);
+
+    auto sizeS = Make<RadioButton>("小");
+    auto sizeM = Make<RadioButton>("中");
+    auto sizeL = Make<RadioButton>("大");
     sizeS->SetGroupName("size");
     sizeM->SetGroupName("size");
     sizeL->SetGroupName("size");
-    sizeM->SetState(CheckState::Checked);
 
-    auto sizeStatus = MakeStatus("大小：中。");
-    auto onSize = [sizeStatus](CheckBox* sender, CheckState state) {
-        if (state == CheckState::Checked) {
-            sizeStatus->SetText("大小：" + sender->GetText() + "。");
-        }
-    };
-    sizeS->OnCheckStateChanged().Connect(onSize);
-    sizeM->OnCheckStateChanged().Connect(onSize);
-    sizeL->OnCheckStateChanged().Connect(onSize);
+    State<bool> sizeSChecked{ false };
+    State<bool> sizeMChecked{ true };
+    State<bool> sizeLChecked{ false };
+
+    sizeS->Checked->Bind(sizeSChecked);
+    sizeM->Checked->Bind(sizeMChecked);
+    sizeL->Checked->Bind(sizeLChecked);
+
+    auto sizeStatusValue = MakeComputed<std::string>(
+        [](bool s, bool m, bool l) {
+            if (s) return "大小：小。";
+            if (m) return "大小：中。";
+            if (l) return "大小：大。";
+            return "请选择大小。";
+        }, sizeSChecked, sizeMChecked, sizeLChecked);
+
+    auto sizeStatus = MakeStatus("");
+    sizeStatus->Text->Bind(sizeStatusValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "RadioButton(单选按钮)";
@@ -72,9 +89,8 @@ std::shared_ptr<UIElement> BuildRadioButtonPage() {
         },
     };
     spec.source =
-        "auto light = std::make_shared<RadioButton>(\"Light\");\n"
-        "light->SetGroupName(\"theme\");\n"
-        "light->SetState(CheckState::Checked);\n";
+        "State<bool> lightChecked{ true };\n"
+        "light->Checked->Bind(lightChecked);\n";
     return BuildSamplePage(spec);
 }
 

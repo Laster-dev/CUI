@@ -24,6 +24,7 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
+    PropertyRef<float, PropertyId::ControlValue> ValueProperty;
     float GetValue() const { return m_value; }
     void SetValue(float val);
 

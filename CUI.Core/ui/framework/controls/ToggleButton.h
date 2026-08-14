@@ -17,6 +17,7 @@ public:
     virtual void OnMouseUp(Point pt) override;
     virtual bool OnKeyDown(int vkCode) override;
 
+    PropertyRef<bool, PropertyId::IsOn> IsOn;
     bool IsChecked() const { return m_isChecked; }
     void SetIsChecked(bool checked);
 
