@@ -105,6 +105,9 @@ public:
     void SetSelectedItem(NavigationViewItem* item);
     NavigationViewItem* GetSelectedItem() const { return m_selectedItem; }
     void SelectByTag(const std::string& tag);
+    bool NavigateTo(const std::string& tag);
+    bool CanGoBack() const { return !m_navigationHistory.empty(); }
+    bool GoBack();
 
     // --- Content / header / pane chrome ---
     void SetContent(const std::shared_ptr<UIElement>& content);
@@ -182,6 +185,7 @@ private:
     bool IsOverlayMode() const;
     bool ShouldShowHeader() const;
     bool ShouldShowBackButton() const;
+    void UpdateBackButtonState();
     bool IsCompactList() const;
 
     void UpdateChildCompactFlags();
@@ -231,7 +235,9 @@ private:
     bool m_alwaysShowHeader = false;
 
     NavigationViewBackButtonVisible m_backVisible = NavigationViewBackButtonVisible::Auto;
-    bool m_backEnabled = true;
+    bool m_backEnabled = false;
+
+    std::vector<std::string> m_navigationHistory;
 
     std::shared_ptr<Button> m_btnBack;
     std::shared_ptr<Button> m_btnToggle;

@@ -13,12 +13,13 @@ namespace CUI {
 namespace {
 constexpr float kChromeButton = 40.0f;
 constexpr float kTopNavHeight = 48.0f;
+constexpr const char* kBackIcon = R"(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><path d="M487.271784 276.48c-7.887568-35.701622-37.638919-13.976216-37.638919-13.976216l-206.737297 175.187027c-45.388108 31.135135-3.182703 54.382703-3.182703 54.382703l203.692973 173.526486c40.683243 29.474595 43.865946-15.498378 43.865946-15.498378v-79.014054c206.737297-63.515676 291.424865 190.685405 291.424865 190.685405 7.749189 13.976216 12.454054 0 12.454054 0 79.982703-381.370811-303.878919-400.051892-303.878919-400.051892v-85.241081z"/></svg>)";
 
 void StyleChromeButton(const std::shared_ptr<Button>& btn) {
-    // Tokens only — Button paint resolves via ThemeManager / ResolveThemeColor.
-    btn->SetBackgroundToken(ThemeTokenId::CardBackground);
+    btn->SetBackgroundToken(ThemeTokenId::Unset);
     btn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
     btn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    btn->SetBackground(D2D1::ColorF(0, 0, 0, 0));
     btn->SetColorToken(ThemeTokenId::TextPrimary);
     btn->SetBorderToken(ThemeTokenId::CardBorder);
     btn->SetBorderThickness(0.0f);
@@ -79,16 +80,14 @@ void NavigationView::SetProperty(PropertyId id, const Value& val) {
 }
 
 void NavigationView::BuildChrome() {
-    m_btnBack = std::make_shared<Button>("←");
+    m_btnBack = std::make_shared<Button>("");
+    m_btnBack->SetIcon(kBackIcon);
     StyleChromeButton(m_btnBack);
     m_btnBack->SetCornerRadius(20.0f);
     AddChild(m_btnBack);
+    m_btnBack->SetIsEnabled(false);
     m_btnBack->OnClick().Connect([this](UIElement*) {
-        if (IsOverlayMode() && m_isPaneOpen) {
-            SetIsPaneOpen(false);
-            return;
-        }
-        if (m_backEnabled) {
+        if (m_backEnabled && !GoBack()) {
             m_backRequested.Invoke(this);
         }
     });
@@ -614,6 +613,10 @@ void NavigationView::SetIsBackEnabled(bool enabled) {
     }
 }
 
+void NavigationView::UpdateBackButtonState() {
+    SetIsBackEnabled(CanGoBack());
+}
+
 void NavigationView::SetSelectedItem(NavigationViewItem* item) {
     // Selected child ⇒ every ancestor menu must be expanded (visibility + indicator).
     ExpandAncestorsOf(item);
@@ -793,6 +796,47 @@ void NavigationView::SelectByTag(const std::string& tag) {
     }
 }
 
+bool NavigationView::NavigateTo(const std::string& tag) {
+    if (tag.empty() || (m_selectedItem && m_selectedItem->GetTag() == tag)) {
+        return false;
+    }
+
+    const std::string previousTag = m_selectedItem ? m_selectedItem->GetTag() : std::string();
+    SelectByTag(tag);
+    if (!m_selectedItem || m_selectedItem->GetTag() != tag) {
+        return false;
+    }
+
+    if (!previousTag.empty()) {
+        m_navigationHistory.push_back(previousTag);
+    }
+    UpdateBackButtonState();
+    ClosePaneIfOverlay();
+    return true;
+}
+
+bool NavigationView::GoBack() {
+    if (m_navigationHistory.empty()) {
+        UpdateBackButtonState();
+        return false;
+    }
+
+    const std::string targetTag = m_navigationHistory.back();
+    m_navigationHistory.pop_back();
+    SelectByTag(targetTag);
+    UpdateBackButtonState();
+
+    if (!m_selectedItem || m_selectedItem->GetTag() != targetTag) {
+        return false;
+    }
+
+    NavigationViewItemInvokedEventArgs invokedArgs;
+    invokedArgs.InvokedItem = m_selectedItem;
+    invokedArgs.IsSettingsInvoked = (m_selectedItem == m_settingsItem.get());
+    m_itemInvoked.Invoke(this, invokedArgs);
+    return true;
+}
+
 void NavigationView::NotifyItemInvoked(NavigationViewItem* item) {
     if (!item) {
         return;
@@ -804,12 +848,13 @@ void NavigationView::NotifyItemInvoked(NavigationViewItem* item) {
         item->SelectsOnInvoked() ? 1 : 0,
         item->HasChildren() ? 1 : 0);
 
-    // Select first so ripple/indicator start before any content-scheduling work.
     if (item->SelectsOnInvoked()) {
-        SetSelectedItem(item);
-        ClosePaneIfOverlay();
-    } else if (item->HasChildren()) {
-        // Already toggled expand in item click path when SelectsOnInvoked is false.
+        if (item->GetTag().empty()) {
+            SetSelectedItem(item);
+            ClosePaneIfOverlay();
+        } else {
+            NavigateTo(item->GetTag());
+        }
     }
 
     NavigationViewItemInvokedEventArgs invokedArgs;
@@ -817,7 +862,6 @@ void NavigationView::NotifyItemInvoked(NavigationViewItem* item) {
     invokedArgs.IsSettingsInvoked = (item == m_settingsItem.get());
     m_itemInvoked.Invoke(this, invokedArgs);
 }
-
 void NavigationView::ClosePaneIfOverlay() {
     if (IsOverlayMode() && m_isPaneOpen) {
         SetIsPaneOpen(false);

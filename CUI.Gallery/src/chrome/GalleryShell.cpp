@@ -75,7 +75,6 @@ namespace Gallery {
             nav->SetHeader(std::string());
             nav->SetPaneTitle("CUI Gallery");
             nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
-            nav->SetIsBackButtonVisible(NavigationViewBackButtonVisible::Collapsed);
             nav->SetIsSettingsVisible(true);
             if (auto* settings = nav->SettingsItem()) {
                 settings->SetContent("设置");
@@ -124,12 +123,11 @@ namespace Gallery {
                 if (tag.empty()) {
                     return;
                 }
+                nav->NavigateTo(tag);
                 if (tag == kSettingsTag) {
-                    nav->SelectByTag(tag);
                     nav->SetContent(cache->Resolve(kSettingsTag));
                     return;
                 }
-                nav->SelectByTag(tag);
                 if (cache->Contains(tag) || tag == kHomeTag) {
                     if (auto page = cache->Resolve(tag)) {
                         nav->SetContent(page);
@@ -138,11 +136,10 @@ namespace Gallery {
                 }
                 nav->SetContentFactory([cache, tag]() {
                     return cache->Resolve(tag);
-                    });
-                };
+                });
+            };
 
             Host::Instance().SetNavigator(navigate);
-
             search->OnSuggestionChosen().Connect([search](AutoSuggestBox*, const std::string& title) {
                 if (const Entry* entry = FindByTitle(title)) {
                     Host::Instance().Navigate(entry->tag);
