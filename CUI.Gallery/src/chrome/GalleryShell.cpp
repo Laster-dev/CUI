@@ -74,6 +74,7 @@ namespace Gallery {
             auto nav = std::make_shared<NavigationView>();
             nav->SetHeader(std::string());
             nav->SetPaneTitle("CUI Gallery");
+			//nav->SetIcon("Assets/Logo.png");
             nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
             nav->SetIsSettingsVisible(true);
             if (auto* settings = nav->SettingsItem()) {

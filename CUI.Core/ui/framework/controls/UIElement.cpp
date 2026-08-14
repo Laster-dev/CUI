@@ -54,6 +54,7 @@ UIElement::UIElement() {
 }
 
 UIElement::~UIElement() {
+    UnbindText();
     CancelAnimationTicks();
     if (AnimationManager* mgr = AnimationManager::Current()) {
         mgr->CancelWake(this);

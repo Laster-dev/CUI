@@ -2,6 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/Observable.h"
 #include "framework/controls/CheckBox.h"
 #include <memory>
 #include <string>
@@ -16,75 +17,57 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
     auto wifi = std::make_shared<CheckBox>("Wi-Fi");
     auto bluetooth = std::make_shared<CheckBox>("蓝牙");
     auto airplane = std::make_shared<CheckBox>("飞行模式");
-    wifi->SetState(CheckState::Checked);
-    bluetooth->SetState(CheckState::Checked);
-
     auto selectAll = std::make_shared<CheckBox>("全选");
     selectAll->SetIsThreeState(true);
 
+    auto wifiValue = std::make_shared<Observable<bool>>(true);
+    auto bluetoothValue = std::make_shared<Observable<bool>>(true);
+    auto airplaneValue = std::make_shared<Observable<bool>>(false);
+
+    wifi->Bind(wifiValue);
+    bluetooth->Bind(bluetoothValue);
+    airplane->Bind(airplaneValue);
+
+    auto selectAllValue = MakeComputed<CheckState>(
+        [](bool wifiEnabled, bool bluetoothEnabled, bool airplaneEnabled) {
+            const bool allChecked = wifiEnabled && bluetoothEnabled && airplaneEnabled;
+            const bool anyChecked = wifiEnabled || bluetoothEnabled || airplaneEnabled;
+            return allChecked
+                ? CheckState::Checked
+                : (anyChecked ? CheckState::Indeterminate : CheckState::Unchecked);
+        },
+        wifiValue,
+        bluetoothValue,
+        airplaneValue);
+    selectAll->Bind(selectAllValue, false);
+    auto applyingSelectAll = std::make_shared<bool>(false);
+
+    auto statusValue = MakeComputed<std::string>(
+        [](bool wifiEnabled, bool bluetoothEnabled, bool airplaneEnabled) {
+            const int checkedCount = static_cast<int>(wifiEnabled)
+                + static_cast<int>(bluetoothEnabled)
+                + static_cast<int>(airplaneEnabled);
+            return "已选 " + std::to_string(checkedCount) + " / 3 项。";
+        },
+        wifiValue,
+        bluetoothValue,
+        airplaneValue);
     auto status = MakeStatus("");
-    auto options = std::make_shared<std::vector<std::shared_ptr<CheckBox>>>(
-        std::vector<std::shared_ptr<CheckBox>>{ wifi, bluetooth, airplane });
-    auto syncing = std::make_shared<bool>(false);
-
-    auto updateStatus = [options, status]() {
-        int n = 0;
-        for (const auto& cb : *options) {
-            if (cb->GetState() == CheckState::Checked) {
-                ++n;
-            }
-        }
-        status->SetText("已选 " + std::to_string(n) + " / " + std::to_string(options->size()) + " 项。");
-    };
-
-    auto syncFromItems = [selectAll, options, syncing, updateStatus]() {
-        if (*syncing) {
-            return;
-        }
-        int n = 0;
-        for (const auto& cb : *options) {
-            if (cb->GetState() == CheckState::Checked) {
-                ++n;
-            }
-        }
-        *syncing = true;
-        if (n == 0) {
-            selectAll->SetState(CheckState::Unchecked);
-        } else if (n == static_cast<int>(options->size())) {
-            selectAll->SetState(CheckState::Checked);
-        } else {
-            selectAll->SetState(CheckState::Indeterminate);
-        }
-        *syncing = false;
-        updateStatus();
-    };
+    status->BindText(statusValue);
 
     selectAll->OnCheckStateChanged().Connect(
-        [selectAll, options, syncing, updateStatus](CheckBox*, CheckState state) {
-            if (*syncing) {
+        [wifiValue, bluetoothValue, airplaneValue, selectAllValue, applyingSelectAll](CheckBox* sender, CheckState) {
+            if (sender->IsUpdatingFromBinding() || *applyingSelectAll) {
                 return;
             }
-            *syncing = true;
-            if (state == CheckState::Indeterminate) {
-                state = CheckState::Unchecked;
-                selectAll->SetState(CheckState::Unchecked);
-            }
-            const CheckState itemState = (state == CheckState::Checked)
-                ? CheckState::Checked
-                : CheckState::Unchecked;
-            for (const auto& cb : *options) {
-                cb->SetState(itemState);
-            }
-            *syncing = false;
-            updateStatus();
-        });
 
-    for (const auto& cb : *options) {
-        cb->OnCheckStateChanged().Connect([syncFromItems](CheckBox*, CheckState) {
-            syncFromItems();
+            *applyingSelectAll = true;
+            const bool selectEverything = selectAllValue->Get() != CheckState::Checked;
+            wifiValue->Set(selectEverything);
+            bluetoothValue->Set(selectEverything);
+            airplaneValue->Set(selectEverything);
+            *applyingSelectAll = false;
         });
-    }
-    syncFromItems();
 
     auto twoState = std::make_shared<CheckBox>("我同意条款");
     auto twoStatus = MakeStatus("未同意。");
@@ -114,11 +97,10 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
         },
     };
     spec.source =
-        "auto all = std::make_shared<CheckBox>(\"Select all\");\n"
-        "all->SetIsThreeState(true);\n"
-        "all->OnCheckStateChanged().Connect([](CheckBox*, CheckState state) {\n"
-        "    // sync children\n"
-        "});\n";
+        "auto wifiValue = std::make_shared<Observable<bool>>(true);\n"
+        "wifi->Bind(wifiValue);\n"
+        "auto allValue = MakeComputed<CheckState>(computeState, wifiValue, bluetoothValue, airplaneValue);\n"
+        "selectAll->Bind(allValue, false);\n";
     return BuildSamplePage(spec);
 }
 

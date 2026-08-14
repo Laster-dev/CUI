@@ -20,6 +20,10 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
     //删除线
     auto strikethrough = std::make_shared<ToggleButton>("删除线");
 	strikethrough->SetIsStrikethrough(true);
+    //红色
+	auto redstyle = std::make_shared<ToggleButton>("红色");
+	
+
     auto status = MakeStatus("当前状态：常规。");
     auto update = [bold, italic, underline, strikethrough, status]() {
         const bool isBold = bold->IsChecked();

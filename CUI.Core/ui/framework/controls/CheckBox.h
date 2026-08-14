@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include "../core/Observable.h"
 
 namespace CUI {
 
@@ -13,7 +14,7 @@ class CheckBox : public Control {
 public:
     CheckBox();
     explicit CheckBox(const std::string& text);
-    virtual ~CheckBox() = default;
+    virtual ~CheckBox() override;
 
     virtual const char* GetClassName() const override { return "CheckBox"; }
     virtual Value GetProperty(PropertyId id) const override;
@@ -31,6 +32,14 @@ public:
 
     CheckState GetState() const { return m_state; }
     void SetState(CheckState state);
+
+    // A bool source maps true/false to Checked/Unchecked and updates both ways.
+    void Bind(const std::shared_ptr<Observable<bool>>& value);
+    // A CheckState source supports full three-state binding. Set twoWay to false
+    // for calculated state sources such as MakeComputed(...).
+    void Bind(const std::shared_ptr<Observable<CheckState>>& value, bool twoWay = true);
+    void Unbind();
+    bool IsUpdatingFromBinding() const { return m_updatingFromBinding; }
 
     bool IsThreeState() const { return m_isThreeState; }
     void SetIsThreeState(bool threeState) {
@@ -51,6 +60,11 @@ private:
     AnimatedScalar m_indeterminateAnim{};
 
     Event<CheckBox*, CheckState> m_onCheckStateChangedEvent;
+    std::shared_ptr<Observable<bool>> m_boundBool;
+    std::shared_ptr<Observable<CheckState>> m_boundState;
+    EventId m_boundValueConnection = 0;
+    bool m_boundStateIsTwoWay = false;
+    bool m_updatingFromBinding = false;
 };
 
 } // namespace CUI

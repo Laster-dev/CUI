@@ -821,6 +821,25 @@ void UIElement::SetText(const std::string& text) {
     NotifyFieldChanged(PropertyId::Text, Value(text));
 }
 
+void UIElement::BindText(const std::shared_ptr<Observable<std::string>>& value) {
+    UnbindText();
+    if (!value) return;
+
+    m_boundText = value;
+    SetText(value->Get());
+    m_boundTextConnection = value->OnChanged().Connect([this](const std::string& text) {
+        SetText(text);
+    });
+}
+
+void UIElement::UnbindText() {
+    if (m_boundText && m_boundTextConnection != 0) {
+        m_boundText->OnChanged().Disconnect(m_boundTextConnection);
+    }
+    m_boundText.reset();
+    m_boundTextConnection = 0;
+}
+
 void UIElement::SetPlaceholder(const std::string& placeholder) {
     if (m_placeholder == placeholder) return;
     m_placeholder = placeholder;

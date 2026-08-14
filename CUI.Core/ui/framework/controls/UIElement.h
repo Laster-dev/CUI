@@ -8,6 +8,7 @@
 #include "../layout/Layout.h"
 #include "../input/RoutedEvent.h"
 #include "../input/Command.h"
+#include "../core/Observable.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -245,11 +246,16 @@ public:
     D2D1_COLOR_F GetBorderBrushColor() const { return m_borderBrushColor; }
     bool HasBorderBrushColor() const { return m_hasBorderBrushColor; }
     void SetColor(D2D1_COLOR_F c);
+    void SetTextColor(D2D1_COLOR_F c) { SetColor(c); }
     D2D1_COLOR_F GetColorValue() const { return m_colorValue; }
+    D2D1_COLOR_F GetTextColor() const { return m_colorValue; }
     bool HasColorValue() const { return m_hasColorValue; }
+    bool HasTextColor() const { return m_hasColorValue; }
 
     const std::string& GetText() const { return m_text; }
     void SetText(const std::string& text);
+    void BindText(const std::shared_ptr<Observable<std::string>>& value);
+    void UnbindText();
     const std::string& GetPlaceholder() const { return m_placeholder; }
     void SetPlaceholder(const std::string& placeholder);
     const std::string& GetFontFamily() const { return m_fontFamily; }
@@ -479,6 +485,8 @@ protected:
     std::string m_styleClass;
     std::string m_text;
     std::string m_placeholder;
+    std::shared_ptr<Observable<std::string>> m_boundText;
+    EventId m_boundTextConnection = 0;
     std::string m_fontFamily{ "微软雅黑" };
     FontWeight m_fontWeight = FontWeight::Normal;
     FontStyle m_fontStyle = FontStyle::Normal;
