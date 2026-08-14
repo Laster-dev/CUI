@@ -518,13 +518,19 @@ bool TextBox::OnAnimationTick() {
         // ContentDialog paints from a cached card bitmap — scene dirty alone will
         // not redraw the focus underline / floating label inside the overlay.
         NotifyHostOverlayDirty();
-    } else if (m_caretBlinkDirty) {
+    } else if (m_caretBlinkDirty || m_isFocused) {
+        // m_isFocused: the focus-underline spring may start with a sub-threshold
+        // delta on the very first frame — keep ticks and dirty marks running so
+        // the blue line can fully animate in (and out on blur).
         RequestAnimationTicks();
+        MarkRenderRectDirty(m_bounds);
         NotifyHostOverlayDirty();
     }
     // Return true for caretBlinkDirty once so the window flushes dirty regions;
-    // steady focus relies on RequestWake rather than continuous self-animation.
-    return base || animating || m_caretBlinkDirty;
+    // Also keep the tick alive while focused so the focus underline animation
+    // fully completes (the spring starts slow and would be cancelled prematurely
+    // on the very first frame before focusLineProgress exceeds the 0.01 threshold).
+    return base || animating || m_caretBlinkDirty || m_isFocused;
 }
 
 bool TextBox::HasSelfAnimation() const {
@@ -535,7 +541,8 @@ bool TextBox::HasSelfAnimation() const {
     return Control::HasSelfAnimation()
         || std::abs(labelTarget - m_labelAnim.Current()) > 0.01f
         || std::abs(focusTarget - m_focusLineAnim.Current()) > 0.01f
-        || m_caretBlinkDirty;
+        || m_caretBlinkDirty
+        || m_isFocused; // 聚焦时持续驱动，确保焦点蓝条动画完整运行不被过早终止
 }
 
 void TextBox::SelectAll() {
@@ -712,12 +719,12 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     const bool drawUnderline = GetUnderlineColorToken() != ThemeTokenId::Unset
         || GetActiveUnderlineColorToken() != ThemeTokenId::Unset;
     if (drawUnderline) {
-        D2D1_COLOR_F underlineColor = m_hasBorderBrushColor
+        const bool hasVisibleBorderBrush = m_hasBorderBrushColor && m_borderBrushColor.a > 0.0f;
+        D2D1_COLOR_F underlineColor = hasVisibleBorderBrush
             ? m_borderBrushColor
             : ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::InputBorder);
-        D2D1_COLOR_F activeUnderlineColor = m_hasBorderBrushColor
-            ? m_borderBrushColor
-            : ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
+        D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor(
+            GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
         float lineY = m_bounds.y + m_bounds.height - 2.0f;
         if (m_dropHover && enabled) {
             ctx.DrawLine(

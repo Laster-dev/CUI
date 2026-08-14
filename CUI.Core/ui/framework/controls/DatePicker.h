@@ -59,6 +59,8 @@ public:
     void SetDate(int year, int month, int day); // 设定具体日期并刷新日历状态
     std::string GetFormattedDate() const; // 读取以 "YYYY-MM-DD" 格式化后的日期字符串
 
+    PropertyRef<std::string, PropertyId::DateStr> SelectedDate;
+
     Event<DatePicker*, int, int, int>& OnDateChanged() { return m_onDateChangedEvent; } // 日期改变时的事件发布中心
 
 private:

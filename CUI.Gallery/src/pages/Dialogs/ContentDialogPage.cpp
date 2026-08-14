@@ -1,6 +1,10 @@
 #include "pages/BasicInput/Pages.h"
 #include "pages/SamplePage.h"
 #include "framework/core/CUIDsl.h"
+#include "framework/controls/Button.h"
+#include "framework/controls/TextBox.h"
+#include "framework/controls/TextBlock.h"
+#include "framework/controls/MessageBox.h"
 
 using namespace CUI;
 using namespace CUI::DSL;
@@ -8,17 +12,130 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildContentDialogPage() {
+    auto status = MakeStatus("点击按钮触发对话框，此处显示结果。");
+
+    // ── 1. 信息确认对话框 ────────────────────────────────────────────────
+    auto btnInfo = Make<Button>("打开信息提示框");
+    btnInfo->OnClick().Connect([status](UIElement* src) {
+        auto dlg = Make<ContentDialog>();
+        dlg->SetTitle("操作提示");
+        dlg->SetMessage("您确定要继续执行此操作吗？此操作不可撤销，请谨慎确认。");
+        dlg->SetPrimaryButtonText("确定");
+        dlg->SetCloseButtonText("取消");
+        dlg->Show([status, dlg](DialogResult r) {
+            if (r == DialogResult::Primary)
+                status->SetText("结果：已点击【确定】，操作继续执行。");
+            else
+                status->SetText("结果：已点击【取消】，操作已中止。");
+        });
+        src->AddChild(dlg);
+    });
+
+    // ── 2. 三按钮对话框 ─────────────────────────────────────────────────
+    auto btnThree = Make<Button>("三个按钮的对话框");
+    btnThree->SetBackgroundToken(ThemeTokenId::CardBackground);
+    btnThree->SetColorToken(ThemeTokenId::TextPrimary);
+    btnThree->SetBorderToken(ThemeTokenId::CardBorder);
+    btnThree->SetBorderThickness(1.0f);
+    btnThree->OnClick().Connect([status](UIElement* src) {
+        auto dlg = Make<ContentDialog>();
+        dlg->SetTitle("保存更改");
+        dlg->SetMessage("您有未保存的更改。是否要在关闭前保存？");
+        dlg->SetPrimaryButtonText("保存");
+        dlg->SetSecondaryButtonText("不保存");
+        dlg->SetCloseButtonText("取消");
+        dlg->Show([status, dlg](DialogResult r) {
+            if (r == DialogResult::Primary)
+                status->SetText("结果：已选择【保存】，文件已写入磁盘。");
+            else if (r == DialogResult::Secondary)
+                status->SetText("结果：已选择【不保存】，更改已丢弃。");
+            else
+                status->SetText("结果：已取消，继续编辑。");
+        });
+        src->AddChild(dlg);
+    });
+
+    // ── 3. 输入对话框 ───────────────────────────────────────────────────
+    auto btnInput = Make<Button>("带文本输入的对话框");
+    btnInput->SetBackgroundToken(ThemeTokenId::CardBackground);
+    btnInput->SetColorToken(ThemeTokenId::TextPrimary);
+    btnInput->SetBorderToken(ThemeTokenId::CardBorder);
+    btnInput->SetBorderThickness(1.0f);
+    btnInput->OnClick().Connect([status](UIElement* src) {
+        auto dlg = Make<ContentDialog>();
+        dlg->SetTitle("新建文件夹");
+        dlg->SetMessage("请输入新文件夹的名称：");
+        dlg->SetPrimaryButtonText("创建");
+        dlg->SetCloseButtonText("取消");
+        dlg->SetInputEnabled(true);
+        dlg->SetInputText("新建文件夹");
+        dlg->Show([status, dlg](DialogResult r) {
+            if (r == DialogResult::Primary) {
+                std::string name = dlg->GetInputText();
+                status->SetText("结果：已创建文件夹「" + (name.empty() ? "（无名称）" : name) + "」。");
+            } else {
+                status->SetText("结果：已取消创建。");
+            }
+        });
+        src->AddChild(dlg);
+    });
+
+    // ── 4. 危险操作对话框 ───────────────────────────────────────────────
+    auto btnDanger = Make<Button>("危险操作确认");
+    btnDanger->SetBackground(Color::Hex("#C62828"));
+    btnDanger->SetHoverBackground(Color::Hex("#B71C1C"));
+    btnDanger->SetPressedBackground(Color::Hex("#8E0000"));
+    btnDanger->SetColor(Color::White);
+    btnDanger->OnClick().Connect([status](UIElement* src) {
+        auto dlg = Make<ContentDialog>();
+        dlg->SetTitle("永久删除");
+        dlg->SetMessage("此操作将永久删除所选的 3 个文件，总计 128 MB。\n\n已删除的内容无法从回收站恢复，请确认操作。");
+        dlg->SetPrimaryButtonText("永久删除");
+        dlg->SetCloseButtonText("取消");
+        dlg->Show([status, dlg](DialogResult r) {
+            if (r == DialogResult::Primary)
+                status->SetText("结果：已执行永久删除，文件已清除。");
+            else
+                status->SetText("结果：已取消删除操作。");
+        });
+        src->AddChild(dlg);
+    });
+
     SamplePageSpec spec;
-    spec.title = "ContentDialog(内容对话框)";
-    spec.subtitle = "显示模式对话框以确认或收集信息。";
+    spec.title    = "ContentDialog（内容对话框）";
+    spec.subtitle = "以模态遮罩的方式弹出对话框，阻断背景操作，用于确认、提示或收集用户输入。";
     spec.sections = {
         {
-            "常规用法",
-            "示例页面构建中。",
-            MakeStatus("内容待完善..."),
+            "基本用法",
+            "单击下方按钮触发对应的对话框样式。主按钮（Primary）、副按钮（Secondary）和关闭按钮均可独立配置。",
+            Column(12).Children({
+                Row(10).Children({ btnInfo, btnThree }).Build(),
+                Row(10).Children({ btnInput, btnDanger }).Build(),
+                status,
+            }).Build(),
+        },
+        {
+            "按钮结果回调",
+            "Show() 方法接受一个 std::function<void(DialogResult)> 回调，回调参数为枚举值 Primary / Secondary / Cancel。\n"
+            "在回调内可通过 GetInputText() 读取用户在输入框中填写的内容。",
+            Column(8).Children({
+                MakeLabel("DialogResult 枚举：", 12.0f, ThemeTokenId::TextMuted),
+                MakeLabel("  Primary   — 主确认按钮", 12.0f, ThemeTokenId::TextSecondary),
+                MakeLabel("  Secondary — 副辅助按钮", 12.0f, ThemeTokenId::TextSecondary),
+                MakeLabel("  Cancel    — 取消/关闭按钮", 12.0f, ThemeTokenId::TextSecondary),
+            }).Build(),
         },
     };
-    spec.source = "// ContentDialog sample code\n";
+    spec.source =
+        "auto dlg = Make<ContentDialog>();\n"
+        "dlg->SetTitle(\"标题\");\n"
+        "dlg->SetMessage(\"消息内容。\");\n"
+        "dlg->SetPrimaryButtonText(\"确定\");\n"
+        "dlg->SetCloseButtonText(\"取消\");\n"
+        "dlg->Show([](DialogResult r) {\n"
+        "    if (r == DialogResult::Primary) { /* 确认 */ }\n"
+        "});\n"
+        "parent->AddChild(dlg);\n";
     return BuildSamplePage(spec);
 }
 

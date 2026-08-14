@@ -41,6 +41,7 @@ float WrapPosition(float value, int count) {
 }
 
 TimePicker::TimePicker() {
+    SelectedTime.Initialize(*this);
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     time_t t = time(nullptr);
     tm tmVal = {};

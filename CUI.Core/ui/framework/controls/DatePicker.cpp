@@ -10,6 +10,7 @@
 namespace CUI {
 
 DatePicker::DatePicker() {
+    SelectedDate.Initialize(*this);
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     time_t t = time(nullptr);
     tm tmVal = {};

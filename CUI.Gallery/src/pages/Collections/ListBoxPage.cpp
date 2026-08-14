@@ -53,6 +53,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     auto input = Make<TextBox>();
     input->SetPlaceholder("输入新项目名称");
     input->SetWidth(220.0f);
+	input->SetHeight(28.0f);
     State<int> generated{ 1 };
 
     auto add = Make<Button>("追加");

@@ -43,7 +43,9 @@ public:
     int GetHour() const { return m_hour; } // 获取当前选中的小时数 (0-23)
     int GetMinute() const { return m_minute; } // 获取当前选中的分钟数 (0-59)
     void SetTime(int hour, int minute); // 设定具体的时、分值并平移滚轮位置
-    std::string GetFormattedTime() const; // 读取以 "HH:MM" 格式化后的时间字符串
+    std::string GetFormattedTime() const;
+
+    PropertyRef<std::string, PropertyId::TimeStr> SelectedTime;
 
     Event<TimePicker*, int, int>& OnTimeChanged() { return m_onTimeChangedEvent; } // 时间改变时的事件发布中心
 

@@ -588,11 +588,11 @@ std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
     m_statusLeft = Text("正在初始化...").FontSize(12.0f).FontFamily("微软雅黑").Build();
     m_statusLeft->SetColorToken(ThemeTokenId::TextSecondary);
     m_statusLeft->SetFlexGrow(1.0f);
-    m_statusLeft->SetTextAlign("Left");
+    m_statusLeft->SetTextAlign(TextAlignment::Left);
 
     m_statusRight = Text("").FontSize(12.0f).FontFamily("微软雅黑").Build();
     m_statusRight->SetColorToken(ThemeTokenId::TextSecondary);
-    m_statusRight->SetTextAlign("Right");
+    m_statusRight->SetTextAlign(TextAlignment::Right);
 
     m_statusBar->AddChild(m_statusLeft);
     m_statusBar->AddChild(m_statusRight);
