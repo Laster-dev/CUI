@@ -6,6 +6,10 @@
 
 namespace CUI {
 
+/**
+ * @brief 颜色选择器控件（ColorPicker）。
+ * 类似于设计软件中的颜色面板。包含色相滑块（Hue Slider）、饱和度与明度二维画布（SV Canvas）、预设常用色板（Swatches），并提供弹出层展示。
+ */
 class ColorPicker : public Control, public IPopup {
 public:
     ColorPicker();
@@ -28,7 +32,7 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    // IPopup
+    // IPopup 弹出层接口实现
     virtual bool IsPopupOpen() const override { return m_isPopupOpen; }
     virtual Rect GetPopupBounds() const override;
     virtual bool HitDismissExempt(float x, float y) const override;
@@ -38,7 +42,8 @@ public:
 
     void SetPopupOpen(bool open);
 
-    PropertyRef<Color, PropertyId::SelectedColor> SelectedColor;
+    PropertyRef<Color, PropertyId::SelectedColor> SelectedColor; ///< 当前选中颜色的双向绑定属性
+    
     D2D1_COLOR_F GetSelectedColor() const { return m_selectedColor; }
     void SetSelectedColor(D2D1_COLOR_F color);
 
@@ -58,10 +63,10 @@ private:
     std::vector<D2D1_COLOR_F> m_swatches;
     bool m_isPopupOpen = false;
     PopupPart m_dragPart = PopupPart::None;
-    AnimatedScalar m_popupAnim{};
-    float m_hue = 200.0f; // 0..360
-    float m_sat = 1.0f;   // 0..1
-    float m_val = 0.8f;   // 0..1
+    AnimatedScalar m_popupAnim{}; ///< 弹出层展开折叠的缩放淡入淡出动画
+    float m_hue = 200.0f; // 0..360 色相
+    float m_sat = 1.0f;   // 0..1 饱和度
+    float m_val = 0.8f;   // 0..1 明度
     Event<ColorPicker*, D2D1_COLOR_F> m_onColorChangedEvent;
 };
 

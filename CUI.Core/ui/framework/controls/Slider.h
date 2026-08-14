@@ -3,6 +3,10 @@
 
 namespace CUI {
 
+/**
+ * @brief 滑块控件。
+ * 允许用户通过拖动滑块（Thumb）或按方向键，在最小值与最大值范围区间内选择一个浮点数值。
+ */
 class Slider : public Control {
 public:
     Slider();
@@ -24,7 +28,8 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    PropertyRef<float, PropertyId::ControlValue> ValueProperty;
+    PropertyRef<float, PropertyId::ControlValue> ValueProperty; ///< 滑块当前数值的响应式双向绑定属性
+
     float GetValue() const { return m_value; }
     void SetValue(float val);
 
@@ -59,7 +64,7 @@ private:
     float m_maximum = 100.0f;
     float m_step = 1.0f;
     bool m_isDragging = false;
-    AnimatedScalar m_displayValueAnim{};
+    AnimatedScalar m_displayValueAnim{}; ///< 拖动时或键盘操控数值变化，用于平滑更新的过渡动画
     Event<Slider*, float> m_onValueChangedEvent;
 };
 

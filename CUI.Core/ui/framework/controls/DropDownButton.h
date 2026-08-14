@@ -7,13 +7,20 @@
 
 namespace CUI {
 
+/**
+ * @brief 下拉菜单项配置结构体。
+ */
 struct ButtonFlyoutItem {
-    std::string text;
-    bool separator = false;
-    bool enabled = true;
-    std::function<void()> onClick;
+    std::string text;              ///< 菜单项展示文本
+    bool separator = false;         ///< 是否为分隔线线段
+    bool enabled = true;            ///< 该项是否可用
+    std::function<void()> onClick;  ///< 单击该项的回调行为
 };
 
+/**
+ * @brief 下拉按钮。
+ * 用户点击该按钮时，会弹出一个菜单供选择。继承自 Button 并实现 IPopup 接口以托管悬浮弹窗层。
+ */
 class DropDownButton : public Button, public IPopup {
 public:
     DropDownButton();
@@ -41,6 +48,7 @@ public:
     virtual bool ShouldClipToBounds() const override { return !m_isDropDownOpen; }
     virtual UIElement* HitTestOverlay(float x, float y) override;
 
+    // IPopup 弹出层接口规范实现
     virtual bool IsPopupOpen() const override { return m_isDropDownOpen; }
     virtual Rect GetPopupBounds() const override;
     virtual bool HitDismissExempt(float x, float y) const override;
@@ -48,16 +56,26 @@ public:
     virtual void RenderPopup(GraphicsContext& ctx) override;
     virtual void OnLightDismiss() override { SetDropDownOpen(false); }
 
+    /**
+     * @brief 添加一个菜单按钮项。
+     * @param text 菜单项文本。
+     * @param onClick 单击回调函数。
+     * @return 返回该项在列表中的索引位置。
+     */
     int AddItem(const std::string& text, std::function<void()> onClick = nullptr);
+    
+    // 添加一条横向分割线段
     void AddSeparator();
     void ClearItems();
     const std::vector<ButtonFlyoutItem>& GetItems() const { return m_items; }
 
-    PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex;
+    PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex;  ///< 菜单被选中的索引项双向绑定属性
+
     int GetSelectedIndex() const { return m_selectedIndex; }
     void SetSelectedIndex(int index);
     std::string GetSelectedItem() const;
 
+    // 开启或折叠下拉弹出菜单层
     void SetDropDownOpen(bool open);
     bool IsDropDownOpen() const { return m_isDropDownOpen; }
 

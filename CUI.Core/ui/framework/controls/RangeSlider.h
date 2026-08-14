@@ -3,6 +3,10 @@
 
 namespace CUI {
 
+/**
+ * @brief 范围滑块。
+ * 由两个滑块（Lower 与 Upper）组成，用于让用户选择一个区间段范围（如筛选价格区间）。
+ */
 class RangeSlider : public Control {
 public:
     RangeSlider();
@@ -31,11 +35,16 @@ public:
     void SetMaximum(float maxVal);
     float GetStep() const { return m_step; }
     void SetStep(float step);
+    
+    /**
+     * @brief 获取允许选择的最小跨度范围大小。
+     */
     float GetMinimumRange() const { return m_minimumRange; }
     void SetMinimumRange(float range);
 
-    PropertyRef<float, PropertyId::LowerValue> LowerValue;
-    PropertyRef<float, PropertyId::UpperValue> UpperValue;
+    PropertyRef<float, PropertyId::LowerValue> LowerValue; ///< 下限滑块位置值的双向绑定属性
+    PropertyRef<float, PropertyId::UpperValue> UpperValue; ///< 上限滑块位置值的双向绑定属性
+    
     float GetLowerValue() const { return m_lower; }
     void SetLowerValue(float val);
     float GetUpperValue() const { return m_upper; }
@@ -71,8 +80,8 @@ private:
     float m_minimumRange = 0.0f;
     float m_lower = 20.0f;
     float m_upper = 80.0f;
-    AnimatedScalar m_lowerAnim{};
-    AnimatedScalar m_upperAnim{};
+    AnimatedScalar m_lowerAnim{}; ///< 下滑块数值平滑过渡动画
+    AnimatedScalar m_upperAnim{}; ///< 上滑块数值平滑过渡动画
     Thumb m_active = Thumb::Lower;
     Thumb m_hover = Thumb::None;
     bool m_dragging = false;

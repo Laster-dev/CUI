@@ -127,13 +127,13 @@ struct PropertyValueTraits<FontStretch> {
 /**
  * @brief CUI 框架的终极视觉基类（所有控件与布局容器的祖先类）。
  * UIElement 统一抽象和实现了以下 UI 引擎核心流程：
- * 1. **生命周期与层级树**：管理父子节点关系（AddChild / RemoveChild）。
- * 2. **核心布局机制（双入度管道）**：
+ * 1. 生命周期与层级树：管理父子节点关系（AddChild / RemoveChild）。
+ * 2. 核心布局机制（双入度管道）：
  *    - Measure()：测算大小，控件计算其所需的最适期望大小（Desired Size）。
  *    - Arrange()：编排对齐，父容器将确定区域分配给子控件。
- * 3. **绘制管线**：通过 Render() / OnRender() 触发 Direct2D 画面渲染与分层局部缓存。
- * 4. **响应式数据属性系统**：内置绑定属性定义（如 Text, Width, Background 代理），简化组件状态通信。
- * 5. **事件路由分发**：支持鼠标移入、按键焦点等底层交互回调。
+ * 3. 绘制管线：通过 Render() / OnRender() 触发 Direct2D 画面渲染与分层局部缓存。
+ * 4. 响应式数据属性系统：内置绑定属性定义（如 Text, Width, Background 代理），简化组件状态通信。
+ * 5. 事件路由分发：支持鼠标移入、按键焦点等底层交互回调。
  */
 class UIElement : public Object {
 public:

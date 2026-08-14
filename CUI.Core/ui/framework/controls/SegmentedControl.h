@@ -6,8 +6,11 @@
 
 namespace CUI {
 
-// Mutually exclusive segments in one bar (iOS Segmented Control / WinUI Segmented).
-// Same selection model as ComboBox, without a dropdown.
+/**
+ * @brief 分段选择控件（SegmentedControl）。
+ * 一组横向排列的互斥单选卡片组（类似 iOS 的 Segmented Control）。
+ * 选中某一项时，背景滑块（Pill）会平滑地滑动到对应的卡片上。
+ */
 class SegmentedControl : public Control {
 public:
     SegmentedControl();
@@ -32,12 +35,16 @@ public:
 
     void SetProperty(PropertyId id, const Value& val) override;
 
+    /**
+     * @brief 添加一个可供单选的文本分段卡片。
+     */
     void AddItem(const std::string& item);
     void ClearItems();
     void SetItems(const std::string& itemsCsv);
     const std::vector<std::string>& GetItems() const { return m_items; }
 
-    PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex;
+    PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex; ///< 被选中分段卡片的索引双向绑定属性
+
     int GetSelectedIndex() const { return m_selectedIndex; }
     void SetSelectedIndex(int index);
 
@@ -55,8 +62,8 @@ private:
     int m_selectedIndex = -1;
     int m_hoverIndex = -1;
     int m_pressedIndex = -1;
-    AnimatedScalar m_pillX{ 0.0f };
-    AnimatedScalar m_pillW{ 0.0f };
+    AnimatedScalar m_pillX{ 0.0f }; ///< 背景选中卡片滑块的当前 X 轴绝对坐标过渡动画
+    AnimatedScalar m_pillW{ 0.0f }; ///< 背景选中卡片滑块的当前渲染宽度过渡动画 (在两列跨度不等宽时非常重要)
     Event<SegmentedControl*, int, const std::string&> m_onSelectionChangedEvent;
 };
 
