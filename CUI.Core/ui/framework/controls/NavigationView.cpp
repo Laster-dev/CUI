@@ -187,7 +187,7 @@ void NavigationView::EnsureSettingsItem() {
         return;
     }
     m_settingsItem = std::make_shared<NavigationViewItem>("Settings", "⚙");
-    m_settingsItem->SetTag("Settings");
+    m_settingsItem->SetTag("settings");
     WireItem(m_settingsItem, false);
 }
 

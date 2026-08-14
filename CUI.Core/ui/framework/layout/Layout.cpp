@@ -164,30 +164,36 @@ void LayoutEngine::ArrangeFlexPanel(UIElement* panel, Rect finalRect, Orientatio
                 mainSizes[i] += remaining * (flexFactors[i] / totalFlexGrow);
             }
         }
-    } else if (remaining < 0.0f && totalFlexGrow > 0.0f) {
-        // A flex item must also shrink when its desired content becomes wider/taller
-        // than the viewport. Without this, changing a child width can draw off-screen.
+    } else if (remaining < 0.0f) {
         float deficit = -remaining;
-        for (int pass = 0; pass < 2 && deficit > 0.01f; ++pass) {
-            float shrinkWeight = 0.0f;
-            for (size_t i = 0; i < mainSizes.size(); ++i) {
-                if (flexFactors[i] > 0.0f && mainSizes[i] > minMainSizes[i]) {
-                    shrinkWeight += flexFactors[i];
-                }
-            }
-            if (shrinkWeight <= 0.0f) break;
 
-            float removed = 0.0f;
-            for (size_t i = 0; i < mainSizes.size(); ++i) {
-                if (flexFactors[i] <= 0.0f || mainSizes[i] <= minMainSizes[i]) continue;
-                float requested = deficit * (flexFactors[i] / shrinkWeight);
-                float actual = std::min(requested, mainSizes[i] - minMainSizes[i]);
-                mainSizes[i] -= actual;
-                removed += actual;
+        auto shrinkToFit = [&](bool flexOnly) {
+            for (int pass = 0; pass < 2 && deficit > 0.01f; ++pass) {
+                float shrinkWeight = 0.0f;
+                for (size_t i = 0; i < mainSizes.size(); ++i) {
+                    if (mainSizes[i] <= minMainSizes[i]) continue;
+                    if (flexOnly && flexFactors[i] <= 0.0f) continue;
+                    shrinkWeight += flexOnly ? flexFactors[i] : (mainSizes[i] - minMainSizes[i]);
+                }
+                if (shrinkWeight <= 0.0f) break;
+
+                float removed = 0.0f;
+                for (size_t i = 0; i < mainSizes.size(); ++i) {
+                    if (mainSizes[i] <= minMainSizes[i]) continue;
+                    if (flexOnly && flexFactors[i] <= 0.0f) continue;
+                    float weight = flexOnly ? flexFactors[i] : (mainSizes[i] - minMainSizes[i]);
+                    float requested = deficit * (weight / shrinkWeight);
+                    float actual = std::min(requested, mainSizes[i] - minMainSizes[i]);
+                    mainSizes[i] -= actual;
+                    removed += actual;
+                }
+                if (removed <= 0.01f) break;
+                deficit -= removed;
             }
-            if (removed <= 0.01f) break;
-            deficit -= removed;
-        }
+        };
+
+        shrinkToFit(true);
+        shrinkToFit(false);
     }
 
     float currentMain = (orientation == Orientation::Horizontal) ? finalRect.x : finalRect.y;

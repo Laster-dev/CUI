@@ -38,6 +38,9 @@ public:
     MenuBar& GetMenuBar() { return *m_menuBar; }
     const MenuBar& GetMenuBar() const { return *m_menuBar; }
 
+    void SetRightContent(const std::shared_ptr<UIElement>& content);
+    std::shared_ptr<UIElement> GetRightContent() const { return m_rightContent; }
+
     void SetTitle(const std::string& title);
     const std::string& GetTitle() const { return m_title; }
 
@@ -55,14 +58,17 @@ public:
 
 private:
     bool IsMenuBarHit(float x, float y) const;
+    bool IsRightContentHit(float x, float y) const;
     bool IsCaptionButtonHit(float x, float y) const;
     int HitTestHoverRegion(float x, float y) const;
     Rect LayoutMenuBar(GraphicsContext& ctx);
+    Rect LayoutRightContent();
     bool EnsureNativeIconBitmap(GraphicsContext& ctx);
     void ApplyHoverRegion(int region, bool forceDirty);
     void SyncCaptionHoverTargets();
 
     std::shared_ptr<MenuBar> m_menuBar;
+    std::shared_ptr<UIElement> m_rightContent;
     std::string m_title;
     std::string m_iconText;
     HICON m_nativeIcon = nullptr;

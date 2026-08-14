@@ -175,10 +175,26 @@ Rect WindowTitleBar::GetCloseButtonRect() const {
     return Rect(right - kCaptionButtonWidth, m_bounds.y, kCaptionButtonWidth, m_bounds.height);
 }
 
+void WindowTitleBar::SetRightContent(const std::shared_ptr<UIElement>& content) {
+    if (m_rightContent == content) {
+        return;
+    }
+    if (m_rightContent) {
+        RemoveChild(m_rightContent);
+    }
+    m_rightContent = content;
+    if (m_rightContent) {
+        AddChild(m_rightContent);
+    }
+}
+
 bool WindowTitleBar::IsMenuBarHit(float x, float y) const {
     return m_menuBar && m_menuBar->HitTest(x, y) != nullptr;
 }
 
+bool WindowTitleBar::IsRightContentHit(float x, float y) const {
+    return m_rightContent && m_rightContent->HitTest(x, y) != nullptr;
+}
 bool WindowTitleBar::IsCaptionButtonHit(float x, float y) const {
     return GetMinimizeButtonRect().Contains(x, y)
         || GetMaximizeButtonRect().Contains(x, y)
@@ -367,12 +383,32 @@ Rect WindowTitleBar::LayoutMenuBar(GraphicsContext& ctx) {
     return menuBarRect;
 }
 
+Rect WindowTitleBar::LayoutRightContent() {
+    if (!m_rightContent) {
+        return Rect();
+    }
+
+    const Rect minimize = GetMinimizeButtonRect();
+    const float left = m_bounds.x + 36.0f;
+    const float availableWidth = (std::max)(0.0f, minimize.x - left - 8.0f);
+    const Size desired = m_rightContent->Measure(Size(availableWidth, m_bounds.height));
+    const float width = (std::min)(desired.width, availableWidth);
+    const float height = (std::min)(desired.height, (std::max)(0.0f, m_bounds.height - 6.0f));
+    const Rect contentRect(
+        minimize.x - 8.0f - width,
+        m_bounds.y + (m_bounds.height - height) * 0.5f,
+        width,
+        height);
+    m_rightContent->Arrange(contentRect);
+    return contentRect;
+}
+
 void WindowTitleBar::Arrange(Rect finalRect) {
     UIElement::Arrange(finalRect);
     GraphicsContext ctx;
+    LayoutRightContent();
     LayoutMenuBar(ctx);
 }
-
 void WindowTitleBar::ResetMenuInteraction() {
     m_menuBar->ResetInteractionState();
 }
@@ -426,7 +462,7 @@ bool WindowTitleBar::HasSelfAnimation() const {
 }
 
 bool WindowTitleBar::IsInteractiveHit(float x, float y) const {
-    return IsMenuBarHit(x, y);
+    return IsMenuBarHit(x, y) || IsRightContentHit(x, y);
 }
 
 bool WindowTitleBar::IsCaptionDragHit(float x, float y, UIElement* treeHit) const {

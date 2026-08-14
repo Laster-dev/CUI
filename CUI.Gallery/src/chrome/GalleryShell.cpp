@@ -8,6 +8,7 @@
 #include "framework/controls/AutoSuggestBox.h"
 #include "framework/controls/NavigationView.h"
 #include "framework/controls/NavigationViewItem.h"
+#include "framework/controls/ToggleButton.h"
 #include "framework/controls/ToastCenter.h"
 #include "framework/controls/WindowTitleBar.h"
 #include "framework/window/Window.h"
@@ -124,6 +125,7 @@ std::shared_ptr<NavigationView> BuildNavigation() {
             return;
         }
         if (tag == kSettingsTag) {
+            nav->SelectByTag(tag);
             nav->SetContent(cache->Resolve(kSettingsTag));
             return;
         }
@@ -189,6 +191,32 @@ std::shared_ptr<UIElement> BuildGalleryRoot() {
     titleBar->SetTitle("CUI Gallery");
     titleBar->SetIconText("C");
 
+    auto themeToggle = std::make_shared<ToggleButton>();
+    themeToggle->SetHeight(26.0f);
+    themeToggle->SetPadding(Thickness(10, 3, 10, 3));
+    const auto syncThemeToggle = [](ToggleButton* toggle, ThemeMode theme) {
+        const bool isDark = theme == ThemeMode::Dark;
+        toggle->SetText(isDark ? "深色" : "浅色");
+        toggle->SetIsChecked(isDark);
+    };
+    if (auto* window = Window::Current()) {
+        syncThemeToggle(themeToggle.get(), window->GetThemeMode());
+        std::weak_ptr<ToggleButton> weakToggle = themeToggle;
+        window->OnThemeChanged().Connect([weakToggle, syncThemeToggle](Window*, ThemeMode theme) {
+            if (auto toggle = weakToggle.lock()) {
+                syncThemeToggle(toggle.get(), theme);
+            }
+        });
+    } else {
+        syncThemeToggle(themeToggle.get(), ThemeMode::Light);
+    }
+    themeToggle->OnToggled().Connect([](ToggleButton* toggle, bool isDark) {
+        toggle->SetText(isDark ? "深色" : "浅色");
+        if (auto* window = Window::Current()) {
+            window->SetThemeMode(isDark ? ThemeMode::Dark : ThemeMode::Light);
+        }
+    });
+    titleBar->SetRightContent(themeToggle);
     auto fileMenu = titleBar->GetMenuBar().AddMenu("文件");
     fileMenu->AddItem("主页", [] {
         Host::Instance().Navigate("home");
