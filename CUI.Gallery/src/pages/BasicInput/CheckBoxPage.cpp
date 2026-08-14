@@ -2,7 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
-#include "framework/core/Observable.h"
+#include "framework/core/State.h"
 #include "framework/controls/CheckBox.h"
 #include <memory>
 #include <string>
@@ -20,9 +20,9 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
     auto selectAll = std::make_shared<CheckBox>("全选");
     selectAll->SetIsThreeState(true);
 
-    auto wifiValue = Observe(true);
-    auto bluetoothValue = Observe(true);
-    auto airplaneValue = Observe(false);
+    State<bool> wifiValue{ true };
+    State<bool> bluetoothValue{ true };
+    State<bool> airplaneValue{ false };
 
     wifi->Checked->Bind(wifiValue);
     bluetooth->Checked->Bind(bluetoothValue);
@@ -63,9 +63,9 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
 
             *applyingSelectAll = true;
             const bool selectEverything = selectAllValue->Get() != CheckState::Checked;
-            wifiValue->Set(selectEverything);
-            bluetoothValue->Set(selectEverything);
-            airplaneValue->Set(selectEverything);
+            wifiValue = selectEverything;
+            bluetoothValue = selectEverything;
+            airplaneValue = selectEverything;
             *applyingSelectAll = false;
         });
 
@@ -97,7 +97,7 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
         },
     };
     spec.source =
-        "auto wifiValue = Observe(true);\n"
+        "State<bool> wifiValue{ true };\n"
         "wifi->Checked->Bind(wifiValue);\n"
         "auto allValue = MakeComputed<CheckState>(computeState, wifiValue, bluetoothValue, airplaneValue);\n"
         "selectAll->State->Bind(allValue, BindingMode::OneWay);\n";

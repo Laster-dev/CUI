@@ -6,9 +6,9 @@
 namespace CUI {
 
 enum class BindingMode {
-    OneWay,
-    TwoWay,
-    OneTime
+    OneWay,//单向绑定：数据源更新时，目标属性会随之更新；但目标属性的修改不会反向影响数据源。
+    TwoWay,//双向绑定：数据源和目标属性互相同步。修改任意一方，另一方都会更新。
+    OneTime//一次性绑定：在绑定建立时把数据源的值赋给目标属性，但之后不再跟随更新。
 };
 
 class Binding {

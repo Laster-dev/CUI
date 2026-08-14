@@ -20,6 +20,8 @@ constexpr const char* kContents = R"markdown(
   - [文本与样式](#typography)
 - [响应式数据绑定](#binding)
   - [派生状态](#computed)
+  - [生命周期与优先级](#binding-rules)
+  - [类型转换器](#converters)
 - [复杂控件模型](#models)
 - [全局原则](#principles)
 )markdown";
@@ -66,23 +68,25 @@ save->SetIsStrikethrough(true);
 
 ## 响应式数据绑定
 
-业务状态由 `Observable<T>` 持有。调用 `Set(...)` 后，已绑定的控件自动刷新；页面不需要再手工更新控件显示。
+页面业务状态优先由 `State<T>` 持有。直接赋值后，已绑定的控件自动刷新；页面不需要再手工更新控件显示。
+
+`Observable<T>` 仍用于共享数据源、动态模型和 `MakeComputed(...)` 的结果。
 
 ```cpp
-auto wifiValue = Observe(true);
+State<bool> wifiValue{ true };
 auto wifi = std::make_shared<CheckBox>("Wi-Fi");
 wifi->Checked->Bind(wifiValue);
 
-wifiValue->Set(false); // UI 自动刷新
+wifiValue = false; // UI 自动刷新
 
-auto wifiName = Observe(std::string("Wi-Fi"));
+State<std::string> wifiName{ "Wi-Fi" };
 wifi->Text->Bind(wifiName);
 
-auto itemFontStyle = Observe(FontStyle::Italic);
+State<FontStyle> itemFontStyle{ FontStyle::Italic };
 wifi->FontStyle->Bind(itemFontStyle);
 ```
 
-- 基本状态使用 `Observable<bool>`、`Observable<int>`、`Observable<std::string>` 等。
+- 基本状态使用 `State<bool>`、`State<int>`、`State<std::string>` 等，并以 `state = value` 直接更新。
 - 每个属性通过 `属性->Bind(...)` 绑定；例如 `Checked`、`Text`、`FontStyle`。
 - 双向绑定和回写循环防护属于控件职责，页面只表达业务关系。
 
@@ -93,9 +97,9 @@ wifi->FontStyle->Bind(itemFontStyle);
 ```cpp
 auto allSelected = MakeComputed<CheckState>(
     [wifiValue, bluetoothValue, airplaneValue] {
-        const int selected = static_cast<int>(wifiValue->Get())
-            + static_cast<int>(bluetoothValue->Get())
-            + static_cast<int>(airplaneValue->Get());
+        const int selected = static_cast<int>(wifiValue.Get())
+            + static_cast<int>(bluetoothValue.Get())
+            + static_cast<int>(airplaneValue.Get());
         return selected == 3 ? CheckState::Checked
              : selected == 0 ? CheckState::Unchecked
                              : CheckState::Indeterminate;
@@ -103,8 +107,36 @@ auto allSelected = MakeComputed<CheckState>(
 selectAll->State->Bind(allSelected, BindingMode::OneWay);
 ```
 
-## 复杂控件模型
+### 生命周期与优先级
 
+`Bind(...)` 创建的是属性和 `Observable` 之间可自动解绑的监听关系。属性绑定槽按需创建：未调用 `属性->Bind(...)`、`属性->Set(...)` 或 `属性->Get(...)` 的控件不会为该属性分配绑定对象。
+
+- `BindingMode::OneWay`：数据源驱动 UI。`属性->Set(...)` 返回 `false`，不会短暂覆盖数据源的显示。
+- `BindingMode::TwoWay`：数据源和 UI 双向同步。`属性->Set(...)` 会更新控件，控件属性变更再回写绑定的 `Observable`。
+- `BindingMode::OneTime`：仅在绑定时同步一次；之后 `属性->Set(...)` 可直接更新本地 UI。
+- `SetXxx(...)` 是控件底层属性设置 API；业务层在已绑定属性上应使用 `属性->Set(...)` 或直接修改 `Observable`，避免绕开绑定语义。
+- `Observable::Set(...)` 会跳过相等值，不重复通知；每条绑定在从源更新 UI 时也会抑制自己的回写，避免常见的双向回环。
+- 绑定对象随控件销毁自动断开事件订阅。回调不会持有控件的 `shared_ptr`，因此不形成 UI 和数据源的循环引用。
+
+### 类型转换器
+
+不同类型之间不要在页面事件中手工同步。使用 `IValueConverter<TSource, TTarget>` 或 `MakeConverter(...)` 把转换规则放在绑定边界；双向转换中 `ConvertBack(...)` 返回 `std::nullopt` 表示当前输入无效，不修改数据源。
+
+```cpp
+State<int> count{ 12 };
+auto numberText = MakeConverter<int, std::string>(
+    [](int value) { return std::to_string(value); },
+    [](const std::string& text) -> std::optional<int> {
+        try { return std::stoi(text); }
+        catch (...) { return std::nullopt; }
+    });
+
+textBox->Text->Bind(count, numberText, BindingMode::TwoWay);
+```
+
+只需要读取转换后的值时，也可以使用 `ConvertObservable<TTarget>(source, converter)` 得到派生 `Observable`，再按单向方式绑定。
+
+## 复杂控件模型
 复杂控件同样必须拥有明确的数据模型，模型是唯一事实来源，不要把数据散落在页面事件或控件视觉状态中。
 
 | 控件 | 推荐状态模型 |
@@ -131,6 +163,8 @@ const std::string& HeadingForAnchor(const std::string& href) {
     static const std::string typography = "文本与样式";
     static const std::string binding = "响应式数据绑定";
     static const std::string computed = "派生状态";
+    static const std::string bindingRules = "生命周期与优先级";
+    static const std::string converters = "类型转换器";
     static const std::string models = "复杂控件模型";
     static const std::string principles = "全局原则";
 
@@ -139,6 +173,8 @@ const std::string& HeadingForAnchor(const std::string& href) {
     if (href == "#typography") return typography;
     if (href == "#binding") return binding;
     if (href == "#computed") return computed;
+    if (href == "#binding-rules") return bindingRules;
+    if (href == "#converters") return converters;
     if (href == "#models") return models;
     if (href == "#principles") return principles;
     return empty;
@@ -179,4 +215,3 @@ std::shared_ptr<UIElement> BuildConventionsPage() {
 }
 
 } // namespace Gallery
-

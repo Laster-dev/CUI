@@ -2,12 +2,16 @@
 
 #include "Binding.h"
 #include "Observable.h"
+#include "State.h"
+#include "ValueConverter.h"
 
 #include <functional>
 #include <memory>
 #include <utility>
 
 namespace CUI {
+
+class UIElement;
 
 template<typename T>
 class BindableProperty final {
@@ -16,80 +20,104 @@ public:
     using Setter = std::function<void(const T&)>;
 
     BindableProperty(Object& owner, PropertyId propertyId, Getter getter, Setter setter)
-        : m_owner(owner),
-          m_propertyId(propertyId),
-          m_getter(std::move(getter)),
-          m_setter(std::move(setter)) {}
+        : m_owner(owner), m_propertyId(propertyId), m_getter(std::move(getter)), m_setter(std::move(setter)) {}
 
-    ~BindableProperty() {
-        Unbind();
-    }
-
+    ~BindableProperty() { Unbind(); }
     BindableProperty(const BindableProperty&) = delete;
     BindableProperty& operator=(const BindableProperty&) = delete;
 
-    const T Get() const {
-        return m_getter();
-    }
+    T Get() const { return m_getter(); }
 
-    void Set(const T& value) {
+    bool Set(const T& value) {
+        if (m_isBound && m_mode == BindingMode::OneWay) return false;
         m_setter(value);
+        return true;
     }
 
-    void Bind(const std::shared_ptr<Observable<T>>& value,
-              BindingMode mode = BindingMode::TwoWay) {
+    void Bind(const std::shared_ptr<Observable<T>>& value, BindingMode mode = BindingMode::TwoWay) {
         Unbind();
-        if (!value) {
-            return;
-        }
+        if (!value) return;
 
-        m_source = value;
+        m_isBound = true;
         m_mode = mode;
         ApplySourceValue(value->Get());
+        if (mode == BindingMode::OneTime) return;
 
-        if (mode == BindingMode::OneTime) {
-            return;
-        }
-
-        m_sourceConnection = value->OnChanged().Connect([this](const T& updated) {
+        const EventId sourceConnection = value->OnChanged().Connect([this](const T& updated) {
             ApplySourceValue(updated);
         });
-
+        m_disconnectSource = [value, sourceConnection]() {
+            value->OnChanged().Disconnect(sourceConnection);
+        };
         if (mode == BindingMode::TwoWay) {
-            m_targetConnection = m_owner.OnPropertyIdChanged().Connect(
-                [this](PropertyId changed, const Value&) {
-                    if (changed == m_propertyId && !m_updating && m_source) {
-                        m_updating = true;
-                        m_source->Set(m_getter());
-                        m_updating = false;
-                    }
-                });
+            m_writeBack = [value](const T& updated) { value->Set(updated); };
+            ConnectTarget();
         }
+    }
+
+    void Bind(const CUI::State<T>& value, BindingMode mode = BindingMode::TwoWay) {
+        Bind(value.Share(), mode);
+    }
+
+    template<typename TSource>
+    void Bind(const std::shared_ptr<Observable<TSource>>& source,
+              const std::shared_ptr<IValueConverter<TSource, T>>& converter,
+              BindingMode mode = BindingMode::OneWay) {
+        Unbind();
+        if (!source || !converter) return;
+
+        m_isBound = true;
+        m_mode = mode;
+        ApplySourceValue(converter->Convert(source->Get()));
+        if (mode == BindingMode::OneTime) return;
+
+        const EventId sourceConnection = source->OnChanged().Connect([this, converter](const TSource& updated) {
+            ApplySourceValue(converter->Convert(updated));
+        });
+        m_disconnectSource = [source, sourceConnection]() {
+            source->OnChanged().Disconnect(sourceConnection);
+        };
+        if (mode == BindingMode::TwoWay) {
+            m_writeBack = [source, converter](const T& updated) {
+                if (const auto converted = converter->ConvertBack(updated)) source->Set(*converted);
+            };
+            ConnectTarget();
+        }
+    }
+
+    template<typename TSource>
+    void Bind(const CUI::State<TSource>& source,
+              const std::shared_ptr<IValueConverter<TSource, T>>& converter,
+              BindingMode mode = BindingMode::OneWay) {
+        Bind(source.Share(), converter, mode);
     }
 
     void Unbind() {
-        if (m_source && m_sourceConnection != 0) {
-            m_source->OnChanged().Disconnect(m_sourceConnection);
-        }
-        if (m_targetConnection != 0) {
-            m_owner.OnPropertyIdChanged().Disconnect(m_targetConnection);
-        }
-        m_source.reset();
-        m_sourceConnection = 0;
+        if (m_disconnectSource) m_disconnectSource();
+        if (m_targetConnection != 0) m_owner.OnPropertyIdChanged().Disconnect(m_targetConnection);
+        m_disconnectSource = {};
+        m_writeBack = {};
         m_targetConnection = 0;
+        m_isBound = false;
         m_mode = BindingMode::OneWay;
         m_updating = false;
     }
 
-    bool IsBound() const {
-        return static_cast<bool>(m_source);
-    }
-
-    bool IsUpdating() const {
-        return m_updating;
-    }
+    bool IsBound() const { return m_isBound; }
+    bool IsUpdating() const { return m_updating; }
+    BindingMode GetBindingMode() const { return m_mode; }
 
 private:
+    void ConnectTarget() {
+        m_targetConnection = m_owner.OnPropertyIdChanged().Connect([this](PropertyId changed, const Value&) {
+            if (changed == m_propertyId && !m_updating && m_writeBack) {
+                m_updating = true;
+                m_writeBack(m_getter());
+                m_updating = false;
+            }
+        });
+    }
+
     void ApplySourceValue(const T& value) {
         m_updating = true;
         m_setter(value);
@@ -100,12 +128,44 @@ private:
     PropertyId m_propertyId = PropertyId::None;
     Getter m_getter;
     Setter m_setter;
-    std::shared_ptr<Observable<T>> m_source;
-    EventId m_sourceConnection = 0;
+    std::function<void()> m_disconnectSource;
+    std::function<void(const T&)> m_writeBack;
     EventId m_targetConnection = 0;
     BindingMode m_mode = BindingMode::OneWay;
+    bool m_isBound = false;
     bool m_updating = false;
 };
 
+template<typename T, PropertyId Id>
+class PropertyRef final {
+public:
+    PropertyRef() = default;
+
+    void Initialize(UIElement& owner) { m_owner = &owner; }
+    BindableProperty<T>* operator->();
+    const BindableProperty<T>* operator->() const;
+
+    void Bind(const std::shared_ptr<Observable<T>>& value, BindingMode mode = BindingMode::TwoWay);
+    void Bind(const CUI::State<T>& value, BindingMode mode = BindingMode::TwoWay);
+
+    template<typename TSource>
+    void Bind(const std::shared_ptr<Observable<TSource>>& source,
+              const std::shared_ptr<IValueConverter<TSource, T>>& converter,
+              BindingMode mode = BindingMode::OneWay);
+
+    template<typename TSource>
+    void Bind(const CUI::State<TSource>& source,
+              const std::shared_ptr<IValueConverter<TSource, T>>& converter,
+              BindingMode mode = BindingMode::OneWay);
+
+    void Unbind();
+    bool Set(const T& value);
+    T Get() const;
+    bool IsBound() const;
+    bool IsUpdating() const;
+
+private:
+    UIElement* m_owner = nullptr;
+};
 
 } // namespace CUI

@@ -26,14 +26,8 @@ Point LerpPoint(const Point& a, const Point& b, float t) {
 }
 
 CheckBox::CheckBox() {
-    Checked = std::make_unique<BindableProperty<bool>>(
-        *this, PropertyId::CheckState,
-        [this] { return GetState() == CheckState::Checked; },
-        [this](bool value) { SetState(value ? CheckState::Checked : CheckState::Unchecked); });
-    State = std::make_unique<BindableProperty<CheckState>>(
-        *this, PropertyId::CheckState,
-        [this] { return GetState(); },
-        [this](CheckState value) { SetState(value); });
+    Checked.Initialize(*this);
+    State.Initialize(*this);
     SetText("CheckBox");
     SetBackgroundToken(ThemeTokenId::InputBackground);
     SetCheckedBackgroundToken(ThemeTokenId::AccentColor);
@@ -60,13 +54,14 @@ Value CheckBox::GetProperty(PropertyId id) const {
         if (m_state == CheckState::Checked) return Value("Checked");
         if (m_state == CheckState::Indeterminate) return Value("Indeterminate");
         return Value("Unchecked");
+    case PropertyId::ControlValue: return Value(m_state == CheckState::Checked);
     case PropertyId::IsThreeState: return Value(m_isThreeState);
     default: return Control::GetProperty(id);
     }
 }
 
 bool CheckBox::HasProperty(PropertyId id) const {
-    return id == PropertyId::CheckState || id == PropertyId::IsThreeState || Control::HasProperty(id);
+    return id == PropertyId::CheckState || id == PropertyId::ControlValue || id == PropertyId::IsThreeState || Control::HasProperty(id);
 }
 
 void CheckBox::SetProperty(PropertyId id, const Value& val) {
@@ -77,6 +72,7 @@ void CheckBox::SetProperty(PropertyId id, const Value& val) {
             : (s == "Indeterminate" ? CheckState::Indeterminate : CheckState::Unchecked));
         return;
     }
+    case PropertyId::ControlValue: SetState(val.AsBool() ? CheckState::Checked : CheckState::Unchecked); return;
     case PropertyId::IsThreeState: SetIsThreeState(val.AsBool()); return;
     default: Control::SetProperty(id, val); return;
     }
@@ -92,22 +88,23 @@ void CheckBox::SetState(CheckState state) {
 
     m_state = state;
     NotifyFieldChanged(PropertyId::CheckState, Value(s));
+    NotifyFieldChanged(PropertyId::ControlValue, Value(state == CheckState::Checked));
     MarkRenderRectDirty(m_bounds);
     RequestAnimationTicks();
     m_onCheckStateChangedEvent.Invoke(this, state);
 }
 
 void CheckBox::Bind(const std::shared_ptr<Observable<bool>>& value) {
-    Checked->Bind(value);
+    Checked.Bind(value);
 }
 
 void CheckBox::Bind(const std::shared_ptr<Observable<CheckState>>& value, bool twoWay) {
-    State->Bind(value, twoWay ? BindingMode::TwoWay : BindingMode::OneWay);
+    State.Bind(value, twoWay ? BindingMode::TwoWay : BindingMode::OneWay);
 }
 
 void CheckBox::Unbind() {
-    Checked->Unbind();
-    State->Unbind();
+    Checked.Unbind();
+    State.Unbind();
 }
 
 Size CheckBox::Measure(Size availableSize) {

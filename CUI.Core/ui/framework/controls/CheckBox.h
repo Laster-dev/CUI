@@ -10,6 +10,18 @@ enum class CheckState {
     Indeterminate
 };
 
+template<>
+struct PropertyValueTraits<CheckState> {
+    static CheckState FromValue(const Value& value) {
+        const std::string state = value.AsString("Unchecked");
+        return state == "Checked" ? CheckState::Checked
+            : (state == "Indeterminate" ? CheckState::Indeterminate : CheckState::Unchecked);
+    }
+    static Value ToValue(CheckState value) {
+        return Value(value == CheckState::Checked ? "Checked"
+            : (value == CheckState::Indeterminate ? "Indeterminate" : "Unchecked"));
+    }
+};
 class CheckBox : public Control {
 public:
     CheckBox();
@@ -30,8 +42,8 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    std::unique_ptr<BindableProperty<bool>> Checked;
-    std::unique_ptr<BindableProperty<CheckState>> State;
+    PropertyRef<bool, PropertyId::ControlValue> Checked;
+    PropertyRef<CheckState, PropertyId::CheckState> State;
 
     CheckState GetState() const { return m_state; }
     void SetState(CheckState state);
@@ -42,7 +54,7 @@ public:
     // for calculated state sources such as MakeComputed(...).
     void Bind(const std::shared_ptr<Observable<CheckState>>& value, bool twoWay = true);
     void Unbind();
-    bool IsUpdatingFromBinding() const { return Checked->IsUpdating() || State->IsUpdating(); }
+    bool IsUpdatingFromBinding() const { return Checked.IsUpdating() || State.IsUpdating(); }
 
     bool IsThreeState() const { return m_isThreeState; }
     void SetIsThreeState(bool threeState) {

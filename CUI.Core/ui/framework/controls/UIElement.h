@@ -71,6 +71,59 @@ FontStyle FontStyleFromString(const std::string& value);
 const char* FontStretchToString(FontStretch value);
 FontStretch FontStretchFromString(const std::string& value);
 
+template<typename T>
+struct PropertyValueTraits;
+
+template<>
+struct PropertyValueTraits<bool> {
+    static bool FromValue(const Value& value) { return value.AsBool(); }
+    static Value ToValue(bool value) { return Value(value); }
+};
+
+template<>
+struct PropertyValueTraits<int> {
+    static int FromValue(const Value& value) { return value.AsInt(); }
+    static Value ToValue(int value) { return Value(value); }
+};
+
+template<>
+struct PropertyValueTraits<float> {
+    static float FromValue(const Value& value) { return value.AsFloat(); }
+    static Value ToValue(float value) { return Value(value); }
+};
+
+template<>
+struct PropertyValueTraits<std::string> {
+    static std::string FromValue(const Value& value) { return value.AsString(); }
+    static Value ToValue(const std::string& value) { return Value(value); }
+};
+
+template<>
+struct PropertyValueTraits<Color> {
+    static Color FromValue(const Value& value) {
+        const D2D1_COLOR_F color = value.AsColor();
+        return Color(color.r, color.g, color.b, color.a);
+    }
+    static Value ToValue(const Color& value) { return Value(static_cast<D2D1_COLOR_F>(value)); }
+};
+
+template<>
+struct PropertyValueTraits<FontWeight> {
+    static FontWeight FromValue(const Value& value) { return FontWeightFromString(value.AsString()); }
+    static Value ToValue(FontWeight value) { return Value(FontWeightToString(value)); }
+};
+
+template<>
+struct PropertyValueTraits<FontStyle> {
+    static FontStyle FromValue(const Value& value) { return FontStyleFromString(value.AsString()); }
+    static Value ToValue(FontStyle value) { return Value(FontStyleToString(value)); }
+};
+
+template<>
+struct PropertyValueTraits<FontStretch> {
+    static FontStretch FromValue(const Value& value) { return FontStretchFromString(value.AsString()); }
+    static Value ToValue(FontStretch value) { return Value(FontStretchToString(value)); }
+};
 class UIElement : public Object {
 public:
     static constexpr float kAttachedUnset = -999999.0f;
@@ -79,21 +132,29 @@ public:
     virtual ~UIElement();
     virtual const char* GetClassName() const override { return "UIElement"; }
 
-    std::unique_ptr<BindableProperty<std::string>> Text;
-    std::unique_ptr<BindableProperty<std::string>> FontFamily;
-    std::unique_ptr<BindableProperty<float>> FontSize;
-    std::unique_ptr<BindableProperty<CUI::FontWeight>> FontWeight;
-    std::unique_ptr<BindableProperty<CUI::FontStyle>> FontStyle;
-    std::unique_ptr<BindableProperty<CUI::FontStretch>> FontStretch;
-    std::unique_ptr<BindableProperty<bool>> Underline;
-    std::unique_ptr<BindableProperty<bool>> Strikethrough;
-    std::unique_ptr<BindableProperty<Color>> TextColor;
-    std::unique_ptr<BindableProperty<float>> Width;
-    std::unique_ptr<BindableProperty<float>> Height;
-    std::unique_ptr<BindableProperty<bool>> IsEnabledProperty;
-    std::unique_ptr<BindableProperty<float>> Opacity;
+    PropertyRef<std::string, PropertyId::Text> Text;
+    PropertyRef<std::string, PropertyId::FontFamily> FontFamily;
+    PropertyRef<float, PropertyId::FontSize> FontSize;
+    PropertyRef<CUI::FontWeight, PropertyId::FontWeight> FontWeight;
+    PropertyRef<CUI::FontStyle, PropertyId::FontStyle> FontStyle;
+    PropertyRef<CUI::FontStretch, PropertyId::FontStretch> FontStretch;
+    PropertyRef<bool, PropertyId::IsUnderline> Underline;
+    PropertyRef<bool, PropertyId::IsStrikethrough> Strikethrough;
+    PropertyRef<Color, PropertyId::Color> TextColor;
+    PropertyRef<Color, PropertyId::Background> Background;
+    PropertyRef<Color, PropertyId::HoverBackground> HoverBackground;
+    PropertyRef<float, PropertyId::Width> Width;
+    PropertyRef<float, PropertyId::Height> Height;
+    PropertyRef<bool, PropertyId::IsEnabled> IsEnabledProperty;
+    PropertyRef<float, PropertyId::Opacity> Opacity;
 
     virtual PropertyDescSpan GetPropertyDescs() const;
+
+    template<typename T, PropertyId Id>
+    BindableProperty<T>* GetOrCreatePropertyBinding();
+
+    template<typename T, PropertyId Id>
+    BindableProperty<T>* FindPropertyBinding() const;
 
     float GetWidth() const { return m_width; }
     void SetWidth(float v);
@@ -492,7 +553,28 @@ public:
     Event<UIElement*, Point>& OnMouseDownEvent() { return m_onMouseDownEvent; }
 
 protected:
+    struct PropertyBindingSlotBase {
+        virtual ~PropertyBindingSlotBase() = default;
+    };
+
+    template<typename T>
+    struct PropertyBindingSlot final : PropertyBindingSlotBase {
+        PropertyBindingSlot(
+            Object& owner,
+            PropertyId propertyId,
+            typename BindableProperty<T>::Getter getter,
+            typename BindableProperty<T>::Setter setter)
+            : value(owner, propertyId, std::move(getter), std::move(setter)) {}
+
+        BindableProperty<T> value;
+    };
+
+    mutable std::unique_ptr<std::unordered_map<PropertyId, std::unique_ptr<PropertyBindingSlotBase>>> m_propertyBindings;
+
     void NotifyFieldChanged(PropertyId id, const Value& val);
+
+    template<typename T, PropertyId Id>
+    friend class PropertyRef;
     bool DescHasOptionalProperty(const PropertyDesc& desc) const;
 
     std::string m_id;
@@ -647,4 +729,99 @@ protected:
     bool ToolTipTick(std::chrono::steady_clock::time_point now);
 };
 
+
+template<typename T, PropertyId Id>
+BindableProperty<T>* UIElement::GetOrCreatePropertyBinding() {
+    if (!m_propertyBindings) {
+        m_propertyBindings = std::make_unique<std::unordered_map<PropertyId, std::unique_ptr<PropertyBindingSlotBase>>>();
+    }
+    auto existing = m_propertyBindings->find(Id);
+    if (existing != m_propertyBindings->end()) {
+        auto* slot = dynamic_cast<PropertyBindingSlot<T>*>(existing->second.get());
+        return slot ? &slot->value : nullptr;
+    }
+
+    auto slot = std::make_unique<PropertyBindingSlot<T>>(
+        *this,
+        Id,
+        [this] { return PropertyValueTraits<T>::FromValue(GetProperty(Id)); },
+        [this](const T& value) { SetProperty(Id, PropertyValueTraits<T>::ToValue(value)); });
+    auto* result = &slot->value;
+    m_propertyBindings->emplace(Id, std::move(slot));
+    return result;
+}
+
+template<typename T, PropertyId Id>
+BindableProperty<T>* UIElement::FindPropertyBinding() const {
+    if (!m_propertyBindings) return nullptr;
+    const auto existing = m_propertyBindings->find(Id);
+    if (existing == m_propertyBindings->end()) return nullptr;
+    auto* slot = dynamic_cast<PropertyBindingSlot<T>*>(existing->second.get());
+    return slot ? &slot->value : nullptr;
+}
+
+template<typename T, PropertyId Id>
+BindableProperty<T>* PropertyRef<T, Id>::operator->() {
+    return m_owner ? m_owner->template GetOrCreatePropertyBinding<T, Id>() : nullptr;
+}
+
+template<typename T, PropertyId Id>
+const BindableProperty<T>* PropertyRef<T, Id>::operator->() const {
+    return m_owner ? m_owner->template GetOrCreatePropertyBinding<T, Id>() : nullptr;
+}
+
+template<typename T, PropertyId Id>
+void PropertyRef<T, Id>::Bind(const std::shared_ptr<Observable<T>>& value, BindingMode mode) {
+    if (auto* binding = operator->()) binding->Bind(value, mode);
+}
+
+template<typename T, PropertyId Id>
+void PropertyRef<T, Id>::Bind(const CUI::State<T>& value, BindingMode mode) {
+    if (auto* binding = operator->()) binding->Bind(value, mode);
+}
+template<typename T, PropertyId Id>
+template<typename TSource>
+void PropertyRef<T, Id>::Bind(const std::shared_ptr<Observable<TSource>>& source,
+                              const std::shared_ptr<IValueConverter<TSource, T>>& converter,
+                              BindingMode mode) {
+    if (auto* binding = operator->()) binding->Bind(source, converter, mode);
+}
+
+template<typename T, PropertyId Id>
+template<typename TSource>
+void PropertyRef<T, Id>::Bind(const CUI::State<TSource>& source,
+                              const std::shared_ptr<IValueConverter<TSource, T>>& converter,
+                              BindingMode mode) {
+    if (auto* binding = operator->()) binding->Bind(source, converter, mode);
+}
+template<typename T, PropertyId Id>
+void PropertyRef<T, Id>::Unbind() {
+    if (m_owner) {
+        if (auto* binding = m_owner->template FindPropertyBinding<T, Id>()) binding->Unbind();
+    }
+}
+
+template<typename T, PropertyId Id>
+bool PropertyRef<T, Id>::Set(const T& value) {
+    if (auto* binding = operator->()) return binding->Set(value);
+    return false;
+}
+
+template<typename T, PropertyId Id>
+T PropertyRef<T, Id>::Get() const {
+    if (m_owner) return PropertyValueTraits<T>::FromValue(m_owner->GetProperty(Id));
+    return {};
+}
+
+template<typename T, PropertyId Id>
+bool PropertyRef<T, Id>::IsUpdating() const {
+    return m_owner && m_owner->template FindPropertyBinding<T, Id>()
+        && m_owner->template FindPropertyBinding<T, Id>()->IsUpdating();
+}
+
+template<typename T, PropertyId Id>
+bool PropertyRef<T, Id>::IsBound() const {
+    return m_owner && m_owner->template FindPropertyBinding<T, Id>()
+        && m_owner->template FindPropertyBinding<T, Id>()->IsBound();
+}
 } // namespace CUI

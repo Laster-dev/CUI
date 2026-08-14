@@ -5,10 +5,26 @@
 #include <functional>
 #include <memory>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 namespace CUI {
+
+template<typename T, typename = void>
+struct IsEqualityComparable : std::false_type {};
+
+template<typename T>
+struct IsEqualityComparable<T, std::void_t<decltype(std::declval<const T&>() == std::declval<const T&>)>>
+    : std::true_type {};
+
+template<typename T>
+bool ObservableValuesEqual(const T& left, const T& right) {
+    if constexpr (IsEqualityComparable<T>::value) {
+        return left == right;
+    }
+    return false;
+}
 
 template<typename T>
 class Observable {
@@ -19,6 +35,9 @@ public:
     const T& Get() const { return m_value; }
 
     void Set(T value) {
+        if (ObservableValuesEqual(m_value, value)) {
+            return;
+        }
         m_value = std::move(value);
         m_changed.Invoke(m_value);
     }

@@ -10,6 +10,7 @@
 namespace CUI {
 
 DropDownButton::DropDownButton() {
+    SelectedIndex.Initialize(*this);
     SetText("DropDown");
     SetPadding(Thickness(10.0f, 4.0f, 4.0f, 4.0f));
 }
@@ -18,7 +19,24 @@ DropDownButton::DropDownButton(const std::string& text) : DropDownButton() {
     SetText(text);
 }
 
+Value DropDownButton::GetProperty(PropertyId id) const {
+    if (id == PropertyId::SelectedIndex) return Value(static_cast<float>(m_selectedIndex));
+    return Button::GetProperty(id);
+}
+
+bool DropDownButton::HasProperty(PropertyId id) const {
+    return id == PropertyId::SelectedIndex || Button::HasProperty(id);
+}
+
+void DropDownButton::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::SelectedIndex) {
+        SetSelectedIndex(static_cast<int>(val.AsFloat(-1.0f)));
+        return;
+    }
+    Button::SetProperty(id, val);
+}
 DropDownButton::~DropDownButton() {
+    SelectedIndex.Unbind();
     if (PopupHost* host = PopupHost::Current()) {
         host->Close(this);
     }
@@ -116,11 +134,26 @@ void DropDownButton::AddSeparator() {
 void DropDownButton::ClearItems() {
     m_items.clear();
     m_hoverIndex = -1;
+    SetSelectedIndex(-1);
     if (m_isDropDownOpen) {
         MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
     }
 }
 
+void DropDownButton::SetSelectedIndex(int index) {
+    if (index < -1 || index >= static_cast<int>(m_items.size()) || m_selectedIndex == index) {
+        return;
+    }
+    m_selectedIndex = index;
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_selectedIndex)));
+    MarkRenderRectDirty(m_bounds);
+}
+
+std::string DropDownButton::GetSelectedItem() const {
+    return m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_items.size())
+        ? m_items[m_selectedIndex].text
+        : std::string{};
+}
 void DropDownButton::SetDropDownOpen(bool open) {
     if (m_isDropDownOpen == open) {
         return;
@@ -170,6 +203,7 @@ bool DropDownButton::HandleMenuMouseDown(Point pt) {
     if (m_items[idx].onClick) {
         m_items[idx].onClick();
     }
+    SetSelectedIndex(idx);
     m_onItemChosenEvent.Invoke(this, idx, m_items[idx].text);
     SetDropDownOpen(false);
     return true;
@@ -208,6 +242,7 @@ void DropDownButton::ActivateHighlighted() {
     if (item.onClick) {
         item.onClick();
     }
+    SetSelectedIndex(m_hoverIndex);
     m_onItemChosenEvent.Invoke(this, m_hoverIndex, item.text);
     SetDropDownOpen(false);
 }

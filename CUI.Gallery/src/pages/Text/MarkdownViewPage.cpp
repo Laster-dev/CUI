@@ -35,7 +35,7 @@ std::shared_ptr<UIElement> BuildMarkdownViewPage() {
 #include <memory>
 
 constexpr int RetryCount = 3;
-auto title = Observe(std::string("CUI Gallery"));
+State<std::string> title{ "CUI Gallery" };
 if (RetryCount > 0) {
     // 绑定属性会自动刷新 UI。
     text->Text->Bind(title);

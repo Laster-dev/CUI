@@ -21,6 +21,9 @@ public:
     virtual ~DropDownButton();
 
     virtual const char* GetClassName() const override { return "DropDownButton"; }
+    virtual Value GetProperty(PropertyId id) const override;
+    virtual bool HasProperty(PropertyId id) const override;
+    void SetProperty(PropertyId id, const Value& val) override;
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
@@ -50,6 +53,11 @@ public:
     void ClearItems();
     const std::vector<ButtonFlyoutItem>& GetItems() const { return m_items; }
 
+    PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex;
+    int GetSelectedIndex() const { return m_selectedIndex; }
+    void SetSelectedIndex(int index);
+    std::string GetSelectedItem() const;
+
     void SetDropDownOpen(bool open);
     bool IsDropDownOpen() const { return m_isDropDownOpen; }
 
@@ -74,6 +82,7 @@ protected:
     virtual bool OpensOnPrimaryPress() const { return true; }
 
     std::vector<ButtonFlyoutItem> m_items;
+    int m_selectedIndex = -1;
     bool m_isDropDownOpen = false;
     int m_hoverIndex = -1;
     AnimatedScalar m_popupAnim{};

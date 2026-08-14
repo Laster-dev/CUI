@@ -341,7 +341,9 @@
     <ClInclude Include="ui\framework\core\Observable.h" />
     <ClInclude Include="ui\framework\core\PropertyDesc.h" />
     <ClInclude Include="ui\framework\core\PropertyId.h" />
+    <ClInclude Include="ui\framework\core\State.h" />
     <ClInclude Include="ui\framework\core\Value.h" />
+    <ClInclude Include="ui\framework\core\ValueConverter.h" />
     <ClInclude Include="ui\framework\input\Command.h" />
     <ClInclude Include="ui\framework\input\RoutedEvent.h" />
     <ClInclude Include="ui\framework\layout\Layout.h" />
