@@ -78,6 +78,9 @@
     <ClCompile Include="src\chrome\HomePage.cpp">
       <Filter>src\chrome</Filter>
     </ClCompile>
+    <ClCompile Include="src\chrome\ConventionsPage.cpp">
+      <Filter>src\chrome</Filter>
+    </ClCompile>
     <ClCompile Include="src\chrome\SettingsPage.cpp">
       <Filter>src\chrome</Filter>
     </ClCompile>
@@ -312,6 +315,9 @@
       <Filter>src\chrome</Filter>
     </ClInclude>
     <ClInclude Include="src\chrome\HomePage.h">
+      <Filter>src\chrome</Filter>
+    </ClInclude>
+    <ClInclude Include="src\chrome\ConventionsPage.h">
       <Filter>src\chrome</Filter>
     </ClInclude>
     <ClInclude Include="src\chrome\SettingsPage.h">

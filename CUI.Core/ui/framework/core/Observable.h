@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <memory>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -35,6 +36,10 @@ private:
 };
 
 template<typename T>
+std::shared_ptr<Observable<T>> Observe(T value = {}) {
+    return std::make_shared<Observable<T>>(std::move(value));
+}
+template<typename T>
 class ComputedObservable final : public Observable<T> {
 public:
     ~ComputedObservable() {
@@ -55,10 +60,18 @@ template<typename T, typename Compute, typename... Sources>
 std::shared_ptr<ComputedObservable<T>> MakeComputed(Compute compute,
                                                      const std::shared_ptr<Observable<Sources>>&... sources) {
     auto result = std::make_shared<ComputedObservable<T>>();
-    auto update = [weakResult = std::weak_ptr<ComputedObservable<T>>(result), compute, sources...]() mutable {
-        if (auto target = weakResult.lock()) {
-            target->Set(compute(sources->Get()...));
+    const auto weakSources = std::make_tuple(std::weak_ptr<Observable<Sources>>(sources)...);
+    auto update = [weakResult = std::weak_ptr<ComputedObservable<T>>(result), compute, weakSources]() mutable {
+        auto target = weakResult.lock();
+        if (!target) {
+            return;
         }
+
+        std::apply([&target, &compute](const auto&... source) {
+            if (((!source.expired()) && ...)) {
+                target->Set(compute(source.lock()->Get()...));
+            }
+        }, weakSources);
     };
 
     auto connect = [&result, &update](const auto& source) {

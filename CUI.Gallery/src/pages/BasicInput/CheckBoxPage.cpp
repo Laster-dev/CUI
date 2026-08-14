@@ -20,13 +20,13 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
     auto selectAll = std::make_shared<CheckBox>("全选");
     selectAll->SetIsThreeState(true);
 
-    auto wifiValue = std::make_shared<Observable<bool>>(true);
-    auto bluetoothValue = std::make_shared<Observable<bool>>(true);
-    auto airplaneValue = std::make_shared<Observable<bool>>(false);
+    auto wifiValue = Observe(true);
+    auto bluetoothValue = Observe(true);
+    auto airplaneValue = Observe(false);
 
-    wifi->Bind(wifiValue);
-    bluetooth->Bind(bluetoothValue);
-    airplane->Bind(airplaneValue);
+    wifi->Checked->Bind(wifiValue);
+    bluetooth->Checked->Bind(bluetoothValue);
+    airplane->Checked->Bind(airplaneValue);
 
     auto selectAllValue = MakeComputed<CheckState>(
         [](bool wifiEnabled, bool bluetoothEnabled, bool airplaneEnabled) {
@@ -39,7 +39,7 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
         wifiValue,
         bluetoothValue,
         airplaneValue);
-    selectAll->Bind(selectAllValue, false);
+    selectAll->State->Bind(selectAllValue, BindingMode::OneWay);
     auto applyingSelectAll = std::make_shared<bool>(false);
 
     auto statusValue = MakeComputed<std::string>(
@@ -53,7 +53,7 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
         bluetoothValue,
         airplaneValue);
     auto status = MakeStatus("");
-    status->BindText(statusValue);
+    status->Text->Bind(statusValue);
 
     selectAll->OnCheckStateChanged().Connect(
         [wifiValue, bluetoothValue, airplaneValue, selectAllValue, applyingSelectAll](CheckBox* sender, CheckState) {
@@ -97,10 +97,10 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
         },
     };
     spec.source =
-        "auto wifiValue = std::make_shared<Observable<bool>>(true);\n"
-        "wifi->Bind(wifiValue);\n"
+        "auto wifiValue = Observe(true);\n"
+        "wifi->Checked->Bind(wifiValue);\n"
         "auto allValue = MakeComputed<CheckState>(computeState, wifiValue, bluetoothValue, airplaneValue);\n"
-        "selectAll->Bind(allValue, false);\n";
+        "selectAll->State->Bind(allValue, BindingMode::OneWay);\n";
     return BuildSamplePage(spec);
 }
 

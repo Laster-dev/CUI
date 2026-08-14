@@ -214,6 +214,18 @@ std::vector<std::string> SplitTableRow(const std::string& line) {
     return cells;
 }
 
+bool ParseTaskMarker(std::string& text, bool& checked) {
+    if (text.size() < 4 || text[0] != '[' || text[2] != ']' || text[3] != ' ') {
+        return false;
+    }
+    const char marker = text[1];
+    if (marker != ' ' && marker != 'x' && marker != 'X') {
+        return false;
+    }
+    checked = marker == 'x' || marker == 'X';
+    text = Trim(text.substr(4));
+    return true;
+}
 size_t FindClosing(const std::string& s, size_t from, const std::string& delim) {
     for (size_t i = from; i + delim.size() <= s.size(); ++i) {
         if (s[i] == '\\' && i + 1 < s.size()) {
@@ -268,7 +280,18 @@ std::vector<MdInline> ParseInlines(const std::string& s) {
                 continue;
             }
         }
-        if (s[i] == '*' || s[i] == '_') {
+        if (s.compare(i, 2, "~~") == 0) {
+            const size_t close = FindClosing(s, i + 2, "~~");
+            if (close != std::string::npos && close > i + 2) {
+                flush();
+                MdInline n;
+                n.kind = MdInlineKind::Strikethrough;
+                n.children = ParseInlines(s.substr(i + 2, close - (i + 2)));
+                out.push_back(std::move(n));
+                i = close + 2;
+                continue;
+            }
+        }        if (s[i] == '*' || s[i] == '_') {
             const std::string delim(1, s[i]);
             const size_t close = FindClosing(s, i + 1, delim);
             if (close != std::string::npos && close > i + 1) {
@@ -492,6 +515,7 @@ std::vector<MdBlock> ParseMarkdown(const std::string& source) {
                 item.ordered = ord;
                 item.listLevel = lvl;
                 item.listStart = st;
+                item.isTask = ParseTaskMarker(itemText, item.isTaskChecked);
                 item.inlines = ParseMarkdownInlines(itemText);
                 list.children.push_back(std::move(item));
                 ++i;

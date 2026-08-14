@@ -26,6 +26,14 @@ Point LerpPoint(const Point& a, const Point& b, float t) {
 }
 
 CheckBox::CheckBox() {
+    Checked = std::make_unique<BindableProperty<bool>>(
+        *this, PropertyId::CheckState,
+        [this] { return GetState() == CheckState::Checked; },
+        [this](bool value) { SetState(value ? CheckState::Checked : CheckState::Unchecked); });
+    State = std::make_unique<BindableProperty<CheckState>>(
+        *this, PropertyId::CheckState,
+        [this] { return GetState(); },
+        [this](CheckState value) { SetState(value); });
     SetText("CheckBox");
     SetBackgroundToken(ThemeTokenId::InputBackground);
     SetCheckedBackgroundToken(ThemeTokenId::AccentColor);
@@ -86,64 +94,20 @@ void CheckBox::SetState(CheckState state) {
     NotifyFieldChanged(PropertyId::CheckState, Value(s));
     MarkRenderRectDirty(m_bounds);
     RequestAnimationTicks();
-    if (!m_updatingFromBinding) {
-        if (m_boundBool) {
-            m_boundBool->Set(state == CheckState::Checked);
-        }
-        if (m_boundState && m_boundStateIsTwoWay) {
-            m_boundState->Set(state);
-        }
-    }
     m_onCheckStateChangedEvent.Invoke(this, state);
 }
 
 void CheckBox::Bind(const std::shared_ptr<Observable<bool>>& value) {
-    Unbind();
-    if (!value) {
-        return;
-    }
-
-    m_boundBool = value;
-    m_updatingFromBinding = true;
-    SetState(value->Get() ? CheckState::Checked : CheckState::Unchecked);
-    m_updatingFromBinding = false;
-    m_boundValueConnection = value->OnChanged().Connect([this](const bool& checked) {
-        m_updatingFromBinding = true;
-        SetState(checked ? CheckState::Checked : CheckState::Unchecked);
-        m_updatingFromBinding = false;
-    });
+    Checked->Bind(value);
 }
 
 void CheckBox::Bind(const std::shared_ptr<Observable<CheckState>>& value, bool twoWay) {
-    Unbind();
-    if (!value) {
-        return;
-    }
-
-    m_boundState = value;
-    m_boundStateIsTwoWay = twoWay;
-    m_updatingFromBinding = true;
-    SetState(value->Get());
-    m_updatingFromBinding = false;
-    m_boundValueConnection = value->OnChanged().Connect([this](const CheckState& state) {
-        m_updatingFromBinding = true;
-        SetState(state);
-        m_updatingFromBinding = false;
-    });
+    State->Bind(value, twoWay ? BindingMode::TwoWay : BindingMode::OneWay);
 }
 
 void CheckBox::Unbind() {
-    if (m_boundBool && m_boundValueConnection != 0) {
-        m_boundBool->OnChanged().Disconnect(m_boundValueConnection);
-    }
-    if (m_boundState && m_boundValueConnection != 0) {
-        m_boundState->OnChanged().Disconnect(m_boundValueConnection);
-    }
-    m_boundBool.reset();
-    m_boundState.reset();
-    m_boundValueConnection = 0;
-    m_boundStateIsTwoWay = false;
-    m_updatingFromBinding = false;
+    Checked->Unbind();
+    State->Unbind();
 }
 
 Size CheckBox::Measure(Size availableSize) {

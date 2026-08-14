@@ -166,6 +166,7 @@
     <ClCompile Include="src\pages\SamplePage.cpp" />
     <ClCompile Include="src\chrome\GalleryShell.cpp" />
     <ClCompile Include="src\chrome\HomePage.cpp" />
+    <ClCompile Include="src\chrome\ConventionsPage.cpp" />
     <ClCompile Include="src\chrome\SettingsPage.cpp" />
     <ClCompile Include="src\pages\BasicInput\ButtonPage.cpp" />
     <ClCompile Include="src\pages\BasicInput\DropDownButtonPage.cpp" />
@@ -246,6 +247,7 @@
     <ClInclude Include="src\pages\SamplePage.h" />
     <ClInclude Include="src\chrome\GalleryShell.h" />
     <ClInclude Include="src\chrome\HomePage.h" />
+    <ClInclude Include="src\chrome\ConventionsPage.h" />
     <ClInclude Include="src\chrome\SettingsPage.h" />
     <ClInclude Include="src\pages\BasicInput\Pages.h" />
     <ClInclude Include="src\pages\BasicInput\ButtonPage.h" />

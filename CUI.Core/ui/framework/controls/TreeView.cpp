@@ -41,7 +41,7 @@ TreeView::TreeView() {
     SetFontSize(16.0f);
     SetFontFamily("微软雅黑");
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    SetFontWeight(FontWeight::Normal);
+    SetFontWeight(CUI::FontWeight::Normal);
     SetItemHeight(28.0f);
     SetCornerRadius(4.0f);
     // Let parent panes stretch the tree; fixed 260px left a blank strip beside it.

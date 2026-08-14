@@ -66,7 +66,7 @@ ListView::ListView() {
     SetBorderThickness(1.0f);
     SetFontSize(16.0f);
     SetFontFamily("微软雅黑");
-    SetFontWeight(FontWeight::Normal);
+    SetFontWeight(CUI::FontWeight::Normal);
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     SetCornerRadius(4.0f);
     // No fixed size — let parent layout stretch ListView to the pane.

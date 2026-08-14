@@ -822,22 +822,11 @@ void UIElement::SetText(const std::string& text) {
 }
 
 void UIElement::BindText(const std::shared_ptr<Observable<std::string>>& value) {
-    UnbindText();
-    if (!value) return;
-
-    m_boundText = value;
-    SetText(value->Get());
-    m_boundTextConnection = value->OnChanged().Connect([this](const std::string& text) {
-        SetText(text);
-    });
+    Text->Bind(value);
 }
 
 void UIElement::UnbindText() {
-    if (m_boundText && m_boundTextConnection != 0) {
-        m_boundText->OnChanged().Disconnect(m_boundTextConnection);
-    }
-    m_boundText.reset();
-    m_boundTextConnection = 0;
+    Text->Unbind();
 }
 
 void UIElement::SetPlaceholder(const std::string& placeholder) {
@@ -860,71 +849,71 @@ void UIElement::SetFontSize(float size) {
 
 const char* FontWeightToString(FontWeight value) {
     switch (value) {
-    case FontWeight::Thin: return "Thin";
-    case FontWeight::ExtraLight: return "ExtraLight";
-    case FontWeight::Light: return "Light";
-    case FontWeight::Medium: return "Medium";
-    case FontWeight::SemiBold: return "SemiBold";
-    case FontWeight::Bold: return "Bold";
-    case FontWeight::ExtraBold: return "ExtraBold";
-    case FontWeight::Black: return "Black";
+    case CUI::FontWeight::Thin: return "Thin";
+    case CUI::FontWeight::ExtraLight: return "ExtraLight";
+    case CUI::FontWeight::Light: return "Light";
+    case CUI::FontWeight::Medium: return "Medium";
+    case CUI::FontWeight::SemiBold: return "SemiBold";
+    case CUI::FontWeight::Bold: return "Bold";
+    case CUI::FontWeight::ExtraBold: return "ExtraBold";
+    case CUI::FontWeight::Black: return "Black";
     default: return "Normal";
     }
 }
 
 FontWeight FontWeightFromString(const std::string& value) {
-    if (value == "Thin") return FontWeight::Thin;
-    if (value == "ExtraLight") return FontWeight::ExtraLight;
-    if (value == "Light") return FontWeight::Light;
-    if (value == "Medium") return FontWeight::Medium;
-    if (value == "SemiBold") return FontWeight::SemiBold;
-    if (value == "Bold") return FontWeight::Bold;
-    if (value == "ExtraBold") return FontWeight::ExtraBold;
-    if (value == "Black") return FontWeight::Black;
-    return FontWeight::Normal;
+    if (value == "Thin") return CUI::FontWeight::Thin;
+    if (value == "ExtraLight") return CUI::FontWeight::ExtraLight;
+    if (value == "Light") return CUI::FontWeight::Light;
+    if (value == "Medium") return CUI::FontWeight::Medium;
+    if (value == "SemiBold") return CUI::FontWeight::SemiBold;
+    if (value == "Bold") return CUI::FontWeight::Bold;
+    if (value == "ExtraBold") return CUI::FontWeight::ExtraBold;
+    if (value == "Black") return CUI::FontWeight::Black;
+    return CUI::FontWeight::Normal;
 }
 
 const char* FontStyleToString(FontStyle value) {
     switch (value) {
-    case FontStyle::Italic: return "Italic";
-    case FontStyle::Oblique: return "Oblique";
+    case CUI::FontStyle::Italic: return "Italic";
+    case CUI::FontStyle::Oblique: return "Oblique";
     default: return "Normal";
     }
 }
 
 FontStyle FontStyleFromString(const std::string& value) {
-    if (value == "Italic") return FontStyle::Italic;
-    if (value == "Oblique") return FontStyle::Oblique;
-    return FontStyle::Normal;
+    if (value == "Italic") return CUI::FontStyle::Italic;
+    if (value == "Oblique") return CUI::FontStyle::Oblique;
+    return CUI::FontStyle::Normal;
 }
 
 const char* FontStretchToString(FontStretch value) {
     switch (value) {
-    case FontStretch::UltraCondensed: return "UltraCondensed";
-    case FontStretch::ExtraCondensed: return "ExtraCondensed";
-    case FontStretch::Condensed: return "Condensed";
-    case FontStretch::SemiCondensed: return "SemiCondensed";
-    case FontStretch::SemiExpanded: return "SemiExpanded";
-    case FontStretch::Expanded: return "Expanded";
-    case FontStretch::ExtraExpanded: return "ExtraExpanded";
-    case FontStretch::UltraExpanded: return "UltraExpanded";
+    case CUI::FontStretch::UltraCondensed: return "UltraCondensed";
+    case CUI::FontStretch::ExtraCondensed: return "ExtraCondensed";
+    case CUI::FontStretch::Condensed: return "Condensed";
+    case CUI::FontStretch::SemiCondensed: return "SemiCondensed";
+    case CUI::FontStretch::SemiExpanded: return "SemiExpanded";
+    case CUI::FontStretch::Expanded: return "Expanded";
+    case CUI::FontStretch::ExtraExpanded: return "ExtraExpanded";
+    case CUI::FontStretch::UltraExpanded: return "UltraExpanded";
     default: return "Normal";
     }
 }
 
 FontStretch FontStretchFromString(const std::string& value) {
-    if (value == "UltraCondensed") return FontStretch::UltraCondensed;
-    if (value == "ExtraCondensed") return FontStretch::ExtraCondensed;
-    if (value == "Condensed") return FontStretch::Condensed;
-    if (value == "SemiCondensed") return FontStretch::SemiCondensed;
-    if (value == "SemiExpanded") return FontStretch::SemiExpanded;
-    if (value == "Expanded") return FontStretch::Expanded;
-    if (value == "ExtraExpanded") return FontStretch::ExtraExpanded;
-    if (value == "UltraExpanded") return FontStretch::UltraExpanded;
-    return FontStretch::Normal;
+    if (value == "UltraCondensed") return CUI::FontStretch::UltraCondensed;
+    if (value == "ExtraCondensed") return CUI::FontStretch::ExtraCondensed;
+    if (value == "Condensed") return CUI::FontStretch::Condensed;
+    if (value == "SemiCondensed") return CUI::FontStretch::SemiCondensed;
+    if (value == "SemiExpanded") return CUI::FontStretch::SemiExpanded;
+    if (value == "Expanded") return CUI::FontStretch::Expanded;
+    if (value == "ExtraExpanded") return CUI::FontStretch::ExtraExpanded;
+    if (value == "UltraExpanded") return CUI::FontStretch::UltraExpanded;
+    return CUI::FontStretch::Normal;
 }
 
-void UIElement::SetFontWeight(FontWeight weight) {
+void UIElement::SetFontWeight(CUI::FontWeight weight) {
     if (m_fontWeight == weight) return;
     m_fontWeight = weight;
     NotifyFieldChanged(PropertyId::FontWeight, Value(FontWeightToString(weight)));
@@ -934,7 +923,7 @@ DWRITE_FONT_WEIGHT UIElement::ResolveFontWeight() const {
     return static_cast<DWRITE_FONT_WEIGHT>(m_fontWeight);
 }
 
-void UIElement::SetFontStyle(FontStyle style) {
+void UIElement::SetFontStyle(CUI::FontStyle style) {
     if (m_fontStyle == style) return;
     m_fontStyle = style;
     NotifyFieldChanged(PropertyId::FontStyle, Value(FontStyleToString(style)));
@@ -944,7 +933,7 @@ DWRITE_FONT_STYLE UIElement::ResolveFontStyle() const {
     return static_cast<DWRITE_FONT_STYLE>(m_fontStyle);
 }
 
-void UIElement::SetFontStretch(FontStretch stretch) {
+void UIElement::SetFontStretch(CUI::FontStretch stretch) {
     if (m_fontStretch == stretch) return;
     m_fontStretch = stretch;
     NotifyFieldChanged(PropertyId::FontStretch, Value(FontStretchToString(stretch)));

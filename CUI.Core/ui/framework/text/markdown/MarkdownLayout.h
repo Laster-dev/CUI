@@ -2,6 +2,7 @@
 #include "MarkdownAst.h"
 #include "../../core/Value.h"
 #include <dwrite.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -9,6 +10,15 @@ namespace CUI {
 
 class GraphicsContext;
 
+enum class MdSyntaxKind : uint8_t {
+    None,
+    Keyword,
+    Type,
+    String,
+    Number,
+    Comment,
+    Preprocessor
+};
 struct MdRun {
     Rect bounds;
     std::string text;
@@ -18,6 +28,8 @@ struct MdRun {
     bool italic = false;
     bool code = false;
     bool link = false;
+    bool strikethrough = false;
+    MdSyntaxKind syntaxKind = MdSyntaxKind::None;
     std::string href;
     int plainStart = 0;
     int plainEnd = 0;
@@ -32,6 +44,8 @@ struct MdPaintBlock {
     std::vector<std::string> codeLines;
     int tableCols = 0;
     int tableRows = 0;
+    std::vector<float> tableRowHeights;
+    std::string codeLanguage;
 };
 
 struct MdLayoutResult {

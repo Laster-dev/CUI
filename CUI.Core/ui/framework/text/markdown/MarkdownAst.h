@@ -10,6 +10,7 @@ enum class MdInlineKind {
     Emphasis,
     Code,
     Link,
+    Strikethrough,
     Break
 };
 
@@ -37,6 +38,8 @@ struct MdBlock {
     bool ordered = false;
     int listStart = 1;
     int listLevel = 0;
+    bool isTask = false;
+    bool isTaskChecked = false;
     std::string lang;
     std::string literal;
     std::vector<MdInline> inlines;

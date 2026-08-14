@@ -30,6 +30,9 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
+    std::unique_ptr<BindableProperty<bool>> Checked;
+    std::unique_ptr<BindableProperty<CheckState>> State;
+
     CheckState GetState() const { return m_state; }
     void SetState(CheckState state);
 
@@ -39,7 +42,7 @@ public:
     // for calculated state sources such as MakeComputed(...).
     void Bind(const std::shared_ptr<Observable<CheckState>>& value, bool twoWay = true);
     void Unbind();
-    bool IsUpdatingFromBinding() const { return m_updatingFromBinding; }
+    bool IsUpdatingFromBinding() const { return Checked->IsUpdating() || State->IsUpdating(); }
 
     bool IsThreeState() const { return m_isThreeState; }
     void SetIsThreeState(bool threeState) {
@@ -60,11 +63,6 @@ private:
     AnimatedScalar m_indeterminateAnim{};
 
     Event<CheckBox*, CheckState> m_onCheckStateChangedEvent;
-    std::shared_ptr<Observable<bool>> m_boundBool;
-    std::shared_ptr<Observable<CheckState>> m_boundState;
-    EventId m_boundValueConnection = 0;
-    bool m_boundStateIsTwoWay = false;
-    bool m_updatingFromBinding = false;
 };
 
 } // namespace CUI

@@ -8,7 +8,7 @@
 #include "../layout/Layout.h"
 #include "../input/RoutedEvent.h"
 #include "../input/Command.h"
-#include "../core/Observable.h"
+#include "../core/BindableProperty.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -78,6 +78,20 @@ public:
     UIElement();
     virtual ~UIElement();
     virtual const char* GetClassName() const override { return "UIElement"; }
+
+    std::unique_ptr<BindableProperty<std::string>> Text;
+    std::unique_ptr<BindableProperty<std::string>> FontFamily;
+    std::unique_ptr<BindableProperty<float>> FontSize;
+    std::unique_ptr<BindableProperty<CUI::FontWeight>> FontWeight;
+    std::unique_ptr<BindableProperty<CUI::FontStyle>> FontStyle;
+    std::unique_ptr<BindableProperty<CUI::FontStretch>> FontStretch;
+    std::unique_ptr<BindableProperty<bool>> Underline;
+    std::unique_ptr<BindableProperty<bool>> Strikethrough;
+    std::unique_ptr<BindableProperty<Color>> TextColor;
+    std::unique_ptr<BindableProperty<float>> Width;
+    std::unique_ptr<BindableProperty<float>> Height;
+    std::unique_ptr<BindableProperty<bool>> IsEnabledProperty;
+    std::unique_ptr<BindableProperty<float>> Opacity;
 
     virtual PropertyDescSpan GetPropertyDescs() const;
 
@@ -262,14 +276,14 @@ public:
     void SetFontFamily(const std::string& font);
     float GetFontSize() const { return m_fontSize; }
     void SetFontSize(float size);
-    FontWeight GetFontWeight() const { return m_fontWeight; }
-    void SetFontWeight(FontWeight weight);
+    CUI::FontWeight GetFontWeight() const { return m_fontWeight; }
+    void SetFontWeight(CUI::FontWeight weight);
     DWRITE_FONT_WEIGHT ResolveFontWeight() const;
-    FontStyle GetFontStyle() const { return m_fontStyle; }
-    void SetFontStyle(FontStyle style);
+    CUI::FontStyle GetFontStyle() const { return m_fontStyle; }
+    void SetFontStyle(CUI::FontStyle style);
     DWRITE_FONT_STYLE ResolveFontStyle() const;
-    FontStretch GetFontStretch() const { return m_fontStretch; }
-    void SetFontStretch(FontStretch stretch);
+    CUI::FontStretch GetFontStretch() const { return m_fontStretch; }
+    void SetFontStretch(CUI::FontStretch stretch);
     DWRITE_FONT_STRETCH ResolveFontStretch() const;
     bool IsUnderline() const { return m_isUnderline; }
     void SetIsUnderline(bool underline);
@@ -485,12 +499,10 @@ protected:
     std::string m_styleClass;
     std::string m_text;
     std::string m_placeholder;
-    std::shared_ptr<Observable<std::string>> m_boundText;
-    EventId m_boundTextConnection = 0;
     std::string m_fontFamily{ "微软雅黑" };
-    FontWeight m_fontWeight = FontWeight::Normal;
-    FontStyle m_fontStyle = FontStyle::Normal;
-    FontStretch m_fontStretch = FontStretch::Normal;
+    CUI::FontWeight m_fontWeight = CUI::FontWeight::Normal;
+    CUI::FontStyle m_fontStyle = CUI::FontStyle::Normal;
+    CUI::FontStretch m_fontStretch = CUI::FontStretch::Normal;
     std::string m_toolTip;
     std::string m_icon;
     float m_fontSize = 12.0f;

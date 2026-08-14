@@ -10,7 +10,7 @@ ContentDialog::ContentDialog() {
 
     m_txtTitle = std::make_shared<TextBlock>(m_titleText);
     m_txtTitle->SetFontSize(18.0f);
-    m_txtTitle->SetFontWeight(FontWeight::Bold);
+    m_txtTitle->SetFontWeight(CUI::FontWeight::Bold);
     m_txtTitle->SetFontFamily("微软雅黑");
     m_txtTitle->SetColorToken(ThemeTokenId::TextPrimary);
     m_txtTitle->SetColor(ThemeManager::Instance().GetColor("textPrimary"));

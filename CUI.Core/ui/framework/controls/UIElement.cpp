@@ -48,6 +48,61 @@ UIElement::UIElement() {
     // Defaults live in members — no string property bag.
     m_renderNode.SetOwner(this);
     m_renderNode.SetBounds(m_bounds);
+    Text = std::make_unique<BindableProperty<std::string>>(
+        *this, PropertyId::Text,
+        [this] { return GetText(); },
+        [this](const std::string& value) { SetText(value); });
+    FontFamily = std::make_unique<BindableProperty<std::string>>(
+        *this, PropertyId::FontFamily,
+        [this] { return GetFontFamily(); },
+        [this](const std::string& value) { SetFontFamily(value); });
+    FontSize = std::make_unique<BindableProperty<float>>(
+        *this, PropertyId::FontSize,
+        [this] { return GetFontSize(); },
+        [this](float value) { SetFontSize(value); });
+    FontWeight = std::make_unique<BindableProperty<CUI::FontWeight>>(
+        *this, PropertyId::FontWeight,
+        [this] { return GetFontWeight(); },
+        [this](CUI::FontWeight value) { SetFontWeight(value); });
+    FontStyle = std::make_unique<BindableProperty<CUI::FontStyle>>(
+        *this, PropertyId::FontStyle,
+        [this] { return GetFontStyle(); },
+        [this](CUI::FontStyle value) { SetFontStyle(value); });
+    FontStretch = std::make_unique<BindableProperty<CUI::FontStretch>>(
+        *this, PropertyId::FontStretch,
+        [this] { return GetFontStretch(); },
+        [this](CUI::FontStretch value) { SetFontStretch(value); });
+    Underline = std::make_unique<BindableProperty<bool>>(
+        *this, PropertyId::IsUnderline,
+        [this] { return IsUnderline(); },
+        [this](bool value) { SetIsUnderline(value); });
+    Strikethrough = std::make_unique<BindableProperty<bool>>(
+        *this, PropertyId::IsStrikethrough,
+        [this] { return IsStrikethrough(); },
+        [this](bool value) { SetIsStrikethrough(value); });
+    TextColor = std::make_unique<BindableProperty<Color>>(
+        *this, PropertyId::Color,
+        [this] {
+            const D2D1_COLOR_F color = GetTextColor();
+            return Color(color.r, color.g, color.b, color.a);
+        },
+        [this](const Color& value) { SetTextColor(value); });
+    Width = std::make_unique<BindableProperty<float>>(
+        *this, PropertyId::Width,
+        [this] { return GetWidth(); },
+        [this](float value) { SetWidth(value); });
+    Height = std::make_unique<BindableProperty<float>>(
+        *this, PropertyId::Height,
+        [this] { return GetHeight(); },
+        [this](float value) { SetHeight(value); });
+    IsEnabledProperty = std::make_unique<BindableProperty<bool>>(
+        *this, PropertyId::IsEnabled,
+        [this] { return IsEnabled(); },
+        [this](bool value) { SetIsEnabled(value); });
+    Opacity = std::make_unique<BindableProperty<float>>(
+        *this, PropertyId::Opacity,
+        [this] { return GetOpacity(); },
+        [this](float value) { SetOpacity(value); });
     OnPropertyIdChanged().Connect([this](PropertyId, const Value&) {
         MarkRenderContentDirty();
     });

@@ -353,6 +353,40 @@ void MarkdownView::SelectAll() {
     SetSelection(0, static_cast<int>(m_layout.plain.size()));
 }
 
+bool MarkdownView::ScrollToHeading(const std::string& heading) {
+    if (heading.empty() || m_layoutDirty) {
+        return false;
+    }
+
+    for (const auto& block : m_layout.blocks) {
+        if (block.headingLevel <= 0) {
+            continue;
+        }
+
+        std::string text;
+        for (const auto& run : block.runs) {
+            text += run.text;
+        }
+        if (text != heading) {
+            continue;
+        }
+
+        m_targetScrollY = block.bounds.y;
+        ClampScroll();
+        m_scrollYAnim.SetTarget(m_targetScrollY);
+        if (!UIElement::AreAnimationsEnabled()) {
+            m_scrollY = m_targetScrollY;
+            m_scrollYAnim.Reset(m_scrollY);
+        } else {
+            RequestAnimationTicks();
+        }
+        m_scrollbarAutoHide.NotifyActivity(this);
+        LayoutCopyButtons();
+        MarkRenderRectDirty(m_bounds);
+        return true;
+    }
+    return false;
+}
 bool MarkdownView::CopySelection() {
     std::string text = GetSelectedText();
     if (text.empty()) {
@@ -396,6 +430,9 @@ void MarkdownView::OnRender(GraphicsContext& ctx) {
     const auto accent = theme.GetColor(ThemeTokenId::AccentColor);
     const auto codeBg = theme.GetColor(ThemeTokenId::InputBackground);
     const auto pane = theme.GetColor(ThemeTokenId::PaneBackground);
+    const D2D1_COLOR_F codeString = D2D1::ColorF(0.62f, 0.78f, 0.49f, 1.0f);
+    const D2D1_COLOR_F codeNumber = D2D1::ColorF(0.86f, 0.62f, 0.34f, 1.0f);
+    const D2D1_COLOR_F codeType = D2D1::ColorF(0.43f, 0.72f, 0.92f, 1.0f);
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
     ctx.DrawRoundedRect(m_bounds, radius, border, GetBorderThickness() > 0.0f ? GetBorderThickness() : 1.0f);
@@ -429,13 +466,17 @@ void MarkdownView::OnRender(GraphicsContext& ctx) {
             ctx.FillRoundedRect(world, 4.0f, pane);
             ctx.DrawRoundedRect(world, 4.0f, border, 1.0f);
             const float colW = world.width / static_cast<float>(block.tableCols);
-            const float rowH = world.height / static_cast<float>((std::max)(1, block.tableRows));
-            ctx.FillRect(Rect(world.x, world.y, world.width, rowH), D2D1::ColorF(accent.r, accent.g, accent.b, 0.10f));
-            for (int c = 1; c < block.tableCols; ++c) {
-                ctx.FillRect(Rect(world.x + colW * static_cast<float>(c), world.y, 1.0f, world.height), border);
+            const float headerH = block.tableRowHeights.empty()
+                ? world.height / static_cast<float>((std::max)(1, block.tableRows))
+                : block.tableRowHeights.front();
+            ctx.FillRect(Rect(world.x, world.y, world.width, headerH), D2D1::ColorF(accent.r, accent.g, accent.b, 0.10f));
+            for (int column = 1; column < block.tableCols; ++column) {
+                ctx.FillRect(Rect(world.x + colW * static_cast<float>(column), world.y, 1.0f, world.height), border);
             }
-            for (int r = 1; r < block.tableRows; ++r) {
-                ctx.FillRect(Rect(world.x, world.y + rowH * static_cast<float>(r), world.width, 1.0f), border);
+            float rowY = world.y;
+            for (size_t row = 0; row + 1 < block.tableRowHeights.size(); ++row) {
+                rowY += block.tableRowHeights[row];
+                ctx.FillRect(Rect(world.x, rowY, world.width, 1.0f), border);
             }
         } else if (block.headingLevel == 1 || block.headingLevel == 2) {
             ctx.FillRect(
@@ -467,7 +508,15 @@ void MarkdownView::OnRender(GraphicsContext& ctx) {
         D2D1_COLOR_F color = text;
         if (run.link) {
             color = accent;
-        } else if (run.code && run.size <= 11.5f) {
+        } else if (run.syntaxKind == MdSyntaxKind::Keyword) {
+            color = accent;
+        } else if (run.syntaxKind == MdSyntaxKind::Type) {
+            color = codeType;
+        } else if (run.syntaxKind == MdSyntaxKind::String) {
+            color = codeString;
+        } else if (run.syntaxKind == MdSyntaxKind::Number || run.syntaxKind == MdSyntaxKind::Preprocessor) {
+            color = codeNumber;
+        } else if (run.syntaxKind == MdSyntaxKind::Comment || (run.code && run.size <= 11.5f)) {
             color = muted;
         }
         const Rect dest(ox + run.bounds.x, oy + run.bounds.y, (std::max)(1.0f, run.bounds.width + 2.0f), run.bounds.height);
@@ -497,7 +546,11 @@ void MarkdownView::OnRender(GraphicsContext& ctx) {
                 DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
                 run.weight);
         }
-        if (run.link) {
+        if (run.strikethrough) {
+            ctx.FillRect(
+                Rect(dest.x, dest.y + dest.height * 0.52f, dest.width, 1.0f),
+                color);
+        }        if (run.link) {
             ctx.FillRect(
                 Rect(dest.x, dest.y + dest.height - 2.0f, dest.width, 1.0f),
                 accent);

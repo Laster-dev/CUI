@@ -32,9 +32,14 @@ public:
     }
 
     void Invoke(Args... args) const {
-        for (const auto& conn : m_handlers) {
-            if (conn.handler) {
-                conn.handler(args...);
+        const auto handlers = m_handlers;
+        for (const auto& snapshot : handlers) {
+            const auto current = std::find_if(
+                m_handlers.begin(),
+                m_handlers.end(),
+                [&snapshot](const Connection& connection) { return connection.id == snapshot.id; });
+            if (current != m_handlers.end() && current->handler) {
+                current->handler(args...);
             }
         }
     }

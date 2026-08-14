@@ -49,6 +49,8 @@ public:
     bool CopySelection();
     bool HasSelection() const { return m_selA != m_selB; }
 
+    bool ScrollToHeading(const std::string& heading);
+
     Event<MarkdownView*, const std::string&>& OnLinkClicked() { return m_onLinkClicked; }
 
 private:

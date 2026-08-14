@@ -1,5 +1,6 @@
 #include "chrome/GalleryShell.h"
 #include "chrome/HomePage.h"
+#include "chrome/ConventionsPage.h"
 #include "chrome/SettingsPage.h"
 #include "catalog/Catalog.h"
 #include "GalleryHost.h"
@@ -26,6 +27,7 @@ namespace Gallery {
     namespace {
 
         constexpr const char* kHomeTag = "home";
+        constexpr const char* kConventionsTag = "conventions";
         constexpr const char* kSettingsTag = "settings";
         constexpr size_t kMaxCachedPages = 12;
 
@@ -39,6 +41,9 @@ namespace Gallery {
                 }
                 if (tag == kSettingsTag) {
                     return BuildSettingsPage();
+                }
+                if (tag == kConventionsTag) {
+                    return BuildConventionsPage();
                 }
 
                 auto cached = content.find(tag);
@@ -88,6 +93,10 @@ namespace Gallery {
             homeItem->SetTag(kHomeTag);
             nav->AddMenuItem(homeItem);
 
+            auto conventionsItem = std::make_shared<NavigationViewItem>("全局约定");
+            conventionsItem->SetTag(kConventionsTag);
+            nav->AddMenuItem(conventionsItem);
+
             for (Category category : CategoryOrder()) {
                 auto items = EntriesIn(category);
                 if (items.empty()) {
@@ -125,8 +134,8 @@ namespace Gallery {
                     return;
                 }
                 nav->NavigateTo(tag);
-                if (tag == kSettingsTag) {
-                    nav->SetContent(cache->Resolve(kSettingsTag));
+                if (tag == kSettingsTag || tag == kConventionsTag) {
+                    nav->SetContent(cache->Resolve(tag));
                     return;
                 }
                 if (cache->Contains(tag) || tag == kHomeTag) {

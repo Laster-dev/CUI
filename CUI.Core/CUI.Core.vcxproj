@@ -333,10 +333,12 @@
     <ClInclude Include="ui\framework\controls\TreeView.h" />
     <ClInclude Include="ui\framework\controls\UIElement.h" />
     <ClInclude Include="ui\framework\controls\WindowTitleBar.h" />
+    <ClInclude Include="ui\framework\core\BindableProperty.h" />
     <ClInclude Include="ui\framework\core\Binding.h" />
     <ClInclude Include="ui\framework\core\CUIDsl.h" />
     <ClInclude Include="ui\framework\core\Event.h" />
     <ClInclude Include="ui\framework\core\Object.h" />
+    <ClInclude Include="ui\framework\core\Observable.h" />
     <ClInclude Include="ui\framework\core\PropertyDesc.h" />
     <ClInclude Include="ui\framework\core\PropertyId.h" />
     <ClInclude Include="ui\framework\core\Value.h" />

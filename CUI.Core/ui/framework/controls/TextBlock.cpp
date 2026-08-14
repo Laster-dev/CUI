@@ -32,7 +32,7 @@ TextBlock::TextBlock() {
     SetColor(ThemeManager::Instance().GetColor("textSecondary"));
     SetFontFamily("微软雅黑");
     SetFontSize(13.0f);
-    SetFontWeight(FontWeight::Normal);
+    SetFontWeight(CUI::FontWeight::Normal);
 }
 
 TextBlock::TextBlock(const std::string& text) : TextBlock() {
