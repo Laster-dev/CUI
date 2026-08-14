@@ -26,6 +26,56 @@ struct Thickness {
     static Thickness Parse(const std::string& str);
 };
 
+struct Color {
+    float r = 0.0f;
+    float g = 0.0f;
+    float b = 0.0f;
+    float a = 1.0f;
+
+    Color() = default;
+    Color(float r_, float g_, float b_, float a_ = 1.0f) : r(r_), g(g_), b(b_), a(a_) {}
+
+    // Implicit conversion to D2D1_COLOR_F
+    operator D2D1_COLOR_F() const {
+        D2D1_COLOR_F c;
+        c.r = r;
+        c.g = g;
+        c.b = b;
+        c.a = a;
+        return c;
+    }
+
+    static Color RGBA(float r, float g, float b, float a = 1.0f) {
+        return Color(r, g, b, a);
+    }
+
+    static Color FromRGBA(float r, float g, float b, float a = 1.0f) {
+        return Color(r, g, b, a);
+    }
+
+    static Color FromRGB(float r, float g, float b) {
+        return Color(r, g, b, 1.0f);
+    }
+
+    static Color Hex(const std::string& hexStr);
+    static Color FromHex(const std::string& hexStr) { return Hex(hexStr); }
+
+    // Predefined industry standard colors
+    static const Color Transparent;
+    static const Color Black;
+    static const Color White;
+    static const Color Gray;
+    static const Color LightGray;
+    static const Color Red;
+    static const Color Green;
+    static const Color Blue;
+    static const Color Yellow;
+    static const Color Cyan;
+    static const Color Magenta;
+    static const Color Orange;
+    static const Color Purple;
+};
+
 struct Size {
     float width = 0.0f;
     float height = 0.0f;

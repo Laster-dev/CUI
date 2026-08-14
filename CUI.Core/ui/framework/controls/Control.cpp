@@ -40,12 +40,16 @@ float Control::GetVisualStateTarget() const {
 }
 
 bool Control::VisualStateChromeDiffers() const {
-    D2D1_COLOR_F bg = (m_backgroundToken != ThemeTokenId::Unset)
-        ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
-        : (m_hasBackgroundColor ? m_backgroundColor : D2D1::ColorF(0, 0, 0, 0));
-    D2D1_COLOR_F hoverBg = (m_hoverBackgroundToken != ThemeTokenId::Unset)
-        ? ResolveThemeColor(m_hoverBackgroundToken, ThemeTokenId::HoverBackground)
-        : bg;
+    D2D1_COLOR_F bg = m_hasBackgroundColor
+        ? m_backgroundColor
+        : ((m_backgroundToken != ThemeTokenId::Unset)
+            ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
+            : D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F hoverBg = m_hasHoverBackgroundColor
+        ? m_hoverBackgroundColor
+        : ((m_hoverBackgroundToken != ThemeTokenId::Unset)
+            ? ResolveThemeColor(m_hoverBackgroundToken, ThemeTokenId::HoverBackground)
+            : bg);
     return std::abs(bg.r - hoverBg.r) > 0.002f
         || std::abs(bg.g - hoverBg.g) > 0.002f
         || std::abs(bg.b - hoverBg.b) > 0.002f
@@ -53,17 +57,23 @@ bool Control::VisualStateChromeDiffers() const {
 }
 
 D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
-    D2D1_COLOR_F bg = (m_backgroundToken != ThemeTokenId::Unset)
-        ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
-        : (m_hasBackgroundColor ? m_backgroundColor : fallback);
-    // If hover/pressed tokens are absent, reuse live bg — never a stale RGB snapshot
-    // from a previous theme (that caused TitleBar to go black on focus after Light switch).
-    D2D1_COLOR_F hoverBg = (m_hoverBackgroundToken != ThemeTokenId::Unset)
-        ? ResolveThemeColor(m_hoverBackgroundToken, ThemeTokenId::HoverBackground)
-        : bg;
-    D2D1_COLOR_F pressedBg = (m_pressedBackgroundToken != ThemeTokenId::Unset)
-        ? ResolveThemeColor(m_pressedBackgroundToken, ThemeTokenId::PressedBackground)
-        : hoverBg;
+    D2D1_COLOR_F bg = m_hasBackgroundColor
+        ? m_backgroundColor
+        : ((m_backgroundToken != ThemeTokenId::Unset)
+            ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
+            : fallback);
+
+    D2D1_COLOR_F hoverBg = m_hasHoverBackgroundColor
+        ? m_hoverBackgroundColor
+        : ((m_hoverBackgroundToken != ThemeTokenId::Unset)
+            ? ResolveThemeColor(m_hoverBackgroundToken, ThemeTokenId::HoverBackground)
+            : bg);
+
+    D2D1_COLOR_F pressedBg = m_hasPressedBackgroundColor
+        ? m_pressedBackgroundColor
+        : ((m_pressedBackgroundToken != ThemeTokenId::Unset)
+            ? ResolveThemeColor(m_pressedBackgroundToken, ThemeTokenId::PressedBackground)
+            : hoverBg);
 
     // Disabled uses the resting fill; UIElement::Render fades the whole control.
     if (!IsEnabled()) {
@@ -109,9 +119,11 @@ void Control::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    D2D1_COLOR_F borderBrush = (m_borderToken != ThemeTokenId::Unset)
-        ? ResolveThemeColor(m_borderToken, ThemeTokenId::CardBorder)
-        : (m_hasBorderBrushColor ? m_borderBrushColor : D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F borderBrush = m_hasBorderBrushColor
+        ? m_borderBrushColor
+        : ((m_borderToken != ThemeTokenId::Unset)
+            ? ResolveThemeColor(m_borderToken, ThemeTokenId::CardBorder)
+            : D2D1::ColorF(0, 0, 0, 0));
     float borderThickness = GetBorderThickness();
     if (borderBrush.a > 0.0f && borderThickness > 0.0f) {
         if (radius > 0.0f) {

@@ -1,5 +1,5 @@
 #include "pages/BasicInput/Pages.h"
-#include "page/SamplePage.h"
+#include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/ComboBox.h"

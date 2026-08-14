@@ -1,5 +1,5 @@
 #include "pages/BasicInput/Pages.h"
-#include "page/SamplePage.h"
+#include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/SegmentedControl.h"
@@ -9,7 +9,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildSegmentedPage() {
+std::shared_ptr<UIElement> BuildSegmentedControlPage() {
     auto range = std::make_shared<SegmentedControl>();
     range->SetWidth(280.0f);
     range->AddItem("日");

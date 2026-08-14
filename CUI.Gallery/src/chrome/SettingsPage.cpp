@@ -1,5 +1,5 @@
 #include "chrome/SettingsPage.h"
-#include "page/SamplePage.h"
+#include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/Button.h"

@@ -23,235 +23,226 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 namespace Gallery {
-namespace {
+    namespace {
 
-constexpr const char* kHomeTag = "home";
-constexpr const char* kSettingsTag = "settings";
-constexpr size_t kMaxCachedPages = 12;
+        constexpr const char* kHomeTag = "home";
+        constexpr const char* kSettingsTag = "settings";
+        constexpr size_t kMaxCachedPages = 12;
 
-struct PageCache {
-    std::unordered_map<std::string, std::shared_ptr<UIElement>> content;
-    std::list<std::string> lru;
+        struct PageCache {
+            std::unordered_map<std::string, std::shared_ptr<UIElement>> content;
+            std::list<std::string> lru;
 
-    std::shared_ptr<UIElement> Resolve(const std::string& tag) {
-        if (tag == kHomeTag) {
-            return BuildHomePage();
-        }
-        if (tag == kSettingsTag) {
-            return BuildSettingsPage();
-        }
+            std::shared_ptr<UIElement> Resolve(const std::string& tag) {
+                if (tag == kHomeTag) {
+                    return BuildHomePage();
+                }
+                if (tag == kSettingsTag) {
+                    return BuildSettingsPage();
+                }
 
-        auto cached = content.find(tag);
-        if (cached != content.end()) {
-            lru.remove(tag);
-            lru.push_front(tag);
-            return cached->second;
-        }
+                auto cached = content.find(tag);
+                if (cached != content.end()) {
+                    lru.remove(tag);
+                    lru.push_front(tag);
+                    return cached->second;
+                }
 
-        const Entry* entry = FindByTag(tag);
-        if (!entry || !entry->build) {
-            return nullptr;
-        }
-        auto page = entry->build();
-        content.emplace(tag, page);
-        lru.push_front(tag);
-        while (lru.size() > kMaxCachedPages) {
-            const std::string evict = lru.back();
-            lru.pop_back();
-            if (evict != tag) {
-                content.erase(evict);
+                const Entry* entry = FindByTag(tag);
+                if (!entry || !entry->build) {
+                    return nullptr;
+                }
+                auto page = entry->build();
+                content.emplace(tag, page);
+                lru.push_front(tag);
+                while (lru.size() > kMaxCachedPages) {
+                    const std::string evict = lru.back();
+                    lru.pop_back();
+                    if (evict != tag) {
+                        content.erase(evict);
+                    }
+                }
+                return page;
             }
-        }
-        return page;
-    }
 
-    bool Contains(const std::string& tag) const {
-        return content.find(tag) != content.end();
-    }
-};
-
-std::shared_ptr<NavigationView> BuildNavigation() {
-    auto nav = std::make_shared<NavigationView>();
-    nav->SetHeader(std::string());
-    nav->SetPaneTitle("CUI Gallery");
-    nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
-    nav->SetIsBackButtonVisible(NavigationViewBackButtonVisible::Collapsed);
-    nav->SetIsSettingsVisible(true);
-    if (auto* settings = nav->SettingsItem()) {
-        settings->SetContent("设置");
-    }
-    nav->SetIsPaneOpen(true);
-    nav->SetFlexGrow(1.0f);
-    nav->SetAlign(Alignment::Stretch);
-
-    auto homeItem = std::make_shared<NavigationViewItem>("主页");
-    homeItem->SetTag(kHomeTag);
-    nav->AddMenuItem(homeItem);
-
-    for (Category category : CategoryOrder()) {
-        auto items = EntriesIn(category);
-        if (items.empty()) {
-            continue;
-        }
-        auto folder = std::make_shared<NavigationViewItem>(CategoryDisplayName(category));
-        folder->SetSelectsOnInvoked(false);
-        for (const Entry* entry : items) {
-            auto child = std::make_shared<NavigationViewItem>(entry->title);
-            child->SetTag(entry->tag);
-            folder->AddMenuItem(child);
-        }
-        nav->AddMenuItem(folder);
-    }
-
-    auto search = std::make_shared<AutoSuggestBox>();
-    search->SetPlaceholder("搜索控件");
-    search->SetMaxVisibleSuggestions(10);
-    {
-        std::vector<std::string> titles;
-        for (const auto& e : Entries()) {
-            titles.push_back(e.title);
-        }
-        search->SetSuggestionItems(titles);
-        search->SetSuggestionProvider([](const std::string& query) {
-            return SearchTitles(query);
-        });
-    }
-    nav->SetAutoSuggestBox(search);
-
-    auto cache = std::make_shared<PageCache>();
-
-    auto navigate = [nav, cache](const std::string& tag) {
-        if (tag.empty()) {
-            return;
-        }
-        if (tag == kSettingsTag) {
-            nav->SelectByTag(tag);
-            nav->SetContent(cache->Resolve(kSettingsTag));
-            return;
-        }
-        nav->SelectByTag(tag);
-        if (cache->Contains(tag) || tag == kHomeTag) {
-            if (auto page = cache->Resolve(tag)) {
-                nav->SetContent(page);
+            bool Contains(const std::string& tag) const {
+                return content.find(tag) != content.end();
             }
-            return;
-        }
-        nav->SetContentFactory([cache, tag]() {
-            return cache->Resolve(tag);
-        });
-    };
+        };
 
-    Host::Instance().SetNavigator(navigate);
-
-    search->OnSuggestionChosen().Connect([search](AutoSuggestBox*, const std::string& title) {
-        if (const Entry* entry = FindByTitle(title)) {
-            Host::Instance().Navigate(entry->tag);
-            search->SetText("");
-        }
-    });
-    search->OnQuerySubmitted().Connect([search](AutoSuggestBox*, const std::string& query) {
-        if (const Entry* exact = FindByTitle(query)) {
-            Host::Instance().Navigate(exact->tag);
-            search->SetText("");
-            return;
-        }
-        auto matches = SearchTitles(query);
-        if (!matches.empty()) {
-            if (const Entry* entry = FindByTitle(matches.front())) {
-                Host::Instance().Navigate(entry->tag);
+        std::shared_ptr<NavigationView> BuildNavigation() {
+            auto nav = std::make_shared<NavigationView>();
+            nav->SetHeader(std::string());
+            nav->SetPaneTitle("CUI Gallery");
+            nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
+            nav->SetIsBackButtonVisible(NavigationViewBackButtonVisible::Collapsed);
+            nav->SetIsSettingsVisible(true);
+            if (auto* settings = nav->SettingsItem()) {
+                settings->SetContent("设置");
             }
-            search->SetText("");
+            nav->SetIsPaneOpen(true);
+            nav->SetFlexGrow(1.0f);
+            nav->SetAlign(Alignment::Stretch);
+
+            auto homeItem = std::make_shared<NavigationViewItem>("主页");
+            homeItem->SetTag(kHomeTag);
+            nav->AddMenuItem(homeItem);
+
+            for (Category category : CategoryOrder()) {
+                auto items = EntriesIn(category);
+                if (items.empty()) {
+                    continue;
+                }
+                auto folder = std::make_shared<NavigationViewItem>(CategoryDisplayName(category));
+                folder->SetSelectsOnInvoked(false);
+                for (const Entry* entry : items) {
+                    auto child = std::make_shared<NavigationViewItem>(entry->title);
+                    child->SetTag(entry->tag);
+                    folder->AddMenuItem(child);
+                }
+                nav->AddMenuItem(folder);
+            }
+
+            auto search = std::make_shared<AutoSuggestBox>();
+            search->SetPlaceholder("搜索控件");
+            search->SetMaxVisibleSuggestions(10);
+            {
+                std::vector<std::string> titles;
+                for (const auto& e : Entries()) {
+                    titles.push_back(e.title);
+                }
+                search->SetSuggestionItems(titles);
+                search->SetSuggestionProvider([](const std::string& query) {
+                    return SearchTitles(query);
+                    });
+            }
+            nav->SetAutoSuggestBox(search);
+
+            auto cache = std::make_shared<PageCache>();
+
+            auto navigate = [nav, cache](const std::string& tag) {
+                if (tag.empty()) {
+                    return;
+                }
+                if (tag == kSettingsTag) {
+                    nav->SelectByTag(tag);
+                    nav->SetContent(cache->Resolve(kSettingsTag));
+                    return;
+                }
+                nav->SelectByTag(tag);
+                if (cache->Contains(tag) || tag == kHomeTag) {
+                    if (auto page = cache->Resolve(tag)) {
+                        nav->SetContent(page);
+                    }
+                    return;
+                }
+                nav->SetContentFactory([cache, tag]() {
+                    return cache->Resolve(tag);
+                    });
+                };
+
+            Host::Instance().SetNavigator(navigate);
+
+            search->OnSuggestionChosen().Connect([search](AutoSuggestBox*, const std::string& title) {
+                if (const Entry* entry = FindByTitle(title)) {
+                    Host::Instance().Navigate(entry->tag);
+                    search->SetText("");
+                }
+                });
+            search->OnQuerySubmitted().Connect([search](AutoSuggestBox*, const std::string& query) {
+                if (const Entry* exact = FindByTitle(query)) {
+                    Host::Instance().Navigate(exact->tag);
+                    search->SetText("");
+                    return;
+                }
+                auto matches = SearchTitles(query);
+                if (!matches.empty()) {
+                    if (const Entry* entry = FindByTitle(matches.front())) {
+                        Host::Instance().Navigate(entry->tag);
+                    }
+                    search->SetText("");
+                }
+                });
+
+            nav->OnItemInvoked().Connect([navigate](NavigationView*, const NavigationViewItemInvokedEventArgs& args) {
+                if (args.IsSettingsInvoked) {
+                    navigate(kSettingsTag);
+                    return;
+                }
+                if (!args.InvokedItem) {
+                    return;
+                }
+                const std::string& tag = args.InvokedItem->GetTag();
+                if (tag.empty()) {
+                    return;
+                }
+                navigate(tag);
+                });
+
+            nav->SetSelectedItem(homeItem.get());
+            nav->SetContent(cache->Resolve(kHomeTag));
+            return nav;
         }
-    });
 
-    nav->OnItemInvoked().Connect([navigate](NavigationView*, const NavigationViewItemInvokedEventArgs& args) {
-        if (args.IsSettingsInvoked) {
-            navigate(kSettingsTag);
-            return;
-        }
-        if (!args.InvokedItem) {
-            return;
-        }
-        const std::string& tag = args.InvokedItem->GetTag();
-        if (tag.empty()) {
-            return;
-        }
-        navigate(tag);
-    });
+    } // namespace
 
-    nav->SetSelectedItem(homeItem.get());
-    nav->SetContent(cache->Resolve(kHomeTag));
-    return nav;
-}
-
-} // namespace
-
-std::shared_ptr<UIElement> BuildGalleryRoot() {
-    auto titleBar = std::make_shared<WindowTitleBar>();
-    titleBar->SetTitle("CUI Gallery");
-    titleBar->SetIconText("C");
-
-    auto themeToggle = std::make_shared<ToggleButton>();
-    themeToggle->SetHeight(26.0f);
-    themeToggle->SetPadding(Thickness(10, 3, 10, 3));
-    const auto syncThemeToggle = [](ToggleButton* toggle, ThemeMode theme) {
-        const bool isDark = theme == ThemeMode::Dark;
-        toggle->SetText(isDark ? "深色" : "浅色");
-        toggle->SetIsChecked(isDark);
-    };
-    if (auto* window = Window::Current()) {
-        syncThemeToggle(themeToggle.get(), window->GetThemeMode());
-        std::weak_ptr<ToggleButton> weakToggle = themeToggle;
-        window->OnThemeChanged().Connect([weakToggle, syncThemeToggle](Window*, ThemeMode theme) {
-            if (auto toggle = weakToggle.lock()) {
-                syncThemeToggle(toggle.get(), theme);
+    std::shared_ptr<UIElement> BuildGalleryRoot() {
+        auto titleBar = std::make_shared<WindowTitleBar>();
+        titleBar->SetTitle("CUI Gallery");
+		//构建主题切换控件
+        auto ThemeModeRange = std::make_shared<SegmentedControl>();
+        ThemeModeRange->SetWidth(120.0f);
+		ThemeModeRange->SetMargin(Thickness(2, 2, 10, 2));
+        ThemeModeRange->AddItem("Dark");
+        ThemeModeRange->AddItem("Light");
+        ThemeModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
+            if (auto* window = Window::Current()) {
+                window->SetThemeMode(item == "Dark" ? ThemeMode::Dark : ThemeMode::Light);
             }
         });
-    } else {
-        syncThemeToggle(themeToggle.get(), ThemeMode::Light);
-    }
-    themeToggle->OnToggled().Connect([](ToggleButton* toggle, bool isDark) {
-        toggle->SetText(isDark ? "深色" : "浅色");
-        if (auto* window = Window::Current()) {
-            window->SetThemeMode(isDark ? ThemeMode::Dark : ThemeMode::Light);
-        }
-    });
-    titleBar->SetRightContent(themeToggle);
-    auto fileMenu = titleBar->GetMenuBar().AddMenu("文件");
-    fileMenu->AddItem("主页", [] {
-        Host::Instance().Navigate("home");
-    });
-    fileMenu->AddItem("设置", [] {
-        Host::Instance().Navigate("settings");
-    });
-    fileMenu->AddSeparator();
-    fileMenu->AddItem("退出", "Alt+F4", [] {
-        if (auto* win = Window::Current()) {
-            if (HWND hwnd = win->GetHWND()) {
-                PostMessage(hwnd, WM_CLOSE, 0, 0);
+		//构建动画|低性能模式切换控件
+		auto AnimationModeRange = std::make_shared<SegmentedControl>();
+		AnimationModeRange->SetWidth(120.0f);
+		AnimationModeRange->SetMargin(Thickness(2, 2, 10, 2));
+		AnimationModeRange->AddItem("动画");
+		AnimationModeRange->AddItem("低性能");
+        AnimationModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
+           UIElement::SetAnimationsEnabled(item == "动画");
+		});
+
+		//把两个控件合并为一个水平布局，然后添加
+		auto rightContent = std::make_shared<StackPanel>();
+		rightContent->SetOrientation(Orientation::Horizontal);
+		rightContent->AddChild(ThemeModeRange);
+		rightContent->AddChild(AnimationModeRange);
+		//设置右侧内容
+		titleBar->SetRightContent(rightContent);
+
+
+       
+        auto fileMenu = titleBar->GetMenuBar().AddMenu("文件");
+        fileMenu->AddItem("主页", [] {
+            Host::Instance().Navigate("home");
+            });
+        fileMenu->AddItem("设置", [] {
+            Host::Instance().Navigate("settings");
+            });
+        fileMenu->AddSeparator();
+        fileMenu->AddItem("退出", "Alt+F4", [] {
+            if (auto* win = Window::Current()) {
+                if (HWND hwnd = win->GetHWND()) {
+                    PostMessage(hwnd, WM_CLOSE, 0, 0);
+                }
             }
-        }
-    });
+            });
 
-    auto viewMenu = titleBar->GetMenuBar().AddMenu("视图");
-    viewMenu->AddItem("深色主题", [] {
-        if (auto* win = Window::Current()) {
-            win->SetThemeMode(ThemeMode::Dark);
-        }
-    });
-    viewMenu->AddItem("浅色主题", [] {
-        if (auto* win = Window::Current()) {
-            win->SetThemeMode(ThemeMode::Light);
-        }
-    });
+        auto nav = BuildNavigation();
+        auto toastCenter = std::make_shared<ToastCenter>();
+        toastCenter->SetId("toastCenter");
 
-    auto nav = BuildNavigation();
-    auto toastCenter = std::make_shared<ToastCenter>();
-    toastCenter->SetId("toastCenter");
-
-    auto root = Column(0).Children({ titleBar, nav, toastCenter }).Build();
-    root->SetBackgroundToken(ThemeTokenId::WindowBackground);
-    return root;
-}
+        auto root = Column(0).Children({ titleBar, nav, toastCenter }).Build();
+        root->SetBackgroundToken(ThemeTokenId::WindowBackground);
+        return root;
+    }
 
 } // namespace Gallery

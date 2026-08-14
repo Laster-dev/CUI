@@ -65,11 +65,9 @@ void HyperlinkButton::OnRender(GraphicsContext& ctx) {
     const std::string& text = GetText();
     if (text.empty()) return;
 
-    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentColor);
-    if (m_isHovered) {
-        // No dedicated hoverColor token member — reuse color token / accent fallback.
-        textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentColor);
-    }
+    D2D1_COLOR_F textColor = m_hasColorValue
+        ? m_colorValue
+        : ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentColor);
 
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();

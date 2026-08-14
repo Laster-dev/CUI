@@ -1,5 +1,5 @@
 #include "pages/BasicInput/Pages.h"
-#include "page/SamplePage.h"
+#include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/RatingControl.h"
@@ -10,7 +10,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildRatingPage() {
+std::shared_ptr<UIElement> BuildRatingControlPage() {
     auto rating = std::make_shared<RatingControl>();
     rating->SetMaxRating(5);
     rating->SetStep(0.5f);

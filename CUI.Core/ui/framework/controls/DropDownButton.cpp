@@ -385,14 +385,20 @@ void DropDownButton::OnRenderOverlay(GraphicsContext& ctx) {
 }
 
 void DropDownButton::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor));
-    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
+    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F border = m_hasBorderBrushColor
+        ? m_borderBrushColor
+        : ((GetBorderToken() != ThemeTokenId::Unset)
+            ? ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor)
+            : D2D1::ColorF(0, 0, 0, 0));
     DrawButtonFace(ctx, bg, border, GetBorderThickness());
     DrawButtonLabel(ctx, LabelRect(), DWRITE_TEXT_ALIGNMENT_CENTER);
 
     const bool open = m_isDropDownOpen || m_arrowAnim.Current() > 0.5f;
     D2D1_COLOR_F chevron = IsEnabled()
-        ? ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground)
+        ? (m_hasColorValue
+            ? m_colorValue
+            : ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground))
         : ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
     const Rect slot = ChevronRect();
     const Rect glyph(

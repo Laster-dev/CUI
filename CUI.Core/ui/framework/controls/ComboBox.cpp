@@ -130,9 +130,11 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
         ctx.FillRect(m_bounds, bg);
     }
 
-    D2D1_COLOR_F borderBrush = (m_isFocused || m_isDropDownOpen)
-        ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
-        : ResolveThemeColor(GetBorderToken(), ThemeTokenId::InputBorder);
+    D2D1_COLOR_F borderBrush = m_hasBorderBrushColor
+        ? m_borderBrushColor
+        : ((m_isFocused || m_isDropDownOpen)
+            ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
+            : ResolveThemeColor(GetBorderToken(), ThemeTokenId::InputBorder));
 
     float borderThickness = GetBorderThickness();
     if (borderThickness > 0.0f) {
@@ -152,7 +154,9 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
         if (displayText.empty()) displayText = "Select option...";
     }
 
-    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    D2D1_COLOR_F textColor = m_hasColorValue
+        ? m_colorValue
+        : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
 
@@ -173,7 +177,7 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
         kChevron);
     ctx.DrawChevron(
         arrowRect,
-        ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary),
+        m_hasColorValue ? m_colorValue : ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary),
         open ? GraphicsContext::ChevronDirection::Up : GraphicsContext::ChevronDirection::Down);
 }
 

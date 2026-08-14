@@ -154,8 +154,12 @@ Size SegmentedControl::Measure(Size availableSize) {
 }
 
 void SegmentedControl::Arrange(Rect finalRect) {
+    bool boundsChanged = (std::abs(m_bounds.width - finalRect.width) > 0.5f
+        || std::abs(m_bounds.height - finalRect.height) > 0.5f
+        || std::abs(m_bounds.x - finalRect.x) > 0.5f
+        || std::abs(m_bounds.y - finalRect.y) > 0.5f);
     UIElement::Arrange(finalRect);
-    SyncPill(m_pillW.Current() < 1.0f);
+    SyncPill(boundsChanged || m_pillW.Current() < 1.0f);
 }
 
 Rect SegmentedControl::SegmentRect(int index) const {
@@ -178,19 +182,20 @@ int SegmentedControl::HitTestIndex(Point pt) const {
 }
 
 void SegmentedControl::SyncPill(bool snap) {
-    if (m_selectedIndex < 0) {
+    if (m_selectedIndex < 0 || m_items.empty() || m_bounds.width <= 0.0f) {
         return;
     }
-    const Rect r = SegmentRect(m_selectedIndex);
-    if (r.IsEmpty()) {
-        return;
-    }
+    const int n = static_cast<int>(m_items.size());
+    const float w = m_bounds.width / static_cast<float>(n);
+    const float targetRelX = w * static_cast<float>(m_selectedIndex);
+    const float targetW = w;
+
     if (snap) {
-        m_pillX.Reset(r.x);
-        m_pillW.Reset(r.width);
+        m_pillX.Reset(targetRelX);
+        m_pillW.Reset(targetW);
     } else {
-        m_pillX.SetTarget(r.x);
-        m_pillW.SetTarget(r.width);
+        m_pillX.SetTarget(targetRelX);
+        m_pillW.SetTarget(targetW);
     }
 }
 
@@ -203,6 +208,7 @@ void SegmentedControl::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F idleText = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentColor);
     D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
 
+    // 1. Control Background
     if (radius > 0.0f) {
         ctx.FillRoundedRect(m_bounds, radius, bg);
     } else {
@@ -210,6 +216,8 @@ void SegmentedControl::OnRender(GraphicsContext& ctx) {
     }
 
     const int n = static_cast<int>(m_items.size());
+
+    // 2. Hover Highlight
     if (m_hoverIndex >= 0 && m_hoverIndex != m_selectedIndex) {
         const Rect hover = SegmentRect(m_hoverIndex);
         ctx.PushRoundedClip(m_bounds, radius);
@@ -217,24 +225,10 @@ void SegmentedControl::OnRender(GraphicsContext& ctx) {
         ctx.PopClip();
     }
 
-    if (m_selectedIndex >= 0 && n > 0) {
-        const float pillX = UIElement::AreAnimationsEnabled() ? m_pillX.Current() : SegmentRect(m_selectedIndex).x;
-        const float pillW = UIElement::AreAnimationsEnabled() ? m_pillW.Current() : SegmentRect(m_selectedIndex).width;
-        if (pillW > 0.5f) {
-            ctx.PushRoundedClip(m_bounds, radius);
-            ctx.FillRect(Rect(pillX, m_bounds.y, pillW, m_bounds.height), selectedFill);
-            ctx.PopClip();
-        }
-    }
-
-    const float pillLeft = UIElement::AreAnimationsEnabled() ? m_pillX.Current() : (m_selectedIndex >= 0 ? SegmentRect(m_selectedIndex).x : 0.0f);
-    const float pillRight = pillLeft + (UIElement::AreAnimationsEnabled() ? m_pillW.Current() : (m_selectedIndex >= 0 ? SegmentRect(m_selectedIndex).width : 0.0f));
+    // 3. Dividers (drawn before selection pill so the selection pill cleanly covers them)
     for (int i = 1; i < n; ++i) {
         const Rect left = SegmentRect(i - 1);
         const float x = left.x + left.width;
-        if (x > pillLeft + 1.0f && x < pillRight - 1.0f) {
-            continue;
-        }
         ctx.DrawLine(
             Point(x, m_bounds.y + 6.0f),
             Point(x, m_bounds.y + m_bounds.height - 6.0f),
@@ -242,6 +236,19 @@ void SegmentedControl::OnRender(GraphicsContext& ctx) {
             1.0f);
     }
 
+    // 4. Selection Pill (drawn on top of background and dividers)
+    if (m_selectedIndex >= 0 && n > 0) {
+        const float segW = m_bounds.width / static_cast<float>(n);
+        const float pillRelX = UIElement::AreAnimationsEnabled() ? m_pillX.Current() : (segW * static_cast<float>(m_selectedIndex));
+        const float pillW = UIElement::AreAnimationsEnabled() ? m_pillW.Current() : segW;
+        if (pillW > 0.5f) {
+            ctx.PushRoundedClip(m_bounds, radius);
+            ctx.FillRect(Rect(m_bounds.x + pillRelX, m_bounds.y, pillW + 1.0f, m_bounds.height), selectedFill);
+            ctx.PopClip();
+        }
+    }
+
+    // 5. Text Labels
     const std::string& font = GetFontFamily();
     const float fontSize = GetFontSize();
     for (int i = 0; i < n; ++i) {
@@ -258,6 +265,7 @@ void SegmentedControl::OnRender(GraphicsContext& ctx) {
             selected ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
     }
 
+    // 6. Outer Border / Focus Indicator
     const D2D1_COLOR_F outline = IsFocused()
         ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
         : accent;

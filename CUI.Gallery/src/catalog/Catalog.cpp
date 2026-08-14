@@ -1,5 +1,5 @@
 #include "catalog/Catalog.h"
-#include "pages/BasicInput/Pages.h"
+#include "catalog/CategoryRegistrations.h"
 
 #include <algorithm>
 #include <cctype>
@@ -61,22 +61,24 @@ const std::vector<Category>& CategoryOrder() {
 }
 
 const std::vector<Entry>& Entries() {
-    static const std::vector<Entry> entries = {
-        { "button", "Button(按钮)", "按钮用于触发操作。", Category::BasicInput, BuildButtonPage },
-        { "dropdownbutton", "DropDownButton(下拉按钮)", "整个按钮打开菜单。", Category::BasicInput, BuildDropDownButtonPage },
-        { "hyperlinkbutton", "HyperlinkButton(超链接按钮)", "用于导航的文本样式按钮。", Category::BasicInput, BuildHyperlinkButtonPage },
-        { "splitbutton", "SplitButton(拆分按钮)", "默认操作外加更多命令。", Category::BasicInput, BuildSplitButtonPage },
-        { "togglebutton", "ToggleButton(切换按钮)", "保持开或关的按钮。", Category::BasicInput, BuildToggleButtonPage },
-        { "checkbox", "CheckBox(复选框)", "打开或关闭某个选项。", Category::BasicInput, BuildCheckBoxPage },
-        { "radiobutton", "RadioButton(单选按钮)", "从一组中选择一项。", Category::BasicInput, BuildRadioButtonPage },
-        { "combobox", "ComboBox(组合框)", "显示当前值，并打开列表进行更改。", Category::BasicInput, BuildComboBoxPage },
-        { "slider", "Slider(滑块)", "从范围内选取一个值。", Category::BasicInput, BuildSliderPage },
-        { "rangeslider", "RangeSlider(范围滑块)", "两个滑块分别设置下限和上限。", Category::BasicInput, BuildRangeSliderPage },
-        { "rating", "RatingControl(评分)", "用星级表示评分。", Category::BasicInput, BuildRatingPage },
-        { "toggleswitch", "ToggleSwitch(开关)", "打开或关闭某项设置。", Category::BasicInput, BuildToggleSwitchPage },
-        { "colorpicker", "ColorPicker(颜色选择器)", "从色板或色谱中选取颜色。", Category::BasicInput, BuildColorPickerPage },
-        { "segmented", "SegmentedControl(分段控件)", "紧凑的互斥选择。", Category::BasicInput, BuildSegmentedPage },
-    };
+    static std::vector<Entry> entries;
+    if (entries.empty()) {
+        BasicInputCatalog::Register(entries);
+        CollectionsCatalog::Register(entries);
+        DateAndTimeCatalog::Register(entries);
+        DialogsAndFlyoutsCatalog::Register(entries);
+        LayoutCatalog::Register(entries);
+        MediaCatalog::Register(entries);
+        MenusAndToolbarsCatalog::Register(entries);
+        MotionCatalog::Register(entries);
+        NavigationCatalog::Register(entries);
+        ScrollingCatalog::Register(entries);
+        StatusAndInfoCatalog::Register(entries);
+        StylesCatalog::Register(entries);
+        SystemCatalog::Register(entries);
+        TextCatalog::Register(entries);
+        WindowingCatalog::Register(entries);
+    }
     return entries;
 }
 

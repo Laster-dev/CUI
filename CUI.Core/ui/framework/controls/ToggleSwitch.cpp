@@ -157,10 +157,14 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     float pillH = 20.0f;
     Rect pillRect(m_bounds.x, m_bounds.y + (m_bounds.height - pillH) * 0.5f, pillW, pillH);
 
-    D2D1_COLOR_F onColor = ResolveThemeColor(GetOnColorToken(), ThemeTokenId::AccentColor);
+    D2D1_COLOR_F onColor = m_hasBackgroundColor
+        ? m_backgroundColor
+        : ResolveThemeColor(GetOnColorToken(), ThemeTokenId::AccentColor);
     D2D1_COLOR_F offColor = ResolveThemeColor(GetOffColorToken(), ThemeTokenId::InputBorder);
     D2D1_COLOR_F knobColor = ResolveThemeColor(GetKnobColorToken(), ThemeTokenId::AccentForeground);
-    D2D1_COLOR_F borderBrush = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    D2D1_COLOR_F borderBrush = m_hasBorderBrushColor
+        ? m_borderBrushColor
+        : ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     borderBrush.a = (std::min)(borderBrush.a, 0.55f);
 
     const float eased = FluentEaseOut(m_knobPosAnim.Current());
@@ -186,7 +190,9 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     if (!header.empty()) {
         float fontSize = GetFontSize();
         const std::string& fontFamily = GetFontFamily();
-        D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+        D2D1_COLOR_F textColor = m_hasColorValue
+            ? m_colorValue
+            : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
 
         Rect textRect(pillRect.x + pillW + 10.0f, m_bounds.y, (std::max)(0.0f, m_bounds.width - pillW - 10.0f), m_bounds.height);
         ctx.DrawText(header, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);

@@ -1,4 +1,4 @@
-#include "page/SamplePage.h"
+#include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/Expander.h"
@@ -31,6 +31,7 @@ std::shared_ptr<UIElement> MakeCard(
     card->SetBackgroundToken(ThemeTokenId::CardBackground);
     card->SetBorderToken(ThemeTokenId::CardBorder);
     card->SetBorderThickness(1.0f);
+    card->SetMargin(Thickness(0, 0, 0, 8));
     return card;
 }
 

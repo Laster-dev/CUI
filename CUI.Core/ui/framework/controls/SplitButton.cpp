@@ -23,7 +23,9 @@ void SplitButton::OnRender(GraphicsContext& ctx) {
     DropDownButton::OnRender(ctx);
 
     const Rect chevron = ChevronRect();
-    D2D1_COLOR_F line = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground);
+    D2D1_COLOR_F line = m_hasColorValue
+        ? m_colorValue
+        : ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground);
     line.a *= 0.35f;
     const float x = chevron.x;
     const float inset = (std::max)(4.0f, m_bounds.height * 0.22f);

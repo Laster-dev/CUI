@@ -236,8 +236,12 @@ void Slider::OnRender(GraphicsContext& ctx) {
     Rect track = GetTrackRect();
     Rect thumb = GetThumbRect();
     const bool horizontal = GetOrientation() != Orientation::Vertical;
-    D2D1_COLOR_F trackBg = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::InputBorder);
-    D2D1_COLOR_F activeBg = ResolveThemeColor(GetActiveTrackColorToken(), ThemeTokenId::AccentColor);
+    D2D1_COLOR_F trackBg = m_hasBorderBrushColor
+        ? m_borderBrushColor
+        : ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::InputBorder);
+    D2D1_COLOR_F activeBg = m_hasBackgroundColor
+        ? m_backgroundColor
+        : ResolveThemeColor(GetActiveTrackColorToken(), ThemeTokenId::AccentColor);
     D2D1_COLOR_F thumbFill = ResolveThemeColor(GetThumbColorToken(), ThemeTokenId::CardBackground);
 
     // Draw background track

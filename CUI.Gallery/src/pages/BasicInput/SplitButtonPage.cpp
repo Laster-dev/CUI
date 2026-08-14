@@ -1,5 +1,5 @@
 #include "pages/BasicInput/Pages.h"
-#include "page/SamplePage.h"
+#include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/SplitButton.h"
@@ -11,6 +11,7 @@ namespace Gallery {
 
 std::shared_ptr<UIElement> BuildSplitButtonPage() {
     auto save = std::make_shared<SplitButton>("保存");
+	save->SetWidth(120.0f);
     auto status = MakeStatus("单击主区域保存，或单击箭头选择其他格式。");
     save->OnClick().Connect([status](UIElement*) {
         status->SetText("已保存。");

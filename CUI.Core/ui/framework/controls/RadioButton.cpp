@@ -207,7 +207,9 @@ void RadioButton::OnRender(GraphicsContext& ctx) {
     if (!txt.empty()) {
         float fontSize = GetFontSize();
         std::string fontFamily = GetFontFamily();
-        D2D1_COLOR_F color = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+        D2D1_COLOR_F color = m_hasColorValue
+            ? m_colorValue
+            : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
 
         float textX = checkRect.x + size + 10.0f;
         Rect textRect(textX, m_bounds.y, (std::max)(0.0f, m_bounds.width - (textX - m_bounds.x)), m_bounds.height);

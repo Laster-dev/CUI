@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="src">
@@ -10,25 +10,67 @@
     <Filter Include="src\chrome">
       <UniqueIdentifier>{c3d4e5f6-a7b8-9012-cdef-123456789012}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\page">
-      <UniqueIdentifier>{d4e5f6a7-b8c9-0123-def0-234567890123}</UniqueIdentifier>
+    <Filter Include="src\pages">
+      <UniqueIdentifier>{e5f6a7b8-c9d0-1234-ef01-345678901234}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\pages\BasicInput">
-      <UniqueIdentifier>{e5f6a7b8-c9d0-1234-ef01-345678901234}</UniqueIdentifier>
+      <UniqueIdentifier>{a521df6f-534e-4309-b4f7-0ea2de5b082a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Collections">
+      <UniqueIdentifier>{b521df6f-534e-4309-b4f7-0ea2de5b082b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\DateAndTime">
+      <UniqueIdentifier>{c521df6f-534e-4309-b4f7-0ea2de5b082c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Dialogs">
+      <UniqueIdentifier>{d521df6f-534e-4309-b4f7-0ea2de5b082d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Layout">
+      <UniqueIdentifier>{e521df6f-534e-4309-b4f7-0ea2de5b082e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Media">
+      <UniqueIdentifier>{f521df6f-534e-4309-b4f7-0ea2de5b082f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Menus">
+      <UniqueIdentifier>{a621df6f-534e-4309-b4f7-0ea2de5b083a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Motion">
+      <UniqueIdentifier>{b621df6f-534e-4309-b4f7-0ea2de5b083b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Navigation">
+      <UniqueIdentifier>{c621df6f-534e-4309-b4f7-0ea2de5b083c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Scrolling">
+      <UniqueIdentifier>{d621df6f-534e-4309-b4f7-0ea2de5b083d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Status">
+      <UniqueIdentifier>{e621df6f-534e-4309-b4f7-0ea2de5b083e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Styles">
+      <UniqueIdentifier>{f621df6f-534e-4309-b4f7-0ea2de5b083f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\System">
+      <UniqueIdentifier>{a721df6f-534e-4309-b4f7-0ea2de5b084a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Text">
+      <UniqueIdentifier>{b721df6f-534e-4309-b4f7-0ea2de5b084b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\pages\Windowing">
+      <UniqueIdentifier>{c721df6f-534e-4309-b4f7-0ea2de5b084c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\GalleryHost.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\catalog\Catalog.cpp">
       <Filter>src\catalog</Filter>
     </ClCompile>
-    <ClCompile Include="src\page\SamplePage.cpp">
-      <Filter>src\page</Filter>
+    <ClCompile Include="src\catalog\CategoryRegistrations.cpp">
+      <Filter>src\catalog</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\SamplePage.cpp">
+      <Filter>src\pages</Filter>
     </ClCompile>
     <ClCompile Include="src\chrome\GalleryShell.cpp">
       <Filter>src\chrome</Filter>
@@ -39,7 +81,19 @@
     <ClCompile Include="src\chrome\SettingsPage.cpp">
       <Filter>src\chrome</Filter>
     </ClCompile>
+    <ClCompile Include="src\GalleryHost.cpp">
+      <Filter>src\chrome</Filter>
+    </ClCompile>
     <ClCompile Include="src\pages\BasicInput\ButtonPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\CheckBoxPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\ColorPickerPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\ComboBoxPage.cpp">
       <Filter>src\pages\BasicInput</Filter>
     </ClCompile>
     <ClCompile Include="src\pages\BasicInput\DropDownButtonPage.cpp">
@@ -48,49 +102,211 @@
     <ClCompile Include="src\pages\BasicInput\HyperlinkButtonPage.cpp">
       <Filter>src\pages\BasicInput</Filter>
     </ClCompile>
-    <ClCompile Include="src\pages\BasicInput\SplitButtonPage.cpp">
-      <Filter>src\pages\BasicInput</Filter>
-    </ClCompile>
-    <ClCompile Include="src\pages\BasicInput\ToggleButtonPage.cpp">
-      <Filter>src\pages\BasicInput</Filter>
-    </ClCompile>
-    <ClCompile Include="src\pages\BasicInput\CheckBoxPage.cpp">
-      <Filter>src\pages\BasicInput</Filter>
-    </ClCompile>
     <ClCompile Include="src\pages\BasicInput\RadioButtonPage.cpp">
-      <Filter>src\pages\BasicInput</Filter>
-    </ClCompile>
-    <ClCompile Include="src\pages\BasicInput\ComboBoxPage.cpp">
-      <Filter>src\pages\BasicInput</Filter>
-    </ClCompile>
-    <ClCompile Include="src\pages\BasicInput\SliderPage.cpp">
-      <Filter>src\pages\BasicInput</Filter>
-    </ClCompile>
-    <ClCompile Include="src\pages\BasicInput\RangeSliderPage.cpp">
-      <Filter>src\pages\BasicInput</Filter>
-    </ClCompile>
-    <ClCompile Include="src\pages\BasicInput\RatingPage.cpp">
       <Filter>src\pages\BasicInput</Filter>
     </ClCompile>
     <ClCompile Include="src\pages\BasicInput\ToggleSwitchPage.cpp">
       <Filter>src\pages\BasicInput</Filter>
     </ClCompile>
-    <ClCompile Include="src\pages\BasicInput\ColorPickerPage.cpp">
+    <ClCompile Include="src\pages\BasicInput\ToggleButtonPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\SplitButtonPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\SliderPage.cpp">
       <Filter>src\pages\BasicInput</Filter>
     </ClCompile>
     <ClCompile Include="src\pages\BasicInput\SegmentedPage.cpp">
       <Filter>src\pages\BasicInput</Filter>
     </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\RatingPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\BasicInput\RangeSliderPage.cpp">
+      <Filter>src\pages\BasicInput</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Collections\ListBoxPage.cpp">
+      <Filter>src\pages\Collections</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Collections\ListViewPage.cpp">
+      <Filter>src\pages\Collections</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Collections\TreeViewPage.cpp">
+      <Filter>src\pages\Collections</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\DateAndTime\DatePickerPage.cpp">
+      <Filter>src\pages\DateAndTime</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\DateAndTime\TimePickerPage.cpp">
+      <Filter>src\pages\DateAndTime</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Dialogs\ContentDialogPage.cpp">
+      <Filter>src\pages\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Dialogs\FlyoutPage.cpp">
+      <Filter>src\pages\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Dialogs\TeachingTipPage.cpp">
+      <Filter>src\pages\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Layout\CanvasPage.cpp">
+      <Filter>src\pages\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Layout\ExpanderPage.cpp">
+      <Filter>src\pages\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Layout\GridPage.cpp">
+      <Filter>src\pages\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Layout\StackPanelPage.cpp">
+      <Filter>src\pages\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Layout\WrapPanelPage.cpp">
+      <Filter>src\pages\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Layout\DockPanelPage.cpp">
+      <Filter>src\pages\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Layout\UniformGridPage.cpp">
+      <Filter>src\pages\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Layout\SplitterPage.cpp">
+      <Filter>src\pages\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Layout\DockManagerPage.cpp">
+      <Filter>src\pages\Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Media\ImagePage.cpp">
+      <Filter>src\pages\Media</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Media\LineChartPage.cpp">
+      <Filter>src\pages\Media</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Media\BarChartPage.cpp">
+      <Filter>src\pages\Media</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Media\PieChartPage.cpp">
+      <Filter>src\pages\Media</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Media\TerminalPage.cpp">
+      <Filter>src\pages\Media</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Menus\CommandBarPage.cpp">
+      <Filter>src\pages\Menus</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Menus\MenuBarPage.cpp">
+      <Filter>src\pages\Menus</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Menus\ContextMenuPage.cpp">
+      <Filter>src\pages\Menus</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Motion\AnimationPage.cpp">
+      <Filter>src\pages\Motion</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Motion\ThemeTransitionPage.cpp">
+      <Filter>src\pages\Motion</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Motion\PopupRevealPage.cpp">
+      <Filter>src\pages\Motion</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Navigation\BreadcrumbBarPage.cpp">
+      <Filter>src\pages\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Navigation\NavigationViewPage.cpp">
+      <Filter>src\pages\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Navigation\TabViewPage.cpp">
+      <Filter>src\pages\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Navigation\PagingControlPage.cpp">
+      <Filter>src\pages\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Scrolling\ScrollViewerPage.cpp">
+      <Filter>src\pages\Scrolling</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Status\InfoBarPage.cpp">
+      <Filter>src\pages\Status</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Status\ProgressBarPage.cpp">
+      <Filter>src\pages\Status</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Status\ProgressRingPage.cpp">
+      <Filter>src\pages\Status</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Status\StatusBarPage.cpp">
+      <Filter>src\pages\Status</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Status\ToastPage.cpp">
+      <Filter>src\pages\Status</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Status\ToolTipPage.cpp">
+      <Filter>src\pages\Status</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Status\LogViewPage.cpp">
+      <Filter>src\pages\Status</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Styles\ThemePage.cpp">
+      <Filter>src\pages\Styles</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Styles\TokensPage.cpp">
+      <Filter>src\pages\Styles</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Styles\TypographyPage.cpp">
+      <Filter>src\pages\Styles</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Styles\ShapePage.cpp">
+      <Filter>src\pages\Styles</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\System\FilePickerPage.cpp">
+      <Filter>src\pages\System</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\System\FolderPickerPage.cpp">
+      <Filter>src\pages\System</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\System\DragDropPage.cpp">
+      <Filter>src\pages\System</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\System\CommandsPage.cpp">
+      <Filter>src\pages\System</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Text\AutoSuggestBoxPage.cpp">
+      <Filter>src\pages\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Text\NumberBoxPage.cpp">
+      <Filter>src\pages\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Text\PasswordBoxPage.cpp">
+      <Filter>src\pages\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Text\TextBlockPage.cpp">
+      <Filter>src\pages\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Text\TextBoxPage.cpp">
+      <Filter>src\pages\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Text\MarkdownViewPage.cpp">
+      <Filter>src\pages\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Windowing\TitleBarPage.cpp">
+      <Filter>src\pages\Windowing</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Windowing\BackdropPage.cpp">
+      <Filter>src\pages\Windowing</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pages\Windowing\WindowPage.cpp">
+      <Filter>src\pages\Windowing</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\GalleryHost.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\catalog\Catalog.h">
       <Filter>src\catalog</Filter>
     </ClInclude>
-    <ClInclude Include="src\page\SamplePage.h">
-      <Filter>src\page</Filter>
+    <ClInclude Include="src\catalog\CategoryRegistrations.h">
+      <Filter>src\catalog</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pages\SamplePage.h">
+      <Filter>src\pages</Filter>
     </ClInclude>
     <ClInclude Include="src\chrome\GalleryShell.h">
       <Filter>src\chrome</Filter>
@@ -107,5 +323,15 @@
     <ClInclude Include="src\pages\BasicInput\ButtonPage.h">
       <Filter>src\pages\BasicInput</Filter>
     </ClInclude>
+    <ClInclude Include="src\GalleryHost.h">
+      <Filter>src\chrome</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="app.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="PLAN.md" />
   </ItemGroup>
 </Project>

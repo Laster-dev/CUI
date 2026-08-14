@@ -190,7 +190,9 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
         float textX = boxRect.x + boxSize + 10.0f;
         Rect textRect(textX, m_bounds.y, m_bounds.width - (textX - m_bounds.x), m_bounds.height);
 
-        D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+        D2D1_COLOR_F textColor = m_hasColorValue
+            ? m_colorValue
+            : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
         const std::string& font = GetFontFamily();
         float fontSize = GetFontSize();
 

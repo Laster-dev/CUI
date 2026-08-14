@@ -63,6 +63,7 @@ public:
     UIElement* GetHoveredElement() const { return m_hoveredRaw; }
     CommandManager& GetCommands() { return m_commands; }
     const CommandManager& GetCommands() const { return m_commands; }
+    UIElement* GetFocusedElement() const;
     void ApplyFocus(UIElement* target, FocusState state);
 
     Point ClientPointToLogical(int x, int y) const;

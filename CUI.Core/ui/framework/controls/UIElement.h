@@ -195,6 +195,7 @@ public:
     D2D1_COLOR_F ResolveThemeColor(PropertyId tokenId, ThemeTokenId fallback) const;
 
     void SetBackground(D2D1_COLOR_F c);
+    void SetBackgroundColor(D2D1_COLOR_F c) { SetBackground(c); }
     D2D1_COLOR_F GetBackgroundColor() const { return m_backgroundColor; }
     bool HasBackgroundColor() const { return m_hasBackgroundColor; }
     void SetHoverBackground(D2D1_COLOR_F c);
@@ -331,6 +332,8 @@ public:
     void SetKeyboardNavigationMode(KeyboardNavigationMode mode) { m_keyboardNavigationMode = mode; }
     FocusState GetFocusState() const { return m_focusState; }
     void SetFocusState(FocusState state) { m_focusState = state; }
+    bool Focus(FocusState state = FocusState::Keyboard);
+    void Blur();
     bool ShowsKeyboardFocusRing() const {
         return m_isFocused && m_focusState == FocusState::Keyboard;
     }

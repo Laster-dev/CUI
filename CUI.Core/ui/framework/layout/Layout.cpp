@@ -492,6 +492,7 @@ Size LayoutEngine::MeasureWrapPanel(UIElement* panel, Size availableSize) {
 
     float itemWidth = panel->GetItemWidth();
     float itemHeight = panel->GetItemHeight();
+    float gap = panel->GetGap();
 
     float totalWidth = 0.0f;
     float totalHeight = 0.0f;
@@ -500,6 +501,7 @@ Size LayoutEngine::MeasureWrapPanel(UIElement* panel, Size availableSize) {
 
     float maxMain = (orientation == Orientation::Horizontal) ? availableSize.width : availableSize.height;
 
+    bool isFirstInLine = true;
     for (auto& child : panel->GetChildren()) {
         if (child->GetVisibility() == Visibility::Collapsed) continue;
 
@@ -510,20 +512,24 @@ Size LayoutEngine::MeasureWrapPanel(UIElement* panel, Size availableSize) {
         float mainSize = (orientation == Orientation::Horizontal) ? w : h;
         float crossSize = (orientation == Orientation::Horizontal) ? h : w;
 
-        if (curLineMain + mainSize > maxMain && curLineMain > 0) {
+        float addedMain = isFirstInLine ? mainSize : (mainSize + gap);
+
+        if (curLineMain + addedMain > maxMain && !isFirstInLine) {
             // Wrap to next line
             if (orientation == Orientation::Horizontal) {
                 totalWidth = (std::max)(totalWidth, curLineMain);
-                totalHeight += curLineCross;
+                totalHeight += curLineCross + gap;
             } else {
                 totalHeight = (std::max)(totalHeight, curLineMain);
-                totalWidth += curLineCross;
+                totalWidth += curLineCross + gap;
             }
             curLineMain = mainSize;
             curLineCross = crossSize;
+            isFirstInLine = false;
         } else {
-            curLineMain += mainSize;
+            curLineMain += addedMain;
             curLineCross = (std::max)(curLineCross, crossSize);
+            isFirstInLine = false;
         }
     }
 
@@ -544,12 +550,14 @@ void LayoutEngine::ArrangeWrapPanel(UIElement* panel, Rect finalRect) {
 
     float itemWidth = panel->GetItemWidth();
     float itemHeight = panel->GetItemHeight();
+    float gap = panel->GetGap();
 
     float curMain = (orientation == Orientation::Horizontal) ? finalRect.x : finalRect.y;
     float curCross = (orientation == Orientation::Horizontal) ? finalRect.y : finalRect.x;
 
     float maxMain = (orientation == Orientation::Horizontal) ? finalRect.width : finalRect.height;
     float lineCrossSize = 0.0f;
+    bool isFirstInLine = true;
 
     for (auto& child : panel->GetChildren()) {
         if (child->GetVisibility() == Visibility::Collapsed) continue;
@@ -562,12 +570,17 @@ void LayoutEngine::ArrangeWrapPanel(UIElement* panel, Rect finalRect) {
         float crossSize = (orientation == Orientation::Horizontal) ? h : w;
 
         float startMain = (orientation == Orientation::Horizontal) ? finalRect.x : finalRect.y;
-        if (curMain + mainSize > startMain + maxMain && curMain > startMain) {
-            curCross += lineCrossSize;
+        float addedMain = isFirstInLine ? mainSize : (mainSize + gap);
+
+        if (curMain + addedMain > startMain + maxMain && !isFirstInLine) {
+            curCross += lineCrossSize + gap;
             curMain = startMain;
             lineCrossSize = crossSize;
-        } else {
-            lineCrossSize = (std::max)(lineCrossSize, crossSize);
+            isFirstInLine = true;
+        }
+
+        if (!isFirstInLine) {
+            curMain += gap;
         }
 
         if (orientation == Orientation::Horizontal) {
@@ -577,6 +590,8 @@ void LayoutEngine::ArrangeWrapPanel(UIElement* panel, Rect finalRect) {
         }
 
         curMain += mainSize;
+        lineCrossSize = (std::max)(lineCrossSize, crossSize);
+        isFirstInLine = false;
     }
 }
 

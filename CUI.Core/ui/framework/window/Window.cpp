@@ -405,6 +405,12 @@ void Window::SetFocusedElement(UIElement* element) {
     m_focusedElement = CaptureElementRef(element);
 }
 
+UIElement* Window::GetFocusedElement() const {
+    if (auto focused = LockElement(m_focusedElement)) {
+        return focused.get();
+    }
+    return nullptr;
+}
 void Window::CollectTabFocusable(UIElement* el, std::vector<UIElement*>& out) const {
     if (!el || el->GetVisibility() != Visibility::Visible || !el->IsEnabled()) {
         return;

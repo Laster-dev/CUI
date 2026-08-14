@@ -305,6 +305,22 @@ void NumberBox::SetProperty(PropertyId id, const Value& val) {
     case PropertyId::Minimum: SetMinimum(val.AsFloat()); return;
     case PropertyId::Maximum: SetMaximum(val.AsFloat()); return;
     case PropertyId::Step: SetStep(val.AsFloat()); return;
+    case PropertyId::Color:
+        UIElement::SetProperty(id, val);
+        if (m_field) m_field->SetProperty(id, val);
+        return;
+    case PropertyId::FontFamily:
+        UIElement::SetProperty(id, val);
+        if (m_field) m_field->SetProperty(id, val);
+        return;
+    case PropertyId::FontSize:
+        UIElement::SetProperty(id, val);
+        if (m_field) m_field->SetProperty(id, val);
+        return;
+    case PropertyId::FontWeight:
+        UIElement::SetProperty(id, val);
+        if (m_field) m_field->SetProperty(id, val);
+        return;
     default: UIElement::SetProperty(id, val); return;
     }
 }
@@ -489,9 +505,11 @@ void NumberBox::OnRender(GraphicsContext& ctx) {
     }
 
     const bool fieldFocused = m_field && m_field->IsFocused();
-    D2D1_COLOR_F border = (m_isFocused || fieldFocused)
-        ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
-        : ResolveThemeColor(GetBorderToken(), ThemeTokenId::InputBorder);
+    D2D1_COLOR_F border = m_hasBorderBrushColor
+        ? m_borderBrushColor
+        : ((m_isFocused || fieldFocused)
+            ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
+            : ResolveThemeColor(GetBorderToken(), ThemeTokenId::InputBorder));
     const float borderW = (m_isFocused || fieldFocused) ? 1.5f : GetBorderThickness();
     if (borderW > 0.0f) {
         if (radius > 0.0f) {

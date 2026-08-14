@@ -711,6 +711,35 @@ bool UIElement::OnKeyDown(int vkCode) {
     return false;
 }
 
+bool UIElement::Focus(FocusState state) {
+    if (!IsEnabled() || GetVisibility() != Visibility::Visible) {
+        return false;
+    }
+
+    if (Window* window = Window::Current()) {
+        window->ApplyFocus(this, state);
+        return window->GetFocusedElement() == this;
+    }
+
+    if (!AcceptsTabFocus()) {
+        return false;
+    }
+    SetFocusState(state);
+    if (!IsFocused()) {
+        OnFocus();
+    }
+    return true;
+}
+
+void UIElement::Blur() {
+    if (Window* window = Window::Current(); window && window->GetFocusedElement() == this) {
+        window->ApplyFocus(nullptr, FocusState::Unfocused);
+        return;
+    }
+    if (IsFocused()) {
+        OnBlur();
+    }
+}
 void UIElement::OnFocus() {
     m_isFocused = true;
     NotifyFieldChanged(PropertyId::Focused, Value(true));

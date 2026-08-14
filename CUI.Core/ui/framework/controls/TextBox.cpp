@@ -564,9 +564,11 @@ void TextBox::DeleteSelection() {
 
 void TextBox::OnRender(GraphicsContext& ctx) {
     float radius = GetCornerRadius();
-    D2D1_COLOR_F bg = GetBackgroundToken() != ThemeTokenId::Unset
-        ? ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground)
-        : (m_hasBackgroundColor ? m_backgroundColor : D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F bg = m_hasBackgroundColor
+        ? m_backgroundColor
+        : ((GetBackgroundToken() != ThemeTokenId::Unset)
+            ? ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground)
+            : D2D1::ColorF(0, 0, 0, 0));
     const bool enabled = IsEnabled();
     if (bg.a > 0.0f) {
         if (radius > 0.0f) {
@@ -662,7 +664,9 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    D2D1_COLOR_F textColor = m_hasColorValue
+        ? m_colorValue
+        : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     ctx.DrawTextLayout(layout.Get(), layoutRect, textColor);
 
     if (!m_compString.empty()) {
@@ -702,8 +706,12 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     const bool drawUnderline = GetUnderlineColorToken() != ThemeTokenId::Unset
         || GetActiveUnderlineColorToken() != ThemeTokenId::Unset;
     if (drawUnderline) {
-        D2D1_COLOR_F underlineColor = ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::InputBorder);
-        D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
+        D2D1_COLOR_F underlineColor = m_hasBorderBrushColor
+            ? m_borderBrushColor
+            : ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::InputBorder);
+        D2D1_COLOR_F activeUnderlineColor = m_hasBorderBrushColor
+            ? m_borderBrushColor
+            : ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
         float lineY = m_bounds.y + m_bounds.height - 2.0f;
         if (m_dropHover && enabled) {
             ctx.DrawLine(

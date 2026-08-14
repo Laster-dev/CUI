@@ -7,6 +7,57 @@
 
 namespace CUI {
 
+const Color Color::Transparent(0.0f, 0.0f, 0.0f, 0.0f);
+const Color Color::Black(0.0f, 0.0f, 0.0f, 1.0f);
+const Color Color::White(1.0f, 1.0f, 1.0f, 1.0f);
+const Color Color::Gray(0.5f, 0.5f, 0.5f, 1.0f);
+const Color Color::LightGray(0.8f, 0.8f, 0.8f, 1.0f);
+const Color Color::Red(1.0f, 0.0f, 0.0f, 1.0f);
+const Color Color::Green(0.0f, 1.0f, 0.0f, 1.0f);
+const Color Color::Blue(0.0f, 0.0f, 1.0f, 1.0f);
+const Color Color::Yellow(1.0f, 1.0f, 0.0f, 1.0f);
+const Color Color::Cyan(0.0f, 1.0f, 1.0f, 1.0f);
+const Color Color::Magenta(1.0f, 0.0f, 1.0f, 1.0f);
+const Color Color::Orange(1.0f, 0.5f, 0.0f, 1.0f);
+const Color Color::Purple(0.5f, 0.0f, 0.5f, 1.0f);
+
+Color Color::Hex(const std::string& hexStr) {
+    if (hexStr.empty()) return Color(0, 0, 0, 1);
+
+    std::string s = hexStr;
+    // Strip leading full-width (＃) or half-width (#) hash signs
+    if (s.rfind("#", 0) == 0) {
+        s = s.substr(1);
+    } else if (s.rfind("\xef\xbc\x83", 0) == 0) {
+        s = s.substr(3);
+    }
+
+    unsigned int rVal = 0, gVal = 0, bVal = 0, aVal = 255;
+    if (s.length() == 3) {
+        sscanf_s(s.c_str(), "%1x%1x%1x", &rVal, &gVal, &bVal);
+        rVal = rVal * 17;
+        gVal = gVal * 17;
+        bVal = bVal * 17;
+    } else if (s.length() == 4) {
+        sscanf_s(s.c_str(), "%1x%1x%1x%1x", &rVal, &gVal, &bVal, &aVal);
+        rVal = rVal * 17;
+        gVal = gVal * 17;
+        bVal = bVal * 17;
+        aVal = aVal * 17;
+    } else if (s.length() == 6) {
+        sscanf_s(s.c_str(), "%2x%2x%2x", &rVal, &gVal, &bVal);
+    } else if (s.length() >= 8) {
+        sscanf_s(s.c_str(), "%2x%2x%2x%2x", &rVal, &gVal, &bVal, &aVal);
+    }
+
+    return Color(
+        static_cast<float>(rVal) / 255.0f,
+        static_cast<float>(gVal) / 255.0f,
+        static_cast<float>(bVal) / 255.0f,
+        static_cast<float>(aVal) / 255.0f
+    );
+}
+
 std::wstring Utf8ToUtf16(const std::string& str) {
     if (str.empty()) return L"";
     int reqLen = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), static_cast<int>(str.length()), nullptr, 0);

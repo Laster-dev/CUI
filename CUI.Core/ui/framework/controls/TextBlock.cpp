@@ -87,7 +87,9 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
     const std::string& text = GetText();
     if (text.empty()) return;
 
-    D2D1_COLOR_F color = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+    D2D1_COLOR_F color = m_hasColorValue
+        ? m_colorValue
+        : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
     const std::string& alignStr = GetTextAlign();

@@ -2,13 +2,14 @@
 #define NOMINMAX
 #endif
 #include "pages/BasicInput/Pages.h"
-#include "page/SamplePage.h"
+#include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/HyperlinkButton.h"
 #include "framework/core/Value.h"
 #include <windows.h>
 #include <shellapi.h>
+#include <GalleryHost.h>
 
 using namespace CUI;
 using namespace CUI::DSL;
@@ -16,8 +17,9 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
+    
     auto docs = std::make_shared<HyperlinkButton>("打开文档", "https://learn.microsoft.com/windows/apps/design/controls/hyperlink-button");
-    auto inApp = std::make_shared<HyperlinkButton>("显示详情");
+    auto inApp = std::make_shared<HyperlinkButton>("打开设置页面");
     auto status = MakeStatus("链接看起来像文本，行为像按钮。");
     docs->OnClick().Connect([docs](UIElement*) {
         const std::wstring uri = Utf8ToUtf16(docs->GetNavigateUri());
@@ -27,6 +29,8 @@ std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
     });
     inApp->OnClick().Connect([status](UIElement*) {
         status->SetText("应用内操作：将打开详情面板。");
+        //直接切换到设置页面
+        Gallery::Host::Instance().Navigate("settings");
     });
 
     auto disabled = std::make_shared<HyperlinkButton>("不可用链接");

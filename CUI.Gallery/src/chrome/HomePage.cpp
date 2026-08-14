@@ -1,7 +1,7 @@
 #include "chrome/HomePage.h"
 #include "catalog/Catalog.h"
 #include "GalleryHost.h"
-#include "page/SamplePage.h"
+#include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/Panel.h"
