@@ -22,13 +22,13 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
         dlg->SetMessage("您确定要继续执行此操作吗？此操作不可撤销，请谨慎确认。");
         dlg->SetPrimaryButtonText("确定");
         dlg->SetCloseButtonText("取消");
+        src->AddChild(dlg);
         dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
                 status->SetText("结果：已点击【确定】，操作继续执行。");
             else
                 status->SetText("结果：已点击【取消】，操作已中止。");
         });
-        src->AddChild(dlg);
     });
 
     // ── 2. 三按钮对话框 ─────────────────────────────────────────────────
@@ -44,6 +44,7 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
         dlg->SetPrimaryButtonText("保存");
         dlg->SetSecondaryButtonText("不保存");
         dlg->SetCloseButtonText("取消");
+        src->AddChild(dlg);
         dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
                 status->SetText("结果：已选择【保存】，文件已写入磁盘。");
@@ -52,7 +53,6 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
             else
                 status->SetText("结果：已取消，继续编辑。");
         });
-        src->AddChild(dlg);
     });
 
     // ── 3. 输入对话框 ───────────────────────────────────────────────────
@@ -69,6 +69,7 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
         dlg->SetCloseButtonText("取消");
         dlg->SetInputEnabled(true);
         dlg->SetInputText("新建文件夹");
+        src->AddChild(dlg);
         dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary) {
                 std::string name = dlg->GetInputText();
@@ -77,7 +78,6 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
                 status->SetText("结果：已取消创建。");
             }
         });
-        src->AddChild(dlg);
     });
 
     // ── 4. 危险操作对话框 ───────────────────────────────────────────────
@@ -92,13 +92,13 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
         dlg->SetMessage("此操作将永久删除所选的 3 个文件，总计 128 MB。\n\n已删除的内容无法从回收站恢复，请确认操作。");
         dlg->SetPrimaryButtonText("永久删除");
         dlg->SetCloseButtonText("取消");
+        src->AddChild(dlg);
         dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
                 status->SetText("结果：已执行永久删除，文件已清除。");
             else
                 status->SetText("结果：已取消删除操作。");
         });
-        src->AddChild(dlg);
     });
 
     SamplePageSpec spec;
@@ -132,10 +132,10 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
         "dlg->SetMessage(\"消息内容。\");\n"
         "dlg->SetPrimaryButtonText(\"确定\");\n"
         "dlg->SetCloseButtonText(\"取消\");\n"
+        "parent->AddChild(dlg);\n"
         "dlg->Show([](DialogResult r) {\n"
         "    if (r == DialogResult::Primary) { /* 确认 */ }\n"
-        "});\n"
-        "parent->AddChild(dlg);\n";
+        "});\n";
     return BuildSamplePage(spec);
 }
 

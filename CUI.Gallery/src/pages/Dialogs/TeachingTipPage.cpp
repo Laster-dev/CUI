@@ -29,8 +29,8 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
         tip->OnClosed().Connect([status]() {
             status->SetText("气泡已关闭。");
         });
-        tip->ShowAround(src);
         src->AddChild(tip);
+        tip->ShowAround(src);
     });
 
     // ── 2. 无操作按钮、仅关闭叉 ────────────────────────────────────────
@@ -47,8 +47,8 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
         tip->OnClosed().Connect([status]() {
             status->SetText("已通过关闭按钮消退气泡。");
         });
-        tip->ShowAround(src);
         src->AddChild(tip);
+        tip->ShowAround(src);
     });
 
     // ── 3. 不同停靠方向 ─────────────────────────────────────────────────
@@ -69,8 +69,8 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
         tip->SetActionText("关闭");
         tip->SetPreferredPlacement(p);
         tip->OnAction().Connect([tip]() { tip->Close(); });
-        tip->ShowAround(src);
         src->AddChild(tip);
+        tip->ShowAround(src);
     };
 
     btnPlacementTop->OnClick().Connect([makeDirectionTip](UIElement* src) {
@@ -106,8 +106,8 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
         tip->OnClosed().Connect([status]() {
             status->SetText("模态气泡已关闭。");
         });
-        tip->ShowAround(src);
         src->AddChild(tip);
+        tip->ShowAround(src);
     });
 
     // ── 5. 自动停靠（Auto） ─────────────────────────────────────────────
@@ -126,8 +126,8 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
             status->SetText("Auto 停靠示例完成。");
             tip->Close();
         });
-        tip->ShowAround(src);
         src->AddChild(tip);
+        tip->ShowAround(src);
     });
 
     SamplePageSpec spec;
@@ -163,8 +163,8 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
         "tip->SetActionText(\"我知道了\");\n"
         "tip->SetPreferredPlacement(BubblePlacement::Bottom);\n"
         "tip->OnAction().Connect([tip]() { tip->Close(); });\n"
+        "parent->AddChild(tip); // 先挂载到活动 UI 树\n"
         "tip->ShowAround(targetElement);\n"
-        "parent->AddChild(tip);\n"
         "\n"
         "// 模态气泡（阻断背景点击）\n"
         "tip->SetIsModal(true);\n";

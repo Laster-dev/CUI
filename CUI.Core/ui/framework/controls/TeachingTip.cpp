@@ -302,6 +302,10 @@ void TeachingTip::ShowAround(UIElement* target) {
         return;
     }
     m_anchor = target;
+    // Anchor chain keeps IsInLiveTree true even when the caller did not
+    // AddChild this overlay control first — otherwise AnimationManager drops
+    // the tick registration and the reveal never progresses past opacity 0.
+    SetAnimationHost(target);
     Relayout();
     m_isOpen = true;
     m_hotHover = Hotspot::None;

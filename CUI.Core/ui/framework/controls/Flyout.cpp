@@ -109,6 +109,10 @@ void Flyout::Arrange(Rect finalRect) {
 void Flyout::ShowAt(UIElement* target) {
     if (!target || !m_presenter) return;
     m_anchor = target;
+    // Anchor chain keeps IsInLiveTree true even when the caller did not
+    // AddChild this overlay control first — otherwise AnimationManager drops
+    // the tick registration and the reveal never progresses past opacity 0.
+    SetAnimationHost(target);
     Rect targetBounds = target->GetBounds();
 
     Size available(480.0f, 640.0f);

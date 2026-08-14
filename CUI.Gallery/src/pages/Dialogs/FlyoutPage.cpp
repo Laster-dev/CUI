@@ -26,8 +26,8 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
             MakeLabel("点击此区域外的任意位置即可关闭。", 12.0f, ThemeTokenId::TextSecondary),
         }).Build();
         flyout->SetContent(content);
-        flyout->ShowAt(src);
         src->AddChild(flyout);
+        flyout->ShowAt(src);
     });
 
     // ── 2. 多方向放置 ────────────────────────────────────────────────────
@@ -49,8 +49,8 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
             MakeLabel("Placement 演示内容。", 12.0f, ThemeTokenId::TextSecondary),
         }).Build();
         flyout->SetContent(content);
-        flyout->ShowAt(src);
         src->AddChild(flyout);
+        flyout->ShowAt(src);
     };
 
     btnTop->OnClick().Connect([makePlacementFlyout](UIElement* src) {
@@ -105,8 +105,8 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
             flyout->Hide();
         });
 
-        flyout->ShowAt(src);
         src->AddChild(flyout);
+        flyout->ShowAt(src);
     });
 
     // ── 4. 包含输入框的浮出层 ───────────────────────────────────────────
@@ -139,8 +139,8 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
             flyout->Hide();
         });
 
-        flyout->ShowAt(src);
         src->AddChild(flyout);
+        flyout->ShowAt(src);
     });
 
     SamplePageSpec spec;
@@ -170,8 +170,8 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
         "auto flyout = Make<Flyout>();\n"
         "flyout->SetPlacement(FlyoutPlacement::Bottom);\n"
         "flyout->SetContent(/* 任意 UIElement */);\n"
+        "parent->AddChild(flyout); // 先挂载到活动 UI 树\n"
         "flyout->ShowAt(targetElement);\n"
-        "parent->AddChild(flyout);\n"
         "\n"
         "// 手动关闭\n"
         "flyout->Hide();\n";
