@@ -124,6 +124,17 @@ struct PropertyValueTraits<FontStretch> {
     static FontStretch FromValue(const Value& value) { return FontStretchFromString(value.AsString()); }
     static Value ToValue(FontStretch value) { return Value(FontStretchToString(value)); }
 };
+/**
+ * @brief CUI 框架的终极视觉基类（所有控件与布局容器的祖先类）。
+ * UIElement 统一抽象和实现了以下 UI 引擎核心流程：
+ * 1. **生命周期与层级树**：管理父子节点关系（AddChild / RemoveChild）。
+ * 2. **核心布局机制（双入度管道）**：
+ *    - Measure()：测算大小，控件计算其所需的最适期望大小（Desired Size）。
+ *    - Arrange()：编排对齐，父容器将确定区域分配给子控件。
+ * 3. **绘制管线**：通过 Render() / OnRender() 触发 Direct2D 画面渲染与分层局部缓存。
+ * 4. **响应式数据属性系统**：内置绑定属性定义（如 Text, Width, Background 代理），简化组件状态通信。
+ * 5. **事件路由分发**：支持鼠标移入、按键焦点等底层交互回调。
+ */
 class UIElement : public Object {
 public:
     static constexpr float kAttachedUnset = -999999.0f;
@@ -132,27 +143,34 @@ public:
     virtual ~UIElement();
     virtual const char* GetClassName() const override { return "UIElement"; }
 
-    PropertyRef<std::string, PropertyId::Text> Text;
-    PropertyRef<std::string, PropertyId::FontFamily> FontFamily;
-    PropertyRef<float, PropertyId::FontSize> FontSize;
-    PropertyRef<CUI::FontWeight, PropertyId::FontWeight> FontWeight;
-    PropertyRef<CUI::FontStyle, PropertyId::FontStyle> FontStyle;
-    PropertyRef<CUI::FontStretch, PropertyId::FontStretch> FontStretch;
-    PropertyRef<bool, PropertyId::IsUnderline> Underline;
-    PropertyRef<bool, PropertyId::IsStrikethrough> Strikethrough;
-    PropertyRef<Color, PropertyId::Color> TextColor;
-    PropertyRef<Color, PropertyId::Background> Background;
-    PropertyRef<Color, PropertyId::HoverBackground> HoverBackground;
-    PropertyRef<float, PropertyId::Width> Width;
-    PropertyRef<float, PropertyId::Height> Height;
-    PropertyRef<bool, PropertyId::IsEnabled> IsEnabledProperty;
-    PropertyRef<float, PropertyId::Opacity> Opacity;
+    // 以下为内置的响应式属性代理，支持通过 Bind() 直接绑定到数据源 State 实例
+    PropertyRef<std::string, PropertyId::Text> Text;                    ///< 控件展示文本
+    PropertyRef<std::string, PropertyId::FontFamily> FontFamily;        ///< 字体族名称
+    PropertyRef<float, PropertyId::FontSize> FontSize;                  ///< 字体大小 (px)
+    PropertyRef<CUI::FontWeight, PropertyId::FontWeight> FontWeight;    ///< 字体粗细
+    PropertyRef<CUI::FontStyle, PropertyId::FontStyle> FontStyle;        ///< 字体样式
+    PropertyRef<CUI::FontStretch, PropertyId::FontStretch> FontStretch;  ///< 字体拉伸
+    PropertyRef<bool, PropertyId::IsUnderline> Underline;               ///< 下划线
+    PropertyRef<bool, PropertyId::IsStrikethrough> Strikethrough;       ///< 删除线
+    PropertyRef<Color, PropertyId::Color> TextColor;                    ///< 文字前景颜色
+    PropertyRef<Color, PropertyId::Background> Background;              ///< 背景颜色
+    PropertyRef<Color, PropertyId::HoverBackground> HoverBackground;    ///< 悬停背景颜色
+    PropertyRef<float, PropertyId::Width> Width;                        ///< 宽度 (显式设置时强制覆盖布局)
+    PropertyRef<float, PropertyId::Height> Height;                      ///< 高度 (显式设置时强制覆盖布局)
+    PropertyRef<bool, PropertyId::IsEnabled> IsEnabledProperty;          ///< 控件启用状态
+    PropertyRef<float, PropertyId::Opacity> Opacity;                    ///< 不透明度 (0.0f - 1.0f)
 
     virtual PropertyDescSpan GetPropertyDescs() const;
 
+    /**
+     * @brief 属性绑定工厂。获取或创建对应属性 ID 的具体绑定容器实例（懒加载）。
+     */
     template<typename T, PropertyId Id>
     BindableProperty<T>* GetOrCreatePropertyBinding();
 
+    /**
+     * @brief 属性查找辅助方法。查找指定属性 ID 是否已有绑定实例。
+     */
     template<typename T, PropertyId Id>
     BindableProperty<T>* FindPropertyBinding() const;
 
@@ -418,12 +436,34 @@ public:
 
     Size GetDesiredSize() const { return m_desiredSize; }
 
+    /**
+     * @brief 布局第一阶段：测量阶段。
+     * 每个控件根据父级分配的 availableSize 递归调用子控件的 Measure，并计算自己所需的 desiredSize 并保存。
+     * 派生类重写该方法以实现自定义的测量计算。
+     */
     virtual Size Measure(Size availableSize);
+
+    /**
+     * @brief 布局第二阶段：排列阶段。
+     * 父控件在确定自己大小后，将最终的位置和分配矩形 finalRect 分配给子控件，子控件在内部进行对齐排版。
+     */
     virtual void Arrange(Rect finalRect);
+
     virtual bool ShouldClipToBounds() const;
+
+    /**
+     * @brief 控件的总体绘制入口。负责处理分层栅格化缓存、Clip 边界截断，并触发具体的 OnRender。
+     */
     virtual void Render(GraphicsContext& ctx);
+
+    /**
+     * @brief 控件的具体自绘逻辑。派生控件应重写该方法，利用 ctx 进行绘制（如绘制文本、圆形、边框等）。
+     */
     virtual void OnRender(GraphicsContext& ctx);
 
+    /**
+     * @brief 绘制覆盖在普通渲染层之上的遮罩/悬浮弹出层（如 DropDown 列表、Tooltip 等）。
+     */
     virtual void RenderOverlay(GraphicsContext& ctx);
     virtual void OnRenderOverlay(GraphicsContext& ctx) {}
 

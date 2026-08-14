@@ -4,6 +4,12 @@
 
 namespace CUI {
 
+/**
+ * @brief 复选框状态枚举。
+ * Unchecked: 未选中。
+ * Checked: 已选中。
+ * Indeterminate: 不确定状态（半选，通常用于父节点指示子节点部分选中）。
+ */
 enum class CheckState {
     Unchecked,
     Checked,
@@ -22,6 +28,11 @@ struct PropertyValueTraits<CheckState> {
             : (value == CheckState::Indeterminate ? "Indeterminate" : "Unchecked"));
     }
 };
+
+/**
+ * @brief 复选框控件。
+ * 支持两态（选中/未选）和三态（选中/未选/半选）。内置平滑状态切换及复选勾选符号绘制动画。
+ */
 class CheckBox : public Control {
 public:
     CheckBox();
@@ -42,16 +53,15 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
-    PropertyRef<bool, PropertyId::ControlValue> Checked;
-    PropertyRef<CheckState, PropertyId::CheckState> State;
+    PropertyRef<bool, PropertyId::ControlValue> Checked;     ///< 经典二态选中绑定属性 (支持 bool)
+    PropertyRef<CheckState, PropertyId::CheckState> State;  ///< 三态选中绑定属性 (支持 CheckState)
 
     CheckState GetState() const { return m_state; }
     void SetState(CheckState state);
 
-    // A bool source maps true/false to Checked/Unchecked and updates both ways.
+    // 绑定至布尔型数据源 (自动转换 Checked <-> bool)
     void Bind(const std::shared_ptr<Observable<bool>>& value);
-    // A CheckState source supports full three-state binding. Set twoWay to false
-    // for calculated state sources such as MakeComputed(...).
+    // 绑定至三态型数据源
     void Bind(const std::shared_ptr<Observable<CheckState>>& value, bool twoWay = true);
     void Unbind();
     bool IsUpdatingFromBinding() const { return Checked.IsUpdating() || State.IsUpdating(); }

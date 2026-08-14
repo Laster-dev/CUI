@@ -5,9 +5,14 @@
 
 namespace CUI {
 
+// UTF-8 与 UTF-16 字符串互转辅助函数
 std::wstring Utf8ToUtf16(const std::string& str);
 std::string Utf16ToUtf8(const std::wstring& wstr);
 
+/**
+ * @brief 控件外边距或内边距（Margin / Padding）定义结构体。
+ * 包含 Left, Top, Right, Bottom 四个方向的宽度。
+ */
 struct Thickness {
     float left = 0.0f;
     float top = 0.0f;
@@ -23,9 +28,14 @@ struct Thickness {
     }
     bool operator!=(const Thickness& o) const { return !(*this == o); }
 
+    // 从字符串解析 Thickness (例如 "10" 或 "10,20" 或 "10,5,10,5")
     static Thickness Parse(const std::string& str);
 };
 
+/**
+ * @brief 表示 RGBA 颜色的结构体。
+ * 支持与 Direct2D 中的 D2D1_COLOR_F 隐式转换。
+ */
 struct Color {
     float r = 0.0f;
     float g = 0.0f;
@@ -36,7 +46,7 @@ struct Color {
     Color(float r_, float g_, float b_, float a_ = 1.0f) : r(r_), g(g_), b(b_), a(a_) {}
     Color(const D2D1_COLOR_F& c) : r(c.r), g(c.g), b(c.b), a(c.a) {}
 
-    // Implicit conversion to D2D1_COLOR_F
+    // 隐式转换为 D2D1_COLOR_F，方便与 Direct2D API 交互
     operator D2D1_COLOR_F() const {
         D2D1_COLOR_F c;
         c.r = r;
@@ -58,10 +68,11 @@ struct Color {
         return Color(r, g, b, 1.0f);
     }
 
+    // 解析 Hex 颜色代码（支持带/不带 #、包含全角 ＃ 的格式）
     static Color Hex(const std::string& hexStr);
     static Color FromHex(const std::string& hexStr) { return Hex(hexStr); }
 
-    // Predefined industry standard colors
+    // 预定义的常用行业标准颜色
     static const Color Transparent;
     static const Color Black;
     static const Color White;
@@ -77,6 +88,9 @@ struct Color {
     static const Color Purple;
 };
 
+/**
+ * @brief 二维尺寸结构体（宽度与高度）
+ */
 struct Size {
     float width = 0.0f;
     float height = 0.0f;
@@ -85,6 +99,9 @@ struct Size {
     Size(float w, float h) : width(w), height(h) {}
 };
 
+/**
+ * @brief 二维点坐标结构体（X 与 Y 坐标）
+ */
 struct Point {
     float x = 0.0f;
     float y = 0.0f;
@@ -93,6 +110,9 @@ struct Point {
     Point(float x_, float y_) : x(x_), y(y_) {}
 };
 
+/**
+ * @brief 表示矩形区域的结构体（X, Y, Width, Height）
+ */
 struct Rect {
     float x = 0.0f;
     float y = 0.0f;
@@ -102,14 +122,17 @@ struct Rect {
     Rect() = default;
     Rect(float x_, float y_, float w, float h) : x(x_), y(y_), width(w), height(h) {}
 
+    // 检测点是否在矩形内部（包含边界）
     bool Contains(float px, float py) const {
         return px >= x && px <= x + width && py >= y && py <= y + height;
     }
 
+    // 检测矩形是否为空
     bool IsEmpty() const {
         return width <= 0.0f || height <= 0.0f;
     }
 
+    // 检测两个矩形是否相交
     bool Intersects(const Rect& other) const {
         if (IsEmpty() || other.IsEmpty()) return false;
         return x < other.x + other.width
@@ -118,6 +141,7 @@ struct Rect {
             && y + height > other.y;
     }
 
+    // 计算并返回包含当前矩形与另一个矩形的并集矩形
     Rect Union(const Rect& other) const {
         if (IsEmpty()) return other;
         if (other.IsEmpty()) return *this;
@@ -129,26 +153,40 @@ struct Rect {
         return Rect(left, top, right - left, bottom - top);
     }
 
+    // 向外或向内等距扩充矩形大小
     Rect Inflate(float amount) const {
         return Rect(x - amount, y - amount, width + amount * 2.0f, height + amount * 2.0f);
     }
 
+    // 转换为 Direct2D 所需的 D2D1_RECT_F
     D2D1_RECT_F ToD2D() const {
         return D2D1::RectF(x, y, x + width, y + height);
     }
 };
 
+/**
+ * @brief 控件的可见性状态。
+ * Visible: 可见并参与布局计算。
+ * Hidden: 隐藏但不释放空间（仍参与布局）。
+ * Collapsed: 彻底隐藏并释放其所占用的布局空间。
+ */
 enum class Visibility {
     Visible,
     Hidden,
     Collapsed
 };
 
+/**
+ * @brief 布局或滑块控件的朝向。
+ */
 enum class Orientation {
     Horizontal,
     Vertical
 };
 
+/**
+ * @brief 对齐方向枚举。
+ */
 enum class Alignment {
     Start,
     Center,
@@ -156,6 +194,10 @@ enum class Alignment {
     Stretch
 };
 
+/**
+ * @brief CUI 框架中的异构 Variant 数据类。
+ * 用于属性系统中传递任意类型的通用属性值。
+ */
 class Value {
 public:
     enum class Type {
@@ -182,6 +224,7 @@ public:
     Type GetType() const { return m_type; }
     bool IsEmpty() const { return m_type == Type::None; }
 
+    // 将属性安全类型转换为对应基本类型
     bool AsBool(bool def = false) const;
     int AsInt(int def = 0) const;
     float AsFloat(float def = 0.0f) const;
@@ -190,7 +233,10 @@ public:
     Thickness AsThickness(Thickness def = {}) const;
     void* AsPointer(void* def = nullptr) const;
 
+    // 解析色彩字符串（Hex/Rgba 等）
     static D2D1_COLOR_F ParseColor(const std::string& str);
+    
+    // 自动检测并推断类型解析字符串
     static Value ParseAuto(const std::string& str);
 
 private:
