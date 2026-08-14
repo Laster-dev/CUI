@@ -61,13 +61,23 @@ namespace CUI {
 class Window;
 namespace DSL {
 
+/**
+ * @brief 实例化 UI 控件的工厂包装模板。
+ * @tparam T 继承自 UIElement 的具体控件类型。
+ * @tparam Args 构造函数参数列表。
+ */
 template<typename T, typename... Args>
-std::shared_ptr<T> Make(Args&&... args) {
+std::shared_ptr<T> Make(Args&&... args) { // 实例化 UI 控件并返回智能指针
     static_assert(std::is_base_of_v<UIElement, T>, "DSL::Make only creates UIElement types.");
     return std::make_shared<T>(std::forward<Args>(args)...);
 }
 
-inline D2D1_COLOR_F Rgb(unsigned int rgb, float alpha = 1.0f) {
+/**
+ * @brief 将 RGB 十六进制整数格式颜色转换为 Direct2D 所需的 D2D1_COLOR_F 结构。
+ * @param rgb 十六进制颜色代码。
+ * @param alpha 透明度等级。
+ */
+inline D2D1_COLOR_F Rgb(unsigned int rgb, float alpha = 1.0f) { // 十六进制 RGB 颜色值转换
     return D2D1::ColorF(
         static_cast<float>((rgb >> 16) & 0xFF) / 255.0f,
         static_cast<float>((rgb >> 8) & 0xFF) / 255.0f,
@@ -76,207 +86,212 @@ inline D2D1_COLOR_F Rgb(unsigned int rgb, float alpha = 1.0f) {
     );
 }
 
+/**
+ * @brief 链式调用声明（Fluent API）的控件生成建造者模板。
+ * 允许使用 Flutter/SwiftUI 风格编写声明式 UI 树。
+ * @tparam T 控件类型。
+ */
 template <typename T>
 class ElementBuilder {
 public:
-    ElementBuilder() : m_element(std::make_shared<T>()) {}
-    explicit ElementBuilder(std::shared_ptr<T> elem) : m_element(elem) {}
+    ElementBuilder() : m_element(std::make_shared<T>()) {} // 默认初始化建造者
+    explicit ElementBuilder(std::shared_ptr<T> elem) : m_element(elem) {} // 用已有的控件指针初始化
 
-    operator std::shared_ptr<T>() const { return m_element; }
-    operator std::shared_ptr<UIElement>() const { return m_element; }
-    std::shared_ptr<T> Build() const { return m_element; }
-    T* operator->() const { return m_element.get(); }
+    operator std::shared_ptr<T>() const { return m_element; } // 隐式转换为具体的智能指针类型
+    operator std::shared_ptr<UIElement>() const { return m_element; } // 隐式转换为 UIElement 基类智能指针
+    std::shared_ptr<T> Build() const { return m_element; } // 链式终点：返回构造完成的共享指针
+    T* operator->() const { return m_element.get(); } // 重载指针运算符以便快捷存取成员
 
-    ElementBuilder& Id(const std::string& id) {
+    ElementBuilder& Id(const std::string& id) { // 设定控件检索 ID
         m_element->SetId(id);
         return *this;
     }
 
-    ElementBuilder& Width(float w) {
+    ElementBuilder& Width(float w) { // 设定显式排版宽度
         m_element->SetWidth(w);
         return *this;
     }
 
-    ElementBuilder& Height(float h) {
+    ElementBuilder& Height(float h) { // 设定显式排版高度
         m_element->SetHeight(h);
         return *this;
     }
 
-    ElementBuilder& MinWidth(float w) {
+    ElementBuilder& MinWidth(float w) { // 设定布局最小限制宽度
         m_element->SetMinWidth(w);
         return *this;
     }
 
-    ElementBuilder& MinHeight(float h) {
+    ElementBuilder& MinHeight(float h) { // 设定布局最小限制高度
         m_element->SetMinHeight(h);
         return *this;
     }
 
-    ElementBuilder& Size(float w, float h) {
+    ElementBuilder& Size(float w, float h) { // 设定宽高尺寸
         m_element->SetWidth(w);
         m_element->SetHeight(h);
         return *this;
     }
 
-    ElementBuilder& Margin(float all) {
+    ElementBuilder& Margin(float all) { // 设定四向均匀外边距
         m_element->SetMargin(Thickness(all));
         return *this;
     }
 
-    ElementBuilder& Margin(float l, float t, float r, float b) {
+    ElementBuilder& Margin(float l, float t, float r, float b) { // 设定具体外边距数值
         m_element->SetMargin(Thickness(l, t, r, b));
         return *this;
     }
 
-    ElementBuilder& Padding(float all) {
+    ElementBuilder& Padding(float all) { // 设定四向均匀内边距
         m_element->SetPadding(Thickness(all));
         return *this;
     }
 
-    ElementBuilder& Padding(float l, float t, float r, float b) {
+    ElementBuilder& Padding(float l, float t, float r, float b) { // 设定具体内边距数值
         m_element->SetPadding(Thickness(l, t, r, b));
         return *this;
     }
 
-    ElementBuilder& FlexGrow(float flex) {
+    ElementBuilder& FlexGrow(float flex) { // 设定弹性伸展权重
         m_element->SetFlexGrow(flex);
         return *this;
     }
 
-    ElementBuilder& BackgroundToken(ThemeTokenId id) {
+    ElementBuilder& BackgroundToken(ThemeTokenId id) { // 绑定背景色主题 Token
         m_element->SetBackgroundToken(id);
         return *this;
     }
 
-    ElementBuilder& Background(D2D1_COLOR_F color) {
+    ElementBuilder& Background(D2D1_COLOR_F color) { // 设定硬编码背景颜色
         m_element->SetBackground(color);
         return *this;
     }
 
-    ElementBuilder& HoverBackgroundToken(ThemeTokenId id) {
+    ElementBuilder& HoverBackgroundToken(ThemeTokenId id) { // 绑定悬浮背景色主题 Token
         m_element->SetHoverBackgroundToken(id);
         return *this;
     }
 
-    ElementBuilder& HoverBackground(D2D1_COLOR_F color) {
+    ElementBuilder& HoverBackground(D2D1_COLOR_F color) { // 设定硬编码悬浮背景颜色
         m_element->SetHoverBackground(color);
         return *this;
     }
 
-    ElementBuilder& PressedBackgroundToken(ThemeTokenId id) {
+    ElementBuilder& PressedBackgroundToken(ThemeTokenId id) { // 绑定按下背景色主题 Token
         m_element->SetPressedBackgroundToken(id);
         return *this;
     }
 
-    ElementBuilder& PressedBackground(D2D1_COLOR_F color) {
+    ElementBuilder& PressedBackground(D2D1_COLOR_F color) { // 设定硬编码按下背景颜色
         m_element->SetPressedBackground(color);
         return *this;
     }
 
-    ElementBuilder& ColorToken(ThemeTokenId id) {
+    ElementBuilder& ColorToken(ThemeTokenId id) { // 绑定字元前景主题 Token
         m_element->SetColorToken(id);
         return *this;
     }
 
-    ElementBuilder& Color(D2D1_COLOR_F color) {
+    ElementBuilder& Color(D2D1_COLOR_F color) { // 设定硬编码前景/文本颜色
         m_element->SetColor(color);
         return *this;
     }
 
-    ElementBuilder& FontSize(float size) {
+    ElementBuilder& FontSize(float size) { // 设定字体大小 (px)
         m_element->SetFontSize(size);
         return *this;
     }
 
-    ElementBuilder& FontFamily(const std::string& family) {
+    ElementBuilder& FontFamily(const std::string& family) { // 指定渲染字体族名称
         m_element->SetFontFamily(family);
         return *this;
     }
 
-    ElementBuilder& FontWeight(CUI::FontWeight weight) {
+    ElementBuilder& FontWeight(CUI::FontWeight weight) { // 设置文本字重粗细
         m_element->SetFontWeight(weight);
         return *this;
     }
 
-    ElementBuilder& FontStyle(CUI::FontStyle style) {
+    ElementBuilder& FontStyle(CUI::FontStyle style) { // 设置文本字形直立/倾斜
         m_element->SetFontStyle(style);
         return *this;
     }
 
-    ElementBuilder& FontStretch(CUI::FontStretch stretch) {
+    ElementBuilder& FontStretch(CUI::FontStretch stretch) { // 设置字体拉伸方向
         m_element->SetFontStretch(stretch);
         return *this;
     }
 
-    ElementBuilder& Underline(bool underline = true) {
+    ElementBuilder& Underline(bool underline = true) { // 设定是否增加下划线修饰
         m_element->SetIsUnderline(underline);
         return *this;
     }
 
-    ElementBuilder& Strikethrough(bool strikethrough = true) {
+    ElementBuilder& Strikethrough(bool strikethrough = true) { // 设定是否增加删除线修饰
         m_element->SetIsStrikethrough(strikethrough);
         return *this;
     }
 
-    ElementBuilder& CornerRadius(float r) {
+    ElementBuilder& CornerRadius(float r) { // 设定矩形边角圆角像素半径
         m_element->SetCornerRadius(r);
         return *this;
     }
 
-    ElementBuilder& BorderToken(ThemeTokenId id, float thickness = 1.0f) {
+    ElementBuilder& BorderToken(ThemeTokenId id, float thickness = 1.0f) { // 设定边框主题颜色和粗细
         m_element->SetBorderToken(id);
         m_element->SetBorderThickness(thickness);
         return *this;
     }
 
-    ElementBuilder& Border(D2D1_COLOR_F color, float thickness = 1.0f) {
+    ElementBuilder& Border(D2D1_COLOR_F color, float thickness = 1.0f) { // 设定硬编码边框颜色和粗细
         m_element->SetBorderBrush(color);
         m_element->SetBorderThickness(thickness);
         return *this;
     }
 
-    ElementBuilder& Enabled(bool enabled) {
+    ElementBuilder& Enabled(bool enabled) { // 设定控件交互可用状态
         m_element->SetIsEnabled(enabled);
         return *this;
     }
 
-    ElementBuilder& Visibility(const std::string& vis) {
+    ElementBuilder& Visibility(const std::string& vis) { // 设定控件的可见性模式
         if (vis == "Hidden") m_element->SetVisibility(CUI::Visibility::Hidden);
         else if (vis == "Collapsed") m_element->SetVisibility(CUI::Visibility::Collapsed);
         else m_element->SetVisibility(CUI::Visibility::Visible);
         return *this;
     }
 
-    // Children Adding for Container Elements
-    ElementBuilder& Children(std::initializer_list<std::shared_ptr<UIElement>> list) {
+    // 容器元素添加子元素
+    ElementBuilder& Children(std::initializer_list<std::shared_ptr<UIElement>> list) { // 批量导入添加子控件集合
         for (auto& child : list) {
             if (child) m_element->AddChild(child);
         }
         return *this;
     }
 
-    ElementBuilder& Add(std::shared_ptr<UIElement> child) {
+    ElementBuilder& Add(std::shared_ptr<UIElement> child) { // 单次添加一个直系子控件
         if (child) m_element->AddChild(child);
         return *this;
     }
 
-    // Control Specific Extension Methods
-    ElementBuilder& Text(const std::string& text) {
+
+    ElementBuilder& Text(const std::string& text) { // 设定核心文字展示信息
         m_element->SetText(text);
         return *this;
     }
 
-    ElementBuilder& ToolTip(const std::string& tip) {
+    ElementBuilder& ToolTip(const std::string& tip) { // 设定鼠标停留信息气泡内容
         m_element->SetToolTip(tip);
         return *this;
     }
 
-    ElementBuilder& Icon(const std::string& icon) {
+    ElementBuilder& Icon(const std::string& icon) { // 赋予图标特征
         m_element->SetIcon(icon);
         return *this;
     }
 
-    ElementBuilder& Subtitle(const std::string& subtitle) {
+    ElementBuilder& Subtitle(const std::string& subtitle) { // 设定 Expander 副标题文本
         auto expander = std::dynamic_pointer_cast<Expander>(m_element);
         if (expander) {
             expander->SetSubtitle(subtitle);
@@ -284,7 +299,7 @@ public:
         return *this;
     }
 
-    ElementBuilder& Orientation(const std::string& orient) {
+    ElementBuilder& Orientation(const std::string& orient) { // 设定布局的分布朝向
         if (orient == "Horizontal" || orient == "Row") {
             m_element->SetOrientation(CUI::Orientation::Horizontal);
         } else {
@@ -293,46 +308,45 @@ public:
         return *this;
     }
 
-    ElementBuilder& Gap(float gap) {
+    ElementBuilder& Gap(float gap) { // 设定子控件之间分隔的像素间距
         m_element->SetGap(gap);
         return *this;
     }
 
-    // Event Wiring fluent extensions
-    ElementBuilder& OnClick(std::function<void(UIElement*)> handler) {
+    ElementBuilder& OnClick(std::function<void(UIElement*)> handler) { // 连接 Click 单击事件回调
         if constexpr (std::is_base_of_v<Control, T> || std::is_same_v<Button, T> || std::is_same_v<HyperlinkButton, T>) {
             m_element->OnClick().Connect(handler);
         }
         return *this;
     }
 
-    ElementBuilder& Command(std::shared_ptr<CUI::Command> command) {
+    ElementBuilder& Command(std::shared_ptr<CUI::Command> command) { // 绑定触发执行的 Action 命令
         m_element->SetCommand(std::move(command));
         return *this;
     }
 
-    ElementBuilder& OnTextChanged(std::function<void(TextBox*, const std::string&)> handler) {
+    ElementBuilder& OnTextChanged(std::function<void(TextBox*, const std::string&)> handler) { // 连接文本编辑内容更改回调
         if constexpr (std::is_same_v<TextBox, T>) {
             m_element->OnTextChanged().Connect(handler);
         }
         return *this;
     }
 
-    ElementBuilder& OnCheckChanged(std::function<void(CheckBox*, CheckState)> handler) {
+    ElementBuilder& OnCheckChanged(std::function<void(CheckBox*, CheckState)> handler) { // 连接复选框/单选钮选中状态更改回调
         if constexpr (std::is_base_of_v<CheckBox, T> || std::is_same_v<CheckBox, T> || std::is_same_v<RadioButton, T>) {
             m_element->OnCheckStateChanged().Connect(handler);
         }
         return *this;
     }
 
-    ElementBuilder& OnValueChanged(std::function<void(Slider*, float)> handler) {
+    ElementBuilder& OnValueChanged(std::function<void(Slider*, float)> handler) { // 连接单数值滑块分值更改回调
         if constexpr (std::is_same_v<Slider, T>) {
             m_element->OnValueChanged().Connect(handler);
         }
         return *this;
     }
 
-    ElementBuilder& OnValueChanged(std::function<void(RangeSlider*, float, float)> handler) {
+    ElementBuilder& OnValueChanged(std::function<void(RangeSlider*, float, float)> handler) { // 连接双滑块区间段滑动更改回调
         if constexpr (std::is_same_v<RangeSlider, T>) {
             m_element->OnValueChanged().Connect(handler);
         }
@@ -340,109 +354,106 @@ public:
     }
 
 protected:
-    std::shared_ptr<T> m_element;
+    std::shared_ptr<T> m_element; // 底层生成的控件共享引用实例对象自身
 };
 
-// Flutter-Style Widget Aliases
-inline ElementBuilder<StackPanel> Column(float gap = 8.0f) {
+// Flutter-Style Widget Aliases (快速构建语法别名)
+
+inline ElementBuilder<StackPanel> Column(float gap = 8.0f) { // 快速生成垂直方向排列的容器面板
     return ElementBuilder<StackPanel>().Orientation("Vertical").Gap(gap);
 }
 
-inline ElementBuilder<StackPanel> Row(float gap = 8.0f) {
+inline ElementBuilder<StackPanel> Row(float gap = 8.0f) { // 快速生成水平方向排列的容器面板
     return ElementBuilder<StackPanel>().Orientation("Horizontal").Gap(gap);
 }
 
-inline ElementBuilder<TextBlock> Text(const std::string& content = "") {
+inline ElementBuilder<TextBlock> Text(const std::string& content = "") { // 快速生成只读文本块组件
     auto l = ElementBuilder<TextBlock>();
     if (!content.empty()) l.Text(content);
     return l;
 }
 
-inline ElementBuilder<Button> ElevatedButton(const std::string& text = "", std::function<void(UIElement*)> onPressed = nullptr) {
+inline ElementBuilder<Button> ElevatedButton(const std::string& text = "", std::function<void(UIElement*)> onPressed = nullptr) { // 快速生成普通点击式凸起按钮
     auto b = ElementBuilder<Button>();
     if (!text.empty()) b.Text(text);
     if (onPressed) b.OnClick(onPressed);
     return b;
 }
 
-inline ElementBuilder<ToggleButton> ToggleButtonWidget(const std::string& text = "") {
+inline ElementBuilder<ToggleButton> ToggleButtonWidget(const std::string& text = "") { // 快速生成带按下/弹回两态切换的开关按钮
     auto b = ElementBuilder<ToggleButton>();
     if (!text.empty()) b.Text(text);
     return b;
 }
 
-inline ElementBuilder<DropDownButton> DropDownButtonWidget(const std::string& text = "") {
+inline ElementBuilder<DropDownButton> DropDownButtonWidget(const std::string& text = "") { // 快速生成带向下小三角箭头的下拉弹窗按钮
     auto b = ElementBuilder<DropDownButton>();
     if (!text.empty()) b.Text(text);
     return b;
 }
 
-inline ElementBuilder<SplitButton> SplitButtonWidget(const std::string& text = "") {
+inline ElementBuilder<SplitButton> SplitButtonWidget(const std::string& text = "") { // 快速生成拆分式下拉按钮
     auto b = ElementBuilder<SplitButton>();
     if (!text.empty()) b.Text(text);
     return b;
 }
 
-inline ElementBuilder<TextBox> TextField(const std::string& text = "", std::function<void(TextBox*, const std::string&)> onChanged = nullptr) {
+inline ElementBuilder<TextBox> TextField(const std::string& text = "", std::function<void(TextBox*, const std::string&)> onChanged = nullptr) { // 快速生成普通文本输入框
     auto t = ElementBuilder<TextBox>();
     if (!text.empty()) t.Text(text);
     if (onChanged) t.OnTextChanged(onChanged);
     return t;
 }
 
-inline ElementBuilder<CheckBox> CheckboxTile(const std::string& title = "", std::function<void(CheckBox*, CheckState)> onChanged = nullptr) {
+inline ElementBuilder<CheckBox> CheckboxTile(const std::string& title = "", std::function<void(CheckBox*, CheckState)> onChanged = nullptr) { // 快速生成复选卡选项组
     auto c = ElementBuilder<CheckBox>();
     if (!title.empty()) c.Text(title);
     if (onChanged) c.OnCheckChanged(onChanged);
     return c;
 }
 
-inline ElementBuilder<Panel> Container() {
+inline ElementBuilder<Panel> Container() { // 快速生成空泛的排版盒模型容器
     return ElementBuilder<Panel>();
 }
 
-inline ElementBuilder<Canvas> CanvasWidget() {
+inline ElementBuilder<Canvas> CanvasWidget() { // 快速生成支持绝对坐标手工摆放子项的画布容器
     return ElementBuilder<Canvas>();
 }
 
-inline ElementBuilder<Grid> GridWidget() {
+inline ElementBuilder<Grid> GridWidget() { // 快速生成网格栅格排版定位 Grid 容器
     return ElementBuilder<Grid>();
 }
 
-inline ElementBuilder<WrapPanel> WrapPanelWidget(const std::string& orient = "Horizontal") {
+inline ElementBuilder<WrapPanel> WrapPanelWidget(const std::string& orient = "Horizontal") { // 快速生成自动溢出换行的流式布局容器
     return ElementBuilder<WrapPanel>().Orientation(orient);
 }
 
-inline ElementBuilder<DockPanel> DockPanelWidget() {
+inline ElementBuilder<DockPanel> DockPanelWidget() { // 快速生成边缘停靠容器面板
     return ElementBuilder<DockPanel>();
 }
 
-inline ElementBuilder<UniformGrid> UniformGridWidget(int rows = 2, int cols = 2) {
+inline ElementBuilder<UniformGrid> UniformGridWidget(int rows = 2, int cols = 2) { // 快速生成单元格等宽等高的均分网格容器
     auto u = ElementBuilder<UniformGrid>();
     u->SetRows(rows);
     u->SetColumns(cols);
     return u;
 }
 
-inline ElementBuilder<ScrollViewer> SingleChildScrollView() {
+inline ElementBuilder<ScrollViewer> SingleChildScrollView() { // 快速生成单子控件滚动查看器
     return ElementBuilder<ScrollViewer>();
 }
 
-inline ElementBuilder<Panel> Expanded(std::shared_ptr<UIElement> child, float flex = 1.0f) {
+inline ElementBuilder<Panel> Expanded(std::shared_ptr<UIElement> child, float flex = 1.0f) { // 快速生成弹性延伸填充块
     auto p = ElementBuilder<Panel>();
     p.FlexGrow(flex);
     if (child) {
-        // Flutter's Expanded gives its child tight constraints from the expanded
-        // slot. The wrapper participates in the parent flex layout, and the
-        // child must also flex inside that wrapper; otherwise it keeps its old
-        // desired height and can paint past the actual viewport.
         child->SetFlexGrow(1.0f);
         p.Add(child);
     }
     return p;
 }
 
-inline ElementBuilder<Slider> SliderWidget(float val = 0.0f, float min = 0.0f, float max = 100.0f, std::function<void(Slider*, float)> onChanged = nullptr) {
+inline ElementBuilder<Slider> SliderWidget(float val = 0.0f, float min = 0.0f, float max = 100.0f, std::function<void(Slider*, float)> onChanged = nullptr) { // 快速生成游标滑动条
     auto s = ElementBuilder<Slider>();
     s->SetMinimum(min);
     s->SetMaximum(max);
@@ -456,7 +467,7 @@ inline ElementBuilder<RangeSlider> RangeSliderWidget(
     float upper = 80.0f,
     float min = 0.0f,
     float max = 100.0f,
-    std::function<void(RangeSlider*, float, float)> onChanged = nullptr) {
+    std::function<void(RangeSlider*, float, float)> onChanged = nullptr) { // 快速生成双滑手柄区间段选择滑动器
     auto s = ElementBuilder<RangeSlider>();
     s->SetMinimum(min);
     s->SetMaximum(max);
@@ -465,74 +476,74 @@ inline ElementBuilder<RangeSlider> RangeSliderWidget(
     return s;
 }
 
-inline ElementBuilder<ProgressBar> ProgressBarWidget(float val = 0.0f, bool isIndeterminate = false) {
+inline ElementBuilder<ProgressBar> ProgressBarWidget(float val = 0.0f, bool isIndeterminate = false) { // 快速生成水平条形进度显示表
     auto p = ElementBuilder<ProgressBar>();
     p->SetValue(val);
     p->SetIsIndeterminate(isIndeterminate);
     return p;
 }
 
-inline ElementBuilder<ProgressRing> ProgressRingWidget(float val = 0.0f, bool isIndeterminate = true) {
+inline ElementBuilder<ProgressRing> ProgressRingWidget(float val = 0.0f, bool isIndeterminate = true) { // 快速生成圆形旋转进度加载环
     auto p = ElementBuilder<ProgressRing>();
     p->SetValue(val);
     p->SetIsIndeterminate(isIndeterminate);
     return p;
 }
 
-inline ElementBuilder<AutoSuggestBox> AutoSuggestBoxWidget(const std::string& placeholder = "搜索…") {
+inline ElementBuilder<AutoSuggestBox> AutoSuggestBoxWidget(const std::string& placeholder = "搜索…") { // 快速生成带模糊关联建议匹配的输入框
     auto a = ElementBuilder<AutoSuggestBox>();
     a->SetPlaceholder(placeholder);
     return a;
 }
 
-inline ElementBuilder<StatusBar> StatusBarWidget() {
+inline ElementBuilder<StatusBar> StatusBarWidget() { // 快速生成底部状态控制条
     return ElementBuilder<StatusBar>();
 }
 
-inline ElementBuilder<RatingControl> RatingWidget(float value = 3.5f, int maxRating = 5) {
+inline ElementBuilder<RatingControl> RatingWidget(float value = 3.5f, int maxRating = 5) { // 快速生成五星级评分控件
     auto r = ElementBuilder<RatingControl>();
     r->SetMaxRating(maxRating);
     r->SetValue(value);
     return r;
 }
 
-inline ElementBuilder<TeachingTip> TeachingTipWidget() {
+inline ElementBuilder<TeachingTip> TeachingTipWidget() { // 快速生成新手气泡指引小浮框
     return ElementBuilder<TeachingTip>();
 }
 
-inline ElementBuilder<LineChart> LineChartWidget() {
+inline ElementBuilder<LineChart> LineChartWidget() { // 快速生成折线统计图表
     return ElementBuilder<LineChart>();
 }
 
-inline ElementBuilder<BarChart> BarChartWidget() {
+inline ElementBuilder<BarChart> BarChartWidget() { // 快速生成柱状统计图表
     return ElementBuilder<BarChart>();
 }
 
-inline ElementBuilder<PieChart> PieChartWidget() {
+inline ElementBuilder<PieChart> PieChartWidget() { // 快速生成饼图百分比统计图表
     return ElementBuilder<PieChart>();
 }
 
-inline ElementBuilder<MarkdownView> MarkdownViewWidget() {
+inline ElementBuilder<MarkdownView> MarkdownViewWidget() { // 快速生成自适应 Markdown 排版富文本视图
     return ElementBuilder<MarkdownView>();
 }
 
-inline ElementBuilder<LogView> LogViewWidget() {
+inline ElementBuilder<LogView> LogViewWidget() { // 快速生成带分级着色和搜索的高频滚动日志监视窗
     return ElementBuilder<LogView>();
 }
 
-inline ElementBuilder<InfoBar> InfoBarWidget() {
+inline ElementBuilder<InfoBar> InfoBarWidget() { // 快速生成用于头部提示消息的各种状态通知条
     return ElementBuilder<InfoBar>();
 }
 
-inline ElementBuilder<CommandBar> CommandBarWidget() {
+inline ElementBuilder<CommandBar> CommandBarWidget() { // 快速生成可伸缩、带溢出点按式横条工具栏
     return ElementBuilder<CommandBar>();
 }
 
-inline ElementBuilder<Image> ImageWidget() {
+inline ElementBuilder<Image> ImageWidget() { // 快速生成图片加载盒
     return ElementBuilder<Image>();
 }
 
-inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") {
+inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") { // 快速生成文件路径拾取器
     auto f = ElementBuilder<FilePicker>();
     if (!path.empty()) {
         f->SetPath(path);
@@ -540,7 +551,7 @@ inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "")
     return f;
 }
 
-inline ElementBuilder<FolderPicker> FolderPickerWidget(const std::string& path = "") {
+inline ElementBuilder<FolderPicker> FolderPickerWidget(const std::string& path = "") { // 快速生成文件夹目录拾取器
     auto f = ElementBuilder<FolderPicker>();
     if (!path.empty()) {
         f->SetPath(path);
@@ -548,7 +559,7 @@ inline ElementBuilder<FolderPicker> FolderPickerWidget(const std::string& path =
     return f;
 }
 
-inline ElementBuilder<SegmentedControl> SegmentedWidget(std::initializer_list<const char*> items = {}) {
+inline ElementBuilder<SegmentedControl> SegmentedWidget(std::initializer_list<const char*> items = {}) { // 快速生成 iOS 风格的左右滑动分段选择单选组
     auto s = ElementBuilder<SegmentedControl>();
     for (const char* item : items) {
         if (item && *item) {
@@ -558,59 +569,57 @@ inline ElementBuilder<SegmentedControl> SegmentedWidget(std::initializer_list<co
     return s;
 }
 
-inline ElementBuilder<NumberBox> NumberBoxWidget(double val = 0.0) {
+inline ElementBuilder<NumberBox> NumberBoxWidget(double val = 0.0) { // 快速生成带上下微调箭头数值框
     auto n = ElementBuilder<NumberBox>();
     n->SetValue(static_cast<float>(val));
     return n;
 }
 
-inline ElementBuilder<PasswordBox> PasswordBoxWidget(const std::string& placeholder = "请输入密码") {
+inline ElementBuilder<PasswordBox> PasswordBoxWidget(const std::string& placeholder = "请输入密码") { // 快速生成遮罩密码安全输入框
     auto p = ElementBuilder<PasswordBox>();
     p->SetPlaceholder(placeholder);
     return p;
 }
 
-inline ElementBuilder<RadioButton> RadioButtonTile(const std::string& text = "", const std::string& group = "DefaultGroup") {
+inline ElementBuilder<RadioButton> RadioButtonTile(const std::string& text = "", const std::string& group = "DefaultGroup") { // 快速生成单选按钮卡片项
     auto r = ElementBuilder<RadioButton>();
     if (!text.empty()) r.Text(text);
     r->SetGroupName(group);
     return r;
 }
 
-inline ElementBuilder<ToggleSwitch> ToggleSwitchTile(const std::string& header = "", bool isOn = false) {
+inline ElementBuilder<ToggleSwitch> ToggleSwitchTile(const std::string& header = "", bool isOn = false) { // 快速生成滑道式物理开关
     auto t = ElementBuilder<ToggleSwitch>();
     if (!header.empty()) t.Text(header);
     t->SetIsOn(isOn);
     return t;
 }
 
-inline ElementBuilder<DatePicker> DatePickerWidget() {
+inline ElementBuilder<DatePicker> DatePickerWidget() { // 快速生成日期年月日下拉滚轮选择器
     return ElementBuilder<DatePicker>();
 }
 
-inline ElementBuilder<TimePicker> TimePickerWidget() {
+inline ElementBuilder<TimePicker> TimePickerWidget() { // 快速生成时间时分秒下拉滚轮选择器
     return ElementBuilder<TimePicker>();
 }
 
-inline ElementBuilder<ColorPicker> ColorPickerWidget() {
+inline ElementBuilder<ColorPicker> ColorPickerWidget() { // 快速生成 HSV 环形加色板颜色选择盘
     return ElementBuilder<ColorPicker>();
 }
 
-inline ElementBuilder<BreadcrumbBar> BreadcrumbBarWidget() {
+inline ElementBuilder<BreadcrumbBar> BreadcrumbBarWidget() { // 快速生成树形面包屑路标导航条
     return ElementBuilder<BreadcrumbBar>();
 }
 
-inline ElementBuilder<PagingControl> PagingControlWidget(int current = 1, int total = 10) {
+inline ElementBuilder<PagingControl> PagingControlWidget(int current = 1, int total = 10) { // 快速生成列表分页翻页控制器
     auto p = ElementBuilder<PagingControl>();
     p->SetTotalPages(total);
     p->SetCurrentPage(current);
     return p;
 }
 
-inline ElementBuilder<Splitter> SplitterWidget(Orientation orientation = Orientation::Horizontal) {
+inline ElementBuilder<Splitter> SplitterWidget(Orientation orientation = Orientation::Horizontal) { // 快速生成拖拽式布局调整分割条
     auto s = ElementBuilder<Splitter>();
-    // Cross-axis must stay -1 (auto) so parent Stretch makes a full-length bar,
-    // not a thickness×thickness square.
     if (orientation == Orientation::Horizontal) {
         s->SetOrientation(Orientation::Horizontal);
         s->SetWidth(-1.0f);
@@ -624,29 +633,28 @@ inline ElementBuilder<Splitter> SplitterWidget(Orientation orientation = Orienta
     return s;
 }
 
-inline ElementBuilder<Expander> ExpanderWidget(const std::string& title = "Expander") {
+inline ElementBuilder<Expander> ExpanderWidget(const std::string& title = "Expander") { // 快速生成可拉伸折拢的内容卡片 Expander
     auto c = ElementBuilder<Expander>();
     c->SetHeader(title);
     return c;
 }
 
-// Compat alias for older showcase pages.
-inline ElementBuilder<Expander> CollapsePanelWidget(const std::string& title = "Expander") {
+inline ElementBuilder<Expander> CollapsePanelWidget(const std::string& title = "Expander") { // 兼容性老命名：折叠面板组件
     return ExpanderWidget(title);
 }
 
-inline ElementBuilder<ListView> ListViewWidget() {
+inline ElementBuilder<ListView> ListViewWidget() { // 快速生成纵向数据项目展示列表
     return ElementBuilder<ListView>();
 }
 
-inline ElementBuilder<HyperlinkButton> HyperlinkButtonWidget(const std::string& text = "", const std::string& uri = "") {
+inline ElementBuilder<HyperlinkButton> HyperlinkButtonWidget(const std::string& text = "", const std::string& uri = "") { // 快速生成超链接字元按钮
     auto h = ElementBuilder<HyperlinkButton>();
     if (!text.empty()) h.Text(text);
     if (!uri.empty()) h->SetNavigateUri(uri);
     return h;
 }
 
-inline ElementBuilder<ContentDialog> ContentDialogWidget(const std::string& title = "Dialog", const std::string& message = "") {
+inline ElementBuilder<ContentDialog> ContentDialogWidget(const std::string& title = "Dialog", const std::string& message = "") { // 快速生成带确认取消的模态框大浮窗
     auto d = ElementBuilder<ContentDialog>();
     d->SetTitle(title);
     if (!message.empty()) d->SetMessage(message);
@@ -654,21 +662,21 @@ inline ElementBuilder<ContentDialog> ContentDialogWidget(const std::string& titl
 }
 
 struct BuildContext {
-    Window* window = nullptr;
+    Window* window = nullptr; // 包含当前进行构建活动的窗口宿主指针
 };
 
 // Flutter-style Component Base Class (Widget build method)
 class Component {
 public:
     virtual ~Component() = default;
-    virtual std::shared_ptr<UIElement> Build() = 0;
-    operator std::shared_ptr<UIElement>() { return Build(); }
+    virtual std::shared_ptr<UIElement> Build() = 0; // 虚 build 工厂
+    operator std::shared_ptr<UIElement>() { return Build(); } // 重载隐式转换方便直接当做 UIElement 使用
 };
 
 class Widget {
 public:
     virtual ~Widget() = default;
-    virtual std::shared_ptr<UIElement> build(BuildContext& context) = 0;
+    virtual std::shared_ptr<UIElement> build(BuildContext& context) = 0; // Flutter 风格构建
 };
 
 class StatelessWidget : public Component, public Widget {
@@ -677,14 +685,14 @@ public:
     explicit StatelessWidget(BuildContext context) : m_context(context) {}
     virtual ~StatelessWidget() = default;
 
-    void SetBuildContext(const BuildContext& context) { m_context = context; }
+    void SetBuildContext(const BuildContext& context) { m_context = context; } // 注册组件上下文
     BuildContext& GetBuildContext() { return m_context; }
     const BuildContext& GetBuildContext() const { return m_context; }
 
-    std::shared_ptr<UIElement> Build() override { return build(m_context); }
+    std::shared_ptr<UIElement> Build() override { return build(m_context); } // 映射 Component build 通道
 
 private:
-    BuildContext m_context;
+    BuildContext m_context; // 组件所绑定的宿主上下文信息实例
 };
 
 } // namespace DSL
