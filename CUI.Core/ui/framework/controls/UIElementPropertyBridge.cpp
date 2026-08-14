@@ -144,8 +144,16 @@ void DescGetFontFamily(const UIElement* self, Value& out) { out = Value(self->Ge
 void DescSetFontFamily(UIElement* self, const Value& in) { self->SetFontFamily(in.AsString()); }
 void DescGetFontSize(const UIElement* self, Value& out) { out = Value(self->GetFontSize()); }
 void DescSetFontSize(UIElement* self, const Value& in) { self->SetFontSize(in.AsFloat()); }
-void DescGetFontWeight(const UIElement* self, Value& out) { out = Value(self->GetFontWeight()); }
-void DescSetFontWeight(UIElement* self, const Value& in) { self->SetFontWeight(in.AsString()); }
+void DescGetFontWeight(const UIElement* self, Value& out) { out = Value(FontWeightToString(self->GetFontWeight())); }
+void DescSetFontWeight(UIElement* self, const Value& in) { self->SetFontWeight(FontWeightFromString(in.AsString())); }
+void DescGetFontStyle(const UIElement* self, Value& out) { out = Value(FontStyleToString(self->GetFontStyle())); }
+void DescSetFontStyle(UIElement* self, const Value& in) { self->SetFontStyle(FontStyleFromString(in.AsString())); }
+void DescGetFontStretch(const UIElement* self, Value& out) { out = Value(FontStretchToString(self->GetFontStretch())); }
+void DescSetFontStretch(UIElement* self, const Value& in) { self->SetFontStretch(FontStretchFromString(in.AsString())); }
+void DescGetIsUnderline(const UIElement* self, Value& out) { out = Value(self->IsUnderline()); }
+void DescSetIsUnderline(UIElement* self, const Value& in) { self->SetIsUnderline(in.AsBool()); }
+void DescGetIsStrikethrough(const UIElement* self, Value& out) { out = Value(self->IsStrikethrough()); }
+void DescSetIsStrikethrough(UIElement* self, const Value& in) { self->SetIsStrikethrough(in.AsBool()); }
 
 void DescGetFlexGrow(const UIElement* self, Value& out) { out = Value(self->GetFlexGrow()); }
 void DescSetFlexGrow(UIElement* self, const Value& in) { self->SetFlexGrow(in.AsFloat()); }
@@ -272,7 +280,9 @@ static const char* const kAlignmentOptions[] = { "Stretch", "Start", "Center", "
 static const char* const kOrientationOptions[] = { "Vertical", "Horizontal", nullptr };
 static const char* const kDockOptions[] = { "Left", "Top", "Right", "Bottom", nullptr };
 static const char* const kFontFamilyOptions[] = { "微软雅黑", "Segoe UI", "Consolas", "Times New Roman", nullptr };
-static const char* const kFontWeightOptions[] = { "Normal", "Bold", "Light", nullptr };
+static const char* const kFontWeightOptions[] = { "Thin", "ExtraLight", "Light", "Normal", "Medium", "SemiBold", "Bold", "ExtraBold", "Black", nullptr };
+static const char* const kFontStyleOptions[] = { "Normal", "Italic", "Oblique", nullptr };
+static const char* const kFontStretchOptions[] = { "UltraCondensed", "ExtraCondensed", "Condensed", "SemiCondensed", "Normal", "SemiExpanded", "Expanded", "ExtraExpanded", "UltraExpanded", nullptr };
 
 static const PropertyDesc kUIElementDescs[] = {
     { PropertyId::Text, "文本内容 (Text)", "基本信息", PropertyKind::String, nullptr, &DescGetText, &DescSetText },
@@ -353,6 +363,10 @@ static const PropertyDesc kUIElementDescs[] = {
     { PropertyId::FontFamily, "字体名称 (FontFamily)", "字体文本", PropertyKind::Enum, kFontFamilyOptions, &DescGetFontFamily, &DescSetFontFamily },
     { PropertyId::FontSize, "字体大小 (FontSize)", "字体文本", PropertyKind::Float, nullptr, &DescGetFontSize, &DescSetFontSize },
     { PropertyId::FontWeight, "字体粗细 (FontWeight)", "字体文本", PropertyKind::Enum, kFontWeightOptions, &DescGetFontWeight, &DescSetFontWeight },
+    { PropertyId::FontStyle, "字体样式 (FontStyle)", "字体文本", PropertyKind::Enum, kFontStyleOptions, &DescGetFontStyle, &DescSetFontStyle },
+    { PropertyId::FontStretch, "字体宽度 (FontStretch)", "字体文本", PropertyKind::Enum, kFontStretchOptions, &DescGetFontStretch, &DescSetFontStretch },
+    { PropertyId::IsUnderline, "下划线 (IsUnderline)", "字体文本", PropertyKind::Bool, nullptr, &DescGetIsUnderline, &DescSetIsUnderline },
+    { PropertyId::IsStrikethrough, "删除线 (IsStrikethrough)", "字体文本", PropertyKind::Bool, nullptr, &DescGetIsStrikethrough, &DescSetIsStrikethrough },
     { PropertyId::Placeholder, "占位符 (Placeholder)", "字体文本", PropertyKind::String, nullptr, &DescGetPlaceholder, &DescSetPlaceholder },
     { PropertyId::Icon, "图标 (Icon)", "基本信息", PropertyKind::String, nullptr, &DescGetIcon, &DescSetIcon },
 
@@ -825,20 +839,112 @@ void UIElement::SetFontSize(float size) {
     NotifyFieldChanged(PropertyId::FontSize, Value(size));
 }
 
-void UIElement::SetFontWeight(const std::string& weight) {
+const char* FontWeightToString(FontWeight value) {
+    switch (value) {
+    case FontWeight::Thin: return "Thin";
+    case FontWeight::ExtraLight: return "ExtraLight";
+    case FontWeight::Light: return "Light";
+    case FontWeight::Medium: return "Medium";
+    case FontWeight::SemiBold: return "SemiBold";
+    case FontWeight::Bold: return "Bold";
+    case FontWeight::ExtraBold: return "ExtraBold";
+    case FontWeight::Black: return "Black";
+    default: return "Normal";
+    }
+}
+
+FontWeight FontWeightFromString(const std::string& value) {
+    if (value == "Thin") return FontWeight::Thin;
+    if (value == "ExtraLight") return FontWeight::ExtraLight;
+    if (value == "Light") return FontWeight::Light;
+    if (value == "Medium") return FontWeight::Medium;
+    if (value == "SemiBold") return FontWeight::SemiBold;
+    if (value == "Bold") return FontWeight::Bold;
+    if (value == "ExtraBold") return FontWeight::ExtraBold;
+    if (value == "Black") return FontWeight::Black;
+    return FontWeight::Normal;
+}
+
+const char* FontStyleToString(FontStyle value) {
+    switch (value) {
+    case FontStyle::Italic: return "Italic";
+    case FontStyle::Oblique: return "Oblique";
+    default: return "Normal";
+    }
+}
+
+FontStyle FontStyleFromString(const std::string& value) {
+    if (value == "Italic") return FontStyle::Italic;
+    if (value == "Oblique") return FontStyle::Oblique;
+    return FontStyle::Normal;
+}
+
+const char* FontStretchToString(FontStretch value) {
+    switch (value) {
+    case FontStretch::UltraCondensed: return "UltraCondensed";
+    case FontStretch::ExtraCondensed: return "ExtraCondensed";
+    case FontStretch::Condensed: return "Condensed";
+    case FontStretch::SemiCondensed: return "SemiCondensed";
+    case FontStretch::SemiExpanded: return "SemiExpanded";
+    case FontStretch::Expanded: return "Expanded";
+    case FontStretch::ExtraExpanded: return "ExtraExpanded";
+    case FontStretch::UltraExpanded: return "UltraExpanded";
+    default: return "Normal";
+    }
+}
+
+FontStretch FontStretchFromString(const std::string& value) {
+    if (value == "UltraCondensed") return FontStretch::UltraCondensed;
+    if (value == "ExtraCondensed") return FontStretch::ExtraCondensed;
+    if (value == "Condensed") return FontStretch::Condensed;
+    if (value == "SemiCondensed") return FontStretch::SemiCondensed;
+    if (value == "SemiExpanded") return FontStretch::SemiExpanded;
+    if (value == "Expanded") return FontStretch::Expanded;
+    if (value == "ExtraExpanded") return FontStretch::ExtraExpanded;
+    if (value == "UltraExpanded") return FontStretch::UltraExpanded;
+    return FontStretch::Normal;
+}
+
+void UIElement::SetFontWeight(FontWeight weight) {
     if (m_fontWeight == weight) return;
     m_fontWeight = weight;
-    NotifyFieldChanged(PropertyId::FontWeight, Value(weight));
+    NotifyFieldChanged(PropertyId::FontWeight, Value(FontWeightToString(weight)));
 }
 
 DWRITE_FONT_WEIGHT UIElement::ResolveFontWeight() const {
-    const std::string& w = m_fontWeight;
-    if (w == "Bold" || w == "bold") return DWRITE_FONT_WEIGHT_BOLD;
-    if (w == "SemiBold" || w == "semibold" || w == "Medium" || w == "medium") {
-        return DWRITE_FONT_WEIGHT_SEMI_BOLD;
-    }
-    if (w == "Light" || w == "light") return DWRITE_FONT_WEIGHT_LIGHT;
-    return DWRITE_FONT_WEIGHT_NORMAL;
+    return static_cast<DWRITE_FONT_WEIGHT>(m_fontWeight);
+}
+
+void UIElement::SetFontStyle(FontStyle style) {
+    if (m_fontStyle == style) return;
+    m_fontStyle = style;
+    NotifyFieldChanged(PropertyId::FontStyle, Value(FontStyleToString(style)));
+}
+
+DWRITE_FONT_STYLE UIElement::ResolveFontStyle() const {
+    return static_cast<DWRITE_FONT_STYLE>(m_fontStyle);
+}
+
+void UIElement::SetFontStretch(FontStretch stretch) {
+    if (m_fontStretch == stretch) return;
+    m_fontStretch = stretch;
+    NotifyFieldChanged(PropertyId::FontStretch, Value(FontStretchToString(stretch)));
+}
+
+DWRITE_FONT_STRETCH UIElement::ResolveFontStretch() const {
+    return static_cast<DWRITE_FONT_STRETCH>(m_fontStretch);
+}
+
+void UIElement::SetIsUnderline(bool underline) {
+    if (m_isUnderline == underline) return;
+    m_isUnderline = underline;
+    NotifyFieldChanged(PropertyId::IsUnderline, Value(underline));
+}
+
+void UIElement::SetIsStrikethrough(bool strikethrough) {
+    if (m_isStrikethrough == strikethrough) return;
+    m_isStrikethrough = strikethrough;
+    NotifyFieldChanged(PropertyId::IsStrikethrough, Value(strikethrough));
 }
 
 void UIElement::SetToolTip(const std::string& tip) {

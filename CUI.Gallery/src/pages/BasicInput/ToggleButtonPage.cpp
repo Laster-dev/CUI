@@ -11,23 +11,38 @@ namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleButtonPage() {
     auto bold = std::make_shared<ToggleButton>("粗体");
+	bold->SetFontWeight(FontWeight::Bold);
     auto italic = std::make_shared<ToggleButton>("斜体");
-    auto status = MakeStatus("常规。");
-    auto update = [bold, italic, status]() {
-        const bool b = bold->IsChecked();
-        const bool i = italic->IsChecked();
-        if (b && i) {
-            status->SetText("粗斜体。");
-        } else if (b) {
-            status->SetText("粗体。");
-        } else if (i) {
-            status->SetText("斜体。");
-        } else {
-            status->SetText("常规。");
-        }
+	italic->SetFontStyle(FontStyle::Italic);
+    //下划线
+    auto underline = std::make_shared<ToggleButton>("下划线");
+	underline->SetIsUnderline(true);
+    //删除线
+    auto strikethrough = std::make_shared<ToggleButton>("删除线");
+	strikethrough->SetIsStrikethrough(true);
+    auto status = MakeStatus("当前状态：常规。");
+    auto update = [bold, italic, underline, strikethrough, status]() {
+        const bool isBold = bold->IsChecked();
+        const bool isItalic = italic->IsChecked();
+
+        status->SetFontWeight(isBold ? FontWeight::Bold : FontWeight::Normal);
+        status->SetFontStyle(isItalic ? FontStyle::Italic : FontStyle::Normal);
+        status->SetIsUnderline(false);
+        status->SetIsStrikethrough(false);
+        status->SetIsUnderline(underline->IsChecked());
+        status->SetIsStrikethrough(strikethrough->IsChecked());
+        std::string s;
+        auto f = [&](bool b, const char* x) {
+            if (b) s += s.empty() ? x : std::string(" + ") + x;
+            };
+        f(isBold, "粗体");f(isItalic, "斜体");
+        f(underline->IsChecked(), "下划线");f(strikethrough->IsChecked(), "删除线");
+        status->SetText("当前状态：" + (s.empty() ? "常规" : s) + "。");
     };
     bold->OnToggled().Connect([update](ToggleButton*, bool) { update(); });
     italic->OnToggled().Connect([update](ToggleButton*, bool) { update(); });
+    underline->OnToggled().Connect([update](ToggleButton*, bool) { update(); });
+    strikethrough->OnToggled().Connect([update](ToggleButton*, bool) { update(); });
 
     auto locked = std::make_shared<ToggleButton>("已锁定");
     locked->SetIsChecked(true);
@@ -41,7 +56,7 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
             "文本样式",
             "单击以锁定样式。多个切换可同时打开。",
             Column(10).Children({
-                Row(12).Children({ bold, italic, locked }).Build(),
+                Row(12).Children({ bold, italic, underline, strikethrough, locked }).Build(),
                 status,
             }).Build(),
         },

@@ -33,7 +33,7 @@ uint64_t RenderResources::ColorToKey(D2D1_COLOR_F color) {
         | (quantize(color.a) << 48);
 }
 
-std::string RenderResources::TextFormatToKey(const std::string& font, float size, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style) {
+std::string RenderResources::TextFormatToKey(const std::string& font, float size, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style, DWRITE_FONT_STRETCH stretch) {
     std::string key;
     key.reserve(font.size() + 32);
     key.append(font);
@@ -43,6 +43,8 @@ std::string RenderResources::TextFormatToKey(const std::string& font, float size
     key.append(std::to_string(static_cast<int>(weight)));
     key.push_back('|');
     key.append(std::to_string(static_cast<int>(style)));
+    key.push_back('|');
+    key.append(std::to_string(static_cast<int>(stretch)));
     return key;
 }
 
@@ -67,10 +69,10 @@ ID2D1SolidColorBrush* RenderResources::GetSolidBrush(D2D1_COLOR_F color) {
     return nullptr;
 }
 
-IDWriteTextFormat* RenderResources::GetTextFormat(const std::string& fontFamily, float fontSize, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style) {
+IDWriteTextFormat* RenderResources::GetTextFormat(const std::string& fontFamily, float fontSize, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style, DWRITE_FONT_STRETCH stretch) {
     if (!m_dwriteFactory) return nullptr;
 
-    std::string key = TextFormatToKey(fontFamily, fontSize, weight, style);
+    std::string key = TextFormatToKey(fontFamily, fontSize, weight, style, stretch);
     auto it = m_textFormatCache.find(key);
     if (it != m_textFormatCache.end()) {
         return it->second.Get();
@@ -89,7 +91,7 @@ IDWriteTextFormat* RenderResources::GetTextFormat(const std::string& fontFamily,
         nullptr,
         weight,
         style,
-        DWRITE_FONT_STRETCH_NORMAL,
+        stretch,
         fontSize,
         L"zh-CN",
         &format

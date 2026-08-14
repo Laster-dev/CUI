@@ -43,7 +43,7 @@ Size HyperlinkButton::Measure(Size availableSize) {
     float fontSize = GetFontSize();
 
     GraphicsContext ctx;
-    Size measured = ctx.MeasureText(text, font, fontSize, ResolveFontWeight());
+    Size measured = ctx.MeasureText(text, font, fontSize, ResolveFontWeight(), ResolveFontStyle(), ResolveFontStretch());
 
     Thickness margin = GetMargin();
     Thickness padding = GetPadding();
@@ -80,7 +80,7 @@ void HyperlinkButton::OnRender(GraphicsContext& ctx) {
         m_bounds.height - padding.top - padding.bottom
     );
 
-    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, ResolveFontWeight());
+    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, ResolveFontWeight(), false, ResolveFontStyle(), ResolveFontStretch(), IsUnderline(), IsStrikethrough());
 
     // Draw hover underline
     if (m_isHovered) {

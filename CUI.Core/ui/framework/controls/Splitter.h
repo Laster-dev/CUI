@@ -19,8 +19,7 @@ public:
     virtual void OnMouseUp(Point pt) override;
 
     bool IsVerticalSplitter() const { return GetOrientation() == Orientation::Vertical; }
-    using UIElement::SetOrientation;
-    void SetOrientation(const std::string& orient);
+    void SetOrientation(Orientation orientation);
 
     Event<Splitter*, float>& OnSplitterMoved() { return m_onSplitterMovedEvent; }
 

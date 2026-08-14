@@ -30,9 +30,9 @@ HCURSOR Splitter::GetCursor() const {
     return LoadCursor(nullptr, IsVerticalSplitter() ? IDC_SIZEWE : IDC_SIZENS);
 }
 
-void Splitter::SetOrientation(const std::string& orient) {
-    const bool vertical = (orient == "Vertical");
-    UIElement::SetOrientation(vertical ? Orientation::Vertical : Orientation::Horizontal);
+void Splitter::SetOrientation(Orientation orientation) {
+    const bool vertical = (orientation == Orientation::Vertical);
+    UIElement::SetOrientation(orientation);
     if (vertical) {
         SetWidth(kDefaultThickness);
         SetHeight(-1.0f);

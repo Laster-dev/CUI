@@ -419,6 +419,14 @@ void UIElement::Render(GraphicsContext& ctx) {
         return;
     }
 
+    ctx.PushInheritedTextStyle({
+        ResolveFontWeight(),
+        ResolveFontStyle(),
+        ResolveFontStretch(),
+        IsUnderline(),
+        IsStrikethrough()
+    });
+
     auto& layer = m_renderNode.GetLayer();
     if (m_layerPromoted && layer.IsCacheable()) {
         layer.SetBounds(m_bounds);
@@ -466,6 +474,7 @@ void UIElement::Render(GraphicsContext& ctx) {
             ctx.DrawLayer(layer, dest, nullptr, drawOpacity);
             layer.ClearDirtyFlags(RenderLayer::OpacityDirty | RenderLayer::TransformDirty);
             m_composeDirty = false;
+            ctx.PopInheritedTextStyle();
             return;
         }
         // Fall through to immediate path if layer alloc failed.
@@ -509,6 +518,8 @@ void UIElement::Render(GraphicsContext& ctx) {
     if (useOffset) {
         ctx.PopTransform();
     }
+
+    ctx.PopInheritedTextStyle();
 }
 
 void UIElement::RenderOverlay(GraphicsContext& ctx) {
@@ -525,7 +536,8 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
             options.maxHeight = 400.0f;
             options.wrapping = DWRITE_WORD_WRAPPING_WRAP;
             ComPtr<IDWriteTextLayout> layout = GraphicsContext::CreateTextLayout(
-                Utf8ToUtf16(tip), "微软雅黑", 12.0f, options);
+                Utf8ToUtf16(tip), GetFontFamily(), GetFontSize(), options,
+                ResolveFontWeight(), ResolveFontStyle(), ResolveFontStretch());
             Size textSize(maxWidth, 16.0f);
             if (layout) {
                 DWRITE_TEXT_METRICS metrics{};
@@ -553,6 +565,9 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
             PaintBubble(ctx, bubble, bg, border, 6.0f);
 
             if (layout) {
+                const DWRITE_TEXT_RANGE range = { 0, static_cast<UINT32>(Utf8ToUtf16(tip).length()) };
+                layout->SetUnderline(IsUnderline(), range);
+                layout->SetStrikethrough(IsStrikethrough(), range);
                 ctx.DrawTextLayout(
                     layout.Get(),
                     Rect(bubble.card.x + padX, bubble.card.y + padY, textSize.width, textSize.height),

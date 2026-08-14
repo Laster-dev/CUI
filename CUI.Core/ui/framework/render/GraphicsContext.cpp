@@ -1767,6 +1767,10 @@ void GraphicsContext::DrawTextOnTarget(
     DWRITE_TEXT_ALIGNMENT align,
     DWRITE_PARAGRAPH_ALIGNMENT vAlign,
     DWRITE_FONT_WEIGHT weight,
+    DWRITE_FONT_STYLE style,
+    DWRITE_FONT_STRETCH stretch,
+    bool underline,
+    bool strikethrough,
     D2D1_TEXT_ANTIALIAS_MODE antialiasMode,
     bool truncateWithEllipsis) {
 
@@ -1774,7 +1778,7 @@ void GraphicsContext::DrawTextOnTarget(
         return;
     }
 
-    auto format = m_resources.GetTextFormat(fontName, fontSize, weight);
+    auto format = m_resources.GetTextFormat(fontName, fontSize, weight, style, stretch);
     if (!format) {
         return;
     }
@@ -1808,6 +1812,36 @@ void GraphicsContext::DrawTextOnTarget(
         format->SetTrimming(&trimming, nullptr);
     }
 
+    if ((underline || strikethrough) && m_dwriteFactory) {
+        ComPtr<IDWriteTextLayout> layout;
+        if (SUCCEEDED(m_dwriteFactory->CreateTextLayout(
+                text.c_str(),
+                static_cast<UINT32>(text.length()),
+                format,
+                rect.width,
+                rect.height,
+                &layout)) && layout) {
+            const DWRITE_TEXT_RANGE range = { 0, static_cast<UINT32>(text.length()) };
+            layout->SetUnderline(underline, range);
+            layout->SetStrikethrough(strikethrough, range);
+
+            const D2D1_TEXT_ANTIALIAS_MODE previousMode = target->GetTextAntialiasMode();
+            target->SetTextAntialiasMode(antialiasMode);
+            target->PushAxisAlignedClip(rect.ToD2D(), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+            target->DrawTextLayout(
+                D2D1::Point2F(rect.x, rect.y),
+                layout.Get(),
+                brush,
+                D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+            target->PopAxisAlignedClip();
+            target->SetTextAntialiasMode(previousMode);
+
+            DWRITE_TRIMMING none = { DWRITE_TRIMMING_GRANULARITY_NONE, 0, 0 };
+            format->SetTrimming(&none, nullptr);
+            return;
+        }
+    }
+
     const D2D1_TEXT_ANTIALIAS_MODE previousMode = target->GetTextAntialiasMode();
     target->SetTextAntialiasMode(antialiasMode);
     target->DrawText(
@@ -1834,6 +1868,17 @@ void GraphicsContext::DrawTextLayoutOnTarget(
 
     if (!target || !layout) {
         return;
+    }
+
+    if (!m_inheritedTextStyleStack.empty()) {
+        const InheritedTextStyle& inherited = m_inheritedTextStyleStack.back();
+        const DWRITE_TEXT_RANGE range = { 0, std::numeric_limits<UINT32>::max() };
+        if (inherited.underline) {
+            layout->SetUnderline(TRUE, range);
+        }
+        if (inherited.strikethrough) {
+            layout->SetStrikethrough(TRUE, range);
+        }
     }
 
     ID2D1SolidColorBrush* brush = nullptr;
@@ -1940,12 +1985,33 @@ void GraphicsContext::DrawTextRotated(
     PopTransform();
 }
 
+void GraphicsContext::PushInheritedTextStyle(const InheritedTextStyle& style) {
+    m_inheritedTextStyleStack.push_back(style);
+}
+
+void GraphicsContext::PopInheritedTextStyle() {
+    if (!m_inheritedTextStyleStack.empty()) {
+        m_inheritedTextStyleStack.pop_back();
+    }
+}
+
 void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,
                                const std::string& fontName, float fontSize,
                                DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT vAlign,
-                               DWRITE_FONT_WEIGHT weight, bool truncateWithEllipsis) {
+                               DWRITE_FONT_WEIGHT weight, bool truncateWithEllipsis,
+                               DWRITE_FONT_STYLE style, DWRITE_FONT_STRETCH stretch,
+                               bool underline, bool strikethrough) {
     if (text.empty() || !m_d2dContext) {
         return;
+    }
+
+    if (!m_inheritedTextStyleStack.empty()) {
+        const InheritedTextStyle& inherited = m_inheritedTextStyleStack.back();
+        weight = inherited.weight;
+        style = inherited.style;
+        stretch = inherited.stretch;
+        underline = underline || inherited.underline;
+        strikethrough = strikethrough || inherited.strikethrough;
     }
 
     // Mica/composition targets keep per-pixel alpha; ClearType is invalid there.
@@ -1967,13 +2033,24 @@ void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_C
         align,
         vAlign,
         weight,
+        style,
+        stretch,
+        underline,
+        strikethrough,
         mode,
         truncateWithEllipsis
     );
 }
 
-Size GraphicsContext::MeasureText(const std::string& text, const std::string& fontName, float fontSize, DWRITE_FONT_WEIGHT weight) {
+Size GraphicsContext::MeasureText(const std::string& text, const std::string& fontName, float fontSize, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style, DWRITE_FONT_STRETCH stretch) {
     if (text.empty()) return Size(0, fontSize + 4);
+
+    if (!m_inheritedTextStyleStack.empty()) {
+        const InheritedTextStyle& inherited = m_inheritedTextStyleStack.back();
+        weight = inherited.weight;
+        style = inherited.style;
+        stretch = inherited.stretch;
+    }
 
     ComPtr<IDWriteFactory> factory = m_dwriteFactory;
     if (!factory) {
@@ -1991,8 +2068,8 @@ Size GraphicsContext::MeasureText(const std::string& text, const std::string& fo
         wFont.c_str(),
         nullptr,
         weight,
-        DWRITE_FONT_STYLE_NORMAL,
-        DWRITE_FONT_STRETCH_NORMAL,
+        style,
+        stretch,
         fontSize,
         L"zh-CN",
         &format
@@ -2035,7 +2112,9 @@ ComPtr<IDWriteTextLayout> GraphicsContext::CreateTextLayout(
     const std::string& fontName,
     float fontSize,
     const TextLayoutOptions& options,
-    DWRITE_FONT_WEIGHT weight) {
+    DWRITE_FONT_WEIGHT weight,
+    DWRITE_FONT_STYLE style,
+    DWRITE_FONT_STRETCH stretch) {
 
     ComPtr<IDWriteFactory> factory = GetSharedWriteFactory();
     if (!factory) return nullptr;
@@ -2048,8 +2127,8 @@ ComPtr<IDWriteTextLayout> GraphicsContext::CreateTextLayout(
         wFont.c_str(),
         nullptr,
         weight,
-        DWRITE_FONT_STYLE_NORMAL,
-        DWRITE_FONT_STRETCH_NORMAL,
+        style,
+        stretch,
         fontSize,
         L"zh-CN",
         &format

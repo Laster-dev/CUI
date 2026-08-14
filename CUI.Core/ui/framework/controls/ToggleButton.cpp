@@ -38,12 +38,18 @@ void ToggleButton::SetProperty(PropertyId id, const Value& val) {
 }
 
 void ToggleButton::ApplyCheckedChrome() {
+    ThemeManager& theme = ThemeManager::Instance();
     if (m_isChecked) {
         SetBackgroundToken(ThemeTokenId::AccentColor);
         SetHoverBackgroundToken(ThemeTokenId::AccentColor);
         SetPressedBackgroundToken(ThemeTokenId::AccentColor);
         SetBorderToken(ThemeTokenId::AccentColor);
         SetColorToken(ThemeTokenId::AccentForeground);
+        SetBackground(theme.GetColor("accentColor"));
+        SetHoverBackground(theme.GetColor("accentColor"));
+        SetPressedBackground(theme.GetColor("accentColor"));
+        SetBorderBrush(theme.GetColor("accentColor"));
+        SetColor(theme.GetColor("accentForeground"));
         SetBorderThickness(0.0f);
     } else {
         SetBackgroundToken(ThemeTokenId::CardBackground);
@@ -51,6 +57,11 @@ void ToggleButton::ApplyCheckedChrome() {
         SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
         SetBorderToken(ThemeTokenId::CardBorder);
         SetColorToken(ThemeTokenId::TextPrimary);
+        SetBackground(theme.GetColor("cardBackground"));
+        SetHoverBackground(theme.GetColor("hoverBackground"));
+        SetPressedBackground(theme.GetColor("pressedBackground"));
+        SetBorderBrush(theme.GetColor("cardBorder"));
+        SetColor(theme.GetColor("textPrimary"));
         SetBorderThickness(1.0f);
     }
 }

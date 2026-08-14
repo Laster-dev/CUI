@@ -117,7 +117,11 @@ Value GetElementProperty(UIElement* e, PropertyId id) {
     case PropertyId::Placeholder: return Value(e->GetPlaceholder());
     case PropertyId::FontFamily: return Value(e->GetFontFamily());
     case PropertyId::FontSize: return Value(e->GetFontSize());
-    case PropertyId::FontWeight: return Value(e->GetFontWeight());
+    case PropertyId::FontWeight: return Value(FontWeightToString(e->GetFontWeight()));
+    case PropertyId::FontStyle: return Value(FontStyleToString(e->GetFontStyle()));
+    case PropertyId::FontStretch: return Value(FontStretchToString(e->GetFontStretch()));
+    case PropertyId::IsUnderline: return Value(e->IsUnderline());
+    case PropertyId::IsStrikethrough: return Value(e->IsStrikethrough());
     case PropertyId::ToolTip: return Value(e->GetToolTip());
     case PropertyId::BackgroundToken: return TokenValue(e->GetBackgroundToken());
     case PropertyId::HoverBackgroundToken: return TokenValue(e->GetHoverBackgroundToken());
@@ -170,7 +174,11 @@ void SetElementProperty(UIElement* e, PropertyId id, const Value& val) {
     case PropertyId::Placeholder: e->SetPlaceholder(val.AsString()); break;
     case PropertyId::FontFamily: e->SetFontFamily(val.AsString()); break;
     case PropertyId::FontSize: e->SetFontSize(val.AsFloat()); break;
-    case PropertyId::FontWeight: e->SetFontWeight(val.AsString()); break;
+    case PropertyId::FontWeight: e->SetFontWeight(FontWeightFromString(val.AsString())); break;
+    case PropertyId::FontStyle: e->SetFontStyle(FontStyleFromString(val.AsString())); break;
+    case PropertyId::FontStretch: e->SetFontStretch(FontStretchFromString(val.AsString())); break;
+    case PropertyId::IsUnderline: e->SetIsUnderline(val.AsBool()); break;
+    case PropertyId::IsStrikethrough: e->SetIsStrikethrough(val.AsBool()); break;
     case PropertyId::ToolTip: e->SetToolTip(val.AsString()); break;
     case PropertyId::BackgroundToken: e->SetBackgroundToken(TokenFromValue(val)); break;
     case PropertyId::HoverBackgroundToken: e->SetHoverBackgroundToken(TokenFromValue(val)); break;

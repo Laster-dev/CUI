@@ -33,6 +33,43 @@ enum class KeyboardNavigationMode {
     None
 };
 
+enum class FontWeight : uint16_t {
+    Thin = DWRITE_FONT_WEIGHT_THIN,
+    ExtraLight = DWRITE_FONT_WEIGHT_EXTRA_LIGHT,
+    Light = DWRITE_FONT_WEIGHT_LIGHT,
+    Normal = DWRITE_FONT_WEIGHT_NORMAL,
+    Medium = DWRITE_FONT_WEIGHT_MEDIUM,
+    SemiBold = DWRITE_FONT_WEIGHT_SEMI_BOLD,
+    Bold = DWRITE_FONT_WEIGHT_BOLD,
+    ExtraBold = DWRITE_FONT_WEIGHT_EXTRA_BOLD,
+    Black = DWRITE_FONT_WEIGHT_BLACK
+};
+
+enum class FontStyle : uint8_t {
+    Normal = DWRITE_FONT_STYLE_NORMAL,
+    Italic = DWRITE_FONT_STYLE_ITALIC,
+    Oblique = DWRITE_FONT_STYLE_OBLIQUE
+};
+
+enum class FontStretch : uint8_t {
+    UltraCondensed = DWRITE_FONT_STRETCH_ULTRA_CONDENSED,
+    ExtraCondensed = DWRITE_FONT_STRETCH_EXTRA_CONDENSED,
+    Condensed = DWRITE_FONT_STRETCH_CONDENSED,
+    SemiCondensed = DWRITE_FONT_STRETCH_SEMI_CONDENSED,
+    Normal = DWRITE_FONT_STRETCH_NORMAL,
+    SemiExpanded = DWRITE_FONT_STRETCH_SEMI_EXPANDED,
+    Expanded = DWRITE_FONT_STRETCH_EXPANDED,
+    ExtraExpanded = DWRITE_FONT_STRETCH_EXTRA_EXPANDED,
+    UltraExpanded = DWRITE_FONT_STRETCH_ULTRA_EXPANDED
+};
+
+const char* FontWeightToString(FontWeight value);
+FontWeight FontWeightFromString(const std::string& value);
+const char* FontStyleToString(FontStyle value);
+FontStyle FontStyleFromString(const std::string& value);
+const char* FontStretchToString(FontStretch value);
+FontStretch FontStretchFromString(const std::string& value);
+
 class UIElement : public Object {
 public:
     static constexpr float kAttachedUnset = -999999.0f;
@@ -219,9 +256,19 @@ public:
     void SetFontFamily(const std::string& font);
     float GetFontSize() const { return m_fontSize; }
     void SetFontSize(float size);
-    const std::string& GetFontWeight() const { return m_fontWeight; }
-    void SetFontWeight(const std::string& weight);
+    FontWeight GetFontWeight() const { return m_fontWeight; }
+    void SetFontWeight(FontWeight weight);
     DWRITE_FONT_WEIGHT ResolveFontWeight() const;
+    FontStyle GetFontStyle() const { return m_fontStyle; }
+    void SetFontStyle(FontStyle style);
+    DWRITE_FONT_STYLE ResolveFontStyle() const;
+    FontStretch GetFontStretch() const { return m_fontStretch; }
+    void SetFontStretch(FontStretch stretch);
+    DWRITE_FONT_STRETCH ResolveFontStretch() const;
+    bool IsUnderline() const { return m_isUnderline; }
+    void SetIsUnderline(bool underline);
+    bool IsStrikethrough() const { return m_isStrikethrough; }
+    void SetIsStrikethrough(bool strikethrough);
     const std::string& GetToolTip() const { return m_toolTip; }
     void SetToolTip(const std::string& tip);
     // Per-control wrap width; <=0 uses the framework default (280).
@@ -433,10 +480,14 @@ protected:
     std::string m_text;
     std::string m_placeholder;
     std::string m_fontFamily{ "微软雅黑" };
-    std::string m_fontWeight{ "Normal" };
+    FontWeight m_fontWeight = FontWeight::Normal;
+    FontStyle m_fontStyle = FontStyle::Normal;
+    FontStretch m_fontStretch = FontStretch::Normal;
     std::string m_toolTip;
     std::string m_icon;
     float m_fontSize = 12.0f;
+    bool m_isUnderline = false;
+    bool m_isStrikethrough = false;
 
     float m_width = -1.0f;
     float m_height = -1.0f;

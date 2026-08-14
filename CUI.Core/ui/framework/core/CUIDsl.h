@@ -185,8 +185,28 @@ public:
         return *this;
     }
 
-    ElementBuilder& FontWeight(const std::string& weight) {
+    ElementBuilder& FontWeight(CUI::FontWeight weight) {
         m_element->SetFontWeight(weight);
+        return *this;
+    }
+
+    ElementBuilder& FontStyle(CUI::FontStyle style) {
+        m_element->SetFontStyle(style);
+        return *this;
+    }
+
+    ElementBuilder& FontStretch(CUI::FontStretch stretch) {
+        m_element->SetFontStretch(stretch);
+        return *this;
+    }
+
+    ElementBuilder& Underline(bool underline = true) {
+        m_element->SetIsUnderline(underline);
+        return *this;
+    }
+
+    ElementBuilder& Strikethrough(bool strikethrough = true) {
+        m_element->SetIsStrikethrough(strikethrough);
         return *this;
     }
 
@@ -584,11 +604,11 @@ inline ElementBuilder<Splitter> SplitterWidget(Orientation orientation = Orienta
     // Cross-axis must stay -1 (auto) so parent Stretch makes a full-length bar,
     // not a thickness×thickness square.
     if (orientation == Orientation::Horizontal) {
-        s->SetOrientation("Horizontal");
+        s->SetOrientation(Orientation::Horizontal);
         s->SetWidth(-1.0f);
         s->SetHeight(10.0f);
     } else {
-        s->SetOrientation("Vertical");
+        s->SetOrientation(Orientation::Vertical);
         s->SetWidth(10.0f);
         s->SetHeight(-1.0f);
     }

@@ -3,6 +3,18 @@
 
 namespace CUI {
 
+enum class TextAlignment : uint8_t {
+    Left,
+    Center,
+    Right
+};
+
+enum class TextVerticalAlignment : uint8_t {
+    Top,
+    Center,
+    Bottom
+};
+
 class TextBlock : public UIElement {
 public:
     TextBlock();
@@ -17,14 +29,16 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
 
-    const std::string& GetTextAlign() const { return m_textAlign; }
-    void SetTextAlign(const std::string& align) {
+    TextAlignment GetTextAlign() const { return m_textAlign; }
+    void SetTextAlign(TextAlignment align) {
+        if (m_textAlign == align) return;
         m_textAlign = align;
         MarkRenderContentDirty();
     }
 
-    const std::string& GetVerticalAlign() const { return m_verticalAlign; }
-    void SetVerticalAlign(const std::string& align) {
+    TextVerticalAlignment GetVerticalAlign() const { return m_verticalAlign; }
+    void SetVerticalAlign(TextVerticalAlignment align) {
+        if (m_verticalAlign == align) return;
         m_verticalAlign = align;
         MarkRenderContentDirty();
     }
@@ -43,8 +57,8 @@ public:
     }
 
 private:
-    std::string m_textAlign{ "Left" };
-    std::string m_verticalAlign{ "Center" };
+    TextAlignment m_textAlign = TextAlignment::Left;
+    TextVerticalAlignment m_verticalAlign = TextVerticalAlignment::Center;
     float m_lineSpacing = 1.0f;
     float m_lineHeight = 0.0f;
 };

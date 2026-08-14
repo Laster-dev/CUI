@@ -280,6 +280,9 @@ Microsoft::WRL::ComPtr<IDWriteTextLayout> TextBox::BuildTextLayout(GraphicsConte
     key.paragraphAlignment = options.paragraphAlignment;
     key.lineSpacing = options.lineSpacing;
     key.lineHeight = options.lineHeight;
+    key.weight = ResolveFontWeight();
+    key.style = ResolveFontStyle();
+    key.stretch = ResolveFontStretch();
     return m_textLayoutCache.GetOrCreate(key);
 }
 
@@ -667,6 +670,9 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     D2D1_COLOR_F textColor = m_hasColorValue
         ? m_colorValue
         : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    const DWRITE_TEXT_RANGE range = { 0, static_cast<UINT32>(displayWText.length()) };
+    layout->SetUnderline(IsUnderline(), range);
+    layout->SetStrikethrough(IsStrikethrough(), range);
     ctx.DrawTextLayout(layout.Get(), layoutRect, textColor);
 
     if (!m_compString.empty()) {

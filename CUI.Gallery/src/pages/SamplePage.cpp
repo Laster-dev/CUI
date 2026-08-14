@@ -19,7 +19,7 @@ std::shared_ptr<UIElement> MakeLabel(
     auto label = Text(text).FontSize(size).Build();
     label->SetColorToken(token);
     if (bold) {
-        label->SetFontWeight("Bold");
+        label->SetFontWeight(FontWeight::Bold);
     }
     return label;
 }

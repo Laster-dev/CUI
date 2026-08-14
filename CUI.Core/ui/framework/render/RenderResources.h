@@ -22,11 +22,11 @@ public:
     void ClearBrushCaches() { m_brushCaches.clear(); }
 
     ID2D1SolidColorBrush* GetSolidBrush(D2D1_COLOR_F color);
-    IDWriteTextFormat* GetTextFormat(const std::string& fontFamily, float fontSize, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL);
+    IDWriteTextFormat* GetTextFormat(const std::string& fontFamily, float fontSize, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL);
 
 private:
     static uint64_t ColorToKey(D2D1_COLOR_F color);
-    static std::string TextFormatToKey(const std::string& font, float size, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style);
+    static std::string TextFormatToKey(const std::string& font, float size, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style, DWRITE_FONT_STRETCH stretch);
 
     ComPtr<ID2D1DeviceContext> m_context;
     ComPtr<IDWriteFactory> m_dwriteFactory;

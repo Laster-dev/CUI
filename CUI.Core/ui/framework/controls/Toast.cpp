@@ -104,7 +104,7 @@ Toast::Toast() {
 
     m_txtTitle = std::make_shared<TextBlock>(m_titleText);
     m_txtTitle->SetFontSize(15.0f);
-    m_txtTitle->SetFontWeight("Bold");
+    m_txtTitle->SetFontWeight(FontWeight::Bold);
     m_txtTitle->SetColorToken(ThemeTokenId::TextPrimary);
     m_txtTitle->SetColor(Value::ParseColor(m_titleColor));
 

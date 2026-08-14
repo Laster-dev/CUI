@@ -54,13 +54,13 @@ Size Button::Measure(Size availableSize) {
         if (GraphicsContext::LooksLikeSvg(icon)) {
             contentW += fontSize + 2.0f;
         } else {
-            const Size iconSize = ctx.MeasureText(icon, font, fontSize, ResolveFontWeight());
+            const Size iconSize = ctx.MeasureText(icon, font, fontSize, ResolveFontWeight(), ResolveFontStyle(), ResolveFontStretch());
             contentW += iconSize.width;
             contentH = (std::max)(contentH, iconSize.height);
         }
     }
     if (!text.empty()) {
-        const Size textSize = ctx.MeasureText(text, font, fontSize, ResolveFontWeight());
+        const Size textSize = ctx.MeasureText(text, font, fontSize, ResolveFontWeight(), ResolveFontStyle(), ResolveFontStretch());
         if (contentW > 0.0f) {
             contentW += 6.0f;
         }
@@ -179,7 +179,7 @@ void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_
             GetFontSize(),
             align,
             DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            ResolveFontWeight());
+            ResolveFontWeight(), false, ResolveFontStyle(), ResolveFontStretch(), IsUnderline(), IsStrikethrough());
         return;
     }
 
@@ -195,7 +195,7 @@ void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_
         return;
     }
 
-    const Size textSize = ctx.MeasureText(text, GetFontFamily(), fontSize, ResolveFontWeight());
+    const Size textSize = ctx.MeasureText(text, GetFontFamily(), fontSize, ResolveFontWeight(), ResolveFontStyle(), ResolveFontStretch());
     const float gap = 6.0f;
     const float total = iconSize + gap + textSize.width;
     float startX = textRect.x;
@@ -218,7 +218,7 @@ void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_
         fontSize,
         DWRITE_TEXT_ALIGNMENT_LEADING,
         DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-        ResolveFontWeight());
+        ResolveFontWeight(), false, ResolveFontStyle(), ResolveFontStretch(), IsUnderline(), IsStrikethrough());
 }
 
 void Button::OnMouseDown(Point pt) {

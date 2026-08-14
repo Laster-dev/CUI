@@ -197,7 +197,7 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
         float fontSize = GetFontSize();
 
         ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER, ResolveFontWeight());
+            DWRITE_PARAGRAPH_ALIGNMENT_CENTER, ResolveFontWeight(), false, ResolveFontStyle(), ResolveFontStretch(), IsUnderline(), IsStrikethrough());
     }
 }
 

@@ -13,7 +13,7 @@ constexpr const char* kPropertyNamesById[] = {
     "itemWidth", "itemHeight", "lastChildFill", "rows", "columns", "clipToBounds",
     "Canvas.Left", "Canvas.Top", "Canvas.Right", "Canvas.Bottom",
     "Grid.Column", "Grid.Row", "Grid.ColumnSpan", "Grid.RowSpan", "DockPanel.Dock",
-    "text", "placeholder", "fontFamily", "fontSize", "fontWeight", "toolTip", "icon", "focused",
+    "text", "placeholder", "fontFamily", "fontSize", "fontWeight", "fontStyle", "fontStretch", "isUnderline", "isStrikethrough", "toolTip", "icon", "focused",
     "theme.backgroundToken", "theme.hoverBackgroundToken", "theme.pressedBackgroundToken",
     "theme.disabledBackgroundToken", "theme.borderToken", "theme.focusedBorderToken", "theme.colorToken",
     "theme.secondaryColorToken", "theme.placeholderColorToken", "theme.selectedBackgroundToken",

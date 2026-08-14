@@ -11,6 +11,8 @@ bool TextLayoutCache::Key::operator==(const Key& other) const {
         && maxHeight == other.maxHeight
         && wrapping == other.wrapping
         && weight == other.weight
+        && style == other.style
+        && stretch == other.stretch
         && paragraphAlignment == other.paragraphAlignment
         && lineSpacing == other.lineSpacing
         && lineHeight == other.lineHeight;
@@ -24,6 +26,8 @@ size_t TextLayoutCache::KeyHasher::operator()(const Key& key) const {
     seed ^= std::hash<float>{}(key.maxHeight) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     seed ^= std::hash<int>{}(static_cast<int>(key.wrapping)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     seed ^= std::hash<int>{}(static_cast<int>(key.weight)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= std::hash<int>{}(static_cast<int>(key.style)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= std::hash<int>{}(static_cast<int>(key.stretch)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     seed ^= std::hash<int>{}(static_cast<int>(key.paragraphAlignment)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     seed ^= std::hash<float>{}(key.lineSpacing) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     seed ^= std::hash<float>{}(key.lineHeight) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -44,7 +48,7 @@ Microsoft::WRL::ComPtr<IDWriteTextLayout> TextLayoutCache::GetOrCreate(const Key
     options.lineSpacing = key.lineSpacing;
     options.lineHeight = key.lineHeight;
 
-    auto layout = GraphicsContext::CreateTextLayout(key.text, key.fontName, key.fontSize, options, key.weight);
+    auto layout = GraphicsContext::CreateTextLayout(key.text, key.fontName, key.fontSize, options, key.weight, key.style, key.stretch);
     m_cache.emplace(key, layout);
     return layout;
 }

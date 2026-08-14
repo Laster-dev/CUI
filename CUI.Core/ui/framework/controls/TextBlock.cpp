@@ -32,7 +32,7 @@ TextBlock::TextBlock() {
     SetColor(ThemeManager::Instance().GetColor("textSecondary"));
     SetFontFamily("微软雅黑");
     SetFontSize(13.0f);
-    SetFontWeight("Normal");
+    SetFontWeight(FontWeight::Normal);
 }
 
 TextBlock::TextBlock(const std::string& text) : TextBlock() {
@@ -54,7 +54,7 @@ Size TextBlock::Measure(Size availableSize) {
         GraphicsContext::TextLayoutOptions opt;
         opt.lineSpacing = m_lineSpacing;
         opt.lineHeight = m_lineHeight;
-        auto layout = GraphicsContext::CreateTextLayout(Utf8ToUtf16(text), font, fontSize, opt, weight);
+        auto layout = GraphicsContext::CreateTextLayout(Utf8ToUtf16(text), font, fontSize, opt, weight, ResolveFontStyle(), ResolveFontStretch());
         DWRITE_TEXT_METRICS metrics{};
         if (layout && SUCCEEDED(layout->GetMetrics(&metrics))) {
             measured = Size(metrics.widthIncludingTrailingWhitespace, metrics.height);
@@ -92,17 +92,15 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
         : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
-    const std::string& alignStr = GetTextAlign();
-    const std::string& vAlignStr = GetVerticalAlign();
     DWRITE_FONT_WEIGHT weight = ResolveFontWeight();
 
     DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING;
-    if (alignStr == "Center") align = DWRITE_TEXT_ALIGNMENT_CENTER;
-    else if (alignStr == "Right") align = DWRITE_TEXT_ALIGNMENT_TRAILING;
+    if (GetTextAlign() == TextAlignment::Center) align = DWRITE_TEXT_ALIGNMENT_CENTER;
+    else if (GetTextAlign() == TextAlignment::Right) align = DWRITE_TEXT_ALIGNMENT_TRAILING;
 
     DWRITE_PARAGRAPH_ALIGNMENT vAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
-    if (vAlignStr == "Top") vAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-    else if (vAlignStr == "Bottom") vAlign = DWRITE_PARAGRAPH_ALIGNMENT_FAR;
+    if (GetVerticalAlign() == TextVerticalAlignment::Top) vAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+    else if (GetVerticalAlign() == TextVerticalAlignment::Bottom) vAlign = DWRITE_PARAGRAPH_ALIGNMENT_FAR;
 
     Thickness padding = GetPadding();
     Rect textRect(
@@ -121,14 +119,17 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
         opt.paragraphAlignment = vAlign;
         opt.lineSpacing = m_lineSpacing;
         opt.lineHeight = m_lineHeight;
-        auto layout = GraphicsContext::CreateTextLayout(Utf8ToUtf16(text), font, fontSize, opt, weight);
+        auto layout = GraphicsContext::CreateTextLayout(Utf8ToUtf16(text), font, fontSize, opt, weight, ResolveFontStyle(), ResolveFontStretch());
         if (layout) {
             layout->SetTextAlignment(align);
+            const DWRITE_TEXT_RANGE range = { 0, static_cast<UINT32>(Utf8ToUtf16(text).length()) };
+            layout->SetUnderline(IsUnderline(), range);
+            layout->SetStrikethrough(IsStrikethrough(), range);
             ctx.DrawTextLayout(layout.Get(), textRect, color);
             return;
         }
     }
-    ctx.DrawText(text, textRect, color, font, fontSize, align, vAlign, weight);
+    ctx.DrawText(text, textRect, color, font, fontSize, align, vAlign, weight, false, ResolveFontStyle(), ResolveFontStretch(), IsUnderline(), IsStrikethrough());
 }
 
 } // namespace CUI

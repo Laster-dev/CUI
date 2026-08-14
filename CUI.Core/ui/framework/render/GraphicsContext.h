@@ -136,12 +136,27 @@ public:
         float opacity = 1.0f,
         const std::string& glyphFont = "Segoe UI Emoji",
         float glyphSize = 0.0f);
+    struct InheritedTextStyle {
+        DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
+        DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL;
+        DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
+        bool underline = false;
+        bool strikethrough = false;
+    };
+
+    void PushInheritedTextStyle(const InheritedTextStyle& style);
+    void PopInheritedTextStyle();
+
     void DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,
                   const std::string& fontName = "微软雅黑", float fontSize = 13.0f,
                   DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING,
                   DWRITE_PARAGRAPH_ALIGNMENT vAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
                   DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL,
-                  bool truncateWithEllipsis = false);
+                  bool truncateWithEllipsis = false,
+                  DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL,
+                  DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL,
+                  bool underline = false,
+                  bool strikethrough = false);
     // VS auto-hide tabs: rotate the whole run around `center` (ClearType cannot).
     void DrawTextRotated(
         const std::string& text,
@@ -153,7 +168,9 @@ public:
         DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL);
 
     Size MeasureText(const std::string& text, const std::string& fontName = "微软雅黑",
-                     float fontSize = 13.0f, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL);
+                     float fontSize = 13.0f, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL,
+                     DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL,
+                     DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL);
 
     struct TextLayoutOptions {
         float maxWidth = 10000.0f;
@@ -176,7 +193,9 @@ public:
         const std::string& fontName,
         float fontSize,
         const TextLayoutOptions& options,
-        DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL);
+        DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL,
+        DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL,
+        DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL);
 
     void DrawTextLayout(IDWriteTextLayout* layout, const Rect& originRect, D2D1_COLOR_F color);
     static TextCaretInfo GetTextCaretInfo(IDWriteTextLayout* layout, UINT32 position, const Point& origin);
@@ -205,6 +224,10 @@ private:
         DWRITE_TEXT_ALIGNMENT align,
         DWRITE_PARAGRAPH_ALIGNMENT vAlign,
         DWRITE_FONT_WEIGHT weight,
+        DWRITE_FONT_STYLE style,
+        DWRITE_FONT_STRETCH stretch,
+        bool underline,
+        bool strikethrough,
         D2D1_TEXT_ANTIALIAS_MODE antialiasMode,
         bool truncateWithEllipsis = false);
     void DrawTextLayoutOnTarget(
@@ -240,6 +263,7 @@ private:
     std::vector<bool> m_clipIsLayer; // true = PushLayer (rounded), false = axis-aligned
     std::vector<float> m_opacityStack;
     std::vector<D2D1_MATRIX_3X2_F> m_transformStack;
+    std::vector<InheritedTextStyle> m_inheritedTextStyleStack;
     Rect m_paintBounds;
 
     struct TargetState {

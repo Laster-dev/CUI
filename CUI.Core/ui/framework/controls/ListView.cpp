@@ -23,13 +23,8 @@ float GetChromiumWheelStep(float viewportHeight) {
     return (std::max)(1u, lines) * 40.0f;
 }
 
-DWRITE_FONT_WEIGHT ResolveListFontWeight(const std::string& weight) {
-    if (weight == "Bold" || weight == "bold") return DWRITE_FONT_WEIGHT_BOLD;
-    if (weight == "SemiBold" || weight == "semibold" || weight == "Medium" || weight == "medium") {
-        return DWRITE_FONT_WEIGHT_SEMI_BOLD;
-    }
-    if (weight == "Light" || weight == "light") return DWRITE_FONT_WEIGHT_LIGHT;
-    return DWRITE_FONT_WEIGHT_NORMAL;
+DWRITE_FONT_WEIGHT ResolveListFontWeight(FontWeight weight) {
+    return static_cast<DWRITE_FONT_WEIGHT>(weight);
 }
 
 float FrameBlend(float factorAt60Hz) {
@@ -71,7 +66,7 @@ ListView::ListView() {
     SetBorderThickness(1.0f);
     SetFontSize(16.0f);
     SetFontFamily("微软雅黑");
-    SetFontWeight("Normal");
+    SetFontWeight(FontWeight::Normal);
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     SetCornerRadius(4.0f);
     // No fixed size — let parent layout stretch ListView to the pane.
