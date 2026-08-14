@@ -79,7 +79,7 @@ namespace Gallery {
             auto nav = std::make_shared<NavigationView>();
             nav->SetHeader(std::string());
             nav->SetPaneTitle("CUI Gallery");
-			//nav->SetIcon("Assets/Logo.png");
+
             nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
             nav->SetIsSettingsVisible(true);
             if (auto* settings = nav->SettingsItem()) {
@@ -196,6 +196,11 @@ namespace Gallery {
     std::shared_ptr<UIElement> BuildGalleryRoot() {
         auto titleBar = std::make_shared<WindowTitleBar>();
         titleBar->SetTitle("CUI Gallery");
+        constexpr const char* kSvgStar =
+            "<svg viewBox=\"0 0 1024 1024\" xmlns=\"http://www.w3.org/2000/svg\">"
+            "<path d=\"M512 64l138.88 281.387 310.4 45.12-224.64 218.987 53.035 309.173L512 772.693 234.325 918.667l53.035-309.173L62.72 390.507l310.4-45.12z\"/>"
+            "</svg>";
+        titleBar->SetIcon(kSvgStar);
 		//构建主题切换控件
         auto ThemeModeRange = std::make_shared<SegmentedControl>();
         ThemeModeRange->SetWidth(120.0f);

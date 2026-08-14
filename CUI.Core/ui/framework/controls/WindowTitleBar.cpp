@@ -284,7 +284,7 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
         drewNative = true;
     }
     if (!drewNative) {
-        const std::string& icon = m_iconText.empty() ? DefaultIconTextFromTitle(m_title) : m_iconText;
+        const std::string& icon = GetIcon().empty() ? (m_iconText.empty() ? DefaultIconTextFromTitle(m_title) : m_iconText) : GetIcon();
         if (GraphicsContext::LooksLikeSvg(icon)) {
             ctx.DrawIcon(icon, iconRect, tokens.accentForeground);
         } else {
