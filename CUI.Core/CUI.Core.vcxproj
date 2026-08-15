@@ -214,6 +214,7 @@
     <ClCompile Include="ui\framework\controls\UIElement.cpp" />
     <ClCompile Include="ui\framework\controls\UIElementPropertyBridge.cpp" />
     <ClCompile Include="ui\framework\controls\WindowTitleBar.cpp" />
+    <ClCompile Include="ui\framework\controls\topology\TopologyView.cpp" />
     <ClCompile Include="ui\framework\input\Command.cpp" />
     <ClCompile Include="ui\framework\core\Binding.cpp" />
     <ClCompile Include="ui\framework\core\Object.cpp" />
@@ -339,6 +340,8 @@
     <ClInclude Include="ui\framework\controls\TreeView.h" />
     <ClInclude Include="ui\framework\controls\UIElement.h" />
     <ClInclude Include="ui\framework\controls\WindowTitleBar.h" />
+    <ClInclude Include="ui\framework\controls\topology\TopologyModel.h" />
+    <ClInclude Include="ui\framework\controls\topology\TopologyView.h" />
     <ClInclude Include="ui\framework\core\BindableProperty.h" />
     <ClInclude Include="ui\framework\core\Binding.h" />
     <ClInclude Include="ui\framework\core\CUIDsl.h" />

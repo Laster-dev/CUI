@@ -204,6 +204,7 @@
     <ClCompile Include="src\pages\Media\BarChartPage.cpp" />
     <ClCompile Include="src\pages\Media\PieChartPage.cpp" />
     <ClCompile Include="src\pages\Media\TerminalPage.cpp" />
+    <ClCompile Include="src\pages\Media\TopologyPage.cpp" />
     <ClCompile Include="src\pages\Menus\CommandBarPage.cpp" />
     <ClCompile Include="src\pages\Menus\MenuBarPage.cpp" />
     <ClCompile Include="src\pages\Menus\ContextMenuPage.cpp" />

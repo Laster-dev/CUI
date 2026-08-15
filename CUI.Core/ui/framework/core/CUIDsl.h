@@ -50,6 +50,7 @@
 #include "../controls/MessageBox.h"
 #include "../controls/shapes/Shapes.h"
 #include "../controls/CanvasControl.h"
+#include "../controls/topology/TopologyView.h"
 #include "../style/ThemeManager.h"
 
 #include <memory>
@@ -516,6 +517,42 @@ public:
         }
         return *this;
     }
+
+    ElementBuilder& Nodes(const std::vector<std::shared_ptr<TopologyNode>>& nodes) {
+        if constexpr (requires { m_ptr->Nodes = nodes; }) {
+            m_ptr->Nodes = nodes;
+        } else if constexpr (requires { m_ptr->SetNodes(nodes); }) {
+            m_ptr->SetNodes(nodes);
+        }
+        return *this;
+    }
+
+    ElementBuilder& Edges(const std::vector<TopologyEdge>& edges) {
+        if constexpr (requires { m_ptr->Edges = edges; }) {
+            m_ptr->Edges = edges;
+        } else if constexpr (requires { m_ptr->SetEdges(edges); }) {
+            m_ptr->SetEdges(edges);
+        }
+        return *this;
+    }
+
+    ElementBuilder& LayoutType(TopologyLayoutType t) {
+        if constexpr (requires { m_ptr->LayoutType = t; }) {
+            m_ptr->LayoutType = t;
+        } else if constexpr (requires { m_ptr->SetLayoutType(t); }) {
+            m_ptr->SetLayoutType(t);
+        }
+        return *this;
+    }
+
+    ElementBuilder& FlowParticles(bool enabled = true) {
+        if constexpr (requires { m_ptr->FlowParticles = enabled; }) {
+            m_ptr->FlowParticles = enabled;
+        } else if constexpr (requires { m_ptr->SetFlowParticlesEnabled(enabled); }) {
+            m_ptr->SetFlowParticlesEnabled(enabled);
+        }
+        return *this;
+    }
 };
 
 struct ChildArgument {
@@ -608,6 +645,10 @@ inline ElementBuilder<CheckBox> CheckboxTile(const std::string& title = "", std:
 
 inline ElementBuilder<Panel> Container() { // 快速生成空泛的排版盒模型容器
     return ElementBuilder<Panel>();
+}
+
+inline ElementBuilder<TopologyView> TopologyWidget() {
+    return ElementBuilder<TopologyView>();
 }
 
 inline ElementBuilder<Canvas> CanvasWidget() { // 快速生成支持绝对坐标手工摆放子项的画布容器

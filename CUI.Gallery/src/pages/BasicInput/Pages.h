@@ -59,6 +59,7 @@ CUI::Element BuildLineChartPage();
 CUI::Element BuildBarChartPage();
 CUI::Element BuildPieChartPage();
 CUI::Element BuildTerminalPage();
+CUI::Element BuildTopologyPage();
 
 // Menus and Toolbars
 CUI::Element BuildCommandBarPage();

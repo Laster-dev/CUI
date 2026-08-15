@@ -55,6 +55,7 @@ void MediaCatalog::Register(std::vector<Entry>& entries) {
     entries.push_back({ "barchart", "BarChart", "柱状图。", Category::Media, BuildBarChartPage });
     entries.push_back({ "piechart", "PieChart", "饼图。", Category::Media, BuildPieChartPage });
     entries.push_back({ "terminal", "Terminal", "终端控件。", Category::Media, BuildTerminalPage });
+    entries.push_back({ "topology", "TopologyView", "可折叠带动画拓扑图。", Category::Media, BuildTopologyPage });
 }
 
 void MenusAndToolbarsCatalog::Register(std::vector<Entry>& entries) {
