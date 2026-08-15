@@ -66,6 +66,8 @@ public:
 
     int GetSelectedIndex() const { return m_selectedIndex; }
     void SetSelectedIndex(int index);
+
+    PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex; // 选中项索引的响应式双向绑定属性代理
     std::string GetSelectedItem() const;
 
     const std::unordered_set<int>& GetSelectedIndices() const { return m_selectedIndices; }

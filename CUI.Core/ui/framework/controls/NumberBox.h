@@ -33,6 +33,8 @@ public:
     float GetValue() const { return m_value; }
     void SetValue(float val);
 
+    PropertyRef<float, PropertyId::ControlValue> ValueProperty; // 当前数值的响应式双向绑定属性代理
+
     float GetStep() const { return m_step; }
     void SetStep(float s) {
         m_step = s;

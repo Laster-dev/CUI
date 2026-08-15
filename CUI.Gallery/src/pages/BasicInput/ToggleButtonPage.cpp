@@ -28,10 +28,10 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
     State<bool> underlineChecked{ false };
     State<bool> strikethroughChecked{ false };
 
-    bold->IsOn->Bind(boldChecked);
-    italic->IsOn->Bind(italicChecked);
-    underline->IsOn->Bind(underlineChecked);
-    strikethrough->IsOn->Bind(strikethroughChecked);
+    bold->IsOn.Bind(boldChecked);
+    italic->IsOn.Bind(italicChecked);
+    underline->IsOn.Bind(underlineChecked);
+    strikethrough->IsOn.Bind(strikethroughChecked);
 
     auto statusText = MakeComputed<std::string>(
         [](bool b, bool i, bool u, bool s) {
@@ -49,11 +49,11 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
         [](bool i) { return i ? FontStyle::Italic : FontStyle::Normal; }, italicChecked);
 
     auto status = MakeStatus("");
-    status->Text->Bind(statusText, BindingMode::OneWay);
-    status->FontWeight->Bind(statusWeight, BindingMode::OneWay);
-    status->FontStyle->Bind(statusStyle, BindingMode::OneWay);
-    status->Underline->Bind(underlineChecked, BindingMode::OneWay);
-    status->Strikethrough->Bind(strikethroughChecked, BindingMode::OneWay);
+    status->Text.Bind(statusText, BindingMode::OneWay);
+    status->FontWeight.Bind(statusWeight, BindingMode::OneWay);
+    status->FontStyle.Bind(statusStyle, BindingMode::OneWay);
+    status->Underline.Bind(underlineChecked, BindingMode::OneWay);
+    status->Strikethrough.Bind(strikethroughChecked, BindingMode::OneWay);
 
     auto locked = Make<ToggleButton>("已锁定");
     locked->SetIsChecked(true);
@@ -74,7 +74,7 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
     };
     spec.source =
         "State<bool> boldChecked{ false };\n"
-        "bold->IsOn->Bind(boldChecked);\n";
+        "bold->IsOn.Bind(boldChecked);\n";
     return BuildSamplePage(spec);
 }
 

@@ -106,6 +106,10 @@ void DescGetMinWidth(const UIElement* self, Value& out) { out = Value(self->GetM
 void DescSetMinWidth(UIElement* self, const Value& in) { self->SetMinWidth(in.AsFloat()); }
 void DescGetMinHeight(const UIElement* self, Value& out) { out = Value(self->GetMinHeight()); }
 void DescSetMinHeight(UIElement* self, const Value& in) { self->SetMinHeight(in.AsFloat()); }
+void DescGetMaxWidth(const UIElement* self, Value& out) { out = Value(self->GetMaxWidth()); }
+void DescSetMaxWidth(UIElement* self, const Value& in) { self->SetMaxWidth(in.AsFloat()); }
+void DescGetMaxHeight(const UIElement* self, Value& out) { out = Value(self->GetMaxHeight()); }
+void DescSetMaxHeight(UIElement* self, const Value& in) { self->SetMaxHeight(in.AsFloat()); }
 void DescGetMargin(const UIElement* self, Value& out) { out = Value(self->GetMargin()); }
 void DescSetMargin(UIElement* self, const Value& in) { self->SetMargin(ThicknessFromValue(in)); }
 void DescGetPadding(const UIElement* self, Value& out) { out = Value(self->GetPadding()); }
@@ -175,6 +179,10 @@ void DescGetItemHeight(const UIElement* self, Value& out) {
 void DescSetItemHeight(UIElement* self, const Value& in) { self->SetItemHeight(in.AsFloat()); }
 void DescGetLastChildFill(const UIElement* self, Value& out) { out = Value(self->GetLastChildFill()); }
 void DescSetLastChildFill(UIElement* self, const Value& in) { self->SetLastChildFill(in.AsBool()); }
+void DescGetJustifyLines(const UIElement* self, Value& out) { out = Value(self->GetJustifyLines()); }
+void DescSetJustifyLines(UIElement* self, const Value& in) { self->SetJustifyLines(in.AsBool()); }
+void DescGetFillLastLine(const UIElement* self, Value& out) { out = Value(self->GetFillLastLine()); }
+void DescSetFillLastLine(UIElement* self, const Value& in) { self->SetFillLastLine(in.AsBool()); }
 void DescGetRows(const UIElement* self, Value& out) { out = Value(self->GetRows()); }
 void DescSetRows(UIElement* self, const Value& in) { self->SetRows(in.AsInt()); }
 void DescGetColumns(const UIElement* self, Value& out) { out = Value(self->GetColumns()); }
@@ -328,6 +336,8 @@ static const PropertyDesc kUIElementDescs[] = {
     { PropertyId::Height, "高度 (Height) [-1自适应]", "尺寸布局", PropertyKind::Float, nullptr, &DescGetHeight, &DescSetHeight },
     { PropertyId::MinWidth, "最小宽度 (MinWidth)", "尺寸布局", PropertyKind::Float, nullptr, &DescGetMinWidth, &DescSetMinWidth },
     { PropertyId::MinHeight, "最小高度 (MinHeight)", "尺寸布局", PropertyKind::Float, nullptr, &DescGetMinHeight, &DescSetMinHeight },
+    { PropertyId::MaxWidth, "最大宽度 (MaxWidth)", "尺寸布局", PropertyKind::Float, nullptr, &DescGetMaxWidth, &DescSetMaxWidth },
+    { PropertyId::MaxHeight, "最大高度 (MaxHeight)", "尺寸布局", PropertyKind::Float, nullptr, &DescGetMaxHeight, &DescSetMaxHeight },
     { PropertyId::Margin, "外边距 (Margin)", "尺寸布局", PropertyKind::Thickness, nullptr, &DescGetMargin, &DescSetMargin },
     { PropertyId::Padding, "内边距 (Padding)", "尺寸布局", PropertyKind::Thickness, nullptr, &DescGetPadding, &DescSetPadding },
     { PropertyId::AlignHorizontal, "水平对齐 (AlignH)", "尺寸布局", PropertyKind::Enum, kAlignmentOptions, &DescGetAlignH, &DescSetAlignH },
@@ -339,6 +349,8 @@ static const PropertyDesc kUIElementDescs[] = {
     { PropertyId::ItemWidth, "子项宽度 (ItemWidth)", "面板布局", PropertyKind::Float, nullptr, &DescGetItemWidth, &DescSetItemWidth },
     { PropertyId::ItemHeight, "子项高度 (ItemHeight)", "面板布局", PropertyKind::Float, nullptr, &DescGetItemHeight, &DescSetItemHeight },
     { PropertyId::LastChildFill, "末子填充 (LastChildFill)", "面板布局", PropertyKind::Bool, nullptr, &DescGetLastChildFill, &DescSetLastChildFill },
+    { PropertyId::JustifyLines, "行填满 (JustifyLines)", "面板布局", PropertyKind::Bool, nullptr, &DescGetJustifyLines, &DescSetJustifyLines },
+    { PropertyId::FillLastLine, "最后一行填满 (FillLastLine)", "面板布局", PropertyKind::Bool, nullptr, &DescGetFillLastLine, &DescSetFillLastLine },
     { PropertyId::Rows, "行数 (Rows)", "面板布局", PropertyKind::Int, nullptr, &DescGetRows, &DescSetRows },
     { PropertyId::Columns, "列数 (Columns)", "面板布局", PropertyKind::Int, nullptr, &DescGetColumns, &DescSetColumns },
 
@@ -435,6 +447,20 @@ void UIElement::SetMinHeight(float v) {
     InvalidateMeasure();
 }
 
+void UIElement::SetMaxWidth(float v) {
+    if (m_maxWidth == v) return;
+    m_maxWidth = v;
+    NotifyFieldChanged(PropertyId::MaxWidth, Value(v));
+    InvalidateMeasure();
+}
+
+void UIElement::SetMaxHeight(float v) {
+    if (m_maxHeight == v) return;
+    m_maxHeight = v;
+    NotifyFieldChanged(PropertyId::MaxHeight, Value(v));
+    InvalidateMeasure();
+}
+
 void UIElement::SetMargin(const Thickness& margin) {
     if (m_margin == margin) return;
     m_margin = margin;
@@ -518,7 +544,7 @@ void UIElement::SetAlignVertical(Alignment a) {
     InvalidateArrange();
 }
 
-void UIElement::SetOrientation(Orientation o) {
+void UIElement::SetOrientation(CUI::Orientation o) {
     if (m_orientation == o) return;
     m_orientation = o;
     NotifyFieldChanged(PropertyId::Orientation, Value(OrientationToString(o)));
@@ -543,6 +569,20 @@ void UIElement::SetItemHeight(float v) {
     if (m_itemHeight == v) return;
     m_itemHeight = v;
     NotifyFieldChanged(PropertyId::ItemHeight, Value(v));
+    InvalidateMeasure();
+}
+
+void UIElement::SetJustifyLines(bool v) {
+    if (m_justifyLines == v) return;
+    m_justifyLines = v;
+    NotifyFieldChanged(PropertyId::JustifyLines, Value(v));
+    InvalidateMeasure();
+}
+
+void UIElement::SetFillLastLine(bool v) {
+    if (m_fillLastLine == v) return;
+    m_fillLastLine = v;
+    NotifyFieldChanged(PropertyId::FillLastLine, Value(v));
     InvalidateMeasure();
 }
 

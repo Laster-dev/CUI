@@ -16,10 +16,10 @@ namespace Gallery {
 
 namespace {
 
-std::shared_ptr<Canvas> MakeStage(float width, float height) {
+std::shared_ptr<Canvas> MakeStage(float minHeight) {
     auto stage = Make<Canvas>();
-    stage->SetWidth(width);
-    stage->SetHeight(height);
+    stage->SetMinHeight(minHeight);
+    stage->SetClipToBounds(true);
     stage->SetCornerRadius(4.0f);
     stage->SetBackground(D2D1::ColorF(0.97f, 0.97f, 0.99f, 0.5f));
     stage->SetBorderBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.08f));
@@ -56,6 +56,18 @@ public:
     float height = 0.0f;
     std::vector<Ball> balls;
 
+    void SetViewport(float viewportWidth, float viewportHeight) {
+        width = (std::max)(0.0f, viewportWidth);
+        height = (std::max)(0.0f, viewportHeight);
+        for (auto& ball : balls) {
+            if (width <= ball.radius * 2.0f || height <= ball.radius * 2.0f) {
+                continue;
+            }
+            ball.x = (std::max)(ball.radius, (std::min)(width - ball.radius, ball.x));
+            ball.y = (std::max)(ball.radius, (std::min)(height - ball.radius, ball.y));
+        }
+    }
+
     void SpawnBall(float x, float y, float vx, float vy) {
         if (balls.size() >= kMaxBalls) {
             return;
@@ -66,6 +78,9 @@ public:
 
         Ball b;
         b.radius = r(rng);
+        if (width <= b.radius * 2.0f || height <= b.radius * 2.0f) {
+            return;
+        }
         b.x = (std::max)(b.radius, (std::min)(width - b.radius, x));
         b.y = (std::max)(b.radius, (std::min)(height - b.radius, y));
         b.vx = vx;
@@ -75,9 +90,12 @@ public:
     }
 
     void SpawnRandom(unsigned int count) {
+        if (width <= 16.0f || height <= 20.0f) {
+            return;
+        }
         static std::mt19937 rng(std::random_device{}());
         std::uniform_real_distribution<float> px(8.0f, width - 8.0f);
-        std::uniform_real_distribution<float> py(20.0f, height * 0.4f);
+        std::uniform_real_distribution<float> py(8.0f, (std::max)(8.0f, height * 0.4f));
         std::uniform_real_distribution<float> v(-260.0f, 260.0f);
         for (unsigned int i = 0; i < count; ++i) {
             SpawnBall(px(rng), py(rng), v(rng), v(rng) * 0.4f);
@@ -186,12 +204,11 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
     std::shared_ptr<AimState> aim,
     State<int> ballCount) {
     auto canvas = Make<CanvasControl>();
-    canvas->SetWidth(560.0f);
-    canvas->SetHeight(340.0f);
-    world->width = 560.0f;
-    world->height = 340.0f;
+    canvas->SetMinHeight(340.0f);
+    canvas->SetClipToBounds(true);
 
     canvas->SetOnDraw([world, aim](GraphicsContext& ctx, Size size) {
+        world->SetViewport(size.width, size.height);
         // 深色舞台背景 + 边框
         ctx.FillRoundedRect(Rect(0, 0, size.width, size.height), 6.0f, Rgb(0x16161E));
         ctx.DrawRoundedRect(Rect(0.5f, 0.5f, size.width - 1.0f, size.height - 1.0f), 6.0f, Rgb(0x3A3A4A), 1.0f);
@@ -273,7 +290,7 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
 
 std::shared_ptr<UIElement> BuildCanvasPage() {
     // —— 常规用法：绝对坐标定位 ——
-    auto stage = MakeStage(460, 180);
+    auto stage = MakeStage(180);
 
     auto button = ElevatedButton("绝对定位按钮").Padding(14, 8, 14, 8).Build();
     button->SetCanvasLeft(24.0f);
@@ -293,7 +310,7 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     box->SetCanvasTop(70.0f);
     stage->AddChild(box);
 
-    State<float> circleX{ 330.0f };
+    State<float> circleX{ 220.0f };
     State<float> circleY{ 32.0f };
     auto circle = EllipseWidget(72, 72).Build();
     circle->SetFill(Rgb(0x2BAD8E, 0.85f));
@@ -303,10 +320,13 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     circle->SetCanvasTop(circleY);
     stage->AddChild(circle);
 
-    auto reshuffle = ElevatedButton("随机重排", [circle, circleX, circleY](UIElement*) {
+    auto reshuffle = ElevatedButton("随机重排", [stage, circle, circleX, circleY](UIElement*) {
         static std::mt19937 rng(1337);
-        std::uniform_real_distribution<float> dx(190.0f, 388.0f);
-        std::uniform_real_distribution<float> dy(10.0f, 98.0f);
+        const Rect bounds = stage->GetBounds();
+        const float maxX = (std::max)(0.0f, bounds.width - circle->GetBounds().width);
+        const float maxY = (std::max)(0.0f, bounds.height - circle->GetBounds().height);
+        std::uniform_real_distribution<float> dx(0.0f, maxX);
+        std::uniform_real_distribution<float> dy(0.0f, maxY);
         float nextX = circleX.Get();
         float nextY = circleY.Get();
         do {
@@ -326,7 +346,7 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     positionStatus->Text->Bind(positionValue, BindingMode::OneWay);
 
     // —— 叠加与层级 ——
-    auto layerStage = MakeStage(340, 190);
+    auto layerStage = MakeStage(190);
 
     auto backRect = RectangleWidget(200, 110).Build();
     backRect->SetFill(Rgb(0x4A90D9, 0.9f));
@@ -352,7 +372,7 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     layerStage->AddChild(slash);
 
     // —— 与流式布局对比 ——
-    auto canvasSide = MakeStage(150, 150);
+    auto canvasSide = MakeStage(150);
     auto sideRect = RectangleWidget(110, 46).Build();
     sideRect->SetFill(Rgb(0x007ACC, 0.45f));
     sideRect->SetCornerRadius(4.0f);
@@ -367,7 +387,7 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     canvasSide->AddChild(sideCircle);
 
     auto flowColumn = Column(8).Padding(12).Build();
-    flowColumn->SetWidth(150.0f);
+    flowColumn->SetMinHeight(150.0f);
     flowColumn->SetBackgroundToken(ThemeTokenId::CardBackground);
     auto flowRect = RectangleWidget(110, 46).Build();
     flowRect->SetFill(Rgb(0x007ACC, 0.45f));
@@ -425,7 +445,7 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
         },
         {
             "与流式布局对比",
-            "Canvas 的尺寸由 SetWidth / SetHeight 决定，子元素不参与父级尺寸计算；而 StackPanel 会按子元素撑开。",
+            "Canvas 不以子元素反推自身尺寸，当前示例宽度随父容器可用空间伸缩；StackPanel 则按子元素顺序参与测量。",
             Row(24).Children({
                 Column(6).Children({
                     MakeLabel("Canvas(150×150)", 13.0f, ThemeTokenId::TextSecondary, true),
@@ -443,14 +463,14 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
             "在画布上按住并拖拽瞄准，松开即以弹弓方式发射小球；支持上百个小球实时重力、反弹与互撞。",
             Column(12).Children({
                 physicsCanvas,
-                Row(12).Children({ burstButton, clearButton, physicsStatus }).Build(),
+                WrapPanelWidget("Horizontal").Gap(12).Children({ burstButton, clearButton, physicsStatus }).Build(),
             }).Build(),
         },
     };
     spec.source =
         "auto stage = Make<Canvas>();\n"
-        "stage->SetWidth(460.0f);\n"
-        "stage->SetHeight(180.0f);\n"
+        "stage->SetMinHeight(180.0f);  // 宽度跟随父容器\n"
+        "stage->SetClipToBounds(true);\n"
         "\n"
         "auto button = ElevatedButton(\"绝对定位按钮\").Build();\n"
         "button->SetCanvasLeft(24.0f);\n"
@@ -459,8 +479,8 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
         "\n"
         "// ---- 高性能：CanvasControl 即时绘制 + 物理 Tick ----\n"
         "auto canvas = Make<CanvasControl>();\n"
-        "canvas->SetWidth(560.0f);\n"
-        "canvas->SetHeight(340.0f);\n"
+        "canvas->SetMinHeight(340.0f); // 宽度跟随父容器\n"
+        "canvas->SetClipToBounds(true);\n"
         "\n"
         "canvas->SetOnDraw([](GraphicsContext& ctx, Size size) {\n"
         "    for (const auto& b : world.balls) {\n"

@@ -23,8 +23,8 @@ public:
     virtual void OnMouseMove(Point pt) override; // 鼠标拖动，计算当前位移差值量并派发位移事件
     virtual void OnMouseUp(Point pt) override; // 鼠标抬起释放拖拽
 
-    bool IsVerticalSplitter() const { return GetOrientation() == Orientation::Vertical; } // 判定是否为垂直切割条
-    void SetOrientation(Orientation orientation); // 设置分割条的排布方向
+    bool IsVerticalSplitter() const { return GetOrientation() == CUI::Orientation::Vertical; } // 判定是否为垂直切割条
+    void SetOrientation(CUI::Orientation orientation); // 设置分割条的排布方向
 
     Event<Splitter*, float>& OnSplitterMoved() { return m_onSplitterMovedEvent; } // 拖拽移动触发的事件发布中心
 

@@ -129,6 +129,9 @@ public:
         return *this;
     }
 
+    ElementBuilder& MaxWidth(float w) { m_element->SetMaxWidth(w); return *this; }
+    ElementBuilder& MaxHeight(float h) { m_element->SetMaxHeight(h); return *this; }
+
     ElementBuilder& Size(float w, float h) { // 设定宽高尺寸
         m_element->SetWidth(w);
         m_element->SetHeight(h);
@@ -319,6 +322,9 @@ public:
         m_element->SetGap(gap);
         return *this;
     }
+
+    ElementBuilder& Justified(bool enabled = true) { m_element->SetJustifyLines(enabled); return *this; }
+    ElementBuilder& FillLastLine(bool enabled = true) { m_element->SetFillLastLine(enabled); return *this; }
 
     ElementBuilder& OnClick(std::function<void(UIElement*)> handler) { // 连接 Click 单击事件回调
         if constexpr (std::is_base_of_v<Control, T> || std::is_same_v<Button, T> || std::is_same_v<HyperlinkButton, T>) {

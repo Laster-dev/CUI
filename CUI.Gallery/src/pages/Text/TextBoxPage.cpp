@@ -17,16 +17,18 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
     basic->SetWidth(300.0f);
     basic->SetHeight(28.0f);
 
-    auto status = MakeStatus("在输入框中输入文字试试。");
-    basic->OnTextChanged().Connect([status](TextBox*, const std::string& text) {
+    State<std::string> textState{ "" };
+    basic->Text.Bind(textState, BindingMode::TwoWay);
+    auto statusValue = MakeComputed<std::string>([](const std::string& text) {
         const std::string shown = text.empty() ? "（空）" : text;
-        status->SetText("当前文本（" + std::to_string(text.size()) + " 字符）：" + shown);
-    });
+        return "当前文本（" + std::to_string(text.size()) + " 字符）：" + shown;
+    }, textState);
+    auto status = MakeStatus("");
+    status->Text.Bind(statusValue, BindingMode::OneWay);
 
     auto clear = Make<Button>("清空");
-    clear->OnClick().Connect([basic, status](UIElement*) {
-        basic->Text->Set("");
-        status->SetText("已清空输入。");
+    clear->OnClick().Connect([basic](UIElement*) {
+        basic->Text.Set("");
     });
 
     auto multiline = Make<TextBox>();
@@ -60,11 +62,11 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
     bound->SetWidth(300.0f);
     bound->SetHeight(28.0f);
     bound->SetIsReadOnly(true);
-    bound->Text->Bind(boundText, BindingMode::OneWay);
+    bound->Text.Bind(boundText, BindingMode::OneWay);
 
     auto update = Make<Button>("更新绑定");
     update->OnClick().Connect([boundText](UIElement*) {
-        boundText = "已通过 State 更新：Text->Bind(State, OneWay)。";
+        boundText = "已通过 State 更新：Text.Bind(State, OneWay)。";
     });
 
     auto drop = Make<TextBox>();
@@ -80,7 +82,7 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
     spec.sections = {
         {
             "单行输入",
-            "聚焦输入，OnTextChanged 实时回调；通过 Text->Set 可程序化修改内容。",
+            "Text 与 State 双向绑定，状态栏由 MakeComputed 派生；通过 Text.Set 可程序化修改内容。",
             Column(12).Children({
                 basic,
                 Row(8).Children({ clear }).Build(),
@@ -103,7 +105,7 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
         },
         {
             "数据绑定",
-            "只读框通过 Text->Bind(State, BindingMode::OneWay) 单向绑定数据源。",
+            "只读框通过 Text.Bind(State, BindingMode::OneWay) 单向绑定数据源。",
             Row(8).Children({ bound, update }).Build(),
         },
         {
@@ -118,7 +120,8 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
         "box->SetAcceptsReturn(true);\n"
         "box->SetTextWrapping(true);\n"
         "box->SetIsReadOnly(true);\n"
-        "box->OnTextChanged().Connect([](TextBox*, const std::string& text) { ... });\n";
+        "State<std::string> text{ \"\" };\n"
+        "box->Text.Bind(text, BindingMode::TwoWay);\n";
     return BuildSamplePage(spec);
 }
 

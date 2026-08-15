@@ -714,7 +714,7 @@ void Window::FlushLayoutIfNeeded() {
     if (!m_rootElement || !m_hwnd) {
         return;
     }
-    if (!m_rootElement->IsMeasureDirty() && !m_rootElement->IsArrangeDirty()) {
+    if (!m_rootElement->HasLayoutDirtyInSubtree()) {
         return;
     }
     ProgressBarDiag::Log(
@@ -1305,7 +1305,7 @@ void Window::RunMessageLoop() {
         m_animationManager.DispatchDueWakes(now);
         const bool hasPendingLayout =
             m_rootElement
-            && (m_rootElement->IsMeasureDirty() || m_rootElement->IsArrangeDirty());
+            && m_rootElement->HasLayoutDirtyInSubtree();
         if (m_animationManager.HasAnimating()
             || m_themeRippleActive
             || m_animationManager.ConsumeFrameRequest()

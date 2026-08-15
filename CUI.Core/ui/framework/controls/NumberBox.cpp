@@ -256,6 +256,7 @@ NumberBox::NumberBox() {
     SetColor(tokens.textPrimary);
     SetBorderThickness(1.0f);
 
+    ValueProperty.Initialize(*this);
     m_field = std::make_shared<Field>();
     m_field->host = this;
     m_field->SetFontFamily(GetFontFamily());

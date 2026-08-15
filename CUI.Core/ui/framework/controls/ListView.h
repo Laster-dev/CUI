@@ -51,6 +51,11 @@ public:
     virtual const char* GetClassName() const override { return "ListView"; }
     virtual HCURSOR GetCursor() const override;
 
+    // 反射式属性存取（供 PropertyRef 绑定系统使用）
+    virtual void SetProperty(PropertyId id, const Value& val) override;
+    virtual Value GetProperty(PropertyId id) const override;
+    virtual bool HasProperty(PropertyId id) const override;
+
     virtual Size Measure(Size availableSize) override;
     virtual void Render(GraphicsContext& ctx) override;
     virtual void OnRender(GraphicsContext& ctx) override;
@@ -123,6 +128,8 @@ public:
     int GetCaretIndex() const { return m_caretIndex; }
     void SetCaretIndex(int index);
     void EnsureVisible(int rowIndex);
+
+    PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex; // 主选中行（caret 行）索引的响应式双向绑定属性代理
 
     // Events
     Event<ListView*, int>& OnSelectionChanged() { return m_onSelectionChangedEvent; }

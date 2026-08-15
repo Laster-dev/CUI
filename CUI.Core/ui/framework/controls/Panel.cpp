@@ -20,7 +20,7 @@ StackPanel::StackPanel() {
     SetGap(0.0f);
 }
 
-StackPanel::StackPanel(Orientation orientation) : StackPanel() {
+StackPanel::StackPanel(CUI::Orientation orientation) : StackPanel() {
     SetOrientation(orientation);
 }
 
@@ -87,7 +87,7 @@ WrapPanel::WrapPanel() {
     SetItemHeight(-1.0f);
 }
 
-WrapPanel::WrapPanel(Orientation orientation) : WrapPanel() {
+WrapPanel::WrapPanel(CUI::Orientation orientation) : WrapPanel() {
     SetOrientation(orientation);
 }
 

@@ -31,6 +31,7 @@ std::shared_ptr<UIElement> MakeCard(
     card->SetBackgroundToken(ThemeTokenId::CardBackground);
     card->SetBorderToken(ThemeTokenId::CardBorder);
     card->SetBorderThickness(1.0f);
+    card->SetClipToBounds(true);
     card->SetMargin(Thickness(0, 0, 0, 8));
     return card;
 }
@@ -81,6 +82,7 @@ std::shared_ptr<UIElement> MakeSectionCard(const SampleSection& section) {
     built->SetBackgroundToken(ThemeTokenId::CardBackground);
     built->SetBorderToken(ThemeTokenId::CardBorder);
     built->SetBorderThickness(1.0f);
+    built->SetClipToBounds(true);
     return built;
 }
 
@@ -102,6 +104,7 @@ std::shared_ptr<UIElement> BuildSamplePage(const SamplePageSpec& spec) {
 
     auto column = main.Build();
     column->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    column->SetAlignHorizontal(Alignment::Stretch);
 
     auto scroll = std::make_shared<ScrollViewer>();
     scroll->SetFlexGrow(1.0f);

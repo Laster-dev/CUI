@@ -41,8 +41,11 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     list->SetItems({ "收件箱", "今天", "本周", "已完成", "已归档", "垃圾箱" });
 
     State<std::string> selectionText{ "选择一个项目；扩展模式支持 Ctrl / Shift 和 Ctrl+A。" };
+    State<int> selectedIndex{ -1 };
+    list->SelectedIndex.Bind(selectedIndex, BindingMode::TwoWay);
     auto selectionStatus = MakeStatus("");
-    selectionStatus->Text->Bind(selectionText, BindingMode::OneWay);
+    selectionStatus->Text.Bind(selectionText, BindingMode::OneWay);
+    // 状态栏需要选中项文本与多选计数，保留轻量选择事件；索引本身已通过 SelectedIndex 绑定。
     list->OnSelectionChanged().Connect([selectionText](ListBox* sender, int index, const std::string& text) {
         selectionText = SelectionSummary(sender, index, text);
     });
@@ -119,6 +122,9 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     selectAll->OnClick().Connect([list](UIElement*) { list->SelectAll(); });
     auto clear = Make<Button>("清除选择");
     clear->OnClick().Connect([list](UIElement*) { list->ClearSelection(); });
+    auto pickThird = Make<Button>("选中第 3 项");
+    // 直接写 State 即可联动控件：SelectedIndex 为双向绑定。
+    pickThird->OnClick().Connect([selectedIndex](UIElement*) { selectedIndex = 2; });
 
     auto custom = Make<ListBox>();
     custom->SetHeight(132.0f);
@@ -139,7 +145,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     virtualList->SetSelectionMode(ListBoxSelectionMode::Single);
     State<std::string> virtualStatusText{ "虚拟模式仅按需索引文本；可滚动、选择和键盘导航。" };
     auto virtualStatus = MakeStatus("");
-    virtualStatus->Text->Bind(virtualStatusText, BindingMode::OneWay);
+    virtualStatus->Text.Bind(virtualStatusText, BindingMode::OneWay);
     virtualList->OnSelectionChanged().Connect([virtualStatusText](ListBox*, int index, const std::string& text) {
         virtualStatusText = "虚拟项目：第 " + std::to_string(index + 1) + " 项：" + text + "。";
     });
@@ -157,7 +163,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
                 list,
                 selectionStatus,
                 Row(8).Children({ input, add, insert, remove }).Build(),
-                Row(8).Children({ reset, clearItems, selectAll, clear }).Build(),
+                Row(8).Children({ reset, clearItems, selectAll, clear, pickThird }).Build(),
                 Row(8).Children({ single, multiple, extended }).Build(),
             }).Build(),
         },

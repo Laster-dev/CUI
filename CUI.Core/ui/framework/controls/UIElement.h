@@ -173,6 +173,17 @@ struct PropertyValueTraits<FontStretch> {
     static Value ToValue(FontStretch value) { return Value(FontStretchToString(value)); }                 // 将字体拉伸度转换为字符串通用值
 };
 
+template<>
+struct PropertyValueTraits<Orientation> {
+    static Orientation FromValue(const Value& value) {
+        const std::string s = value.AsString("Vertical");
+        return (s == "Horizontal") ? Orientation::Horizontal : Orientation::Vertical; // 从字符串解析布局朝向
+    }
+    static Value ToValue(Orientation value) {
+        return Value(value == Orientation::Horizontal ? "Horizontal" : "Vertical"); // 将布局朝向序列化为字符串
+    }
+};
+
 /**
  * @brief CUI 框架的终极视觉基类（所有控件与布局容器的祖先类）。
  * UIElement 统一抽象和实现了以下 UI 引擎核心流程：
@@ -208,6 +219,39 @@ public:
     PropertyRef<float, PropertyId::Height> Height;                      // 显式高度代理：如果显式指定，将强制覆盖测算布局的高度
     PropertyRef<bool, PropertyId::IsEnabled> IsEnabledProperty;          // 交互启用状态代理：控制控件是否可接收物理输入响应
     PropertyRef<float, PropertyId::Opacity> Opacity;                    // 不透明度代理：控制控件的渲染透明度等级 (0.0f - 1.0f)
+    PropertyRef<float, PropertyId::MinWidth> MinWidth;
+    PropertyRef<float, PropertyId::MinHeight> MinHeight;
+    PropertyRef<float, PropertyId::MaxWidth> MaxWidth;
+    PropertyRef<float, PropertyId::MaxHeight> MaxHeight;
+    PropertyRef<float, PropertyId::CornerRadius> CornerRadius;
+    PropertyRef<float, PropertyId::BorderThickness> BorderThickness;
+    PropertyRef<float, PropertyId::FlexGrow> FlexGrow;
+    PropertyRef<CUI::Orientation, PropertyId::Orientation> Orientation; // 布局方向属性代理：控制 Stack/Wrap 等容器的排列朝向
+    PropertyRef<float, PropertyId::Gap> Gap;
+    PropertyRef<float, PropertyId::ItemWidth> ItemWidth;
+    PropertyRef<float, PropertyId::ItemHeight> ItemHeight;
+    PropertyRef<bool, PropertyId::LastChildFill> LastChildFill;
+    PropertyRef<bool, PropertyId::JustifyLines> JustifyLines;
+    PropertyRef<bool, PropertyId::FillLastLine> FillLastLine;
+    PropertyRef<int, PropertyId::Rows> Rows;
+    PropertyRef<int, PropertyId::Columns> Columns;
+    PropertyRef<bool, PropertyId::ClipToBounds> ClipToBounds;
+    PropertyRef<float, PropertyId::CanvasLeft> CanvasLeft;
+    PropertyRef<float, PropertyId::CanvasTop> CanvasTop;
+    PropertyRef<float, PropertyId::CanvasRight> CanvasRight;
+    PropertyRef<float, PropertyId::CanvasBottom> CanvasBottom;
+    PropertyRef<int, PropertyId::ZIndex> ZIndex;
+    PropertyRef<int, PropertyId::GridColumn> GridColumn;
+    PropertyRef<int, PropertyId::GridRow> GridRow;
+    PropertyRef<int, PropertyId::GridColumnSpan> GridColumnSpan;
+    PropertyRef<int, PropertyId::GridRowSpan> GridRowSpan;
+
+    template<typename T, PropertyId Id>
+    PropertyRef<T, Id> Property() {
+        PropertyRef<T, Id> property;
+        property.Initialize(*this);
+        return property;
+    }
 
     virtual PropertyDescSpan GetPropertyDescs() const; // 获取当前控件类型定义的所有属性元数据描述符信息
 
@@ -232,6 +276,10 @@ public:
     void SetMinWidth(float v);                          // 设置布局约束的最小宽度值，并使测量变脏
     float GetMinHeight() const { return m_minHeight; }  // 获取布局约束的最小高度值
     void SetMinHeight(float v);                         // 设置布局约束的最小高度值，并使测量变脏
+    float GetMaxWidth() const { return m_maxWidth; }
+    void SetMaxWidth(float v);
+    float GetMaxHeight() const { return m_maxHeight; }
+    void SetMaxHeight(float v);
     Thickness GetMargin() const { return m_margin; }    // 获取控件外边距边缘厚度
     void SetMargin(const Thickness& margin);            // 设置控件外边距边缘厚度，并触发父容器重新排列
     Thickness GetPadding() const { return m_padding; }  // 获取控件内边距填充厚度
@@ -277,8 +325,8 @@ public:
     void SetAlignVertical(Alignment a);                                      // 设置垂直排列对齐模式
 
     // 布局特定属性
-    Orientation GetOrientation() const { return m_orientation; }            // 获取 Stack 等布局的方向朝向
-    void SetOrientation(Orientation o);                                     // 设置 Stack 等布局的方向朝向
+    CUI::Orientation GetOrientation() const { return m_orientation; }            // 获取 Stack 等布局的方向朝向
+    void SetOrientation(CUI::Orientation o);                                     // 设置 Stack 等布局的方向朝向
     float GetGap() const { return m_gap; }                                  // 获取子元素排列分布的间距像素值
     void SetGap(float v);                                                   // 设置子元素排列分布的间距像素值
     float GetItemWidth() const { return m_itemWidth; }                      // 获取网格或容器内部子项单元的最大限定宽度
@@ -287,6 +335,10 @@ public:
     void SetItemHeight(float v);                                             // 设置网格或容器内部子项单元的最大限定高度
     bool GetLastChildFill() const { return m_lastChildFill; }              // 停靠或弹性容器中是否让最后一个子控件强制拉伸填满剩余区域
     void SetLastChildFill(bool v);                                          // 设定停靠或弹性容器中是否让最后一个子控件强制拉伸填满剩余区域
+    bool GetJustifyLines() const { return m_justifyLines; }
+    void SetJustifyLines(bool v);
+    bool GetFillLastLine() const { return m_fillLastLine; }
+    void SetFillLastLine(bool v);
     int GetRows() const { return m_rows; }                                  // 获取网格容器预设的行数
     void SetRows(int v);                                                    // 设置网格容器预设的行数
     int GetColumns() const { return m_columns; }                            // 获取网格容器预设的列数
@@ -641,6 +693,7 @@ public:
     void InvalidateArrange();                           // 使对齐结果失效，重新排队进行 Arrange 排列
     bool IsMeasureDirty() const { return m_measureDirty; } // 是否为测量待办脏节点
     bool IsArrangeDirty() const { return m_arrangeDirty; } // 是否为排列对齐待办脏节点
+    bool HasLayoutDirtyInSubtree() const;                 // 当前节点或任一子节点是否待重新布局
     void FlushLayout(Size availableSize, const Rect& arrangeRect); // 执行局部局限内的布局快速刷新
 
     // 高端合成图层属性提升相关 (Promoted Layer)
@@ -716,8 +769,10 @@ protected:
 
     float m_width = -1.0f;                                            // 用户强行指派的宽度。若小于 0 则代表使用布局自适应测算
     float m_height = -1.0f;                                           // 用户强行指派的高度。若小于 0 则代表使用布局自适应测算
-    float m_minWidth = 0.0f;                                          // 布局所强制遵循的最小像素宽
-    float m_minHeight = 0.0f;                                         // 布局所强制遵循的最小像素高
+    float m_minWidth = 0.0f;
+    float m_maxWidth = -1.0f;                                          // 布局所强制遵循的最小像素宽
+    float m_minHeight = 0.0f;
+    float m_maxHeight = -1.0f;                                         // 布局所强制遵循的最小像素高
     Thickness m_margin{};                                             // 外边距厚度，负责在盒模型中撑开与外部同级控件的间距
     Thickness m_padding{};                                            // 内边距厚度，负责在盒模型中撑开与自身内部子控件的空白
     Visibility m_visibility = Visibility::Visible;                    // 可见性，定义在测算时是否保留所占有的尺寸
@@ -729,11 +784,13 @@ protected:
     Alignment m_align = Alignment::Stretch;                           // 定义常规排版对齐模式，默认进行强制拉伸 Stretch
     Alignment m_alignHorizontal = Alignment::Stretch;                 // 定义水平排版对齐模式
     Alignment m_alignVertical = Alignment::Stretch;                   // 定义垂直排版对齐模式
-    Orientation m_orientation = Orientation::Vertical;                // 描述容器中多子项排版的空间朝向，默认垂直向下排列
+    CUI::Orientation m_orientation = CUI::Orientation::Vertical;           // 描述容器中多子项排版的空间朝向，默认垂直向下排列
     float m_gap = 0.0f;                                               // 子控件多列/多行排列时相互隔开的缝隙大小
     float m_itemWidth = -1.0f;                                        // 指派内部每个项单元分配的固定宽度
     float m_itemHeight = -1.0f;                                       // 指派内部每个项单元分配的固定高度
-    bool m_lastChildFill = false;                                     // 在 Dock 布局中是否强行放大最后一个子控件塞满所有剩余死角
+    bool m_lastChildFill = false;
+    bool m_justifyLines = false;
+    bool m_fillLastLine = true;                                     // 在 Dock 布局中是否强行放大最后一个子控件塞满所有剩余死角
     int m_rows = 1;                                                   // 给 GridPanel 这种网格容器指定的绝对行行数
     int m_columns = 1;                                                // 给 GridPanel 这种网格容器指定的绝对列列数
     bool m_clipToBounds = false;                                      // 为 true 时，会设置几何裁切区域，拒绝让子节点越界绘制

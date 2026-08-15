@@ -55,6 +55,8 @@ Size LayoutEngine::MeasureElement(UIElement* element, Size availableSize) {
 
     finalW = (std::max)(finalW, minWidth);
     finalH = (std::max)(finalH, minHeight);
+    if (element->GetMaxWidth() >= 0.0f) finalW = (std::min)(finalW, element->GetMaxWidth());
+    if (element->GetMaxHeight() >= 0.0f) finalH = (std::min)(finalH, element->GetMaxHeight());
 
     return Size(finalW + margin.left + margin.right, finalH + margin.top + margin.bottom);
 }
@@ -303,6 +305,14 @@ Size LayoutEngine::MeasureGrid(UIElement* panel, Size availableSize) {
     std::vector<ColumnDefinition> localCols = cols.empty() ? std::vector<ColumnDefinition>{ ColumnDefinition() } : cols;
     std::vector<RowDefinition> localRows = rows.empty() ? std::vector<RowDefinition>{ RowDefinition() } : rows;
 
+    // ScrollViewer measures its document with a large sentinel value on the
+    // scrolling axis. A Star definition cannot consume an unbounded axis: it
+    // follows WinUI's content-driven behavior until Arrange receives a real
+    // layout slot from the viewport.
+    constexpr float kUnboundedConstraint = 99999.0f;
+    const bool widthIsUnbounded = availableSize.width >= kUnboundedConstraint;
+    const bool heightIsUnbounded = availableSize.height >= kUnboundedConstraint;
+
     // 1. Reset actual sizes
     for (auto& c : localCols) c.actualWidth = 0.0f;
     for (auto& r : localRows) r.actualHeight = 0.0f;
@@ -345,8 +355,16 @@ Size LayoutEngine::MeasureGrid(UIElement* panel, Size availableSize) {
 
         if (localCols[cIdx].width.unitType == GridUnitType::Auto) {
             localCols[cIdx].actualWidth = (std::max)(localCols[cIdx].actualWidth, dSize.width);
+        } else if (widthIsUnbounded
+                   && localCols[cIdx].width.unitType == GridUnitType::Star
+                   && child->GetGridColumnSpan() == 1) {
+            localCols[cIdx].actualWidth = (std::max)(localCols[cIdx].actualWidth, dSize.width);
         }
         if (localRows[rIdx].height.unitType == GridUnitType::Auto) {
+            localRows[rIdx].actualHeight = (std::max)(localRows[rIdx].actualHeight, dSize.height);
+        } else if (heightIsUnbounded
+                   && localRows[rIdx].height.unitType == GridUnitType::Star
+                   && child->GetGridRowSpan() == 1) {
             localRows[rIdx].actualHeight = (std::max)(localRows[rIdx].actualHeight, dSize.height);
         }
     }
@@ -362,17 +380,21 @@ Size LayoutEngine::MeasureGrid(UIElement* panel, Size availableSize) {
     }
 
     // Solve Star sizes
-    float availStarWidth = (std::max)(0.0f, availableSize.width - fixedWidth - autoWidth);
-    for (auto& c : localCols) {
-        if (c.width.unitType == GridUnitType::Star) {
-            c.actualWidth = starWidthWeight > 0 ? (availStarWidth * (c.width.value / starWidthWeight)) : 0.0f;
+    if (!widthIsUnbounded) {
+        float availStarWidth = (std::max)(0.0f, availableSize.width - fixedWidth - autoWidth);
+        for (auto& c : localCols) {
+            if (c.width.unitType == GridUnitType::Star) {
+                c.actualWidth = starWidthWeight > 0 ? (availStarWidth * (c.width.value / starWidthWeight)) : 0.0f;
+            }
         }
     }
 
-    float availStarHeight = (std::max)(0.0f, availableSize.height - fixedHeight - autoHeight);
-    for (auto& r : localRows) {
-        if (r.height.unitType == GridUnitType::Star) {
-            r.actualHeight = starHeightWeight > 0 ? (availStarHeight * (r.height.value / starHeightWeight)) : 0.0f;
+    if (!heightIsUnbounded) {
+        float availStarHeight = (std::max)(0.0f, availableSize.height - fixedHeight - autoHeight);
+        for (auto& r : localRows) {
+            if (r.height.unitType == GridUnitType::Star) {
+                r.actualHeight = starHeightWeight > 0 ? (availStarHeight * (r.height.value / starHeightWeight)) : 0.0f;
+            }
         }
     }
 
@@ -548,50 +570,88 @@ void LayoutEngine::ArrangeWrapPanel(UIElement* panel, Rect finalRect) {
     Orientation orientation = panel->GetOrientation();
     if (orientation != Orientation::Vertical) orientation = Orientation::Horizontal;
 
-    float itemWidth = panel->GetItemWidth();
-    float itemHeight = panel->GetItemHeight();
-    float gap = panel->GetGap();
+    const float itemWidth = panel->GetItemWidth();
+    const float itemHeight = panel->GetItemHeight();
+    const float gap = panel->GetGap();
+    const float maxMain = (orientation == Orientation::Horizontal) ? finalRect.width : finalRect.height;
 
-    float curMain = (orientation == Orientation::Horizontal) ? finalRect.x : finalRect.y;
-    float curCross = (orientation == Orientation::Horizontal) ? finalRect.y : finalRect.x;
+    struct WrapItem {
+        UIElement* element = nullptr;
+        float main = 0.0f;
+        float cross = 0.0f;
+        float maxMain = -1.0f;
+        float grow = 1.0f;
+    };
+    struct WrapLine {
+        std::vector<WrapItem> items;
+        float main = 0.0f;
+        float cross = 0.0f;
+    };
 
-    float maxMain = (orientation == Orientation::Horizontal) ? finalRect.width : finalRect.height;
-    float lineCrossSize = 0.0f;
-    bool isFirstInLine = true;
-
+    std::vector<WrapLine> lines;
+    WrapLine line;
     for (auto& child : panel->GetChildren()) {
         if (child->GetVisibility() == Visibility::Collapsed) continue;
 
-        Size dSize = child->GetDesiredSize();
-        float w = (itemWidth > 0) ? itemWidth : dSize.width;
-        float h = (itemHeight > 0) ? itemHeight : dSize.height;
+        const Size desired = child->GetDesiredSize();
+        float width = (itemWidth > 0.0f) ? itemWidth : desired.width;
+        float height = (itemHeight > 0.0f) ? itemHeight : desired.height;
+        float main = (orientation == Orientation::Horizontal) ? width : height;
+        const float cross = (orientation == Orientation::Horizontal) ? height : width;
+        const float minMain = (orientation == Orientation::Horizontal) ? child->GetMinWidth() : child->GetMinHeight();
+        const float childMaxMain = (orientation == Orientation::Horizontal) ? child->GetMaxWidth() : child->GetMaxHeight();
+        main = (std::max)(main, minMain);
+        if (childMaxMain >= 0.0f) main = (std::min)(main, childMaxMain);
 
-        float mainSize = (orientation == Orientation::Horizontal) ? w : h;
-        float crossSize = (orientation == Orientation::Horizontal) ? h : w;
-
-        float startMain = (orientation == Orientation::Horizontal) ? finalRect.x : finalRect.y;
-        float addedMain = isFirstInLine ? mainSize : (mainSize + gap);
-
-        if (curMain + addedMain > startMain + maxMain && !isFirstInLine) {
-            curCross += lineCrossSize + gap;
-            curMain = startMain;
-            lineCrossSize = crossSize;
-            isFirstInLine = true;
+        const float added = line.items.empty() ? main : main + gap;
+        if (!line.items.empty() && line.main + added > maxMain) {
+            lines.push_back(std::move(line));
+            line = WrapLine{};
         }
 
-        if (!isFirstInLine) {
-            curMain += gap;
+        line.items.push_back({ child.get(), main, cross, childMaxMain, (std::max)(1.0f, child->GetFlexGrow()) });
+        line.main += line.items.size() == 1 ? main : main + gap;
+        line.cross = (std::max)(line.cross, cross);
+    }
+    if (!line.items.empty()) lines.push_back(std::move(line));
+
+    float crossPos = (orientation == Orientation::Horizontal) ? finalRect.y : finalRect.x;
+    for (size_t lineIndex = 0; lineIndex < lines.size(); ++lineIndex) {
+        WrapLine& current = lines[lineIndex];
+        const bool fillLine = panel->GetJustifyLines()
+            && (panel->GetFillLastLine() || lineIndex + 1 < lines.size());
+        float extra = fillLine ? (std::max)(0.0f, maxMain - current.main) : 0.0f;
+
+        while (extra > 0.01f) {
+            float totalGrow = 0.0f;
+            for (const WrapItem& item : current.items) {
+                if (item.maxMain < 0.0f || item.main < item.maxMain - 0.01f) totalGrow += item.grow;
+            }
+            if (totalGrow <= 0.0f) break;
+
+            float distributed = 0.0f;
+            for (WrapItem& item : current.items) {
+                if (item.maxMain >= 0.0f && item.main >= item.maxMain - 0.01f) continue;
+                const float requested = extra * (item.grow / totalGrow);
+                const float capacity = item.maxMain >= 0.0f ? item.maxMain - item.main : requested;
+                const float growth = (std::min)(requested, capacity);
+                item.main += growth;
+                distributed += growth;
+            }
+            if (distributed <= 0.01f) break;
+            extra -= distributed;
         }
 
-        if (orientation == Orientation::Horizontal) {
-            child->Arrange(Rect(curMain, curCross, w, h));
-        } else {
-            child->Arrange(Rect(curCross, curMain, w, h));
+        float mainPos = (orientation == Orientation::Horizontal) ? finalRect.x : finalRect.y;
+        for (const WrapItem& item : current.items) {
+            if (orientation == Orientation::Horizontal) {
+                item.element->Arrange(Rect(mainPos, crossPos, item.main, item.cross));
+            } else {
+                item.element->Arrange(Rect(crossPos, mainPos, item.cross, item.main));
+            }
+            mainPos += item.main + gap;
         }
-
-        curMain += mainSize;
-        lineCrossSize = (std::max)(lineCrossSize, crossSize);
-        isFirstInLine = false;
+        crossPos += current.cross + gap;
     }
 }
 

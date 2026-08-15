@@ -2,6 +2,7 @@
 #include "pages/SamplePage.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/State.h"
 #include "framework/controls/PasswordBox.h"
 
 using namespace CUI;
@@ -13,14 +14,16 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
     auto basic = PasswordBoxWidget("请输入您的安全密码").Width(280).Height(28).Build();
     basic->SetToolTip("点击右侧眼睛图标可切换明文 / 密文");
 
-    auto status = MakeStatus("密码为空。");
-    basic->OnTextChanged().Connect([status](TextBox*, const std::string& text) {
+    State<std::string> passwordState{ "" };
+    basic->Text.Bind(passwordState, BindingMode::TwoWay);
+    auto statusValue = MakeComputed<std::string>([](const std::string& text) {
         if (text.empty()) {
-            status->SetText("密码为空。");
-        } else {
-            status->SetText("已输入 " + std::to_string(text.size()) + " 个字符（显示为 • 掩码）。");
+            return std::string("密码为空。");
         }
-    });
+        return "已输入 " + std::to_string(text.size()) + " 个字符（显示为 • 掩码）。";
+    }, passwordState);
+    auto status = MakeStatus("");
+    status->Text.Bind(statusValue, BindingMode::OneWay);
 
     auto noReveal = PasswordBoxWidget("隐藏明文切换按钮").Width(280).Height(28).Build();
     noReveal->SetShowRevealButton(false);
@@ -59,8 +62,9 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
     spec.source =
         "auto pwd = PasswordBoxWidget(\"请输入密码\").Build();\n"
         "pwd->SetShowRevealButton(true);\n"
-        "pwd->OnTextChanged().Connect([](TextBox*, const std::string& text) { ... });\n"
-        "std::string password = pwd->GetPassword();\n";
+        "State<std::string> password{ \"\" };\n"
+        "pwd->Text.Bind(password, BindingMode::TwoWay);\n"
+        "std::string value = pwd->GetPassword();\n";
     return BuildSamplePage(spec);
 }
 

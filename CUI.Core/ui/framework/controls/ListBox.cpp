@@ -29,6 +29,7 @@ ListBox::ListBox() {
     SetCornerRadius(4.0f);
     SetWidth(240.0f);
     SetHeight(300.0f);
+    SelectedIndex.Initialize(*this);
     m_itemsLayer.SetCacheable(true);
 }
 
@@ -260,6 +261,7 @@ void ListBox::SetSelectedIndex(int index) {
         m_selectedIndex = -1;
     }
     m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_selectedIndex)));
     InvalidateItemsLayer();
 }
 
@@ -290,6 +292,7 @@ void ListBox::SetItemSelected(int index, bool selected) {
         }
     }
     m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_selectedIndex)));
     InvalidateItemsLayer();
 }
 
@@ -302,15 +305,15 @@ void ListBox::SelectAll() {
     }
     if (count > 0) {
         m_selectedIndex = 0;
-    }
-    m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
+    }    m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, GetSelectedItem());
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_selectedIndex)));
     InvalidateItemsLayer();
 }
-
 void ListBox::ClearSelection() {
     m_selectedIndices.clear();
     m_selectedIndex = -1;
     m_onSelectionChangedEvent.Invoke(this, -1, "");
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_selectedIndex)));
     InvalidateItemsLayer();
 }
 

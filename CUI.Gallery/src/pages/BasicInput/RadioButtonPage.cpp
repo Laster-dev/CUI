@@ -22,9 +22,9 @@ std::shared_ptr<UIElement> BuildRadioButtonPage() {
     State<bool> darkChecked{ false };
     State<bool> systemChecked{ false };
 
-    light->Checked->Bind(lightChecked);
-    dark->Checked->Bind(darkChecked);
-    system->Checked->Bind(systemChecked);
+    light->Checked.Bind(lightChecked);
+    dark->Checked.Bind(darkChecked);
+    system->Checked.Bind(systemChecked);
 
     auto themeStatusValue = MakeComputed<std::string>(
         [](bool l, bool d, bool s) {
@@ -35,7 +35,7 @@ std::shared_ptr<UIElement> BuildRadioButtonPage() {
         }, lightChecked, darkChecked, systemChecked);
 
     auto themeStatus = MakeStatus("");
-    themeStatus->Text->Bind(themeStatusValue, BindingMode::OneWay);
+    themeStatus->Text.Bind(themeStatusValue, BindingMode::OneWay);
 
     auto sizeS = Make<RadioButton>("小");
     auto sizeM = Make<RadioButton>("中");
@@ -48,9 +48,9 @@ std::shared_ptr<UIElement> BuildRadioButtonPage() {
     State<bool> sizeMChecked{ true };
     State<bool> sizeLChecked{ false };
 
-    sizeS->Checked->Bind(sizeSChecked);
-    sizeM->Checked->Bind(sizeMChecked);
-    sizeL->Checked->Bind(sizeLChecked);
+    sizeS->Checked.Bind(sizeSChecked);
+    sizeM->Checked.Bind(sizeMChecked);
+    sizeL->Checked.Bind(sizeLChecked);
 
     auto sizeStatusValue = MakeComputed<std::string>(
         [](bool s, bool m, bool l) {
@@ -61,7 +61,7 @@ std::shared_ptr<UIElement> BuildRadioButtonPage() {
         }, sizeSChecked, sizeMChecked, sizeLChecked);
 
     auto sizeStatus = MakeStatus("");
-    sizeStatus->Text->Bind(sizeStatusValue, BindingMode::OneWay);
+    sizeStatus->Text.Bind(sizeStatusValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "RadioButton(单选按钮)";
@@ -90,7 +90,7 @@ std::shared_ptr<UIElement> BuildRadioButtonPage() {
     };
     spec.source =
         "State<bool> lightChecked{ true };\n"
-        "light->Checked->Bind(lightChecked);\n";
+        "light->Checked.Bind(lightChecked);\n";
     return BuildSamplePage(spec);
 }
 

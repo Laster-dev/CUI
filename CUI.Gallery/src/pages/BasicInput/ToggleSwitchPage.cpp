@@ -15,14 +15,14 @@ std::shared_ptr<UIElement> BuildToggleSwitchPage() {
     notify->SetHeader("通知");
     
     State<bool> notifyOn{ false };
-    notify->IsOn->Bind(notifyOn);
+    notify->IsOn.Bind(notifyOn);
 
     auto statusValue = MakeComputed<std::string>([](bool on) {
         return on ? "通知已开启。" : "通知已关闭。";
     }, notifyOn);
 
     auto status = MakeStatus("");
-    status->Text->Bind(statusValue, BindingMode::OneWay);
+    status->Text.Bind(statusValue, BindingMode::OneWay);
 
     auto wifi = Make<ToggleSwitch>();
     wifi->SetHeader("Wi-Fi");
@@ -49,7 +49,7 @@ std::shared_ptr<UIElement> BuildToggleSwitchPage() {
     };
     spec.source =
         "State<bool> notifyOn{ false };\n"
-        "notify->IsOn->Bind(notifyOn);\n";
+        "notify->IsOn.Bind(notifyOn);\n";
     return BuildSamplePage(spec);
 }
 

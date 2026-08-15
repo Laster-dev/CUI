@@ -32,10 +32,12 @@ std::shared_ptr<UIElement> BuildHomePage() {
 
         auto wrap = std::make_shared<WrapPanel>(Orientation::Horizontal);
         wrap->SetGap(12.0f);
+        wrap->SetJustifyLines(true);
+        wrap->SetFillLastLine(true);
         wrap->SetAlign(Alignment::Stretch);
 
         for (const Entry* entry : items) {
-            auto card = Column(6).Width(220).Padding(16).CornerRadius(6).Children({
+            auto card = Column(6).MinWidth(180).Padding(16).CornerRadius(6).Children({
                 MakeLabel(entry->title, 15.0f, ThemeTokenId::TextPrimary, true),
                 MakeLabel(entry->subtitle, 12.0f, ThemeTokenId::TextMuted, false),
             }).Build();

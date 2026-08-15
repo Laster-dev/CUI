@@ -28,7 +28,6 @@ std::shared_ptr<Button> MakeChip(const std::string& text, D2D1_COLOR_F color, fl
 std::shared_ptr<UIElement> BuildStackPanelPage() {
     // —— 水平排列 ——
     auto row = Row(12).Padding(12).Build();
-    row->SetWidth(520.0f);
     row->SetBackgroundToken(ThemeTokenId::CardBackground);
     row->SetBorderToken(ThemeTokenId::CardBorder);
     row->SetBorderThickness(1.0f);
@@ -40,22 +39,20 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
 
     // —— 垂直排列 ——
     auto col = Column(10).Padding(12).Build();
-    col->SetWidth(520.0f);
     col->SetBackgroundToken(ThemeTokenId::CardBackground);
     col->SetBorderToken(ThemeTokenId::CardBorder);
     col->SetBorderThickness(1.0f);
     col->SetCornerRadius(6.0f);
     col->AddChild(MakeLabel("标题一", 14.0f, ThemeTokenId::TextPrimary, true));
     col->AddChild(MakeLabel("说明文字：StackPanel 按添加顺序自上而下堆叠，每个子元素独占一行。", 12.0f, ThemeTokenId::TextMuted, false));
-    col->AddChild(TextField("输入框也按顺序排列").Width(280).Build());
-    col->AddChild(Row(8).Children({
+    col->AddChild(TextField("输入框也按顺序排列").Build());
+    col->AddChild(WrapPanelWidget("Horizontal").Gap(8).Children({
         ElevatedButton("确定").Background(Rgb(0x007ACC)).Padding(14, 8, 14, 8).Build(),
         ElevatedButton("取消").Padding(14, 8, 14, 8).Build(),
     }).Build());
 
     // —— 方向与间距（实时调节）——
     auto livePanel = Column(12).Padding(12).Build();
-    livePanel->SetWidth(520.0f);
     livePanel->SetBackgroundToken(ThemeTokenId::CardBackground);
     livePanel->SetBorderToken(ThemeTokenId::CardBorder);
     livePanel->SetBorderThickness(1.0f);
@@ -65,31 +62,32 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
     livePanel->AddChild(MakeChip("元素 C", Rgb(0x845EF7)));
 
     auto dirCombo = Make<ComboBox>();
-    dirCombo->SetWidth(220.0f);
     dirCombo->AddItem("Vertical(垂直)");
     dirCombo->AddItem("Horizontal(水平)");
     dirCombo->SetSelectedIndex(0);
 
     State<int> dirIndex{ 0 };
-    dirCombo->SelectedIndex->Bind(dirIndex);
-    dirCombo->OnSelectionChanged().Connect([livePanel](ComboBox*, int index, const std::string&) {
-        livePanel->SetOrientation(index == 0 ? Orientation::Vertical : Orientation::Horizontal);
-    });
+    dirCombo->SelectedIndex.Bind(dirIndex);
+    // 选择索引通过转换器驱动容器的 Orientation 属性，无需手动事件转发。
+    livePanel->Orientation.Bind(dirIndex,
+        MakeConverter<int, Orientation>([](int index) {
+            return index == 0 ? Orientation::Vertical : Orientation::Horizontal;
+        }),
+        BindingMode::OneWay);
 
-    auto gapSlider = SliderWidget(12.0f, 0.0f, 40.0f).Width(220).Build();
+    auto gapSlider = SliderWidget(12.0f, 0.0f, 40.0f).Build();
+    gapSlider->SetFlexGrow(1.0f);
     State<float> gapValue{ 12.0f };
-    gapSlider->ValueProperty->Bind(gapValue);
-    
-    gapSlider->OnValueChanged().Connect([livePanel](Slider* s, float) {
-        livePanel->SetGap(s->GetValue());
-    });
+    gapSlider->ValueProperty.Bind(gapValue);
+    // 滑块值直接同步到容器的 Gap 属性，双向绑定双向联通。
+    livePanel->Gap.Bind(gapValue, BindingMode::OneWay);
 
     auto configValue = MakeComputed<std::string>([](int dir, float gap) {
         return std::format("方向：{}　间距：{:.0f}px",
                            dir == 0 ? "Vertical" : "Horizontal", gap);
     }, dirIndex, gapValue);
     auto configStatus = MakeStatus("");
-    configStatus->Text->Bind(configValue, BindingMode::OneWay);
+    configStatus->Text.Bind(configValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "StackPanel(堆栈面板)";
@@ -113,7 +111,7 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
             "在运行时通过 SetOrientation / SetGap 改变排列方向与间距，布局即时重排。",
             Column(12).Children({
                 livePanel,
-                Row(16).Children({ dirCombo, gapSlider, configStatus }).Build(),
+                WrapPanelWidget("Horizontal").Gap(16).Children({ dirCombo, gapSlider, configStatus }).Build(),
             }).Build(),
         },
     };
@@ -124,9 +122,12 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
         "auto col = Column(10).Build();         // 垂直 StackPanel，间距 10px\n"
         "col->AddChild(Text(\"标题\").Build());\n"
         "\n"
-        "// 运行时切换方向与间距\n"
-        "panel->SetOrientation(Orientation::Horizontal);\n"
-        "panel->SetGap(16.0f);\n";
+        "// 运行时切换方向与间距：状态经转换器驱动属性，无需事件\n"
+        "State<int> dirIndex{ 0 };\n"
+        "combo->SelectedIndex.Bind(dirIndex);\n"
+        "panel->Orientation.Bind(dirIndex, MakeConverter<int, Orientation>(\n"
+        "    [](int i) { return i == 0 ? Orientation::Vertical : Orientation::Horizontal; }));\n"
+        "panel->Gap.Bind(gapState, BindingMode::OneWay);\n";
     return BuildSamplePage(spec);
 }
 

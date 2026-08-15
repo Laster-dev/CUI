@@ -18,14 +18,12 @@ std::shared_ptr<UIElement> BuildNumberBoxPage() {
     basic->SetToolTip("支持 ▲/▼、滚轮、上下键；可输入表达式如 1+2*3");
 
     State<float> basicValue{ 12.5f };
-    basic->OnValueChanged().Connect([basicValue](NumberBox*, float value) {
-        basicValue = value;
-    });
+    basic->ValueProperty.Bind(basicValue, BindingMode::TwoWay);
     auto basicStatusValue = MakeComputed<std::string>([](float value) {
         return std::format("当前值：{:.1f}", value);
     }, basicValue);
     auto basicStatus = MakeStatus("");
-    basicStatus->Text->Bind(basicStatusValue, BindingMode::OneWay);
+    basicStatus->Text.Bind(basicStatusValue, BindingMode::OneWay);
 
     auto disabled = NumberBoxWidget(42).Width(150).Height(28).Build();
     disabled->SetIsEnabled(false);
@@ -39,14 +37,12 @@ std::shared_ptr<UIElement> BuildNumberBoxPage() {
     ranged->SetValue(60.0f);
 
     State<float> rangedValue{ 60.0f };
-    ranged->OnValueChanged().Connect([rangedValue](NumberBox*, float value) {
-        rangedValue = value;
-    });
+    ranged->ValueProperty.Bind(rangedValue, BindingMode::TwoWay);
     auto rangedStatusValue = MakeComputed<std::string>([](float value) {
         return std::format("值被限制在 0–100 内：{:.0f}", value);
     }, rangedValue);
     auto rangedStatus = MakeStatus("");
-    rangedStatus->Text->Bind(rangedStatusValue, BindingMode::OneWay);
+    rangedStatus->Text.Bind(rangedStatusValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "NumberBox(数字输入框)";
@@ -75,7 +71,8 @@ std::shared_ptr<UIElement> BuildNumberBoxPage() {
         "box->SetStep(0.5f);\n"
         "box->SetMinimum(0.0f);\n"
         "box->SetMaximum(100.0f);\n"
-        "box->OnValueChanged().Connect([](NumberBox*, float value) { ... });\n";
+        "State<float> value{ 12.5f };\n"
+        "box->ValueProperty.Bind(value, BindingMode::TwoWay);\n";
     return BuildSamplePage(spec);
 }
 

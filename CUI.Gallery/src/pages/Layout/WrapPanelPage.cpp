@@ -27,7 +27,6 @@ std::shared_ptr<Button> MakeChip(const std::string& text, float width) {
 std::shared_ptr<UIElement> BuildWrapPanelPage() {
     // —— 水平换行 ——
     auto horizontal = WrapPanelWidget("Horizontal").Build();
-    horizontal->SetWidth(540.0f);
     horizontal->SetGap(10.0f);
     const float widths[] = { 64, 96, 120, 76, 140, 88, 104, 128, 72, 92, 116, 84 };
     for (int i = 0; i < 12; ++i) {
@@ -36,8 +35,6 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
 
     // —— 垂直换列（统一规格）——
     auto vertical = WrapPanelWidget("Vertical").Build();
-    vertical->SetWidth(400.0f);
-    vertical->SetHeight(200.0f);
     vertical->SetItemWidth(88.0f);
     vertical->SetItemHeight(34.0f);
     vertical->SetGap(8.0f);
@@ -56,24 +53,22 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
 
     // —— 宽度变化实时重排 ——
     auto liveWrap = WrapPanelWidget("Horizontal").Build();
-    liveWrap->SetWidth(540.0f);
     liveWrap->SetGap(10.0f);
     for (int i = 0; i < 10; ++i) {
         liveWrap->AddChild(MakeChip(std::format("标签 {}", i + 1), widths[i % 12]));
     }
 
-    auto widthSlider = SliderWidget(540.0f, 300.0f, 640.0f).Width(260).Build();
-    State<float> wrapWidth{ 540.0f };
-    widthSlider->ValueProperty->Bind(wrapWidth);
-    widthSlider->OnValueChanged().Connect([liveWrap](Slider* s, float) {
-        liveWrap->SetWidth(s->GetValue());
-    });
+    auto justified = WrapPanelWidget("Horizontal").Gap(10).Justified().FillLastLine().Build();
+    const char* labels[] = { "Auto", "布局", "最小 72", "最大 180", "FlexGrow", "自动回流", "填满整行", "约束" };
+    for (int i = 0; i < 8; ++i) {
+        auto chip = ElevatedButton(labels[i]).Background(colors[i % 8]).Padding(14, 8, 14, 8).Build();
+        chip->SetMinWidth(72.0f);
+        chip->SetMaxWidth(180.0f);
+        chip->SetFlexGrow(i % 3 == 0 ? 2.0f : 1.0f);
+        justified->AddChild(chip);
+    }
 
-    auto widthStatusValue = MakeComputed<std::string>([](float w) {
-        return std::format("面板宽度：{:.0f}px，拖动滑块观察自动换行", w);
-    }, wrapWidth);
-    auto widthStatus = MakeStatus("");
-    widthStatus->Text->Bind(widthStatusValue, BindingMode::OneWay);
+    auto widthStatus = MakeStatus("宽度由卡片可用空间决定；缩放窗口可观察自动换行。");
 
     SamplePageSpec spec;
     spec.title = "WrapPanel(换行面板)";
@@ -84,7 +79,7 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
             "WrapPanelWidget(\"Horizontal\")：子元素宽度不一，放不下一行时自动折行。",
             Column(12).Children({
                 horizontal,
-                MakeStatus("540px 宽度内 12 个不同宽度的按钮自动排成多行。"),
+                MakeStatus("宽度跟随卡片可用空间；缩放窗口时 12 个不同宽度的按钮自动重新换行。"),
             }).Build(),
         },
         {
@@ -92,29 +87,42 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
             "SetOrientation(Vertical) 配合 SetItemWidth / SetItemHeight 让所有子项等宽等高，超出高度时换到下一列。",
             Column(12).Children({
                 vertical,
-                MakeStatus("200px 高度内纵向排布，超过后自动换列。"),
+                MakeStatus("纵向模式按可用高度排列；在受限宿主中超出后自动换到下一列。"),
             }).Build(),
         },
         {
             "宽度变化实时重排",
-            "在运行时修改 WrapPanel 宽度，子元素立即重新流式排布。",
+            "父容器宽度变化时，子元素立即重新流式排布。",
             Column(12).Children({
                 liveWrap,
-                Row(16).Children({ widthSlider, widthStatus }).Build(),
+                widthStatus,
+            }).Build(),
+        },
+        {
+            "Justified 流式填满",
+            "JustifyLines 会将每一行的剩余空间按 FlexGrow 权重分配给子项；触及 MaxWidth 后不再拉伸，窗口缩小时先缩至 MinWidth 再换行。",
+            Column(12).Children({
+                justified,
+                MakeStatus("默认最后一行同样填满；设置 FillLastLine(false) 可保留最后一行的自然宽度。"),
             }).Build(),
         },
     };
     spec.source =
         "auto panel = WrapPanelWidget(\"Horizontal\").Build();\n"
-        "panel->SetWidth(540.0f);\n"
+        "// 宽度由父容器的可用空间决定。\n"
         "panel->SetGap(10.0f);\n"
         "panel->AddChild(ElevatedButton(\"项目 1\").Width(64).Height(32).Build());\n"
         "\n"
         "// 垂直换列 + 统一规格\n"
         "auto v = WrapPanelWidget(\"Vertical\").Build();\n"
-        "v->SetHeight(200.0f);\n"
+        "// 受限高度下，Vertical 模式会自动换列。\n"
         "v->SetItemWidth(88.0f);\n"
-        "v->SetItemHeight(34.0f);\n";
+        "v->SetItemHeight(34.0f);\n"
+        "\n"
+        "auto justified = WrapPanelWidget(\"Horizontal\").Justified().Build();\n"
+        "item.MinWidth = 72.0f;\n"
+        "item.MaxWidth = 180.0f;\n"
+        "item.FlexGrow = 1.0f;\n";
     return BuildSamplePage(spec);
 }
 

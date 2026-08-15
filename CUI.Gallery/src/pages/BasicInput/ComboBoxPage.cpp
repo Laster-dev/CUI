@@ -19,7 +19,7 @@ std::shared_ptr<UIElement> BuildComboBoxPage() {
     combo->AddItem("橙子");
 
     State<int> selection{ 0 };
-    combo->SelectedIndex->Bind(selection);
+    combo->SelectedIndex.Bind(selection);
 
     auto statusValue = MakeComputed<std::string>([](int index) {
         switch (index) {
@@ -32,7 +32,7 @@ std::shared_ptr<UIElement> BuildComboBoxPage() {
     }, selection);
 
     auto status = MakeStatus("");
-    status->Text->Bind(statusValue, BindingMode::OneWay);
+    status->Text.Bind(statusValue, BindingMode::OneWay);
 
     auto disabled = Make<ComboBox>();
     disabled->SetWidth(220.0f);
@@ -56,7 +56,7 @@ std::shared_ptr<UIElement> BuildComboBoxPage() {
     };
     spec.source =
         "State<int> selection{ 0 };\n"
-        "combo->SelectedIndex->Bind(selection);\n";
+        "combo->SelectedIndex.Bind(selection);\n";
     return BuildSamplePage(spec);
 }
 

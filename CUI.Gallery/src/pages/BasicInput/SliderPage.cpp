@@ -20,14 +20,14 @@ std::shared_ptr<UIElement> BuildSliderPage() {
     volume->SetWidth(280.0f);
 
     State<float> volumeValue{ 40.0f };
-    volume->ValueProperty->Bind(volumeValue);
+    volume->ValueProperty.Bind(volumeValue);
 
     auto volumeStatusValue = MakeComputed<std::string>([](float value) {
         return std::format("音量：{:.0f}", value);
     }, volumeValue);
 
     auto volumeStatus = MakeStatus("");
-    volumeStatus->Text->Bind(volumeStatusValue, BindingMode::OneWay);
+    volumeStatus->Text.Bind(volumeStatusValue, BindingMode::OneWay);
 
     auto vertical = Make<Slider>();
     vertical->SetOrientation(Orientation::Vertical);
@@ -37,14 +37,14 @@ std::shared_ptr<UIElement> BuildSliderPage() {
     vertical->SetHeight(160.0f);
 
     State<float> verticalValue{ 70.0f };
-    vertical->ValueProperty->Bind(verticalValue);
+    vertical->ValueProperty.Bind(verticalValue);
 
     auto verticalStatusValue = MakeComputed<std::string>([](float value) {
         return std::format("电平：{:.0f}", value);
     }, verticalValue);
 
     auto verticalStatus = MakeStatus("");
-    verticalStatus->Text->Bind(verticalStatusValue, BindingMode::OneWay);
+    verticalStatus->Text.Bind(verticalStatusValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "Slider(滑块)";
@@ -65,7 +65,7 @@ std::shared_ptr<UIElement> BuildSliderPage() {
     };
     spec.source =
         "State<float> volumeValue{ 40.0f };\n"
-        "volume->Value->Bind(volumeValue);\n";
+        "volume->ValueProperty.Bind(volumeValue, BindingMode::TwoWay);\n";
     return BuildSamplePage(spec);
 }
 

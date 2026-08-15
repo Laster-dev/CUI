@@ -50,8 +50,11 @@ std::shared_ptr<UIElement> BuildListViewPage() {
     table->SetSelectionMode(ListViewSelectionMode::Extended);
 
     State<std::string> tableStatusText{ "单击表头可排序；拖动列分隔线可调整宽度。" };
+    State<int> selectedRow{ -1 };
+    table->SelectedIndex.Bind(selectedRow, BindingMode::TwoWay);
     auto tableStatus = MakeStatus("");
-    tableStatus->Text->Bind(tableStatusText, BindingMode::OneWay);
+    tableStatus->Text.Bind(tableStatusText, BindingMode::OneWay);
+    // 状态栏需要选中行数与焦点行，保留轻量选择事件；主选中行索引已通过 SelectedIndex 双向绑定。
     table->OnSelectionChanged().Connect([table, tableStatusText](ListView*, int index) {
         const size_t count = table->GetSelectedIndices().size();
         tableStatusText = index < 0
@@ -88,6 +91,9 @@ std::shared_ptr<UIElement> BuildListViewPage() {
     selectAll->OnClick().Connect([table](UIElement*) { table->SelectAll(); });
     auto clearSelection = Make<Button>("清除选择");
     clearSelection->OnClick().Connect([table](UIElement*) { table->ClearSelection(); });
+    auto pickSecond = Make<Button>("选中第 2 行");
+    // 直接写 State 即可联动控件：SelectedIndex 为双向绑定。
+    pickSecond->OnClick().Connect([selectedRow](UIElement*) { selectedRow = 1; });
     auto compactRows = Make<Button>("紧凑行高");
     compactRows->OnClick().Connect([table, tableStatusText](UIElement*) {
         table->SetRowHeight(22.0f);
@@ -130,7 +136,7 @@ std::shared_ptr<UIElement> BuildListViewPage() {
     virtualTable->SetShowGridLines(false);
     State<std::string> virtualStatusText{ "虚拟表格包含 100,000 行；滚动时仅按需读取单元格文本。" };
     auto virtualStatus = MakeStatus("");
-    virtualStatus->Text->Bind(virtualStatusText, BindingMode::OneWay);
+    virtualStatus->Text.Bind(virtualStatusText, BindingMode::OneWay);
     virtualTable->OnSelectionChanged().Connect([virtualStatusText](ListView*, int row) {
         virtualStatusText = row < 0 ? "未选择虚拟行。" : "已选择虚拟行 #" + std::to_string(row + 1) + "。";
     });
@@ -151,7 +157,7 @@ std::shared_ptr<UIElement> BuildListViewPage() {
             Column(10).Children({
                 table,
                 tableStatus,
-                Row(8).Children({ addRow, resetRows, clearRows, selectAll, clearSelection }).Build(),
+                Row(8).Children({ addRow, resetRows, clearRows, selectAll, clearSelection, pickSecond }).Build(),
                 Row(8).Children({ compactRows, comfortableRows, toggleGrid, toggleSizeColumn }).Build(),
             }).Build(),
         },

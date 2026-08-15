@@ -26,7 +26,7 @@ public:
 class StackPanel : public Panel {
 public:
     StackPanel();
-    explicit StackPanel(Orientation orientation);
+    explicit StackPanel(CUI::Orientation orientation);
     virtual ~StackPanel() = default;
 
     virtual const char* GetClassName() const override { return "StackPanel"; } // 获取类名
@@ -89,7 +89,7 @@ private:
 class WrapPanel : public Panel {
 public:
     WrapPanel();
-    explicit WrapPanel(Orientation orientation);
+    explicit WrapPanel(CUI::Orientation orientation);
     virtual ~WrapPanel() = default;
 
     virtual const char* GetClassName() const override { return "WrapPanel"; } // 获取类名

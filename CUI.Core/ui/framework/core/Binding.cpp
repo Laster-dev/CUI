@@ -85,6 +85,8 @@ Value GetElementProperty(UIElement* e, PropertyId id) {
     case PropertyId::Height: return (e->GetHeight() >= 0.0f) ? Value(e->GetHeight()) : Value();
     case PropertyId::MinWidth: return Value(e->GetMinWidth());
     case PropertyId::MinHeight: return Value(e->GetMinHeight());
+    case PropertyId::MaxWidth: return (e->GetMaxWidth() >= 0.0f) ? Value(e->GetMaxWidth()) : Value();
+    case PropertyId::MaxHeight: return (e->GetMaxHeight() >= 0.0f) ? Value(e->GetMaxHeight()) : Value();
     case PropertyId::Margin: return Value(e->GetMargin());
     case PropertyId::Padding: return Value(e->GetPadding());
     case PropertyId::Visibility: return Value(VisibilityToString(e->GetVisibility()));
@@ -101,6 +103,8 @@ Value GetElementProperty(UIElement* e, PropertyId id) {
     case PropertyId::ItemWidth: return (e->GetItemWidth() >= 0.0f) ? Value(e->GetItemWidth()) : Value();
     case PropertyId::ItemHeight: return (e->GetItemHeight() >= 0.0f) ? Value(e->GetItemHeight()) : Value();
     case PropertyId::LastChildFill: return Value(e->GetLastChildFill());
+    case PropertyId::JustifyLines: return Value(e->GetJustifyLines());
+    case PropertyId::FillLastLine: return Value(e->GetFillLastLine());
     case PropertyId::Rows: return Value(e->GetRows());
     case PropertyId::Columns: return Value(e->GetColumns());
     case PropertyId::ClipToBounds: return Value(e->GetClipToBounds());
@@ -143,6 +147,8 @@ void SetElementProperty(UIElement* e, PropertyId id, const Value& val) {
     case PropertyId::Height: e->SetHeight(val.AsFloat()); break;
     case PropertyId::MinWidth: e->SetMinWidth(val.AsFloat()); break;
     case PropertyId::MinHeight: e->SetMinHeight(val.AsFloat()); break;
+    case PropertyId::MaxWidth: e->SetMaxWidth(val.AsFloat()); break;
+    case PropertyId::MaxHeight: e->SetMaxHeight(val.AsFloat()); break;
     case PropertyId::Margin: e->SetMargin(ThicknessFromValue(val)); break;
     case PropertyId::Padding: e->SetPadding(ThicknessFromValue(val)); break;
     case PropertyId::Visibility: e->SetVisibility(ParseVisibility(val.AsString("Visible"))); break;
@@ -159,6 +165,8 @@ void SetElementProperty(UIElement* e, PropertyId id, const Value& val) {
     case PropertyId::ItemWidth: e->SetItemWidth(val.AsFloat()); break;
     case PropertyId::ItemHeight: e->SetItemHeight(val.AsFloat()); break;
     case PropertyId::LastChildFill: e->SetLastChildFill(val.AsBool()); break;
+    case PropertyId::JustifyLines: e->SetJustifyLines(val.AsBool()); break;
+    case PropertyId::FillLastLine: e->SetFillLastLine(val.AsBool()); break;
     case PropertyId::Rows: e->SetRows(val.AsInt()); break;
     case PropertyId::Columns: e->SetColumns(val.AsInt()); break;
     case PropertyId::ClipToBounds: e->SetClipToBounds(val.AsBool()); break;

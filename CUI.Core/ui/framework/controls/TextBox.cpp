@@ -85,8 +85,7 @@ TextBox::TextBox() {
     SetFontSize(13.0f);
     SetPadding(Thickness(0, 18, 0, 8));
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    SetWidth(260.0f);
-    SetHeight(48.0f);
+    SetMinHeight(48.0f);
 }
 
 TextBox::TextBox(const std::string& placeholder) : TextBox() {
@@ -462,9 +461,33 @@ void TextBox::Redo() {
 
 Size TextBox::Measure(Size availableSize) {
     (void)availableSize;
-    const float expW = (GetWidth() >= 0.0f) ? GetWidth() : 260.0f;
-    const float expH = (GetHeight() >= 0.0f) ? GetHeight() : 48.0f;
-    m_desiredSize = Size(expW, expH);
+
+    const std::string& text = GetText().empty() ? GetPlaceholder() : GetText();
+    GraphicsContext context;
+    const Size textSize = context.MeasureText(
+        text,
+        GetFontFamily(),
+        GetFontSize(),
+        ResolveFontWeight(),
+        ResolveFontStyle(),
+        ResolveFontStretch());
+
+    const Thickness padding = GetPadding();
+    const Thickness margin = GetMargin();
+    const float border = GetBorderThickness() * 2.0f;
+    const float naturalWidth = textSize.width + padding.left + padding.right + border;
+    const float naturalHeight = textSize.height + padding.top + padding.bottom + border;
+
+    const float width = (GetWidth() >= 0.0f)
+        ? GetWidth()
+        : (std::max)(naturalWidth, GetMinWidth());
+    const float height = (GetHeight() >= 0.0f)
+        ? GetHeight()
+        : (std::max)(naturalHeight, GetMinHeight());
+
+    m_desiredSize = Size(
+        width + margin.left + margin.right,
+        height + margin.top + margin.bottom);
     return m_desiredSize;
 }
 

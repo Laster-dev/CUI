@@ -99,6 +99,7 @@ void ComboBox::SetSelectedIndex(int index) {
         if (m_selectedIndex != index) {
             m_selectedIndex = index;
             m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, m_items[m_selectedIndex]);
+            NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_selectedIndex)));
         }
     }
 }

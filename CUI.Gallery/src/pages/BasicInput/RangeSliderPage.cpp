@@ -21,15 +21,15 @@ std::shared_ptr<UIElement> BuildRangeSliderPage() {
     State<float> lowerValue{ 200.0f };
     State<float> upperValue{ 800.0f };
     
-    price->LowerValue->Bind(lowerValue);
-    price->UpperValue->Bind(upperValue);
+    price->LowerValue.Bind(lowerValue);
+    price->UpperValue.Bind(upperValue);
 
     auto statusValue = MakeComputed<std::string>([](float low, float up) {
         return std::format("价格：¥{:.0f} – ¥{:.0f}", low, up);
     }, lowerValue, upperValue);
 
     auto status = MakeStatus("");
-    status->Text->Bind(statusValue, BindingMode::OneWay);
+    status->Text.Bind(statusValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "RangeSlider(范围滑块)";
@@ -44,8 +44,8 @@ std::shared_ptr<UIElement> BuildRangeSliderPage() {
     spec.source =
         "State<float> lowerValue{ 200.0f };\n"
         "State<float> upperValue{ 800.0f };\n"
-        "range->LowerValue->Bind(lowerValue);\n"
-        "range->UpperValue->Bind(upperValue);\n";
+        "range->LowerValue.Bind(lowerValue);\n"
+        "range->UpperValue.Bind(upperValue);\n";
     return BuildSamplePage(spec);
 }
 

@@ -119,6 +119,7 @@ void SegmentedControl::SetSelectedIndex(int index) {
     SyncPill(!changed || !UIElement::AreAnimationsEnabled());
     if (changed) {
         m_onSelectionChangedEvent.Invoke(this, m_selectedIndex, m_items[static_cast<size_t>(m_selectedIndex)]);
+        NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_selectedIndex)));
         RequestAnimationTicks();
         MarkRenderContentDirty();
     }

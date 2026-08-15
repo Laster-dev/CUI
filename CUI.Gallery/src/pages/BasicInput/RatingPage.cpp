@@ -17,14 +17,14 @@ std::shared_ptr<UIElement> BuildRatingControlPage() {
     rating->SetStep(0.5f);
 
     State<float> ratingValue{ 3.5f };
-    rating->ValueProperty->Bind(ratingValue);
+    rating->ValueProperty.Bind(ratingValue);
 
     auto statusValue = MakeComputed<std::string>([](float val) {
         return std::format("你的评分：{:.1f}", val);
     }, ratingValue);
 
     auto status = MakeStatus("");
-    status->Text->Bind(statusValue, BindingMode::OneWay);
+    status->Text.Bind(statusValue, BindingMode::OneWay);
 
     auto readOnly = Make<RatingControl>();
     readOnly->SetMaxRating(5);
@@ -51,7 +51,7 @@ std::shared_ptr<UIElement> BuildRatingControlPage() {
     };
     spec.source =
         "State<float> ratingValue{ 3.5f };\n"
-        "rating->Value->Bind(ratingValue);\n";
+        "rating->ValueProperty.Bind(ratingValue, BindingMode::TwoWay);\n";
     return BuildSamplePage(spec);
 }
 

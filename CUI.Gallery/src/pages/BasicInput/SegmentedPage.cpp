@@ -18,7 +18,7 @@ std::shared_ptr<UIElement> BuildSegmentedControlPage() {
     range->AddItem("月");
 
     State<int> selection{ 1 };
-    range->SelectedIndex->Bind(selection);
+    range->SelectedIndex.Bind(selection);
 
     auto statusValue = MakeComputed<std::string>([](int index) {
         switch (index) {
@@ -30,7 +30,7 @@ std::shared_ptr<UIElement> BuildSegmentedControlPage() {
     }, selection);
 
     auto status = MakeStatus("");
-    status->Text->Bind(statusValue, BindingMode::OneWay);
+    status->Text.Bind(statusValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "SegmentedControl(分段控件)";
@@ -44,7 +44,7 @@ std::shared_ptr<UIElement> BuildSegmentedControlPage() {
     };
     spec.source =
         "State<int> selection{ 1 };\n"
-        "range->SelectedIndex->Bind(selection);\n";
+        "range->SelectedIndex.Bind(selection);\n";
     return BuildSamplePage(spec);
 }
 

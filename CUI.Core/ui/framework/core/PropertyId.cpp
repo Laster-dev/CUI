@@ -7,10 +7,10 @@ namespace {
 
 constexpr const char* kPropertyNamesById[] = {
     "",
-    "width", "height", "minWidth", "minHeight", "margin", "padding",
+    "width", "height", "minWidth", "minHeight", "maxWidth", "maxHeight", "margin", "padding",
     "visibility", "isEnabled", "opacity", "cornerRadius", "borderThickness",
     "flexGrow", "align", "alignHorizontal", "alignVertical", "orientation", "gap",
-    "itemWidth", "itemHeight", "lastChildFill", "rows", "columns", "clipToBounds",
+    "itemWidth", "itemHeight", "lastChildFill", "justifyLines", "fillLastLine", "rows", "columns", "clipToBounds",
     "Canvas.Left", "Canvas.Top", "Canvas.Right", "Canvas.Bottom", "Canvas.ZIndex",
     "Grid.Column", "Grid.Row", "Grid.ColumnSpan", "Grid.RowSpan", "DockPanel.Dock",
     "text", "placeholder", "fontFamily", "fontSize", "fontWeight", "fontStyle", "fontStretch", "isUnderline", "isStrikethrough", "toolTip", "icon", "focused",

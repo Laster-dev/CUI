@@ -36,19 +36,19 @@ std::shared_ptr<UIElement> BuildColorPickerPage() {
     chip->SetBorderToken(ThemeTokenId::CardBorder);
 
     State<Color> selectedColor{ Color(0, 0, 0, 1) };
-    picker->SelectedColor->Bind(selectedColor);
+    picker->SelectedColor.Bind(selectedColor);
     
     // Set default initial value from picker
     selectedColor = picker->GetSelectedColor();
 
-    chip->Background->Bind(selectedColor, BindingMode::OneWay);
+    chip->Background.Bind(selectedColor, BindingMode::OneWay);
 
     auto hexValue = MakeComputed<std::string>([](Color color) {
         return ColorHex(color);
     }, selectedColor);
 
     auto hex = MakeStatus("");
-    hex->Text->Bind(hexValue, BindingMode::OneWay);
+    hex->Text.Bind(hexValue, BindingMode::OneWay);
 
     SamplePageSpec spec;
     spec.title = "ColorPicker(颜色选择器)";
@@ -65,7 +65,7 @@ std::shared_ptr<UIElement> BuildColorPickerPage() {
     };
     spec.source =
         "State<Color> selectedColor{ Color(0, 0, 0, 1) };\n"
-        "picker->SelectedColor->Bind(selectedColor);\n";
+        "picker->SelectedColor.Bind(selectedColor);\n";
     return BuildSamplePage(spec);
 }
 

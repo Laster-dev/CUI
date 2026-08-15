@@ -63,6 +63,32 @@ UIElement::UIElement() {
     Height.Initialize(*this);
     IsEnabledProperty.Initialize(*this);
     Opacity.Initialize(*this);
+    MinWidth.Initialize(*this);
+    MinHeight.Initialize(*this);
+    MaxWidth.Initialize(*this);
+    MaxHeight.Initialize(*this);
+    CornerRadius.Initialize(*this);
+    BorderThickness.Initialize(*this);
+    FlexGrow.Initialize(*this);
+    Orientation.Initialize(*this);
+    Gap.Initialize(*this);
+    ItemWidth.Initialize(*this);
+    ItemHeight.Initialize(*this);
+    LastChildFill.Initialize(*this);
+    JustifyLines.Initialize(*this);
+    FillLastLine.Initialize(*this);
+    Rows.Initialize(*this);
+    Columns.Initialize(*this);
+    ClipToBounds.Initialize(*this);
+    CanvasLeft.Initialize(*this);
+    CanvasTop.Initialize(*this);
+    CanvasRight.Initialize(*this);
+    CanvasBottom.Initialize(*this);
+    ZIndex.Initialize(*this);
+    GridColumn.Initialize(*this);
+    GridRow.Initialize(*this);
+    GridColumnSpan.Initialize(*this);
+    GridRowSpan.Initialize(*this);
     OnPropertyIdChanged().Connect([this](PropertyId, const Value&) {
         MarkRenderContentDirty();
     });
@@ -146,6 +172,10 @@ void UIElement::RequestAnimationTicks() {
 }
 
 void UIElement::InvalidateMeasure() {
+    if (FrameScheduler* scheduler = FrameScheduler::Current()) {
+        scheduler->ScheduleFrame();
+    }
+
     // Controls that override Measure without clearing m_measureDirty can stay
     // dirty forever. The old early-out then never walked to a clean parent, so
     // nested hosts (e.g. Expander inside a Column) kept a stale DesiredSize.
@@ -163,6 +193,10 @@ void UIElement::InvalidateMeasure() {
 }
 
 void UIElement::InvalidateArrange() {
+    if (FrameScheduler* scheduler = FrameScheduler::Current()) {
+        scheduler->ScheduleFrame();
+    }
+
     if (m_arrangeDirty) {
         return;
     }
@@ -170,6 +204,18 @@ void UIElement::InvalidateArrange() {
     if (m_parent) {
         m_parent->InvalidateArrange();
     }
+}
+
+bool UIElement::HasLayoutDirtyInSubtree() const {
+    if (m_measureDirty || m_arrangeDirty) {
+        return true;
+    }
+    for (const auto& child : m_children) {
+        if (child && child->HasLayoutDirtyInSubtree()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void UIElement::FlushLayout(Size availableSize, const Rect& arrangeRect) {
@@ -432,6 +478,8 @@ void UIElement::Arrange(Rect finalRect) {
         finalRect.y + margin.top,
         (std::max)(0.0f, finalRect.width - margin.left - margin.right),
         (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
+    if (m_maxWidth >= 0.0f) arranged.width = (std::min)(arranged.width, m_maxWidth);
+    if (m_maxHeight >= 0.0f) arranged.height = (std::min)(arranged.height, m_maxHeight);
     SetBounds(arranged);
     LayoutEngine::ArrangeElement(this, arranged);
     m_arrangeDirty = false;

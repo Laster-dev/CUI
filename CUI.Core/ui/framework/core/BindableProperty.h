@@ -185,6 +185,9 @@ public:
     BindableProperty<T>* operator->();
     const BindableProperty<T>* operator->() const;
 
+    PropertyRef& operator=(const T& value) { Set(value); return *this; }
+    operator T() const { return Get(); }
+
     void Bind(const std::shared_ptr<Observable<T>>& value, BindingMode mode = BindingMode::TwoWay);
     void Bind(const CUI::State<T>& value, BindingMode mode = BindingMode::TwoWay);
 

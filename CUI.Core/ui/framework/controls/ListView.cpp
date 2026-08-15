@@ -73,7 +73,33 @@ ListView::ListView() {
     SetWidth(-1.0f);
     SetHeight(-1.0f);
     SetRowHeight(30.0f);
+    SelectedIndex.Initialize(*this);
     m_rowsLayer.SetCacheable(true);
+}
+
+void ListView::SetProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::SelectedIndex) {
+        const int index = static_cast<int>(val.AsFloat(-1.0f));
+        if (index >= 0) {
+            m_selectedIndices.clear();
+            SetRowSelected(index, true);
+        } else {
+            ClearSelection();
+        }
+        return;
+    }
+    Control::SetProperty(id, val);
+}
+
+Value ListView::GetProperty(PropertyId id) const {
+    if (id == PropertyId::SelectedIndex) {
+        return Value(static_cast<float>(m_caretIndex));
+    }
+    return Control::GetProperty(id);
+}
+
+bool ListView::HasProperty(PropertyId id) const {
+    return id == PropertyId::SelectedIndex || Control::HasProperty(id);
 }
 
 HCURSOR ListView::GetCursor() const {
@@ -129,6 +155,7 @@ void ListView::SetRows(const std::vector<std::vector<std::string>>& rowsData) {
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_caretIndex)));
     InvalidateRowsLayer();
 }
 
@@ -145,6 +172,7 @@ void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsDat
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_caretIndex)));
     InvalidateRowsLayer();
 }
 
@@ -161,6 +189,7 @@ void ListView::ClearRows() {
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_caretIndex)));
     InvalidateRowsLayer();
 }
 
@@ -191,6 +220,7 @@ void ListView::SetVirtualMode(int rowCount, ListViewDataSource* dataSource) {
     m_scrollY = 0.0f;
     m_targetScrollY = 0.0f;
     m_scrollYAnim.Reset(0.0f);
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_caretIndex)));
     InvalidateRowsLayer();
 }
 
@@ -245,6 +275,7 @@ void ListView::SelectAll() {
         m_selectedIndices.insert(i);
     }
     m_onSelectionChangedEvent.Invoke(this, -1);
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_caretIndex)));
     InvalidateRowsLayer();
 }
 
@@ -253,6 +284,7 @@ void ListView::ClearSelection() {
     m_anchorIndex = -1;
     m_caretIndex = -1;
     m_onSelectionChangedEvent.Invoke(this, -1);
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_caretIndex)));
     InvalidateRowsLayer();
 }
 
@@ -269,6 +301,7 @@ void ListView::SetRowSelected(int rowIndex, bool selected) {
             m_selectedIndices.erase(rowIndex);
         }
         m_onSelectionChangedEvent.Invoke(this, rowIndex);
+        NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_caretIndex)));
         InvalidateRowsLayer();
     }
 }
@@ -330,6 +363,7 @@ void ListView::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
     m_caretIndex = toIdx;
     EnsureVisible(toIdx);
     m_onSelectionChangedEvent.Invoke(this, toIdx);
+    NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_caretIndex)));
     InvalidateRowsLayer();
 }
 
@@ -514,6 +548,7 @@ void ListView::UpdateRubberBandSelection() {
     if (m_selectedIndices != newSelection) {
         m_selectedIndices = newSelection;
         m_onSelectionChangedEvent.Invoke(this, -1);
+        NotifyFieldChanged(PropertyId::SelectedIndex, Value(static_cast<float>(m_caretIndex)));
     }
 }
 
