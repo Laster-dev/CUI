@@ -3,8 +3,21 @@
 #include "../window/PopupPlacement.h"
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 namespace CUI {
+
+namespace {
+// Collect an element and its whole subtree so PopupHost can re-arm popup-hosted
+// content animations (see PopupHost::TickAnimations safety net).
+void CollectSubtreeElements(UIElement* el, std::vector<UIElement*>& out) {
+    if (!el) return;
+    out.push_back(el);
+    for (const auto& child : el->GetChildren()) {
+        if (child) CollectSubtreeElements(child.get(), out);
+    }
+}
+} // namespace
 
 // ---------------- FlyoutPresenter ----------------
 
@@ -113,6 +126,13 @@ void Flyout::ShowAt(UIElement* target) {
     // AddChild this overlay control first — otherwise AnimationManager drops
     // the tick registration and the reveal never progresses past opacity 0.
     SetAnimationHost(target);
+    if (m_presenter) {
+        // The presenter and its content subtree are popup-hosted visuals with no
+        // layout parent. Register them to the same anchor so inner controls
+        // (Button ripples, TextBox caret, indeterminate ProgressBar, ...) can
+        // RequestAnimationTicks while the flyout is open.
+        m_presenter->SetAnimationHost(target);
+    }
     Rect targetBounds = target->GetBounds();
 
     Size available(480.0f, 640.0f);
@@ -207,6 +227,14 @@ void Flyout::Hide() {
 Rect Flyout::GetPopupBounds() const {
     if (m_popupSize.width <= 0.0f || m_popupSize.height <= 0.0f) return Rect();
     return Rect(m_popupPos.x, m_popupPos.y, m_popupSize.width, m_popupSize.height);
+}
+
+void Flyout::CollectPopupOwnedElements(std::vector<UIElement*>& out) const {
+    // Safety net for PopupHost::TickAnimations: re-arm content animations if a
+    // RequestAnimationTicks raced the presenter's SetAnimationHost attach.
+    if (m_presenter) {
+        CollectSubtreeElements(m_presenter.get(), out);
+    }
 }
 
 bool Flyout::HitDismissExempt(float x, float y) const {

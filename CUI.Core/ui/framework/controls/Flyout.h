@@ -5,6 +5,7 @@
 #include "../window/PopupHost.h"
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace CUI {
 
@@ -99,6 +100,7 @@ public:
     virtual UIElement* HitTestPopup(float x, float y) override { return HitTestOverlay(x, y); } // 弹窗穿透命中定位
     virtual void RenderPopup(GraphicsContext& ctx) override; // 绘制浮出卡片Presenter及阴影
     virtual void OnLightDismiss() override { Hide(); } // 点击背景空白消退收拢关闭
+    virtual void CollectPopupOwnedElements(std::vector<UIElement*>& out) const override; // 收集Presenter内容子树以便动画系统重挂载
 
     virtual Size Measure(Size availableSize) override; // 测量大小 (Popup 为 Overlay，自身流排版测量为 0)
     virtual void Arrange(Rect finalRect) override; // 编排位置
