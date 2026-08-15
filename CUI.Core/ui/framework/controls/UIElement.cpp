@@ -316,6 +316,20 @@ void UIElement::CancelAnimationTicks() {
     m_animationTicksRegistered = false;
 }
 
+std::vector<std::shared_ptr<UIElement>> UIElement::GetVisualChildren() const {
+    std::vector<std::shared_ptr<UIElement>> children = m_children;
+    if (!UsesZIndexOrdering()) {
+        return children;
+    }
+
+    std::stable_sort(children.begin(), children.end(), [](const auto& lhs, const auto& rhs) {
+        if (!lhs) return false;
+        if (!rhs) return true;
+        return lhs->GetZIndex() < rhs->GetZIndex();
+    });
+    return children;
+}
+
 void UIElement::AddChild(std::shared_ptr<UIElement> child) {
     if (!child) return;
     child->SetParent(this);
@@ -466,7 +480,7 @@ void UIElement::Render(GraphicsContext& ctx) {
                     composition->CountLayerCacheMiss();
                 }
                 OnRender(ctx);
-                for (auto& child : m_children) {
+                for (auto& child : GetVisualChildren()) {
                     if (child && child->PresentsOnOwnerWindow() && !child->IsOverlayComposed()) {
                         child->Render(ctx);
                     }
@@ -517,7 +531,7 @@ void UIElement::Render(GraphicsContext& ctx) {
 
     OnRender(ctx);
 
-    for (auto& child : m_children) {
+    for (auto& child : GetVisualChildren()) {
         if (child && child->PresentsOnOwnerWindow() && !child->IsOverlayComposed()) {
             child->Render(ctx);
         }
@@ -636,7 +650,8 @@ UIElement* UIElement::HitTestOverlay(float x, float y) {
     UIElement* selfOverlay = OnHitTestOverlay(x, y);
     if (selfOverlay) return selfOverlay;
 
-    for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+    const auto visualChildren = GetVisualChildren();
+    for (auto it = visualChildren.rbegin(); it != visualChildren.rend(); ++it) {
         if (!(*it) || !(*it)->PresentsOnOwnerWindow() || (*it)->IsOverlayComposed()) {
             continue;
         }
@@ -657,7 +672,8 @@ UIElement* UIElement::HitTest(float x, float y) {
         return nullptr;
     }
 
-    for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+    const auto visualChildren = GetVisualChildren();
+    for (auto it = visualChildren.rbegin(); it != visualChildren.rend(); ++it) {
         if (!(*it) || !(*it)->PresentsOnOwnerWindow() || (*it)->IsOverlayComposed()) {
             continue;
         }
@@ -938,8 +954,10 @@ void UIElement::SetBounds(const Rect& bounds) {
         return;
     }
 
+    MarkRenderContentDirty();
     m_bounds = bounds;
     m_renderNode.SetBounds(m_bounds);
+    MarkRenderContentDirty();
 }
 
 void UIElement::SyncRenderState() {

@@ -34,6 +34,7 @@ std::shared_ptr<UIElement> BuildTimePickerPage() {
     midnight->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "23:45"; });
 
     auto programmatic = Make<Button>("程序设置 06:15");
+    programmatic->SetWidth(200.0f);
     programmatic->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "06:15"; });
 
     auto disabled = Make<TimePicker>();

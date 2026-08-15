@@ -45,6 +45,7 @@ public:
     virtual ~Canvas() = default;
 
     virtual const char* GetClassName() const override { return "Canvas"; } // 获取类名
+    bool UsesZIndexOrdering() const override { return true; }
 
     Size MeasureOverride(Size availableSize) override; // 不加限制地让子控件自行测量大小
     void ArrangeOverride(Rect finalRect) override; // 根据子控件的 CanvasLeft 等附加坐标属性进行物理定位放置

@@ -47,6 +47,8 @@
 #include "../controls/Splitter.h"
 #include "../controls/Expander.h"
 #include "../controls/MessageBox.h"
+#include "../controls/shapes/Shapes.h"
+#include "../controls/CanvasControl.h"
 #include "../style/ThemeManager.h"
 
 #include <memory>
@@ -155,6 +157,11 @@ public:
 
     ElementBuilder& FlexGrow(float flex) { // 设定弹性伸展权重
         m_element->SetFlexGrow(flex);
+        return *this;
+    }
+
+    ElementBuilder& ZIndex(int zIndex) { // 设定 Canvas 子项的绘制与命中层级
+        m_element->SetZIndex(zIndex);
         return *this;
     }
 
@@ -659,6 +666,76 @@ inline ElementBuilder<ContentDialog> ContentDialogWidget(const std::string& titl
     d->SetTitle(title);
     if (!message.empty()) d->SetMessage(message);
     return d;
+}
+
+/**
+ * @brief 快速生成声明式矩形 Shape DOM 节点。
+ * @param width 初始宽度，默认 100px。
+ * @param height 初始高度，默认 50px。
+ */
+inline ElementBuilder<Rectangle> RectangleWidget(float width = 100.0f, float height = 50.0f) {
+    auto r = ElementBuilder<Rectangle>();
+    r->SetWidth(width);
+    r->SetHeight(height);
+    return r;
+}
+
+/**
+ * @brief 快速生成声明式椭圆/圆形 Shape DOM 节点。
+ * @param width 初始宽度，默认 50px。
+ * @param height 初始高度，默认 50px。
+ */
+inline ElementBuilder<Ellipse> EllipseWidget(float width = 50.0f, float height = 50.0f) {
+    auto e = ElementBuilder<Ellipse>();
+    e->SetWidth(width);
+    e->SetHeight(height);
+    return e;
+}
+
+/**
+ * @brief 快速生成声明式直线 Shape DOM 节点。
+ * @param x1 起点 X 坐标。
+ * @param y1 起点 Y 坐标。
+ * @param x2 终点 X 坐标。
+ * @param y2 终点 Y 坐标。
+ */
+inline ElementBuilder<Line> LineWidget(float x1 = 0, float y1 = 0, float x2 = 100, float y2 = 100) {
+    auto l = ElementBuilder<Line>();
+    l->SetX1(x1); l->SetY1(y1); l->SetX2(x2); l->SetY2(y2);
+    return l;
+}
+
+/**
+ * @brief 快速生成声明式 SVG Path 路径 Shape DOM 节点。
+ * @param data SVG path data 描述字符串（如 "M 10 10 L 90 90 Z"）。
+ */
+inline ElementBuilder<Path> PathWidget(const std::string& data = "") {
+    auto p = ElementBuilder<Path>();
+    if (!data.empty()) p->SetData(data);
+    return p;
+}
+
+/**
+ * @brief 快速生成声明式 SVG DOM 控件节点 (SvgIcon)。支持事件独立绑定与 TintColor 着色。
+ * @param source SVG XML 内容标记或文件路径。
+ */
+inline ElementBuilder<SvgIcon> SvgIconWidget(const std::string& source = "") {
+    auto s = ElementBuilder<SvgIcon>();
+    if (!source.empty()) s->SetSource(source);
+    return s;
+}
+
+/**
+ * @brief 快速生成即时绘制模式画布控件 (CanvasControl)。
+ * 适用于用 Direct2D 自绘制高性能图形，在事件闭包中手写坐标碰撞检测。
+ * @param width 初始宽度，默认 300px。
+ * @param height 初始高度，默认 200px。
+ */
+inline ElementBuilder<CanvasControl> CanvasControlWidget(float width = 300.0f, float height = 200.0f) {
+    auto c = ElementBuilder<CanvasControl>();
+    c->SetWidth(width);
+    c->SetHeight(height);
+    return c;
 }
 
 struct BuildContext {

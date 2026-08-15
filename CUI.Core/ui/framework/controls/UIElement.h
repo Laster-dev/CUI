@@ -304,6 +304,8 @@ public:
     void SetCanvasRight(float v);                                           // 设置画布绝对坐标系中的 X 右边缘参考像素值
     float GetCanvasBottom() const { return m_canvasBottom; }                // 获取画布绝对坐标系中的 Y 底边缘参考像素值
     void SetCanvasBottom(float v);                                          // 设置画布绝对坐标系中的 Y 底边缘参考像素值
+    int GetZIndex() const { return m_zIndex; }                                // 获取 Canvas 中的绘制与命中层级
+    void SetZIndex(int v);                                                    // 设置 Canvas 中的绘制与命中层级
     
     // Grid 布局定位参数
     int GetGridColumn() const { return m_gridColumn; }                      // 获取被编排在 Grid 布局中的目标列索引号
@@ -490,6 +492,8 @@ public:
 
     // 子节点操作
     const std::vector<std::shared_ptr<UIElement>>& GetChildren() const { return m_children; } // 获取旗下所有的直系子控件集合
+    std::vector<std::shared_ptr<UIElement>> GetVisualChildren() const; // 获取按当前容器绘制规则排序的子节点
+    virtual bool UsesZIndexOrdering() const { return false; } // Canvas 覆写后按 ZIndex 进行稳定排序
     void AddChild(std::shared_ptr<UIElement> child);    // 加入子节点，并将整个容器链 Measure 标记为脏
     void AddChildQuiet(std::shared_ptr<UIElement> child); // 静默加入子节点，不会触发 Invalidate 重新测算
     void RemoveChild(std::shared_ptr<UIElement> child); // 移除直系子控件，标记画面和测量均变脏
@@ -751,6 +755,7 @@ protected:
     float m_canvasTop = kAttachedUnset;                               // Canvas 自绘定位 Y 顶坐标绝对像素值
     float m_canvasRight = kAttachedUnset;                             // Canvas 自绘定位右边界像素参考值
     float m_canvasBottom = kAttachedUnset;                            // Canvas 自绘定位底边界像素参考值
+    int m_zIndex = 0;                                                   // Canvas 子项的绘制与命中层级
     int m_gridColumn = 0;                                             // 该控件放置在网格组件的第几列
     int m_gridRow = 0;                                                // 该控件放置在网格组件的第几行
     int m_gridColumnSpan = 1;                                         // 该网格子项在水平方向要拉伸合并几列网格

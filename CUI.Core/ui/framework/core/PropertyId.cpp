@@ -11,7 +11,7 @@ constexpr const char* kPropertyNamesById[] = {
     "visibility", "isEnabled", "opacity", "cornerRadius", "borderThickness",
     "flexGrow", "align", "alignHorizontal", "alignVertical", "orientation", "gap",
     "itemWidth", "itemHeight", "lastChildFill", "rows", "columns", "clipToBounds",
-    "Canvas.Left", "Canvas.Top", "Canvas.Right", "Canvas.Bottom",
+    "Canvas.Left", "Canvas.Top", "Canvas.Right", "Canvas.Bottom", "Canvas.ZIndex",
     "Grid.Column", "Grid.Row", "Grid.ColumnSpan", "Grid.RowSpan", "DockPanel.Dock",
     "text", "placeholder", "fontFamily", "fontSize", "fontWeight", "fontStyle", "fontStretch", "isUnderline", "isStrikethrough", "toolTip", "icon", "focused",
     "theme.backgroundToken", "theme.hoverBackgroundToken", "theme.pressedBackgroundToken",

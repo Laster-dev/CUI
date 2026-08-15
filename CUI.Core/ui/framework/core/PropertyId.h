@@ -33,6 +33,7 @@ enum class PropertyId : uint16_t {
     CanvasTop,
     CanvasRight,
     CanvasBottom,
+    ZIndex,
     GridColumn,
     GridRow,
     GridColumnSpan,

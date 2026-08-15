@@ -108,6 +108,7 @@ Value GetElementProperty(UIElement* e, PropertyId id) {
     case PropertyId::CanvasTop: return Value(e->GetCanvasTop());
     case PropertyId::CanvasRight: return Value(e->GetCanvasRight());
     case PropertyId::CanvasBottom: return Value(e->GetCanvasBottom());
+    case PropertyId::ZIndex: return Value(e->GetZIndex());
     case PropertyId::GridColumn: return Value(e->GetGridColumn());
     case PropertyId::GridRow: return Value(e->GetGridRow());
     case PropertyId::GridColumnSpan: return Value(e->GetGridColumnSpan());
@@ -165,6 +166,7 @@ void SetElementProperty(UIElement* e, PropertyId id, const Value& val) {
     case PropertyId::CanvasTop: e->SetCanvasTop(val.AsFloat()); break;
     case PropertyId::CanvasRight: e->SetCanvasRight(val.AsFloat()); break;
     case PropertyId::CanvasBottom: e->SetCanvasBottom(val.AsFloat()); break;
+    case PropertyId::ZIndex: e->SetZIndex(val.AsInt()); break;
     case PropertyId::GridColumn: e->SetGridColumn(val.AsInt()); break;
     case PropertyId::GridRow: e->SetGridRow(val.AsInt()); break;
     case PropertyId::GridColumnSpan: e->SetGridColumnSpan(val.AsInt()); break;

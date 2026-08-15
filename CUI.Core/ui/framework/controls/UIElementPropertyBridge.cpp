@@ -198,6 +198,8 @@ void DescGetCanvasRight(const UIElement* self, Value& out) { out = Value(self->G
 void DescSetCanvasRight(UIElement* self, const Value& in) { self->SetCanvasRight(in.AsFloat()); }
 void DescGetCanvasBottom(const UIElement* self, Value& out) { out = Value(self->GetCanvasBottom()); }
 void DescSetCanvasBottom(UIElement* self, const Value& in) { self->SetCanvasBottom(in.AsFloat()); }
+void DescGetZIndex(const UIElement* self, Value& out) { out = Value(self->GetZIndex()); }
+void DescSetZIndex(UIElement* self, const Value& in) { self->SetZIndex(in.AsInt()); }
 void DescGetGridColumn(const UIElement* self, Value& out) { out = Value(self->GetGridColumn()); }
 void DescSetGridColumn(UIElement* self, const Value& in) { self->SetGridColumn(in.AsInt()); }
 void DescGetGridRow(const UIElement* self, Value& out) { out = Value(self->GetGridRow()); }
@@ -344,6 +346,7 @@ static const PropertyDesc kUIElementDescs[] = {
     { PropertyId::CanvasTop, "Canvas.Top", "Canvas", PropertyKind::Float, nullptr, &DescGetCanvasTop, &DescSetCanvasTop },
     { PropertyId::CanvasRight, "Canvas.Right", "Canvas", PropertyKind::Float, nullptr, &DescGetCanvasRight, &DescSetCanvasRight },
     { PropertyId::CanvasBottom, "Canvas.Bottom", "Canvas", PropertyKind::Float, nullptr, &DescGetCanvasBottom, &DescSetCanvasBottom },
+    { PropertyId::ZIndex, "Canvas.ZIndex", "Canvas", PropertyKind::Int, nullptr, &DescGetZIndex, &DescSetZIndex },
     { PropertyId::GridColumn, "Grid.Column", "Grid", PropertyKind::Int, nullptr, &DescGetGridColumn, &DescSetGridColumn },
     { PropertyId::GridRow, "Grid.Row", "Grid", PropertyKind::Int, nullptr, &DescGetGridRow, &DescSetGridRow },
     { PropertyId::GridColumnSpan, "Grid.ColumnSpan", "Grid", PropertyKind::Int, nullptr, &DescGetGridColumnSpan, &DescSetGridColumnSpan },
@@ -491,66 +494,77 @@ void UIElement::SetFlexGrow(float v) {
     if (m_flexGrow == v) return;
     m_flexGrow = v;
     NotifyFieldChanged(PropertyId::FlexGrow, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetAlign(Alignment a) {
     if (m_align == a) return;
     m_align = a;
     NotifyFieldChanged(PropertyId::Align, Value(AlignmentToString(a)));
+    InvalidateArrange();
 }
 
 void UIElement::SetAlignHorizontal(Alignment a) {
     if (m_alignHorizontal == a) return;
     m_alignHorizontal = a;
     NotifyFieldChanged(PropertyId::AlignHorizontal, Value(AlignmentToString(a)));
+    InvalidateArrange();
 }
 
 void UIElement::SetAlignVertical(Alignment a) {
     if (m_alignVertical == a) return;
     m_alignVertical = a;
     NotifyFieldChanged(PropertyId::AlignVertical, Value(AlignmentToString(a)));
+    InvalidateArrange();
 }
 
 void UIElement::SetOrientation(Orientation o) {
     if (m_orientation == o) return;
     m_orientation = o;
     NotifyFieldChanged(PropertyId::Orientation, Value(OrientationToString(o)));
+    InvalidateMeasure();
 }
 
 void UIElement::SetGap(float v) {
     if (m_gap == v) return;
     m_gap = v;
     NotifyFieldChanged(PropertyId::Gap, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetItemWidth(float v) {
     if (m_itemWidth == v) return;
     m_itemWidth = v;
     NotifyFieldChanged(PropertyId::ItemWidth, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetItemHeight(float v) {
     if (m_itemHeight == v) return;
     m_itemHeight = v;
     NotifyFieldChanged(PropertyId::ItemHeight, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetLastChildFill(bool v) {
     if (m_lastChildFill == v) return;
     m_lastChildFill = v;
     NotifyFieldChanged(PropertyId::LastChildFill, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetRows(int v) {
     if (m_rows == v) return;
     m_rows = v;
     NotifyFieldChanged(PropertyId::Rows, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetColumns(int v) {
     if (m_columns == v) return;
     m_columns = v;
     NotifyFieldChanged(PropertyId::Columns, Value(v));
+    InvalidateMeasure();
 }
 
 void UIElement::SetClipToBounds(bool v) {
@@ -563,48 +577,66 @@ void UIElement::SetCanvasLeft(float v) {
     if (m_canvasLeft == v) return;
     m_canvasLeft = v;
     NotifyFieldChanged(PropertyId::CanvasLeft, Value(v));
+    // 附加坐标影响排列位置，必须失效布局，否则位置变更不会重新 Arrange。
+    InvalidateArrange();
 }
 
 void UIElement::SetCanvasTop(float v) {
     if (m_canvasTop == v) return;
     m_canvasTop = v;
     NotifyFieldChanged(PropertyId::CanvasTop, Value(v));
+    InvalidateArrange();
 }
 
 void UIElement::SetCanvasRight(float v) {
     if (m_canvasRight == v) return;
     m_canvasRight = v;
     NotifyFieldChanged(PropertyId::CanvasRight, Value(v));
+    InvalidateArrange();
 }
 
 void UIElement::SetCanvasBottom(float v) {
     if (m_canvasBottom == v) return;
     m_canvasBottom = v;
     NotifyFieldChanged(PropertyId::CanvasBottom, Value(v));
+    InvalidateArrange();
+}
+
+void UIElement::SetZIndex(int v) {
+    if (m_zIndex == v) return;
+    m_zIndex = v;
+    NotifyFieldChanged(PropertyId::ZIndex, Value(v));
+    if (m_parent) {
+        m_parent->MarkRenderContentDirty();
+    }
 }
 
 void UIElement::SetGridColumn(int v) {
     if (m_gridColumn == v) return;
     m_gridColumn = v;
     NotifyFieldChanged(PropertyId::GridColumn, Value(v));
+    InvalidateArrange();
 }
 
 void UIElement::SetGridRow(int v) {
     if (m_gridRow == v) return;
     m_gridRow = v;
     NotifyFieldChanged(PropertyId::GridRow, Value(v));
+    InvalidateArrange();
 }
 
 void UIElement::SetGridColumnSpan(int v) {
     if (m_gridColumnSpan == v) return;
     m_gridColumnSpan = v;
     NotifyFieldChanged(PropertyId::GridColumnSpan, Value(v));
+    InvalidateArrange();
 }
 
 void UIElement::SetGridRowSpan(int v) {
     if (m_gridRowSpan == v) return;
     m_gridRowSpan = v;
     NotifyFieldChanged(PropertyId::GridRowSpan, Value(v));
+    InvalidateArrange();
 }
 
 void UIElement::SetDock(Dock d) {

@@ -190,6 +190,9 @@
     <ClCompile Include="ui\framework\controls\NumberBox.cpp" />
     <ClCompile Include="ui\framework\controls\PagingControl.cpp" />
     <ClCompile Include="ui\framework\controls\Panel.cpp" />
+    <ClCompile Include="ui\framework\controls\CanvasControl.cpp" />
+    <ClCompile Include="ui\framework\controls\shapes\Shape.cpp" />
+    <ClCompile Include="ui\framework\controls\shapes\Shapes.cpp" />
     <ClCompile Include="ui\framework\controls\PasswordBox.cpp" />
     <ClCompile Include="ui\framework\controls\ProgressBar.cpp" />
     <ClCompile Include="ui\framework\controls\ProgressRing.cpp" />
@@ -297,6 +300,9 @@
     <ClInclude Include="ui\framework\controls\NumberBox.h" />
     <ClInclude Include="ui\framework\controls\PagingControl.h" />
     <ClInclude Include="ui\framework\controls\Panel.h" />
+    <ClInclude Include="ui\framework\controls\CanvasControl.h" />
+    <ClInclude Include="ui\framework\controls\shapes\Shape.h" />
+    <ClInclude Include="ui\framework\controls\shapes\Shapes.h" />
     <ClInclude Include="ui\framework\controls\PasswordBox.h" />
     <ClInclude Include="ui\framework\controls\ProgressBar.h" />
     <ClInclude Include="ui\framework\controls\ProgressBarDiag.h" />

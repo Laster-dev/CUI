@@ -56,6 +56,8 @@ void Grid::SetColumnDefinitions(const std::string& colDefsStr) {
         col.width = GridLength::Parse(token);
         m_columns.push_back(col);
     }
+    // 运行时切换网格定义必须失效布局，否则列宽/行高不会重新计算。
+    InvalidateMeasure();
 }
 
 void Grid::SetRowDefinitions(const std::string& rowDefsStr) {
@@ -68,6 +70,7 @@ void Grid::SetRowDefinitions(const std::string& rowDefsStr) {
         row.height = GridLength::Parse(token);
         m_rows.push_back(row);
     }
+    InvalidateMeasure();
 }
 
 Size Grid::MeasureOverride(Size availableSize) {
