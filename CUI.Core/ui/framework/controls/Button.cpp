@@ -8,6 +8,13 @@
 #include <cmath>
 
 namespace CUI {
+namespace {
+float FrameBlend(float factorAt60Hz) {
+    factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
+    float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
+    return 1.0f - std::pow(1.0f - factorAt60Hz, (std::max)(0.1f, frames));
+}
+}
 
 Button::Button() {
     SetText("Button");
@@ -75,6 +82,68 @@ Size Button::Measure(Size availableSize) {
     return m_desiredSize;
 }
 
+void Button::BeginRipple(Point pt) {
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_rippleActive = false;
+        m_rippleOpacity = 0.0f;
+        return;
+    }
+    m_rippleCenter = pt;
+    m_rippleRadius = 4.0f;
+    m_rippleOpacity = 0.35f;
+    m_rippleActive = true;
+    RequestAnimationTicks();
+    MarkRenderRectDirty(m_bounds);
+}
+
+bool Button::TickRipple() {
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_rippleActive = false;
+        m_rippleOpacity = 0.0f;
+        return false;
+    }
+    if (!m_rippleActive) {
+        return false;
+    }
+
+    float cornerX = (m_rippleCenter.x - m_bounds.x > m_bounds.width * 0.5f) ? m_bounds.x : (m_bounds.x + m_bounds.width);
+    float cornerY = (m_rippleCenter.y - m_bounds.y > m_bounds.height * 0.5f) ? m_bounds.y : (m_bounds.y + m_bounds.height);
+    float dx = m_rippleCenter.x - cornerX;
+    float dy = m_rippleCenter.y - cornerY;
+    float maxRadius = std::sqrt(dx * dx + dy * dy);
+
+    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.073f) + 37.0f * UIElement::GetAnimationDeltaSeconds();
+    if (m_rippleRadius > maxRadius) {
+        m_rippleRadius = maxRadius;
+    }
+    m_rippleOpacity *= std::pow(0.958f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
+
+    if (m_rippleOpacity <= 0.02f) {
+        m_rippleActive = false;
+        m_rippleOpacity = 0.0f;
+    }
+
+    MarkRenderRectDirty(m_bounds);
+    return true;
+}
+
+void Button::DrawRipple(GraphicsContext& ctx) {
+    if (!m_rippleActive || m_rippleOpacity <= 0.0f) {
+        return;
+    }
+    const float radius = GetCornerRadius();
+    ctx.PushRoundedClip(m_bounds, radius);
+    D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+    rippleColor.a = m_rippleOpacity;
+    Rect rippleRect(
+        m_rippleCenter.x - m_rippleRadius,
+        m_rippleCenter.y - m_rippleRadius,
+        m_rippleRadius * 2.0f,
+        m_rippleRadius * 2.0f);
+    ctx.FillRoundedRect(rippleRect, m_rippleRadius, rippleColor);
+    ctx.PopClip();
+}
+
 void Button::DrawButtonFace(GraphicsContext& ctx, D2D1_COLOR_F bg, D2D1_COLOR_F border, float borderThickness) {
     const float radius = GetCornerRadius();
     if (radius > 0.0f) {
@@ -82,6 +151,7 @@ void Button::DrawButtonFace(GraphicsContext& ctx, D2D1_COLOR_F bg, D2D1_COLOR_F 
     } else {
         ctx.FillRect(m_bounds, bg);
     }
+    DrawRipple(ctx);
     if (border.a > 0.0f && borderThickness > 0.0f) {
         if (radius > 0.0f) {
             ctx.DrawRoundedRect(m_bounds, radius, border, borderThickness);
@@ -156,6 +226,7 @@ void Button::OnMouseDown(Point pt) {
         return;
     }
     Control::OnMouseDown(pt);
+    BeginRipple(pt);
 }
 
 bool Button::OnKeyDown(int vkCode) {
@@ -163,6 +234,7 @@ bool Button::OnKeyDown(int vkCode) {
         return false;
     }
     if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
+        BeginRipple(Point(m_bounds.x + m_bounds.width * 0.5f, m_bounds.y + m_bounds.height * 0.5f));
         ExecuteBoundCommand();
         OnClick().Invoke(this);
         return true;
@@ -171,11 +243,12 @@ bool Button::OnKeyDown(int vkCode) {
 }
 
 bool Button::OnAnimationTick() {
-    return Control::OnAnimationTick();
+    bool base = Control::OnAnimationTick();
+    return TickRipple() || base;
 }
 
 bool Button::HasSelfAnimation() const {
-    return Control::HasSelfAnimation();
+    return Control::HasSelfAnimation() || m_rippleActive;
 }
 
 void Button::OnRender(GraphicsContext& ctx) {
