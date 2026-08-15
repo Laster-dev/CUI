@@ -11,9 +11,9 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildRadioButtonPage() {
-    auto light = Make<RadioButton>("浅色");
-    auto dark = Make<RadioButton>("深色");
-    auto system = Make<RadioButton>("跟随系统");
+    auto light = RadioButtonTile("浅色");
+    auto dark = RadioButtonTile("深色");
+    auto system = RadioButtonTile("跟随系统");
     light->SetGroupName("theme");
     dark->SetGroupName("theme");
     system->SetGroupName("theme");
@@ -37,9 +37,9 @@ Element BuildRadioButtonPage() {
     auto themeStatus = MakeStatus("");
     themeStatus->Text.Bind(themeStatusValue, BindingMode::OneWay);
 
-    auto sizeS = Make<RadioButton>("小");
-    auto sizeM = Make<RadioButton>("中");
-    auto sizeL = Make<RadioButton>("大");
+    auto sizeS = RadioButtonTile("小");
+    auto sizeM = RadioButtonTile("中");
+    auto sizeL = RadioButtonTile("大");
     sizeS->SetGroupName("size");
     sizeM->SetGroupName("size");
     sizeL->SetGroupName("size");
@@ -70,22 +70,22 @@ Element BuildRadioButtonPage() {
         {
             "主题",
             "主题组中只能选一项。",
-            Column(8).Children({
+            Column(8, {
                 light,
                 dark,
                 system,
                 themeStatus,
-            }).Build(),
+            }),
         },
         {
             "大小",
             "同一页上的第二组不会干扰「主题」。",
-            Column(8).Children({
+            Column(8, {
                 sizeS,
                 sizeM,
                 sizeL,
                 sizeStatus,
-            }).Build(),
+            }),
         },
     };
     spec.source =

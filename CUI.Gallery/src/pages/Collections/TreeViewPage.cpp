@@ -72,7 +72,7 @@ void SetExpandedRecursively(TreeView* tree, const std::vector<std::shared_ptr<Tr
 } // namespace
 
 Element BuildTreeViewPage() {
-    auto tree = Make<TreeView>();
+    auto tree = TreeViewWidget();
     tree->Height = 330.0f;
     tree->Width = 520.0f;
     tree->SetItems(BuildProjectTree());
@@ -90,29 +90,29 @@ Element BuildTreeViewPage() {
         treeStatusText = "双击：" + item->header + "；业务层可在此打开文件或页面。";
     });
 
-    auto expandAll = Make<Button>("全部展开");
+    auto expandAll = Button("全部展开");
     expandAll->OnClick().Connect([tree, treeStatusText](UIElement*) {
         SetExpandedRecursively(tree.get(), tree->GetItems(), true);
         treeStatusText = "已展开所有包含子项的节点。";
     });
-    auto collapseAll = Make<Button>("全部折叠");
+    auto collapseAll = Button("全部折叠");
     collapseAll->OnClick().Connect([tree, treeStatusText](UIElement*) {
         SetExpandedRecursively(tree.get(), tree->GetItems(), false);
         treeStatusText = "已折叠所有分支。";
     });
-    auto selectRoot = Make<Button>("选择根节点");
+    auto selectRoot = Button("选择根节点");
     selectRoot->OnClick().Connect([tree](UIElement*) {
         if (!tree->GetItems().empty()) tree->SetSelectedItem(tree->GetItems().front());
     });
-    auto clearSelection = Make<Button>("清除选择");
+    auto clearSelection = Button("清除选择");
     clearSelection->OnClick().Connect([tree](UIElement*) { tree->SetSelectedItem(nullptr); });
-    auto indentCompact = Make<Button>("紧凑缩进");
+    auto indentCompact = Button("紧凑缩进");
     indentCompact->OnClick().Connect([tree](UIElement*) { tree->SetIndentWidth(14.0f); });
-    auto indentWide = Make<Button>("宽松缩进");
+    auto indentWide = Button("宽松缩进");
     indentWide->OnClick().Connect([tree](UIElement*) { tree->SetIndentWidth(28.0f); });
 
     State<int> newNodeSerial{ 1 };
-    auto addRoot = Make<Button>("添加根节点");
+    auto addRoot = Button("添加根节点");
     addRoot->OnClick().Connect([tree, newNodeSerial, treeStatusText](UIElement*) {
         const int serial = newNodeSerial.Get();
         newNodeSerial = serial + 1;
@@ -121,7 +121,7 @@ Element BuildTreeViewPage() {
         tree->SetSelectedItem(item);
         treeStatusText = "已添加并选中动态根节点。";
     });
-    auto addChild = Make<Button>("向选中项加载子项");
+    auto addChild = Button("向选中项加载子项");
     addChild->OnClick().Connect([tree, newNodeSerial, treeStatusText](UIElement*) {
         auto parent = tree->GetSelectedItem();
         if (!parent) {
@@ -137,18 +137,18 @@ Element BuildTreeViewPage() {
         tree->InvalidateVisibleItems();
         treeStatusText = "已为 " + parent->header + " 加载一个子项。";
     });
-    auto clearTree = Make<Button>("清空树");
+    auto clearTree = Button("清空树");
     clearTree->OnClick().Connect([tree, treeStatusText](UIElement*) {
         tree->ClearItems();
         treeStatusText = "已清空全部根节点。";
     });
-    auto resetTree = Make<Button>("替换整个数据源");
+    auto resetTree = Button("替换整个数据源");
     resetTree->OnClick().Connect([tree, treeStatusText](UIElement*) {
         tree->SetItems(BuildProjectTree());
         treeStatusText = "已通过 SetItems 替换整个树形集合。";
     });
 
-    auto lazyTree = Make<TreeView>();
+    auto lazyTree = TreeViewWidget();
     lazyTree->Height = 190.0f;
     lazyTree->Width = 520.0f;
     auto lazyRoot = TreeItem("按需加载目录", "📁", false);
@@ -156,7 +156,7 @@ Element BuildTreeViewPage() {
     State<std::string> lazyStatusText{ "点击“加载子项”，模拟文件系统或网络目录的延迟返回。" };
     auto lazyStatus = MakeStatus("");
     lazyStatus->Text->Bind(lazyStatusText, BindingMode::OneWay);
-    auto loadLazy = Make<Button>("加载子项");
+    auto loadLazy = Button("加载子项");
     loadLazy->OnClick().Connect([lazyTree, lazyRoot, lazyStatusText](UIElement*) {
         if (lazyRoot->children.empty()) {
             lazyRoot->children = {
@@ -178,18 +178,18 @@ Element BuildTreeViewPage() {
         {
             "层级集合与节点操作",
             "行点击选择；箭头切换展开；左/右键可导航父子关系；双击通常用于打开节点。",
-            Column(10).Children({
+            Column(10, {
                 tree,
                 treeStatus,
-                Row(8).Children({ expandAll, collapseAll, selectRoot, clearSelection }).Build(),
-                Row(8).Children({ indentCompact, indentWide, addRoot, addChild }).Build(),
-                Row(8).Children({ clearTree, resetTree }).Build(),
-            }).Build(),
+                Row(8, {expandAll, collapseAll, selectRoot, clearSelection }),
+                Row(8, {indentCompact, indentWide, addRoot, addChild }),
+                Row(8, {clearTree, resetTree }),
+            }),
         },
         {
             "延迟加载子节点",
             "直接修改 TreeViewItem::children 后调用 InvalidateVisibleItems()，适合目录、远程资源或按需展开的数据。",
-            Column(8).Children({ lazyTree, lazyStatus, loadLazy }).Build(),
+            Column(8, { lazyTree, lazyStatus, loadLazy }),
         },
     };
     spec.source =

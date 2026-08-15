@@ -11,7 +11,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildComboBoxPage() {
-    auto combo = Make<ComboBox>();
+    auto combo = ComboBoxWidget();
     combo->Width = 220.0f;
     combo->AddItem("苹果");
     combo->AddItem("香蕉");
@@ -34,7 +34,7 @@ Element BuildComboBoxPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto disabled = Make<ComboBox>();
+    auto disabled = ComboBoxWidget();
     disabled->Width = 220.0f;
     disabled->AddItem("不可用");
     disabled->SetSelectedIndex(0);
@@ -47,11 +47,11 @@ Element BuildComboBoxPage() {
         {
             "选择水果",
             "单击字段，或按 Alt+Down，然后选择一项。",
-            Column(10).Children({
+            Column(10, {
                 combo,
                 disabled,
                 status,
-            }).Build(),
+            }),
         },
     };
     spec.source =

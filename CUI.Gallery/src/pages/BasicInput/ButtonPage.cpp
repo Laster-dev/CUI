@@ -175,15 +175,15 @@ Element BuildButtonPage() {
         {
             "Unicode 与 SVG 矢量图标按钮 (Icons & SVG Vector Buttons)",
             "通过 Icon 可直接嵌入 Unicode 字符或标准 SVG 矢量图形。也支持无文字的纯图标按钮。",
-            Column(12).Children({
+            Column(12, {
                 Row(12, { btnUnicode, btnAdd, btnSvgHeart, btnSvgSearch, btnSvgCopy }),
                 Row(12, { MakeLabel("纯图标按钮:", 13.0f, ThemeTokenId::TextSecondary), iconBtn1, iconBtn2, iconBtnSvg }),
-            }).Build(),
+            }),
         },
         {
             "交互状态反馈",
             "点击任意上方按钮可触发事件响应并在下方更新提示。",
-            Column(6).Children({ status }).Build(),
+            Column(6, { status }),
         },
     };
     spec.source =

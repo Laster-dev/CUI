@@ -16,25 +16,25 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
     auto status = MakeStatus("点击按钮弹出浮出层，此处显示操作提示。");
 
     // ── 1. 简单文本浮出层 ────────────────────────────────────────────────
-    auto btnSimple = Make<Button>("简单文本浮出层");
+    auto btnSimple = Button("简单文本浮出层");
     btnSimple->OnClick().Connect([](UIElement* src) {
-        auto flyout = Make<Flyout>();
+        auto flyout = FlyoutWidget();
         flyout->SetPlacement(FlyoutPlacement::Bottom);
 
-        auto content = Column(8).Children({
+        auto content = Column(8, {
             MakeLabel("这是一个 Flyout 浮出层", 13.0f, ThemeTokenId::TextPrimary, true),
             MakeLabel("点击此区域外的任意位置即可关闭。", 12.0f, ThemeTokenId::TextSecondary),
-        }).Build();
+        });
         flyout->SetContent(content);
         src->AddChild(flyout);
         flyout->ShowAt(src);
     });
 
     // ── 2. 多方向放置 ────────────────────────────────────────────────────
-    auto btnTop    = Make<Button>("↑ Top");
-    auto btnBottom = Make<Button>("↓ Bottom");
-    auto btnLeft   = Make<Button>("← Left");
-    auto btnRight  = Make<Button>("→ Right");
+    auto btnTop    = Button("↑ Top");
+    auto btnBottom = Button("↓ Bottom");
+    auto btnLeft   = Button("← Left");
+    auto btnRight  = Button("→ Right");
 
     btnTop->Width = 90.0f;
     btnBottom->Width = 90.0f;
@@ -42,12 +42,12 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
     btnRight->Width = 90.0f;
 
     auto makePlacementFlyout = [](UIElement* src, FlyoutPlacement p, const std::string& label) {
-        auto flyout = Make<Flyout>();
+        auto flyout = FlyoutWidget();
         flyout->SetPlacement(p);
-        auto content = Column(6).Children({
+        auto content = Column(6, {
             MakeLabel(label, 12.0f, ThemeTokenId::TextPrimary),
             MakeLabel("Placement 演示内容。", 12.0f, ThemeTokenId::TextSecondary),
-        }).Build();
+        });
         flyout->SetContent(content);
         src->AddChild(flyout);
         flyout->ShowAt(src);
@@ -67,33 +67,33 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
     });
 
     // ── 3. 带操作按钮的浮出层 ───────────────────────────────────────────
-    auto btnAction = Make<Button>("带操作的浮出层");
+    auto btnAction = Button("带操作的浮出层");
     btnAction->BackgroundToken = ThemeTokenId::CardBackground;
     btnAction->ColorToken = ThemeTokenId::TextPrimary;
     btnAction->BorderToken = ThemeTokenId::CardBorder;
     btnAction->BorderThickness = 1.0f;
     btnAction->OnClick().Connect([status](UIElement* src) {
-        auto flyout = Make<Flyout>();
+        auto flyout = FlyoutWidget();
         flyout->SetPlacement(FlyoutPlacement::Bottom);
 
-        auto confirmBtn = Make<Button>("删除");
+        auto confirmBtn = Button("删除");
         confirmBtn->Background = Color::Hex("#C62828");
         confirmBtn->HoverBackground = Color::Hex("#B71C1C");
         confirmBtn->Foreground = Color::White;
         confirmBtn->Width = 72.0f;
 
-        auto cancelBtn = Make<Button>("取消");
+        auto cancelBtn = Button("取消");
         cancelBtn->BackgroundToken = ThemeTokenId::CardBackground;
         cancelBtn->ColorToken = ThemeTokenId::TextPrimary;
         cancelBtn->BorderToken = ThemeTokenId::CardBorder;
         cancelBtn->BorderThickness = 1.0f;
         cancelBtn->Width = 72.0f;
 
-        auto content = Column(12).Children({
+        auto content = Column(12, {
             MakeLabel("确认删除？", 13.0f, ThemeTokenId::TextPrimary, true),
             MakeLabel("此操作将永久移除所选项目。", 12.0f, ThemeTokenId::TextSecondary),
-            Row(8).Children({ confirmBtn, cancelBtn }).Build(),
-        }).Build();
+            Row(8, {confirmBtn, cancelBtn }),
+        });
         flyout->SetContent(content);
 
         confirmBtn->OnClick().Connect([status, flyout](UIElement*) {
@@ -110,27 +110,27 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
     });
 
     // ── 4. 包含输入框的浮出层 ───────────────────────────────────────────
-    auto btnInputFlyout = Make<Button>("输入浮出层");
+    auto btnInputFlyout = Button("输入浮出层");
     btnInputFlyout->BackgroundToken = ThemeTokenId::CardBackground;
     btnInputFlyout->ColorToken = ThemeTokenId::TextPrimary;
     btnInputFlyout->BorderToken = ThemeTokenId::CardBorder;
     btnInputFlyout->BorderThickness = 1.0f;
     btnInputFlyout->OnClick().Connect([status](UIElement* src) {
-        auto flyout = Make<Flyout>();
+        auto flyout = FlyoutWidget();
         flyout->SetPlacement(FlyoutPlacement::Bottom);
 
-        auto input = Make<TextBox>();
+        auto input = TextField();
         input->Placeholder = "输入新项目名称";
         input->Width = 200.0f;
 
-        auto applyBtn = Make<Button>("应用");
+        auto applyBtn = Button("应用");
         applyBtn->Width = 60.0f;
 
-        auto content = Column(10).Children({
+        auto content = Column(10, {
             MakeLabel("重命名项目", 13.0f, ThemeTokenId::TextPrimary, true),
             input,
             applyBtn,
-        }).Build();
+        });
         flyout->SetContent(content);
 
         applyBtn->OnClick().Connect([status, flyout, input](UIElement*) {
@@ -150,24 +150,24 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
         {
             "简单浮出层",
             "调用 ShowAt(target) 将 Flyout 显示在指定控件附近，SetPlacement() 控制停靠方向，默认为 Bottom。",
-            Column(12).Children({
+            Column(12, {
                 btnSimple,
                 status,
-            }).Build(),
+            }),
         },
         {
             "停靠方向",
             "支持 Top、Bottom、Left、Right 四个方向，框架会在边界受限时自动调整位置。",
-            Row(10).Children({ btnTop, btnBottom, btnLeft, btnRight }).Build(),
+            Row(10, { btnTop, btnBottom, btnLeft, btnRight }),
         },
         {
             "带操作按钮 & 输入框",
             "Flyout 内容为任意 UIElement，可嵌入按钮、输入框等控件实现轻量交互，无需打开完整对话框。",
-            Row(12).Children({ btnAction, btnInputFlyout }).Build(),
+            Row(12, { btnAction, btnInputFlyout }),
         },
     };
     spec.source =
-        "auto flyout = Make<Flyout>();\n"
+        "auto flyout = FlyoutWidget();\n"
         "flyout->SetPlacement(FlyoutPlacement::Bottom);\n"
         "flyout->SetContent(/* 任意 UIElement */);\n"
         "parent->AddChild(flyout); // 先挂载到活动 UI 树\n"

@@ -13,7 +13,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildSliderPage() {
-    auto volume = Make<Slider>();
+    auto volume = SliderWidget();
     volume->SetMinimum(0.0f);
     volume->SetMaximum(100.0f);
     volume->SetStep(1.0f);
@@ -29,7 +29,7 @@ Element BuildSliderPage() {
     auto volumeStatus = MakeStatus("");
     volumeStatus->Text.Bind(volumeStatusValue, BindingMode::OneWay);
 
-    auto vertical = Make<Slider>();
+    auto vertical = SliderWidget();
     vertical->Orientation = Orientation::Vertical;
     vertical->SetMinimum(0.0f);
     vertical->SetMaximum(100.0f);
@@ -53,14 +53,14 @@ Element BuildSliderPage() {
         {
             "水平",
             "0 到 100 的音量式滑块。",
-            Column(10).Children({ volume, volumeStatus }).Build(),
+            Column(10, { volume, volumeStatus }),
         },
         {
             "垂直",
             "SetOrientation(Orientation::Vertical)，并给控件足够高度。",
-            Column(10).Children({
-                Row(16).Children({ vertical, verticalStatus }).Build(),
-            }).Build(),
+            Column(10, {
+                Row(16, {vertical, verticalStatus }),
+            }),
         },
     };
     spec.source =

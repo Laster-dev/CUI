@@ -40,8 +40,8 @@ BackdropType BackdropFromIndex(int index) {
 Element BuildSettingsPage() {
     Window* window = Window::Current();
 
-    auto btnDark = std::make_shared<Button>("深色");
-    auto btnLight = std::make_shared<Button>("浅色");
+    auto btnDark = CUI::DSL::Fluent::Button("深色");
+    auto btnLight = CUI::DSL::Fluent::Button("浅色");
     btnDark->OnClick().Connect([window](UIElement*) {
         if (window) {
             window->SetThemeMode(ThemeMode::Dark);
@@ -85,14 +85,14 @@ Element BuildSettingsPage() {
         }
     });
 
-    auto body = Column(20).Padding(24).Children({
-        Column(6).Children({
+    auto body = Column(20, {
+        Column(6, {
             MakeLabel("设置", 28.0f, ThemeTokenId::TextPrimary, true),
             MakeLabel("主题、窗口背景、动效与诊断。", 14.0f, ThemeTokenId::TextMuted, false),
-        }).Build(),
+        }),
         MakeCard({
             MakeLabel("外观", 15.0f, ThemeTokenId::TextPrimary, true),
-            Row(12).Children({ btnDark, btnLight }).Build(),
+            Row(12, { btnDark, btnLight }),
             MakeLabel("背景材质", 13.0f, ThemeTokenId::TextSecondary, false),
             backdrop,
         }, 12.0f),

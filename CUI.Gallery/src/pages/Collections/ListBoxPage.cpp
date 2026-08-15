@@ -32,7 +32,7 @@ std::string SelectionSummary(ListBox* list, int index, const std::string& text) 
 } // namespace
 
 std::shared_ptr<UIElement> BuildListBoxPage() {
-    auto list = Make<ListBox>();
+    auto list = ListBoxWidget();
     list->Height = 220.0f;
     list->Width = 360.0f;
     list->SetSelectionMode(ListBoxSelectionMode::Extended);
@@ -53,13 +53,13 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
         selectionText = "双击第 " + std::to_string(index + 1) + " 项：" + text + "。";
     });
 
-    auto input = Make<TextBox>();
+    auto input = TextField();
     input->Placeholder = "输入新项目名称";
     input->Width = 220.0f;
 	input->Height = 28.0f;
     State<int> generated{ 1 };
 
-    auto add = Make<Button>("追加");
+    auto add = Button("追加");
     add->OnClick().Connect([list, input, generated, selectionText](UIElement*) {
         std::string text = input->GetText();
         if (text.empty()) text = "新项目 " + std::to_string(generated.Get());
@@ -68,7 +68,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
         input->Text->Set("");
         selectionText = "已在末尾追加：" + text + "。";
     });
-    auto insert = Make<Button>("插入首项");
+    auto insert = Button("插入首项");
     insert->OnClick().Connect([list, input, generated, selectionText](UIElement*) {
         std::string text = input->GetText();
         if (text.empty()) text = "置顶项目 " + std::to_string(generated.Get());
@@ -76,7 +76,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
         list->InsertItem(0, text);
         selectionText = "已插入到第 1 项：" + text + "。";
     });
-    auto remove = Make<Button>("删除选中");
+    auto remove = Button("删除选中");
     remove->OnClick().Connect([list, selectionText](UIElement*) {
         const int index = list->GetSelectedIndex();
         if (index < 0) {
@@ -87,58 +87,58 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
         list->RemoveItem(index);
         selectionText = "已删除：" + text + "。";
     });
-    auto reset = Make<Button>("重置数据");
+    auto reset = Button("重置数据");
     reset->OnClick().Connect([list, selectionText](UIElement*) {
         list->SetItems({ "收件箱", "今天", "本周", "已完成", "已归档", "垃圾箱" });
         list->ClearSelection();
         selectionText = "已重置为 6 个内存项目。";
     });
 
-    auto clearItems = Make<Button>("清空项目");
+    auto clearItems = Button("清空项目");
     clearItems->OnClick().Connect([list, selectionText](UIElement*) {
         list->ClearItems();
         selectionText = "已清空全部内存项目。";
     });
 
-    auto single = Make<Button>("单选");
+    auto single = Button("单选");
     single->OnClick().Connect([list, selectionText](UIElement*) {
         list->SetSelectionMode(ListBoxSelectionMode::Single);
         list->ClearSelection();
         selectionText = "已切换为单选模式。";
     });
-    auto multiple = Make<Button>("多选");
+    auto multiple = Button("多选");
     multiple->OnClick().Connect([list, selectionText](UIElement*) {
         list->SetSelectionMode(ListBoxSelectionMode::Multiple);
         list->ClearSelection();
         selectionText = "已切换为多选模式；单击可逐项切换。";
     });
-    auto extended = Make<Button>("扩展选择");
+    auto extended = Button("扩展选择");
     extended->OnClick().Connect([list, selectionText](UIElement*) {
         list->SetSelectionMode(ListBoxSelectionMode::Extended);
         list->ClearSelection();
         selectionText = "已切换为扩展选择模式；支持 Ctrl / Shift。";
     });
-    auto selectAll = Make<Button>("全选");
+    auto selectAll = Button("全选");
     selectAll->OnClick().Connect([list](UIElement*) { list->SelectAll(); });
-    auto clear = Make<Button>("清除选择");
+    auto clear = Button("清除选择");
     clear->OnClick().Connect([list](UIElement*) { list->ClearSelection(); });
-    auto pickThird = Make<Button>("选中第 3 项");
+    auto pickThird = Button("选中第 3 项");
     // 直接写 State 即可联动控件：SelectedIndex 为双向绑定。
     pickThird->OnClick().Connect([selectedIndex](UIElement*) { selectedIndex = 2; });
 
-    auto custom = Make<ListBox>();
+    auto custom = ListBoxWidget();
     custom->Height = 132.0f;
     custom->Width = 360.0f;
-    auto important = Make<TextBlock>("★ 需要今天处理的自定义 UIElement");
+    auto important = Text("★ 需要今天处理的自定义 UIElement");
     important->Foreground = Color::Hex("#E68A00");
-    auto synced = Make<TextBlock>("✓ 已同步到云端的自定义 UIElement");
+    auto synced = Text("✓ 已同步到云端的自定义 UIElement");
     synced->Foreground = Color::Hex("#16803C");
     custom->AddItem(important);
     custom->AddItem(synced);
     custom->AddItem("普通字符串项目仍可混用");
 
     static DemoListBoxDataSource virtualSource;
-    auto virtualList = Make<ListBox>();
+    auto virtualList = ListBoxWidget();
     virtualList->Height = 180.0f;
     virtualList->Width = 360.0f;
     virtualList->SetVirtualMode(10000, &virtualSource);
@@ -149,7 +149,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     virtualList->OnSelectionChanged().Connect([virtualStatusText](ListBox*, int index, const std::string& text) {
         virtualStatusText = "虚拟项目：第 " + std::to_string(index + 1) + " 项：" + text + "。";
     });
-    auto jump = Make<Button>("定位到第 5000 项");
+    auto jump = Button("定位到第 5000 项");
     jump->OnClick().Connect([virtualList](UIElement*) { virtualList->SetSelectedIndex(4999); });
 
     SamplePageSpec spec;
@@ -159,13 +159,13 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
         {
             "内存集合与选择",
             "单击选择；扩展选择模式下使用 Ctrl、Shift 或 Ctrl+A。双击会触发独立事件。",
-            Column(10).Children({
+            Column(10, {
                 list,
                 selectionStatus,
-                Row(8).Children({ input, add, insert, remove }).Build(),
-                Row(8).Children({ reset, clearItems, selectAll, clear, pickThird }).Build(),
-                Row(8).Children({ single, multiple, extended }).Build(),
-            }).Build(),
+                Row(8, {input, add, insert, remove }),
+                Row(8, {reset, clearItems, selectAll, clear, pickThird }),
+                Row(8, {single, multiple, extended }),
+            }),
         },
         {
             "自定义项目与拖放",
@@ -175,11 +175,11 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
         {
             "虚拟模式",
             "适合数万到百万条记录。控件通过 ListBoxDataSource 按需取文本，不创建全部项目控件。",
-            Column(8).Children({ virtualList, virtualStatus, jump }).Build(),
+            Column(8, { virtualList, virtualStatus, jump }),
         },
     };
     spec.source =
-        "auto list = Make<ListBox>();\n"
+        "auto list = ListBoxWidget();\n"
         "list->SetItems({ \"收件箱\", \"今天\", \"本周\" });\n"
         "list->SetSelectionMode(ListBoxSelectionMode::Extended);\n"
         "list->OnSelectionChanged().Connect(...);\n"

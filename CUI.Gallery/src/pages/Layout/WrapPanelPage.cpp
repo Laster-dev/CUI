@@ -14,7 +14,7 @@ namespace Gallery {
 
 namespace {
 
-std::shared_ptr<Button> MakeChip(const std::string& text, float width) {
+std::shared_ptr<CUI::Button> MakeChip(const std::string& text, float width) {
     return ElevatedButton(text)
         .Background(Rgb(0x007ACC))
         .Width(width)
@@ -77,34 +77,34 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
         {
             "水平换行",
             "WrapPanelWidget(\"Horizontal\")：子元素宽度不一，放不下一行时自动折行。",
-            Column(12).Children({
+            Column(12, {
                 horizontal,
                 MakeStatus("宽度跟随卡片可用空间；缩放窗口时 12 个不同宽度的按钮自动重新换行。"),
-            }).Build(),
+            }),
         },
         {
             "垂直换列（统一规格）",
             "SetOrientation(Vertical) 配合 SetItemWidth / SetItemHeight 让所有子项等宽等高，超出高度时换到下一列。",
-            Column(12).Children({
+            Column(12, {
                 vertical,
                 MakeStatus("纵向模式按可用高度排列；在受限宿主中超出后自动换到下一列。"),
-            }).Build(),
+            }),
         },
         {
             "宽度变化实时重排",
             "父容器宽度变化时，子元素立即重新流式排布。",
-            Column(12).Children({
+            Column(12, {
                 liveWrap,
                 widthStatus,
-            }).Build(),
+            }),
         },
         {
             "Justified 流式填满",
             "JustifyLines 会将每一行的剩余空间按 FlexGrow 权重分配给子项；触及 MaxWidth 后不再拉伸，窗口缩小时先缩至 MinWidth 再换行。",
-            Column(12).Children({
+            Column(12, {
                 justified,
                 MakeStatus("默认最后一行同样填满；设置 FillLastLine(false) 可保留最后一行的自然宽度。"),
-            }).Build(),
+            }),
         },
     };
     spec.source =

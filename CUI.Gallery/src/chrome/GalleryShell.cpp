@@ -252,7 +252,7 @@ namespace Gallery {
         auto toastCenter = std::make_shared<ToastCenter>();
         toastCenter->SetId("toastCenter");
 
-        auto root = Column(0).Children({ titleBar, nav, toastCenter }).Build();
+        auto root = Column(0, { titleBar, nav, toastCenter });
         root->BackgroundToken = ThemeTokenId::WindowBackground;
         return root;
     }

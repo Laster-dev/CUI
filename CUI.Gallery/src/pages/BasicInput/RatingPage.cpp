@@ -12,7 +12,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildRatingControlPage() {
-    auto rating = Make<RatingControl>();
+    auto rating = RatingWidget();
     rating->SetMaxRating(5);
     rating->SetStep(0.5f);
 
@@ -26,7 +26,7 @@ Element BuildRatingControlPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto readOnly = Make<RatingControl>();
+    auto readOnly = RatingWidget();
     readOnly->SetMaxRating(5);
     readOnly->SetIsReadOnly(true);
     readOnly->SetValue(4.0f);
@@ -38,15 +38,15 @@ Element BuildRatingControlPage() {
         {
             "可交互",
             "半星步进。单击星星，或单击清除图标重置。",
-            Column(10).Children({ rating, status }).Build(),
+            Column(10, { rating, status }),
         },
         {
             "只读",
             "SetIsReadOnly 显示不可更改的分数。",
-            Column(8).Children({
+            Column(8, {
                 readOnly,
                 MakeStatus("平均分：4.0"),
-            }).Build(),
+            }),
         },
     };
     spec.source =

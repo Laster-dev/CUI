@@ -11,7 +11,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleSwitchPage() {
-    auto notify = Make<ToggleSwitch>();
+    auto notify = ToggleSwitchWidget();
     notify->SetHeader("通知");
     
     State<bool> notifyOn{ false };
@@ -24,11 +24,11 @@ std::shared_ptr<UIElement> BuildToggleSwitchPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto wifi = Make<ToggleSwitch>();
+    auto wifi = ToggleSwitchWidget();
     wifi->SetHeader("Wi-Fi");
     wifi->SetIsOn(true);
 
-    auto locked = Make<ToggleSwitch>();
+    auto locked = ToggleSwitchWidget();
     locked->SetHeader("飞行模式");
     locked->IsEnabledProperty = false;
 
@@ -39,12 +39,12 @@ std::shared_ptr<UIElement> BuildToggleSwitchPage() {
         {
             "设置",
             "切换「通知」。Wi-Fi 默认开启。「飞行模式」不可用。",
-            Column(12).Children({
+            Column(12, {
                 notify,
                 wifi,
                 locked,
                 status,
-            }).Build(),
+            }),
         },
     };
     spec.source =

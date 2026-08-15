@@ -15,9 +15,9 @@ Element BuildContentDialogPage() {
     auto status = MakeStatus("点击按钮触发对话框，此处显示结果。");
 
     // ── 1. 信息确认对话框 ────────────────────────────────────────────────
-    auto btnInfo = Make<Button>("打开信息提示框");
+    auto btnInfo = Button("打开信息提示框");
     btnInfo->OnClick().Connect([status](UIElement* src) {
-        auto dlg = Make<ContentDialog>();
+        auto dlg = ContentDialogWidget();
         dlg->SetTitle("操作提示");
         dlg->SetMessage("您确定要继续执行此操作吗？此操作不可撤销，请谨慎确认。");
         dlg->SetPrimaryButtonText("确定");
@@ -32,13 +32,13 @@ Element BuildContentDialogPage() {
     });
 
     // ── 2. 三按钮对话框 ─────────────────────────────────────────────────
-    auto btnThree = Make<Button>("三个按钮的对话框");
+    auto btnThree = Button("三个按钮的对话框");
     btnThree->BackgroundToken = ThemeTokenId::CardBackground;
     btnThree->ColorToken = ThemeTokenId::TextPrimary;
     btnThree->BorderToken = ThemeTokenId::CardBorder;
     btnThree->BorderThickness = 1.0f;
     btnThree->OnClick().Connect([status](UIElement* src) {
-        auto dlg = Make<ContentDialog>();
+        auto dlg = ContentDialogWidget();
         dlg->SetTitle("保存更改");
         dlg->SetMessage("您有未保存的更改。是否要在关闭前保存？");
         dlg->SetPrimaryButtonText("保存");
@@ -56,13 +56,13 @@ Element BuildContentDialogPage() {
     });
 
     // ── 3. 输入对话框 ───────────────────────────────────────────────────
-    auto btnInput = Make<Button>("带文本输入的对话框");
+    auto btnInput = Button("带文本输入的对话框");
     btnInput->BackgroundToken = ThemeTokenId::CardBackground;
     btnInput->ColorToken = ThemeTokenId::TextPrimary;
     btnInput->BorderToken = ThemeTokenId::CardBorder;
     btnInput->BorderThickness = 1.0f;
     btnInput->OnClick().Connect([status](UIElement* src) {
-        auto dlg = Make<ContentDialog>();
+        auto dlg = ContentDialogWidget();
         dlg->SetTitle("新建文件夹");
         dlg->SetMessage("请输入新文件夹的名称：");
         dlg->SetPrimaryButtonText("创建");
@@ -81,13 +81,13 @@ Element BuildContentDialogPage() {
     });
 
     // ── 4. 危险操作对话框 ───────────────────────────────────────────────
-    auto btnDanger = Make<Button>("危险操作确认");
+    auto btnDanger = Button("危险操作确认");
     btnDanger->Background = Color::Hex("#C62828");
     btnDanger->HoverBackground = Color::Hex("#B71C1C");
     btnDanger->PressedBackground = Color::Hex("#8E0000");
     btnDanger->Foreground = Color::White;
     btnDanger->OnClick().Connect([status](UIElement* src) {
-        auto dlg = Make<ContentDialog>();
+        auto dlg = ContentDialogWidget();
         dlg->SetTitle("永久删除");
         dlg->SetMessage("此操作将永久删除所选的 3 个文件，总计 128 MB。\n\n已删除的内容无法从回收站恢复，请确认操作。");
         dlg->SetPrimaryButtonText("永久删除");
@@ -108,26 +108,26 @@ Element BuildContentDialogPage() {
         {
             "基本用法",
             "单击下方按钮触发对应的对话框样式。主按钮（Primary）、副按钮（Secondary）和关闭按钮均可独立配置。",
-            Column(12).Children({
-                Row(10).Children({ btnInfo, btnThree }).Build(),
-                Row(10).Children({ btnInput, btnDanger }).Build(),
+            Column(12, {
+                Row(10, {btnInfo, btnThree }),
+                Row(10, {btnInput, btnDanger }),
                 status,
-            }).Build(),
+            }),
         },
         {
             "按钮结果回调",
             "Show() 方法接受一个 std::function<void(DialogResult)> 回调，回调参数为枚举值 Primary / Secondary / Cancel。\n"
             "在回调内可通过 GetInputText() 读取用户在输入框中填写的内容。",
-            Column(8).Children({
+            Column(8, {
                 MakeLabel("DialogResult 枚举：", 12.0f, ThemeTokenId::TextMuted),
                 MakeLabel("  Primary   — 主确认按钮", 12.0f, ThemeTokenId::TextSecondary),
                 MakeLabel("  Secondary — 副辅助按钮", 12.0f, ThemeTokenId::TextSecondary),
                 MakeLabel("  Cancel    — 取消/关闭按钮", 12.0f, ThemeTokenId::TextSecondary),
-            }).Build(),
+            }),
         },
     };
     spec.source =
-        "auto dlg = Make<ContentDialog>();\n"
+        "auto dlg = ContentDialogWidget();\n"
         "dlg->SetTitle(\"标题\");\n"
         "dlg->SetMessage(\"消息内容。\");\n"
         "dlg->SetPrimaryButtonText(\"确定\");\n"

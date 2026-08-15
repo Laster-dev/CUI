@@ -28,7 +28,7 @@ std::shared_ptr<UIElement> BuildNumberBoxPage() {
     auto disabled = NumberBoxWidget(42).Width(150).Height(28).Build();
     disabled->IsEnabledProperty = false;
 
-    auto ranged = Make<NumberBox>();
+    auto ranged = NumberBoxWidget();
     ranged->Width = 150.0f;
     ranged->Height = 28.0f;
     ranged->SetMinimum(0.0f);
@@ -51,19 +51,19 @@ std::shared_ptr<UIElement> BuildNumberBoxPage() {
         {
             "常规用法",
             "▲/▼ 微调按钮按 Step 增减；聚焦后可直接输入，失焦或回车时提交。",
-            Column(12).Children({
+            Column(12, {
                 basic,
                 basicStatus,
                 disabled,
-            }).Build(),
+            }),
         },
         {
             "范围与步长",
             "SetMinimum / SetMaximum 限制取值范围，SetStep 控制增减粒度。",
-            Column(12).Children({
+            Column(12, {
                 ranged,
                 rangedStatus,
-            }).Build(),
+            }),
         },
     };
     spec.source =

@@ -17,7 +17,7 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<Canvas> MakeStage(float minHeight) {
-    auto stage = Make<Canvas>();
+    auto stage = CanvasWidget();
     stage->MinHeight = minHeight;
     stage->ClipToBounds = true;
     stage->CornerRadius = 4.0f;
@@ -203,7 +203,7 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
     std::shared_ptr<PhysicsWorld> world,
     std::shared_ptr<AimState> aim,
     State<int> ballCount) {
-    auto canvas = Make<CanvasControl>();
+    auto canvas = CanvasControlWidget();
     canvas->MinHeight = 340.0f;
     canvas->ClipToBounds = true;
 
@@ -430,45 +430,43 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
         {
             "常规用法",
             "子元素通过附加属性 SetCanvasLeft / SetCanvasTop 定位，互不挤压、可自由重叠。点击“随机重排”可实时移动圆形。",
-            Column(12).Children({
+            Column(12, {
                 stage,
-                Row(12).Children({ reshuffle, positionStatus }).Build(),
-            }).Build(),
+                Row(12, {reshuffle, positionStatus }),
+            }),
         },
         {
             "叠加与层级",
             "使用 Canvas.ZIndex 明确控制图层；同层仍按 AddChild 顺序绘制，命中测试则从最上层开始。",
-            Column(12).Children({
+            Column(12, {
                 layerStage,
                 MakeStatus("蓝色矩形 (Z=0) → 橙色椭圆 (Z=1) → 红色斜线 (Z=2)。"),
-            }).Build(),
+            }),
         },
         {
             "与流式布局对比",
             "Canvas 不以子元素反推自身尺寸，当前示例宽度随父容器可用空间伸缩；StackPanel 则按子元素顺序参与测量。",
-            Row(24).Children({
-                Column(6).Children({
-                    MakeLabel("Canvas(150×150)", 13.0f, ThemeTokenId::TextSecondary, true),
+            Row(24, {
+                Column(6, {MakeLabel("Canvas(150×150)", 13.0f, ThemeTokenId::TextSecondary, true),
                     canvasSide,
-                }).Build(),
-                Column(6).Children({
-                    MakeLabel("StackPanel(自动撑开)", 13.0f, ThemeTokenId::TextSecondary, true),
+                }),
+                Column(6, {MakeLabel("StackPanel(自动撑开)", 13.0f, ThemeTokenId::TextSecondary, true),
                     flowColumn,
-                }).Build(),
-            }).Build(),
+                }),
+            }),
         },
         {
             "高性能：重力引擎 + 发射小球",
             "CanvasControl 即时绘制模式：物理模拟全部在绘图闭包中运行，不产生任何 DOM 节点。"
             "在画布上按住并拖拽瞄准，松开即以弹弓方式发射小球；支持上百个小球实时重力、反弹与互撞。",
-            Column(12).Children({
+            Column(12, {
                 physicsCanvas,
                 WrapPanelWidget("Horizontal").Gap(12).Children({ burstButton, clearButton, physicsStatus }).Build(),
-            }).Build(),
+            }),
         },
     };
     spec.source =
-        "auto stage = Make<Canvas>();\n"
+        "auto stage = CanvasWidget();\n"
         "stage->MinHeight = 180.0f;  // 宽度跟随父容器\n"
         "stage->ClipToBounds = true;\n"
         "\n"
@@ -478,7 +476,7 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
         "stage->AddChild(button);\n"
         "\n"
         "// ---- 高性能：CanvasControl 即时绘制 + 物理 Tick ----\n"
-        "auto canvas = Make<CanvasControl>();\n"
+        "auto canvas = CanvasControlWidget();\n"
         "canvas->MinHeight = 340.0f; // 宽度跟随父容器\n"
         "canvas->ClipToBounds = true;\n"
         "\n"

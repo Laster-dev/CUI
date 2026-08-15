@@ -1,9 +1,12 @@
 #pragma once
 
 #include "framework/controls/UIElement.h"
+#include "framework/core/CUIDsl.h"
 #include <memory>
 
 namespace Gallery {
+
+using CUI::DSL::Fluent::Button;
 
 // Shell Pages
 CUI::Element BuildHomePage();

@@ -11,7 +11,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildSegmentedControlPage() {
-    auto range = Make<SegmentedControl>();
+    auto range = SegmentedWidget();
     range->Width = 280.0f;
     range->AddItem("日");
     range->AddItem("周");
@@ -39,7 +39,7 @@ Element BuildSegmentedControlPage() {
         {
             "日期范围",
             "日、周或月。单击某一段，或在聚焦时使用方向键。",
-            Column(10).Children({ range, status }).Build(),
+            Column(10, { range, status }),
         },
     };
     spec.source =

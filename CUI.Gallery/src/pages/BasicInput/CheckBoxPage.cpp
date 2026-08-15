@@ -14,10 +14,10 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildCheckBoxPage() {
-    auto wifi = Make<CheckBox>("Wi-Fi");
-    auto bluetooth = Make<CheckBox>("蓝牙");
-    auto airplane = Make<CheckBox>("飞行模式");
-    auto selectAll = Make<CheckBox>("全选");
+    auto wifi = CheckboxTile("Wi-Fi");
+    auto bluetooth = CheckboxTile("蓝牙");
+    auto airplane = CheckboxTile("飞行模式");
+    auto selectAll = CheckboxTile("全选");
     selectAll->SetIsThreeState(true);
 
     State<bool> wifiValue{ true };
@@ -69,7 +69,7 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
             applyingSelectAll = false;
         });
 
-    auto twoState = Make<CheckBox>("我同意条款");
+    auto twoState = CheckboxTile("我同意条款");
     auto twoStatus = MakeStatus("未同意。");
     twoState->OnCheckStateChanged().Connect([twoStatus](CheckBox*, CheckState state) {
         twoStatus->Text = state == CheckState::Checked ? "已同意。" : "未同意。";
@@ -82,18 +82,18 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
         {
             "全选",
             "标题跟随列表。部分选中显示为不确定状态。单击可全选或全清。",
-            Column(8).Children({
+            Column(8, {
                 selectAll,
                 wifi,
                 bluetooth,
                 airplane,
                 status,
-            }).Build(),
+            }),
         },
         {
             "两态",
             "单个是/否选项。",
-            Column(8).Children({ twoState, twoStatus }).Build(),
+            Column(8, { twoState, twoStatus }),
         },
     };
     spec.source =

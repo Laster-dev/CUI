@@ -90,10 +90,10 @@ Element MakeSectionCard(const SampleSection& section) {
 
 Element BuildSamplePage(const SamplePageSpec& spec) {
     auto main = Column(16).Padding(24);
-    main.Add(Column(6).Children({
+    main.Add(Column(6, {
         MakeLabel(spec.title, 26.0f, ThemeTokenId::TextPrimary, true),
         MakeLabel(spec.subtitle, 14.0f, ThemeTokenId::TextMuted, false),
-    }).Build());
+    }));
 
     for (const auto& section : spec.sections) {
         main.Add(MakeSectionCard(section));

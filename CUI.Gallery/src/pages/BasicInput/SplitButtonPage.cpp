@@ -10,7 +10,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildSplitButtonPage() {
-    auto save = Make<SplitButton>("保存");
+    auto save = SplitButtonWidget("保存");
     save->Width = 120.0f;
     auto status = MakeStatus("单击主区域保存，或单击箭头选择其他格式。");
     
@@ -23,7 +23,7 @@ std::shared_ptr<UIElement> BuildSplitButtonPage() {
     save->AddSeparator();
     save->AddItem("保存副本", [status] { status->Text = "已保存副本。"; });
 
-    auto color = Make<SplitButton>("红色");
+    auto color = SplitButtonWidget("红色");
     color->OnClick().Connect([status, color](UIElement*) {
         color->Background = Color::Red; status->Text = "已选择红色。"; color->Blur();
     });
@@ -44,11 +44,11 @@ std::shared_ptr<UIElement> BuildSplitButtonPage() {
         {
             "保存及格式",
             "主按钮保存。箭头列出其他保存方式。",
-            Column(10).Children({ save, color, status }).Build(),
+            Column(10, { save, color, status }),
         },
     };
     spec.source =
-        "auto save = Make<SplitButton>(\"保存\");\n"
+        "auto save = SplitButtonWidget(\"保存\");\n"
         "save->OnClick().Connect([](UIElement*) { /* default save */ });\n"
         "save->AddItem(\"另存为 PDF\");\n";
     return BuildSamplePage(spec);

@@ -40,7 +40,7 @@ std::vector<std::vector<std::string>> DemoRows() {
 } // namespace
 
 Element BuildListViewPage() {
-    auto table = Make<ListView>();
+    auto table = ListViewWidget();
     table->Height = 250.0f;
     table->Width = 620.0f;
     table->AddColumn("名称", 240.0f);
@@ -69,64 +69,64 @@ Element BuildListViewPage() {
     });
 
     State<int> appendedRows{ 1 };
-    auto addRow = Make<Button>("追加一行");
+    auto addRow = Button("追加一行");
     addRow->OnClick().Connect([table, appendedRows, tableStatusText](UIElement*) {
         const int serial = appendedRows.Get();
         appendedRows = serial + 1;
         table->AddRow({ "新增文件_" + std::to_string(serial) + ".txt", "文本", "1 KB" });
         tableStatusText = "已追加第 " + std::to_string(table->GetRowCount()) + " 行。";
     });
-    auto resetRows = Make<Button>("重置行");
+    auto resetRows = Button("重置行");
     resetRows->OnClick().Connect([table, tableStatusText](UIElement*) {
         table->SetRows(DemoRows());
         table->ClearSelection();
         tableStatusText = "已恢复内存中的演示行。";
     });
-    auto clearRows = Make<Button>("清空行");
+    auto clearRows = Button("清空行");
     clearRows->OnClick().Connect([table, tableStatusText](UIElement*) {
         table->ClearRows();
         tableStatusText = "已清空全部内存行。";
     });
-    auto selectAll = Make<Button>("全选");
+    auto selectAll = Button("全选");
     selectAll->OnClick().Connect([table](UIElement*) { table->SelectAll(); });
-    auto clearSelection = Make<Button>("清除选择");
+    auto clearSelection = Button("清除选择");
     clearSelection->OnClick().Connect([table](UIElement*) { table->ClearSelection(); });
-    auto pickSecond = Make<Button>("选中第 2 行");
+    auto pickSecond = Button("选中第 2 行");
     // 直接写 State 即可联动控件：SelectedIndex 为双向绑定。
     pickSecond->OnClick().Connect([selectedRow](UIElement*) { selectedRow = 1; });
-    auto compactRows = Make<Button>("紧凑行高");
+    auto compactRows = Button("紧凑行高");
     compactRows->OnClick().Connect([table, tableStatusText](UIElement*) {
         table->SetRowHeight(22.0f);
         tableStatusText = "行高已设为 22px。";
     });
-    auto comfortableRows = Make<Button>("舒适行高");
+    auto comfortableRows = Button("舒适行高");
     comfortableRows->OnClick().Connect([table, tableStatusText](UIElement*) {
         table->SetRowHeight(36.0f);
         tableStatusText = "行高已设为 36px。";
     });
-    auto toggleGrid = Make<Button>("切换网格线");
+    auto toggleGrid = Button("切换网格线");
     toggleGrid->OnClick().Connect([table](UIElement*) {
         table->SetShowGridLines(!table->GetShowGridLines());
     });
-    auto toggleSizeColumn = Make<Button>("显示/隐藏大小列");
+    auto toggleSizeColumn = Button("显示/隐藏大小列");
     toggleSizeColumn->OnClick().Connect([table](UIElement*) {
         table->SetColumnVisible(2, !table->IsColumnVisible(2));
     });
 
-    auto customCells = Make<ListView>();
+    auto customCells = ListViewWidget();
     customCells->Height = 140.0f;
     customCells->Width = 620.0f;
     customCells->AddColumn("任务", 280.0f);
     customCells->AddColumn("状态", 180.0f);
-    auto ready = Make<TextBlock>("✓ 已完成");
+    auto ready = Text("✓ 已完成");
     ready->Foreground = Color::Hex("#16803C");
-    auto pending = Make<TextBlock>("● 进行中");
+    auto pending = Text("● 进行中");
     pending->Foreground = Color::Hex("#C26A00");
     customCells->AddRow({ { "构建 CUI.Core", nullptr }, { "", ready } });
     customCells->AddRow({ { "完善集合控件示例", nullptr }, { "", pending } });
 
     static DemoListViewDataSource virtualSource;
-    auto virtualTable = Make<ListView>();
+    auto virtualTable = ListViewWidget();
     virtualTable->Height = 210.0f;
     virtualTable->Width = 620.0f;
     virtualTable->AddColumn("名称", 280.0f);
@@ -140,7 +140,7 @@ Element BuildListViewPage() {
     virtualTable->OnSelectionChanged().Connect([virtualStatusText](ListView*, int row) {
         virtualStatusText = row < 0 ? "未选择虚拟行。" : "已选择虚拟行 #" + std::to_string(row + 1) + "。";
     });
-    auto reveal = Make<Button>("定位到第 50,000 行");
+    auto reveal = Button("定位到第 50,000 行");
     reveal->OnClick().Connect([virtualTable](UIElement*) {
         virtualTable->SetCaretIndex(49999);
         virtualTable->SetRowSelected(49999, true);
@@ -154,12 +154,12 @@ Element BuildListViewPage() {
         {
             "内存表格、列与行操作",
             "点击列标题排序；拖动标题边缘调整宽度；扩展选择支持 Ctrl、Shift 和 Ctrl+A。",
-            Column(10).Children({
+            Column(10, {
                 table,
                 tableStatus,
-                Row(8).Children({ addRow, resetRows, clearRows, selectAll, clearSelection, pickSecond }).Build(),
-                Row(8).Children({ compactRows, comfortableRows, toggleGrid, toggleSizeColumn }).Build(),
-            }).Build(),
+                Row(8, {addRow, resetRows, clearRows, selectAll, clearSelection, pickSecond }),
+                Row(8, {compactRows, comfortableRows, toggleGrid, toggleSizeColumn }),
+            }),
         },
         {
             "自定义单元格",
@@ -169,11 +169,11 @@ Element BuildListViewPage() {
         {
             "虚拟行数据源",
             "ListViewDataSource 适用于十万级以上数据。控件不构建完整二维字符串或单元格控件。",
-            Column(8).Children({ virtualTable, virtualStatus, reveal }).Build(),
+            Column(8, { virtualTable, virtualStatus, reveal }),
         },
     };
     spec.source =
-        "auto table = Make<ListView>();\n"
+        "auto table = ListViewWidget();\n"
         "table->AddColumn(\"名称\", 240);\n"
         "table->AddColumn(\"类型\", 150);\n"
         "table->Rows = rows;\n"

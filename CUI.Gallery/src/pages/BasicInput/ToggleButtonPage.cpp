@@ -11,16 +11,16 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleButtonPage() {
-    auto bold = Make<ToggleButton>("粗体");
+    auto bold = ToggleButtonWidget("粗体");
     bold->FontWeight = FontWeight::Bold;
     
-    auto italic = Make<ToggleButton>("斜体");
+    auto italic = ToggleButtonWidget("斜体");
     italic->FontStyle = FontStyle::Italic;
     
-    auto underline = Make<ToggleButton>("下划线");
+    auto underline = ToggleButtonWidget("下划线");
     underline->Underline = true;
     
-    auto strikethrough = Make<ToggleButton>("删除线");
+    auto strikethrough = ToggleButtonWidget("删除线");
     strikethrough->Strikethrough = true;
 
     State<bool> boldChecked{ false };
@@ -55,7 +55,7 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
     status->Underline.Bind(underlineChecked, BindingMode::OneWay);
     status->Strikethrough.Bind(strikethroughChecked, BindingMode::OneWay);
 
-    auto locked = Make<ToggleButton>("已锁定");
+    auto locked = ToggleButtonWidget("已锁定");
     locked->SetIsChecked(true);
     locked->IsEnabledProperty = false;
 
@@ -66,10 +66,10 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
         {
             "文本样式",
             "单击以锁定样式。多个切换可同时打开。",
-            Column(10).Children({
-                Row(12).Children({ bold, italic, underline, strikethrough, locked }).Build(),
+            Column(10, {
+                Row(12, {bold, italic, underline, strikethrough, locked }),
                 status,
-            }).Build(),
+            }),
         },
     };
     spec.source =

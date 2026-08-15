@@ -14,7 +14,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildTimePickerPage() {
-    auto picker = Make<TimePicker>();
+    auto picker = TimePickerWidget();
     State<std::string> selectedTime{ picker->GetFormattedTime() };
     picker->SelectedTime->Bind(selectedTime);
 
@@ -24,24 +24,24 @@ Element BuildTimePickerPage() {
     auto status = MakeStatus("");
     status->Text->Bind(statusValue, BindingMode::OneWay);
 
-    auto morning = Make<Button>("上午 08:30");
+    auto morning = Button("上午 08:30");
     morning->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "08:30"; });
-    auto noon = Make<Button>("中午 12:00");
+    auto noon = Button("中午 12:00");
     noon->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "12:00"; });
-    auto evening = Make<Button>("晚上 18:30");
+    auto evening = Button("晚上 18:30");
     evening->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "18:30"; });
-    auto midnight = Make<Button>("午夜 23:45");
+    auto midnight = Button("午夜 23:45");
     midnight->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "23:45"; });
 
-    auto programmatic = Make<Button>("程序设置 06:15");
+    auto programmatic = Button("程序设置 06:15");
     programmatic->Width = 200.0f;
     programmatic->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "06:15"; });
 
-    auto disabled = Make<TimePicker>();
+    auto disabled = TimePickerWidget();
     disabled->SetTime(9, 0);
     disabled->IsEnabledProperty = false;
 
-    auto second = Make<TimePicker>();
+    auto second = TimePickerWidget();
     State<std::string> reminderTime{ "21:00" };
     second->SelectedTime->Bind(reminderTime);
     auto reminderStatusValue = MakeComputed<std::string>([](const std::string& time) {
@@ -49,7 +49,7 @@ Element BuildTimePickerPage() {
     }, reminderTime);
     auto reminderStatus = MakeStatus("");
     reminderStatus->Text->Bind(reminderStatusValue, BindingMode::OneWay);
-    auto setReminder = Make<Button>("设置提醒为 07:45");
+    auto setReminder = Button("设置提醒为 07:45");
     setReminder->OnClick().Connect([reminderTime](UIElement*) { reminderTime = "07:45"; });
 
     SamplePageSpec spec;
@@ -59,16 +59,16 @@ Element BuildTimePickerPage() {
         {
             "基础选择与双向绑定",
             "点击控件打开时间滚轮，分别滚动小时列和分钟列；程序设置 State 也会立即更新控件。",
-            Column(10).Children({
-                Row(12).Children({ picker, status }).Build(),
-                Row(8).Children({ morning, noon, evening, midnight }).Build(),
+            Column(10, {
+                Row(12, {picker, status }),
+                Row(8, {morning, noon, evening, midnight }),
                 programmatic,
-            }).Build(),
+            }),
         },
         {
             "多个时间状态",
             "每个 TimePicker 可以绑定不同的 State，适合开始时间、结束时间、提醒时间等独立字段。",
-            Row(12).Children({ second, reminderStatus, setReminder }).Build(),
+            Row(12, { second, reminderStatus, setReminder }),
         },
         {
             "禁用状态",
@@ -77,7 +77,7 @@ Element BuildTimePickerPage() {
         },
     };
     spec.source =
-        "auto picker = Make<TimePicker>();\n"
+        "auto picker = TimePickerWidget();\n"
         "State<std::string> selectedTime{ \"14:30\" };\n"
         "picker->SelectedTime->Bind(selectedTime);\n"
         "selectedTime = \"06:15\"; // UI 自动刷新\n";

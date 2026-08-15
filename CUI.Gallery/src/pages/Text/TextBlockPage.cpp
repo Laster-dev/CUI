@@ -51,7 +51,7 @@ std::shared_ptr<UIElement> BuildTextBlockPage() {
     StyleBox(center);
     StyleBox(right);
 
-    auto multiline = Make<TextBlock>();
+    auto multiline = Text();
     multiline->SetText("第一行：DirectWrite 自绘文本\n"
                        "第二行：显式 \\n 换行\n"
                        "第三行：行距 LineSpacing = 1.6");
@@ -66,29 +66,29 @@ std::shared_ptr<UIElement> BuildTextBlockPage() {
         {
             "基础用法",
             "不同字号与字重，颜色通过 ThemeTokenId 跟随主题，浅色/深色自动适配。",
-            Column(10).Children({
+            Column(10, {
                 title,
                 subtitle,
                 body,
                 accent,
                 danger,
-            }).Build(),
+            }),
         },
         {
             "修饰与配色",
             "下划线、删除线、斜体、等宽字体以及硬编码自定义颜色。",
-            Column(10).Children({
+            Column(10, {
                 underline,
                 strikethrough,
                 italic,
                 code,
                 colored,
-            }).Build(),
+            }),
         },
         {
             "对齐方式",
             "SetTextAlign 支持 Left / Center / Right；行内垂直对齐由 SetVerticalAlign 控制。",
-            Column(8).Children({ left, center, right }).Build(),
+            Column(8, { left, center, right }),
         },
         {
             "多行与行距",

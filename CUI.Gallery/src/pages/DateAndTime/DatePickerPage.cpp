@@ -27,7 +27,7 @@ std::string TodayString() {
 } // namespace
 
 Element BuildDatePickerPage() {
-    auto picker = Make<DatePicker>();
+    auto picker = DatePickerWidget();
     State<std::string> selectedDate{ picker->GetFormattedDate() };
     picker->SelectedDate->Bind(selectedDate);
 
@@ -37,20 +37,20 @@ Element BuildDatePickerPage() {
     auto status = MakeStatus("");
     status->Text->Bind(statusValue, BindingMode::OneWay);
 
-    auto today = Make<Button>("今天");
+    auto today = Button("今天");
     today->OnClick().Connect([selectedDate](UIElement*) { selectedDate = TodayString(); });
-    auto newYear = Make<Button>("元旦");
+    auto newYear = Button("元旦");
     newYear->OnClick().Connect([selectedDate](UIElement*) { selectedDate = "2027-01-01"; });
-    auto spring = Make<Button>("春节示例");
+    auto spring = Button("春节示例");
     spring->OnClick().Connect([selectedDate](UIElement*) { selectedDate = "2027-02-06"; });
-    auto birthday = Make<Button>("生日示例");
+    auto birthday = Button("生日示例");
     birthday->OnClick().Connect([selectedDate](UIElement*) { selectedDate = "1990-06-15"; });
 
-    auto disabled = Make<DatePicker>();
+    auto disabled = DatePickerWidget();
     disabled->SetDate(2026, 12, 31);
     disabled->IsEnabledProperty = false;
 
-    auto programmatic = Make<Button>("程序设置 2030-05-20");
+    auto programmatic = Button("程序设置 2030-05-20");
     programmatic->OnClick().Connect([selectedDate](UIElement*) { selectedDate = "2030-05-20"; });
 
     SamplePageSpec spec;
@@ -60,11 +60,11 @@ Element BuildDatePickerPage() {
         {
             "基础选择与双向绑定",
             "点击日期按钮打开日历；点击标题可进入月份/年份视图，再选择目标日期。",
-            Column(10).Children({
-                Row(12).Children({ picker, status }).Build(),
-                Row(8).Children({ today, newYear, spring, birthday }).Build(),
+            Column(10, {
+                Row(12, {picker, status }),
+                Row(8, {today, newYear, spring, birthday }),
                 programmatic,
-            }).Build(),
+            }),
         },
         {
             "禁用状态",
@@ -73,7 +73,7 @@ Element BuildDatePickerPage() {
         },
     };
     spec.source =
-        "auto picker = Make<DatePicker>();\n"
+        "auto picker = DatePickerWidget();\n"
         "State<std::string> selectedDate{ picker->GetFormattedDate() };\n"
         "picker->SelectedDate->Bind(selectedDate);\n"
         "selectedDate = \"2030-05-20\"; // UI 自动刷新\n";

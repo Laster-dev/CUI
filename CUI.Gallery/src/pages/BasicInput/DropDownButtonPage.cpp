@@ -58,7 +58,7 @@ Color TextColorForIndex(int index) {
 } // namespace
 
 std::shared_ptr<UIElement> BuildDropDownButtonPage() {
-    auto file = Make<DropDownButton>("文件");
+    auto file = DropDownButtonWidget("文件");
     file->AddItem("新建");
     file->AddItem("打开");
     file->AddSeparator();
@@ -73,11 +73,11 @@ std::shared_ptr<UIElement> BuildDropDownButtonPage() {
     auto fileStatus = MakeStatus("");
     fileStatus->Text->Bind(fileStatusValue, BindingMode::OneWay);
 
-    auto disabled = Make<DropDownButton>("不可用");
+    auto disabled = DropDownButtonWidget("不可用");
     disabled->AddItem("一项");
     disabled->IsEnabledProperty = false;
 
-    auto color = Make<DropDownButton>("背景颜色展示");
+    auto color = DropDownButtonWidget("背景颜色展示");
     color->AddItem("红色");
     color->AddItem("绿色");
     color->AddItem("蓝色");
@@ -112,11 +112,11 @@ std::shared_ptr<UIElement> BuildDropDownButtonPage() {
         {
             "文件菜单",
             "单击按钮，或按空格 / Alt+Down，然后选择一项。",
-            Column(10).Children({
-                Row(12).Children({ file, disabled, color }).Build(),
+            Column(10, {
+                Row(12, {file, disabled, color }),
                 fileStatus,
                 colorStatus,
-            }).Build(),
+            }),
         },
     };
     spec.source =

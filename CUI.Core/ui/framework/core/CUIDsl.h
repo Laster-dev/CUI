@@ -46,6 +46,7 @@
 #include "../controls/PagingControl.h"
 #include "../controls/Splitter.h"
 #include "../controls/Expander.h"
+#include "../controls/Flyout.h"
 #include "../controls/MessageBox.h"
 #include "../controls/shapes/Shapes.h"
 #include "../controls/CanvasControl.h"
@@ -103,6 +104,7 @@ public:
     operator std::shared_ptr<UIElement>() const { return m_element; } // 隐式转换为 UIElement 基类智能指针
     std::shared_ptr<T> Build() const { return m_element; } // 链式终点：返回构造完成的共享指针
     T* operator->() const { return m_element.get(); } // 重载指针运算符以便快捷存取成员
+    T* get() const { return m_element.get(); }
 
     ElementBuilder& Id(const std::string& id) { // 设定控件检索 ID
         m_element->SetId(id);
@@ -386,6 +388,13 @@ protected:
     std::shared_ptr<T> m_element; // 底层生成的控件共享引用实例对象自身
 };
 
+struct ChildArgument {
+    Element element;
+    ChildArgument(Element value) : element(std::move(value)) {}
+    template<typename T> ChildArgument(std::shared_ptr<T> value) : element(std::move(value)) {}
+    template<typename T> ChildArgument(const ElementBuilder<T>& builder) : element(builder.Build()) {}
+};
+
 // Flutter-Style Widget Aliases (快速构建语法别名)
 
 inline ElementBuilder<StackPanel> Column(float gap = 8.0f) { // 快速生成垂直方向排列的容器面板
@@ -404,20 +413,20 @@ inline ElementBuilder<CUI::Button> Button(const std::string& text = "") {
 
 } // namespace Fluent
 
-inline Element Row(float gap, std::initializer_list<Element> children) {
+inline ElementBuilder<StackPanel> Row(float gap, std::initializer_list<ChildArgument> children) {
     auto row = Row(gap);
     for (const auto& child : children) {
-        if (child) row->AddChild(child);
+        if (child.element) row->AddChild(child.element);
     }
-    return row.Build();
+    return row;
 }
 
-inline Element Column(float gap, std::initializer_list<Element> children) {
+inline ElementBuilder<StackPanel> Column(float gap, std::initializer_list<ChildArgument> children) {
     auto column = Column(gap);
     for (const auto& child : children) {
-        if (child) column->AddChild(child);
+        if (child.element) column->AddChild(child.element);
     }
-    return column.Build();
+    return column;
 }
 
 inline ElementBuilder<TextBlock> Text(const std::string& content = "") { // 快速生成只读文本块组件
@@ -491,6 +500,12 @@ inline ElementBuilder<UniformGrid> UniformGridWidget(int rows = 2, int cols = 2)
     u->SetColumns(cols);
     return u;
 }
+
+inline ElementBuilder<ComboBox> ComboBoxWidget() { return ElementBuilder<ComboBox>(); }
+inline ElementBuilder<ListBox> ListBoxWidget() { return ElementBuilder<ListBox>(); }
+inline ElementBuilder<ToggleSwitch> ToggleSwitchWidget() { return ElementBuilder<ToggleSwitch>(); }
+inline ElementBuilder<TreeView> TreeViewWidget() { return ElementBuilder<TreeView>(); }
+inline ElementBuilder<Flyout> FlyoutWidget() { return ElementBuilder<Flyout>(); }
 
 inline ElementBuilder<ScrollViewer> SingleChildScrollView() { // 快速生成单子控件滚动查看器
     return ElementBuilder<ScrollViewer>();

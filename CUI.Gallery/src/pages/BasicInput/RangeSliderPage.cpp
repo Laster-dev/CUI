@@ -12,7 +12,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildRangeSliderPage() {
-    auto price = Make<RangeSlider>();
+    auto price = RangeSliderWidget();
     price->SetMinimum(0.0f);
     price->SetMaximum(1000.0f);
     price->SetStep(10.0f);
@@ -38,7 +38,7 @@ Element BuildRangeSliderPage() {
         {
             "价格范围",
             "从 ¥0 到 ¥1,000 的筛选。两个滑块不能交叉。",
-            Column(10).Children({ price, status }).Build(),
+            Column(10, { price, status }),
         },
     };
     spec.source =

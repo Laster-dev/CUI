@@ -17,8 +17,8 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
-    auto docs = Make<HyperlinkButton>("打开文档", "https://learn.microsoft.com/windows/apps/design/controls/hyperlink-button");
-    auto inApp = Make<HyperlinkButton>("打开设置页面");
+    auto docs = HyperlinkButtonWidget("打开文档", "https://learn.microsoft.com/windows/apps/design/controls/hyperlink-button");
+    auto inApp = HyperlinkButtonWidget("打开设置页面");
     auto status = MakeStatus("链接看起来像文本，行为像按钮。");
     
     docs->OnClick().Connect([docs](UIElement*) {
@@ -33,7 +33,7 @@ std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
         Gallery::Host::Instance().Navigate("settings");
     });
 
-    auto disabled = Make<HyperlinkButton>("不可用链接");
+    auto disabled = HyperlinkButtonWidget("不可用链接");
     disabled->IsEnabledProperty = false;
 
     SamplePageSpec spec;
@@ -43,14 +43,14 @@ std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
         {
             "导航与应用内操作",
             "第一个链接在浏览器中打开。第二个留在应用内。",
-            Column(10).Children({
-                Column(8).Children({ docs, inApp, disabled }).Build(),
+            Column(10, {
+                Column(8, {docs, inApp, disabled }),
                 status,
-            }).Build(),
+            }),
         },
     };
     spec.source =
-        "auto docs = Make<HyperlinkButton>(\"打开文档\", \"https://learn.microsoft.com...\");\n"
+        "auto docs = HyperlinkButtonWidget(\"打开文档\", \"https://learn.microsoft.com...\");\n"
         "docs->OnClick().Connect([](UIElement*) { /* open link */ });\n";
     return BuildSamplePage(spec);
 }

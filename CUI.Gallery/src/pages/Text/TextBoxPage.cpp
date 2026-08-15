@@ -12,7 +12,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildTextBoxPage() {
-    auto basic = Make<TextBox>();
+    auto basic = TextField();
     basic->Placeholder = "请输入内容";
     basic->Width = 300.0f;
     basic->Height = 28.0f;
@@ -26,50 +26,50 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto clear = Make<Button>("清空");
+    auto clear = Button("清空");
     clear->OnClick().Connect([basic](UIElement*) {
         basic->Text.Set("");
     });
 
-    auto multiline = Make<TextBox>();
+    auto multiline = TextField();
     multiline->Placeholder = "多行文本：支持 Enter 换行与自动折行";
     multiline->Width = 340.0f;
     multiline->Height = 120.0f;
     multiline->SetAcceptsReturn(true);
     multiline->SetTextWrapping(true);
 
-    auto readOnly = Make<TextBox>();
+    auto readOnly = TextField();
     readOnly->Text = "只读文本：SetIsReadOnly(true)";
     readOnly->Width = 300.0f;
     readOnly->Height = 28.0f;
     readOnly->SetIsReadOnly(true);
 
-    auto passwordMode = Make<TextBox>();
+    auto passwordMode = TextField();
     passwordMode->Placeholder = "密码模式（带明文切换眼睛）";
     passwordMode->Width = 300.0f;
     passwordMode->Height = 28.0f;
     passwordMode->SetIsPasswordMode(true);
     passwordMode->SetShowRevealButton(true);
 
-    auto disabled = Make<TextBox>();
+    auto disabled = TextField();
     disabled->Placeholder = "不可用";
     disabled->Width = 300.0f;
     disabled->Height = 28.0f;
     disabled->IsEnabledProperty = false;
 
     State<std::string> boundText{ "绑定数据源：点击右侧按钮更新文本。" };
-    auto bound = Make<TextBox>();
+    auto bound = TextField();
     bound->Width = 300.0f;
     bound->Height = 28.0f;
     bound->SetIsReadOnly(true);
     bound->Text.Bind(boundText, BindingMode::OneWay);
 
-    auto update = Make<Button>("更新绑定");
+    auto update = Button("更新绑定");
     update->OnClick().Connect([boundText](UIElement*) {
         boundText = "已通过 State 更新：Text.Bind(State, OneWay)。";
     });
 
-    auto drop = Make<TextBox>();
+    auto drop = TextField();
     drop->Placeholder = "支持拖放：拖入文本或文件路径";
     drop->Width = 300.0f;
     drop->Height = 28.0f;
@@ -83,11 +83,11 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
         {
             "单行输入",
             "Text 与 State 双向绑定，状态栏由 MakeComputed 派生；通过 Text.Set 可程序化修改内容。",
-            Column(12).Children({
+            Column(12, {
                 basic,
-                Row(8).Children({ clear }).Build(),
+                Row(8, {clear }),
                 status,
-            }).Build(),
+            }),
         },
         {
             "多行输入",
@@ -97,16 +97,16 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
         {
             "状态与模式",
             "只读、密码模式（内置明文切换按钮）与不可用状态。",
-            Column(12).Children({
+            Column(12, {
                 readOnly,
                 passwordMode,
                 disabled,
-            }).Build(),
+            }),
         },
         {
             "数据绑定",
             "只读框通过 Text.Bind(State, BindingMode::OneWay) 单向绑定数据源。",
-            Row(8).Children({ bound, update }).Build(),
+            Row(8, { bound, update }),
         },
         {
             "拖放",
@@ -115,7 +115,7 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
         },
     };
     spec.source =
-        "auto box = Make<TextBox>();\n"
+        "auto box = TextField();\n"
         "box->Placeholder = \"请输入内容\";\n"
         "box->SetAcceptsReturn(true);\n"
         "box->SetTextWrapping(true);\n"

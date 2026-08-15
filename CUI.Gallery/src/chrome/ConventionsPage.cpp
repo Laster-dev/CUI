@@ -66,7 +66,7 @@ CUI 支持通过 `State<T>` 数据源和 `PropertyRef` 构建数据驱动的 UI 
 
 ```cpp
 // 示例：双向绑定 CheckBox 选中状态与 Wi-Fi 开关数据源
-auto wifi = Make<CheckBox>("Wi-Fi");
+auto wifi = CheckboxTile("Wi-Fi");
 wifi->IsChecked.Bind(stateWifi, BindingMode::TwoWay);
 ```
 

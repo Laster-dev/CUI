@@ -28,7 +28,7 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
     auto noReveal = PasswordBoxWidget("隐藏明文切换按钮").Width(280).Height(28).Build();
     noReveal->SetShowRevealButton(false);
 
-    auto prefilled = Make<PasswordBox>();
+    auto prefilled = PasswordBoxWidget();
     prefilled->Placeholder = "密码框";
     prefilled->Width = 280.0f;
     prefilled->Height = 28.0f;
@@ -44,19 +44,19 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
         {
             "常规用法",
             "输入自动掩码；点击右侧眼睛图标可临时查看明文。",
-            Column(12).Children({
+            Column(12, {
                 basic,
                 status,
-            }).Build(),
+            }),
         },
         {
             "配置项",
             "SetShowRevealButton(false) 隐藏明文切换按钮；SetPassword 可预置初始密码；支持禁用态。",
-            Column(12).Children({
+            Column(12, {
                 noReveal,
                 prefilled,
                 disabled,
-            }).Build(),
+            }),
         },
     };
     spec.source =

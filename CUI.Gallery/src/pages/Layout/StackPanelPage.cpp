@@ -15,7 +15,7 @@ namespace Gallery {
 
 namespace {
 
-std::shared_ptr<Button> MakeChip(const std::string& text, D2D1_COLOR_F color, float flexGrow = 0.0f) {
+std::shared_ptr<CUI::Button> MakeChip(const std::string& text, D2D1_COLOR_F color, float flexGrow = 0.0f) {
     auto b = ElevatedButton(text).Background(color).Padding(14, 8, 14, 8).Build();
     if (flexGrow > 0.0f) {
         b->FlexGrow = flexGrow;
@@ -61,7 +61,7 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
     livePanel->AddChild(MakeChip("元素 B", Rgb(0x10B981)));
     livePanel->AddChild(MakeChip("元素 C", Rgb(0x845EF7)));
 
-    auto dirCombo = Make<ComboBox>();
+    auto dirCombo = ComboBoxWidget();
     dirCombo->AddItem("Vertical(垂直)");
     dirCombo->AddItem("Horizontal(水平)");
     dirCombo->SetSelectedIndex(0);
@@ -96,23 +96,23 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
         {
             "水平排列",
             "Row(gap) 快捷创建水平 StackPanel；子元素按顺序从左到右排列，超出部分可配合 FlexGrow 弹性伸缩。",
-            Column(12).Children({
+            Column(12, {
                 row,
                 MakeStatus("紫色按钮设了 SetFlexGrow(1)，自动占满剩余宽度。"),
-            }).Build(),
+            }),
         },
         {
             "垂直排列",
             "Column(gap) 快捷创建垂直 StackPanel；每个子元素独占一行，宽度默认由自身内容决定。",
-            Column(12).Children({ col }).Build(),
+            Column(12, { col }),
         },
         {
             "方向与间距（实时调节）",
             "在运行时通过 SetOrientation / SetGap 改变排列方向与间距，布局即时重排。",
-            Column(12).Children({
+            Column(12, {
                 livePanel,
                 WrapPanelWidget("Horizontal").Gap(16).Children({ dirCombo, gapSlider, configStatus }).Build(),
-            }).Build(),
+            }),
         },
     };
     spec.source =

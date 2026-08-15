@@ -27,8 +27,8 @@ std::string ColorHex(Color c) {
 } // namespace
 
 Element BuildColorPickerPage() {
-    auto picker = Make<ColorPicker>();
-    auto chip = Make<TextBlock>();
+    auto picker = ColorPickerWidget();
+    auto chip = Text();
     chip->Width = 48.0f;
     chip->Height = 24.0f;
     chip->CornerRadius = 4.0f;
@@ -57,10 +57,10 @@ Element BuildColorPickerPage() {
         {
             "强调色",
             "打开选择器，色块和十六进制值会同步更新。",
-            Column(10).Children({
+            Column(10, {
                 picker,
-                Row(12).Children({ chip, hex }).Build(),
-            }).Build(),
+                Row(12, {chip, hex }),
+            }),
         },
     };
     spec.source =
