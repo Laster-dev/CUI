@@ -17,8 +17,8 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<Canvas> MakeStage(float minHeight) {
-    auto stage = CanvasWidget();
-    stage->MinHeight = minHeight;
+    auto stage = CanvasWidget()
+        .MinHeight(minHeight);
     stage->ClipToBounds = true;
     stage->CornerRadius = 4.0f;
     stage->Background = D2D1::ColorF(0.97f, 0.97f, 0.99f, 0.5f);
@@ -386,8 +386,8 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     sideCircle->CanvasTop = 92.0f;
     canvasSide->AddChild(sideCircle);
 
-    auto flowColumn = Column(8).Padding(12).Build();
-    flowColumn->MinHeight = 150.0f;
+    auto flowColumn = Column(8).Padding(12)
+        .MinHeight(150.0f);
     flowColumn->BackgroundToken = ThemeTokenId::CardBackground;
     auto flowRect = RectangleWidget(110, 46).Build();
     flowRect->SetFill(Rgb(0x007ACC, 0.45f));

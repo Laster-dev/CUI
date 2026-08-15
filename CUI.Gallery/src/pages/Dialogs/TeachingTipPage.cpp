@@ -16,22 +16,22 @@ Element BuildTeachingTipPage() {
     auto status = MakeStatus("点击按钮显示指引气泡，此处显示操作结果。");
 
     // ── 1. 基础气泡 ─────────────────────────────────────────────────────
-    auto btnBasic = Button("显示基础 TeachingTip");
-    btnBasic->OnClick().Connect([status](UIElement* src) {
-        auto tip = TeachingTipWidget();
-        tip->SetTitle("欢迎使用 CUI 框架");
-        tip->SetMessage("这是一个 TeachingTip 气泡指引示例。它会自动停靠在目标控件旁边，并带有小三角箭头指示来源。");
-        tip->SetActionText("我知道了");
-        tip->OnAction().Connect([status, tip]() {
+    auto btnBasic = Button("显示基础 TeachingTip")
+        .OnClick([status](UIElement* src) {
+            auto tip = TeachingTipWidget();
+            tip->SetTitle("欢迎使用 CUI 框架");
+            tip->SetMessage("这是一个 TeachingTip 气泡指引示例。它会自动停靠在目标控件旁边，并带有小三角箭头指示来源。");
+            tip->SetActionText("我知道了");
+            tip->OnAction().Connect([status, tip]() {
             status->Text = "已点击【我知道了】，气泡已关闭。";
             tip->Close();
-        });
-        tip->OnClosed().Connect([status]() {
+            });
+            tip->OnClosed().Connect([status]() {
             status->Text = "气泡已关闭。";
-        });
-        src->AddChild(tip);
-        tip->ShowAround(src);
-    });
+            });
+            src->AddChild(tip);
+            tip->ShowAround(src);
+            });
 
     // ── 2. 无操作按钮、仅关闭叉 ────────────────────────────────────────
     auto btnCloseOnly = Button("仅关闭按钮");
@@ -87,28 +87,28 @@ Element BuildTeachingTipPage() {
     });
 
     // ── 4. 模态气泡 ─────────────────────────────────────────────────────
-    auto btnModal = Button("模态指引气泡");
-    btnModal->Background = Color::Hex("#1565C0");
-    btnModal->HoverBackground = Color::Hex("#0D47A1");
-    btnModal->PressedBackground = Color::Hex("#082C6E");
-    btnModal->Foreground = Color::White;
-    btnModal->OnClick().Connect([status](UIElement* src) {
-        auto tip = TeachingTipWidget();
-        tip->SetTitle("新功能介绍：智能搜索");
-        tip->SetMessage("使用顶部搜索栏可快速定位任意控件或页面。\n支持拼音首字母检索，按 Ctrl+K 随时唤出。");
-        tip->SetActionText("立即体验");
-        tip->SetIsModal(true);
-        tip->SetPreferredPlacement(BubblePlacement::Auto);
-        tip->OnAction().Connect([status, tip]() {
+    auto btnModal = Button("模态指引气泡")
+        .Background(Color::Hex("#1565C0"))
+        .Hover(Color::Hex("#0D47A1"))
+        .Pressed(Color::Hex("#082C6E"))
+        .Foreground(Color::White)
+        .OnClick([status](UIElement* src) {
+            auto tip = TeachingTipWidget();
+            tip->SetTitle("新功能介绍：智能搜索");
+            tip->SetMessage("使用顶部搜索栏可快速定位任意控件或页面。\n支持拼音首字母检索，按 Ctrl+K 随时唤出。");
+            tip->SetActionText("立即体验");
+            tip->SetIsModal(true);
+            tip->SetPreferredPlacement(BubblePlacement::Auto);
+            tip->OnAction().Connect([status, tip]() {
             status->Text = "已点击【立即体验】，功能引导完成。";
             tip->Close();
-        });
-        tip->OnClosed().Connect([status]() {
+            });
+            tip->OnClosed().Connect([status]() {
             status->Text = "模态气泡已关闭。";
-        });
-        src->AddChild(tip);
-        tip->ShowAround(src);
-    });
+            });
+            src->AddChild(tip);
+            tip->ShowAround(src);
+            });
 
     // ── 5. 自动停靠（Auto） ─────────────────────────────────────────────
     auto btnAuto = Button("自动停靠（Auto）");

@@ -57,6 +57,48 @@ public:
     bool OnAnimationTick() override;
     bool HasSelfAnimation() const override;
 
+    /**
+     * @brief 树视图根节点集合属性代理，支持容器级操作。
+     */
+    struct TreeViewItemsProperty {
+        TreeView* owner;
+        TreeViewItemsProperty& operator=(const std::vector<std::shared_ptr<TreeViewItem>>& items) { owner->SetItems(items); return *this; }
+        operator const std::vector<std::shared_ptr<TreeViewItem>>&() const { return owner->GetItems(); }
+        const std::vector<std::shared_ptr<TreeViewItem>>& Get() const { return owner->GetItems(); }
+        const std::vector<std::shared_ptr<TreeViewItem>>* operator->() const { return &owner->GetItems(); }
+        size_t size() const { return owner->GetItems().size(); }
+        bool empty() const { return owner->GetItems().empty(); }
+        const std::shared_ptr<TreeViewItem>& front() const { return owner->GetItems().front(); }
+        const std::shared_ptr<TreeViewItem>& back() const { return owner->GetItems().back(); }
+        auto begin() const { return owner->GetItems().begin(); }
+        auto end() const { return owner->GetItems().end(); }
+        const std::shared_ptr<TreeViewItem>& operator[](size_t idx) const { return owner->GetItems()[idx]; }
+    } Items{this};
+
+    /**
+     * @brief 树视图当前选中的节点对象属性代理。
+     */
+    struct TreeViewSelectedItemProperty {
+        TreeView* owner;
+        TreeViewSelectedItemProperty& operator=(std::shared_ptr<TreeViewItem> item) { owner->SetSelectedItem(std::move(item)); return *this; }
+        operator std::shared_ptr<TreeViewItem>() const { return owner->GetSelectedItem(); }
+        std::shared_ptr<TreeViewItem> Get() const { return owner->GetSelectedItem(); }
+        std::shared_ptr<TreeViewItem> operator->() const { return owner->GetSelectedItem(); }
+        bool operator!() const { return !owner->GetSelectedItem(); }
+        explicit operator bool() const { return static_cast<bool>(owner->GetSelectedItem()); }
+        TreeViewItem* get() const { return owner->GetSelectedItem().get(); }
+    } SelectedItem{this};
+
+    /**
+     * @brief 树视图每级子节点的水平缩进宽度属性代理。
+     */
+    struct TreeViewIndentWidthProperty {
+        TreeView* owner;
+        TreeViewIndentWidthProperty& operator=(float w) { owner->SetIndentWidth(w); return *this; }
+        operator float() const { return owner->GetIndentWidth(); }
+        float Get() const { return owner->GetIndentWidth(); }
+    } IndentWidth{this};
+
     void ClearItems();
     void AddItem(std::shared_ptr<TreeViewItem> item);
     std::shared_ptr<TreeViewItem> AddItem(const std::string& header, bool expanded = false);
@@ -68,6 +110,8 @@ public:
 
     // Expand / collapse a branch (no-op if item has no children).
     void SetItemExpanded(std::shared_ptr<TreeViewItem> item, bool expanded);
+    void ExpandItem(std::shared_ptr<TreeViewItem> item) { SetItemExpanded(item, true); }
+    void CollapseItem(std::shared_ptr<TreeViewItem> item) { SetItemExpanded(item, false); }
     void ToggleExpanded(std::shared_ptr<TreeViewItem> item);
 
     float GetIndentWidth() const { return m_indentWidth; }

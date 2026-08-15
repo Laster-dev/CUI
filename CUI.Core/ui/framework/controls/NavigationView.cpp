@@ -845,10 +845,10 @@ void NavigationView::NotifyItemInvoked(NavigationViewItem* item) {
     ProgressBarDiag::Log(
         "[PB] Nav ItemInvoked tag=%s selects=%d children=%d",
         item->GetTag().c_str(),
-        item->SelectsOnInvoked() ? 1 : 0,
+        item->GetSelectsOnInvoked() ? 1 : 0,
         item->HasChildren() ? 1 : 0);
 
-    if (item->SelectsOnInvoked()) {
+    if (item->GetSelectsOnInvoked()) {
         if (item->GetTag().empty()) {
             SetSelectedItem(item);
             ClosePaneIfOverlay();

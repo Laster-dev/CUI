@@ -24,18 +24,18 @@ Element BuildTimePickerPage() {
     auto status = MakeStatus("");
     status->Text->Bind(statusValue, BindingMode::OneWay);
 
-    auto morning = Button("上午 08:30");
-    morning->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "08:30"; });
-    auto noon = Button("中午 12:00");
-    noon->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "12:00"; });
-    auto evening = Button("晚上 18:30");
-    evening->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "18:30"; });
-    auto midnight = Button("午夜 23:45");
-    midnight->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "23:45"; });
+    auto morning = Button("上午 08:30")
+        .OnClick([selectedTime](UIElement*) { selectedTime = "08:30"; });
+    auto noon = Button("中午 12:00")
+        .OnClick([selectedTime](UIElement*) { selectedTime = "12:00"; });
+    auto evening = Button("晚上 18:30")
+        .OnClick([selectedTime](UIElement*) { selectedTime = "18:30"; });
+    auto midnight = Button("午夜 23:45")
+        .OnClick([selectedTime](UIElement*) { selectedTime = "23:45"; });
 
-    auto programmatic = Button("程序设置 06:15");
-    programmatic->Width = 200.0f;
-    programmatic->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "06:15"; });
+    auto programmatic = Button("程序设置 06:15")
+        .Width(200.0f)
+        .OnClick([selectedTime](UIElement*) { selectedTime = "06:15"; });
 
     auto disabled = TimePickerWidget();
     disabled->SetTime(9, 0);
@@ -49,8 +49,8 @@ Element BuildTimePickerPage() {
     }, reminderTime);
     auto reminderStatus = MakeStatus("");
     reminderStatus->Text->Bind(reminderStatusValue, BindingMode::OneWay);
-    auto setReminder = Button("设置提醒为 07:45");
-    setReminder->OnClick().Connect([reminderTime](UIElement*) { reminderTime = "07:45"; });
+    auto setReminder = Button("设置提醒为 07:45")
+        .OnClick([reminderTime](UIElement*) { reminderTime = "07:45"; });
 
     SamplePageSpec spec;
     spec.title = "TimePicker(时间选择器)";

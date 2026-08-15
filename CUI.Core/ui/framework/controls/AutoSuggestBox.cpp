@@ -162,7 +162,7 @@ void AutoSuggestBox::ClearSuggestionItems() {
     MarkRenderContentDirty();
 }
 
-void AutoSuggestBox::SetSuggestionProvider(SuggestionProvider provider) {
+void AutoSuggestBox::SetSuggestionProvider(SuggestionProviderFn provider) {
     m_provider = std::move(provider);
     ScheduleSuggestRefresh();
 }
@@ -280,8 +280,8 @@ void AutoSuggestBox::RefreshSuggestionsNow() {
 void AutoSuggestBox::BeginKeyboardNavigation() {
     m_keyboardNavActive = true;
     if (PopupHost* host = PopupHost::Current()) {
-        if (HWND hwnd = host->GetOwnerHwnd()) {
-            POINT sp{};
+        if (::HWND hwnd = host->GetOwnerHwnd()) {
+            ::POINT sp{};
             if (::GetCursorPos(&sp) && ::ScreenToClient(hwnd, &sp)) {
                 const float scale = GetDpiScaleForWindow(hwnd);
                 if (scale > 0.001f) {

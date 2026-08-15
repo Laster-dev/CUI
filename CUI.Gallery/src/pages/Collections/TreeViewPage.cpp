@@ -72,9 +72,9 @@ void SetExpandedRecursively(TreeView* tree, const std::vector<std::shared_ptr<Tr
 } // namespace
 
 Element BuildTreeViewPage() {
-    auto tree = TreeViewWidget();
-    tree->Height = 330.0f;
-    tree->Width = 520.0f;
+    auto tree = TreeViewWidget()
+        .Height(330.0f)
+        .Width(520.0f);
     tree->SetItems(BuildProjectTree());
 
     State<std::string> treeStatusText{ "选择节点，单击箭头展开或折叠；双击节点可作为打开命令。" };
@@ -90,86 +90,86 @@ Element BuildTreeViewPage() {
         treeStatusText = "双击：" + item->header + "；业务层可在此打开文件或页面。";
     });
 
-    auto expandAll = Button("全部展开");
-    expandAll->OnClick().Connect([tree, treeStatusText](UIElement*) {
-        SetExpandedRecursively(tree.get(), tree->GetItems(), true);
-        treeStatusText = "已展开所有包含子项的节点。";
-    });
-    auto collapseAll = Button("全部折叠");
-    collapseAll->OnClick().Connect([tree, treeStatusText](UIElement*) {
-        SetExpandedRecursively(tree.get(), tree->GetItems(), false);
-        treeStatusText = "已折叠所有分支。";
-    });
-    auto selectRoot = Button("选择根节点");
-    selectRoot->OnClick().Connect([tree](UIElement*) {
-        if (!tree->GetItems().empty()) tree->SetSelectedItem(tree->GetItems().front());
-    });
-    auto clearSelection = Button("清除选择");
-    clearSelection->OnClick().Connect([tree](UIElement*) { tree->SetSelectedItem(nullptr); });
-    auto indentCompact = Button("紧凑缩进");
-    indentCompact->OnClick().Connect([tree](UIElement*) { tree->SetIndentWidth(14.0f); });
-    auto indentWide = Button("宽松缩进");
-    indentWide->OnClick().Connect([tree](UIElement*) { tree->SetIndentWidth(28.0f); });
+    auto expandAll = Button("全部展开")
+        .OnClick([tree, treeStatusText](UIElement*) {
+            SetExpandedRecursively(tree.get(), tree->GetItems(), true);
+            treeStatusText = "已展开所有包含子项的节点。";
+            });
+    auto collapseAll = Button("全部折叠")
+        .OnClick([tree, treeStatusText](UIElement*) {
+            SetExpandedRecursively(tree.get(), tree->GetItems(), false);
+            treeStatusText = "已折叠所有分支。";
+            });
+    auto selectRoot = Button("选择根节点")
+        .OnClick([tree](UIElement*) {
+            if (!tree->GetItems().empty()) tree->SetSelectedItem(tree->GetItems().front());
+            });
+    auto clearSelection = Button("清除选择")
+        .OnClick([tree](UIElement*) { tree->SetSelectedItem(nullptr); });
+    auto indentCompact = Button("紧凑缩进")
+        .OnClick([tree](UIElement*) { tree->SetIndentWidth(14.0f); });
+    auto indentWide = Button("宽松缩进")
+        .OnClick([tree](UIElement*) { tree->SetIndentWidth(28.0f); });
 
     State<int> newNodeSerial{ 1 };
-    auto addRoot = Button("添加根节点");
-    addRoot->OnClick().Connect([tree, newNodeSerial, treeStatusText](UIElement*) {
-        const int serial = newNodeSerial.Get();
-        newNodeSerial = serial + 1;
-        auto item = tree->AddItem("动态根节点 " + std::to_string(serial), true);
-        item->icon = "✨";
-        tree->SetSelectedItem(item);
-        treeStatusText = "已添加并选中动态根节点。";
-    });
-    auto addChild = Button("向选中项加载子项");
-    addChild->OnClick().Connect([tree, newNodeSerial, treeStatusText](UIElement*) {
-        auto parent = tree->GetSelectedItem();
-        if (!parent) {
+    auto addRoot = Button("添加根节点")
+        .OnClick([tree, newNodeSerial, treeStatusText](UIElement*) {
+            const int serial = newNodeSerial.Get();
+            newNodeSerial = serial + 1;
+            auto item = tree->AddItem("动态根节点 " + std::to_string(serial), true);
+            item->icon = "✨";
+            tree->SetSelectedItem(item);
+            treeStatusText = "已添加并选中动态根节点。";
+            });
+    auto addChild = Button("向选中项加载子项")
+        .OnClick([tree, newNodeSerial, treeStatusText](UIElement*) {
+            auto parent = tree->GetSelectedItem();
+            if (!parent) {
             treeStatusText = "请先选择一个节点，再加载子项。";
             return;
-        }
-        const int serial = newNodeSerial.Get();
-        newNodeSerial = serial + 1;
-        auto child = TreeItem("延迟加载子项 " + std::to_string(serial), "📄");
-        child->parent = parent.get();
-        parent->children.push_back(child);
-        tree->SetItemExpanded(parent, true);
-        tree->InvalidateVisibleItems();
-        treeStatusText = "已为 " + parent->header + " 加载一个子项。";
-    });
-    auto clearTree = Button("清空树");
-    clearTree->OnClick().Connect([tree, treeStatusText](UIElement*) {
-        tree->ClearItems();
-        treeStatusText = "已清空全部根节点。";
-    });
-    auto resetTree = Button("替换整个数据源");
-    resetTree->OnClick().Connect([tree, treeStatusText](UIElement*) {
-        tree->SetItems(BuildProjectTree());
-        treeStatusText = "已通过 SetItems 替换整个树形集合。";
-    });
+            }
+            const int serial = newNodeSerial.Get();
+            newNodeSerial = serial + 1;
+            auto child = TreeItem("延迟加载子项 " + std::to_string(serial), "📄");
+            child->parent = parent.get();
+            parent->children.push_back(child);
+            tree->SetItemExpanded(parent, true);
+            tree->InvalidateVisibleItems();
+            treeStatusText = "已为 " + parent->header + " 加载一个子项。";
+            });
+    auto clearTree = Button("清空树")
+        .OnClick([tree, treeStatusText](UIElement*) {
+            tree->ClearItems();
+            treeStatusText = "已清空全部根节点。";
+            });
+    auto resetTree = Button("替换整个数据源")
+        .OnClick([tree, treeStatusText](UIElement*) {
+            tree->SetItems(BuildProjectTree());
+            treeStatusText = "已通过 SetItems 替换整个树形集合。";
+            });
 
-    auto lazyTree = TreeViewWidget();
-    lazyTree->Height = 190.0f;
-    lazyTree->Width = 520.0f;
+    auto lazyTree = TreeViewWidget()
+        .Height(190.0f)
+        .Width(520.0f);
     auto lazyRoot = TreeItem("按需加载目录", "📁", false);
     lazyTree->AddItem(lazyRoot);
     State<std::string> lazyStatusText{ "点击“加载子项”，模拟文件系统或网络目录的延迟返回。" };
     auto lazyStatus = MakeStatus("");
     lazyStatus->Text->Bind(lazyStatusText, BindingMode::OneWay);
-    auto loadLazy = Button("加载子项");
-    loadLazy->OnClick().Connect([lazyTree, lazyRoot, lazyStatusText](UIElement*) {
-        if (lazyRoot->children.empty()) {
+    auto loadLazy = Button("加载子项")
+        .OnClick([lazyTree, lazyRoot, lazyStatusText](UIElement*) {
+            if (lazyRoot->children.empty()) {
             lazyRoot->children = {
-                TreeItem("assets", "📁"),
-                TreeItem("src", "📁"),
-                TreeItem("README.md", "📄"),
+            TreeItem("assets", "📁"),
+            TreeItem("src", "📁"),
+            TreeItem("README.md", "📄"),
             };
             for (const auto& child : lazyRoot->children) child->parent = lazyRoot.get();
             lazyTree->InvalidateVisibleItems();
-        }
-        lazyTree->SetItemExpanded(lazyRoot, true);
-        lazyStatusText = "延迟子项已加载；再次点击不会重复创建。";
-    });
+            }
+            lazyTree->SetItemExpanded(lazyRoot, true);
+            lazyStatusText = "延迟子项已加载；再次点击不会重复创建。";
+            });
 
     SamplePageSpec spec;
     spec.title = "TreeView(树形视图)";

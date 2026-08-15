@@ -134,6 +134,41 @@ UIElement::UIElement() {
     GridRow.Initialize(*this);
     GridColumnSpan.Initialize(*this);
     GridRowSpan.Initialize(*this);
+    Id.Initialize(*this);
+    Tag.Initialize(*this);
+    NavigateUri.Initialize(*this);
+    AcceptsReturn.Initialize(*this);
+    TextWrapping.Initialize(*this);
+    IsReadOnly.Initialize(*this);
+    IsPasswordRevealed.Initialize(*this);
+    ShowRevealButton.Initialize(*this);
+    IsOn.Initialize(*this);
+    IsExpanded.Initialize(*this);
+    IsOpen.Initialize(*this);
+    IsCloseVisible.Initialize(*this);
+    IsPaneOpen.Initialize(*this);
+    IsSettingsVisible.Initialize(*this);
+    Title.Initialize(*this);
+    Message.Initialize(*this);
+    Subtitle.Initialize(*this);
+    Header.Initialize(*this);
+    PaneTitle.Initialize(*this);
+    GroupName.Initialize(*this);
+    ActionText.Initialize(*this);
+
+    Bounds.Initialize([this]() { return GetBounds(); });
+    HWND.Initialize([this]() { return GetHWND(); });
+    DesiredSize.Initialize([this]() { return GetDesiredSize(); });
+    ActualWidth.Initialize([this]() { return GetBounds().width; });
+    ActualHeight.Initialize([this]() { return GetBounds().height; });
+    Children.Initialize(
+        [this]() -> const std::vector<Element>& { return GetChildren(); },
+        [this](const std::vector<Element>& children) {
+            ClearChildren();
+            for (const auto& child : children) {
+                if (child) AddChild(child);
+            }
+        });
     OnPropertyIdChanged().Connect([this](PropertyId, const Value&) {
         MarkRenderContentDirty();
     });
@@ -153,6 +188,11 @@ UIElement::~UIElement() {
         }
     }
     m_children.clear();
+}
+
+::HWND UIElement::GetHWND() const {
+    if (m_parent) return m_parent->GetHWND();
+    return nullptr;
 }
 
 void UIElement::SetParent(UIElement* parent) {
@@ -817,7 +857,7 @@ void UIElement::OnMouseUp(Point pt) {
         m_isPressed = false;
         if (IsEnabled() && m_bounds.Contains(pt.x, pt.y)) {
             ExecuteBoundCommand();
-            m_onClickEvent.Invoke(this);
+            OnClick.Invoke(this);
         }
         MarkRenderRectDirty(m_bounds);
     }

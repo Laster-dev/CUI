@@ -18,13 +18,15 @@ static Point ToLocal(const CanvasControl* canvas, Point pt) {
  * 与鼠标回调的局部坐标保持一致。
  */
 void CanvasControl::OnRender(GraphicsContext& ctx) {
-    if (m_onDraw) {
-        const Rect& b = GetBounds();
-        ctx.PushTransform(D2D1::Matrix3x2F::Translation(b.x, b.y));
-        Size size{ b.width, b.height };
+    const Rect& b = GetBounds();
+    ctx.PushTransform(D2D1::Matrix3x2F::Translation(b.x, b.y));
+    Size size{ b.width, b.height };
+    if (OnDraw) {
+        OnDraw(ctx, size);
+    } else if (m_onDraw) {
         m_onDraw(ctx, size);
-        ctx.PopTransform();
     }
+    ctx.PopTransform();
 }
 
 /**
@@ -33,8 +35,11 @@ void CanvasControl::OnRender(GraphicsContext& ctx) {
  */
 void CanvasControl::OnMouseDown(Point pt) {
     UIElement::OnMouseDown(pt);
-    if (m_onMouseDown) {
-        m_onMouseDown(ToLocal(this, pt));
+    Point localPt = ToLocal(this, pt);
+    if (OnCanvasMouseDown) {
+        OnCanvasMouseDown(localPt);
+    } else if (m_onMouseDown) {
+        m_onMouseDown(localPt);
     }
 }
 
@@ -44,8 +49,11 @@ void CanvasControl::OnMouseDown(Point pt) {
  */
 void CanvasControl::OnMouseUp(Point pt) {
     UIElement::OnMouseUp(pt);
-    if (m_onMouseUp) {
-        m_onMouseUp(ToLocal(this, pt));
+    Point localPt = ToLocal(this, pt);
+    if (OnCanvasMouseUp) {
+        OnCanvasMouseUp(localPt);
+    } else if (m_onMouseUp) {
+        m_onMouseUp(localPt);
     }
 }
 
@@ -55,8 +63,11 @@ void CanvasControl::OnMouseUp(Point pt) {
  */
 void CanvasControl::OnMouseMove(Point pt) {
     UIElement::OnMouseMove(pt);
-    if (m_onMouseMove) {
-        m_onMouseMove(ToLocal(this, pt));
+    Point localPt = ToLocal(this, pt);
+    if (OnCanvasMouseMove) {
+        OnCanvasMouseMove(localPt);
+    } else if (m_onMouseMove) {
+        m_onMouseMove(localPt);
     }
 }
 
@@ -65,12 +76,15 @@ void CanvasControl::OnMouseMove(Point pt) {
  * 将帧间隔秒数透传给 m_onTick 回调，并依据其返回值决定是否继续注册动画 Tick。
  */
 bool CanvasControl::OnAnimationTick() {
+    float dt = 1.0f / 60.0f;
+    if (AnimationManager* mgr = AnimationManager::Current()) {
+        dt = mgr->GetDeltaSeconds();
+    }
     bool keep = false;
-    if (m_onTick) {
-        float dt = 1.0f / 60.0f;
-        if (AnimationManager* mgr = AnimationManager::Current()) {
-            dt = mgr->GetDeltaSeconds();
-        }
+    if (OnTick) {
+        keep = OnTick(dt);
+        if (keep) RequestAnimationTicks();
+    } else if (m_onTick) {
         keep = m_onTick(dt);
     }
     return UIElement::OnAnimationTick() || keep;

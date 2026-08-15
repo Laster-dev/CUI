@@ -15,21 +15,21 @@ Element BuildContentDialogPage() {
     auto status = MakeStatus("点击按钮触发对话框，此处显示结果。");
 
     // ── 1. 信息确认对话框 ────────────────────────────────────────────────
-    auto btnInfo = Button("打开信息提示框");
-    btnInfo->OnClick().Connect([status](UIElement* src) {
-        auto dlg = ContentDialogWidget();
-        dlg->SetTitle("操作提示");
-        dlg->SetMessage("您确定要继续执行此操作吗？此操作不可撤销，请谨慎确认。");
-        dlg->SetPrimaryButtonText("确定");
-        dlg->SetCloseButtonText("取消");
-        src->AddChild(dlg);
-        dlg->Show([status, dlg](DialogResult r) {
+    auto btnInfo = Button("打开信息提示框")
+        .OnClick([status](UIElement* src) {
+            auto dlg = ContentDialogWidget();
+            dlg->SetTitle("操作提示");
+            dlg->SetMessage("您确定要继续执行此操作吗？此操作不可撤销，请谨慎确认。");
+            dlg->SetPrimaryButtonText("确定");
+            dlg->SetCloseButtonText("取消");
+            src->AddChild(dlg);
+            dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
-                status->Text = "结果：已点击【确定】，操作继续执行。";
+            status->Text = "结果：已点击【确定】，操作继续执行。";
             else
-                status->Text = "结果：已点击【取消】，操作已中止。";
-        });
-    });
+            status->Text = "结果：已点击【取消】，操作已中止。";
+            });
+            });
 
     // ── 2. 三按钮对话框 ─────────────────────────────────────────────────
     auto btnThree = Button("三个按钮的对话框");
@@ -81,25 +81,25 @@ Element BuildContentDialogPage() {
     });
 
     // ── 4. 危险操作对话框 ───────────────────────────────────────────────
-    auto btnDanger = Button("危险操作确认");
-    btnDanger->Background = Color::Hex("#C62828");
-    btnDanger->HoverBackground = Color::Hex("#B71C1C");
-    btnDanger->PressedBackground = Color::Hex("#8E0000");
-    btnDanger->Foreground = Color::White;
-    btnDanger->OnClick().Connect([status](UIElement* src) {
-        auto dlg = ContentDialogWidget();
-        dlg->SetTitle("永久删除");
-        dlg->SetMessage("此操作将永久删除所选的 3 个文件，总计 128 MB。\n\n已删除的内容无法从回收站恢复，请确认操作。");
-        dlg->SetPrimaryButtonText("永久删除");
-        dlg->SetCloseButtonText("取消");
-        src->AddChild(dlg);
-        dlg->Show([status, dlg](DialogResult r) {
+    auto btnDanger = Button("危险操作确认")
+        .Background(Color::Hex("#C62828"))
+        .Hover(Color::Hex("#B71C1C"))
+        .Pressed(Color::Hex("#8E0000"))
+        .Foreground(Color::White)
+        .OnClick([status](UIElement* src) {
+            auto dlg = ContentDialogWidget();
+            dlg->SetTitle("永久删除");
+            dlg->SetMessage("此操作将永久删除所选的 3 个文件，总计 128 MB。\n\n已删除的内容无法从回收站恢复，请确认操作。");
+            dlg->SetPrimaryButtonText("永久删除");
+            dlg->SetCloseButtonText("取消");
+            src->AddChild(dlg);
+            dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
-                status->Text = "结果：已执行永久删除，文件已清除。";
+            status->Text = "结果：已执行永久删除，文件已清除。";
             else
-                status->Text = "结果：已取消删除操作。";
-        });
-    });
+            status->Text = "结果：已取消删除操作。";
+            });
+            });
 
     SamplePageSpec spec;
     spec.title    = "ContentDialog（内容对话框）";

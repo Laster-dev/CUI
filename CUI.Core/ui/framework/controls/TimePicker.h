@@ -43,6 +43,14 @@ public:
     int GetHour() const { return m_hour; } // 获取当前选中的小时数 (0-23)
     int GetMinute() const { return m_minute; } // 获取当前选中的分钟数 (0-59)
     void SetTime(int hour, int minute); // 设定具体的时、分值并平移滚轮位置
+    struct TimePickerFormattedTimeProperty {
+        TimePicker* owner = nullptr;
+        TimePickerFormattedTimeProperty() = default;
+        explicit TimePickerFormattedTimeProperty(TimePicker* o) : owner(o) {}
+        operator std::string() const { return owner ? owner->GetFormattedTime() : ""; }
+        std::string Get() const { return owner ? owner->GetFormattedTime() : ""; }
+    } FormattedTime;
+
     std::string GetFormattedTime() const;
 
     PropertyRef<std::string, PropertyId::TimeStr> SelectedTime;

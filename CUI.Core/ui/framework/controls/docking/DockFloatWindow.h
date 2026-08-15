@@ -12,7 +12,7 @@ namespace CUI {
 class DockManager;
 class UIElement;
 
-// Torn-off pane hosted in a CUI-chrome HWND (custom title bar, no native caption).
+// Torn-off pane hosted in a CUI-chrome ::HWND (custom title bar, no native caption).
 // Content stays in the owner Window live tree so AnimationManager ticks it;
 // this object only presents that already-ticked UI onto a second HWND.
 class DockFloatWindow {
@@ -25,29 +25,29 @@ public:
 
     bool Show(DockManager* manager,
               int paneIndex,
-              HWND owner,
+              ::HWND owner,
               Point screenDipTopLeft,
               Size windowDipSize);
     void Destroy();
     void DetachContent();
 
-    HWND GetHWND() const { return m_hwnd; }
+    ::HWND GetHWND() const { return m_hwnd; }
     int GetPaneIndex() const { return m_paneIndex; }
     void RemapPaneIndexAfterClose(int closedIndex);
 
     using CloseCallback = std::function<void(DockFloatWindow*)>;
     void SetCloseCallback(CloseCallback cb) { m_onClose = std::move(cb); }
 
-    static bool IsDockFloatHwnd(HWND hwnd);
-    static DockFloatWindow* FromHwnd(HWND hwnd);
+    static bool IsDockFloatHwnd(::HWND hwnd);
+    static DockFloatWindow* FromHwnd(::HWND hwnd);
     // Called from the owner Window frame loop after AnimationManager::Tick.
     static void PresentAll();
 
 private:
-    static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK WndProc(::HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     static void EnsureClass();
 
-    bool EnsureWindow(HWND owner);
+    bool EnsureWindow(::HWND owner);
     void ApplyCuiChrome();
     void Paint();
     void Relayout();
@@ -67,8 +67,8 @@ private:
     void UpdateRedockTracking();
     void FinishRedockTracking();
 
-    HWND m_hwnd = nullptr;
-    HWND m_owner = nullptr;
+    ::HWND m_hwnd = nullptr;
+    ::HWND m_owner = nullptr;
     DockManager* m_manager = nullptr;
     int m_paneIndex = -1;
     std::shared_ptr<UIElement> m_content;

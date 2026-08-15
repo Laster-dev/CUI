@@ -133,7 +133,7 @@ void Expander::SetIsExpanded(bool expanded) {
     InvalidateExpanderLayout();
 }
 
-void Expander::SetExpandDirection(ExpandDirection direction) {
+void Expander::SetExpandDirection(CUI::ExpandDirection direction) {
     if (m_expandDirection == direction) {
         return;
     }

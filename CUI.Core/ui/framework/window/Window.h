@@ -63,6 +63,66 @@ public:
      * @brief 设置窗口根级元素。
      * @param root 指向 UIElement 根级控件的共享指针。
      */
+        /**
+     * @brief 窗口主题模式 (Light / Dark) 属性代理。
+     */
+    struct WindowThemeModeProperty {
+        Window* owner = nullptr;
+        WindowThemeModeProperty() = default;
+        explicit WindowThemeModeProperty(Window* o) : owner(o) {}
+        WindowThemeModeProperty& operator=(CUI::ThemeMode m) { if (owner) owner->SetThemeMode(m); return *this; }
+        operator CUI::ThemeMode() const { return owner ? owner->GetThemeMode() : CUI::ThemeMode::Dark; }
+        CUI::ThemeMode Get() const { return owner ? owner->GetThemeMode() : CUI::ThemeMode::Dark; }
+    } ThemeMode;
+
+    /**
+     * @brief 窗口背景材质 (Mica / Acrylic / None) 属性代理。
+     */
+    struct WindowBackdropTypeProperty {
+        Window* owner = nullptr;
+        WindowBackdropTypeProperty() = default;
+        explicit WindowBackdropTypeProperty(Window* o) : owner(o) {}
+        WindowBackdropTypeProperty& operator=(CUI::BackdropType b) { if (owner) owner->SetBackdropType(b); return *this; }
+        operator CUI::BackdropType() const { return owner ? owner->GetBackdropType() : CUI::BackdropType::None; }
+        CUI::BackdropType Get() const { return owner ? owner->GetBackdropType() : CUI::BackdropType::None; }
+    } BackdropType;
+
+    /**
+     * @brief 渲染性能统计浮层是否显示属性代理。
+     */
+    struct WindowRenderStatsProperty {
+        Window* owner = nullptr;
+        WindowRenderStatsProperty() = default;
+        explicit WindowRenderStatsProperty(Window* o) : owner(o) {}
+        WindowRenderStatsProperty& operator=(bool v) { if (owner) owner->SetRenderStatsOverlayVisible(v); return *this; }
+        operator bool() const { return owner ? owner->IsRenderStatsOverlayVisible() : false; }
+        bool Get() const { return owner ? owner->IsRenderStatsOverlayVisible() : false; }
+    } RenderStatsOverlayVisible;
+
+    /**
+     * @brief 窗口承载的顶层根 UI 元素属性代理。
+     */
+    struct WindowRootElementProperty {
+        Window* owner = nullptr;
+        WindowRootElementProperty() = default;
+        explicit WindowRootElementProperty(Window* o) : owner(o) {}
+        WindowRootElementProperty& operator=(std::shared_ptr<UIElement> r) { if (owner) owner->SetRootElement(std::move(r)); return *this; }
+        operator std::shared_ptr<UIElement>() const { return owner ? owner->GetRootElement() : nullptr; }
+        std::shared_ptr<UIElement> Get() const { return owner ? owner->GetRootElement() : nullptr; }
+        std::shared_ptr<UIElement> operator->() const { return owner ? owner->GetRootElement() : nullptr; }
+    } RootElement;
+
+    /**
+     * @brief Win32 宿主窗口原生句柄只读属性代理。
+     */
+    struct WindowHWNDProperty {
+        Window* owner = nullptr;
+        WindowHWNDProperty() = default;
+        explicit WindowHWNDProperty(Window* o) : owner(o) {}
+        operator ::HWND() const { return owner ? owner->GetHWND() : nullptr; }
+        ::HWND Get() const { return owner ? owner->GetHWND() : nullptr; }
+    } HWND;
+
     void SetRootElement(std::shared_ptr<UIElement> root);
 
     /**
@@ -78,7 +138,7 @@ public:
     /**
      * @brief 获取当前窗口的原生 Win32 句柄。
      */
-    HWND GetHWND() const { return m_hwnd; }
+    ::HWND GetHWND() const { return m_hwnd; }
 
     /**
      * @brief 获取 Direct2D 设备图形上下文。
@@ -119,34 +179,34 @@ public:
     /**
      * @brief 设置窗口的毛玻璃/云母/亚克力等系统级后置背景样式。
      */
-    void SetBackdropType(BackdropType type);
+    void SetBackdropType(CUI::BackdropType type);
 
     /**
      * @brief 获取窗口的毛玻璃后置背景样式。
      */
-    BackdropType GetBackdropType() const { return m_backdropType; }
+    CUI::BackdropType GetBackdropType() const { return m_backdropType; }
 
     /**
      * @brief 手动修改程序的主题颜色模式（Light/Dark）。
      */
-    void SetThemeMode(ThemeMode theme);
+    void SetThemeMode(CUI::ThemeMode theme);
 
     /**
      * @brief 触发带水波纹涟漪渐变的主题颜色平滑过渡。
      * @param theme 目标的主题模式。
      * @param originPoint 水波纹扩散的源起坐标中心点。
      */
-    void SetThemeModeWithRipple(ThemeMode theme, Point originPoint);
+    void SetThemeModeWithRipple(CUI::ThemeMode theme, Point originPoint);
 
     /**
      * @brief 获取当前的主题颜色模式。
      */
-    ThemeMode GetThemeMode() const { return m_themeMode; }
+    CUI::ThemeMode GetThemeMode() const { return m_themeMode; }
 
     /**
      * @brief 监听主题全局修改的事件委托连接点。
      */
-    Event<Window*, ThemeMode>& OnThemeChanged() { return m_onThemeChanged; }
+    Event<Window*, CUI::ThemeMode>& OnThemeChanged() { return m_onThemeChanged; }
 
     /**
      * @brief 设置是否显示右上角的帧率与脏渲染统计信息 Overlay。
@@ -219,7 +279,7 @@ public:
 private:
     static Window* s_current; // 全局窗口单例静态缓存指针
 
-    static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam); // 静态 Win32 回调入口
+    static LRESULT CALLBACK WindowProc(::HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam); // 静态 Win32 回调入口
     LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);                         // 实例消息路由处理函数
 
     void OnPaint();                                                     // 处理 WM_PAINT 并刷新 Direct2D 画面
@@ -266,7 +326,7 @@ private:
     bool m_oleDropRegistered = false;                                   // 指示是否已向操作系统成功注册了拖放服务
     bool m_needOleUninit = false;                                       // 标识是否需要在窗口析构时调用 OleUninitialize()
 
-    HWND m_hwnd = nullptr;                                              // 窗口的 OS 原生句柄
+    ::HWND m_hwnd = nullptr;                                              // 窗口的 OS 原生句柄
     float m_dpiScale = 1.0f;                                            // 屏幕 DPI 逻辑缩放因子
     Size m_logicalClientSize{ 0.0f, 0.0f };                             // DPI 缩放后的逻辑窗口客户区尺寸 (宽度, 高度)
     GraphicsContext m_gfxContext;                                       // Direct3D 与 Direct2D 底层设备硬件图形渲染上下文
@@ -304,9 +364,9 @@ private:
     bool m_showRenderStatsOverlay = false;                              // 是否在画面右上角贴片显示性能计数器
     bool m_lowPerformanceMode = false;                                  // 低画质性能节省运行模式
     bool m_flushInputDirty = false;                                     // 标识输入设备状态发生改变，窗口下一次 Relayout 必须刷新
-    BackdropType m_backdropType = BackdropType::None;                   // 当前窗口下发的毛玻璃后置背景类型样式
-    ThemeMode m_themeMode = ThemeMode::Dark;                             // 当前窗口所采纳的样式主题模式（Light / Dark）
-    Event<Window*, ThemeMode> m_onThemeChanged;                         // 主题发生改变时的事件分发器
+    CUI::BackdropType m_backdropType = CUI::BackdropType::None;                   // 当前窗口下发的毛玻璃后置背景类型样式
+    CUI::ThemeMode m_themeMode = CUI::ThemeMode::Dark;                             // 当前窗口所采纳的样式主题模式（Light / Dark）
+    Event<Window*, CUI::ThemeMode> m_onThemeChanged;                         // 主题发生改变时的事件分发器
     mutable std::chrono::steady_clock::time_point m_overlayFpsSampleStart{}; // 性能面板帧率采样开始时间戳
     mutable unsigned m_overlayFrameCounter = 0;                         // 性能面板渲染累计帧数
     mutable float m_overlayFps = 0.0f;                                  // 性能面板展示的当前 FPS 缓存数值

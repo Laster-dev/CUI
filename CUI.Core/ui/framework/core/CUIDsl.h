@@ -95,103 +95,106 @@ inline D2D1_COLOR_F Rgb(unsigned int rgb, float alpha = 1.0f) { // 十六进制 
  * @tparam T 控件类型。
  */
 template <typename T>
-class ElementBuilder {
+class ElementBuilder : public ElementRef<T> {
 public:
-    ElementBuilder() : m_element(std::make_shared<T>()) {} // 默认初始化建造者
-    explicit ElementBuilder(std::shared_ptr<T> elem) : m_element(elem) {} // 用已有的控件指针初始化
+    using ElementRef<T>::m_ptr;
+    ElementBuilder() : ElementRef<T>(std::make_shared<T>()) {}
+    explicit ElementBuilder(std::shared_ptr<T> elem) : ElementRef<T>(std::move(elem)) {}
+    template<typename U, typename = std::enable_if_t<!std::is_same_v<U, T> && std::is_convertible_v<U*, T*>>>
+    ElementBuilder(const ElementRef<U>& ref) : ElementRef<T>(ref.Shared()) {}
 
-    operator std::shared_ptr<T>() const { return m_element; } // 隐式转换为具体的智能指针类型
-    operator std::shared_ptr<UIElement>() const { return m_element; } // 隐式转换为 UIElement 基类智能指针
-    std::shared_ptr<T> Build() const { return m_element; } // 链式终点：返回构造完成的共享指针
-    T* operator->() const { return m_element.get(); } // 重载指针运算符以便快捷存取成员
-    T* get() const { return m_element.get(); }
+    operator std::shared_ptr<T>() const { return m_ptr; } // 隐式转换为具体的智能指针类型
+    operator std::shared_ptr<UIElement>() const { return m_ptr; } // 隐式转换为 UIElement 基类智能指针
+    std::shared_ptr<T> Build() const { return m_ptr; } // 链式终点：返回构造完成的共享指针
+    T* operator->() const { return m_ptr.get(); } // 重载指针运算符以便快捷存取成员
+    T* get() const { return m_ptr.get(); }
 
     ElementBuilder& Id(const std::string& id) { // 设定控件检索 ID
-        m_element->SetId(id);
+        m_ptr->SetId(id);
         return *this;
     }
 
     ElementBuilder& Width(float w) { // 设定显式排版宽度
-        m_element->SetWidth(w);
+        m_ptr->SetWidth(w);
         return *this;
     }
 
     ElementBuilder& Height(float h) { // 设定显式排版高度
-        m_element->SetHeight(h);
+        m_ptr->SetHeight(h);
         return *this;
     }
 
     ElementBuilder& MinWidth(float w) { // 设定布局最小限制宽度
-        m_element->SetMinWidth(w);
+        m_ptr->SetMinWidth(w);
         return *this;
     }
 
     ElementBuilder& MinHeight(float h) { // 设定布局最小限制高度
-        m_element->SetMinHeight(h);
+        m_ptr->SetMinHeight(h);
         return *this;
     }
 
-    ElementBuilder& MaxWidth(float w) { m_element->SetMaxWidth(w); return *this; }
-    ElementBuilder& MaxHeight(float h) { m_element->SetMaxHeight(h); return *this; }
+    ElementBuilder& MaxWidth(float w) { m_ptr->SetMaxWidth(w); return *this; }
+    ElementBuilder& MaxHeight(float h) { m_ptr->SetMaxHeight(h); return *this; }
 
     ElementBuilder& Size(float w, float h) { // 设定宽高尺寸
-        m_element->SetWidth(w);
-        m_element->SetHeight(h);
+        m_ptr->SetWidth(w);
+        m_ptr->SetHeight(h);
         return *this;
     }
 
     ElementBuilder& Margin(float all) { // 设定四向均匀外边距
-        m_element->SetMargin(Thickness(all));
+        m_ptr->SetMargin(Thickness(all));
         return *this;
     }
 
     ElementBuilder& Margin(float l, float t, float r, float b) { // 设定具体外边距数值
-        m_element->SetMargin(Thickness(l, t, r, b));
+        m_ptr->SetMargin(Thickness(l, t, r, b));
         return *this;
     }
 
     ElementBuilder& Padding(float all) { // 设定四向均匀内边距
-        m_element->SetPadding(Thickness(all));
+        m_ptr->SetPadding(Thickness(all));
         return *this;
     }
 
     ElementBuilder& Padding(float l, float t, float r, float b) { // 设定具体内边距数值
-        m_element->SetPadding(Thickness(l, t, r, b));
+        m_ptr->SetPadding(Thickness(l, t, r, b));
         return *this;
     }
 
     ElementBuilder& FlexGrow(float flex) { // 设定弹性伸展权重
-        m_element->SetFlexGrow(flex);
+        m_ptr->SetFlexGrow(flex);
         return *this;
     }
 
     ElementBuilder& ZIndex(int zIndex) { // 设定 Canvas 子项的绘制与命中层级
-        m_element->SetZIndex(zIndex);
+        m_ptr->SetZIndex(zIndex);
         return *this;
     }
 
     ElementBuilder& BackgroundToken(ThemeTokenId id) { // 绑定背景色主题 Token
-        m_element->SetBackgroundToken(id);
+        m_ptr->SetBackgroundToken(id);
         return *this;
     }
 
     ElementBuilder& Background(D2D1_COLOR_F color) { // 设定硬编码背景颜色
-        m_element->Background = CUI::Color(color);
+        m_ptr->Background = CUI::Color(color);
         return *this;
     }
 
     ElementBuilder& Background(const std::string& color) {
-        m_element->Background = Color::Hex(color);
+        m_ptr->Background = Color::Hex(color);
         return *this;
     }
 
     ElementBuilder& HoverBackgroundToken(ThemeTokenId id) { // 绑定悬浮背景色主题 Token
-        m_element->SetHoverBackgroundToken(id);
+        m_ptr->SetHoverBackgroundToken(id);
         return *this;
     }
 
     ElementBuilder& HoverBackground(D2D1_COLOR_F color) { // 设定硬编码悬浮背景颜色
-        m_element->HoverBackground = CUI::Color(color);
+        m_ptr->HoverBackground = CUI::Color(color);
         return *this;
     }
 
@@ -199,12 +202,12 @@ public:
     ElementBuilder& Hover(const std::string& color) { return HoverBackground(Color::Hex(color)); }
 
     ElementBuilder& PressedBackgroundToken(ThemeTokenId id) { // 绑定按下背景色主题 Token
-        m_element->SetPressedBackgroundToken(id);
+        m_ptr->SetPressedBackgroundToken(id);
         return *this;
     }
 
     ElementBuilder& PressedBackground(D2D1_COLOR_F color) { // 设定硬编码按下背景颜色
-        m_element->PressedBackground = CUI::Color(color);
+        m_ptr->PressedBackground = CUI::Color(color);
         return *this;
     }
 
@@ -212,115 +215,115 @@ public:
     ElementBuilder& Pressed(const std::string& color) { return PressedBackground(Color::Hex(color)); }
 
     ElementBuilder& ColorToken(ThemeTokenId id) { // 绑定字元前景主题 Token
-        m_element->SetColorToken(id);
+        m_ptr->SetColorToken(id);
         return *this;
     }
 
     ElementBuilder& Color(D2D1_COLOR_F color) { // 设定硬编码前景/文本颜色
-        m_element->Foreground = CUI::Color(color);
+        m_ptr->Foreground = CUI::Color(color);
         return *this;
     }
 
     ElementBuilder& Foreground(D2D1_COLOR_F color) {
-        m_element->Foreground = CUI::Color(color);
+        m_ptr->Foreground = CUI::Color(color);
         return *this;
     }
 
     ElementBuilder& FontSize(float size) { // 设定字体大小 (px)
-        m_element->SetFontSize(size);
+        m_ptr->SetFontSize(size);
         return *this;
     }
 
     ElementBuilder& FontFamily(const std::string& family) { // 指定渲染字体族名称
-        m_element->SetFontFamily(family);
+        m_ptr->SetFontFamily(family);
         return *this;
     }
 
     ElementBuilder& FontWeight(CUI::FontWeight weight) { // 设置文本字重粗细
-        m_element->SetFontWeight(weight);
+        m_ptr->SetFontWeight(weight);
         return *this;
     }
 
     ElementBuilder& FontStyle(CUI::FontStyle style) { // 设置文本字形直立/倾斜
-        m_element->SetFontStyle(style);
+        m_ptr->SetFontStyle(style);
         return *this;
     }
 
     ElementBuilder& FontStretch(CUI::FontStretch stretch) { // 设置字体拉伸方向
-        m_element->SetFontStretch(stretch);
+        m_ptr->SetFontStretch(stretch);
         return *this;
     }
 
     ElementBuilder& Underline(bool underline = true) { // 设定是否增加下划线修饰
-        m_element->SetIsUnderline(underline);
+        m_ptr->SetIsUnderline(underline);
         return *this;
     }
 
     ElementBuilder& Strikethrough(bool strikethrough = true) { // 设定是否增加删除线修饰
-        m_element->SetIsStrikethrough(strikethrough);
+        m_ptr->SetIsStrikethrough(strikethrough);
         return *this;
     }
 
     ElementBuilder& CornerRadius(float r) { // 设定矩形边角圆角像素半径
-        m_element->SetCornerRadius(r);
+        m_ptr->SetCornerRadius(r);
         return *this;
     }
 
     ElementBuilder& BorderToken(ThemeTokenId id, float thickness = 1.0f) { // 设定边框主题颜色和粗细
-        m_element->SetBorderToken(id);
-        m_element->SetBorderThickness(thickness);
+        m_ptr->SetBorderToken(id);
+        m_ptr->SetBorderThickness(thickness);
         return *this;
     }
 
     ElementBuilder& Border(D2D1_COLOR_F color, float thickness = 1.0f) { // 设定硬编码边框颜色和粗细
-        m_element->SetBorderBrush(color);
-        m_element->SetBorderThickness(thickness);
+        m_ptr->SetBorderBrush(color);
+        m_ptr->SetBorderThickness(thickness);
         return *this;
     }
 
     ElementBuilder& Enabled(bool enabled) { // 设定控件交互可用状态
-        m_element->SetIsEnabled(enabled);
+        m_ptr->SetIsEnabled(enabled);
         return *this;
     }
 
     ElementBuilder& Visibility(const std::string& vis) { // 设定控件的可见性模式
-        if (vis == "Hidden") m_element->SetVisibility(CUI::Visibility::Hidden);
-        else if (vis == "Collapsed") m_element->SetVisibility(CUI::Visibility::Collapsed);
-        else m_element->SetVisibility(CUI::Visibility::Visible);
+        if (vis == "Hidden") m_ptr->SetVisibility(CUI::Visibility::Hidden);
+        else if (vis == "Collapsed") m_ptr->SetVisibility(CUI::Visibility::Collapsed);
+        else m_ptr->SetVisibility(CUI::Visibility::Visible);
         return *this;
     }
 
     // 容器元素添加子元素
     ElementBuilder& Children(std::initializer_list<std::shared_ptr<UIElement>> list) { // 批量导入添加子控件集合
         for (auto& child : list) {
-            if (child) m_element->AddChild(child);
+            if (child) m_ptr->AddChild(child);
         }
         return *this;
     }
 
     ElementBuilder& Add(std::shared_ptr<UIElement> child) { // 单次添加一个直系子控件
-        if (child) m_element->AddChild(child);
+        if (child) m_ptr->AddChild(child);
         return *this;
     }
 
 
     ElementBuilder& Text(const std::string& text) { // 设定核心文字展示信息
-        m_element->SetText(text);
+        m_ptr->SetText(text);
         return *this;
     }
 
     ElementBuilder& ToolTip(const std::string& tip) { // 设定鼠标停留信息气泡内容
-        m_element->SetToolTip(tip);
+        m_ptr->SetToolTip(tip);
         return *this;
     }
 
     ElementBuilder& Icon(const std::string& icon) { // 赋予图标特征
-        m_element->SetIcon(icon);
+        m_ptr->SetIcon(icon);
         return *this;
     }
 
     ElementBuilder& Subtitle(const std::string& subtitle) { // 设定 Expander 副标题文本
-        auto expander = std::dynamic_pointer_cast<Expander>(m_element);
+        auto expander = std::dynamic_pointer_cast<Expander>(m_ptr);
         if (expander) {
             expander->SetSubtitle(subtitle);
         }
@@ -329,70 +332,199 @@ public:
 
     ElementBuilder& Orientation(const std::string& orient) { // 设定布局的分布朝向
         if (orient == "Horizontal" || orient == "Row") {
-            m_element->SetOrientation(CUI::Orientation::Horizontal);
+            m_ptr->SetOrientation(CUI::Orientation::Horizontal);
         } else {
-            m_element->SetOrientation(CUI::Orientation::Vertical);
+            m_ptr->SetOrientation(CUI::Orientation::Vertical);
         }
         return *this;
     }
 
     ElementBuilder& Gap(float gap) { // 设定子控件之间分隔的像素间距
-        m_element->SetGap(gap);
+        m_ptr->SetGap(gap);
         return *this;
     }
 
-    ElementBuilder& Justified(bool enabled = true) { m_element->SetJustifyLines(enabled); return *this; }
-    ElementBuilder& FillLastLine(bool enabled = true) { m_element->SetFillLastLine(enabled); return *this; }
+    ElementBuilder& Justified(bool enabled = true) { m_ptr->SetJustifyLines(enabled); return *this; }
+    ElementBuilder& FillLastLine(bool enabled = true) { m_ptr->SetFillLastLine(enabled); return *this; }
 
     ElementBuilder& OnClick(std::function<void(UIElement*)> handler) { // 连接 Click 单击事件回调
         if constexpr (std::is_base_of_v<Control, T> || std::is_same_v<CUI::Button, T> || std::is_same_v<HyperlinkButton, T>) {
-            m_element->OnClick().Connect(handler);
+            m_ptr->OnClick().Connect(handler);
         }
         return *this;
     }
 
     ElementBuilder& Command(std::shared_ptr<CUI::Command> command) { // 绑定触发执行的 Action 命令
-        m_element->SetCommand(std::move(command));
+        m_ptr->SetCommand(std::move(command));
         return *this;
     }
 
     ElementBuilder& OnTextChanged(std::function<void(TextBox*, const std::string&)> handler) { // 连接文本编辑内容更改回调
         if constexpr (std::is_same_v<TextBox, T>) {
-            m_element->OnTextChanged().Connect(handler);
+            m_ptr->OnTextChanged().Connect(handler);
         }
         return *this;
     }
 
     ElementBuilder& OnCheckChanged(std::function<void(CheckBox*, CheckState)> handler) { // 连接复选框/单选钮选中状态更改回调
         if constexpr (std::is_base_of_v<CheckBox, T> || std::is_same_v<CheckBox, T> || std::is_same_v<RadioButton, T>) {
-            m_element->OnCheckStateChanged().Connect(handler);
+            m_ptr->OnCheckStateChanged().Connect(handler);
         }
         return *this;
     }
 
     ElementBuilder& OnValueChanged(std::function<void(Slider*, float)> handler) { // 连接单数值滑块分值更改回调
         if constexpr (std::is_same_v<Slider, T>) {
-            m_element->OnValueChanged().Connect(handler);
+            m_ptr->OnValueChanged().Connect(handler);
         }
         return *this;
     }
 
     ElementBuilder& OnValueChanged(std::function<void(RangeSlider*, float, float)> handler) { // 连接双滑块区间段滑动更改回调
         if constexpr (std::is_same_v<RangeSlider, T>) {
-            m_element->OnValueChanged().Connect(handler);
+            m_ptr->OnValueChanged().Connect(handler);
         }
         return *this;
     }
 
-protected:
-    std::shared_ptr<T> m_element; // 底层生成的控件共享引用实例对象自身
+
+    ElementBuilder& BorderThickness(float thickness) {
+        m_ptr->SetBorderThickness(thickness);
+        return *this;
+    }
+
+    ElementBuilder& Orientation(CUI::Orientation o) {
+        m_ptr->SetOrientation(o);
+        return *this;
+    }
+
+    template<typename ItemsT>
+    ElementBuilder& Items(ItemsT&& items) {
+        if constexpr (requires { m_ptr->Items = std::forward<ItemsT>(items); }) {
+            m_ptr->Items = std::forward<ItemsT>(items);
+        } else if constexpr (requires { m_ptr->SetItems(std::forward<ItemsT>(items)); }) {
+            m_ptr->SetItems(std::forward<ItemsT>(items));
+        }
+        return *this;
+    }
+
+    ElementBuilder& Items(std::initializer_list<std::string> items) {
+        if constexpr (requires { m_ptr->Items = items; }) {
+            m_ptr->Items = items;
+        } else if constexpr (requires { m_ptr->SetItems(items); }) {
+            m_ptr->SetItems(items);
+        }
+        return *this;
+    }
+
+    template<typename V>
+    ElementBuilder& Value(V&& v) {
+        if constexpr (requires { m_ptr->Value = std::forward<V>(v); }) {
+            m_ptr->Value = std::forward<V>(v);
+        } else if constexpr (requires { m_ptr->SetValue(std::forward<V>(v)); }) {
+            m_ptr->SetValue(std::forward<V>(v));
+        }
+        return *this;
+    }
+
+    ElementBuilder& Minimum(float minVal) {
+        if constexpr (requires { m_ptr->Minimum = minVal; }) {
+            m_ptr->Minimum = minVal;
+        } else if constexpr (requires { m_ptr->SetMinimum(minVal); }) {
+            m_ptr->SetMinimum(minVal);
+        }
+        return *this;
+    }
+
+    ElementBuilder& Maximum(float maxVal) {
+        if constexpr (requires { m_ptr->Maximum = maxVal; }) {
+            m_ptr->Maximum = maxVal;
+        } else if constexpr (requires { m_ptr->SetMaximum(maxVal); }) {
+            m_ptr->SetMaximum(maxVal);
+        }
+        return *this;
+    }
+
+    ElementBuilder& Step(float s) {
+        if constexpr (requires { m_ptr->Step = s; }) {
+            m_ptr->Step = s;
+        } else if constexpr (requires { m_ptr->SetStep(s); }) {
+            m_ptr->SetStep(s);
+        }
+        return *this;
+    }
+
+    ElementBuilder& IsReadOnly(bool ro) {
+        if constexpr (requires { m_ptr->IsReadOnly = ro; }) {
+            m_ptr->IsReadOnly = ro;
+        } else if constexpr (requires { m_ptr->SetIsReadOnly(ro); }) {
+            m_ptr->SetIsReadOnly(ro);
+        }
+        return *this;
+    }
+
+    ElementBuilder& IsExpanded(bool exp) {
+        if constexpr (requires { m_ptr->IsExpanded = exp; }) {
+            m_ptr->IsExpanded = exp;
+        } else if constexpr (requires { m_ptr->SetIsExpanded(exp); }) {
+            m_ptr->SetIsExpanded(exp);
+        }
+        return *this;
+    }
+
+    ElementBuilder& ColumnDefinitions(const std::string& defs) {
+        if constexpr (requires { m_ptr->ColumnDefinitions = defs; }) {
+            m_ptr->ColumnDefinitions = defs;
+        } else if constexpr (requires { m_ptr->SetColumnDefinitions(defs); }) {
+            m_ptr->SetColumnDefinitions(defs);
+        }
+        return *this;
+    }
+
+    ElementBuilder& RowDefinitions(const std::string& defs) {
+        if constexpr (requires { m_ptr->RowDefinitions = defs; }) {
+            m_ptr->RowDefinitions = defs;
+        } else if constexpr (requires { m_ptr->SetRowDefinitions(defs); }) {
+            m_ptr->SetRowDefinitions(defs);
+        }
+        return *this;
+    }
+
+    ElementBuilder& Placeholder(const std::string& text) {
+        if constexpr (requires { m_ptr->Placeholder = text; }) {
+            m_ptr->Placeholder = text;
+        } else if constexpr (requires { m_ptr->SetPlaceholder(text); }) {
+            m_ptr->SetPlaceholder(text);
+        }
+        return *this;
+    }
+
+    ElementBuilder& Title(const std::string& t) {
+        if constexpr (requires { m_ptr->Title = t; }) {
+            m_ptr->Title = t;
+        } else if constexpr (requires { m_ptr->SetTitle(t); }) {
+            m_ptr->SetTitle(t);
+        }
+        return *this;
+    }
+
+    ElementBuilder& Message(const std::string& m) {
+        if constexpr (requires { m_ptr->Message = m; }) {
+            m_ptr->Message = m;
+        } else if constexpr (requires { m_ptr->SetMessage(m); }) {
+            m_ptr->SetMessage(m);
+        }
+        return *this;
+    }
 };
 
 struct ChildArgument {
     Element element;
+    ChildArgument() = default;
     ChildArgument(Element value) : element(std::move(value)) {}
     template<typename T> ChildArgument(std::shared_ptr<T> value) : element(std::move(value)) {}
-    template<typename T> ChildArgument(const ElementBuilder<T>& builder) : element(builder.Build()) {}
+    template<typename T> ChildArgument(const ElementRef<T>& ref) : element(ref.Shared()) {}
+    template<typename T> ChildArgument(const ElementBuilder<T>& builder) : element(builder.Shared()) {}
 };
 
 // Flutter-Style Widget Aliases (快速构建语法别名)

@@ -26,8 +26,8 @@ std::shared_ptr<CUI::Button> MakeChip(const std::string& text, float width) {
 
 std::shared_ptr<UIElement> BuildWrapPanelPage() {
     // —— 水平换行 ——
-    auto horizontal = WrapPanelWidget("Horizontal").Build();
-    horizontal->Gap = 10.0f;
+    auto horizontal = WrapPanelWidget("Horizontal")
+        .Gap(10.0f);
     const float widths[] = { 64, 96, 120, 76, 140, 88, 104, 128, 72, 92, 116, 84 };
     for (int i = 0; i < 12; ++i) {
         horizontal->AddChild(MakeChip(std::format("项目 {}", i + 1), widths[i]));
@@ -52,8 +52,8 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
     }
 
     // —— 宽度变化实时重排 ——
-    auto liveWrap = WrapPanelWidget("Horizontal").Build();
-    liveWrap->Gap = 10.0f;
+    auto liveWrap = WrapPanelWidget("Horizontal")
+        .Gap(10.0f);
     for (int i = 0; i < 10; ++i) {
         liveWrap->AddChild(MakeChip(std::format("标签 {}", i + 1), widths[i % 12]));
     }
@@ -61,9 +61,9 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
     auto justified = WrapPanelWidget("Horizontal").Gap(10).Justified().FillLastLine().Build();
     const char* labels[] = { "Auto", "布局", "最小 72", "最大 180", "FlexGrow", "自动回流", "填满整行", "约束" };
     for (int i = 0; i < 8; ++i) {
-        auto chip = ElevatedButton(labels[i]).Background(colors[i % 8]).Padding(14, 8, 14, 8).Build();
-        chip->MinWidth = 72.0f;
-        chip->MaxWidth = 180.0f;
+        auto chip = ElevatedButton(labels[i]).Background(colors[i % 8]).Padding(14, 8, 14, 8)
+            .MinWidth(72.0f)
+            .MaxWidth(180.0f);
         chip->FlexGrow = i % 3 == 0 ? 2.0f : 1.0f;
         justified->AddChild(chip);
     }

@@ -227,7 +227,7 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
 
 void CheckBox::CycleState() {
     CheckState currentState = GetState();
-    bool threeState = IsThreeState();
+    bool threeState = GetIsThreeState();
 
     CheckState newState = CheckState::Unchecked;
     if (currentState == CheckState::Unchecked) {

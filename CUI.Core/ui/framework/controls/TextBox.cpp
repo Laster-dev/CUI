@@ -178,7 +178,7 @@ bool TextBox::IsMultiline() const {
 std::wstring TextBox::GetDisplayedText() const {
     std::string text = GetText();
     std::wstring wtext = Utf8ToUtf16(text);
-    if (IsPasswordMode() && !m_isPasswordRevealed) {
+    if (m_isPasswordMode && !m_isPasswordRevealed) {
         return std::wstring(wtext.length(), GetPasswordChar());
     }
     return wtext;
@@ -212,7 +212,7 @@ Rect TextBox::GetTextRect() const {
         }
     }
     float extraTop = floating ? ((1.0f - m_labelAnim.Current()) * 8.0f) : 0.0f;
-    float rightMargin = (IsPasswordMode() && GetShowRevealButton()) ? 32.0f : 0.0f;
+    float rightMargin = (m_isPasswordMode && m_showRevealButton) ? 32.0f : 0.0f;
     return Rect(
         m_bounds.x + padding.left,
         m_bounds.y + padding.top + extraTop,
@@ -358,7 +358,7 @@ void TextBox::EnsureCaretVisible(GraphicsContext& ctx) {
 }
 
 void TextBox::InsertText(const std::wstring& text) {
-    if (IsReadOnly() || !IsEnabled()) {
+    if (m_isReadOnly || !IsEnabled()) {
         return;
     }
     if (text.empty()) return;
@@ -406,7 +406,7 @@ void TextBox::PushUndoState() {
 
 HCURSOR TextBox::GetCursor() const {
     if (!IsEnabled()) return nullptr;
-    if (IsPasswordMode() && GetShowRevealButton()) {
+    if (m_isPasswordMode && m_showRevealButton) {
         Rect btnRect = GetRevealButtonRect();
         if (btnRect.Contains(m_lastMousePos.x, m_lastMousePos.y)) {
             return LoadCursor(nullptr, IDC_HAND);
@@ -416,7 +416,7 @@ HCURSOR TextBox::GetCursor() const {
 }
 
 void TextBox::Undo() {
-    if (IsReadOnly() || !IsEnabled()) return;
+    if (m_isReadOnly || !IsEnabled()) return;
     if (m_undoStack.empty()) return;
 
     TextBoxUndoState current;
@@ -438,7 +438,7 @@ void TextBox::Undo() {
 }
 
 void TextBox::Redo() {
-    if (IsReadOnly() || !IsEnabled()) return;
+    if (m_isReadOnly || !IsEnabled()) return;
     if (m_redoStack.empty()) return;
 
     TextBoxUndoState current;
@@ -576,7 +576,7 @@ void TextBox::SelectAll() {
 }
 
 void TextBox::DeleteSelection() {
-    if (IsReadOnly() || !IsEnabled()) {
+    if (m_isReadOnly || !IsEnabled()) {
         return;
     }
     if (!HasSelection()) return;
@@ -768,7 +768,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    if (IsPasswordMode() && GetShowRevealButton()) {
+    if (m_isPasswordMode && m_showRevealButton) {
         Rect btnRect = GetRevealButtonRect();
         D2D1_COLOR_F eyeColor = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
         eyeColor.a = 0.85f;
@@ -859,8 +859,8 @@ void TextBox::OnMouseDown(Point pt) {
         return;
     }
     Control::OnMouseDown(pt);
-    if (IsPasswordMode() && !IsReadOnly() && GetShowRevealButton() && GetRevealButtonRect().Contains(pt.x, pt.y)) {
-        SetIsPasswordRevealed(!IsPasswordRevealed());
+    if (m_isPasswordMode && !m_isReadOnly && m_showRevealButton && GetRevealButtonRect().Contains(pt.x, pt.y)) {
+        SetIsPasswordRevealed(!m_isPasswordRevealed);
         return;
     }
     OnFocus();
@@ -883,7 +883,7 @@ void TextBox::OnMouseRightClick(Point pt) {
 
     if (!m_contextMenu) {
         auto menu = std::make_shared<ContextMenu>();
-        if (!IsReadOnly()) {
+        if (!m_isReadOnly) {
             menu->AddItem("撤销 (Undo)", "Ctrl+Z", [this]() { Undo(); });
             menu->AddItem("重做 (Redo)", "Ctrl+Y", [this]() { Redo(); });
             menu->AddSeparator();
@@ -929,7 +929,7 @@ void TextBox::OnMouseRightClick(Point pt) {
                 }
             }
         });
-        if (!IsReadOnly()) {
+        if (!m_isReadOnly) {
             menu->AddItem("粘贴 (Paste)", "Ctrl+V", [this]() {
                 if (IsClipboardFormatAvailable(CF_UNICODETEXT) && OpenClipboard(nullptr)) {
                     HANDLE hData = GetClipboardData(CF_UNICODETEXT);
@@ -1027,7 +1027,7 @@ bool TextBox::OnKeyDown(int vkCode) {
 
     bool isCtrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     bool isShiftDown = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-    const bool readOnly = IsReadOnly();
+    const bool readOnly = m_isReadOnly;
 
     if (!readOnly && isCtrlDown && (vkCode == 'Z' || vkCode == 'z')) {
         Undo();
@@ -1258,7 +1258,7 @@ bool TextBox::OnKeyDown(int vkCode) {
 
 void TextBox::CommitImeResult(const std::wstring& result) {
     m_compString.clear();
-    if (result.empty() || !IsEnabled() || IsReadOnly()) return;
+    if (result.empty() || !IsEnabled() || m_isReadOnly) return;
 
     InsertText(result);
     // IME commit is also delivered as WM_CHAR; suppress duplicates (e.g. Shift during composition).
@@ -1269,7 +1269,7 @@ void TextBox::CommitImeResult(const std::wstring& result) {
 }
 
 void TextBox::OnCharInput(wchar_t ch) {
-    if (!IsEnabled() || IsReadOnly()) {
+    if (!IsEnabled() || m_isReadOnly) {
         return;
     }
     if (m_suppressCharCount > 0) {

@@ -39,7 +39,7 @@ constexpr const char* kPropertyNamesById[] = {
     "isOpen", "isClosable", "actionText", "selectedIndex", "shell",
     "followTail", "maxEntries", "showGrid", "showLegend", "showTooltip",
     "labelPosition", "durationMs", "autoClose", "closeable",
-    "offsetX", "offsetY", "spacing", "corner",
+    "offsetX", "offsetY", "spacing", "corner", "id", "tag", "isCloseVisible", "isSettingsVisible",
 };
 
 static_assert(sizeof(kPropertyNamesById) / sizeof(kPropertyNamesById[0]) ==

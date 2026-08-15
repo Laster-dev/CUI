@@ -9,6 +9,7 @@
 #include "../input/RoutedEvent.h"
 #include "../input/Command.h"
 #include "../core/BindableProperty.h"
+#include "../core/Property.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -22,8 +23,20 @@ namespace CUI {
 class ContextMenu;
 class UIElement;
 using Element = std::shared_ptr<UIElement>;
-template <typename T>
-using ElementRef = std::shared_ptr<T>;
+
+struct CanvasDrawContext {
+    GraphicsContext& Context;
+    Size CanvasSize{};
+    CanvasDrawContext(GraphicsContext& ctx, Size sz = {}) : Context(ctx), CanvasSize(sz) {}
+    operator GraphicsContext&() { return Context; }
+    GraphicsContext* operator->() { return &Context; }
+};
+
+struct PointerEventArgs {
+    Point Position{};
+    bool Handled = false;
+    int KeyCode = 0;
+};
 
 /**
  * @brief 焦点状态枚举。
@@ -328,6 +341,45 @@ public:
     PropertyRef<int, PropertyId::GridRow> GridRow;
     PropertyRef<int, PropertyId::GridColumnSpan> GridColumnSpan;
     PropertyRef<int, PropertyId::GridRowSpan> GridRowSpan;
+    PropertyRef<std::string, PropertyId::Id> Id;
+    PropertyRef<std::string, PropertyId::Tag> Tag;
+    PropertyRef<std::string, PropertyId::NavigateUri> NavigateUri;
+    PropertyRef<bool, PropertyId::AcceptsReturn> AcceptsReturn;
+    PropertyRef<bool, PropertyId::TextWrapping> TextWrapping;
+    PropertyRef<bool, PropertyId::IsReadOnly> IsReadOnly;
+    PropertyRef<bool, PropertyId::IsPasswordRevealed> IsPasswordRevealed;
+    PropertyRef<bool, PropertyId::ShowRevealButton> ShowRevealButton;
+    PropertyRef<bool, PropertyId::IsOn> IsOn;
+    PropertyRef<bool, PropertyId::IsExpanded> IsExpanded;
+    PropertyRef<bool, PropertyId::IsOpen> IsOpen;
+    PropertyRef<bool, PropertyId::IsCloseVisible> IsCloseVisible;
+    PropertyRef<bool, PropertyId::IsPaneOpen> IsPaneOpen;
+    PropertyRef<bool, PropertyId::IsSettingsVisible> IsSettingsVisible;
+    PropertyRef<std::string, PropertyId::Title> Title;
+    PropertyRef<std::string, PropertyId::Message> Message;
+    PropertyRef<std::string, PropertyId::Subtitle> Subtitle;
+    PropertyRef<std::string, PropertyId::Header> Header;
+    PropertyRef<std::string, PropertyId::PaneTitle> PaneTitle;
+    PropertyRef<std::string, PropertyId::GroupName> GroupName;
+    PropertyRef<std::string, PropertyId::ActionText> ActionText;
+
+    // 只读属性
+    ReadOnlyProperty<Rect> Bounds;
+    ReadOnlyProperty<::HWND> HWND;
+    ReadOnlyProperty<Size> DesiredSize;
+    ReadOnlyProperty<float> ActualWidth;
+    ReadOnlyProperty<float> ActualHeight;
+
+    // 集合属性
+    CollectionProperty<Element> Children;
+
+    // 回调属性
+    CallbackProperty<void(UIElement*)> OnClick;
+    CallbackProperty<void(CanvasDrawContext&)> OnDraw;
+    CallbackProperty<void(UIElement*, PointerEventArgs&)> OnCanvasMouseDown;
+    CallbackProperty<void(UIElement*, PointerEventArgs&)> OnCanvasMouseMove;
+    CallbackProperty<void(UIElement*, PointerEventArgs&)> OnCanvasMouseUp;
+    CallbackProperty<void(float)> OnTick;
 
     template<typename T, PropertyId Id>
     PropertyRef<T, Id> Property() {
@@ -341,13 +393,13 @@ public:
     /**
      * @brief 属性绑定工厂。获取或创建对应属性 ID 的具体绑定容器实例（懒加载）。
      */
-    template<typename T, PropertyId Id>
+    template<typename T, PropertyId PropId>
     BindableProperty<T>* GetOrCreatePropertyBinding();
 
     /**
      * @brief 属性查找辅助方法。查找指定属性 ID 是否已有绑定实例。
      */
-    template<typename T, PropertyId Id>
+    template<typename T, PropertyId PropId>
     BindableProperty<T>* FindPropertyBinding() const;
 
     // 常规属性的属性封装层与手动 Getter / Setter
@@ -608,8 +660,11 @@ public:
     std::vector<std::pair<PropertyId, Value>> SnapshotProperties() const override; // 生成该控件所有动态属性的内存快照
 
     // 控件调试与标记标识
+    ::HWND GetHWND() const;
     std::string GetId() const { return m_id; }          // 获取用户手动分配的控件唯一字符串 ID
-    void SetId(const std::string& id) { m_id = id; }    // 分配唯一的字符串 ID 以便在层次树中检索
+    void SetId(const std::string& id) { m_id = id; }
+    std::string GetTag() const { return m_tag; }
+    void SetTag(const std::string& tag) { m_tag = tag; }    // 分配唯一的字符串 ID 以便在层次树中检索
     std::string GetStyleClass() const { return m_styleClass; } // 获取样式表类名
     void SetStyleClass(const std::string& styleClass) { m_styleClass = styleClass; } // 赋予样式表类名
 
@@ -806,7 +861,6 @@ public:
     virtual void OnFocus();                             // 聚焦生命周期的具体调用入口
     virtual void OnBlur();                              // 失去焦点的具体调用入口
 
-    Event<UIElement*>& OnClick() { return m_onClickEvent; } // 获得单击事件委托的连接点
     Event<UIElement*, Point>& OnMouseDownEvent() { return m_onMouseDownEvent; } // 获得鼠标按下事件委托的连接点
 
 protected:
@@ -836,7 +890,8 @@ protected:
     bool DescHasOptionalProperty(const PropertyDesc& desc) const; // 检查元数据描述符是否附带特定的非必要附加参数
 
     // 控件核心变量定义
-    std::string m_id;                                                 // 控件的全局字符串唯一检索标识
+    std::string m_id;
+    std::string m_tag;                                                 // 控件的全局字符串唯一检索标识
     std::string m_styleClass;                                         // 关联样式类以映射不同的 CSS/Qss 风格渲染分支
     std::string m_text;                                               // 内置核心字符串文本
     std::string m_placeholder;                                        // 输入框等专用的淡灰色占位提示符字符串
@@ -986,7 +1041,6 @@ protected:
     std::shared_ptr<ContextMenu> m_contextMenu;                       // 注册挂载的鼠标右键上下文弹出菜单实例
 
     // 常规 UI 事件对象
-    Event<UIElement*> m_onClickEvent;                                 // 点击事件注册中心
     Event<UIElement*, Point> m_onMouseDownEvent;                      // 鼠标按下事件注册中心
 
     // 全局静态属性状态
@@ -1007,12 +1061,12 @@ protected:
 };
 
 
-template<typename T, PropertyId Id>
+template<typename T, PropertyId PropId>
 BindableProperty<T>* UIElement::GetOrCreatePropertyBinding() {
     if (!m_propertyBindings) {
         m_propertyBindings = std::make_unique<std::unordered_map<PropertyId, std::unique_ptr<PropertyBindingSlotBase>>>();
     }
-    auto existing = m_propertyBindings->find(Id);
+    auto existing = m_propertyBindings->find(PropId);
     if (existing != m_propertyBindings->end()) {
         auto* slot = dynamic_cast<PropertyBindingSlot<T>*>(existing->second.get());
         return slot ? &slot->value : nullptr;
@@ -1020,18 +1074,18 @@ BindableProperty<T>* UIElement::GetOrCreatePropertyBinding() {
 
     auto slot = std::make_unique<PropertyBindingSlot<T>>(
         *this,
-        Id,
-        [this] { return PropertyValueTraits<T>::FromValue(GetProperty(Id)); },
-        [this](const T& value) { SetProperty(Id, PropertyValueTraits<T>::ToValue(value)); });
+        PropId,
+        [this] { return PropertyValueTraits<T>::FromValue(GetProperty(PropId)); },
+        [this](const T& value) { SetProperty(PropId, PropertyValueTraits<T>::ToValue(value)); });
     auto* result = &slot->value;
-    m_propertyBindings->emplace(Id, std::move(slot));
+    m_propertyBindings->emplace(PropId, std::move(slot));
     return result;
 }
 
-template<typename T, PropertyId Id>
+template<typename T, PropertyId PropId>
 BindableProperty<T>* UIElement::FindPropertyBinding() const {
     if (!m_propertyBindings) return nullptr;
-    const auto existing = m_propertyBindings->find(Id);
+    const auto existing = m_propertyBindings->find(PropId);
     if (existing == m_propertyBindings->end()) return nullptr;
     auto* slot = dynamic_cast<PropertyBindingSlot<T>*>(existing->second.get());
     return slot ? &slot->value : nullptr;

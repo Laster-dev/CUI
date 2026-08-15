@@ -480,7 +480,7 @@ void TabView::ScrollHeaderByWheel(float delta) {
 void TabView::OnMouseWheel(float delta) {
     POINT screenPt{};
     if (GetCursorPos(&screenPt)) {
-        HWND hwnd = WindowFromPoint(screenPt);
+        ::HWND hwnd = WindowFromPoint(screenPt);
         float logicalX = 0.0f;
         float logicalY = 0.0f;
         if (hwnd && TryGetCursorClientLogical(hwnd, logicalX, logicalY)) {

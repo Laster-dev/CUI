@@ -122,6 +122,13 @@ public:
     bool OnAnimationTick() override;
 
 private:
+public:
+    CallbackProperty<void(GraphicsContext& ctx, Size size)> OnDraw;
+    CallbackProperty<void(Point pt)> OnCanvasMouseDown;
+    CallbackProperty<void(Point pt)> OnCanvasMouseUp;
+    CallbackProperty<void(Point pt)> OnCanvasMouseMove;
+    CallbackProperty<bool(float deltaSeconds)> OnTick;
+private:
     DrawCallback m_onDraw;          ///< 画布的 Direct2D 自绘制回调闭包
     MouseCallback m_onMouseDown;    ///< 画布鼠标按下回调
     MouseCallback m_onMouseUp;      ///< 画布鼠标松开回调

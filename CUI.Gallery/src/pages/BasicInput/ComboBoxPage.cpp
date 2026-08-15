@@ -11,8 +11,8 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildComboBoxPage() {
-    auto combo = ComboBoxWidget();
-    combo->Width = 220.0f;
+    auto combo = ComboBoxWidget()
+        .Width(220.0f);
     combo->AddItem("苹果");
     combo->AddItem("香蕉");
     combo->AddItem("樱桃");
@@ -34,8 +34,8 @@ Element BuildComboBoxPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto disabled = ComboBoxWidget();
-    disabled->Width = 220.0f;
+    auto disabled = ComboBoxWidget()
+        .Width(220.0f);
     disabled->AddItem("不可用");
     disabled->SetSelectedIndex(0);
     disabled->IsEnabledProperty = false;

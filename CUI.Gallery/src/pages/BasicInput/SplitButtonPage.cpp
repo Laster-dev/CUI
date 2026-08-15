@@ -10,8 +10,8 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildSplitButtonPage() {
-    auto save = SplitButtonWidget("保存");
-    save->Width = 120.0f;
+    auto save = SplitButtonWidget("保存")
+        .Width(120.0f);
     auto status = MakeStatus("单击主区域保存，或单击箭头选择其他格式。");
     
     save->OnClick().Connect([status](UIElement*) {

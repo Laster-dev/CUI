@@ -16,19 +16,19 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
     auto status = MakeStatus("点击按钮弹出浮出层，此处显示操作提示。");
 
     // ── 1. 简单文本浮出层 ────────────────────────────────────────────────
-    auto btnSimple = Button("简单文本浮出层");
-    btnSimple->OnClick().Connect([](UIElement* src) {
-        auto flyout = FlyoutWidget();
-        flyout->SetPlacement(FlyoutPlacement::Bottom);
-
-        auto content = Column(8, {
+    auto btnSimple = Button("简单文本浮出层")
+        .OnClick([](UIElement* src) {
+            auto flyout = FlyoutWidget();
+            flyout->SetPlacement(FlyoutPlacement::Bottom);
+            
+            auto content = Column(8, {
             MakeLabel("这是一个 Flyout 浮出层", 13.0f, ThemeTokenId::TextPrimary, true),
             MakeLabel("点击此区域外的任意位置即可关闭。", 12.0f, ThemeTokenId::TextSecondary),
-        });
-        flyout->SetContent(content);
-        src->AddChild(flyout);
-        flyout->ShowAt(src);
-    });
+            });
+            flyout->SetContent(content);
+            src->AddChild(flyout);
+            flyout->ShowAt(src);
+            });
 
     // ── 2. 多方向放置 ────────────────────────────────────────────────────
     auto btnTop    = Button("↑ Top");
@@ -76,11 +76,11 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
         auto flyout = FlyoutWidget();
         flyout->SetPlacement(FlyoutPlacement::Bottom);
 
-        auto confirmBtn = Button("删除");
-        confirmBtn->Background = Color::Hex("#C62828");
-        confirmBtn->HoverBackground = Color::Hex("#B71C1C");
-        confirmBtn->Foreground = Color::White;
-        confirmBtn->Width = 72.0f;
+        auto confirmBtn = Button("删除")
+            .Background(Color::Hex("#C62828"))
+            .Hover(Color::Hex("#B71C1C"))
+            .Foreground(Color::White)
+            .Width(72.0f);
 
         auto cancelBtn = Button("取消");
         cancelBtn->BackgroundToken = ThemeTokenId::CardBackground;
@@ -119,12 +119,12 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
         auto flyout = FlyoutWidget();
         flyout->SetPlacement(FlyoutPlacement::Bottom);
 
-        auto input = TextField();
-        input->Placeholder = "输入新项目名称";
-        input->Width = 200.0f;
+        auto input = TextField()
+            .Placeholder("输入新项目名称")
+            .Width(200.0f);
 
-        auto applyBtn = Button("应用");
-        applyBtn->Width = 60.0f;
+        auto applyBtn = Button("应用")
+            .Width(60.0f);
 
         auto content = Column(10, {
             MakeLabel("重命名项目", 13.0f, ThemeTokenId::TextPrimary, true),

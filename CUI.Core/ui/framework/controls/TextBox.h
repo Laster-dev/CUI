@@ -46,6 +46,26 @@ public:
     void OnCharInput(wchar_t ch);
     void CommitImeResult(const std::wstring& result);
 
+    /**
+     * @brief 是否启用密码遮罩显示模式属性代理。
+     */
+    struct TextBoxIsPasswordModeProperty {
+        TextBox* owner;
+        TextBoxIsPasswordModeProperty& operator=(bool p) { owner->SetIsPasswordMode(p); return *this; }
+        operator bool() const { return owner->GetIsPasswordMode(); }
+        bool Get() const { return owner->GetIsPasswordMode(); }
+    } IsPasswordMode{this};
+
+    /**
+     * @brief 文本框是否接收文件及文本拖放属性代理。
+     */
+    struct TextBoxAllowDropProperty {
+        TextBox* owner;
+        TextBoxAllowDropProperty& operator=(bool d) { owner->SetAllowDrop(d); return *this; }
+        operator bool() const { return owner->GetAllowDrop(); }
+        bool Get() const { return owner->GetAllowDrop(); }
+    } AllowDrop{this};
+
     void SetCompositionString(const std::wstring& compStr);
     std::wstring GetCompositionString() const { return m_compString; }
 
@@ -60,7 +80,7 @@ public:
     void SetPlaceholder(const std::string& ph) { UIElement::SetPlaceholder(ph); }
 
     virtual std::wstring GetDisplayedText() const;
-    bool IsPasswordMode() const { return m_isPasswordMode; }
+    bool GetIsPasswordMode() const { return m_isPasswordMode; }
     void SetIsPasswordMode(bool isPass) {
         m_isPasswordMode = isPass;
         MarkRenderContentDirty();
@@ -70,7 +90,7 @@ public:
         return L'•';
     }
 
-    bool IsPasswordRevealed() const { return m_isPasswordRevealed; }
+    bool GetIsPasswordRevealed() const { return m_isPasswordRevealed; }
     void SetIsPasswordRevealed(bool revealed) { m_isPasswordRevealed = revealed; MarkRenderContentDirty(); }
 
     bool GetShowRevealButton() const { return m_showRevealButton; }
@@ -79,7 +99,7 @@ public:
         MarkRenderContentDirty();
     }
 
-    bool IsReadOnly() const { return m_isReadOnly; }
+    bool GetIsReadOnly() const { return m_isReadOnly; }
     void SetIsReadOnly(bool readOnly) {
         m_isReadOnly = readOnly;
         MarkRenderContentDirty();

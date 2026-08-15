@@ -29,8 +29,8 @@ Element BuildSliderPage() {
     auto volumeStatus = MakeStatus("");
     volumeStatus->Text.Bind(volumeStatusValue, BindingMode::OneWay);
 
-    auto vertical = SliderWidget();
-    vertical->Orientation = Orientation::Vertical;
+    auto vertical = SliderWidget()
+        .Orientation(Orientation::Vertical);
     vertical->SetMinimum(0.0f);
     vertical->SetMaximum(100.0f);
     vertical->Width = 32.0f;

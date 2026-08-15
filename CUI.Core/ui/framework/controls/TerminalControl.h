@@ -129,7 +129,7 @@ private:
     float m_flushAccumMs = 0.0f;                                        // 帧率及脏状态冲刷累计毫秒数
     bool m_redrawQueued = false;                                        // 标志是否已有重绘请求在队列中等待调度
     std::atomic<bool> m_outputPending{ false };                         // 标记是否有新接收到的终端命令行回显数据等待冲刷显示
-    HWND m_hwnd = nullptr;                                              // 主窗口句柄
+    ::HWND m_hwnd = nullptr;                                              // 主窗口句柄
 
     int m_lastCols = -1;                                                // 终端前一帧的网格列数限制
     int m_lastRows = -1;                                                // 终端前一帧的网格行数限制

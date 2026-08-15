@@ -24,7 +24,7 @@ std::string FormatRangeValue(float v) {
 
 } // namespace
 
-RangeSlider::RangeSlider() {
+RangeSlider::RangeSlider() : Minimum(this), Maximum(this), Step(this) {
     LowerValue.Initialize(*this);
     UpperValue.Initialize(*this);
     SetOrientation(Orientation::Horizontal);

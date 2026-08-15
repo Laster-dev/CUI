@@ -40,8 +40,34 @@ public:
     virtual void NotifyNonClientMouseMove(float x, float y) override; // 响应并同步 Win32 非客户区鼠标移动事件
     virtual void NotifyNonClientMouseLeave() override; // 响应 Win32 非客户区鼠标离去事件
 
-    MenuBar& GetMenuBar() { return *m_menuBar; } // 获取内部持有的菜单栏引用
-    const MenuBar& GetMenuBar() const { return *m_menuBar; }
+    /**
+     * @brief 窗口标题栏右侧自定义操作区内容元素属性代理。
+     */
+    struct WindowTitleBarRightContentProperty {
+        WindowTitleBar* owner = nullptr;
+        WindowTitleBarRightContentProperty() = default;
+        explicit WindowTitleBarRightContentProperty(WindowTitleBar* o) : owner(o) {}
+        WindowTitleBarRightContentProperty& operator=(std::shared_ptr<UIElement> c) { if (owner) owner->SetRightContent(std::move(c)); return *this; }
+        operator std::shared_ptr<UIElement>() const { return owner ? owner->GetRightContent() : nullptr; }
+        std::shared_ptr<UIElement> Get() const { return owner ? owner->GetRightContent() : nullptr; }
+        std::shared_ptr<UIElement> operator->() const { return owner ? owner->GetRightContent() : nullptr; }
+    } RightContent;
+
+        /**
+     * @brief 窗口标题栏内嵌的主菜单栏对象属性代理。
+     */
+    struct WindowTitleBarMenuBarProperty {
+        WindowTitleBar* owner = nullptr;
+        WindowTitleBarMenuBarProperty() = default;
+        explicit WindowTitleBarMenuBarProperty(WindowTitleBar* o) : owner(o) {}
+        operator CUI::MenuBar&() const { return owner->GetMenuBar(); }
+        CUI::MenuBar* operator->() const { return &owner->GetMenuBar(); }
+        CUI::MenuBar& Get() const { return owner->GetMenuBar(); }
+        std::shared_ptr<ContextMenu> AddMenu(const std::string& text);
+    } MenuBar;
+
+    CUI::MenuBar& GetMenuBar() { return *m_menuBar; } // 获取内部持有的菜单栏引用
+    const CUI::MenuBar& GetMenuBar() const { return *m_menuBar; }
 
     void SetRightContent(const std::shared_ptr<UIElement>& content); // 设置在标题栏右侧（窗口按钮左侧）自定义注入填充的视觉子元素
     std::shared_ptr<UIElement> GetRightContent() const { return m_rightContent; } // 获取右侧自定义注入填充的视觉子元素
@@ -70,7 +96,7 @@ private:
     void ApplyHoverRegion(int region, bool forceDirty); // 更新并激活按钮悬停区域，标记画面变脏
     void SyncCaptionHoverTargets(); // 同步三大按钮的目标过渡淡入淡出动画参数
 
-    std::shared_ptr<MenuBar> m_menuBar;                               // 菜单栏控件实例共享引用
+    std::shared_ptr<CUI::MenuBar> m_menuBar;                               // 菜单栏控件实例共享引用
     std::shared_ptr<UIElement> m_rightContent;                        // 右侧自定义注入的元素实例引用
     std::string m_title;                                              // 标题栏主标题文本
     std::string m_iconText;                                           // 以文本符号表达的图标标签

@@ -58,6 +58,20 @@ public:
 
     CheckState GetState() const { return m_state; }
     void SetState(CheckState state);
+    bool GetIsChecked() const { return m_state == CheckState::Checked; }
+    void SetIsChecked(bool c) { SetState(c ? CheckState::Checked : CheckState::Unchecked); }
+
+    /**
+     * @brief 复选框选中状态布尔值属性代理。
+     */
+    struct CheckBoxIsCheckedProperty {
+        CheckBox* owner;
+        CheckBoxIsCheckedProperty& operator=(bool c) { owner->SetIsChecked(c); return *this; }
+        operator bool() const { return owner->GetIsChecked(); }
+        bool Get() const { return owner->GetIsChecked(); }
+        bool operator()() const { return owner->GetIsChecked(); }
+    } IsChecked{this};
+
 
     // 绑定至布尔型数据源 (自动转换 Checked <-> bool)
     void Bind(const std::shared_ptr<Observable<bool>>& value);
@@ -66,11 +80,22 @@ public:
     void Unbind();
     bool IsUpdatingFromBinding() const { return Checked.IsUpdating() || State.IsUpdating(); }
 
-    bool IsThreeState() const { return m_isThreeState; }
+    bool GetIsThreeState() const { return m_isThreeState; }
     void SetIsThreeState(bool threeState) {
         m_isThreeState = threeState;
         NotifyFieldChanged(PropertyId::IsThreeState, Value(threeState));
     }
+
+    /**
+     * @brief 是否启用三态模式 (支持未选/半选/全选) 属性代理。
+     */
+    struct CheckBoxIsThreeStateProperty {
+        CheckBox* owner;
+        CheckBoxIsThreeStateProperty& operator=(bool t) { owner->SetIsThreeState(t); return *this; }
+        operator bool() const { return owner->GetIsThreeState(); }
+        bool Get() const { return owner->GetIsThreeState(); }
+        bool operator()() const { return owner->GetIsThreeState(); }
+    } IsThreeState{this};
 
     Event<CheckBox*, CheckState>& OnCheckStateChanged() { return m_onCheckStateChangedEvent; }
 

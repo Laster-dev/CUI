@@ -37,21 +37,21 @@ Element BuildDatePickerPage() {
     auto status = MakeStatus("");
     status->Text->Bind(statusValue, BindingMode::OneWay);
 
-    auto today = Button("今天");
-    today->OnClick().Connect([selectedDate](UIElement*) { selectedDate = TodayString(); });
-    auto newYear = Button("元旦");
-    newYear->OnClick().Connect([selectedDate](UIElement*) { selectedDate = "2027-01-01"; });
-    auto spring = Button("春节示例");
-    spring->OnClick().Connect([selectedDate](UIElement*) { selectedDate = "2027-02-06"; });
-    auto birthday = Button("生日示例");
-    birthday->OnClick().Connect([selectedDate](UIElement*) { selectedDate = "1990-06-15"; });
+    auto today = Button("今天")
+        .OnClick([selectedDate](UIElement*) { selectedDate = TodayString(); });
+    auto newYear = Button("元旦")
+        .OnClick([selectedDate](UIElement*) { selectedDate = "2027-01-01"; });
+    auto spring = Button("春节示例")
+        .OnClick([selectedDate](UIElement*) { selectedDate = "2027-02-06"; });
+    auto birthday = Button("生日示例")
+        .OnClick([selectedDate](UIElement*) { selectedDate = "1990-06-15"; });
 
     auto disabled = DatePickerWidget();
     disabled->SetDate(2026, 12, 31);
     disabled->IsEnabledProperty = false;
 
-    auto programmatic = Button("程序设置 2030-05-20");
-    programmatic->OnClick().Connect([selectedDate](UIElement*) { selectedDate = "2030-05-20"; });
+    auto programmatic = Button("程序设置 2030-05-20")
+        .OnClick([selectedDate](UIElement*) { selectedDate = "2030-05-20"; });
 
     SamplePageSpec spec;
     spec.title = "DatePicker(日期选择器)";

@@ -51,12 +51,33 @@ public:
     const std::string& GetSubtitle() const { return m_subtitle; } // 获取头部副标题说明文本内容
     void SetSubtitle(const std::string& subtitle); // 设置头部副标题说明文本内容
 
-    bool IsExpanded() const { return m_isExpanded; } // 检查当前是否处于展开状态
+    bool GetIsExpanded() const { return m_isExpanded; } // 检查当前是否处于展开状态
     void SetIsExpanded(bool expanded); // 设定是否展开面板并启动高度缩放过渡动画
     void SetExpanded(bool expanded) { SetIsExpanded(expanded); } // 兼容别名：设定是否展开
 
     ExpandDirection GetExpandDirection() const { return m_expandDirection; } // 获取折展的方向朝向
     void SetExpandDirection(ExpandDirection direction); // 设置折展的方向朝向
+
+    /**
+     * @brief 折叠面板折叠区承载的 UIElement 内容元素属性代理。
+     */
+    struct ExpanderContentProperty {
+        Expander* owner;
+        ExpanderContentProperty& operator=(std::shared_ptr<UIElement> c) { owner->SetContent(std::move(c)); return *this; }
+        operator std::shared_ptr<UIElement>() const { return owner->GetContent(); }
+        std::shared_ptr<UIElement> Get() const { return owner->GetContent(); }
+        std::shared_ptr<UIElement> operator->() const { return owner->GetContent(); }
+    } Content{this};
+
+    /**
+     * @brief 折叠展开方向属性代理 (Down/Up 等)。
+     */
+    struct ExpanderExpandDirectionProperty {
+        Expander* owner;
+        ExpanderExpandDirectionProperty& operator=(ExpandDirection d) { owner->SetExpandDirection(d); return *this; }
+        operator ExpandDirection() const { return owner->GetExpandDirection(); }
+        ExpandDirection Get() const { return owner->GetExpandDirection(); }
+    } ExpandDirection{this};
 
     void SetContent(std::shared_ptr<UIElement> content); // 设定要展开或隐藏的子级内容控件
     std::shared_ptr<UIElement> GetContent() const { return m_content; } // 获取子级内容控件
@@ -93,7 +114,7 @@ private:
     bool m_isExpanded = false;                                // 展开状态标记（true为展开，false为折拢）
     bool m_headerHovered = false;                             // 标记鼠标指针是否正 Hover 在标题栏上方
     bool m_headerPressed = false;                             // 标记左键是否在标题栏上方按下未抬起
-    ExpandDirection m_expandDirection = ExpandDirection::Down; // 展开动画的滑动方向
+    CUI::ExpandDirection m_expandDirection = CUI::ExpandDirection::Down; // 展开动画的滑动方向
 
     std::shared_ptr<UIElement> m_content; // 包含的具体下属展开内容元素
     float m_headerHeight = kHeaderMinHeight; // 实际测算出的头部栏高度像素值

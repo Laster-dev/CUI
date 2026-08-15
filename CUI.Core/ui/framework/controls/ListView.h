@@ -78,6 +78,27 @@ public:
     virtual bool HasSelfAnimation() const override;
     virtual void OnThemeChanged() override;
 
+    /**
+     * @brief 多列列表视图多选行索引集合属性代理。
+     */
+    struct ListViewSelectedIndicesProperty {
+        ListView* owner;
+        operator const std::unordered_set<int>&() const { return owner->GetSelectedIndices(); }
+        const std::unordered_set<int>& Get() const { return owner->GetSelectedIndices(); }
+        size_t size() const { return owner->GetSelectedIndices().size(); }
+        bool empty() const { return owner->GetSelectedIndices().empty(); }
+    } SelectedIndices{this};
+
+    /**
+     * @brief 列表视图当前活动光标行索引属性代理。
+     */
+    struct ListViewCaretIndexProperty {
+        ListView* owner;
+        ListViewCaretIndexProperty& operator=(int idx) { owner->SetCaretIndex(idx); return *this; }
+        operator int() const { return owner->GetCaretIndex(); }
+        int Get() const { return owner->GetCaretIndex(); }
+    } CaretIndex{this};
+
     // Columns Management
     void AddColumn(const std::string& header, float width = 120.0f);
     void ClearColumns();
@@ -89,6 +110,36 @@ public:
 
     using ShellContextMenuHandler = std::function<bool(Point clientPt, const std::vector<int>& rows)>;
     void SetShellContextMenuHandler(ShellContextMenuHandler handler) { m_shellContextMenuHandler = std::move(handler); }
+
+    struct ListViewRowsProperty {
+        ListView* owner;
+        ListViewRowsProperty& operator=(const std::vector<std::vector<std::string>>& rowsData) { owner->SetRows(rowsData); return *this; }
+        ListViewRowsProperty& operator=(const std::vector<std::vector<ListViewCellData>>& rowsData) { owner->SetRows(rowsData); return *this; }
+        size_t size() const { return owner->GetRowCount(); }
+    } Rows{this};
+
+    ReadOnlyProperty<size_t> RowCount{[this]() { return GetRowCount(); }};
+
+    struct ListViewShowGridLinesProperty {
+        ListView* owner;
+        ListViewShowGridLinesProperty& operator=(bool show) { owner->SetShowGridLines(show); return *this; }
+        operator bool() const { return owner->GetShowGridLines(); }
+        bool Get() const { return owner->GetShowGridLines(); }
+    } ShowGridLines{this};
+
+    struct ListViewRowHeightProperty {
+        ListView* owner;
+        ListViewRowHeightProperty& operator=(float h) { owner->SetRowHeight(h); return *this; }
+        operator float() const { return owner->GetRowHeight(); }
+        float Get() const { return owner->GetRowHeight(); }
+    } RowHeight{this};
+
+    struct ListViewSelectionModeProperty {
+        ListView* owner;
+        ListViewSelectionModeProperty& operator=(ListViewSelectionMode mode) { owner->SetSelectionMode(mode); return *this; }
+        operator ListViewSelectionMode() const { return owner->GetSelectionMode(); }
+        ListViewSelectionMode Get() const { return owner->GetSelectionMode(); }
+    } SelectionMode{this};
 
     // In-Memory Data Rows Management
     void AddRow(const std::vector<std::string>& rowData);

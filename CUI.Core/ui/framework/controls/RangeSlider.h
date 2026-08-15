@@ -29,6 +29,33 @@ public:
     virtual bool OnAnimationTick() override; // 驱动双滑块显示值平滑滑动过渡动画
     virtual bool HasSelfAnimation() const override; // 检查双滑块是否仍有动画正在播放
 
+    struct RangeSliderMinimumProperty {
+        RangeSlider* owner = nullptr;
+        RangeSliderMinimumProperty() = default;
+        explicit RangeSliderMinimumProperty(RangeSlider* o) : owner(o) {}
+        RangeSliderMinimumProperty& operator=(float v) { if (owner) owner->SetMinimum(v); return *this; }
+        operator float() const { return owner ? owner->GetMinimum() : 0.0f; }
+        float Get() const { return owner ? owner->GetMinimum() : 0.0f; }
+    } Minimum;
+
+    struct RangeSliderMaximumProperty {
+        RangeSlider* owner = nullptr;
+        RangeSliderMaximumProperty() = default;
+        explicit RangeSliderMaximumProperty(RangeSlider* o) : owner(o) {}
+        RangeSliderMaximumProperty& operator=(float v) { if (owner) owner->SetMaximum(v); return *this; }
+        operator float() const { return owner ? owner->GetMaximum() : 100.0f; }
+        float Get() const { return owner ? owner->GetMaximum() : 100.0f; }
+    } Maximum;
+
+    struct RangeSliderStepProperty {
+        RangeSlider* owner = nullptr;
+        RangeSliderStepProperty() = default;
+        explicit RangeSliderStepProperty(RangeSlider* o) : owner(o) {}
+        RangeSliderStepProperty& operator=(float v) { if (owner) owner->SetStep(v); return *this; }
+        operator float() const { return owner ? owner->GetStep() : 1.0f; }
+        float Get() const { return owner ? owner->GetStep() : 1.0f; }
+    } Step;
+
     float GetMinimum() const { return m_minimum; } // 获取滑动最小值
     void SetMinimum(float minVal); // 设置滑动最小值
     float GetMaximum() const { return m_maximum; } // 获取滑动最大值

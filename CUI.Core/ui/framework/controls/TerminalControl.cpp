@@ -523,7 +523,7 @@ void TerminalControl::QueueRedraw() {
 }
 
 void TerminalControl::RequestWindowRepaint() {
-    HWND hwnd = m_hwnd;
+    ::HWND hwnd = m_hwnd;
     if (hwnd != nullptr) {
         // Cross-thread InvalidateRect marks an update region but does not
         // guarantee WaitMessage() will wake immediately, so poke the queue too.

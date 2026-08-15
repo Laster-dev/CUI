@@ -157,6 +157,10 @@ enum class PropertyId : uint16_t {
     OffsetY,
     Spacing,
     Corner,
+    Id,
+    Tag,
+    IsCloseVisible,
+    IsSettingsVisible,
     Count
 };
 

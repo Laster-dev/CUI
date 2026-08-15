@@ -30,25 +30,55 @@ public:
 
     PropertyRef<float, PropertyId::ControlValue> ValueProperty; // 滑块当前数值的响应式双向绑定属性代理
 
+    /**
+     * @brief 滑块调节范围最小值属性代理。
+     */
+    struct SliderMinimumProperty {
+        Slider* owner;
+        SliderMinimumProperty& operator=(float m) { owner->SetMinimum(m); return *this; }
+        operator float() const { return owner->GetMinimum(); }
+        float Get() const { return owner->GetMinimum(); }
+    } Minimum{this};
+
+    /**
+     * @brief 滑块调节范围最大值属性代理。
+     */
+    struct SliderMaximumProperty {
+        Slider* owner;
+        SliderMaximumProperty& operator=(float m) { owner->SetMaximum(m); return *this; }
+        operator float() const { return owner->GetMaximum(); }
+        float Get() const { return owner->GetMaximum(); }
+    } Maximum{this};
+
+    /**
+     * @brief 滑块微调步长精度属性代理。
+     */
+    struct SliderStepProperty {
+        Slider* owner;
+        SliderStepProperty& operator=(float s) { owner->SetStep(s); return *this; }
+        operator float() const { return owner->GetStep(); }
+        float Get() const { return owner->GetStep(); }
+    } Step{this};
+
     float GetValue() const { return m_value; } // 获取滑块当前数值
     void SetValue(float val); // 设置滑块当前数值
 
     float GetMinimum() const { return m_minimum; } // 获取滑动范围的最小值
     void SetMinimum(float minVal) { // 设置滑动范围的最小值
         m_minimum = minVal;
-        NotifyFieldChanged(PropertyId::Minimum, Value(minVal));
+        NotifyFieldChanged(PropertyId::Minimum, CUI::Value(minVal));
     }
 
     float GetMaximum() const { return m_maximum; } // 获取滑动范围的最大值
     void SetMaximum(float maxVal) { // 设置滑动范围的最大值
         m_maximum = maxVal;
-        NotifyFieldChanged(PropertyId::Maximum, Value(maxVal));
+        NotifyFieldChanged(PropertyId::Maximum, CUI::Value(maxVal));
     }
 
     float GetStep() const { return m_step; } // 获取滑动微调精度步长
     void SetStep(float s) { // 设置滑动微调精度步长
         m_step = s;
-        NotifyFieldChanged(PropertyId::Step, Value(s));
+        NotifyFieldChanged(PropertyId::Step, CUI::Value(s));
     }
 
     Event<Slider*, float>& OnValueChanged() { return m_onValueChangedEvent; } // 滑动数值更改时的事件发布中心

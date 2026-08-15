@@ -36,8 +36,58 @@ public:
 
     virtual const char* GetClassName() const override { return "ContentDialog"; } // 获取类名
 
+    const std::string& GetPrimaryButtonText() const { return m_primaryText; }
+    const std::string& GetSecondaryButtonText() const { return m_secondaryText; }
+    const std::string& GetCloseButtonText() const { return m_closeText; }
+    bool GetInputEnabled() const { return m_inputEnabled; }
+
     void SetTitle(const std::string& title); // 设置弹出框大标题文本
     void SetMessage(const std::string& message); // 设置弹出正文详细文本内容
+    struct ContentDialogPrimaryButtonTextProperty {
+        ContentDialog* owner = nullptr;
+        ContentDialogPrimaryButtonTextProperty() = default;
+        explicit ContentDialogPrimaryButtonTextProperty(ContentDialog* o) : owner(o) {}
+        ContentDialogPrimaryButtonTextProperty& operator=(const std::string& t) { if (owner) owner->SetPrimaryButtonText(t); return *this; }
+        operator std::string() const { return owner ? owner->GetPrimaryButtonText() : ""; }
+        std::string Get() const { return owner ? owner->GetPrimaryButtonText() : ""; }
+    } PrimaryButtonText;
+
+    struct ContentDialogSecondaryButtonTextProperty {
+        ContentDialog* owner = nullptr;
+        ContentDialogSecondaryButtonTextProperty() = default;
+        explicit ContentDialogSecondaryButtonTextProperty(ContentDialog* o) : owner(o) {}
+        ContentDialogSecondaryButtonTextProperty& operator=(const std::string& t) { if (owner) owner->SetSecondaryButtonText(t); return *this; }
+        operator std::string() const { return owner ? owner->GetSecondaryButtonText() : ""; }
+        std::string Get() const { return owner ? owner->GetSecondaryButtonText() : ""; }
+    } SecondaryButtonText;
+
+    struct ContentDialogCloseButtonTextProperty {
+        ContentDialog* owner = nullptr;
+        ContentDialogCloseButtonTextProperty() = default;
+        explicit ContentDialogCloseButtonTextProperty(ContentDialog* o) : owner(o) {}
+        ContentDialogCloseButtonTextProperty& operator=(const std::string& t) { if (owner) owner->SetCloseButtonText(t); return *this; }
+        operator std::string() const { return owner ? owner->GetCloseButtonText() : ""; }
+        std::string Get() const { return owner ? owner->GetCloseButtonText() : ""; }
+    } CloseButtonText;
+
+    struct ContentDialogInputEnabledProperty {
+        ContentDialog* owner = nullptr;
+        ContentDialogInputEnabledProperty() = default;
+        explicit ContentDialogInputEnabledProperty(ContentDialog* o) : owner(o) {}
+        ContentDialogInputEnabledProperty& operator=(bool e) { if (owner) owner->SetInputEnabled(e); return *this; }
+        operator bool() const { return owner ? owner->GetInputEnabled() : false; }
+        bool Get() const { return owner ? owner->GetInputEnabled() : false; }
+    } InputEnabled;
+
+    struct ContentDialogInputTextProperty {
+        ContentDialog* owner = nullptr;
+        ContentDialogInputTextProperty() = default;
+        explicit ContentDialogInputTextProperty(ContentDialog* o) : owner(o) {}
+        ContentDialogInputTextProperty& operator=(const std::string& t) { if (owner) owner->SetInputText(t); return *this; }
+        operator std::string() const { return owner ? owner->GetInputText() : ""; }
+        std::string Get() const { return owner ? owner->GetInputText() : ""; }
+    } InputText;
+
     void SetPrimaryButtonText(const std::string& text); // 设置主确认按钮的提示文本
     void SetSecondaryButtonText(const std::string& text); // 设置副辅助按钮的提示文本
     void SetCloseButtonText(const std::string& text); // 设置关闭/取消按钮的提示文本

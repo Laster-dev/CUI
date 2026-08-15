@@ -29,6 +29,26 @@ public:
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
 
+    /**
+     * @brief 文本水平对齐方式属性代理 (Left/Center/Right)。
+     */
+    struct TextBlockTextAlignProperty {
+        TextBlock* owner;
+        TextBlockTextAlignProperty& operator=(TextAlignment a) { owner->SetTextAlign(a); return *this; }
+        operator TextAlignment() const { return owner->GetTextAlign(); }
+        TextAlignment Get() const { return owner->GetTextAlign(); }
+    } TextAlign{this};
+
+    /**
+     * @brief 文本行间距大小属性代理。
+     */
+    struct TextBlockLineSpacingProperty {
+        TextBlock* owner;
+        TextBlockLineSpacingProperty& operator=(float s) { owner->SetLineSpacing(s); return *this; }
+        operator float() const { return owner->GetLineSpacing(); }
+        float Get() const { return owner->GetLineSpacing(); }
+    } LineSpacing{this};
+
     TextAlignment GetTextAlign() const { return m_textAlign; }
     void SetTextAlign(TextAlignment align) {
         if (m_textAlign == align) return;

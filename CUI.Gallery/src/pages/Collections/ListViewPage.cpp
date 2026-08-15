@@ -69,59 +69,59 @@ Element BuildListViewPage() {
     });
 
     State<int> appendedRows{ 1 };
-    auto addRow = Button("追加一行");
-    addRow->OnClick().Connect([table, appendedRows, tableStatusText](UIElement*) {
-        const int serial = appendedRows.Get();
-        appendedRows = serial + 1;
-        table->AddRow({ "新增文件_" + std::to_string(serial) + ".txt", "文本", "1 KB" });
-        tableStatusText = "已追加第 " + std::to_string(table->GetRowCount()) + " 行。";
-    });
-    auto resetRows = Button("重置行");
-    resetRows->OnClick().Connect([table, tableStatusText](UIElement*) {
-        table->SetRows(DemoRows());
-        table->ClearSelection();
-        tableStatusText = "已恢复内存中的演示行。";
-    });
-    auto clearRows = Button("清空行");
-    clearRows->OnClick().Connect([table, tableStatusText](UIElement*) {
-        table->ClearRows();
-        tableStatusText = "已清空全部内存行。";
-    });
-    auto selectAll = Button("全选");
-    selectAll->OnClick().Connect([table](UIElement*) { table->SelectAll(); });
-    auto clearSelection = Button("清除选择");
-    clearSelection->OnClick().Connect([table](UIElement*) { table->ClearSelection(); });
+    auto addRow = Button("追加一行")
+        .OnClick([table, appendedRows, tableStatusText](UIElement*) {
+            const int serial = appendedRows.Get();
+            appendedRows = serial + 1;
+            table->AddRow({ "新增文件_" + std::to_string(serial) + ".txt", "文本", "1 KB" });
+            tableStatusText = "已追加第 " + std::to_string(table->GetRowCount()) + " 行。";
+            });
+    auto resetRows = Button("重置行")
+        .OnClick([table, tableStatusText](UIElement*) {
+            table->SetRows(DemoRows());
+            table->ClearSelection();
+            tableStatusText = "已恢复内存中的演示行。";
+            });
+    auto clearRows = Button("清空行")
+        .OnClick([table, tableStatusText](UIElement*) {
+            table->ClearRows();
+            tableStatusText = "已清空全部内存行。";
+            });
+    auto selectAll = Button("全选")
+        .OnClick([table](UIElement*) { table->SelectAll(); });
+    auto clearSelection = Button("清除选择")
+        .OnClick([table](UIElement*) { table->ClearSelection(); });
     auto pickSecond = Button("选中第 2 行");
     // 直接写 State 即可联动控件：SelectedIndex 为双向绑定。
     pickSecond->OnClick().Connect([selectedRow](UIElement*) { selectedRow = 1; });
-    auto compactRows = Button("紧凑行高");
-    compactRows->OnClick().Connect([table, tableStatusText](UIElement*) {
-        table->SetRowHeight(22.0f);
-        tableStatusText = "行高已设为 22px。";
-    });
-    auto comfortableRows = Button("舒适行高");
-    comfortableRows->OnClick().Connect([table, tableStatusText](UIElement*) {
-        table->SetRowHeight(36.0f);
-        tableStatusText = "行高已设为 36px。";
-    });
-    auto toggleGrid = Button("切换网格线");
-    toggleGrid->OnClick().Connect([table](UIElement*) {
-        table->SetShowGridLines(!table->GetShowGridLines());
-    });
-    auto toggleSizeColumn = Button("显示/隐藏大小列");
-    toggleSizeColumn->OnClick().Connect([table](UIElement*) {
-        table->SetColumnVisible(2, !table->IsColumnVisible(2));
-    });
+    auto compactRows = Button("紧凑行高")
+        .OnClick([table, tableStatusText](UIElement*) {
+            table->SetRowHeight(22.0f);
+            tableStatusText = "行高已设为 22px。";
+            });
+    auto comfortableRows = Button("舒适行高")
+        .OnClick([table, tableStatusText](UIElement*) {
+            table->SetRowHeight(36.0f);
+            tableStatusText = "行高已设为 36px。";
+            });
+    auto toggleGrid = Button("切换网格线")
+        .OnClick([table](UIElement*) {
+            table->SetShowGridLines(!table->GetShowGridLines());
+            });
+    auto toggleSizeColumn = Button("显示/隐藏大小列")
+        .OnClick([table](UIElement*) {
+            table->SetColumnVisible(2, !table->IsColumnVisible(2));
+            });
 
     auto customCells = ListViewWidget();
     customCells->Height = 140.0f;
     customCells->Width = 620.0f;
     customCells->AddColumn("任务", 280.0f);
     customCells->AddColumn("状态", 180.0f);
-    auto ready = Text("✓ 已完成");
-    ready->Foreground = Color::Hex("#16803C");
-    auto pending = Text("● 进行中");
-    pending->Foreground = Color::Hex("#C26A00");
+    auto ready = Text("✓ 已完成")
+        .Foreground(Color::Hex("#16803C"));
+    auto pending = Text("● 进行中")
+        .Foreground(Color::Hex("#C26A00"));
     customCells->AddRow({ { "构建 CUI.Core", nullptr }, { "", ready } });
     customCells->AddRow({ { "完善集合控件示例", nullptr }, { "", pending } });
 
@@ -140,12 +140,12 @@ Element BuildListViewPage() {
     virtualTable->OnSelectionChanged().Connect([virtualStatusText](ListView*, int row) {
         virtualStatusText = row < 0 ? "未选择虚拟行。" : "已选择虚拟行 #" + std::to_string(row + 1) + "。";
     });
-    auto reveal = Button("定位到第 50,000 行");
-    reveal->OnClick().Connect([virtualTable](UIElement*) {
-        virtualTable->SetCaretIndex(49999);
-        virtualTable->SetRowSelected(49999, true);
-        virtualTable->EnsureVisible(49999);
-    });
+    auto reveal = Button("定位到第 50,000 行")
+        .OnClick([virtualTable](UIElement*) {
+            virtualTable->SetCaretIndex(49999);
+            virtualTable->SetRowSelected(49999, true);
+            virtualTable->EnsureVisible(49999);
+            });
 
     SamplePageSpec spec;
     spec.title = "ListView(列表视图)";

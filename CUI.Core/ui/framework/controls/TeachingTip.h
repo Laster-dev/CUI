@@ -22,6 +22,20 @@ public:
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
     void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
 
+    struct TeachingTipIsModalProperty {
+        TeachingTip* owner;
+        TeachingTipIsModalProperty& operator=(bool m) { owner->SetIsModal(m); return *this; }
+        operator bool() const { return owner->GetIsModal(); }
+        bool Get() const { return owner->GetIsModal(); }
+    } IsModal{this};
+
+    struct TeachingTipPreferredPlacementProperty {
+        TeachingTip* owner;
+        TeachingTipPreferredPlacementProperty& operator=(BubblePlacement p) { owner->SetPreferredPlacement(p); return *this; }
+        operator BubblePlacement() const { return owner->GetPreferredPlacement(); }
+        BubblePlacement Get() const { return owner->GetPreferredPlacement(); }
+    } PreferredPlacement{this};
+
     void SetTitle(const std::string& title); // 设置提示气泡的标题文本
     const std::string& GetTitle() const { return m_title; } // 获取标题文本
     void SetMessage(const std::string& message); // 设置提示气泡的详细说明正文文本

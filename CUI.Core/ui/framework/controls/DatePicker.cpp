@@ -9,7 +9,7 @@
 
 namespace CUI {
 
-DatePicker::DatePicker() {
+DatePicker::DatePicker() : FormattedDate(this) {
     SelectedDate.Initialize(*this);
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     time_t t = time(nullptr);

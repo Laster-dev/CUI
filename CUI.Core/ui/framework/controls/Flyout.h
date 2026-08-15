@@ -56,6 +56,31 @@ public:
 
     virtual const char* GetClassName() const override { return "Flyout"; } // 获取类名
 
+    /**
+     * @brief 浮出层弹出锚定方位属性代理 (Top/Bottom/Left/Right/Auto 等)。
+     */
+    struct FlyoutPlacementProperty {
+        Flyout* owner = nullptr;
+        FlyoutPlacementProperty() = default;
+        explicit FlyoutPlacementProperty(Flyout* o) : owner(o) {}
+        FlyoutPlacementProperty& operator=(FlyoutPlacement p) { if (owner) owner->SetPlacement(p); return *this; }
+        operator FlyoutPlacement() const { return owner ? owner->GetPlacement() : FlyoutPlacement::Bottom; }
+        FlyoutPlacement Get() const { return owner ? owner->GetPlacement() : FlyoutPlacement::Bottom; }
+    } Placement;
+
+    /**
+     * @brief 浮出层内部承载的 UIElement 根内容元素属性代理。
+     */
+    struct FlyoutContentProperty {
+        Flyout* owner = nullptr;
+        FlyoutContentProperty() = default;
+        explicit FlyoutContentProperty(Flyout* o) : owner(o) {}
+        FlyoutContentProperty& operator=(std::shared_ptr<UIElement> c) { if (owner) owner->SetContent(std::move(c)); return *this; }
+        operator std::shared_ptr<UIElement>() const { return owner ? owner->GetContent() : nullptr; }
+        std::shared_ptr<UIElement> Get() const { return owner ? owner->GetContent() : nullptr; }
+        std::shared_ptr<UIElement> operator->() const { return owner ? owner->GetContent() : nullptr; }
+    } Content;
+
     void SetContent(std::shared_ptr<UIElement> content); // 设置弹出框中要呈现的元素
     std::shared_ptr<UIElement> GetContent() const { return m_presenter ? m_presenter->GetContent() : nullptr; } // 获取弹出框中呈现的元素
 

@@ -169,7 +169,7 @@ private:
     bool TickItemHoverAnimations();
     void BeginOpenAnimation();
     ContextMenu* GetRootMenu();
-    bool ShowOnExternalPopup(HWND owner, Point screenDipTopLeft, float width, float height);
+    bool ShowOnExternalPopup(::HWND owner, Point screenDipTopLeft, float width, float height);
 };
 
 } // namespace CUI

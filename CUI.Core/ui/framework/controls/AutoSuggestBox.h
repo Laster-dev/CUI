@@ -16,7 +16,7 @@ class AutoSuggestField;
 // TextBox plus a self-drawn suggestion popup (not ListBox). No wrap chrome.
 class AutoSuggestBox : public Control, public IPopup {
 public:
-    using SuggestionProvider = std::function<std::vector<std::string>(const std::string& query)>;
+    using SuggestionProviderFn = std::function<std::vector<std::string>(const std::string& query)>;
 
     AutoSuggestBox();
     virtual ~AutoSuggestBox() = default;
@@ -57,13 +57,31 @@ public:
     void SetText(const std::string& text);
     void SetPlaceholder(const std::string& text);
 
+    struct AutoSuggestItemsProperty {
+        AutoSuggestBox* owner;
+        AutoSuggestItemsProperty& operator=(const std::vector<std::string>& items) { owner->SetSuggestionItems(items); return *this; }
+        operator const std::vector<std::string>&() const { return owner->GetSuggestionItems(); }
+    } SuggestionItems{this};
+
+    struct AutoSuggestProviderProperty {
+        AutoSuggestBox* owner;
+        AutoSuggestProviderProperty& operator=(SuggestionProviderFn provider) { owner->SetSuggestionProvider(std::move(provider)); return *this; }
+    } SuggestionProvider{this};
+
+    struct AutoSuggestMaxVisibleProperty {
+        AutoSuggestBox* owner;
+        AutoSuggestMaxVisibleProperty& operator=(int n) { owner->SetMaxVisibleSuggestions(n); return *this; }
+        operator int() const { return owner->GetMaxVisibleSuggestions(); }
+        int Get() const { return owner->GetMaxVisibleSuggestions(); }
+    } MaxVisibleSuggestions{this};
+
     // Full catalog; filtered with case-insensitive substring match unless a provider is set.
     void SetSuggestionItems(const std::vector<std::string>& items);
     void ClearSuggestionItems();
     const std::vector<std::string>& GetSuggestionItems() const { return m_catalog; }
 
     // Optional custom provider; when set, catalog filter is skipped.
-    void SetSuggestionProvider(SuggestionProvider provider);
+    void SetSuggestionProvider(SuggestionProviderFn provider);
 
     float GetSuggestionItemHeight() const { return m_suggestionItemHeight; }
     void SetSuggestionItemHeight(float h) { m_suggestionItemHeight = h; }
@@ -111,7 +129,7 @@ private:
 
     std::vector<std::string> m_catalog;
     std::vector<std::string> m_filtered;
-    SuggestionProvider m_provider;
+    SuggestionProviderFn m_provider;
 
     bool m_suggestionsOpen = false;
     int m_highlightedIndex = -1;

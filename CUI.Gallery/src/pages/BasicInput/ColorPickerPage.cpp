@@ -28,11 +28,11 @@ std::string ColorHex(Color c) {
 
 Element BuildColorPickerPage() {
     auto picker = ColorPickerWidget();
-    auto chip = Text();
-    chip->Width = 48.0f;
-    chip->Height = 24.0f;
-    chip->CornerRadius = 4.0f;
-    chip->BorderThickness = 1.0f;
+    auto chip = Text()
+        .Width(48.0f)
+        .Height(24.0f)
+        .CornerRadius(4.0f)
+        .BorderThickness(1.0f);
     chip->BorderToken = ThemeTokenId::CardBorder;
 
     State<Color> selectedColor{ Color(0, 0, 0, 1) };

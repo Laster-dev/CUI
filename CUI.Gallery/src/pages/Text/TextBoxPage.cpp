@@ -12,10 +12,10 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildTextBoxPage() {
-    auto basic = TextField();
-    basic->Placeholder = "请输入内容";
-    basic->Width = 300.0f;
-    basic->Height = 28.0f;
+    auto basic = TextField()
+        .Placeholder("请输入内容")
+        .Width(300.0f)
+        .Height(28.0f);
 
     State<std::string> textState{ "" };
     basic->Text.Bind(textState, BindingMode::TwoWay);
@@ -26,53 +26,53 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto clear = Button("清空");
-    clear->OnClick().Connect([basic](UIElement*) {
-        basic->Text.Set("");
-    });
+    auto clear = Button("清空")
+        .OnClick([basic](UIElement*) {
+            basic->Text.Set("");
+            });
 
-    auto multiline = TextField();
-    multiline->Placeholder = "多行文本：支持 Enter 换行与自动折行";
-    multiline->Width = 340.0f;
-    multiline->Height = 120.0f;
+    auto multiline = TextField()
+        .Placeholder("多行文本：支持 Enter 换行与自动折行")
+        .Width(340.0f)
+        .Height(120.0f);
     multiline->SetAcceptsReturn(true);
     multiline->SetTextWrapping(true);
 
-    auto readOnly = TextField();
-    readOnly->Text = "只读文本：SetIsReadOnly(true)";
-    readOnly->Width = 300.0f;
-    readOnly->Height = 28.0f;
+    auto readOnly = TextField()
+        .Text("只读文本：SetIsReadOnly(true)")
+        .Width(300.0f)
+        .Height(28.0f);
     readOnly->SetIsReadOnly(true);
 
-    auto passwordMode = TextField();
-    passwordMode->Placeholder = "密码模式（带明文切换眼睛）";
-    passwordMode->Width = 300.0f;
-    passwordMode->Height = 28.0f;
+    auto passwordMode = TextField()
+        .Placeholder("密码模式（带明文切换眼睛）")
+        .Width(300.0f)
+        .Height(28.0f);
     passwordMode->SetIsPasswordMode(true);
     passwordMode->SetShowRevealButton(true);
 
-    auto disabled = TextField();
-    disabled->Placeholder = "不可用";
-    disabled->Width = 300.0f;
-    disabled->Height = 28.0f;
+    auto disabled = TextField()
+        .Placeholder("不可用")
+        .Width(300.0f)
+        .Height(28.0f);
     disabled->IsEnabledProperty = false;
 
     State<std::string> boundText{ "绑定数据源：点击右侧按钮更新文本。" };
-    auto bound = TextField();
-    bound->Width = 300.0f;
-    bound->Height = 28.0f;
+    auto bound = TextField()
+        .Width(300.0f)
+        .Height(28.0f);
     bound->SetIsReadOnly(true);
     bound->Text.Bind(boundText, BindingMode::OneWay);
 
-    auto update = Button("更新绑定");
-    update->OnClick().Connect([boundText](UIElement*) {
-        boundText = "已通过 State 更新：Text.Bind(State, OneWay)。";
-    });
+    auto update = Button("更新绑定")
+        .OnClick([boundText](UIElement*) {
+            boundText = "已通过 State 更新：Text.Bind(State, OneWay)。";
+            });
 
-    auto drop = TextField();
-    drop->Placeholder = "支持拖放：拖入文本或文件路径";
-    drop->Width = 300.0f;
-    drop->Height = 28.0f;
+    auto drop = TextField()
+        .Placeholder("支持拖放：拖入文本或文件路径")
+        .Width(300.0f)
+        .Height(28.0f);
     drop->SetAllowDrop(true);
     drop->ToolTip = "允许从外部拖入文本或文件路径";
 

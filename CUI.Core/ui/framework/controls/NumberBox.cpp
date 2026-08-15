@@ -280,10 +280,10 @@ NumberBox::NumberBox() {
 
 Value NumberBox::GetProperty(PropertyId id) const {
     switch (id) {
-    case PropertyId::ControlValue: return Value(m_value);
-    case PropertyId::Minimum: return Value(m_minimum);
-    case PropertyId::Maximum: return Value(m_maximum);
-    case PropertyId::Step: return Value(m_step);
+    case PropertyId::ControlValue: return CUI::Value(m_value);
+    case PropertyId::Minimum: return CUI::Value(m_minimum);
+    case PropertyId::Maximum: return CUI::Value(m_maximum);
+    case PropertyId::Step: return CUI::Value(m_step);
     default: return UIElement::GetProperty(id);
     }
 }
@@ -300,7 +300,7 @@ bool NumberBox::HasProperty(PropertyId id) const {
     }
 }
 
-void NumberBox::SetProperty(PropertyId id, const Value& val) {
+void NumberBox::SetProperty(PropertyId id, const CUI::Value& val) {
     switch (id) {
     case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
     case PropertyId::Minimum: SetMinimum(val.AsFloat()); return;
@@ -436,7 +436,7 @@ void NumberBox::SetValue(float val) {
         return;
     }
     m_value = clamped;
-    NotifyFieldChanged(PropertyId::ControlValue, Value(clamped));
+    NotifyFieldChanged(PropertyId::ControlValue, CUI::Value(clamped));
     SyncTextFromValue();
     m_onValueChangedEvent.Invoke(this, clamped);
     MarkRenderContentDirty();
@@ -455,7 +455,7 @@ void NumberBox::OnFieldTextChanged() {
         return;
     }
     m_value = clamped;
-    NotifyFieldChanged(PropertyId::ControlValue, Value(clamped));
+    NotifyFieldChanged(PropertyId::ControlValue, CUI::Value(clamped));
     m_onValueChangedEvent.Invoke(this, clamped);
 }
 

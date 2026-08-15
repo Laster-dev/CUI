@@ -2,19 +2,19 @@
 
 namespace CUI {
 
-PasswordBox::PasswordBox() : TextBox("请输入密码") {
+PasswordBox::PasswordBox() : TextBox("请输入密码"), Password(this) {
     SetIsPasswordMode(true);
     SetShowRevealButton(true);
 }
 
-PasswordBox::PasswordBox(const std::string& placeholder) : TextBox(placeholder) {
+PasswordBox::PasswordBox(const std::string& placeholder) : TextBox(placeholder), Password(this) {
     SetIsPasswordMode(true);
     SetShowRevealButton(true);
 }
 
 Value PasswordBox::GetProperty(PropertyId id) const {
     switch (id) {
-    case PropertyId::IsPasswordRevealed: return Value(IsPasswordRevealed());
+    case PropertyId::IsPasswordRevealed: return Value(GetIsPasswordRevealed());
     case PropertyId::ShowRevealButton: return Value(GetShowRevealButton());
     default: return TextBox::GetProperty(id);
     }

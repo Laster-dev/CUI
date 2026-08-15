@@ -71,7 +71,7 @@ public:
     void UpdateFloatRedock(Point screenDip); // 拖动高频更新边缘吸附测试，判定鼠标落入哪个吸附罗盘热区
     bool CompleteFloatRedock(Point screenDip); // 拖拽释放，将卡片顺利合入罗盘所指定的那个物理边侧
     void CancelFloatRedock(); // 取消拖拽吸附操作
-    HWND OwnerHwnd() const; // 获取宿主主窗口的 HWND 句柄
+    ::HWND OwnerHwnd() const; // 获取宿主主窗口的 ::HWND 句柄
     void InvalidateOwner(); // 强行让主窗口失效，发出画面重绘请求
 
 private:

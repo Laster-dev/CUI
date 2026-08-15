@@ -30,6 +30,46 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
 
+    /**
+     * @brief 数字框当前数值属性代理。
+     */
+    struct NumberBoxValueProperty {
+        NumberBox* owner;
+        NumberBoxValueProperty& operator=(float v) { owner->SetValue(v); return *this; }
+        operator float() const { return owner->GetValue(); }
+        float Get() const { return owner->GetValue(); }
+    } Value{this};
+
+    /**
+     * @brief 数字框允许输入的下限最小值属性代理。
+     */
+    struct NumberBoxMinimumProperty {
+        NumberBox* owner;
+        NumberBoxMinimumProperty& operator=(float v) { owner->SetMinimum(v); return *this; }
+        operator float() const { return owner->GetMinimum(); }
+        float Get() const { return owner->GetMinimum(); }
+    } Minimum{this};
+
+    /**
+     * @brief 数字框允许输入的上限最大值属性代理。
+     */
+    struct NumberBoxMaximumProperty {
+        NumberBox* owner;
+        NumberBoxMaximumProperty& operator=(float v) { owner->SetMaximum(v); return *this; }
+        operator float() const { return owner->GetMaximum(); }
+        float Get() const { return owner->GetMaximum(); }
+    } Maximum{this};
+
+    /**
+     * @brief 微调步长增量属性代理。
+     */
+    struct NumberBoxStepProperty {
+        NumberBox* owner;
+        NumberBoxStepProperty& operator=(float v) { owner->SetStep(v); return *this; }
+        operator float() const { return owner->GetStep(); }
+        float Get() const { return owner->GetStep(); }
+    } Step{this};
+
     float GetValue() const { return m_value; }
     void SetValue(float val);
 
@@ -38,19 +78,19 @@ public:
     float GetStep() const { return m_step; }
     void SetStep(float s) {
         m_step = s;
-        NotifyFieldChanged(PropertyId::Step, Value(s));
+        NotifyFieldChanged(PropertyId::Step, CUI::Value(s));
     }
 
     float GetMinimum() const { return m_minimum; }
     void SetMinimum(float minVal) {
         m_minimum = minVal;
-        NotifyFieldChanged(PropertyId::Minimum, Value(minVal));
+        NotifyFieldChanged(PropertyId::Minimum, CUI::Value(minVal));
     }
 
     float GetMaximum() const { return m_maximum; }
     void SetMaximum(float maxVal) {
         m_maximum = maxVal;
-        NotifyFieldChanged(PropertyId::Maximum, Value(maxVal));
+        NotifyFieldChanged(PropertyId::Maximum, CUI::Value(maxVal));
     }
 
     Event<NumberBox*, float>& OnValueChanged() { return m_onValueChangedEvent; }

@@ -11,8 +11,8 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleButtonPage() {
-    auto bold = ToggleButtonWidget("粗体");
-    bold->FontWeight = FontWeight::Bold;
+    auto bold = ToggleButtonWidget("粗体")
+        .FontWeight(FontWeight::Bold);
     
     auto italic = ToggleButtonWidget("斜体");
     italic->FontStyle = FontStyle::Italic;

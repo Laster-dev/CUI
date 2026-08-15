@@ -46,6 +46,24 @@ public:
     virtual bool HasSelfAnimation() const override;
     virtual void OnThemeChanged() override;
 
+    struct ListBoxItemsProperty {
+        ListBox* owner;
+        ListBoxItemsProperty& operator=(const std::vector<std::string>& items) { owner->SetItems(items); return *this; }
+        ListBoxItemsProperty& operator=(std::initializer_list<std::string> items) { owner->SetItems(std::vector<std::string>(items)); return *this; }
+        ListBoxItemsProperty& operator=(const std::string& itemsCsv) { owner->SetItems(itemsCsv); return *this; }
+        size_t size() const { return owner->GetItemCount(); }
+    } Items{this};
+
+    ReadOnlyProperty<size_t> RowCount{[this]() { return GetItemCount(); }};
+    ReadOnlyProperty<size_t> ItemCount{[this]() { return GetItemCount(); }};
+
+    struct ListBoxSelectionModeProperty {
+        ListBox* owner;
+        ListBoxSelectionModeProperty& operator=(ListBoxSelectionMode mode) { owner->SetSelectionMode(mode); return *this; }
+        operator ListBoxSelectionMode() const { return owner->GetSelectionMode(); }
+        ListBoxSelectionMode Get() const { return owner->GetSelectionMode(); }
+    } SelectionMode{this};
+
     // Items & Data Management
     void AddItem(const std::string& item);
     void AddItem(std::shared_ptr<UIElement> customElement);
@@ -68,7 +86,56 @@ public:
     void SetSelectedIndex(int index);
 
     PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex; // 选中项索引的响应式双向绑定属性代理
+    /**
+     * @brief 列表框多选选中的索引集合属性代理。
+     */
+    struct ListBoxSelectedIndicesProperty {
+        ListBox* owner;
+        operator const std::unordered_set<int>&() const { return owner->GetSelectedIndices(); }
+        const std::unordered_set<int>& Get() const { return owner->GetSelectedIndices(); }
+        size_t size() const { return owner->GetSelectedIndices().size(); }
+    } SelectedIndices{this};
+
+    /**
+     * @brief 列表框当前选中的单项文本属性代理。
+     */
+    struct ListBoxSelectedItemProperty {
+        ListBox* owner;
+        ListBoxSelectedItemProperty& operator=(const std::string& item) { owner->SetSelectedItem(item); return *this; }
+        operator std::string() const { return owner->GetSelectedItem(); }
+        std::string Get() const { return owner->GetSelectedItem(); }
+    } SelectedItem{this};
+
+    /**
+     * @brief 是否允许拖拽列表项属性代理。
+     */
+    struct ListBoxAllowDragProperty {
+        ListBox* owner;
+        ListBoxAllowDragProperty& operator=(bool d) { owner->SetAllowDrag(d); return *this; }
+        operator bool() const { return owner->GetAllowDrag(); }
+        bool Get() const { return owner->GetAllowDrag(); }
+    } AllowDrag{this};
+
+    /**
+     * @brief 是否允许向列表框拖放放入项属性代理。
+     */
+    struct ListBoxAllowDropProperty {
+        ListBox* owner;
+        ListBoxAllowDropProperty& operator=(bool d) { owner->SetAllowDrop(d); return *this; }
+        operator bool() const { return owner->GetAllowDrop(); }
+        bool Get() const { return owner->GetAllowDrop(); }
+    } AllowDrop{this};
+
     std::string GetSelectedItem() const;
+    void SetSelectedItem(const std::string& item) {
+        for (size_t i = 0; i < GetItemCount(); ++i) {
+            if (GetItemAt(i) == item) {
+                SetSelectedIndex(static_cast<int>(i));
+                return;
+            }
+        }
+        SetSelectedIndex(-1);
+    }
 
     const std::unordered_set<int>& GetSelectedIndices() const { return m_selectedIndices; }
     void SetItemSelected(int index, bool selected);

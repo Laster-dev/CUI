@@ -66,6 +66,16 @@ public:
 
     const char* GetClassName() const override { return "NavigationViewItem"; }
 
+    /**
+     * @brief 导航项标题文本内容属性代理。
+     */
+    struct NavItemContentProperty {
+        NavigationViewItem* owner;
+        NavItemContentProperty& operator=(const std::string& c) { owner->SetContent(c); return *this; }
+        operator const std::string&() const { return owner->GetContent(); }
+        const std::string& Get() const { return owner->GetContent(); }
+    } Content{this};
+
     void SetContent(const std::string& content);
     const std::string& GetContent() const { return m_content; }
 
@@ -76,8 +86,20 @@ public:
     const std::string& GetTag() const { return m_tag; }
 
     // If false, invoke expands/collapses children instead of selecting (WinUI).
+    /**
+     * @brief 导航项被点击激活时是否自动选中该项属性代理。
+     */
+    struct NavItemSelectsOnInvokedProperty {
+        NavigationViewItem* owner = nullptr;
+        NavItemSelectsOnInvokedProperty() = default;
+        explicit NavItemSelectsOnInvokedProperty(NavigationViewItem* o) : owner(o) {}
+        NavItemSelectsOnInvokedProperty& operator=(bool v) { if (owner) owner->SetSelectsOnInvoked(v); return *this; }
+        operator bool() const { return owner ? owner->GetSelectsOnInvoked() : true; }
+        bool Get() const { return owner ? owner->GetSelectsOnInvoked() : true; }
+    } SelectsOnInvoked;
+
     void SetSelectsOnInvoked(bool value) { m_selectsOnInvoked = value; }
-    bool SelectsOnInvoked() const { return m_selectsOnInvoked; }
+    bool GetSelectsOnInvoked() const { return m_selectsOnInvoked; }
 
     void SetIsExpanded(bool expanded);
     // Expand/collapse without firing OnExpandChanged (avoids sync Relayout on select).

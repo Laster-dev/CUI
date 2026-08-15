@@ -38,6 +38,16 @@ public:
     virtual void OnThemeChanged() override;
     void SetProperty(PropertyId id, const Value& val) override;
 
+    /**
+     * @brief Markdown 视图原始文档字符串内容属性代理。
+     */
+    struct MarkdownViewMarkdownProperty {
+        MarkdownView* owner;
+        MarkdownViewMarkdownProperty& operator=(const std::string& md) { owner->SetMarkdown(md); return *this; }
+        operator const std::string&() const { return owner->GetMarkdown(); }
+        const std::string& Get() const { return owner->GetMarkdown(); }
+    } Markdown{this};
+
     void SetMarkdown(const std::string& markdown);
     const std::string& GetMarkdown() const { return UIElement::GetText(); }
 

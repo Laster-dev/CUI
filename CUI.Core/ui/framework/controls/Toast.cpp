@@ -500,14 +500,14 @@ void Toast::OnMouseUp(Point pt) {
 
     if (m_closeable && m_closeBtnBounds.Contains(pt.x, pt.y)) {
         Hide();
-        m_onClickEvent.Invoke(this);
+        OnClick.Invoke(this);
         return;
     }
 
     if (m_closeable) {
         Hide();
     }
-    m_onClickEvent.Invoke(this);
+    OnClick.Invoke(this);
 }
 
 bool Toast::OnAnimationTick() {

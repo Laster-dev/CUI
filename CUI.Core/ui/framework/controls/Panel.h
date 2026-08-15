@@ -68,6 +68,50 @@ public:
     void AddColumnDefinition(const ColumnDefinition& col) { m_columns.push_back(col); } // 增加一列网格定义
     void AddRowDefinition(const RowDefinition& row) { m_rows.push_back(row); } // 增加一行网格定义
 
+    struct GridColumnsProperty {
+        Grid* owner;
+        GridColumnsProperty& operator=(const std::string& colDefsStr) { owner->SetColumnDefinitions(colDefsStr); return *this; }
+        GridColumnsProperty& operator=(std::initializer_list<GridLength> lengths) {
+            owner->m_columns.clear();
+            for (const auto& len : lengths) {
+                ColumnDefinition col;
+                col.width = len;
+                owner->m_columns.push_back(col);
+            }
+            owner->InvalidateMeasure();
+            return *this;
+        }
+        GridColumnsProperty& operator=(const std::vector<ColumnDefinition>& cols) {
+            owner->m_columns = cols;
+            owner->InvalidateMeasure();
+            return *this;
+        }
+        const std::vector<ColumnDefinition>& Get() const { return owner->m_columns; }
+        operator const std::vector<ColumnDefinition>&() const { return owner->m_columns; }
+    } Columns{this};
+
+    struct GridRowsProperty {
+        Grid* owner;
+        GridRowsProperty& operator=(const std::string& rowDefsStr) { owner->SetRowDefinitions(rowDefsStr); return *this; }
+        GridRowsProperty& operator=(std::initializer_list<GridLength> lengths) {
+            owner->m_rows.clear();
+            for (const auto& len : lengths) {
+                RowDefinition row;
+                row.height = len;
+                owner->m_rows.push_back(row);
+            }
+            owner->InvalidateMeasure();
+            return *this;
+        }
+        GridRowsProperty& operator=(const std::vector<RowDefinition>& rows) {
+            owner->m_rows = rows;
+            owner->InvalidateMeasure();
+            return *this;
+        }
+        const std::vector<RowDefinition>& Get() const { return owner->m_rows; }
+        operator const std::vector<RowDefinition>&() const { return owner->m_rows; }
+    } Rows{this};
+
     const std::vector<ColumnDefinition>& GetColumnDefinitions() const { return m_columns; } // 获取网格列定义明细集合
     std::vector<ColumnDefinition>& GetColumnDefinitions() { return m_columns; }
 

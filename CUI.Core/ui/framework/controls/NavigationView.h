@@ -65,14 +65,69 @@ public:
     bool HasProperty(PropertyId id) const override;
     void SetProperty(PropertyId id, const Value& val) override;
 
+    struct NavPaneDisplayModeProperty {
+        NavigationView* owner;
+        NavPaneDisplayModeProperty& operator=(NavigationViewPaneDisplayMode mode) { owner->SetPaneDisplayMode(mode); return *this; }
+        operator NavigationViewPaneDisplayMode() const { return owner->GetPaneDisplayMode(); }
+        NavigationViewPaneDisplayMode Get() const { return owner->GetPaneDisplayMode(); }
+    } PaneDisplayMode{this};
+
+    struct NavSelectedItemProperty {
+        NavigationView* owner;
+        NavSelectedItemProperty& operator=(NavigationViewItem* item) { owner->SetSelectedItem(item); return *this; }
+        operator NavigationViewItem*() const { return owner->GetSelectedItem(); }
+        NavigationViewItem* Get() const { return owner->GetSelectedItem(); }
+        NavigationViewItem* operator->() const { return owner->GetSelectedItem(); }
+    } SelectedItem{this};
+
+    struct NavContentProperty {
+        NavigationView* owner;
+        NavContentProperty& operator=(const std::shared_ptr<UIElement>& content) { owner->SetContent(content); return *this; }
+        operator std::shared_ptr<UIElement>() const { return owner->GetContent(); }
+        std::shared_ptr<UIElement> Get() const { return owner->GetContent(); }
+        std::shared_ptr<UIElement> operator->() const { return owner->GetContent(); }
+    } Content{this};
+
+    struct NavContentFactoryProperty {
+        NavigationView* owner;
+        NavContentFactoryProperty& operator=(std::function<std::shared_ptr<UIElement>()> factory) { owner->SetContentFactory(std::move(factory)); return *this; }
+    } ContentFactory{this};
+
+    struct NavAutoSuggestBoxProperty {
+        NavigationView* owner;
+        NavAutoSuggestBoxProperty& operator=(const std::shared_ptr<UIElement>& box) { owner->SetAutoSuggestBox(box); return *this; }
+        operator std::shared_ptr<UIElement>() const { return owner->GetAutoSuggestBox(); }
+        std::shared_ptr<UIElement> Get() const { return owner->GetAutoSuggestBox(); }
+    } AutoSuggestBox{this};
+
     // --- Pane mode (WinUI) ---
+    /**
+     * @brief 导航栏侧边面板当前是否处于展开状态属性代理。
+     */
+    struct NavIsPaneOpenProperty {
+        NavigationView* owner;
+        NavIsPaneOpenProperty& operator=(bool o) { owner->SetIsPaneOpen(o); return *this; }
+        operator bool() const { return owner->GetIsPaneOpen(); }
+        bool Get() const { return owner->GetIsPaneOpen(); }
+    } IsPaneOpen{this};
+
+    /**
+     * @brief 底部设置项是否可见属性代理。
+     */
+    struct NavIsSettingsVisibleProperty {
+        NavigationView* owner;
+        NavIsSettingsVisibleProperty& operator=(bool v) { owner->SetIsSettingsVisible(v); return *this; }
+        operator bool() const { return owner->GetIsSettingsVisible(); }
+        bool Get() const { return owner->GetIsSettingsVisible(); }
+    } IsSettingsVisible{this};
+
     void SetPaneDisplayMode(NavigationViewPaneDisplayMode mode);
     NavigationViewPaneDisplayMode GetPaneDisplayMode() const { return m_paneDisplayMode; }
 
     NavigationViewDisplayMode GetDisplayMode() const { return m_displayMode; }
 
     void SetIsPaneOpen(bool open);
-    bool IsPaneOpen() const { return m_isPaneOpen; }
+    bool GetIsPaneOpen() const { return m_isPaneOpen; }
     void TogglePane();
 
     void SetOpenPaneLength(float length);
@@ -98,7 +153,7 @@ public:
 
     // --- Settings ---
     void SetIsSettingsVisible(bool visible);
-    bool IsSettingsVisible() const { return m_settingsVisible; }
+    bool GetIsSettingsVisible() const { return m_settingsVisible; }
     NavigationViewItem* SettingsItem() const { return m_settingsItem.get(); }
 
     // --- Selection ---

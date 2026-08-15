@@ -49,12 +49,12 @@ DockManager::~DockManager() {
     m_floats.clear();
 }
 
-HWND DockManager::OwnerHwnd() const {
+::HWND DockManager::OwnerHwnd() const {
     return m_ownerWindow ? m_ownerWindow->GetHWND() : nullptr;
 }
 
 Point DockManager::LocalToScreenDip(Point local) const {
-    HWND hwnd = OwnerHwnd();
+    ::HWND hwnd = OwnerHwnd();
     if (!hwnd) {
         return local;
     }
@@ -68,7 +68,7 @@ Point DockManager::LocalToScreenDip(Point local) const {
 }
 
 Point DockManager::ScreenDipToLocal(Point screenDip) const {
-    HWND hwnd = OwnerHwnd();
+    ::HWND hwnd = OwnerHwnd();
     if (!hwnd) {
         return screenDip;
     }
@@ -82,7 +82,7 @@ Point DockManager::ScreenDipToLocal(Point screenDip) const {
 }
 
 void DockManager::InvalidateOwner() {
-    if (HWND hwnd = OwnerHwnd()) {
+    if (::HWND hwnd = OwnerHwnd()) {
         InvalidateRect(hwnd, nullptr, FALSE);
         UpdateWindow(hwnd);
     } else {
@@ -893,7 +893,7 @@ void DockManager::FloatPane(int paneIndex, Point screenDipTopLeft) {
     if (!m_panes[paneIndex].canFloat) {
         return;
     }
-    HWND owner = OwnerHwnd();
+    ::HWND owner = OwnerHwnd();
     if (!owner) {
         return;
     }

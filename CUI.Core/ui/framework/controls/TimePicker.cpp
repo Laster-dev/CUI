@@ -40,7 +40,7 @@ float WrapPosition(float value, int count) {
 }
 }
 
-TimePicker::TimePicker() {
+TimePicker::TimePicker() : FormattedTime(this) {
     SelectedTime.Initialize(*this);
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     time_t t = time(nullptr);
@@ -179,7 +179,7 @@ void TimePicker::OnMouseWheel(float delta) {
     float logicalX = 0.0f;
     float logicalY = 0.0f;
     POINT screenPt{};
-    HWND hwnd = nullptr;
+    ::HWND hwnd = nullptr;
     if (GetCursorPos(&screenPt)) {
         hwnd = WindowFromPoint(screenPt);
     }

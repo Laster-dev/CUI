@@ -42,14 +42,14 @@ std::string DefaultIconTextFromTitle(const std::string& title) {
 
 } // namespace
 
-WindowTitleBar::WindowTitleBar() {
+WindowTitleBar::WindowTitleBar() : RightContent(this), MenuBar(this) {
     SetHeight(36.0f);
     SetBackgroundToken(ThemeTokenId::PaneBackground);
     SetHoverBackgroundToken(ThemeTokenId::PaneBackground);
     SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
     SetColorToken(ThemeTokenId::TextPrimary);
     SetTitle("CUI Application");
-    m_menuBar = std::make_shared<MenuBar>();
+    m_menuBar = std::make_shared<CUI::MenuBar>();
     AddChild(m_menuBar);
 }
 
@@ -267,7 +267,7 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
 
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
-    const HWND hwnd = ctx.GetHwnd();
+    const ::HWND hwnd = ctx.GetHwnd();
     const bool isMaximized = hwnd && IsZoomed(hwnd) != FALSE;
 
     const Rect iconRect(
@@ -424,7 +424,7 @@ void WindowTitleBar::OnMouseLeave() {
     // keep caption hover — WM_NCMOUSELEAVE clears when the cursor really leaves.
     float lx = 0.0f;
     float ly = 0.0f;
-    HWND hwnd = Window::Current() ? Window::Current()->GetHWND() : nullptr;
+    ::HWND hwnd = Window::Current() ? Window::Current()->GetHWND() : nullptr;
     if (hwnd && TryGetCursorClientLogical(hwnd, lx, ly) && IsCaptionButtonHit(lx, ly)) {
         return;
     }
@@ -498,3 +498,10 @@ bool WindowTitleBar::ConsumeChromeDirty() {
 }
 
 } // namespace CUI
+
+
+namespace CUI {
+std::shared_ptr<ContextMenu> WindowTitleBar::WindowTitleBarMenuBarProperty::AddMenu(const std::string& text) {
+    return owner->GetMenuBar().AddMenu(text);
+}
+}

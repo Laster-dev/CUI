@@ -211,7 +211,7 @@ private:
     volatile LONG m_ref = 1;
 };
 
-float GetWindowRefreshRateHz(HWND hwnd) {
+float GetWindowRefreshRateHz(::HWND hwnd) {
     // EnumDisplaySettings is relatively expensive — cache per monitor briefly.
     struct Cache {
         HMONITOR monitor = nullptr;
@@ -294,7 +294,7 @@ bool IsOverlayScrimAnimating(UIElement* element) {
     return false;
 }
 
-Rect GetClientBounds(HWND hwnd) {
+Rect GetClientBounds(::HWND hwnd) {
     RECT rc = {};
     if (hwnd) {
         GetClientRect(hwnd, &rc);
@@ -317,7 +317,7 @@ Rect PhysicalRectToLogical(const Rect& rect, float dpiScale) {
     );
 }
 
-Rect GetLogicalClientBounds(HWND hwnd, float dpiScale) {
+Rect GetLogicalClientBounds(::HWND hwnd, float dpiScale) {
     return PhysicalRectToLogical(GetClientBounds(hwnd), dpiScale);
 }
 
@@ -366,7 +366,7 @@ void ForceThemeRefresh(UIElement* element, const std::string& refreshStamp, bool
 }
 }
 
-Window::Window() {
+Window::Window() : ThemeMode(this), BackdropType(this), RenderStatsOverlayVisible(this), RootElement(this), HWND(this) {
     s_current = this;
     m_sceneLayer.SetCacheable(true);
 }
@@ -1088,7 +1088,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     return true;
 }
 
-void Window::SetBackdropType(BackdropType type) {
+void Window::SetBackdropType(CUI::BackdropType type) {
     m_backdropType = BackdropType::None;
     if (m_hwnd) {
         m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode);
@@ -1104,7 +1104,7 @@ void Window::SetBackdropType(BackdropType type) {
     }
 }
 
-void Window::SetThemeMode(ThemeMode theme) {
+void Window::SetThemeMode(CUI::ThemeMode theme) {
     Point origin(m_logicalClientSize.width * 0.5f, m_logicalClientSize.height * 0.5f);
     if (m_hwnd) {
         POINT pt{};
@@ -1115,7 +1115,7 @@ void Window::SetThemeMode(ThemeMode theme) {
     SetThemeModeWithRipple(theme, origin);
 }
 
-void Window::SetThemeModeWithRipple(ThemeMode theme, Point originPoint) {
+void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     // Idle no-op only when already on this theme and no wave is playing.
     // Mid-wave clicks must always start a brand-new ripple.
     if (m_themeMode == theme && !m_themeRippleActive) {
@@ -1185,7 +1185,7 @@ void Window::SetThemeModeWithRipple(ThemeMode theme, Point originPoint) {
 
     // Start or restart the wave from the click.
     m_themeRippleActive = true;
-    m_themeRippleOrigin = originPoint;
+    m_themeRippleOrigin = origin;
     m_themeRippleProgress = 0.0f;
     m_themeRippleStartTime = std::chrono::steady_clock::now();
 
@@ -1468,7 +1468,7 @@ void Window::Relayout() {
     );
 }
 
-LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK Window::WindowProc(::HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     Window* pThis = nullptr;
     if (uMsg == WM_NCCREATE) {
         CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
@@ -1525,7 +1525,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         break;
     case WM_ACTIVATE:
         if (LOWORD(wParam) == WA_INACTIVE) {
-            HWND other = reinterpret_cast<HWND>(lParam);
+            ::HWND other = reinterpret_cast<::HWND>(lParam);
             // Clicking a WS_EX_NOACTIVATE menu popup must not dismiss mid-click.
             if (MenuPopupWindow::IsMenuPopupHwnd(other)) {
                 break;
@@ -1534,7 +1534,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         }
         break;
     case WM_CUI_CLOSE_POPUPS: {
-        HWND fore = GetForegroundWindow();
+        ::HWND fore = GetForegroundWindow();
         if (MenuPopupWindow::IsMenuPopupHwnd(fore)) {
             break;
         }
@@ -1812,7 +1812,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return 0;
 
     case WM_CAPTURECHANGED:
-        if (IsMiddleClickAutoscrollActive() && reinterpret_cast<HWND>(lParam) != m_hwnd) {
+        if (IsMiddleClickAutoscrollActive() && reinterpret_cast<::HWND>(lParam) != m_hwnd) {
             StopMiddleClickAutoscroll();
         }
         return 0;

@@ -57,6 +57,14 @@ public:
     int GetMonth() const { return m_month; } // 获取当前设置的月份（1-12）
     int GetDay() const { return m_day; } // 获取当前设置的日期（1-31）
     void SetDate(int year, int month, int day); // 设定具体日期并刷新日历状态
+    struct DatePickerFormattedDateProperty {
+        DatePicker* owner = nullptr;
+        DatePickerFormattedDateProperty() = default;
+        explicit DatePickerFormattedDateProperty(DatePicker* o) : owner(o) {}
+        operator std::string() const { return owner ? owner->GetFormattedDate() : ""; }
+        std::string Get() const { return owner ? owner->GetFormattedDate() : ""; }
+    } FormattedDate;
+
     std::string GetFormattedDate() const; // 读取以 "YYYY-MM-DD" 格式化后的日期字符串
 
     PropertyRef<std::string, PropertyId::DateStr> SelectedDate;

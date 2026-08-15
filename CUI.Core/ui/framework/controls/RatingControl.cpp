@@ -33,7 +33,7 @@ void StarPoints(Point center, float radius, Point out[10]) {
 
 } // namespace
 
-RatingControl::RatingControl() {
+RatingControl::RatingControl() : MaxRating(this), Step(this), Value(this) {
     ValueProperty.Initialize(*this);
     SetFillColorToken(ThemeTokenId::AccentColor);
     SetTrackColorToken(ThemeTokenId::CardBorder);
@@ -52,11 +52,11 @@ HCURSOR RatingControl::GetCursor() const {
 
 Value RatingControl::GetProperty(PropertyId id) const {
     switch (id) {
-    case PropertyId::ControlValue: return Value(m_value);
-    case PropertyId::Maximum: return Value(static_cast<float>(m_maxRating));
-    case PropertyId::Step: return Value(m_step);
-    case PropertyId::IsReadOnly: return Value(m_isReadOnly);
-    case PropertyId::IsClearEnabled: return Value(m_isClearEnabled);
+    case PropertyId::ControlValue: return CUI::Value(m_value);
+    case PropertyId::Maximum: return CUI::Value(static_cast<float>(m_maxRating));
+    case PropertyId::Step: return CUI::Value(m_step);
+    case PropertyId::IsReadOnly: return CUI::Value(m_isReadOnly);
+    case PropertyId::IsClearEnabled: return CUI::Value(m_isClearEnabled);
     default: return Control::GetProperty(id);
     }
 }
@@ -74,7 +74,7 @@ bool RatingControl::HasProperty(PropertyId id) const {
     }
 }
 
-void RatingControl::SetProperty(PropertyId id, const Value& val) {
+void RatingControl::SetProperty(PropertyId id, const CUI::Value& val) {
     switch (id) {
     case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
     case PropertyId::Maximum: SetMaxRating(static_cast<int>(val.AsFloat(static_cast<float>(m_maxRating)))); return;
@@ -189,7 +189,7 @@ void RatingControl::SetValue(float val) {
         return;
     }
     m_value = val;
-    NotifyFieldChanged(PropertyId::ControlValue, Value(val));
+    NotifyFieldChanged(PropertyId::ControlValue, CUI::Value(val));
     if (m_isDragging || m_hoverValue >= 0.0f || !UIElement::AreAnimationsEnabled()) {
         m_displayValueAnim.Reset(val);
     } else {
@@ -206,7 +206,7 @@ void RatingControl::SetMaxRating(int maxRating) {
         return;
     }
     m_maxRating = maxRating;
-    NotifyFieldChanged(PropertyId::Maximum, Value(static_cast<float>(maxRating)));
+    NotifyFieldChanged(PropertyId::Maximum, CUI::Value(static_cast<float>(maxRating)));
     InvalidateMeasure();
     SetValue(m_value);
     MarkRenderRectDirty(m_bounds);
@@ -218,7 +218,7 @@ void RatingControl::SetStep(float step) {
         return;
     }
     m_step = step;
-    NotifyFieldChanged(PropertyId::Step, Value(step));
+    NotifyFieldChanged(PropertyId::Step, CUI::Value(step));
     SetValue(m_value);
 }
 
@@ -227,7 +227,7 @@ void RatingControl::SetIsReadOnly(bool readOnly) {
         return;
     }
     m_isReadOnly = readOnly;
-    NotifyFieldChanged(PropertyId::IsReadOnly, Value(readOnly));
+    NotifyFieldChanged(PropertyId::IsReadOnly, CUI::Value(readOnly));
     if (readOnly) {
         m_hoverValue = -1.0f;
         m_isDragging = false;
@@ -240,7 +240,7 @@ void RatingControl::SetIsClearEnabled(bool enabled) {
         return;
     }
     m_isClearEnabled = enabled;
-    NotifyFieldChanged(PropertyId::IsClearEnabled, Value(enabled));
+    NotifyFieldChanged(PropertyId::IsClearEnabled, CUI::Value(enabled));
     InvalidateMeasure();
     MarkRenderRectDirty(m_bounds);
 }
