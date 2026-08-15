@@ -83,8 +83,8 @@ void ThemeManager::SetBackdropActive(bool active) {
 }
 
 void ThemeManager::SetBackdropType(BackdropType type) {
-    m_backdropType = BackdropType::None;
-    m_backdropActive = false;
+    m_backdropType = type;
+    m_backdropActive = type != BackdropType::None && type != BackdropType::Solid;
 }
 
 void ThemeManager::UpdateTokens() {
@@ -186,6 +186,12 @@ MaterialRole ThemeManager::GetMaterialRole(ThemeTokenId id) const {
 }
 
 D2D1_COLOR_F ThemeManager::ApplyMaterialRole(ThemeTokenId id, D2D1_COLOR_F base) const {
+    if (!m_backdropActive) return base;
+    if (id == ThemeTokenId::WindowBackground) {
+        base.a = m_mode == ThemeMode::Dark ? 0.72f : 0.78f;
+    } else if (id == ThemeTokenId::PaneBackground) {
+        base.a = m_mode == ThemeMode::Dark ? 0.82f : 0.86f;
+    }
     return base;
 }
 

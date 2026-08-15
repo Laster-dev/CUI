@@ -2,6 +2,8 @@
 #define NOMINMAX
 #endif
 #include "TeachingTip.h"
+#include "TextBlock.h"
+#include "Button.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
 #include <algorithm>
@@ -41,27 +43,6 @@ Size MeasureWrapped(const std::string& text, float fontSize, float maxWidth, DWR
         std::ceil(metrics.height));
 }
 
-void DrawWrapped(
-    GraphicsContext& ctx,
-    const std::string& text,
-    const Rect& rect,
-    float fontSize,
-    D2D1_COLOR_F color,
-    DWRITE_FONT_WEIGHT weight)
-{
-    if (text.empty() || rect.IsEmpty()) {
-        return;
-    }
-    GraphicsContext::TextLayoutOptions options;
-    options.maxWidth = (std::max)(1.0f, rect.width);
-    options.maxHeight = (std::max)(1.0f, rect.height);
-    options.wrapping = DWRITE_WORD_WRAPPING_WRAP;
-    ComPtr<IDWriteTextLayout> layout = GraphicsContext::CreateTextLayout(
-        Utf8ToUtf16(text), "微软雅黑", fontSize, options, weight);
-    if (layout) {
-        ctx.DrawTextLayout(layout.Get(), rect, color);
-    }
-}
 } // namespace
 
 TeachingTip::TeachingTip() {
@@ -72,6 +53,60 @@ TeachingTip::TeachingTip() {
     SetTitleColorToken(ThemeTokenId::TextPrimary);
     SetMessageColorToken(ThemeTokenId::TextSecondary);
     SetAccentColorToken(ThemeTokenId::AccentColor);
+
+    // 气泡外壳自绘；内部标题/正文/按钮全部复用现有控件。
+    m_titleText = std::make_shared<TextBlock>();
+    m_titleText->SetFontFamily("微软雅黑");
+    m_titleText->SetFontSize(14.0f);
+    m_titleText->SetFontWeight(CUI::FontWeight::SemiBold);
+    m_titleText->SetLineSpacing(1.25f); // 长标题同样自动换行
+    m_titleText->SetColorToken(GetTitleColorToken());
+
+    m_messageText = std::make_shared<TextBlock>();
+    m_messageText->SetFontFamily("微软雅黑");
+    m_messageText->SetFontSize(12.0f);
+    m_messageText->SetColorToken(GetMessageColorToken());
+    m_messageText->SetLineSpacing(1.25f); // 启用自动换行
+
+    m_actionButton = std::make_shared<Button>();
+    m_actionButton->SetFontFamily("微软雅黑");
+    m_actionButton->SetFontSize(12.0f);
+    m_actionButton->SetFontWeight(CUI::FontWeight::SemiBold);
+    m_actionButton->SetCornerRadius(4.0f);
+    m_actionButton->SetBorderThickness(0.0f);
+    m_actionButton->OnClick().Connect([this](UIElement*) {
+        m_onAction.Invoke();
+        Close();
+    });
+
+    m_closeButton = std::make_shared<Button>();
+    m_closeButton->SetText("×");
+    m_closeButton->SetFontFamily("微软雅黑");
+    m_closeButton->SetFontSize(14.0f);
+    m_closeButton->SetBackgroundToken(ThemeTokenId::Unset);
+    m_closeButton->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    m_closeButton->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    m_closeButton->SetBorderToken(ThemeTokenId::Unset);
+    m_closeButton->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    m_closeButton->SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
+    m_closeButton->SetColorToken(ThemeTokenId::TextSecondary);
+    m_closeButton->SetBorderThickness(0.0f);
+    m_closeButton->SetCornerRadius(4.0f);
+    m_closeButton->SetPadding(Thickness(0, 0, 0, 0));
+    m_closeButton->OnClick().Connect([this](UIElement*) {
+        Close();
+    });
+
+    // 挂到自身子树上（经 ShowAround 的 SetAnimationHost 链可进入活树），
+    // 并标记为 overlay 合成，避免主树渲染时重复绘制。
+    m_titleText->SetOverlayComposed(true);
+    AddChild(m_titleText);
+    m_messageText->SetOverlayComposed(true);
+    AddChild(m_messageText);
+    m_actionButton->SetOverlayComposed(true);
+    AddChild(m_actionButton);
+    m_closeButton->SetOverlayComposed(true);
+    AddChild(m_closeButton);
 }
 
 Value TeachingTip::GetProperty(PropertyId id) const {
@@ -130,6 +165,9 @@ void TeachingTip::SetTitle(const std::string& title) {
         return;
     }
     m_title = title;
+    if (m_titleText) {
+        m_titleText->SetText(title);
+    }
     if (m_isOpen) {
         Relayout();
         DirtyPopup();
@@ -141,6 +179,9 @@ void TeachingTip::SetMessage(const std::string& message) {
         return;
     }
     m_message = message;
+    if (m_messageText) {
+        m_messageText->SetText(message);
+    }
     if (m_isOpen) {
         Relayout();
         DirtyPopup();
@@ -152,6 +193,10 @@ void TeachingTip::SetActionText(const std::string& text) {
         return;
     }
     m_actionText = text;
+    if (m_actionButton) {
+        m_actionButton->SetText(text);
+        m_actionButton->SetVisibility(text.empty() ? Visibility::Collapsed : Visibility::Visible);
+    }
     if (m_isOpen) {
         Relayout();
         DirtyPopup();
@@ -163,6 +208,9 @@ void TeachingTip::SetIsCloseVisible(bool visible) {
         return;
     }
     m_closeVisible = visible;
+    if (m_closeButton) {
+        m_closeButton->SetVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
+    }
     if (m_isOpen) {
         Relayout();
         DirtyPopup();
@@ -295,6 +343,22 @@ void TeachingTip::Relayout() {
     } else {
         m_actionRect = Rect();
     }
+
+    // 气泡外壳自绘；内部标题/正文/按钮均为真实子控件，这里只摆放边界。
+    if (m_titleText) {
+        m_titleText->SetBounds(m_titleRect);
+        m_titleText->SetVisibility(m_titleRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
+    }
+    if (m_messageText) {
+        m_messageText->SetBounds(m_bodyRect);
+        m_messageText->SetVisibility(m_bodyRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
+    }
+    if (m_actionButton) {
+        m_actionButton->SetBounds(m_actionRect);
+    }
+    if (m_closeButton) {
+        m_closeButton->SetBounds(m_closeRect);
+    }
 }
 
 void TeachingTip::ShowAround(UIElement* target) {
@@ -308,8 +372,6 @@ void TeachingTip::ShowAround(UIElement* target) {
     SetAnimationHost(target);
     Relayout();
     m_isOpen = true;
-    m_hotHover = Hotspot::None;
-    m_actionPressed = false;
     m_popupAnim.SetTarget(1.0f);
     if (!UIElement::AreAnimationsEnabled()) {
         m_popupAnim.Reset(1.0f);
@@ -327,8 +389,6 @@ void TeachingTip::Close() {
     }
     const bool wasOpen = m_isOpen;
     m_isOpen = false;
-    m_hotHover = Hotspot::None;
-    m_actionPressed = false;
     m_popupAnim.SetTarget(0.0f);
     if (!UIElement::AreAnimationsEnabled()) {
         m_popupAnim.Reset(0.0f);
@@ -364,6 +424,17 @@ UIElement* TeachingTip::HitTestPopup(float x, float y) {
     if (!m_isOpen || m_popupAnim.Current() < 0.4f) {
         return nullptr;
     }
+    // 子控件（操作按钮 / 关闭按钮）优先获得输入，自带悬停与水波纹反馈。
+    if (m_actionButton) {
+        if (UIElement* hit = m_actionButton->HitTest(x, y)) {
+            return hit;
+        }
+    }
+    if (m_closeButton) {
+        if (UIElement* hit = m_closeButton->HitTest(x, y)) {
+            return hit;
+        }
+    }
     if (m_isModal) {
         return this;
     }
@@ -375,6 +446,23 @@ UIElement* TeachingTip::HitTestPopup(float x, float y) {
 
 void TeachingTip::OnLightDismiss() {
     Close();
+}
+
+void TeachingTip::CollectPopupOwnedElements(std::vector<UIElement*>& out) const {
+    // 安全网：PopupHost::TickAnimations 重挂子控件动画（按钮水波纹等），
+    // 避免活树未通时启动的 RequestAnimationTicks 被 AnimationManager 丢弃。
+    if (m_titleText) {
+        out.push_back(m_titleText.get());
+    }
+    if (m_messageText) {
+        out.push_back(m_messageText.get());
+    }
+    if (m_actionButton) {
+        out.push_back(m_actionButton.get());
+    }
+    if (m_closeButton) {
+        out.push_back(m_closeButton.get());
+    }
 }
 
 void TeachingTip::CollectPopupDirty(Rect& dirtyRect, bool& hasDirty) const {
@@ -431,110 +519,30 @@ void TeachingTip::RenderPopup(GraphicsContext& ctx) {
     D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
     PaintBubble(ctx, m_layout, bg, border, kRadius);
 
-    D2D1_COLOR_F titleColor = ResolveThemeColor(GetTitleColorToken(), ThemeTokenId::TextPrimary);
-    D2D1_COLOR_F bodyColor = ResolveThemeColor(GetMessageColorToken(), ThemeTokenId::TextSecondary);
-    DrawWrapped(ctx, m_title, m_titleRect, 14.0f, titleColor, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-    DrawWrapped(ctx, m_message, m_bodyRect, 12.0f, bodyColor, DWRITE_FONT_WEIGHT_NORMAL);
-
-    if (m_closeVisible && !m_closeRect.IsEmpty()) {
-        const bool hot = m_hotHover == Hotspot::Close;
-        if (hot) {
-            D2D1_COLOR_F hover = ThemeManager::Instance().GetFlatColor(ThemeTokenId::HoverBackground);
-            ctx.FillRoundedRect(m_closeRect, 4.0f, hover);
-        }
-        D2D1_COLOR_F xColor = bodyColor;
-        const float cx = m_closeRect.x + m_closeRect.width * 0.5f;
-        const float cy = m_closeRect.y + m_closeRect.height * 0.5f;
-        const float arm = 5.0f;
-        ctx.DrawSmoothLine(Point(cx - arm, cy - arm), Point(cx + arm, cy + arm), xColor, 1.4f);
-        ctx.DrawSmoothLine(Point(cx + arm, cy - arm), Point(cx - arm, cy + arm), xColor, 1.4f);
+    // 气泡外壳自绘；内部标题 / 正文 / 操作按钮 / 关闭按钮均为真实子控件
+    // （TextBlock / Button），自带悬停、按下与水波纹反馈。
+    if (m_titleText) {
+        m_titleText->Render(ctx);
     }
-
-    if (!m_actionRect.IsEmpty()) {
-        D2D1_COLOR_F accent = ResolveThemeColor(GetAccentColorToken(), ThemeTokenId::AccentColor);
-        if (m_actionPressed) {
-            accent.r *= 0.86f;
-            accent.g *= 0.86f;
-            accent.b *= 0.86f;
-        } else if (m_hotHover == Hotspot::Action) {
-            accent.r = std::clamp(accent.r * 1.08f, 0.0f, 1.0f);
-            accent.g = std::clamp(accent.g * 1.08f, 0.0f, 1.0f);
-            accent.b = std::clamp(accent.b * 1.08f, 0.0f, 1.0f);
-        }
-        ctx.FillRoundedRect(m_actionRect, 4.0f, accent);
-        D2D1_COLOR_F onAccent = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentForeground);
-        ctx.DrawText(
-            m_actionText,
-            m_actionRect,
-            onAccent,
-            "微软雅黑",
-            12.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    if (m_messageText) {
+        m_messageText->Render(ctx);
+    }
+    if (m_actionButton) {
+        m_actionButton->Render(ctx);
+    }
+    if (m_closeButton) {
+        m_closeButton->Render(ctx);
     }
     ctx.PopOpacity();
-}
-
-TeachingTip::Hotspot TeachingTip::HitHotspot(float x, float y) const {
-    if (m_closeVisible && m_closeRect.Contains(x, y)) {
-        return Hotspot::Close;
-    }
-    if (!m_actionRect.IsEmpty() && m_actionRect.Contains(x, y)) {
-        return Hotspot::Action;
-    }
-    if (m_layout.card.Contains(x, y) || m_layout.total.Contains(x, y)) {
-        return Hotspot::Card;
-    }
-    return Hotspot::None;
-}
-
-bool TeachingTip::SetHotHover(Hotspot hotspot) {
-    if (m_hotHover == hotspot) {
-        return false;
-    }
-    m_hotHover = hotspot;
-    DirtyPopup();
-    return true;
-}
-
-void TeachingTip::OnMouseMove(Point pt) {
-    if (!m_isOpen) {
-        return;
-    }
-    SetHotHover(HitHotspot(pt.x, pt.y));
 }
 
 void TeachingTip::OnMouseDown(Point pt) {
     if (!m_isOpen) {
         return;
     }
-    const Hotspot hit = HitHotspot(pt.x, pt.y);
-    SetHotHover(hit);
-    if (hit == Hotspot::Close) {
+    // 操作按钮 / 关闭按钮由子控件自理输入；走到这里说明点在卡片或模态遮罩上。
+    if (m_isModal && !m_layout.total.Contains(pt.x, pt.y)) {
         Close();
-        return;
-    }
-    if (hit == Hotspot::Action) {
-        m_actionPressed = true;
-        DirtyPopup();
-        return;
-    }
-    if (hit == Hotspot::None && m_isModal) {
-        Close();
-    }
-}
-
-void TeachingTip::OnMouseUp(Point pt) {
-    if (!m_isOpen) {
-        return;
-    }
-    if (m_actionPressed) {
-        m_actionPressed = false;
-        DirtyPopup();
-        if (HitHotspot(pt.x, pt.y) == Hotspot::Action) {
-            m_onAction.Invoke();
-            Close();
-        }
     }
 }
 
@@ -557,7 +565,7 @@ bool TeachingTip::OnKeyDown(int vkCode) {
 bool TeachingTip::OnAnimationTick() {
     const float dt = UIElement::GetAnimationDeltaSeconds();
     m_popupAnim.SetTarget(m_isOpen ? 1.0f : 0.0f);
-    const bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.22f, 0.01f });
+    bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.22f, 0.01f });
     if (animating) {
         DirtyPopup();
         RequestAnimationTicks();

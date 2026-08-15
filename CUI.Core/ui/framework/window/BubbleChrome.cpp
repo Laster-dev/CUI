@@ -167,10 +167,18 @@ void PaintBubble(
     if (layout.card.IsEmpty()) {
         return;
     }
+    // Draw the card and caret as one visual surface. The caret fill is applied
+    // again after the card stroke so the card edge cannot appear as a seam
+    // through the caret base.
     ctx.FillRoundedRect(layout.card, radius, background);
     ctx.FillPolygon(layout.caret, 3, background);
     ctx.DrawRoundedRect(layout.card, radius, border, 1.0f);
-    ctx.DrawPolygon(layout.caret, 3, border, 1.0f);
+    ctx.FillPolygon(layout.caret, 3, background);
+
+    // The caret base is the shared card edge; only its two outer sides need a
+    // stroke. Drawing the triangle's base creates the visible splice line.
+    ctx.DrawSmoothLine(layout.caret[0], layout.caret[1], border, 1.0f);
+    ctx.DrawSmoothLine(layout.caret[0], layout.caret[2], border, 1.0f);
 }
 
 } // namespace CUI

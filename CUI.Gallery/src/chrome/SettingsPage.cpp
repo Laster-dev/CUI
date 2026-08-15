@@ -19,18 +19,24 @@ namespace {
 
 int IndexForBackdrop(BackdropType type) {
     switch (type) {
-    case BackdropType::Mica: return 1;
-    case BackdropType::MicaAlt: return 2;
-    case BackdropType::Acrylic: return 3;
+    case BackdropType::Auto: return 1;
+    case BackdropType::Solid: return 2;
+    case BackdropType::Mica: return 3;
+    case BackdropType::MicaAlt: return 4;
+    case BackdropType::Acrylic: return 5;
+    case BackdropType::Blur: return 6;
     default: return 0;
     }
 }
 
 BackdropType BackdropFromIndex(int index) {
     switch (index) {
-    case 1: return BackdropType::Mica;
-    case 2: return BackdropType::MicaAlt;
-    case 3: return BackdropType::Acrylic;
+    case 1: return BackdropType::Auto;
+    case 2: return BackdropType::Solid;
+    case 3: return BackdropType::Mica;
+    case 4: return BackdropType::MicaAlt;
+    case 5: return BackdropType::Acrylic;
+    case 6: return BackdropType::Blur;
     default: return BackdropType::None;
     }
 }
@@ -55,10 +61,13 @@ Element BuildSettingsPage() {
 
     auto backdrop = std::make_shared<ComboBox>();
     backdrop->Width = 200.0f;
-    backdrop->AddItem("无");
+    backdrop->AddItem("关闭");
+    backdrop->AddItem("自动材质");
+    backdrop->AddItem("纯色");
     backdrop->AddItem("云母");
     backdrop->AddItem("云母(Alt)");
     backdrop->AddItem("亚克力");
+    backdrop->AddItem("兼容模糊");
     if (window) {
         backdrop->SetSelectedIndex(IndexForBackdrop(window->GetBackdropType()));
     }

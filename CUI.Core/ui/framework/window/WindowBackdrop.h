@@ -7,9 +7,12 @@ namespace CUI {
 
 enum class BackdropType {
     None,
+    Auto,
+    Solid,
     Mica,
     MicaAlt,
-    Acrylic
+    Acrylic,
+    Blur
 };
 
 enum class ThemeMode {

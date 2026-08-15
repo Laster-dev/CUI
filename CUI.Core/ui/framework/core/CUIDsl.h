@@ -43,6 +43,7 @@
 #include "../dnd/DragDropService.h"
 #include "../controls/FilePicker.h"
 #include "../controls/FolderPicker.h"
+#include "../controls/Toast.h"
 #include "../controls/PagingControl.h"
 #include "../controls/Splitter.h"
 #include "../controls/Expander.h"
@@ -51,6 +52,7 @@
 #include "../controls/shapes/Shapes.h"
 #include "../controls/CanvasControl.h"
 #include "../controls/topology/TopologyView.h"
+#include "../controls/docking/DockManager.h"
 #include "../style/ThemeManager.h"
 
 #include <memory>
@@ -684,6 +686,10 @@ inline ElementBuilder<ScrollViewer> SingleChildScrollView() { // 快速生成单
     return ElementBuilder<ScrollViewer>();
 }
 
+inline ElementBuilder<ScrollViewer> ScrollViewerWidget() { // 快速生成通用滚动视图
+    return ElementBuilder<ScrollViewer>();
+}
+
 inline ElementBuilder<Panel> Expanded(std::shared_ptr<UIElement> child, float flex = 1.0f) { // 快速生成弹性延伸填充块
     auto p = ElementBuilder<Panel>();
     p.FlexGrow(flex);
@@ -772,6 +778,10 @@ inline ElementBuilder<LogView> LogViewWidget() { // 快速生成带分级着色�
     return ElementBuilder<LogView>();
 }
 
+inline ElementBuilder<Toast> ToastWidget() { // 快速生成全局应用内通知浮层
+    return ElementBuilder<Toast>();
+}
+
 inline ElementBuilder<InfoBar> InfoBarWidget() { // 快速生成用于头部提示消息的各种状态通知条
     return ElementBuilder<InfoBar>();
 }
@@ -782,6 +792,10 @@ inline ElementBuilder<CommandBar> CommandBarWidget() { // 快速生成可伸缩�
 
 inline ElementBuilder<MenuBar> MenuBarWidget() { // 快速生成水平顶级菜单栏
     return ElementBuilder<MenuBar>();
+}
+
+inline ElementBuilder<DockManager> DockManagerWidget() { // 快速生成高级停靠窗体管理器
+    return ElementBuilder<DockManager>();
 }
 
 inline ElementBuilder<Image> ImageWidget() { // 快速生成图片加载盒

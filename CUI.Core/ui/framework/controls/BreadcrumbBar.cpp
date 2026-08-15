@@ -265,8 +265,6 @@ void BreadcrumbBar::ShowOverflowMenu(const VisualSlot& ellipsisSlot) {
 
 void BreadcrumbBar::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
-    GraphicsContext ctx;
-    RebuildVisualSlots(ctx);
 
     for (const VisualSlot& slot : m_slots) {
         if (!slot.bounds.Contains(pt.x, pt.y)) {

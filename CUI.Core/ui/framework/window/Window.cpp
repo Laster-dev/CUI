@@ -1054,7 +1054,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     m_themeMode = ThemeManager::Instance().GetThemeMode();
     UpdateDwmChrome();
-    MaterialHost::Apply(m_hwnd, BackdropType::None, m_themeMode);
+    MaterialHost::Apply(m_hwnd, m_backdropType, m_themeMode);
 
     if (m_transparentMode) {
         SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA);
@@ -1076,7 +1076,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     // Graphics may add WS_EX_NOREDIRECTIONBITMAP for the composition fallback —
     // re-apply DWM alpha/backdrop so the final present path is wired correctly.
-    MaterialHost::Apply(m_hwnd, BackdropType::None, m_themeMode);
+    MaterialHost::Apply(m_hwnd, m_backdropType, m_themeMode);
     UpdateDwmChrome();
 
     PopupHost::SetCurrent(&m_popupHost);
@@ -1089,18 +1089,18 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 }
 
 void Window::SetBackdropType(CUI::BackdropType type) {
-    m_backdropType = BackdropType::None;
+    m_backdropType = type;
     if (m_hwnd) {
         m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode);
         m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
-        MaterialHost::Apply(m_hwnd, BackdropType::None, m_themeMode);
+        MaterialHost::Apply(m_hwnd, type, m_themeMode);
         UpdateDwmChrome();
         m_gfxContext.GetResources().ReleaseDeviceResources();
         m_sceneLayer.ResetCache();
         ApplyVisualState();
         RequestFullRepaint();
     } else {
-        ThemeManager::Instance().SetBackdropType(BackdropType::None);
+        ThemeManager::Instance().SetBackdropType(type);
     }
 }
 
@@ -1157,7 +1157,7 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     m_themeMode = theme;
     ThemeManager::Instance().SetThemeMode(theme);
     StyleManager::Instance().ReloadFromTheme();
-    MaterialHost::Apply(m_hwnd, BackdropType::None, theme);
+    MaterialHost::Apply(m_hwnd, m_backdropType, theme);
     m_gfxContext.GetResources().ClearBrushCaches();
     if (m_rootElement) {
         static unsigned long long s_rippleThemeNonce = 0;
@@ -1439,8 +1439,7 @@ void Window::SetRootElement(std::shared_ptr<UIElement> root) {
 }
 
 void Window::ApplyVisualState() {
-    const bool systemBackdrop = false;
-    ThemeManager::Instance().SetBackdropType(BackdropType::None);
+    const bool systemBackdrop = ThemeManager::Instance().IsBackdropActive();
     if (m_rootElement) {
         static unsigned long long s_themeRefreshNonce = 0;
         const std::string refreshStamp = std::to_string(++s_themeRefreshNonce);
@@ -2098,7 +2097,7 @@ void Window::OnPaint() {
 
     m_gfxContext.BeginDraw();
 
-    const bool systemBackdrop = false;
+    const bool systemBackdrop = ThemeManager::Instance().IsBackdropActive();
     const bool usePerPixelAlpha =
         systemBackdrop
         && m_gfxContext.SupportsPerPixelAlpha();

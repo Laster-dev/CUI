@@ -1,9 +1,12 @@
 #pragma once
 
 #include "Control.h"
+#include "TextBlock.h"
+#include "Button.h"
 #include "../animation/AnimationSystem.h"
 #include "../window/PopupHost.h"
 #include "../window/BubbleChrome.h"
+#include <memory>
 #include <string>
 
 namespace CUI {
@@ -11,6 +14,7 @@ namespace CUI {
 /**
  * @brief 新手指引与悬浮教学提示控件（TeachingTip）。
  * 用于向用户指出新功能或进行特定步骤引导。支持带小三角箭头的气泡外观（BubbleChrome），支持模态或非模态弹出，实现 IPopup 接口。
+ * 气泡外壳（圆角卡片 + 箭头 + 遮罩）为自绘；内部标题 / 正文 / 操作按钮 / 关闭按钮均复用现有控件（TextBlock / Button）。
  */
 class TeachingTip : public Control, public IPopup {
 public:
@@ -66,13 +70,12 @@ public:
     virtual void RenderPopup(GraphicsContext& ctx) override; // 绘制带指示箭头的气泡圆角底盘和各内嵌文字/按钮
     virtual void OnLightDismiss() override; // 点击背景消退时触发关闭收拢
     virtual void CollectPopupDirty(Rect& dirtyRect, bool& hasDirty) const override; // 收集提示框被重绘的脏矩形范围
+    virtual void CollectPopupOwnedElements(std::vector<UIElement*>& out) const override; // 收集内部子控件供动画系统安全网重挂载
 
     virtual Size Measure(Size availableSize) override; // 测量大小 (弹出层在主流排版中大小为 0)
     virtual void Arrange(Rect finalRect) override; // 编排定位位置
     virtual void OnRenderOverlay(GraphicsContext& ctx) override; // 在 Overlay 覆盖层实际绘制气泡
-    virtual void OnMouseMove(Point pt) override; // 鼠标滑动，高亮右上角小叉或操作按钮
-    virtual void OnMouseDown(Point pt) override; // 鼠标按下，记录点击的子按钮
-    virtual void OnMouseUp(Point pt) override; // 鼠标抬起，触发对应的 Action 命令或 Close
+    virtual void OnMouseDown(Point pt) override; // 仅处理模态遮罩消退；操作/关闭按钮由子控件自理
     virtual bool OnKeyDown(int vkCode) override; // 响应键盘回车执行或 Esc 键关闭
     virtual bool AcceptsTabFocus() const override { return m_isOpen; } // 在展开状态下允许 Tab 导航聚焦
     virtual bool OnAnimationTick() override; // 驱动气泡展开、折拢以及淡入淡出动画
@@ -84,12 +87,8 @@ public:
     virtual void OnNavigatedFrom() override; // 被切离页面时自动强制收拢气泡
 
 private:
-    enum class Hotspot : uint8_t { None, Close, Action, Card }; // 区分气泡内发生鼠标 Hover 的零件部位
-
-    void Relayout(); // 重新编排气泡内的标题、正文、小叉和按钮的相对排版坐标
+    void Relayout(); // 编排卡片内标题、正文、操作按钮与关闭按钮子控件的边界
     void DirtyPopup(); // 脏化弹出层区域以申请画面刷新
-    Hotspot HitHotspot(float x, float y) const; // 碰撞测试定位坐标落在气泡的哪个零件位置上
-    bool SetHotHover(Hotspot hotspot); // 登记鼠标指针当前 Hover 的气泡零件
 
     std::string m_title;                                // 标题文本缓存
     std::string m_message;                              // 正文详细文本缓存
@@ -97,19 +96,22 @@ private:
     bool m_closeVisible = true;                         // 右上角关闭小叉是否显示
     bool m_isModal = false;                             // 是否为模态指引
     bool m_isOpen = false;                              // 气泡是否正处于弹开状态
-    bool m_actionPressed = false;                       // 操作按钮当前是否正被鼠标按下
     float m_maxWidth = 320.0f;                          // 指引卡片允许的最宽像素行宽
     BubblePlacement m_preferredPlacement = BubblePlacement::Auto; // 首选的三角箭头指向停靠方位
     UIElement* m_anchor = nullptr;                      // 绑定的相对定位弱引用原始指针
     BubbleLayout m_layout{};                            // 缓存的带指示箭头的气泡卡片物理排版尺寸
     Rect m_titleRect{};                                 // 标题文字在气泡内的局部绘制矩形
     Rect m_bodyRect{};                                  // 正文说明在气泡内的局部绘制矩形
-    Rect m_closeRect{};                                 // 右上角小关闭叉在气泡内的局部绘制矩形
+    Rect m_closeRect{};                                 // 右上角关闭按钮在气泡内的局部绘制矩形
     Rect m_actionRect{};                                // 右下角操作按钮在气泡内的局部绘制矩形
-    Hotspot m_hotHover = Hotspot::None;                 // 鼠标当前悬停的气泡零件位置
     AnimatedScalar m_popupAnim{ 0.0f };                 // 气泡进入/淡出及箭定位平移过渡动画
     Event<> m_onAction;                                 // Action 事件分发对象
     Event<> m_onClosed;                                 // Close 事件分发对象
+
+    std::shared_ptr<TextBlock> m_titleText;             // 标题文本子控件（复用现有 TextBlock）
+    std::shared_ptr<TextBlock> m_messageText;           // 正文文本子控件
+    std::shared_ptr<Button> m_actionButton;             // 操作按钮子控件（真实 Button，自带水波纹）
+    std::shared_ptr<Button> m_closeButton;              // 右上角关闭按钮子控件
 };
 
 } // namespace CUI
