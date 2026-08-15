@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildToastPage() {
+Element BuildToastPage() {
     SamplePageSpec spec;
     spec.title = "Toast(通知提示)";
     spec.subtitle = "应用内弹出的轻量即时通知。";

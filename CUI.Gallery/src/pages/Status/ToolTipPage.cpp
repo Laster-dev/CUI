@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildToolTipPage() {
+Element BuildToolTipPage() {
     SamplePageSpec spec;
     spec.title = "ToolTip(工具提示)";
     spec.subtitle = "当鼠标悬停在控件上时显示的简单说明。";

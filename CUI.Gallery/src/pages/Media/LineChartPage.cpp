@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildLineChartPage() {
+Element BuildLineChartPage() {
     SamplePageSpec spec;
     spec.title = "LineChart(折线图)";
     spec.subtitle = "展示趋势与折线图表。";

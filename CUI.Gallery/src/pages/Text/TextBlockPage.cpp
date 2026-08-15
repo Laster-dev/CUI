@@ -12,11 +12,11 @@ namespace Gallery {
 namespace {
 
 void StyleBox(std::shared_ptr<TextBlock> t) {
-    t->SetBackgroundToken(ThemeTokenId::CardBackground);
-    t->SetBorderToken(ThemeTokenId::CardBorder);
-    t->SetBorderThickness(1.0f);
-    t->SetPadding(Thickness(8, 4, 8, 4));
-    t->SetMargin(Thickness(0, 0, 0, 4));
+    t->BackgroundToken = ThemeTokenId::CardBackground;
+    t->BorderToken = ThemeTokenId::CardBorder;
+    t->BorderThickness = 1.0f;
+    t->Padding = Thickness(8, 4, 8, 4);
+    t->Margin = Thickness(0, 0, 0, 4);
 }
 
 } // namespace
@@ -55,9 +55,9 @@ std::shared_ptr<UIElement> BuildTextBlockPage() {
     multiline->SetText("第一行：DirectWrite 自绘文本\n"
                        "第二行：显式 \\n 换行\n"
                        "第三行：行距 LineSpacing = 1.6");
-    multiline->SetWidth(360.0f);
+    multiline->Width = 360.0f;
     multiline->SetLineSpacing(1.6f);
-    multiline->SetFontSize(13.0f);
+    multiline->FontSize = 13.0f;
 
     SamplePageSpec spec;
     spec.title = "TextBlock(文本块)";
@@ -98,10 +98,10 @@ std::shared_ptr<UIElement> BuildTextBlockPage() {
     };
     spec.source =
         "auto t = Text(\"你好，世界\").FontSize(16).Build();\n"
-        "t->SetColorToken(ThemeTokenId::TextPrimary);\n"
+        "t->ColorToken = ThemeTokenId::TextPrimary;\n"
         "t->SetTextAlign(TextAlignment::Center);\n"
         "t->SetLineSpacing(1.6f);\n"
-        "t->SetIsUnderline(true);\n";
+        "t->Underline = true;\n";
     return BuildSamplePage(spec);
 }
 

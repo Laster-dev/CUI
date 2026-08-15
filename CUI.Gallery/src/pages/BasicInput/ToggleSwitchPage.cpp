@@ -30,7 +30,7 @@ std::shared_ptr<UIElement> BuildToggleSwitchPage() {
 
     auto locked = Make<ToggleSwitch>();
     locked->SetHeader("飞行模式");
-    locked->SetIsEnabled(false);
+    locked->IsEnabledProperty = false;
 
     SamplePageSpec spec;
     spec.title = "ToggleSwitch(开关)";

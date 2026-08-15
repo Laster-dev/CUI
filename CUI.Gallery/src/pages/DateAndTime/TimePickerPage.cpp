@@ -13,7 +13,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildTimePickerPage() {
+Element BuildTimePickerPage() {
     auto picker = Make<TimePicker>();
     State<std::string> selectedTime{ picker->GetFormattedTime() };
     picker->SelectedTime->Bind(selectedTime);
@@ -34,12 +34,12 @@ std::shared_ptr<UIElement> BuildTimePickerPage() {
     midnight->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "23:45"; });
 
     auto programmatic = Make<Button>("程序设置 06:15");
-    programmatic->SetWidth(200.0f);
+    programmatic->Width = 200.0f;
     programmatic->OnClick().Connect([selectedTime](UIElement*) { selectedTime = "06:15"; });
 
     auto disabled = Make<TimePicker>();
     disabled->SetTime(9, 0);
-    disabled->SetIsEnabled(false);
+    disabled->IsEnabledProperty = false;
 
     auto second = Make<TimePicker>();
     State<std::string> reminderTime{ "21:00" };

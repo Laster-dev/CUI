@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildSplitterPage() {
+Element BuildSplitterPage() {
     SamplePageSpec spec;
     spec.title = "Splitter(分隔条)";
     spec.subtitle = "允许用户拖拽调整相邻区域大小。";

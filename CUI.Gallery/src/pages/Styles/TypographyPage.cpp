@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildTypographyPage() {
+Element BuildTypographyPage() {
     SamplePageSpec spec;
     spec.title = "Typography(字体排印)";
     spec.subtitle = "字体、字号、字重层级展示。";

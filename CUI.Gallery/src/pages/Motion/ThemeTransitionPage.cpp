@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildThemeTransitionPage() {
+Element BuildThemeTransitionPage() {
     SamplePageSpec spec;
     spec.title = "Theme Transition(主题过渡)";
     spec.subtitle = "带波纹扩展的主题切换过渡动画。";

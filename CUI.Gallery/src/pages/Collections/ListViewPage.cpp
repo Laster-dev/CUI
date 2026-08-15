@@ -39,10 +39,10 @@ std::vector<std::vector<std::string>> DemoRows() {
 
 } // namespace
 
-std::shared_ptr<UIElement> BuildListViewPage() {
+Element BuildListViewPage() {
     auto table = Make<ListView>();
-    table->SetHeight(250.0f);
-    table->SetWidth(620.0f);
+    table->Height = 250.0f;
+    table->Width = 620.0f;
     table->AddColumn("名称", 240.0f);
     table->AddColumn("类型", 150.0f);
     table->AddColumn("大小", 120.0f);
@@ -114,21 +114,21 @@ std::shared_ptr<UIElement> BuildListViewPage() {
     });
 
     auto customCells = Make<ListView>();
-    customCells->SetHeight(140.0f);
-    customCells->SetWidth(620.0f);
+    customCells->Height = 140.0f;
+    customCells->Width = 620.0f;
     customCells->AddColumn("任务", 280.0f);
     customCells->AddColumn("状态", 180.0f);
     auto ready = Make<TextBlock>("✓ 已完成");
-    ready->SetTextColor(Color::Hex("#16803C"));
+    ready->Foreground = Color::Hex("#16803C");
     auto pending = Make<TextBlock>("● 进行中");
-    pending->SetTextColor(Color::Hex("#C26A00"));
+    pending->Foreground = Color::Hex("#C26A00");
     customCells->AddRow({ { "构建 CUI.Core", nullptr }, { "", ready } });
     customCells->AddRow({ { "完善集合控件示例", nullptr }, { "", pending } });
 
     static DemoListViewDataSource virtualSource;
     auto virtualTable = Make<ListView>();
-    virtualTable->SetHeight(210.0f);
-    virtualTable->SetWidth(620.0f);
+    virtualTable->Height = 210.0f;
+    virtualTable->Width = 620.0f;
     virtualTable->AddColumn("名称", 280.0f);
     virtualTable->AddColumn("类别", 150.0f);
     virtualTable->AddColumn("大小", 120.0f);
@@ -176,7 +176,7 @@ std::shared_ptr<UIElement> BuildListViewPage() {
         "auto table = Make<ListView>();\n"
         "table->AddColumn(\"名称\", 240);\n"
         "table->AddColumn(\"类型\", 150);\n"
-        "table->SetRows(rows);\n"
+        "table->Rows = rows;\n"
         "table->SetSelectionMode(ListViewSelectionMode::Extended);\n"
         "table->SetVirtualMode(100000, &dataSource);\n";
     return BuildSamplePage(spec);

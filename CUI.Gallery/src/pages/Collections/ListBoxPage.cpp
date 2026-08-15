@@ -33,8 +33,8 @@ std::string SelectionSummary(ListBox* list, int index, const std::string& text) 
 
 std::shared_ptr<UIElement> BuildListBoxPage() {
     auto list = Make<ListBox>();
-    list->SetHeight(220.0f);
-    list->SetWidth(360.0f);
+    list->Height = 220.0f;
+    list->Width = 360.0f;
     list->SetSelectionMode(ListBoxSelectionMode::Extended);
     list->SetAllowDrag(true);
     list->SetAllowDrop(true);
@@ -54,9 +54,9 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     });
 
     auto input = Make<TextBox>();
-    input->SetPlaceholder("输入新项目名称");
-    input->SetWidth(220.0f);
-	input->SetHeight(28.0f);
+    input->Placeholder = "输入新项目名称";
+    input->Width = 220.0f;
+	input->Height = 28.0f;
     State<int> generated{ 1 };
 
     auto add = Make<Button>("追加");
@@ -127,20 +127,20 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     pickThird->OnClick().Connect([selectedIndex](UIElement*) { selectedIndex = 2; });
 
     auto custom = Make<ListBox>();
-    custom->SetHeight(132.0f);
-    custom->SetWidth(360.0f);
+    custom->Height = 132.0f;
+    custom->Width = 360.0f;
     auto important = Make<TextBlock>("★ 需要今天处理的自定义 UIElement");
-    important->SetTextColor(Color::Hex("#E68A00"));
+    important->Foreground = Color::Hex("#E68A00");
     auto synced = Make<TextBlock>("✓ 已同步到云端的自定义 UIElement");
-    synced->SetTextColor(Color::Hex("#16803C"));
+    synced->Foreground = Color::Hex("#16803C");
     custom->AddItem(important);
     custom->AddItem(synced);
     custom->AddItem("普通字符串项目仍可混用");
 
     static DemoListBoxDataSource virtualSource;
     auto virtualList = Make<ListBox>();
-    virtualList->SetHeight(180.0f);
-    virtualList->SetWidth(360.0f);
+    virtualList->Height = 180.0f;
+    virtualList->Width = 360.0f;
     virtualList->SetVirtualMode(10000, &virtualSource);
     virtualList->SetSelectionMode(ListBoxSelectionMode::Single);
     State<std::string> virtualStatusText{ "虚拟模式仅按需索引文本；可滚动、选择和键盘导航。" };

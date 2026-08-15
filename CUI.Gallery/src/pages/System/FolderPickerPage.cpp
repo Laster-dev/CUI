@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildFolderPickerPage() {
+Element BuildFolderPickerPage() {
     SamplePageSpec spec;
     spec.title = "FolderPicker(文件夹选择器)";
     spec.subtitle = "选择目标文件夹目录。";

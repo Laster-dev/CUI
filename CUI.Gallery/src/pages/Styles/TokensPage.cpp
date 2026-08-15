@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildTokensPage() {
+Element BuildTokensPage() {
     SamplePageSpec spec;
     spec.title = "Color Tokens(颜色令牌)";
     spec.subtitle = "展示 CUI ThemeTokenId 颜色规范矩阵。";

@@ -15,7 +15,7 @@ namespace Gallery {
 std::shared_ptr<UIElement> BuildNumberBoxPage() {
     auto basic = NumberBoxWidget(12.5).Width(150).Height(28).Build();
     basic->SetStep(0.5f);
-    basic->SetToolTip("支持 ▲/▼、滚轮、上下键；可输入表达式如 1+2*3");
+    basic->ToolTip = "支持 ▲/▼、滚轮、上下键；可输入表达式如 1+2*3";
 
     State<float> basicValue{ 12.5f };
     basic->ValueProperty.Bind(basicValue, BindingMode::TwoWay);
@@ -26,11 +26,11 @@ std::shared_ptr<UIElement> BuildNumberBoxPage() {
     basicStatus->Text.Bind(basicStatusValue, BindingMode::OneWay);
 
     auto disabled = NumberBoxWidget(42).Width(150).Height(28).Build();
-    disabled->SetIsEnabled(false);
+    disabled->IsEnabledProperty = false;
 
     auto ranged = Make<NumberBox>();
-    ranged->SetWidth(150.0f);
-    ranged->SetHeight(28.0f);
+    ranged->Width = 150.0f;
+    ranged->Height = 28.0f;
     ranged->SetMinimum(0.0f);
     ranged->SetMaximum(100.0f);
     ranged->SetStep(5.0f);

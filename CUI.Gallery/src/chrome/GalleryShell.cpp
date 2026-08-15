@@ -32,10 +32,10 @@ namespace Gallery {
         constexpr size_t kMaxCachedPages = 12;
 
         struct PageCache {
-            std::unordered_map<std::string, std::shared_ptr<UIElement>> content;
+            std::unordered_map<std::string, Element> content;
             std::list<std::string> lru;
 
-            std::shared_ptr<UIElement> Resolve(const std::string& tag) {
+            Element Resolve(const std::string& tag) {
                 if (tag == kHomeTag) {
                     return BuildHomePage();
                 }
@@ -86,8 +86,8 @@ namespace Gallery {
                 settings->SetContent("设置");
             }
             nav->SetIsPaneOpen(true);
-            nav->SetFlexGrow(1.0f);
-            nav->SetAlign(Alignment::Stretch);
+            nav->FlexGrow = 1.0f;
+            nav->Align = Alignment::Stretch;
 
             auto homeItem = std::make_shared<NavigationViewItem>("主页");
             homeItem->SetTag(kHomeTag);
@@ -113,7 +113,7 @@ namespace Gallery {
             }
 
             auto search = std::make_shared<AutoSuggestBox>();
-            search->SetPlaceholder("搜索控件");
+            search->Placeholder = "搜索控件";
             search->SetMaxVisibleSuggestions(10);
             {
                 std::vector<std::string> titles;
@@ -153,13 +153,13 @@ namespace Gallery {
             search->OnSuggestionChosen().Connect([search](AutoSuggestBox*, const std::string& title) {
                 if (const Entry* entry = FindByTitle(title)) {
                     Host::Instance().Navigate(entry->tag);
-                    search->SetText("");
+                    search->Text = "";
                 }
                 });
             search->OnQuerySubmitted().Connect([search](AutoSuggestBox*, const std::string& query) {
                 if (const Entry* exact = FindByTitle(query)) {
                     Host::Instance().Navigate(exact->tag);
-                    search->SetText("");
+                    search->Text = "";
                     return;
                 }
                 auto matches = SearchTitles(query);
@@ -167,7 +167,7 @@ namespace Gallery {
                     if (const Entry* entry = FindByTitle(matches.front())) {
                         Host::Instance().Navigate(entry->tag);
                     }
-                    search->SetText("");
+                    search->Text = "";
                 }
                 });
 
@@ -193,18 +193,18 @@ namespace Gallery {
 
     } // namespace
 
-    std::shared_ptr<UIElement> BuildGalleryRoot() {
+    Element BuildGalleryRoot() {
         auto titleBar = std::make_shared<WindowTitleBar>();
         titleBar->SetTitle("CUI Gallery");
         constexpr const char* kSvgStar =
             "<svg viewBox=\"0 0 1024 1024\" xmlns=\"http://www.w3.org/2000/svg\">"
             "<path d=\"M512 64l138.88 281.387 310.4 45.12-224.64 218.987 53.035 309.173L512 772.693 234.325 918.667l53.035-309.173L62.72 390.507l310.4-45.12z\"/>"
             "</svg>";
-        titleBar->SetIcon(kSvgStar);
+        titleBar->Icon = kSvgStar;
 		//构建主题切换控件
         auto ThemeModeRange = std::make_shared<SegmentedControl>();
-        ThemeModeRange->SetWidth(120.0f);
-		ThemeModeRange->SetMargin(Thickness(2, 2, 10, 2));
+        ThemeModeRange->Width = 120.0f;
+		ThemeModeRange->Margin = Thickness(2, 2, 10, 2);
         ThemeModeRange->AddItem("Dark");
         ThemeModeRange->AddItem("Light");
         ThemeModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
@@ -214,8 +214,8 @@ namespace Gallery {
         });
 		//构建动画|低性能模式切换控件
 		auto AnimationModeRange = std::make_shared<SegmentedControl>();
-		AnimationModeRange->SetWidth(120.0f);
-		AnimationModeRange->SetMargin(Thickness(2, 2, 10, 2));
+		AnimationModeRange->Width = 120.0f;
+		AnimationModeRange->Margin = Thickness(2, 2, 10, 2);
 		AnimationModeRange->AddItem("动画");
 		AnimationModeRange->AddItem("低性能");
         AnimationModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
@@ -224,7 +224,7 @@ namespace Gallery {
 
 		//把两个控件合并为一个水平布局，然后添加
 		auto rightContent = std::make_shared<StackPanel>();
-		rightContent->SetOrientation(Orientation::Horizontal);
+		rightContent->Orientation = Orientation::Horizontal;
 		rightContent->AddChild(ThemeModeRange);
 		rightContent->AddChild(AnimationModeRange);
 		//设置右侧内容
@@ -253,7 +253,7 @@ namespace Gallery {
         toastCenter->SetId("toastCenter");
 
         auto root = Column(0).Children({ titleBar, nav, toastCenter }).Build();
-        root->SetBackgroundToken(ThemeTokenId::WindowBackground);
+        root->BackgroundToken = ThemeTokenId::WindowBackground;
         return root;
     }
 

@@ -12,7 +12,7 @@ namespace Gallery {
 
 std::shared_ptr<UIElement> BuildPasswordBoxPage() {
     auto basic = PasswordBoxWidget("请输入您的安全密码").Width(280).Height(28).Build();
-    basic->SetToolTip("点击右侧眼睛图标可切换明文 / 密文");
+    basic->ToolTip = "点击右侧眼睛图标可切换明文 / 密文";
 
     State<std::string> passwordState{ "" };
     basic->Text.Bind(passwordState, BindingMode::TwoWay);
@@ -29,13 +29,13 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
     noReveal->SetShowRevealButton(false);
 
     auto prefilled = Make<PasswordBox>();
-    prefilled->SetPlaceholder("密码框");
-    prefilled->SetWidth(280.0f);
-    prefilled->SetHeight(28.0f);
+    prefilled->Placeholder = "密码框";
+    prefilled->Width = 280.0f;
+    prefilled->Height = 28.0f;
     prefilled->SetPassword("P@ssw0rd!123");
 
     auto disabled = PasswordBoxWidget("不可用").Width(280).Height(28).Build();
-    disabled->SetIsEnabled(false);
+    disabled->IsEnabledProperty = false;
 
     SamplePageSpec spec;
     spec.title = "PasswordBox(密码框)";

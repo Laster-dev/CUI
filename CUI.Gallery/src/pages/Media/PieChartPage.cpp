@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildPieChartPage() {
+Element BuildPieChartPage() {
     SamplePageSpec spec;
     spec.title = "PieChart(饼图)";
     spec.subtitle = "展示占比数据饼图。";

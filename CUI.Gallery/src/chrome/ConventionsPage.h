@@ -6,6 +6,6 @@
 
 namespace Gallery {
 
-std::shared_ptr<CUI::UIElement> BuildConventionsPage();
+CUI::Element BuildConventionsPage();
 
 } // namespace Gallery

@@ -21,16 +21,16 @@ std::shared_ptr<Button> MakeCell(
     int columnSpan = 1,
     int rowSpan = 1) {
     auto cell = ElevatedButton(text).Background(color).Padding(10, 8, 10, 8).Build();
-    cell->SetGridRow(row);
-    cell->SetGridColumn(column);
-    if (columnSpan > 1) cell->SetGridColumnSpan(columnSpan);
-    if (rowSpan > 1) cell->SetGridRowSpan(rowSpan);
+    cell->GridRow = row;
+    cell->GridColumn = column;
+    if (columnSpan > 1) cell->GridColumnSpan = columnSpan;
+    if (rowSpan > 1) cell->GridRowSpan = rowSpan;
     return cell;
 }
 
 } // namespace
 
-std::shared_ptr<UIElement> BuildGridPage() {
+Element BuildGridPage() {
     auto proportionalGrid = Make<Grid>();
     proportionalGrid->SetColumnDefinitions("1*,2*,100");
     proportionalGrid->SetRowDefinitions("Auto,Auto,Auto");
@@ -75,17 +75,17 @@ std::shared_ptr<UIElement> BuildGridPage() {
         if (index == 0) {
             liveGrid->SetColumnDefinitions("1*,1*,1*");
             liveGrid->SetRowDefinitions("Auto");
-            cellA->SetGridRow(0); cellA->SetGridColumn(0); cellA->SetGridColumnSpan(1);
-            cellB->SetGridRow(0); cellB->SetGridColumn(1); cellB->SetGridColumnSpan(1);
-            cellC->SetGridRow(0); cellC->SetGridColumn(2); cellC->SetGridColumnSpan(1);
+            cellA->GridRow = 0; cellA->GridColumn = 0; cellA->GridColumnSpan = 1;
+            cellB->GridRow = 0; cellB->GridColumn = 1; cellB->GridColumnSpan = 1;
+            cellC->GridRow = 0; cellC->GridColumn = 2; cellC->GridColumnSpan = 1;
             return;
         }
 
         liveGrid->SetColumnDefinitions(index == 1 ? "1*,2*" : "2*,1*");
         liveGrid->SetRowDefinitions("Auto,Auto");
-        cellA->SetGridRow(0); cellA->SetGridColumn(0); cellA->SetGridColumnSpan(1);
-        cellB->SetGridRow(0); cellB->SetGridColumn(1); cellB->SetGridColumnSpan(1);
-        cellC->SetGridRow(1); cellC->SetGridColumn(0); cellC->SetGridColumnSpan(2);
+        cellA->GridRow = 0; cellA->GridColumn = 0; cellA->GridColumnSpan = 1;
+        cellB->GridRow = 0; cellB->GridColumn = 1; cellB->GridColumnSpan = 1;
+        cellC->GridRow = 1; cellC->GridColumn = 0; cellC->GridColumnSpan = 2;
     };
 
     layoutCombo->OnSelectionChanged().Connect([applyPreset](ComboBox*, int index, const std::string&) {
@@ -135,9 +135,9 @@ std::shared_ptr<UIElement> BuildGridPage() {
         "// 宽度由父容器提供，因此 * 列按比例分配。\n"
         "// 页面垂直滚动时高度无界，因此使用 Auto 行。\n"
         "\n"
-        "cell->SetGridRow(1);\n"
-        "cell->SetGridColumn(0);\n"
-        "cell->SetGridColumnSpan(2);\n";
+        "cell->GridRow = 1;\n"
+        "cell->GridColumn = 0;\n"
+        "cell->GridColumnSpan = 2;\n";
     return BuildSamplePage(spec);
 }
 

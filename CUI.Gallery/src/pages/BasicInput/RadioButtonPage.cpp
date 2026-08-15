@@ -10,7 +10,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildRadioButtonPage() {
+Element BuildRadioButtonPage() {
     auto light = Make<RadioButton>("浅色");
     auto dark = Make<RadioButton>("深色");
     auto system = Make<RadioButton>("跟随系统");

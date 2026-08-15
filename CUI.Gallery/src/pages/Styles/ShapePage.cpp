@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildShapePage() {
+Element BuildShapePage() {
     SamplePageSpec spec;
     spec.title = "Shape(形状与圆角)";
     spec.subtitle = "CornerRadius、描边与卡片容器规范。";

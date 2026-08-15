@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildScrollViewerPage() {
+Element BuildScrollViewerPage() {
     SamplePageSpec spec;
     spec.title = "ScrollViewer(滚动视图)";
     spec.subtitle = "包含超出屏幕边界内容的滚动容器。";

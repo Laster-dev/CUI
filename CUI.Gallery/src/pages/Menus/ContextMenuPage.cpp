@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildContextMenuPage() {
+Element BuildContextMenuPage() {
     SamplePageSpec spec;
     spec.title = "ContextMenu(上下文菜单)";
     spec.subtitle = "右键或长按触发的快捷菜单。";

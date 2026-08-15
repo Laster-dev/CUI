@@ -7,7 +7,7 @@ using namespace CUI;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildMarkdownViewPage() {
+Element BuildMarkdownViewPage() {
     auto markdown = std::make_shared<MarkdownView>(R"markdown(
 # MarkdownView
 
@@ -52,7 +52,7 @@ if (RetryCount > 0) {
 }
 ```
 )markdown");
-    markdown->SetHeight(560.0f);
+    markdown->Height = 560.0f;
 
     SamplePageSpec spec;
     spec.title = "MarkdownView(Markdown 视图)";
@@ -62,7 +62,7 @@ if (RetryCount > 0) {
     };
     spec.source =
         "auto markdown = std::make_shared<MarkdownView>(R\"markdown(... )markdown\");\n"
-        "markdown->SetHeight(560.0f);\n";
+        "markdown->Height = 560.0f;\n";
     return BuildSamplePage(spec);
 }
 

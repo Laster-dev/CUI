@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildWindowPage() {
+Element BuildWindowPage() {
     SamplePageSpec spec;
     spec.title = "Window(窗口)";
     spec.subtitle = "多窗口管理、透明度与窗口样式控制。";

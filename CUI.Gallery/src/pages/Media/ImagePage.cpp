@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildImagePage() {
+Element BuildImagePage() {
     SamplePageSpec spec;
     spec.title = "Image(图像)";
     spec.subtitle = "展示静态图像或图像流。";

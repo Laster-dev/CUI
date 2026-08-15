@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildUniformGridPage() {
+Element BuildUniformGridPage() {
     SamplePageSpec spec;
     spec.title = "UniformGrid(等距网格)";
     spec.subtitle = "所有单元格大小完全一致的网格布局。";

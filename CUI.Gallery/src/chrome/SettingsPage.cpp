@@ -37,7 +37,7 @@ BackdropType BackdropFromIndex(int index) {
 
 } // namespace
 
-std::shared_ptr<UIElement> BuildSettingsPage() {
+Element BuildSettingsPage() {
     Window* window = Window::Current();
 
     auto btnDark = std::make_shared<Button>("深色");
@@ -54,7 +54,7 @@ std::shared_ptr<UIElement> BuildSettingsPage() {
     });
 
     auto backdrop = std::make_shared<ComboBox>();
-    backdrop->SetWidth(200.0f);
+    backdrop->Width = 200.0f;
     backdrop->AddItem("无");
     backdrop->AddItem("云母");
     backdrop->AddItem("云母(Alt)");
@@ -105,12 +105,12 @@ std::shared_ptr<UIElement> BuildSettingsPage() {
             stats,
         }, 12.0f),
     }).Build();
-    body->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    body->BackgroundToken = ThemeTokenId::WindowBackground;
 
     auto scroll = std::make_shared<ScrollViewer>();
-    scroll->SetAlign(Alignment::Stretch);
-    scroll->SetFlexGrow(1.0f);
-    scroll->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    scroll->Align = Alignment::Stretch;
+    scroll->FlexGrow = 1.0f;
+    scroll->BackgroundToken = ThemeTokenId::WindowBackground;
     scroll->AddChild(body);
     return scroll;
 }

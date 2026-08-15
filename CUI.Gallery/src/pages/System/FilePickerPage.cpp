@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildFilePickerPage() {
+Element BuildFilePickerPage() {
     SamplePageSpec spec;
     spec.title = "FilePicker(文件选择器)";
     spec.subtitle = "选择单个或多个打开/保存文件。";

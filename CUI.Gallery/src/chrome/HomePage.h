@@ -5,6 +5,6 @@
 
 namespace Gallery {
 
-std::shared_ptr<CUI::UIElement> BuildHomePage();
+CUI::Element BuildHomePage();
 
 } // namespace Gallery

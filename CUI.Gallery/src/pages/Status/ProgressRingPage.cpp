@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildProgressRingPage() {
+Element BuildProgressRingPage() {
     SamplePageSpec spec;
     spec.title = "ProgressRing(进度环)";
     spec.subtitle = "指示耗时任务的环形加载控件。";

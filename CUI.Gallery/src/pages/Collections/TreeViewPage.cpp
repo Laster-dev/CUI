@@ -71,10 +71,10 @@ void SetExpandedRecursively(TreeView* tree, const std::vector<std::shared_ptr<Tr
 
 } // namespace
 
-std::shared_ptr<UIElement> BuildTreeViewPage() {
+Element BuildTreeViewPage() {
     auto tree = Make<TreeView>();
-    tree->SetHeight(330.0f);
-    tree->SetWidth(520.0f);
+    tree->Height = 330.0f;
+    tree->Width = 520.0f;
     tree->SetItems(BuildProjectTree());
 
     State<std::string> treeStatusText{ "选择节点，单击箭头展开或折叠；双击节点可作为打开命令。" };
@@ -149,8 +149,8 @@ std::shared_ptr<UIElement> BuildTreeViewPage() {
     });
 
     auto lazyTree = Make<TreeView>();
-    lazyTree->SetHeight(190.0f);
-    lazyTree->SetWidth(520.0f);
+    lazyTree->Height = 190.0f;
+    lazyTree->Width = 520.0f;
     auto lazyRoot = TreeItem("按需加载目录", "📁", false);
     lazyTree->AddItem(lazyRoot);
     State<std::string> lazyStatusText{ "点击“加载子项”，模拟文件系统或网络目录的延迟返回。" };

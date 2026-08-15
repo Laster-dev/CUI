@@ -36,10 +36,10 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
     auto btnLeft   = Make<Button>("← Left");
     auto btnRight  = Make<Button>("→ Right");
 
-    btnTop->SetWidth(90.0f);
-    btnBottom->SetWidth(90.0f);
-    btnLeft->SetWidth(90.0f);
-    btnRight->SetWidth(90.0f);
+    btnTop->Width = 90.0f;
+    btnBottom->Width = 90.0f;
+    btnLeft->Width = 90.0f;
+    btnRight->Width = 90.0f;
 
     auto makePlacementFlyout = [](UIElement* src, FlyoutPlacement p, const std::string& label) {
         auto flyout = Make<Flyout>();
@@ -68,26 +68,26 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
 
     // ── 3. 带操作按钮的浮出层 ───────────────────────────────────────────
     auto btnAction = Make<Button>("带操作的浮出层");
-    btnAction->SetBackgroundToken(ThemeTokenId::CardBackground);
-    btnAction->SetColorToken(ThemeTokenId::TextPrimary);
-    btnAction->SetBorderToken(ThemeTokenId::CardBorder);
-    btnAction->SetBorderThickness(1.0f);
+    btnAction->BackgroundToken = ThemeTokenId::CardBackground;
+    btnAction->ColorToken = ThemeTokenId::TextPrimary;
+    btnAction->BorderToken = ThemeTokenId::CardBorder;
+    btnAction->BorderThickness = 1.0f;
     btnAction->OnClick().Connect([status](UIElement* src) {
         auto flyout = Make<Flyout>();
         flyout->SetPlacement(FlyoutPlacement::Bottom);
 
         auto confirmBtn = Make<Button>("删除");
-        confirmBtn->SetBackground(Color::Hex("#C62828"));
-        confirmBtn->SetHoverBackground(Color::Hex("#B71C1C"));
-        confirmBtn->SetColor(Color::White);
-        confirmBtn->SetWidth(72.0f);
+        confirmBtn->Background = Color::Hex("#C62828");
+        confirmBtn->HoverBackground = Color::Hex("#B71C1C");
+        confirmBtn->Foreground = Color::White;
+        confirmBtn->Width = 72.0f;
 
         auto cancelBtn = Make<Button>("取消");
-        cancelBtn->SetBackgroundToken(ThemeTokenId::CardBackground);
-        cancelBtn->SetColorToken(ThemeTokenId::TextPrimary);
-        cancelBtn->SetBorderToken(ThemeTokenId::CardBorder);
-        cancelBtn->SetBorderThickness(1.0f);
-        cancelBtn->SetWidth(72.0f);
+        cancelBtn->BackgroundToken = ThemeTokenId::CardBackground;
+        cancelBtn->ColorToken = ThemeTokenId::TextPrimary;
+        cancelBtn->BorderToken = ThemeTokenId::CardBorder;
+        cancelBtn->BorderThickness = 1.0f;
+        cancelBtn->Width = 72.0f;
 
         auto content = Column(12).Children({
             MakeLabel("确认删除？", 13.0f, ThemeTokenId::TextPrimary, true),
@@ -97,11 +97,11 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
         flyout->SetContent(content);
 
         confirmBtn->OnClick().Connect([status, flyout](UIElement*) {
-            status->SetText("已确认删除操作。");
+            status->Text = "已确认删除操作。";
             flyout->Hide();
         });
         cancelBtn->OnClick().Connect([status, flyout](UIElement*) {
-            status->SetText("已取消删除操作。");
+            status->Text = "已取消删除操作。";
             flyout->Hide();
         });
 
@@ -111,20 +111,20 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
 
     // ── 4. 包含输入框的浮出层 ───────────────────────────────────────────
     auto btnInputFlyout = Make<Button>("输入浮出层");
-    btnInputFlyout->SetBackgroundToken(ThemeTokenId::CardBackground);
-    btnInputFlyout->SetColorToken(ThemeTokenId::TextPrimary);
-    btnInputFlyout->SetBorderToken(ThemeTokenId::CardBorder);
-    btnInputFlyout->SetBorderThickness(1.0f);
+    btnInputFlyout->BackgroundToken = ThemeTokenId::CardBackground;
+    btnInputFlyout->ColorToken = ThemeTokenId::TextPrimary;
+    btnInputFlyout->BorderToken = ThemeTokenId::CardBorder;
+    btnInputFlyout->BorderThickness = 1.0f;
     btnInputFlyout->OnClick().Connect([status](UIElement* src) {
         auto flyout = Make<Flyout>();
         flyout->SetPlacement(FlyoutPlacement::Bottom);
 
         auto input = Make<TextBox>();
-        input->SetPlaceholder("输入新项目名称");
-        input->SetWidth(200.0f);
+        input->Placeholder = "输入新项目名称";
+        input->Width = 200.0f;
 
         auto applyBtn = Make<Button>("应用");
-        applyBtn->SetWidth(60.0f);
+        applyBtn->Width = 60.0f;
 
         auto content = Column(10).Children({
             MakeLabel("重命名项目", 13.0f, ThemeTokenId::TextPrimary, true),
@@ -135,7 +135,7 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
 
         applyBtn->OnClick().Connect([status, flyout, input](UIElement*) {
             std::string name = input->GetText();
-            status->SetText("已应用名称：「" + (name.empty() ? "（空）" : name) + "」。");
+            status->Text = "已应用名称：「" + (name.empty() ? "（空）" : name) + "」。";
             flyout->Hide();
         });
 

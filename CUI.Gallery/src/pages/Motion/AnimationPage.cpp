@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildAnimationPage() {
+Element BuildAnimationPage() {
     SamplePageSpec spec;
     spec.title = "Implicit Animations(隐式动画)";
     spec.subtitle = "悬停、展开、数值过渡演示。";

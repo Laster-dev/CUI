@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildMenuBarPage() {
+Element BuildMenuBarPage() {
     SamplePageSpec spec;
     spec.title = "MenuBar(菜单栏)";
     spec.subtitle = "水平顶级应用菜单栏。";

@@ -11,28 +11,28 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> MakeLabel(
+Element MakeLabel(
     const std::string& text,
     float size,
     ThemeTokenId token,
     bool bold) {
     auto label = Text(text).FontSize(size).Build();
-    label->SetColorToken(token);
+    label->ColorToken = token;
     if (bold) {
-        label->SetFontWeight(FontWeight::Bold);
+        label->FontWeight = FontWeight::Bold;
     }
     return label;
 }
 
-std::shared_ptr<UIElement> MakeCard(
-    std::initializer_list<std::shared_ptr<UIElement>> children,
+Element MakeCard(
+    std::initializer_list<Element> children,
     float gap) {
     auto card = Column(gap).Padding(24).CornerRadius(6).Children(children).Build();
-    card->SetBackgroundToken(ThemeTokenId::CardBackground);
-    card->SetBorderToken(ThemeTokenId::CardBorder);
-    card->SetBorderThickness(1.0f);
-    card->SetClipToBounds(true);
-    card->SetMargin(Thickness(0, 0, 0, 8));
+    card->BackgroundToken = ThemeTokenId::CardBackground;
+    card->BorderToken = ThemeTokenId::CardBorder;
+    card->BorderThickness = 1.0f;
+    card->ClipToBounds = true;
+    card->Margin = Thickness(0, 0, 0, 8);
     return card;
 }
 
@@ -43,25 +43,25 @@ std::shared_ptr<TextBlock> MakeStatus(const std::string& text) {
 
 namespace {
 
-std::shared_ptr<UIElement> MakeSourceExpander(const std::string& source) {
+Element MakeSourceExpander(const std::string& source) {
     if (source.empty()) {
         return nullptr;
     }
 
     auto code = std::make_shared<TextBox>();
-    code->SetAlign(Alignment::Stretch);
-    code->SetHeight(180.0f);
-    code->SetFontFamily("Consolas");
-    code->SetFontSize(12.0f);
+    code->Align = Alignment::Stretch;
+    code->Height = 180.0f;
+    code->FontFamily = "Consolas";
+    code->FontSize = 12.0f;
     code->SetAcceptsReturn(true);
     code->SetTextWrapping(false);
     code->SetIsReadOnly(true);
-    code->SetCornerRadius(4.0f);
-    code->SetBorderThickness(1.0f);
-    code->SetPadding(Thickness(10, 8, 10, 8));
-    code->SetBackgroundToken(ThemeTokenId::InputBackground);
-    code->SetBorderToken(ThemeTokenId::CardBorder);
-    code->SetText(source);
+    code->CornerRadius = 4.0f;
+    code->BorderThickness = 1.0f;
+    code->Padding = Thickness(10, 8, 10, 8);
+    code->BackgroundToken = ThemeTokenId::InputBackground;
+    code->BorderToken = ThemeTokenId::CardBorder;
+    code->Text = source;
 
     auto expander = std::make_shared<Expander>("源代码");
     expander->SetIsExpanded(false);
@@ -69,7 +69,7 @@ std::shared_ptr<UIElement> MakeSourceExpander(const std::string& source) {
     return expander;
 }
 
-std::shared_ptr<UIElement> MakeSectionCard(const SampleSection& section) {
+Element MakeSectionCard(const SampleSection& section) {
     auto card = Column(8).Padding(24).CornerRadius(6);
     card.Add(MakeLabel(section.heading, 15.0f, ThemeTokenId::TextPrimary, true));
     if (!section.description.empty()) {
@@ -79,16 +79,16 @@ std::shared_ptr<UIElement> MakeSectionCard(const SampleSection& section) {
         card.Add(section.content);
     }
     auto built = card.Build();
-    built->SetBackgroundToken(ThemeTokenId::CardBackground);
-    built->SetBorderToken(ThemeTokenId::CardBorder);
-    built->SetBorderThickness(1.0f);
-    built->SetClipToBounds(true);
+    built->BackgroundToken = ThemeTokenId::CardBackground;
+    built->BorderToken = ThemeTokenId::CardBorder;
+    built->BorderThickness = 1.0f;
+    built->ClipToBounds = true;
     return built;
 }
 
 } // namespace
 
-std::shared_ptr<UIElement> BuildSamplePage(const SamplePageSpec& spec) {
+Element BuildSamplePage(const SamplePageSpec& spec) {
     auto main = Column(16).Padding(24);
     main.Add(Column(6).Children({
         MakeLabel(spec.title, 26.0f, ThemeTokenId::TextPrimary, true),
@@ -103,13 +103,13 @@ std::shared_ptr<UIElement> BuildSamplePage(const SamplePageSpec& spec) {
     }
 
     auto column = main.Build();
-    column->SetBackgroundToken(ThemeTokenId::WindowBackground);
-    column->SetAlignHorizontal(Alignment::Stretch);
+    column->BackgroundToken = ThemeTokenId::WindowBackground;
+    column->AlignHorizontal = Alignment::Stretch;
 
     auto scroll = std::make_shared<ScrollViewer>();
-    scroll->SetFlexGrow(1.0f);
-    scroll->SetAlign(Alignment::Stretch);
-    scroll->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    scroll->FlexGrow = 1.0f;
+    scroll->Align = Alignment::Stretch;
+    scroll->BackgroundToken = ThemeTokenId::WindowBackground;
     scroll->AddChild(column);
     return scroll;
 }

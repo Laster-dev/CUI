@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildProgressBarPage() {
+Element BuildProgressBarPage() {
     SamplePageSpec spec;
     spec.title = "ProgressBar(进度条)";
     spec.subtitle = "指示任务执行进度的水平线条。";

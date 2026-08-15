@@ -18,12 +18,12 @@ namespace {
 
 std::shared_ptr<Canvas> MakeStage(float minHeight) {
     auto stage = Make<Canvas>();
-    stage->SetMinHeight(minHeight);
-    stage->SetClipToBounds(true);
-    stage->SetCornerRadius(4.0f);
-    stage->SetBackground(D2D1::ColorF(0.97f, 0.97f, 0.99f, 0.5f));
-    stage->SetBorderBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.08f));
-    stage->SetBorderThickness(1.0f);
+    stage->MinHeight = minHeight;
+    stage->ClipToBounds = true;
+    stage->CornerRadius = 4.0f;
+    stage->Background = D2D1::ColorF(0.97f, 0.97f, 0.99f, 0.5f);
+    stage->BorderBrush = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.08f);
+    stage->BorderThickness = 1.0f;
     return stage;
 }
 
@@ -204,8 +204,8 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
     std::shared_ptr<AimState> aim,
     State<int> ballCount) {
     auto canvas = Make<CanvasControl>();
-    canvas->SetMinHeight(340.0f);
-    canvas->SetClipToBounds(true);
+    canvas->MinHeight = 340.0f;
+    canvas->ClipToBounds = true;
 
     canvas->SetOnDraw([world, aim](GraphicsContext& ctx, Size size) {
         world->SetViewport(size.width, size.height);
@@ -293,21 +293,21 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     auto stage = MakeStage(180);
 
     auto button = ElevatedButton("绝对定位按钮").Padding(14, 8, 14, 8).Build();
-    button->SetCanvasLeft(24.0f);
-    button->SetCanvasTop(24.0f);
+    button->CanvasLeft = 24.0f;
+    button->CanvasTop = 24.0f;
     stage->AddChild(button);
 
     auto label = Text("Canvas.Left / Canvas.Top 自由摆放").FontSize(13).Build();
-    label->SetColorToken(ThemeTokenId::TextSecondary);
-    label->SetCanvasLeft(24.0f);
-    label->SetCanvasTop(84.0f);
+    label->ColorToken = ThemeTokenId::TextSecondary;
+    label->CanvasLeft = 24.0f;
+    label->CanvasTop = 84.0f;
     stage->AddChild(label);
 
     auto box = RectangleWidget(120, 44).Build();
     box->SetFill(Rgb(0x007ACC, 0.35f));
-    box->SetCornerRadius(6.0f);
-    box->SetCanvasLeft(190.0f);
-    box->SetCanvasTop(70.0f);
+    box->CornerRadius = 6.0f;
+    box->CanvasLeft = 190.0f;
+    box->CanvasTop = 70.0f;
     stage->AddChild(box);
 
     State<float> circleX{ 220.0f };
@@ -316,8 +316,8 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     circle->SetFill(Rgb(0x2BAD8E, 0.85f));
     circle->SetStroke(Rgb(0x1B7A63));
     circle->SetStrokeThickness(2.0f);
-    circle->SetCanvasLeft(circleX);
-    circle->SetCanvasTop(circleY);
+    circle->CanvasLeft = circleX;
+    circle->CanvasTop = circleY;
     stage->AddChild(circle);
 
     auto reshuffle = ElevatedButton("随机重排", [stage, circle, circleX, circleY](UIElement*) {
@@ -335,8 +335,8 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
         } while (std::abs(nextX - circleX.Get()) < 1.0f && std::abs(nextY - circleY.Get()) < 1.0f);
         circleX = nextX;
         circleY = nextY;
-        circle->SetCanvasLeft(nextX);
-        circle->SetCanvasTop(nextY);
+        circle->CanvasLeft = nextX;
+        circle->CanvasTop = nextY;
     }).Build();
 
     auto positionValue = MakeComputed<std::string>([](float x, float y) {
@@ -350,48 +350,48 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
 
     auto backRect = RectangleWidget(200, 110).Build();
     backRect->SetFill(Rgb(0x4A90D9, 0.9f));
-    backRect->SetCornerRadius(4.0f);
-    backRect->SetCanvasLeft(16.0f);
-    backRect->SetCanvasTop(16.0f);
-    backRect->SetZIndex(0);
+    backRect->CornerRadius = 4.0f;
+    backRect->CanvasLeft = 16.0f;
+    backRect->CanvasTop = 16.0f;
+    backRect->ZIndex = 0;
     layerStage->AddChild(backRect);
 
     auto frontEllipse = EllipseWidget(150, 90).Build();
     frontEllipse->SetFill(Rgb(0xE8833A, 0.9f));
-    frontEllipse->SetCanvasLeft(120.0f);
+    frontEllipse->CanvasLeft = 120.0f;
     frontEllipse->SetStroke(Rgb(0xC86A24));
     frontEllipse->SetStrokeThickness(2.0f);
-    frontEllipse->SetCanvasTop(70.0f);
-    frontEllipse->SetZIndex(1);
+    frontEllipse->CanvasTop = 70.0f;
+    frontEllipse->ZIndex = 1;
     layerStage->AddChild(frontEllipse);
 
     auto slash = LineWidget(16, 16, 300, 150).Width(320).Height(160).Build();
     slash->SetStroke(Rgb(0xE5484D));
     slash->SetStrokeThickness(3.0f);
-    slash->SetZIndex(2);
+    slash->ZIndex = 2;
     layerStage->AddChild(slash);
 
     // —— 与流式布局对比 ——
     auto canvasSide = MakeStage(150);
     auto sideRect = RectangleWidget(110, 46).Build();
     sideRect->SetFill(Rgb(0x007ACC, 0.45f));
-    sideRect->SetCornerRadius(4.0f);
-    sideRect->SetCanvasLeft(20.0f);
-    sideRect->SetCanvasTop(24.0f);
+    sideRect->CornerRadius = 4.0f;
+    sideRect->CanvasLeft = 20.0f;
+    sideRect->CanvasTop = 24.0f;
     canvasSide->AddChild(sideRect);
 
     auto sideCircle = EllipseWidget(52, 52).Build();
     sideCircle->SetFill(Rgb(0x2BAD8E, 0.9f));
-    sideCircle->SetCanvasLeft(48.0f);
-    sideCircle->SetCanvasTop(92.0f);
+    sideCircle->CanvasLeft = 48.0f;
+    sideCircle->CanvasTop = 92.0f;
     canvasSide->AddChild(sideCircle);
 
     auto flowColumn = Column(8).Padding(12).Build();
-    flowColumn->SetMinHeight(150.0f);
-    flowColumn->SetBackgroundToken(ThemeTokenId::CardBackground);
+    flowColumn->MinHeight = 150.0f;
+    flowColumn->BackgroundToken = ThemeTokenId::CardBackground;
     auto flowRect = RectangleWidget(110, 46).Build();
     flowRect->SetFill(Rgb(0x007ACC, 0.45f));
-    flowRect->SetCornerRadius(4.0f);
+    flowRect->CornerRadius = 4.0f;
     flowColumn->AddChild(flowRect);
     auto flowCircle = EllipseWidget(52, 52).Build();
     flowCircle->SetFill(Rgb(0x2BAD8E, 0.9f));
@@ -469,18 +469,18 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     };
     spec.source =
         "auto stage = Make<Canvas>();\n"
-        "stage->SetMinHeight(180.0f);  // 宽度跟随父容器\n"
-        "stage->SetClipToBounds(true);\n"
+        "stage->MinHeight = 180.0f;  // 宽度跟随父容器\n"
+        "stage->ClipToBounds = true;\n"
         "\n"
         "auto button = ElevatedButton(\"绝对定位按钮\").Build();\n"
-        "button->SetCanvasLeft(24.0f);\n"
-        "button->SetCanvasTop(24.0f);\n"
+        "button->CanvasLeft = 24.0f;\n"
+        "button->CanvasTop = 24.0f;\n"
         "stage->AddChild(button);\n"
         "\n"
         "// ---- 高性能：CanvasControl 即时绘制 + 物理 Tick ----\n"
         "auto canvas = Make<CanvasControl>();\n"
-        "canvas->SetMinHeight(340.0f); // 宽度跟随父容器\n"
-        "canvas->SetClipToBounds(true);\n"
+        "canvas->MinHeight = 340.0f; // 宽度跟随父容器\n"
+        "canvas->ClipToBounds = true;\n"
         "\n"
         "canvas->SetOnDraw([](GraphicsContext& ctx, Size size) {\n"
         "    for (const auto& b : world.balls) {\n"

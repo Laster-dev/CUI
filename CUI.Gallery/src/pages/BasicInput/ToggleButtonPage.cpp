@@ -12,16 +12,16 @@ namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleButtonPage() {
     auto bold = Make<ToggleButton>("粗体");
-    bold->SetFontWeight(FontWeight::Bold);
+    bold->FontWeight = FontWeight::Bold;
     
     auto italic = Make<ToggleButton>("斜体");
-    italic->SetFontStyle(FontStyle::Italic);
+    italic->FontStyle = FontStyle::Italic;
     
     auto underline = Make<ToggleButton>("下划线");
-    underline->SetIsUnderline(true);
+    underline->Underline = true;
     
     auto strikethrough = Make<ToggleButton>("删除线");
-    strikethrough->SetIsStrikethrough(true);
+    strikethrough->Strikethrough = true;
 
     State<bool> boldChecked{ false };
     State<bool> italicChecked{ false };
@@ -57,7 +57,7 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
 
     auto locked = Make<ToggleButton>("已锁定");
     locked->SetIsChecked(true);
-    locked->SetIsEnabled(false);
+    locked->IsEnabledProperty = false;
 
     SamplePageSpec spec;
     spec.title = "ToggleButton(切换按钮)";

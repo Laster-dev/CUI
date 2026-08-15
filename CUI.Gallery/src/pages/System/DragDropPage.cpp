@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildDragDropPage() {
+Element BuildDragDropPage() {
     SamplePageSpec spec;
     spec.title = "Drag and Drop(拖放)";
     spec.subtitle = "拖放操作与数据交换服务。";

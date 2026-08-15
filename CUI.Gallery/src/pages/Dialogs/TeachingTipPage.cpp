@@ -12,7 +12,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildTeachingTipPage() {
+Element BuildTeachingTipPage() {
     auto status = MakeStatus("点击按钮显示指引气泡，此处显示操作结果。");
 
     // ── 1. 基础气泡 ─────────────────────────────────────────────────────
@@ -23,11 +23,11 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
         tip->SetMessage("这是一个 TeachingTip 气泡指引示例。它会自动停靠在目标控件旁边，并带有小三角箭头指示来源。");
         tip->SetActionText("我知道了");
         tip->OnAction().Connect([status, tip]() {
-            status->SetText("已点击【我知道了】，气泡已关闭。");
+            status->Text = "已点击【我知道了】，气泡已关闭。";
             tip->Close();
         });
         tip->OnClosed().Connect([status]() {
-            status->SetText("气泡已关闭。");
+            status->Text = "气泡已关闭。";
         });
         src->AddChild(tip);
         tip->ShowAround(src);
@@ -35,17 +35,17 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
 
     // ── 2. 无操作按钮、仅关闭叉 ────────────────────────────────────────
     auto btnCloseOnly = Make<Button>("仅关闭按钮");
-    btnCloseOnly->SetBackgroundToken(ThemeTokenId::CardBackground);
-    btnCloseOnly->SetColorToken(ThemeTokenId::TextPrimary);
-    btnCloseOnly->SetBorderToken(ThemeTokenId::CardBorder);
-    btnCloseOnly->SetBorderThickness(1.0f);
+    btnCloseOnly->BackgroundToken = ThemeTokenId::CardBackground;
+    btnCloseOnly->ColorToken = ThemeTokenId::TextPrimary;
+    btnCloseOnly->BorderToken = ThemeTokenId::CardBorder;
+    btnCloseOnly->BorderThickness = 1.0f;
     btnCloseOnly->OnClick().Connect([status](UIElement* src) {
         auto tip = Make<TeachingTip>();
         tip->SetTitle("提示");
         tip->SetMessage("此提示没有操作按钮，只有右上角的关闭叉可以消退。");
         tip->SetIsCloseVisible(true);
         tip->OnClosed().Connect([status]() {
-            status->SetText("已通过关闭按钮消退气泡。");
+            status->Text = "已通过关闭按钮消退气泡。";
         });
         src->AddChild(tip);
         tip->ShowAround(src);
@@ -57,10 +57,10 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
     auto btnPlacementLeft   = Make<Button>("← Left");
     auto btnPlacementRight  = Make<Button>("→ Right");
 
-    btnPlacementTop->SetWidth(90.0f);
-    btnPlacementBottom->SetWidth(90.0f);
-    btnPlacementLeft->SetWidth(90.0f);
-    btnPlacementRight->SetWidth(90.0f);
+    btnPlacementTop->Width = 90.0f;
+    btnPlacementBottom->Width = 90.0f;
+    btnPlacementLeft->Width = 90.0f;
+    btnPlacementRight->Width = 90.0f;
 
     auto makeDirectionTip = [](UIElement* src, BubblePlacement p, const std::string& label) {
         auto tip = Make<TeachingTip>();
@@ -88,10 +88,10 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
 
     // ── 4. 模态气泡 ─────────────────────────────────────────────────────
     auto btnModal = Make<Button>("模态指引气泡");
-    btnModal->SetBackground(Color::Hex("#1565C0"));
-    btnModal->SetHoverBackground(Color::Hex("#0D47A1"));
-    btnModal->SetPressedBackground(Color::Hex("#082C6E"));
-    btnModal->SetColor(Color::White);
+    btnModal->Background = Color::Hex("#1565C0");
+    btnModal->HoverBackground = Color::Hex("#0D47A1");
+    btnModal->PressedBackground = Color::Hex("#082C6E");
+    btnModal->Foreground = Color::White;
     btnModal->OnClick().Connect([status](UIElement* src) {
         auto tip = Make<TeachingTip>();
         tip->SetTitle("新功能介绍：智能搜索");
@@ -100,11 +100,11 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
         tip->SetIsModal(true);
         tip->SetPreferredPlacement(BubblePlacement::Auto);
         tip->OnAction().Connect([status, tip]() {
-            status->SetText("已点击【立即体验】，功能引导完成。");
+            status->Text = "已点击【立即体验】，功能引导完成。";
             tip->Close();
         });
         tip->OnClosed().Connect([status]() {
-            status->SetText("模态气泡已关闭。");
+            status->Text = "模态气泡已关闭。";
         });
         src->AddChild(tip);
         tip->ShowAround(src);
@@ -112,10 +112,10 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
 
     // ── 5. 自动停靠（Auto） ─────────────────────────────────────────────
     auto btnAuto = Make<Button>("自动停靠（Auto）");
-    btnAuto->SetBackgroundToken(ThemeTokenId::CardBackground);
-    btnAuto->SetColorToken(ThemeTokenId::TextPrimary);
-    btnAuto->SetBorderToken(ThemeTokenId::CardBorder);
-    btnAuto->SetBorderThickness(1.0f);
+    btnAuto->BackgroundToken = ThemeTokenId::CardBackground;
+    btnAuto->ColorToken = ThemeTokenId::TextPrimary;
+    btnAuto->BorderToken = ThemeTokenId::CardBorder;
+    btnAuto->BorderThickness = 1.0f;
     btnAuto->OnClick().Connect([status](UIElement* src) {
         auto tip = Make<TeachingTip>();
         tip->SetTitle("自动方位（Auto）");
@@ -123,7 +123,7 @@ std::shared_ptr<UIElement> BuildTeachingTipPage() {
         tip->SetActionText("明白了");
         tip->SetPreferredPlacement(BubblePlacement::Auto);
         tip->OnAction().Connect([status, tip]() {
-            status->SetText("Auto 停靠示例完成。");
+            status->Text = "Auto 停靠示例完成。";
             tip->Close();
         });
         src->AddChild(tip);

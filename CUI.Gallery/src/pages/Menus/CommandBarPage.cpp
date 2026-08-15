@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildCommandBarPage() {
+Element BuildCommandBarPage() {
     SamplePageSpec spec;
     spec.title = "CommandBar(命令栏)";
     spec.subtitle = "提供轻量级命令与工具按钮组合。";

@@ -29,12 +29,12 @@ std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
     });
     
     inApp->OnClick().Connect([status](UIElement*) {
-        status->SetText("应用内操作：将打开详情面板。");
+        status->Text = "应用内操作：将打开详情面板。";
         Gallery::Host::Instance().Navigate("settings");
     });
 
     auto disabled = Make<HyperlinkButton>("不可用链接");
-    disabled->SetIsEnabled(false);
+    disabled->IsEnabledProperty = false;
 
     SamplePageSpec spec;
     spec.title = "HyperlinkButton(超链接按钮)";

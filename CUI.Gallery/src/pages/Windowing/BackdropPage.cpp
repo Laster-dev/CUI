@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildBackdropPage() {
+Element BuildBackdropPage() {
     SamplePageSpec spec;
     spec.title = "Backdrop(窗口背景)";
     spec.subtitle = "云母 (Mica) 与亚克力 (Acrylic) 窗口背景材质。";

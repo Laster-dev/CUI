@@ -26,7 +26,7 @@ std::string TodayString() {
 
 } // namespace
 
-std::shared_ptr<UIElement> BuildDatePickerPage() {
+Element BuildDatePickerPage() {
     auto picker = Make<DatePicker>();
     State<std::string> selectedDate{ picker->GetFormattedDate() };
     picker->SelectedDate->Bind(selectedDate);
@@ -48,7 +48,7 @@ std::shared_ptr<UIElement> BuildDatePickerPage() {
 
     auto disabled = Make<DatePicker>();
     disabled->SetDate(2026, 12, 31);
-    disabled->SetIsEnabled(false);
+    disabled->IsEnabledProperty = false;
 
     auto programmatic = Make<Button>("程序设置 2030-05-20");
     programmatic->OnClick().Connect([selectedDate](UIElement*) { selectedDate = "2030-05-20"; });

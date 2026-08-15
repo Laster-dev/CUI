@@ -12,12 +12,12 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildSliderPage() {
+Element BuildSliderPage() {
     auto volume = Make<Slider>();
     volume->SetMinimum(0.0f);
     volume->SetMaximum(100.0f);
     volume->SetStep(1.0f);
-    volume->SetWidth(280.0f);
+    volume->Width = 280.0f;
 
     State<float> volumeValue{ 40.0f };
     volume->ValueProperty.Bind(volumeValue);
@@ -30,11 +30,11 @@ std::shared_ptr<UIElement> BuildSliderPage() {
     volumeStatus->Text.Bind(volumeStatusValue, BindingMode::OneWay);
 
     auto vertical = Make<Slider>();
-    vertical->SetOrientation(Orientation::Vertical);
+    vertical->Orientation = Orientation::Vertical;
     vertical->SetMinimum(0.0f);
     vertical->SetMaximum(100.0f);
-    vertical->SetWidth(32.0f);
-    vertical->SetHeight(160.0f);
+    vertical->Width = 32.0f;
+    vertical->Height = 160.0f;
 
     State<float> verticalValue{ 70.0f };
     vertical->ValueProperty.Bind(verticalValue);

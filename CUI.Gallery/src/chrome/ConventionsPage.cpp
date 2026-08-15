@@ -167,7 +167,7 @@ constexpr const char* kErrorHandling = R"markdown(
 
 } // namespace
 
-std::shared_ptr<UIElement> BuildConventionsPage() {
+Element BuildConventionsPage() {
     // 章节目录定义
     const std::vector<std::string> chapters = {
         "1. 命名规范",
@@ -193,12 +193,12 @@ std::shared_ptr<UIElement> BuildConventionsPage() {
 
     // 左侧章节选择列表
     auto listBox = std::make_shared<ListBox>();
-    listBox->SetWidth(200.0f);
-    listBox->SetHeight(-1.0f);
-    listBox->SetAlign(Alignment::Stretch);
-    listBox->SetBackgroundToken(ThemeTokenId::PaneBackground);
-    listBox->SetBorderToken(ThemeTokenId::CardBorder);
-    listBox->SetBorderThickness(1.0f);
+    listBox->Width = 200.0f;
+    listBox->Height = -1.0f;
+    listBox->Align = Alignment::Stretch;
+    listBox->BackgroundToken = ThemeTokenId::PaneBackground;
+    listBox->BorderToken = ThemeTokenId::CardBorder;
+    listBox->BorderThickness = 1.0f;
 
     for (const auto& ch : chapters) {
         listBox->AddItem(ch);
@@ -206,9 +206,9 @@ std::shared_ptr<UIElement> BuildConventionsPage() {
 
     // 右侧 Markdown 文档视图
     auto docView = std::make_shared<MarkdownView>(documents[0]);
-    docView->SetHeight(-1.0f);
-    docView->SetFlexGrow(1.0f);
-    docView->SetAlign(Alignment::Stretch);
+    docView->Height = -1.0f;
+    docView->FlexGrow = 1.0f;
+    docView->Align = Alignment::Stretch;
 
     // 连接选中修改事件，点击菜单项时动态切换右侧展示的 Markdown 内容
     listBox->OnSelectionChanged().Connect([docView, documents](ListBox*, int index, const std::string&) {
@@ -222,11 +222,11 @@ std::shared_ptr<UIElement> BuildConventionsPage() {
 
     // 水平线性布局组装
     auto page = std::make_shared<StackPanel>(Orientation::Horizontal);
-    page->SetGap(16.0f);
-    page->SetPadding(Thickness(24.0f));
-    page->SetFlexGrow(1.0f);
-    page->SetAlign(Alignment::Stretch);
-    page->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    page->Gap = 16.0f;
+    page->Padding = Thickness(24.0f);
+    page->FlexGrow = 1.0f;
+    page->Align = Alignment::Stretch;
+    page->BackgroundToken = ThemeTokenId::WindowBackground;
     page->AddChild(listBox);
     page->AddChild(docView);
 

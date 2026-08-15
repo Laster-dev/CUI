@@ -20,6 +20,10 @@
 namespace CUI {
 
 class ContextMenu;
+class UIElement;
+using Element = std::shared_ptr<UIElement>;
+template <typename T>
+using ElementRef = std::shared_ptr<T>;
 
 /**
  * @brief 焦点状态枚举。
@@ -174,6 +178,40 @@ struct PropertyValueTraits<FontStretch> {
 };
 
 template<>
+struct PropertyValueTraits<Thickness> {
+    static Thickness FromValue(const Value& value) { return value.AsThickness(); }
+    static Value ToValue(const Thickness& value) { return Value(value); }
+};
+
+template<>
+struct PropertyValueTraits<Visibility> {
+    static Visibility FromValue(const Value& value) {
+        const std::string name = value.AsString("Visible");
+        return name == "Hidden" ? Visibility::Hidden : name == "Collapsed" ? Visibility::Collapsed : Visibility::Visible;
+    }
+    static Value ToValue(Visibility value) {
+        return Value(value == Visibility::Hidden ? "Hidden" : value == Visibility::Collapsed ? "Collapsed" : "Visible");
+    }
+};
+
+template<>
+struct PropertyValueTraits<Alignment> {
+    static Alignment FromValue(const Value& value) {
+        const std::string name = value.AsString("Stretch");
+        return name == "Start" ? Alignment::Start : name == "Center" ? Alignment::Center : name == "End" ? Alignment::End : Alignment::Stretch;
+    }
+    static Value ToValue(Alignment value) {
+        return Value(value == Alignment::Start ? "Start" : value == Alignment::Center ? "Center" : value == Alignment::End ? "End" : "Stretch");
+    }
+};
+
+template<>
+struct PropertyValueTraits<ThemeTokenId> {
+    static ThemeTokenId FromValue(const Value& value) { return ThemeTokenIdFromName(value.AsString()); }
+    static Value ToValue(ThemeTokenId value) { return Value(ThemeTokenIdToName(value)); }
+};
+
+template<>
 struct PropertyValueTraits<Orientation> {
     static Orientation FromValue(const Value& value) {
         const std::string s = value.AsString("Vertical");
@@ -215,8 +253,53 @@ public:
     PropertyRef<Color, PropertyId::Color> TextColor;                    // 文字颜色属性代理：指定渲染文本所需的前景色彩
     PropertyRef<Color, PropertyId::Background> Background;              // 背景颜色属性代理：指定控件正常状态下的背景填充色
     PropertyRef<Color, PropertyId::HoverBackground> HoverBackground;    // 悬停背景颜色代理：指定鼠标悬停在控件上方时的背景色
+    PropertyRef<Color, PropertyId::PressedBackground> PressedBackground;
+    PropertyRef<Color, PropertyId::BorderBrush> BorderBrush;
+    PropertyRef<CUI::Color, PropertyId::Color> Foreground;
+    PropertyRef<ThemeTokenId, PropertyId::BackgroundToken> BackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::HoverBackgroundToken> HoverBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::PressedBackgroundToken> PressedBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::DisabledBackgroundToken> DisabledBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::BorderToken> BorderToken;
+    PropertyRef<ThemeTokenId, PropertyId::FocusedBorderToken> FocusedBorderToken;
+    PropertyRef<ThemeTokenId, PropertyId::ColorToken> ColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::SecondaryColorToken> SecondaryColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::PlaceholderColorToken> PlaceholderColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::SelectedBackgroundToken> SelectedBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::HeaderBackgroundToken> HeaderBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::PaneBackgroundToken> PaneBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::IndicatorColorToken> IndicatorColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::DropdownBackgroundToken> DropdownBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::SelectedItemBackgroundToken> SelectedItemBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::FillColorToken> FillColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::TrackColorToken> TrackColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::ActiveTrackColorToken> ActiveTrackColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::ThumbColorToken> ThumbColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::OnColorToken> OnColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::OffColorToken> OffColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::KnobColorToken> KnobColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::CheckedBackgroundToken> CheckedBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::AccentColorToken> AccentColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::ActiveColorToken> ActiveColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::UnderlineColorToken> UnderlineColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::ActiveUnderlineColorToken> ActiveUnderlineColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::ActiveTabBackgroundToken> ActiveTabBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::InactiveTabBackgroundToken> InactiveTabBackgroundToken;
+    PropertyRef<ThemeTokenId, PropertyId::GridLineBrushToken> GridLineBrushToken;
+    PropertyRef<ThemeTokenId, PropertyId::TitleColorToken> TitleColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::MessageColorToken> MessageColorToken;
+    PropertyRef<ThemeTokenId, PropertyId::CaretColorToken> CaretColorToken;
+    PropertyRef<std::string, PropertyId::Placeholder> Placeholder;
+    PropertyRef<std::string, PropertyId::ToolTip> ToolTip;
+    PropertyRef<std::string, PropertyId::Icon> Icon;
     PropertyRef<float, PropertyId::Width> Width;                        // 显式宽度代理：如果显式指定，将强制覆盖测算布局的宽度
     PropertyRef<float, PropertyId::Height> Height;                      // 显式高度代理：如果显式指定，将强制覆盖测算布局的高度
+    PropertyRef<Thickness, PropertyId::Margin> Margin;
+    PropertyRef<Thickness, PropertyId::Padding> Padding;
+    PropertyRef<CUI::Visibility, PropertyId::Visibility> VisibilityProperty;
+    PropertyRef<Alignment, PropertyId::Align> Align;
+    PropertyRef<Alignment, PropertyId::AlignHorizontal> AlignHorizontal;
+    PropertyRef<Alignment, PropertyId::AlignVertical> AlignVertical;
     PropertyRef<bool, PropertyId::IsEnabled> IsEnabledProperty;          // 交互启用状态代理：控制控件是否可接收物理输入响应
     PropertyRef<float, PropertyId::Opacity> Opacity;                    // 不透明度代理：控制控件的渲染透明度等级 (0.0f - 1.0f)
     PropertyRef<float, PropertyId::MinWidth> MinWidth;

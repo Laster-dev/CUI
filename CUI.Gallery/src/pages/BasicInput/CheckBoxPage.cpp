@@ -72,7 +72,7 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
     auto twoState = Make<CheckBox>("我同意条款");
     auto twoStatus = MakeStatus("未同意。");
     twoState->OnCheckStateChanged().Connect([twoStatus](CheckBox*, CheckState state) {
-        twoStatus->SetText(state == CheckState::Checked ? "已同意。" : "未同意。");
+        twoStatus->Text = state == CheckState::Checked ? "已同意。" : "未同意。";
     });
 
     SamplePageSpec spec;

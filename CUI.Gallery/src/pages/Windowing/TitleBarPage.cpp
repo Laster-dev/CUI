@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildTitleBarPage() {
+Element BuildTitleBarPage() {
     SamplePageSpec spec;
     spec.title = "TitleBar(标题栏)";
     spec.subtitle = "自定义窗口标题栏及其内容布局。";

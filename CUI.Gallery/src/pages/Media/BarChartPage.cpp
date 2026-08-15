@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildBarChartPage() {
+Element BuildBarChartPage() {
     SamplePageSpec spec;
     spec.title = "BarChart(柱状图)";
     spec.subtitle = "展示对比数据柱状图。";

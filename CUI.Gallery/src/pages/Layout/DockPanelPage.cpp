@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildDockPanelPage() {
+Element BuildDockPanelPage() {
     SamplePageSpec spec;
     spec.title = "DockPanel(停靠面板)";
     spec.subtitle = "将子元素停靠在容器边缘的布局。";

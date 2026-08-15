@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildTabViewPage() {
+Element BuildTabViewPage() {
     SamplePageSpec spec;
     spec.title = "TabView(标签页视图)";
     spec.subtitle = "显示可切换的多标签选项卡。";

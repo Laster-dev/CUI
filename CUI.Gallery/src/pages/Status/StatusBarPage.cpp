@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildStatusBarPage() {
+Element BuildStatusBarPage() {
     SamplePageSpec spec;
     spec.title = "StatusBar(状态栏)";
     spec.subtitle = "底部状态栏指示。";

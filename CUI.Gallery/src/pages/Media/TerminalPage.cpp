@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildTerminalPage() {
+Element BuildTerminalPage() {
     SamplePageSpec spec;
     spec.title = "Terminal(终端控件)";
     spec.subtitle = "展示终端与命令行交互视图。";

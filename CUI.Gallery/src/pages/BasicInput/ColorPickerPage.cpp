@@ -26,14 +26,14 @@ std::string ColorHex(Color c) {
 
 } // namespace
 
-std::shared_ptr<UIElement> BuildColorPickerPage() {
+Element BuildColorPickerPage() {
     auto picker = Make<ColorPicker>();
     auto chip = Make<TextBlock>();
-    chip->SetWidth(48.0f);
-    chip->SetHeight(24.0f);
-    chip->SetCornerRadius(4.0f);
-    chip->SetBorderThickness(1.0f);
-    chip->SetBorderToken(ThemeTokenId::CardBorder);
+    chip->Width = 48.0f;
+    chip->Height = 24.0f;
+    chip->CornerRadius = 4.0f;
+    chip->BorderThickness = 1.0f;
+    chip->BorderToken = ThemeTokenId::CardBorder;
 
     State<Color> selectedColor{ Color(0, 0, 0, 1) };
     picker->SelectedColor.Bind(selectedColor);

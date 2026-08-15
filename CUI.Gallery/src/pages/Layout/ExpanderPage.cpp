@@ -12,7 +12,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildExpanderPage() {
+Element BuildExpanderPage() {
     // —— 常规用法 ——
     auto formContent = Column(10).Children({
         MakeLabel("昵称", 12.0f, ThemeTokenId::TextSecondary, false),
@@ -102,7 +102,7 @@ std::shared_ptr<UIElement> BuildExpanderPage() {
         "// 默认展开 + 事件监听\n"
         "expander->SetIsExpanded(true);\n"
         "expander->OnExpandedChanged().Connect([](Expander*, bool expanded) {\n"
-        "    status->SetText(expanded ? \"已展开\" : \"已折叠\");\n"
+        "    status->Text = expanded ? \"已展开\" : \"已折叠\";\n"
         "});\n"
         "\n"
         "// 向上展开\n"

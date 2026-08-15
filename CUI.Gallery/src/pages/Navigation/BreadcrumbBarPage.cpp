@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildBreadcrumbBarPage() {
+Element BuildBreadcrumbBarPage() {
     SamplePageSpec spec;
     spec.title = "BreadcrumbBar(面包屑导航)";
     spec.subtitle = "显示当前位置的文件或页面层级路径。";

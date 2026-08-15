@@ -11,7 +11,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildRatingControlPage() {
+Element BuildRatingControlPage() {
     auto rating = Make<RatingControl>();
     rating->SetMaxRating(5);
     rating->SetStep(0.5f);

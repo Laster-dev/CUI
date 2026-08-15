@@ -11,12 +11,12 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildRangeSliderPage() {
+Element BuildRangeSliderPage() {
     auto price = Make<RangeSlider>();
     price->SetMinimum(0.0f);
     price->SetMaximum(1000.0f);
     price->SetStep(10.0f);
-    price->SetWidth(320.0f);
+    price->Width = 320.0f;
 
     State<float> lowerValue{ 200.0f };
     State<float> upperValue{ 800.0f };

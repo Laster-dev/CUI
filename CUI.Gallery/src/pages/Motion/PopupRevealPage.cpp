@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildPopupRevealPage() {
+Element BuildPopupRevealPage() {
     SamplePageSpec spec;
     spec.title = "Popup Reveal(浮层显现)";
     spec.subtitle = "Flyout 与菜单的弹出动画曲线。";

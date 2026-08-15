@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildCommandsPage() {
+Element BuildCommandsPage() {
     SamplePageSpec spec;
     spec.title = "Commands(命令与快捷键)";
     spec.subtitle = "应用命令与快捷键映射绑定。";

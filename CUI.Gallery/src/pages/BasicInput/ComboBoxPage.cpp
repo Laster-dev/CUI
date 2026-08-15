@@ -10,9 +10,9 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildComboBoxPage() {
+Element BuildComboBoxPage() {
     auto combo = Make<ComboBox>();
-    combo->SetWidth(220.0f);
+    combo->Width = 220.0f;
     combo->AddItem("苹果");
     combo->AddItem("香蕉");
     combo->AddItem("樱桃");
@@ -35,10 +35,10 @@ std::shared_ptr<UIElement> BuildComboBoxPage() {
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
     auto disabled = Make<ComboBox>();
-    disabled->SetWidth(220.0f);
+    disabled->Width = 220.0f;
     disabled->AddItem("不可用");
     disabled->SetSelectedIndex(0);
-    disabled->SetIsEnabled(false);
+    disabled->IsEnabledProperty = false;
 
     SamplePageSpec spec;
     spec.title = "ComboBox(组合框)";

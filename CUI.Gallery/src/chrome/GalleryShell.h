@@ -5,6 +5,6 @@
 
 namespace Gallery {
 
-std::shared_ptr<CUI::UIElement> BuildGalleryRoot();
+CUI::Element BuildGalleryRoot();
 
 } // namespace Gallery

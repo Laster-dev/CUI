@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildLogViewPage() {
+Element BuildLogViewPage() {
     SamplePageSpec spec;
     spec.title = "LogView(日志视图)";
     spec.subtitle = "展示结构化系统与运行日志。";

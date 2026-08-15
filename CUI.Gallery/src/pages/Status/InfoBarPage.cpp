@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildInfoBarPage() {
+Element BuildInfoBarPage() {
     SamplePageSpec spec;
     spec.title = "InfoBar(消息条)";
     spec.subtitle = "用于展示全应用或特定上下文的应用状态消息。";

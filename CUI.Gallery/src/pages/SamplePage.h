@@ -10,14 +10,14 @@
 
 namespace Gallery {
 
-std::shared_ptr<CUI::UIElement> MakeLabel(
+CUI::Element MakeLabel(
     const std::string& text,
     float size,
     CUI::ThemeTokenId token,
     bool bold = false);
 
-std::shared_ptr<CUI::UIElement> MakeCard(
-    std::initializer_list<std::shared_ptr<CUI::UIElement>> children,
+CUI::Element MakeCard(
+    std::initializer_list<CUI::Element> children,
     float gap = 16.0f);
 
 std::shared_ptr<CUI::TextBlock> MakeStatus(const std::string& text);
@@ -25,7 +25,7 @@ std::shared_ptr<CUI::TextBlock> MakeStatus(const std::string& text);
 struct SampleSection {
     std::string heading;
     std::string description;
-    std::shared_ptr<CUI::UIElement> content;
+    CUI::Element content;
 };
 
 struct SamplePageSpec {
@@ -35,6 +35,6 @@ struct SamplePageSpec {
     std::string source;
 };
 
-std::shared_ptr<CUI::UIElement> BuildSamplePage(const SamplePageSpec& spec);
+CUI::Element BuildSamplePage(const SamplePageSpec& spec);
 
 } // namespace Gallery

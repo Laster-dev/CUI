@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildNavigationViewPage() {
+Element BuildNavigationViewPage() {
     SamplePageSpec spec;
     spec.title = "NavigationView(导航视图)";
     spec.subtitle = "应用程序的主导航结构框架。";

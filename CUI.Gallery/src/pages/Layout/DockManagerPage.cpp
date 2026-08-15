@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildDockManagerPage() {
+Element BuildDockManagerPage() {
     SamplePageSpec spec;
     spec.title = "DockManager(停靠管理器)";
     spec.subtitle = "高级 IDE 风格的面板停靠管理系统。";

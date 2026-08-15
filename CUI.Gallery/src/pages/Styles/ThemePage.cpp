@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildThemePage() {
+Element BuildThemePage() {
     SamplePageSpec spec;
     spec.title = "Theme(主题样式)";
     spec.subtitle = "展现应用在浅色与深色主题下的视觉规范。";

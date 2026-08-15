@@ -11,7 +11,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildContentDialogPage() {
+Element BuildContentDialogPage() {
     auto status = MakeStatus("点击按钮触发对话框，此处显示结果。");
 
     // ── 1. 信息确认对话框 ────────────────────────────────────────────────
@@ -25,18 +25,18 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
         src->AddChild(dlg);
         dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
-                status->SetText("结果：已点击【确定】，操作继续执行。");
+                status->Text = "结果：已点击【确定】，操作继续执行。";
             else
-                status->SetText("结果：已点击【取消】，操作已中止。");
+                status->Text = "结果：已点击【取消】，操作已中止。";
         });
     });
 
     // ── 2. 三按钮对话框 ─────────────────────────────────────────────────
     auto btnThree = Make<Button>("三个按钮的对话框");
-    btnThree->SetBackgroundToken(ThemeTokenId::CardBackground);
-    btnThree->SetColorToken(ThemeTokenId::TextPrimary);
-    btnThree->SetBorderToken(ThemeTokenId::CardBorder);
-    btnThree->SetBorderThickness(1.0f);
+    btnThree->BackgroundToken = ThemeTokenId::CardBackground;
+    btnThree->ColorToken = ThemeTokenId::TextPrimary;
+    btnThree->BorderToken = ThemeTokenId::CardBorder;
+    btnThree->BorderThickness = 1.0f;
     btnThree->OnClick().Connect([status](UIElement* src) {
         auto dlg = Make<ContentDialog>();
         dlg->SetTitle("保存更改");
@@ -47,20 +47,20 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
         src->AddChild(dlg);
         dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
-                status->SetText("结果：已选择【保存】，文件已写入磁盘。");
+                status->Text = "结果：已选择【保存】，文件已写入磁盘。";
             else if (r == DialogResult::Secondary)
-                status->SetText("结果：已选择【不保存】，更改已丢弃。");
+                status->Text = "结果：已选择【不保存】，更改已丢弃。";
             else
-                status->SetText("结果：已取消，继续编辑。");
+                status->Text = "结果：已取消，继续编辑。";
         });
     });
 
     // ── 3. 输入对话框 ───────────────────────────────────────────────────
     auto btnInput = Make<Button>("带文本输入的对话框");
-    btnInput->SetBackgroundToken(ThemeTokenId::CardBackground);
-    btnInput->SetColorToken(ThemeTokenId::TextPrimary);
-    btnInput->SetBorderToken(ThemeTokenId::CardBorder);
-    btnInput->SetBorderThickness(1.0f);
+    btnInput->BackgroundToken = ThemeTokenId::CardBackground;
+    btnInput->ColorToken = ThemeTokenId::TextPrimary;
+    btnInput->BorderToken = ThemeTokenId::CardBorder;
+    btnInput->BorderThickness = 1.0f;
     btnInput->OnClick().Connect([status](UIElement* src) {
         auto dlg = Make<ContentDialog>();
         dlg->SetTitle("新建文件夹");
@@ -73,19 +73,19 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
         dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary) {
                 std::string name = dlg->GetInputText();
-                status->SetText("结果：已创建文件夹「" + (name.empty() ? "（无名称）" : name) + "」。");
+                status->Text = "结果：已创建文件夹「" + (name.empty() ? "（无名称）" : name) + "」。";
             } else {
-                status->SetText("结果：已取消创建。");
+                status->Text = "结果：已取消创建。";
             }
         });
     });
 
     // ── 4. 危险操作对话框 ───────────────────────────────────────────────
     auto btnDanger = Make<Button>("危险操作确认");
-    btnDanger->SetBackground(Color::Hex("#C62828"));
-    btnDanger->SetHoverBackground(Color::Hex("#B71C1C"));
-    btnDanger->SetPressedBackground(Color::Hex("#8E0000"));
-    btnDanger->SetColor(Color::White);
+    btnDanger->Background = Color::Hex("#C62828");
+    btnDanger->HoverBackground = Color::Hex("#B71C1C");
+    btnDanger->PressedBackground = Color::Hex("#8E0000");
+    btnDanger->Foreground = Color::White;
     btnDanger->OnClick().Connect([status](UIElement* src) {
         auto dlg = Make<ContentDialog>();
         dlg->SetTitle("永久删除");
@@ -95,9 +95,9 @@ std::shared_ptr<UIElement> BuildContentDialogPage() {
         src->AddChild(dlg);
         dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
-                status->SetText("结果：已执行永久删除，文件已清除。");
+                status->Text = "结果：已执行永久删除，文件已清除。";
             else
-                status->SetText("结果：已取消删除操作。");
+                status->Text = "结果：已取消删除操作。";
         });
     });
 

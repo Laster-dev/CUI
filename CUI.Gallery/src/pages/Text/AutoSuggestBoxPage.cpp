@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildAutoSuggestBoxPage() {
+Element BuildAutoSuggestBoxPage() {
     SamplePageSpec spec;
     spec.title = "AutoSuggestBox(自动建议框)";
     spec.subtitle = "输入时提供下拉搜索建议建议。";

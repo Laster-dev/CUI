@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildPagingControlPage() {
+Element BuildPagingControlPage() {
     SamplePageSpec spec;
     spec.title = "PagingControl(分页控件)";
     spec.subtitle = "提供数据或页面的指示与切换。";

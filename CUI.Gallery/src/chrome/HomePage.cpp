@@ -13,7 +13,7 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildHomePage() {
+Element BuildHomePage() {
     auto body = Column(20).Padding(24);
     body.Add(Column(6).Children({
         MakeLabel("CUI Gallery", 28.0f, ThemeTokenId::TextPrimary, true),
@@ -31,19 +31,19 @@ std::shared_ptr<UIElement> BuildHomePage() {
         }
 
         auto wrap = std::make_shared<WrapPanel>(Orientation::Horizontal);
-        wrap->SetGap(12.0f);
-        wrap->SetJustifyLines(true);
-        wrap->SetFillLastLine(true);
-        wrap->SetAlign(Alignment::Stretch);
+        wrap->Gap = 12.0f;
+        wrap->JustifyLines = true;
+        wrap->FillLastLine = true;
+        wrap->Align = Alignment::Stretch;
 
         for (const Entry* entry : items) {
             auto card = Column(6).MinWidth(180).Padding(16).CornerRadius(6).Children({
                 MakeLabel(entry->title, 15.0f, ThemeTokenId::TextPrimary, true),
                 MakeLabel(entry->subtitle, 12.0f, ThemeTokenId::TextMuted, false),
             }).Build();
-            card->SetBackgroundToken(ThemeTokenId::CardBackground);
-            card->SetBorderToken(ThemeTokenId::CardBorder);
-            card->SetBorderThickness(1.0f);
+            card->BackgroundToken = ThemeTokenId::CardBackground;
+            card->BorderToken = ThemeTokenId::CardBorder;
+            card->BorderThickness = 1.0f;
             const std::string tag = entry->tag;
             auto go = [tag](UIElement*) {
                 Host::Instance().Navigate(tag);
@@ -64,12 +64,12 @@ std::shared_ptr<UIElement> BuildHomePage() {
     }
 
     auto column = body.Build();
-    column->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    column->BackgroundToken = ThemeTokenId::WindowBackground;
 
     auto scroll = std::make_shared<ScrollViewer>();
-    scroll->SetAlign(Alignment::Stretch);
-    scroll->SetFlexGrow(1.0f);
-    scroll->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    scroll->Align = Alignment::Stretch;
+    scroll->FlexGrow = 1.0f;
+    scroll->BackgroundToken = ThemeTokenId::WindowBackground;
     scroll->AddChild(column);
     return scroll;
 }

@@ -75,7 +75,7 @@ std::shared_ptr<UIElement> BuildDropDownButtonPage() {
 
     auto disabled = Make<DropDownButton>("不可用");
     disabled->AddItem("一项");
-    disabled->SetIsEnabled(false);
+    disabled->IsEnabledProperty = false;
 
     auto color = Make<DropDownButton>("背景颜色展示");
     color->AddItem("红色");

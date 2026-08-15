@@ -30,7 +30,7 @@ struct Entry {
     const char* title = "";
     const char* subtitle = "";
     Category category = Category::BasicInput;
-    std::function<std::shared_ptr<CUI::UIElement>()> build;
+    std::function<CUI::Element()> build;
 };
 
 const char* CategoryDisplayName(Category category);

@@ -10,9 +10,9 @@ using namespace CUI::DSL;
 
 namespace Gallery {
 
-std::shared_ptr<UIElement> BuildSegmentedControlPage() {
+Element BuildSegmentedControlPage() {
     auto range = Make<SegmentedControl>();
-    range->SetWidth(280.0f);
+    range->Width = 280.0f;
     range->AddItem("日");
     range->AddItem("周");
     range->AddItem("月");
