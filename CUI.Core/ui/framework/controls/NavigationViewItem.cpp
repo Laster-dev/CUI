@@ -195,22 +195,6 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
         ctx.FillRoundedRect(highlight, radius, fill);
     }
 
-    // Telegram-style ripple (same feel as Button).
-    if (m_rippleActive && m_rippleOpacity > 0.0f) {
-        const Rect clipRect = highlight.IsEmpty() ? m_bounds : highlight;
-        ctx.PushRoundedClip(clipRect, radius);
-        D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
-        rippleColor.a = m_rippleOpacity;
-        Rect rippleRect(
-            m_rippleCenter.x - m_rippleRadius,
-            m_rippleCenter.y - m_rippleRadius,
-            m_rippleRadius * 2.0f,
-            m_rippleRadius * 2.0f
-        );
-        ctx.FillRoundedRect(rippleRect, m_rippleRadius, rippleColor);
-        ctx.PopClip();
-    }
-
     // Always resolve through ThemeManager (token → GetColor). User overrides of
     // theme.colorToken are honored; never use a DIY palette here.
     const D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
@@ -254,28 +238,12 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
     }
 }
 
-void NavigationViewItem::StartRipple(Point pt) {
-    if (!UIElement::AreAnimationsEnabled()) {
-        m_rippleActive = false;
-        m_rippleOpacity = 0.0f;
-        return;
-    }
-    m_rippleCenter = pt;
-    m_rippleRadius = 4.0f;
-    m_rippleOpacity = 0.28f;
-    m_rippleActive = true;
-    RequestAnimationTicks();
-    MarkRenderRectDirty(m_bounds);
-}
-
 void NavigationViewItem::OnMouseDown(Point pt) {
     // Skip Control::OnMouseDown — avoids full-bounds visual-state animation chrome.
     UIElement::OnMouseDown(pt);
     if (!IsEnabled()) {
         return;
     }
-
-    StartRipple(pt);
 
     if (HitChevron(pt)) {
         SetIsExpanded(!m_isExpanded);
@@ -292,38 +260,11 @@ void NavigationViewItem::OnMouseDown(Point pt) {
 
 bool NavigationViewItem::OnAnimationTick() {
     // Do not run Control visual-state hover fade — chrome is discrete via m_hovered.
-    if (!UIElement::AreAnimationsEnabled()) {
-        m_rippleActive = false;
-        m_rippleOpacity = 0.0f;
-        return UIElement::OnAnimationTick();
-    }
-    if (!m_rippleActive) {
-        return UIElement::OnAnimationTick();
-    }
-
-    float cornerX = (m_rippleCenter.x - m_bounds.x > m_bounds.width * 0.5f) ? m_bounds.x : (m_bounds.x + m_bounds.width);
-    float cornerY = (m_rippleCenter.y - m_bounds.y > m_bounds.height * 0.5f) ? m_bounds.y : (m_bounds.y + m_bounds.height);
-    float dx = m_rippleCenter.x - cornerX;
-    float dy = m_rippleCenter.y - cornerY;
-    float maxRadius = std::sqrt(dx * dx + dy * dy);
-
-    m_rippleRadius += (maxRadius - m_rippleRadius) * FrameBlend(0.073f) + 37.0f * UIElement::GetAnimationDeltaSeconds();
-    if (m_rippleRadius > maxRadius) {
-        m_rippleRadius = maxRadius;
-    }
-    m_rippleOpacity *= std::pow(0.958f, UIElement::GetAnimationDeltaSeconds() * 60.0f);
-
-    if (m_rippleOpacity <= 0.02f) {
-        m_rippleActive = false;
-        m_rippleOpacity = 0.0f;
-    }
-
-    MarkRenderRectDirty(m_bounds.Inflate(2.0f));
-    return m_rippleActive || UIElement::OnAnimationTick();
+    return UIElement::OnAnimationTick();
 }
 
 bool NavigationViewItem::HasSelfAnimation() const {
-    return m_rippleActive;
+    return false;
 }
 
 void NavigationViewItem::OnMouseEnter() {

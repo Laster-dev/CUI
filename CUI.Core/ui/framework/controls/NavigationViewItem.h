@@ -143,7 +143,6 @@ public:
 
 private:
     void StyleDefaults();
-    void StartRipple(Point pt);
     Rect GetChevronRect() const;
     bool HitChevron(Point pt) const;
 
@@ -156,10 +155,6 @@ private:
     bool m_compact = false;
     bool m_topMode = false;
     bool m_hovered = false;
-    Point m_rippleCenter{};
-    float m_rippleRadius = 0.0f;
-    float m_rippleOpacity = 0.0f;
-    bool m_rippleActive = false;
     std::vector<std::shared_ptr<NavigationViewItemBase>> m_menuItems;
     Event<NavigationViewItem*> m_invoked;
     Event<NavigationViewItem*> m_expandChanged;

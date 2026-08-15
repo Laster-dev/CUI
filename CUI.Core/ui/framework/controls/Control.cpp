@@ -178,18 +178,21 @@ void Control::OnMouseMove(Point pt) {
 void Control::OnFocus() {
     UIElement::OnFocus();
     UpdateVisualStateTarget();
-    m_visualStateAnim.SetTarget(m_visualStateTarget);
-    if (VisualStateChromeDiffers() || m_visualStateAnim.IsAnimating(0.04f)) {
-        RequestAnimationTicks();
+    // Instant chrome — same as hover enter/leave. Animating focus-in would replay
+    // a bright→dark fade on unrelated actions (e.g. clicking elsewhere to blur).
+    m_visualStateAnim.Reset(m_visualStateTarget);
+    if (VisualStateChromeDiffers()) {
+        MarkRenderRectDirty(m_bounds);
     }
 }
 
 void Control::OnBlur() {
     UIElement::OnBlur();
     UpdateVisualStateTarget();
-    m_visualStateAnim.SetTarget(m_visualStateTarget);
-    if (VisualStateChromeDiffers() || m_visualStateAnim.IsAnimating(0.04f)) {
-        RequestAnimationTicks();
+    // Instant chrome removal: no animated fade on focus loss.
+    m_visualStateAnim.Reset(m_visualStateTarget);
+    if (VisualStateChromeDiffers()) {
+        MarkRenderRectDirty(m_bounds);
     }
 }
 
