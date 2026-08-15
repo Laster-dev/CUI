@@ -350,7 +350,7 @@ public:
 
     ElementBuilder& OnClick(std::function<void(UIElement*)> handler) { // 连接 Click 单击事件回调
         if constexpr (std::is_base_of_v<Control, T> || std::is_same_v<CUI::Button, T> || std::is_same_v<HyperlinkButton, T>) {
-            m_ptr->OnClick().Connect(handler);
+            m_ptr->OnClick.Connect(handler);
         }
         return *this;
     }
@@ -778,6 +778,10 @@ inline ElementBuilder<InfoBar> InfoBarWidget() { // 快速生成用于头部提�
 
 inline ElementBuilder<CommandBar> CommandBarWidget() { // 快速生成可伸缩、带溢出点按式横条工具栏
     return ElementBuilder<CommandBar>();
+}
+
+inline ElementBuilder<MenuBar> MenuBarWidget() { // 快速生成水平顶级菜单栏
+    return ElementBuilder<MenuBar>();
 }
 
 inline ElementBuilder<Image> ImageWidget() { // 快速生成图片加载盒

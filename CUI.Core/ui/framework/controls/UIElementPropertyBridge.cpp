@@ -683,25 +683,32 @@ void UIElement::SetDock(Dock d) {
     if (m_dock == d) return;
     m_dock = d;
     NotifyFieldChanged(PropertyId::Dock, Value(DockToString(d)));
+    // 停靠方位变化会改变 DockPanel 的切割顺序，必须让父容器重新测量/排列。
+    InvalidateMeasure();
 }
 
 // --- Theme token setters ---
 
 void UIElement::SetBackgroundToken(ThemeTokenId id) {
-    if (m_backgroundToken == id) return;
+    if (m_backgroundToken == id && !m_hasBackgroundColor) return;
     m_backgroundToken = id;
+    m_hasBackgroundColor = false;
     NotifyFieldChanged(PropertyId::BackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetHoverBackgroundToken(ThemeTokenId id) {
-    if (m_hoverBackgroundToken == id) return;
+    if (m_hoverBackgroundToken == id && !m_hasHoverBackgroundColor) return;
     m_hoverBackgroundToken = id;
+    // 显式指定的 Token 应覆盖基类/构造器预设的硬编码悬浮色（如 Button 的默认蓝色强调色），
+    // 否则点击聚焦后视觉状态会一直沿用旧硬编码色（表现为“点击后变蓝、失焦才消失”）。
+    m_hasHoverBackgroundColor = false;
     NotifyFieldChanged(PropertyId::HoverBackgroundToken, TokenValue(id));
 }
 
 void UIElement::SetPressedBackgroundToken(ThemeTokenId id) {
-    if (m_pressedBackgroundToken == id) return;
+    if (m_pressedBackgroundToken == id && !m_hasPressedBackgroundColor) return;
     m_pressedBackgroundToken = id;
+    m_hasPressedBackgroundColor = false;
     NotifyFieldChanged(PropertyId::PressedBackgroundToken, TokenValue(id));
 }
 
@@ -712,8 +719,9 @@ void UIElement::SetDisabledBackgroundToken(ThemeTokenId id) {
 }
 
 void UIElement::SetBorderToken(ThemeTokenId id) {
-    if (m_borderToken == id) return;
+    if (m_borderToken == id && !m_hasBorderBrushColor) return;
     m_borderToken = id;
+    m_hasBorderBrushColor = false;
     NotifyFieldChanged(PropertyId::BorderToken, TokenValue(id));
 }
 
@@ -724,8 +732,9 @@ void UIElement::SetFocusedBorderToken(ThemeTokenId id) {
 }
 
 void UIElement::SetColorToken(ThemeTokenId id) {
-    if (m_colorToken == id) return;
+    if (m_colorToken == id && !m_hasColorValue) return;
     m_colorToken = id;
+    m_hasColorValue = false;
     NotifyFieldChanged(PropertyId::ColorToken, TokenValue(id));
 }
 

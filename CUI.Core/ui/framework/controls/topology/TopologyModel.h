@@ -27,8 +27,8 @@ enum class TopologyNodeStatus : uint8_t {
  * @brief 拓扑图自动布局算法类型枚举。
  */
 enum class TopologyLayoutType : uint8_t {
-    HierarchicalTopDown = 0,   ///< 层次化布局 (从上到下)
-    HierarchicalLeftRight,     ///< 层次化布局 (从左到右)
+    HierarchicalLeftRight = 0, ///< 层次化分明排版 (从左到右，按子树隔离不交织)
+    HierarchicalTopDown,       ///< 层次化树状排版 (从上到下)
     Radial,                    ///< 同心圆/径向发散布局
     ForceDirected              ///< 弹簧力导向有机布局
 };
@@ -69,7 +69,7 @@ struct TopologyNode : public std::enable_shared_from_this<TopologyNode> {
     float targetOpacity = 1.0f;                         ///< 目标透明度
     float scale = 1.0f;                                 ///< 当前缩放比例 (0.0~1.0)
     float targetScale = 1.0f;                           ///< 目标缩放比例
-    Size size{ 160.0f, 68.0f };                         ///< 节点卡片尺寸
+    Size size{ 170.0f, 66.0f };                         ///< 节点卡片尺寸
     
     // --- 交互状态 ---
     bool isHovered = false;                             ///< 鼠标是否悬停于节点上方
@@ -79,7 +79,6 @@ struct TopologyNode : public std::enable_shared_from_this<TopologyNode> {
     bool isCulled = false;                              ///< 是否因父级折叠完全隐去并停止交互
     bool isDragging = false;                            ///< 是否正在被鼠标按住拖拽移动
 
-    // 辅助构造函数
     TopologyNode() = default;
     TopologyNode(std::string nodeId, std::string title, std::string subTitle = "", std::string iconSymbol = "")
         : id(std::move(nodeId)), label(std::move(title)), subLabel(std::move(subTitle)), icon(std::move(iconSymbol)) {}

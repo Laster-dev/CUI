@@ -768,6 +768,7 @@ public:
     
     // 键盘焦点属性与控制
     virtual bool AcceptsTabFocus() const { return false; } // 表明该控件是否能够允许通过 Tab 按键获焦（默认不可聚焦）
+    virtual bool ReceivesTabInput() const { return false; } // 控件是否接收 Tab / Shift+Tab 作为内容输入而非焦点导航
     KeyboardNavigationMode GetKeyboardNavigationMode() const { return m_keyboardNavigationMode; } // 获取 Tab 跳转循环规则
     void SetKeyboardNavigationMode(KeyboardNavigationMode mode) { m_keyboardNavigationMode = mode; } // 设定 Tab 跳转循环规则
     FocusState GetFocusState() const { return m_focusState; } // 获取获焦的激活状态类型

@@ -2,6 +2,7 @@
 
 #include "../Control.h"
 #include "TopologyModel.h"
+#include "../ChromiumScrollAnimator.h"
 #include <vector>
 #include <unordered_map>
 #include <memory>
@@ -10,7 +11,7 @@
 namespace CUI {
 
 /**
- * @brief 可折叠带平滑动画与力导向/层次排版的拓扑图可视化控件。
+ * @brief 可折叠带平滑动画、子树隔离清晰排版与可编辑/只读切换的拓扑图控件。
  */
 class TopologyView : public Control {
 public:
@@ -21,6 +22,7 @@ public:
     virtual HCURSOR GetCursor() const override;
 
     virtual Size Measure(Size availableSize) override;
+    virtual void Arrange(Rect finalRect) override;
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
     virtual void OnMouseMove(Point pt) override;
@@ -35,7 +37,9 @@ public:
 
     // --- 数据与拓扑管理 ---
     void AddNode(std::shared_ptr<TopologyNode> node);
+    void RemoveNode(const std::string& id);
     void AddEdge(TopologyEdge edge);
+    void RemoveEdge(const std::string& fromId, const std::string& toId);
     void SetNodes(const std::vector<std::shared_ptr<TopologyNode>>& nodes);
     void SetEdges(const std::vector<TopologyEdge>& edges);
     void Clear();
@@ -56,17 +60,22 @@ public:
     TopologyLayoutType GetLayoutType() const { return m_layoutType; }
 
     void Relayout();
-    void FitToView();
-    void ResetView();
+    void FitToView(bool animated = true);
+    void ResetView(bool animated = true);
+    void ZoomIn(bool animated = true);
+    void ZoomOut(bool animated = true);
 
     float GetZoom() const { return m_zoom; }
-    void SetZoom(float zoom);
+    void SetZoom(float zoom, bool animated = true);
 
     Point GetPanOffset() const { return m_panOffset; }
-    void SetPanOffset(Point offset);
+    void SetPanOffset(Point offset, bool animated = true);
 
     bool IsFlowParticlesEnabled() const { return m_flowParticlesEnabled; }
     void SetFlowParticlesEnabled(bool enabled);
+
+    bool IsReadOnly() const { return m_isReadOnly; }
+    void SetIsReadOnly(bool ro);
 
     std::shared_ptr<TopologyNode> GetSelectedItem() const { return m_selectedNode; }
     void SetSelectedItem(std::shared_ptr<TopologyNode> node);
@@ -137,6 +146,18 @@ public:
         bool Get() const { return owner->IsFlowParticlesEnabled(); }
     } FlowParticles;
 
+    /**
+     * @brief 是否处于只读模式属性代理。
+     */
+    struct TopologyReadOnlyProperty {
+        TopologyView* owner = nullptr;
+        TopologyReadOnlyProperty() = default;
+        explicit TopologyReadOnlyProperty(TopologyView* o) : owner(o) {}
+        TopologyReadOnlyProperty& operator=(bool ro) { if (owner) owner->SetIsReadOnly(ro); return *this; }
+        operator bool() const { return owner->IsReadOnly(); }
+        bool Get() const { return owner->IsReadOnly(); }
+    } ReadOnly;
+
     // --- 事件发布中心 ---
     Event<TopologyView*, std::shared_ptr<TopologyNode>>& OnNodeClicked() { return m_onNodeClicked; }
     Event<TopologyView*, std::shared_ptr<TopologyNode>>& OnNodeDoubleClicked() { return m_onNodeDoubleClicked; }
@@ -179,7 +200,11 @@ private:
     TopologyLayoutType m_layoutType = TopologyLayoutType::HierarchicalLeftRight;
     float m_zoom = 1.0f;
     Point m_panOffset{ 80.0f, 80.0f };
+    ChromiumScrollAnimator m_zoomAnimator;
+    ChromiumScrollAnimator m_panXAnimator;
+    ChromiumScrollAnimator m_panYAnimator;
     bool m_flowParticlesEnabled = true;
+    bool m_isReadOnly = false;
 
     // 交互操作变量
     bool m_isPanning = false;
@@ -192,6 +217,7 @@ private:
     // 动画状态
     bool m_animating = false;
     float m_particleTick = 0.0f;
+    float m_particleFrameAccumulator = 0.0f;
 
     // 事件
     Event<TopologyView*, std::shared_ptr<TopologyNode>> m_onNodeClicked;

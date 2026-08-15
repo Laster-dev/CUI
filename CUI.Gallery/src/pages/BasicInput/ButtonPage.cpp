@@ -49,24 +49,33 @@ Element BuildButtonPage() {
 
     auto btnStandard = Button("标准按钮 (Standard)")
         .BackgroundToken(ThemeTokenId::CardBackground)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
         .ColorToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .OnClick([status](UIElement*) { status->Text = "点击了：标准按钮 (Standard)"; });
 
     auto btnOutline = Button("轮廓按钮 (Outline)")
         .BackgroundToken(ThemeTokenId::Unset)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
         .ColorToken(ThemeTokenId::AccentColor)
-        .BorderToken(ThemeTokenId::AccentColor)
+        .BorderToken(ThemeTokenId::AccentColor, 1.0f)
         .OnClick([status](UIElement*) { status->Text = "点击了：轮廓按钮 (Outline)"; });
 
     auto btnSubtle = Button("幽灵/文本按钮 (Subtle)")
         .BackgroundToken(ThemeTokenId::Unset)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+        .ColorToken(ThemeTokenId::AccentColor)
         .BorderToken(ThemeTokenId::Unset, 0.0f)
         .OnClick([status](UIElement*) { status->Text = "点击了：文本按钮 (Subtle)"; });
 
-    auto btnDisabled = Button("禁用按钮 (Disabled)").Enabled(false);
-
+    auto btnDisabled = Button("禁用按钮 (Disabled)")
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .ColorToken(ThemeTokenId::TextMuted)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .Enabled(false);
     // 2. 颜色与预设
     auto btnDanger = Button("危险操作 (Danger)")
         .Background("#E53935")

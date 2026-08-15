@@ -300,6 +300,9 @@
     <ClCompile Include="src\pages\Windowing\WindowPage.cpp">
       <Filter>src\pages\Windowing</Filter>
     </ClCompile>
+    <ClCompile Include="src\pages\Media\TopologyPage.cpp">
+      <Filter>src\pages\Media</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\catalog\Catalog.h">

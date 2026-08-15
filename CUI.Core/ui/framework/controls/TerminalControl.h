@@ -27,6 +27,8 @@ public:
     ~TerminalControl() override;
 
     const char* GetClassName() const override { return "TerminalControl"; } // 获取类名
+    bool AcceptsTabFocus() const override { return true; } // 允许键盘/鼠标点击聚焦以接收终端输入
+    bool ReceivesTabInput() const override { return true; } // 将 Tab 发送给 PTY，供 shell 补全或终端程序使用
     Value GetProperty(PropertyId id) const override; // 反射获取属性值
     bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
     void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值

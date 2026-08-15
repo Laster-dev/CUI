@@ -1873,10 +1873,14 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         if (wParam == VK_TAB) {
-            const bool forward = (GetKeyState(VK_SHIFT) & 0x8000) == 0;
-            if (TryMoveFocus(forward)) {
-                InvalidatePendingRenderRegions(false);
-                return 0;
+            const auto focused = LockElement(m_focusedElement);
+            const bool receivesTabInput = focused && focused->IsEnabled() && focused->ReceivesTabInput();
+            if (!receivesTabInput) {
+                const bool forward = (GetKeyState(VK_SHIFT) & 0x8000) == 0;
+                if (TryMoveFocus(forward)) {
+                    InvalidatePendingRenderRegions(false);
+                    return 0;
+                }
             }
         }
         if (wParam == VK_F10) {
