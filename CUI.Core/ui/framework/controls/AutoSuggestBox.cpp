@@ -16,6 +16,10 @@ class AutoSuggestField : public TextBox {
 public:
     AutoSuggestBox* host = nullptr;
 
+    bool ReceivesTabInput() const override {
+        return host && host->IsPopupOpen() && !host->GetFilteredSuggestions().empty();
+    }
+
     void OnRoutedEvent(RoutedEventArgs& args) override {
         if (args.handled) {
             return;
@@ -82,7 +86,7 @@ AutoSuggestBox::AutoSuggestBox() {
     SetPadding(Thickness(0, 0, 0, 0));
     SetCornerRadius(0.0f);
     SetWidth(280.0f);
-    SetHeight(48.0f);
+    SetHeight(32.0f);
     UIElement::SetText("");
 
     auto field = std::make_shared<AutoSuggestField>();
@@ -108,8 +112,8 @@ void AutoSuggestBox::StyleField() {
     m_field->SetColorToken(GetColorToken());
     m_field->SetPlaceholderColorToken(GetPlaceholderColorToken());
     m_field->SetWidth(GetWidth() >= 0.0f ? GetWidth() : 280.0f);
-    m_field->SetHeight(GetHeight() >= 0.0f ? GetHeight() : 48.0f);
-    m_field->SetPadding(Thickness(8.0f, 18.0f, 8.0f, 8.0f));
+    m_field->SetHeight(GetHeight() >= 0.0f ? GetHeight() : 32.0f);
+    m_field->SetPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
 }
 
 HCURSOR AutoSuggestBox::GetCursor() const {
@@ -397,7 +401,7 @@ Rect AutoSuggestBox::GetPopupBounds() const {
     const float itemH = m_suggestionItemHeight;
     const size_t count = (std::max)(m_filtered.size(), size_t{ 1 });
     const float desiredH = itemH * static_cast<float>((std::min)(count, static_cast<size_t>(m_maxVisibleSuggestions)));
-    return PlacePopupNearAnchor(m_bounds, m_bounds.width, desiredH, GetPopupViewportOrDefault(), 2.0f);
+    return PlacePopupNearAnchor(m_bounds, m_bounds.width, desiredH, GetPopupViewportOrDefault(), 2.0f, 4.0f, PopupVerticalPlacement::Below);
 }
 
 bool AutoSuggestBox::HitDismissExempt(float x, float y) const {
@@ -582,6 +586,15 @@ void AutoSuggestBox::OnMouseWheel(float delta) {
 }
 
 bool AutoSuggestBox::HandleSuggestionKey(int vkCode) {
+    if (vkCode == VK_TAB) {
+        if (m_suggestionsOpen && !m_filtered.empty()) {
+            int idx = (m_highlightedIndex >= 0) ? m_highlightedIndex : 0;
+            ChooseSuggestion(idx);
+            return true;
+        }
+        return false;
+    }
+
     if (vkCode == VK_ESCAPE) {
         if (m_suggestionsOpen) {
             CloseSuggestions();

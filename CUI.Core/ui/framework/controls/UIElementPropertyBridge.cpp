@@ -480,6 +480,9 @@ void UIElement::SetVisibility(Visibility v) {
         return;
     }
     m_visibility = v;
+    // Collapsed/Visible changes alter the effective visual tree and every parent
+    // layout/cache must stop reusing pixels from the previous arrangement.
+    NotifyVisualTreeChanged();
     NotifyFieldChanged(PropertyId::Visibility, Value(VisibilityToString(v)));
     InvalidateMeasure();
 }

@@ -367,7 +367,9 @@ void ForceThemeRefresh(UIElement* element, const std::string& refreshStamp, bool
 }
 
 Window::Window() : ThemeMode(this), BackdropType(this), RenderStatsOverlayVisible(this), RootElement(this), HWND(this) {
-    s_current = this;
+    if (!s_current) {
+        s_current = this;
+    }
     m_sceneLayer.SetCacheable(true);
 }
 
@@ -1060,11 +1062,8 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
         SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA);
     }
 
-    const bool needsPerPixelAlpha =
-        m_transparentMode
-        || (m_backdropType != CUI::BackdropType::None
-            && m_backdropType != CUI::BackdropType::Solid);
-    m_gfxContext.SetRequirePerPixelAlpha(needsPerPixelAlpha);
+    m_materialState = MakeMaterialState();
+    m_gfxContext.SetRequirePerPixelAlpha(m_materialState.requiresPerPixelAlpha);
     if (!m_gfxContext.Initialize(m_hwnd)) {
         return false;
     }
@@ -1080,38 +1079,95 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     // Graphics may add WS_EX_NOREDIRECTIONBITMAP for the composition fallback —
     // re-apply DWM alpha/backdrop so the final present path is wired correctly.
-    MaterialHost::Apply(m_hwnd, m_backdropType, m_themeMode);
+    const bool materialApplied = MaterialHost::Apply(m_hwnd, m_backdropType, m_themeMode);
     UpdateDwmChrome();
+    // 记录实际生效的材质状态（含 DWM 降级结果：失败回落 Solid 时材质不激活）。
+    const bool materialMode =
+        m_backdropType != CUI::BackdropType::None
+        && m_backdropType != CUI::BackdropType::Solid;
+    m_materialState.dwmBackdropActive =
+        materialMode
+        && materialApplied
+        && ThemeManager::Instance().GetBackdropType() == m_backdropType;
+    m_materialState.transparentSurface =
+        m_materialState.dwmBackdropActive
+        || (m_transparentMode && !IsZoomed(m_hwnd));
 
-    PopupHost::SetCurrent(&m_popupHost);
     m_popupHost.SetOwnerHwnd(m_hwnd);
-    AnimationManager::SetCurrent(&m_animationManager);
-    FrameScheduler::SetCurrent(&m_frameScheduler);
-    DragDropService::SetCurrent(&m_dragDrop);
+    if (!Window::s_current || Window::s_current == this) {
+        Window::s_current = this;
+        PopupHost::SetCurrent(&m_popupHost);
+        AnimationManager::SetCurrent(&m_animationManager);
+        FrameScheduler::SetCurrent(&m_frameScheduler);
+        DragDropService::SetCurrent(&m_dragDrop);
+    }
     RegisterShellDropTarget();
     return true;
 }
 
 void Window::SetBackdropType(CUI::BackdropType type) {
     m_backdropType = type;
+    ++m_materialGeneration;
+
+    // 1. 计算目标材质状态（一处计算、处处消费）。
+    const CUI::WindowMaterialState state = MakeMaterialState();
+
     if (m_hwnd) {
-        const bool needsPerPixelAlpha =
-            m_transparentMode
-            || (type != CUI::BackdropType::None && type != CUI::BackdropType::Solid);
-        m_gfxContext.SetRequirePerPixelAlpha(needsPerPixelAlpha);
+        // 2. 更新 ThemeManager 材质状态 + 3. 应用 DWM backdrop 属性（Apply 内部同步）。
+        const bool applied = MaterialHost::Apply(m_hwnd, type, m_themeMode);
+        // 4. 根据最终状态重建 GraphicsContext / SwapChain（flag 变化时自动重建）。
+        m_gfxContext.SetRequirePerPixelAlpha(state.requiresPerPixelAlpha);
         m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
-        MaterialHost::Apply(m_hwnd, type, m_themeMode);
         UpdateDwmChrome();
-        m_gfxContext.GetResources().ReleaseDeviceResources();
+        // 记录实际生效状态（含 DWM 降级结果：失败回落 Solid 时材质不激活）。
+        m_materialState = state;
+        const bool materialMode =
+            type != CUI::BackdropType::None && type != CUI::BackdropType::Solid;
+        m_materialState.dwmBackdropActive =
+            materialMode && applied && ThemeManager::Instance().GetBackdropType() == type;
+        m_materialState.transparentSurface =
+            m_materialState.dwmBackdropActive
+            || (m_transparentMode && !IsZoomed(m_hwnd));
+        // 5. 清空 SceneLayer / 主题旧快照缓存（旧材质帧不能参与当前帧）。
         m_themeRippleActive = false;
         m_themeRippleProgress = 1.0f;
         m_sceneLayer.ResetCache();
         m_themeOldSceneLayer.ResetCache();
+        // 7. 重新布局根节点 + 8. 请求完整帧。
         ApplyVisualState();
         RequestFullRepaint();
     } else {
+        // 窗口尚未创建：仅同步 ThemeManager 材质状态。
         ThemeManager::Instance().SetBackdropType(type);
     }
+}
+
+CUI::WindowMaterialState Window::MakeMaterialState() const {
+    CUI::WindowMaterialState state;
+    state.type = m_backdropType;
+    const bool materialMode =
+        m_backdropType != CUI::BackdropType::None
+        && m_backdropType != CUI::BackdropType::Solid;
+    state.dwmBackdropActive = materialMode && m_hwnd != nullptr;
+    state.requiresPerPixelAlpha = m_transparentMode || materialMode;
+    state.transparentSurface =
+        state.dwmBackdropActive
+        || (m_transparentMode && m_hwnd && !IsZoomed(m_hwnd));
+    state.sceneCacheAllowed = true; // 实际有效性由 RenderCacheStamp 代次校验兜底
+    state.generation = m_materialGeneration;
+    return state;
+}
+
+RenderCacheStamp Window::BuildRenderCacheStamp() const {
+    RenderCacheStamp stamp;
+    stamp.visualTreeGeneration = UIElement::GetVisualTreeGeneration();
+    stamp.layoutGeneration = UIElement::GetLayoutGeneration();
+    stamp.themeGeneration = ThemeManager::Instance().GetThemeGeneration();
+    stamp.materialGeneration = m_materialGeneration;
+    stamp.surfaceSize = m_logicalClientSize;
+    stamp.dpiScale = m_dpiScale;
+    stamp.transparent = m_materialState.transparentSurface;
+    return stamp;
 }
 
 void Window::SetThemeMode(CUI::ThemeMode theme) {
@@ -1129,6 +1185,28 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     // Idle no-op only when already on this theme and no wave is playing.
     // Mid-wave clicks must always start a brand-new ripple.
     if (m_themeMode == theme && !m_themeRippleActive) {
+        return;
+    }
+
+    // 材质模式下禁用基于旧场景快照的主题水波纹过渡：旧快照属于上一材质/页面代次，
+    // 参与当前帧合成会引入旧像素残留。直接切换主题 + 完整重绘当前 VisualTree。
+    if (m_materialState.dwmBackdropActive) {
+        m_themeMode = theme;
+        m_themeRippleActive = false;
+        m_themeRippleProgress = 1.0f;
+        m_sceneLayer.ResetCache();
+        m_themeOldSceneLayer.ResetCache();
+        ThemeManager::Instance().SetThemeMode(theme);
+        StyleManager::Instance().ReloadFromTheme();
+        MaterialHost::Apply(m_hwnd, m_backdropType, theme);
+        m_gfxContext.GetResources().ClearBrushCaches();
+        if (m_rootElement) {
+            static unsigned long long s_rippleThemeNonce = 0;
+            ForceThemeRefresh(m_rootElement.get(), std::to_string(++s_rippleThemeNonce), false);
+        }
+        m_onThemeChanged.Invoke(this, theme);
+        ApplyVisualState();
+        RequestFullRepaint();
         return;
     }
 
@@ -1184,6 +1262,7 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
         }
         m_gfxContext.PopLayerTarget(m_sceneLayer);
         m_sceneLayer.Validate();
+        m_sceneLayer.SetStamp(BuildRenderCacheStamp());
     }
 
     // Drop dirties created by ForceThemeRefresh — destination is already fully painted.
@@ -1209,13 +1288,16 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
 
 void Window::SetTransparentMode(bool enabled) {
     m_transparentMode = enabled;
+    ++m_materialGeneration;
+    const CUI::WindowMaterialState state = MakeMaterialState();
+    m_materialState = state;
     if (m_hwnd) {
-        const bool needsPerPixelAlpha =
-            enabled
-            || (m_backdropType != CUI::BackdropType::None
-                && m_backdropType != CUI::BackdropType::Solid);
-        m_gfxContext.SetRequirePerPixelAlpha(needsPerPixelAlpha);
+        m_gfxContext.SetRequirePerPixelAlpha(state.requiresPerPixelAlpha);
         m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
+        // 透明模式切换同样会改变根表面模式：丢弃旧缓存，防止旧不透明像素残留。
+        m_themeRippleActive = false;
+        m_sceneLayer.ResetCache();
+        m_themeOldSceneLayer.ResetCache();
         RequestFullRepaint();
     }
 }
@@ -1260,6 +1342,12 @@ void Window::SetLowPerformanceMode(bool enabled) {
 }
 
 void Window::RunMessageLoop() {
+    s_current = this;
+    AnimationManager::SetCurrent(&m_animationManager);
+    FrameScheduler::SetCurrent(&m_frameScheduler);
+    PopupHost::SetCurrent(&m_popupHost);
+    DragDropService::SetCurrent(&m_dragDrop);
+
     MSG msg = {};
     using clock = std::chrono::steady_clock;
     bool animationActive = false;
@@ -1493,6 +1581,36 @@ LRESULT CALLBACK Window::WindowProc(::HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
     }
 
     if (pThis) {
+        struct WindowContextScope {
+            Window* prevWin;
+            AnimationManager* prevAnim;
+            FrameScheduler* prevSched;
+            PopupHost* prevPopup;
+            DragDropService* prevDnd;
+
+            explicit WindowContextScope(Window* w) {
+                prevWin = Window::s_current;
+                prevAnim = AnimationManager::Current();
+                prevSched = FrameScheduler::Current();
+                prevPopup = PopupHost::Current();
+                prevDnd = DragDropService::Current();
+
+                Window::s_current = w;
+                AnimationManager::SetCurrent(&w->m_animationManager);
+                FrameScheduler::SetCurrent(&w->m_frameScheduler);
+                PopupHost::SetCurrent(&w->m_popupHost);
+                DragDropService::SetCurrent(&w->m_dragDrop);
+            }
+
+            ~WindowContextScope() {
+                Window::s_current = prevWin;
+                AnimationManager::SetCurrent(prevAnim);
+                FrameScheduler::SetCurrent(prevSched);
+                PopupHost::SetCurrent(prevPopup);
+                DragDropService::SetCurrent(prevDnd);
+            }
+        } scope(pThis);
+
         return pThis->HandleMessage(uMsg, wParam, lParam);
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -2090,12 +2208,20 @@ void Window::OnPaint() {
     const bool sceneSizeChanged =
         std::abs(m_sceneLayer.GetCacheSurfaceSize().width - sceneSize.width) > 0.5f
         || std::abs(m_sceneLayer.GetCacheSurfaceSize().height - sceneSize.height) > 0.5f;
+    // 缓存版本戳：场景缓存必须属于当前帧上下文（VisualTree/布局/主题/材质代次、
+    // 尺寸、DPI、透明模式）。任意一项不一致都不能复用旧缓存，否则旧页面像素或
+    // 旧材质帧会继续参与当前帧合成 —— 强制完整重绘当前 VisualTree。
+    const RenderCacheStamp frameStamp = BuildRenderCacheStamp();
+    const bool sceneStampValid =
+        m_sceneLayer.IsValid() && m_sceneLayer.StampMatches(frameStamp);
+
     const bool coversViewport = frameDirtyRegion.GetRectCount() == 0
         || viewportBounds.IsEmpty()
         || CoversRect(paintBounds, viewportBounds)
         || AnyDirtyRectCovers(frameDirtyRegion, viewportBounds)
         || !m_sceneLayer.IsValid()
-        || sceneSizeChanged;
+        || sceneSizeChanged
+        || !sceneStampValid;
     // Gap-aware patch: pad dirty rects so StackPanel/Column gaps & category margins
     // are cleared+repainted together (avoids black bars). Clear transparent; clip==clear.
     constexpr float kDirtyGapPad = 16.0f;
@@ -2111,11 +2237,13 @@ void Window::OnPaint() {
 
     m_gfxContext.BeginDraw();
 
-    const bool systemBackdrop = ThemeManager::Instance().IsBackdropActive();
+    // 统一材质状态：一处计算、处处消费。透明表面决定清屏规则。
+    const bool materialMode = m_materialState.dwmBackdropActive;
+    const bool transparentModeActive = m_transparentMode && !IsZoomed(m_hwnd);
     const bool usePerPixelAlpha =
-        systemBackdrop
+        materialMode
         && m_gfxContext.SupportsPerPixelAlpha();
-    const D2D1_COLOR_F sceneClearColor = (usePerPixelAlpha || (m_transparentMode && !IsZoomed(m_hwnd)))
+    const D2D1_COLOR_F sceneClearColor = (usePerPixelAlpha || transparentModeActive)
         ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)
         : ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
 
@@ -2212,6 +2340,7 @@ void Window::OnPaint() {
             m_gfxContext.PopClip();
             m_gfxContext.PopLayerTarget(m_sceneLayer);
             m_sceneLayer.Validate();
+            m_sceneLayer.SetStamp(frameStamp);
             scenePatched = true;
         } else {
             unionPatch = viewportBounds;
@@ -2255,6 +2384,7 @@ void Window::OnPaint() {
                 m_gfxContext.PopClip();
                 m_gfxContext.PopLayerTarget(m_sceneLayer);
                 m_sceneLayer.Validate();
+                m_sceneLayer.SetStamp(frameStamp);
                 scenePatched = true;
             }
         }
@@ -2269,6 +2399,7 @@ void Window::OnPaint() {
             renderScene();
             m_gfxContext.PopLayerTarget(m_sceneLayer);
             m_sceneLayer.Validate();
+            m_sceneLayer.SetStamp(frameStamp);
             unionPatch = viewportBounds;
         }
     }
@@ -2294,11 +2425,9 @@ void Window::OnPaint() {
         };
         m_gfxContext.EndDraw(&dirtyPx);
     } else {
-        if (systemBackdrop || (m_transparentMode && !IsZoomed(m_hwnd))) {
-            m_gfxContext.GetD2DContext()->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
-        } else {
-            m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
-        }
+        // 透明表面：每个完整帧都必须先全透明清屏，DWM 材质透过未绘制区域显示；
+        // 不允许把上一帧内容当作透明背景继续使用（会覆盖云母）。
+        m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
 
         if (m_themeRippleActive && m_themeOldSceneLayer.GetCacheBitmap()) {
             auto now = std::chrono::steady_clock::now();

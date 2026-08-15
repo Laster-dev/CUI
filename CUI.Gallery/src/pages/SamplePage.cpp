@@ -16,7 +16,7 @@ Element MakeLabel(
     float size,
     ThemeTokenId token,
     bool bold) {
-    auto label = Text(text).FontSize(size).Build();
+    auto label = Text(text).AlignVertical(Alignment::Center).FontSize(size).Build();
     label->ColorToken = token;
     if (bold) {
         label->FontWeight = FontWeight::Bold;
@@ -37,8 +37,10 @@ Element MakeCard(
 }
 
 std::shared_ptr<TextBlock> MakeStatus(const std::string& text) {
-    return std::static_pointer_cast<TextBlock>(
+    auto label = std::static_pointer_cast<TextBlock>(
         MakeLabel(text, 12.0f, ThemeTokenId::TextSecondary, false));
+    label->SetAlignVertical(Alignment::Center);
+    return label;
 }
 
 namespace {
@@ -70,7 +72,7 @@ Element MakeSourceExpander(const std::string& source) {
 }
 
 Element MakeSectionCard(const SampleSection& section) {
-    auto card = Column(8).Padding(24).CornerRadius(6);
+    auto card = Column(12).Padding(24).CornerRadius(6);
     card.Add(MakeLabel(section.heading, 15.0f, ThemeTokenId::TextPrimary, true));
     if (!section.description.empty()) {
         card.Add(MakeLabel(section.description, 12.0f, ThemeTokenId::TextMuted, false));
@@ -82,7 +84,7 @@ Element MakeSectionCard(const SampleSection& section) {
     built->BackgroundToken = ThemeTokenId::CardBackground;
     built->BorderToken = ThemeTokenId::CardBorder;
     built->BorderThickness = 1.0f;
-    built->ClipToBounds = true;
+    built->ClipToBounds = false;
     return built;
 }
 

@@ -185,7 +185,7 @@ public:
 
         if (data.HasFiles()) {
             const auto& files = data.GetFiles();
-            m_statusText = std::format("📥 成功从资源管理器接收 {} 个文件投放：\n{}",
+            m_statusText = std::format("📥 成功从资源管理器接收 {} 个文件投放：{}",
                                        files.size(),
                                        files.empty() ? "" : files.front() + (files.size() > 1 ? " 等" : ""));
             MarkRenderRectDirty(m_bounds);

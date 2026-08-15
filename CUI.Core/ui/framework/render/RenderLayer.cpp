@@ -45,6 +45,7 @@ void RenderLayer::ResetCache() {
     m_cacheBitmap.Reset();
     m_scratchBitmap.Reset();
     m_cacheSurfaceSize = Size();
+    m_stamp = RenderCacheStamp{};
     m_valid = false;
     m_dirtyFlags = ContentDirty | TransformDirty | ClipDirty | SizeDirty | StructureDirty;
 }

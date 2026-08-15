@@ -15,8 +15,22 @@
 namespace CUI {
 
 bool UIElement::s_animationsEnabled = true;
+
+void UIElement::NotifyVisualTreeChanged() {
+    ++s_visualTreeGeneration;
+    m_subtreeRenderDirty = true;
+    for (UIElement* node = this; node; node = node->m_parent) {
+        node->m_subtreeRenderDirty = true;
+        node->m_renderNode.GetLayer().Invalidate(
+            RenderLayer::ContentDirty
+            | RenderLayer::StructureDirty
+            | RenderLayer::SizeDirty);
+    }
+}
 float UIElement::s_animationDeltaSeconds = 1.0f / 60.0f;
 uint64_t UIElement::s_renderDirtySerial = 0;
+uint64_t UIElement::s_visualTreeGeneration = 0;
+uint64_t UIElement::s_layoutGeneration = 0;
 int UIElement::s_toolTipShowDelayMs = 450;
 int UIElement::s_toolTipHideDelayMs = 180;
 int UIElement::s_toolTipAutoHideMs = 0;
@@ -260,6 +274,10 @@ void UIElement::InvalidateMeasure() {
     if (FrameScheduler* scheduler = FrameScheduler::Current()) {
         scheduler->ScheduleFrame();
     }
+    // 布局失效代次：仅在新失效发生时递增（已脏时走下方 early-out，避免逐帧抖动）。
+    if (!m_measureDirty) {
+        ++s_layoutGeneration;
+    }
 
     // Controls that override Measure without clearing m_measureDirty can stay
     // dirty forever. The old early-out then never walked to a clean parent, so
@@ -463,6 +481,7 @@ std::vector<std::shared_ptr<UIElement>> UIElement::GetVisualChildren() const {
 
 void UIElement::AddChild(std::shared_ptr<UIElement> child) {
     if (!child) return;
+    NotifyVisualTreeChanged();
     child->SetParent(this);
     m_children.push_back(child);
     MarkRenderContentDirty();
@@ -471,6 +490,7 @@ void UIElement::AddChild(std::shared_ptr<UIElement> child) {
 
 void UIElement::AddChildQuiet(std::shared_ptr<UIElement> child) {
     if (!child) return;
+    NotifyVisualTreeChanged();
     child->SetParent(this);
     m_children.push_back(child);
 }
@@ -478,6 +498,7 @@ void UIElement::AddChildQuiet(std::shared_ptr<UIElement> child) {
 void UIElement::RemoveChild(std::shared_ptr<UIElement> child) {
     auto it = std::find(m_children.begin(), m_children.end(), child);
     if (it != m_children.end()) {
+        NotifyVisualTreeChanged();
         (*it)->SetParent(nullptr);
         m_children.erase(it);
         MarkRenderContentDirty();
@@ -488,6 +509,7 @@ void UIElement::RemoveChild(std::shared_ptr<UIElement> child) {
 void UIElement::RemoveChildQuiet(std::shared_ptr<UIElement> child) {
     auto it = std::find(m_children.begin(), m_children.end(), child);
     if (it != m_children.end()) {
+        NotifyVisualTreeChanged();
         (*it)->SetParent(nullptr);
         m_children.erase(it);
     }
@@ -498,6 +520,7 @@ void UIElement::RemoveChildRaw(UIElement* child) {
         return ptr.get() == child;
     });
     if (it != m_children.end()) {
+        NotifyVisualTreeChanged();
         (*it)->SetParent(nullptr);
         m_children.erase(it);
         MarkRenderContentDirty();
@@ -505,6 +528,10 @@ void UIElement::RemoveChildRaw(UIElement* child) {
 }
 
 void UIElement::ClearChildren() {
+    if (m_children.empty()) {
+        return;
+    }
+    NotifyVisualTreeChanged();
     for (auto& child : m_children) {
         child->SetParent(nullptr);
     }

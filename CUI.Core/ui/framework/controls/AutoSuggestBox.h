@@ -79,6 +79,7 @@ public:
     void SetSuggestionItems(const std::vector<std::string>& items);
     void ClearSuggestionItems();
     const std::vector<std::string>& GetSuggestionItems() const { return m_catalog; }
+    const std::vector<std::string>& GetFilteredSuggestions() const { return m_filtered; }
 
     // Optional custom provider; when set, catalog filter is skipped.
     void SetSuggestionProvider(SuggestionProviderFn provider);

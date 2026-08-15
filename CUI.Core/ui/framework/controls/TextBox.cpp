@@ -83,9 +83,9 @@ TextBox::TextBox() {
     SetColor(ThemeManager::Instance().GetColor("textPrimary"));
     SetFontFamily("微软雅黑");
     SetFontSize(12.0f);
-    SetPadding(Thickness(0, 18, 0, 8));
+    SetPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    SetMinHeight(48.0f);
+    SetMinHeight(32.0f);
 }
 
 TextBox::TextBox(const std::string& placeholder) : TextBox() {

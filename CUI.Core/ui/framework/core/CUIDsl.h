@@ -101,16 +101,60 @@ template <typename T>
 class ElementBuilder : public ElementRef<T> {
 public:
     using ElementRef<T>::m_ptr;
+
+    /**
+     * 默认构造函数
+     * 创建一个新的 T 类型实例并持有其共享指针
+     */
     ElementBuilder() : ElementRef<T>(std::make_shared<T>()) {}
+
+    /**
+     * 显式构造函数
+     * @param elem 已存在的共享指针，用于初始化 ElementBuilder
+     */
     explicit ElementBuilder(std::shared_ptr<T> elem) : ElementRef<T>(std::move(elem)) {}
-    template<typename U, typename = std::enable_if_t<!std::is_same_v<U, T> && std::is_convertible_v<U*, T*>>>
+
+    /**
+     * 模板构造函数
+     * 允许从其他类型的 ElementRef<U> 转换为 ElementBuilder<T>
+     * 前提是 U 可转换为 T
+     * @param ref 其他类型的 ElementRef
+     */
+    template<typename U, typename = std::enable_if_t<!std::is_same_v<U, T>&& std::is_convertible_v<U*, T*>>>
     ElementBuilder(const ElementRef<U>& ref) : ElementRef<T>(ref.Shared()) {}
 
-    operator std::shared_ptr<T>() const { return m_ptr; } // 隐式转换为具体的智能指针类型
-    operator std::shared_ptr<UIElement>() const { return m_ptr; } // 隐式转换为 UIElement 基类智能指针
-    std::shared_ptr<T> Build() const { return m_ptr; } // 链式终点：返回构造完成的共享指针
-    T* operator->() const { return m_ptr.get(); } // 重载指针运算符以便快捷存取成员
+    /**
+     * 隐式转换为具体类型的共享指针
+     * @return std::shared_ptr<T>
+     */
+    operator std::shared_ptr<T>() const { return m_ptr; }
+
+    /**
+     * 隐式转换为 UIElement 基类的共享指针
+     * @return std::shared_ptr<UIElement>
+     */
+    operator std::shared_ptr<UIElement>() const { return m_ptr; }
+
+    /**
+     * 构建函数
+     * 链式调用的终点，返回最终构造完成的共享指针
+     * @return std::shared_ptr<T>
+     */
+    std::shared_ptr<T> Build() const { return m_ptr; }
+
+    /**
+     * 指针运算符重载
+     * 便于直接访问底层对象的成员
+     * @return T* 原始指针
+     */
+    T* operator->() const { return m_ptr.get(); }
+
+    /**
+     * 获取底层原始指针
+     * @return T* 原始指针
+     */
     T* get() const { return m_ptr.get(); }
+
 
     ElementBuilder& Id(const std::string& id) { // 设定控件检索 ID
         m_ptr->SetId(id);
@@ -137,14 +181,69 @@ public:
         return *this;
     }
 
-    ElementBuilder& MaxWidth(float w) { m_ptr->SetMaxWidth(w); return *this; }
-    ElementBuilder& MaxHeight(float h) { m_ptr->SetMaxHeight(h); return *this; }
+    /**
+     * 设置元素的最大宽度
+     * @param w 最大宽度值 (单位: 像素或逻辑单位)
+     * @return 返回当前 ElementBuilder 引用，支持链式调用
+     */
+    ElementBuilder& MaxWidth(float w) {
+        m_ptr->SetMaxWidth(w);
+        return *this;
+    }
 
-    ElementBuilder& Size(float w, float h) { // 设定宽高尺寸
+    /**
+     * 设置元素的最大高度
+     * @param h 最大高度值 (单位: 像素或逻辑单位)
+     * @return 返回当前 ElementBuilder 引用，支持链式调用
+     */
+    ElementBuilder& MaxHeight(float h) {
+        m_ptr->SetMaxHeight(h);
+        return *this;
+    }
+
+    /**
+     * 设置元素的固定宽高尺寸
+     * @param w 宽度值 (单位: 像素或逻辑单位)
+     * @param h 高度值 (单位: 像素或逻辑单位)
+     * @return 返回当前 ElementBuilder 引用，支持链式调用
+     */
+    ElementBuilder& Size(float w, float h) {
         m_ptr->SetWidth(w);
         m_ptr->SetHeight(h);
         return *this;
     }
+
+
+    /**
+     * 设置元素整体对齐方式
+     * @param a 对齐枚举值 (如 Left, Center, Right)
+     * @return 返回当前 ElementBuilder 引用，支持链式调用
+     */
+    ElementBuilder& Align(CUI::Alignment a) {
+        m_ptr->SetAlign(a);
+        return *this;
+    }
+
+    /**
+     * 设置元素的水平对齐方式
+     * @param a 水平对齐枚举值 (如 Left, Center, Right)
+     * @return 返回当前 ElementBuilder 引用，支持链式调用
+     */
+    ElementBuilder& AlignHorizontal(CUI::Alignment a) {
+        m_ptr->SetAlignHorizontal(a);
+        return *this;
+    }
+
+    /**
+     * 设置元素的垂直对齐方式
+     * @param a 垂直对齐枚举值 (如 Top, Middle, Bottom)
+     * @return 返回当前 ElementBuilder 引用，支持链式调用
+     */
+    ElementBuilder& AlignVertical(CUI::Alignment a) {
+        m_ptr->SetAlignVertical(a);
+        return *this;
+    }
+
 
     ElementBuilder& Margin(float all) { // 设定四向均匀外边距
         m_ptr->SetMargin(Thickness(all));

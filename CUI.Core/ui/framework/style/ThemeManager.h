@@ -92,6 +92,7 @@ public:
 
     std::string GetColorHex(const std::string& tokenName) const; // 将指定 Token 配色值转化为 "#RRGGBBAA" 格式 Hex 字符串
     static const std::vector<std::string>& GetTokenNames(); // 静态获取注册的所有颜色 Token 名称字符串列表
+    uint64_t GetThemeGeneration() const { return m_themeGeneration; } // 读取主题代次（浅/深切换或色板刷新时递增）
 
 private:
     ThemeManager();
@@ -103,6 +104,7 @@ private:
 
     ThemeSource m_source = ThemeSource::System;          // 配色方案来源，默认设为跟随操作系统
     ThemeMode m_mode = ThemeMode::Dark;                  // 实际所应用的主题皮肤，默认设为 Dark
+    uint64_t m_themeGeneration = 0;                      // 主题代次：色板刷新时递增，驱动场景缓存失效
     ThemeTokens m_tokens{};                              // 缓存的明细色盘数据
     bool m_backdropActive = false;                       // 系统云母毛玻璃后置特效目前是否正处于有效使能状态
     BackdropType m_backdropType = BackdropType::None;    // 激活的后置背景材质类型，默认设为 None

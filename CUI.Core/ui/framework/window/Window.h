@@ -285,6 +285,8 @@ private:
     void OnPaint();                                                     // 处理 WM_PAINT 并刷新 Direct2D 画面
     void OnResize(UINT width, UINT height);                             // 处理 WM_SIZE 改变后台缓冲区尺寸
     void UpdateDwmChrome();                                             // 将后置背景 Backdrop 样式下发给 DWM 合成器
+    CUI::WindowMaterialState MakeMaterialState() const;                 // 根据当前字段计算统一材质状态
+    RenderCacheStamp BuildRenderCacheStamp() const;                     // 组装当前帧的缓存版本戳（代次/尺寸/DPI/透明）
     bool OnMouseMove(int x, int y);                                     // 处理 WM_MOUSEMOVE 鼠标移入命中
     bool OnLButtonDown(int x, int y);                                   // 左键按下派发
     void OnLButtonDblClick(int x, int y);                               // 左键双击派发
@@ -366,6 +368,8 @@ private:
     bool m_flushInputDirty = false;                                     // 标识输入设备状态发生改变，窗口下一次 Relayout 必须刷新
     CUI::BackdropType m_backdropType = CUI::BackdropType::None;                   // 当前窗口下发的毛玻璃后置背景类型样式
     CUI::ThemeMode m_themeMode = CUI::ThemeMode::Dark;                             // 当前窗口所采纳的样式主题模式（Light / Dark）
+    CUI::WindowMaterialState m_materialState;                                     // 统一材质状态（一处计算、处处消费）
+    uint64_t m_materialGeneration = 0;                                            // 材质代次：每次切换自增，驱动场景缓存失效
     Event<Window*, CUI::ThemeMode> m_onThemeChanged;                         // 主题发生改变时的事件分发器
     mutable std::chrono::steady_clock::time_point m_overlayFpsSampleStart{}; // 性能面板帧率采样开始时间戳
     mutable unsigned m_overlayFrameCounter = 0;                         // 性能面板渲染累计帧数

@@ -819,6 +819,12 @@ public:
     
     // 渲染污损版本计数 (以区分无效呈现优化)
     static uint64_t GetRenderDirtySerial() { return s_renderDirtySerial; } // 读取全局失效重绘日志的累计计数号
+
+    // VisualTree / 布局代次：结构性变化（增删子节点、切页）或布局失效时自增，
+    // Window 据此校验场景缓存是否仍属于当前帧（防止旧页面像素残留）。
+    static uint64_t GetVisualTreeGeneration() { return s_visualTreeGeneration; } // 读取当前 VisualTree 结构代次
+    static uint64_t GetLayoutGeneration() { return s_layoutGeneration; } // 读取当前布局失效代次
+    void NotifyVisualTreeChanged(); // 结构性变化时递增代次并使父链缓存失效
     
     RenderNode& GetRenderNode() { return m_renderNode; } // 提取节点自身直接映射的底层组合场景图渲染树节点
     const RenderNode& GetRenderNode() const { return m_renderNode; }
@@ -1048,6 +1054,8 @@ protected:
     static bool s_animationsEnabled;                                  // 静态总闸，允许一次性全局冻结整个 UI 系统的全部过渡动画
     static float s_animationDeltaSeconds;                              // 全局动画Tick帧率步进间隔比例（默认 0.016s 对应 60FPS）
     static uint64_t s_renderDirtySerial;                              // 重绘脏标志计数值，每一次失效重绘该大号全局自增，防过度 Present
+    static uint64_t s_visualTreeGeneration;                            // VisualTree 结构代次全局计数
+    static uint64_t s_layoutGeneration;                                // 布局失效代次全局计数
     static int s_toolTipShowDelayMs;                                  // 静态全局默认鼠标静止悬停多少 ms 后弹出 ToolTip（默认 500ms）
     static int s_toolTipHideDelayMs;                                  // 静态全局默认鼠标离去几毫秒后再淡出 ToolTip
     static int s_toolTipAutoHideMs;                                   // 静态全局默认 ToolTip 展开多久后强制自行消退（默认 5000ms）

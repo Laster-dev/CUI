@@ -88,6 +88,7 @@ void ThemeManager::SetBackdropType(BackdropType type) {
 }
 
 void ThemeManager::UpdateTokens() {
+    ++m_themeGeneration; // 色板实际刷新（浅/深切换、系统主题变更）时递增主题代次
     if (m_mode == ThemeMode::Dark) {
         // WinUI Default (Dark)
         m_tokens.windowBackground = Rgb(0x20, 0x20, 0x20);       // SolidBackgroundFillColorBase
