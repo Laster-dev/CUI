@@ -174,7 +174,12 @@ public:
     }
 
     ElementBuilder& Background(D2D1_COLOR_F color) { // 设定硬编码背景颜色
-        m_element->SetBackground(color);
+        m_element->Background = CUI::Color(color);
+        return *this;
+    }
+
+    ElementBuilder& Background(const std::string& color) {
+        m_element->Background = Color::Hex(color);
         return *this;
     }
 
@@ -184,9 +189,12 @@ public:
     }
 
     ElementBuilder& HoverBackground(D2D1_COLOR_F color) { // 设定硬编码悬浮背景颜色
-        m_element->SetHoverBackground(color);
+        m_element->HoverBackground = CUI::Color(color);
         return *this;
     }
+
+    ElementBuilder& Hover(D2D1_COLOR_F color) { return HoverBackground(color); }
+    ElementBuilder& Hover(const std::string& color) { return HoverBackground(Color::Hex(color)); }
 
     ElementBuilder& PressedBackgroundToken(ThemeTokenId id) { // 绑定按下背景色主题 Token
         m_element->SetPressedBackgroundToken(id);
@@ -194,9 +202,12 @@ public:
     }
 
     ElementBuilder& PressedBackground(D2D1_COLOR_F color) { // 设定硬编码按下背景颜色
-        m_element->SetPressedBackground(color);
+        m_element->PressedBackground = CUI::Color(color);
         return *this;
     }
+
+    ElementBuilder& Pressed(D2D1_COLOR_F color) { return PressedBackground(color); }
+    ElementBuilder& Pressed(const std::string& color) { return PressedBackground(Color::Hex(color)); }
 
     ElementBuilder& ColorToken(ThemeTokenId id) { // 绑定字元前景主题 Token
         m_element->SetColorToken(id);
@@ -204,7 +215,12 @@ public:
     }
 
     ElementBuilder& Color(D2D1_COLOR_F color) { // 设定硬编码前景/文本颜色
-        m_element->SetColor(color);
+        m_element->Foreground = CUI::Color(color);
+        return *this;
+    }
+
+    ElementBuilder& Foreground(D2D1_COLOR_F color) {
+        m_element->Foreground = CUI::Color(color);
         return *this;
     }
 
@@ -327,7 +343,7 @@ public:
     ElementBuilder& FillLastLine(bool enabled = true) { m_element->SetFillLastLine(enabled); return *this; }
 
     ElementBuilder& OnClick(std::function<void(UIElement*)> handler) { // 连接 Click 单击事件回调
-        if constexpr (std::is_base_of_v<Control, T> || std::is_same_v<Button, T> || std::is_same_v<HyperlinkButton, T>) {
+        if constexpr (std::is_base_of_v<Control, T> || std::is_same_v<CUI::Button, T> || std::is_same_v<HyperlinkButton, T>) {
             m_element->OnClick().Connect(handler);
         }
         return *this;
@@ -378,6 +394,30 @@ inline ElementBuilder<StackPanel> Column(float gap = 8.0f) { // 快速生成垂�
 
 inline ElementBuilder<StackPanel> Row(float gap = 8.0f) { // 快速生成水平方向排列的容器面板
     return ElementBuilder<StackPanel>().Orientation("Horizontal").Gap(gap);
+}
+
+namespace Fluent {
+
+inline ElementBuilder<CUI::Button> Button(const std::string& text = "") {
+    return ElementBuilder<CUI::Button>(Make<CUI::Button>(text));
+}
+
+} // namespace Fluent
+
+inline Element Row(float gap, std::initializer_list<Element> children) {
+    auto row = Row(gap);
+    for (const auto& child : children) {
+        if (child) row->AddChild(child);
+    }
+    return row.Build();
+}
+
+inline Element Column(float gap, std::initializer_list<Element> children) {
+    auto column = Column(gap);
+    for (const auto& child : children) {
+        if (child) column->AddChild(child);
+    }
+    return column.Build();
 }
 
 inline ElementBuilder<TextBlock> Text(const std::string& content = "") { // 快速生成只读文本块组件
