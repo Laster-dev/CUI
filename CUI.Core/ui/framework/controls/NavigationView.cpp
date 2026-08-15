@@ -512,7 +512,8 @@ void NavigationView::ApplyPendingContent() {
 
     if (m_content) {
         m_content->OnNavigatedFrom();
-        RemoveChildQuiet(m_content);
+        m_content->SetVisibility(Visibility::Collapsed);
+        RemoveChild(m_content);
     }
     m_content = content;
     m_contentNext.reset();
@@ -545,6 +546,12 @@ void NavigationView::ApplyPendingContent() {
         m_content->GetClassName() ? m_content->GetClassName() : "?",
         contentRect.x, contentRect.y, contentRect.width, contentRect.height);
     m_content->OnNavigatedTo();
+    MarkRenderContentDirty();
+    if (auto* window = Window::Current()) {
+        if (auto root = window->GetRootElement()) {
+            window->InvalidateLogicalRect(root->GetBounds());
+        }
+}
 }
 
 void NavigationView::SetHeader(const std::string& header) {

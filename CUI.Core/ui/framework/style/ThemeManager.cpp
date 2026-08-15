@@ -188,9 +188,9 @@ MaterialRole ThemeManager::GetMaterialRole(ThemeTokenId id) const {
 D2D1_COLOR_F ThemeManager::ApplyMaterialRole(ThemeTokenId id, D2D1_COLOR_F base) const {
     if (!m_backdropActive) return base;
     if (id == ThemeTokenId::WindowBackground) {
-        base.a = m_mode == ThemeMode::Dark ? 0.72f : 0.78f;
+        base.a = 0.0f;
     } else if (id == ThemeTokenId::PaneBackground) {
-        base.a = m_mode == ThemeMode::Dark ? 0.82f : 0.86f;
+        base.a = m_mode == ThemeMode::Dark ? 0.52f : 0.62f;
     }
     return base;
 }

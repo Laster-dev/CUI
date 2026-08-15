@@ -1,5 +1,6 @@
 #include "ToastCenter.h"
 #include "../animation/AnimationManager.h"
+#include "../window/IWindowChrome.h"
 #include <algorithm>
 #include <cmath>
 
@@ -24,6 +25,45 @@ Rect ToastCenter::GetWindowRect() const {
         root = root->GetParent();
     }
     return root ? root->GetBounds() : m_bounds;
+}
+
+Rect ComputeToastAreaRect(UIElement* root) {
+    Rect area;
+    if (root) {
+        area = root->GetBounds();
+    }
+    if (area.IsEmpty()) {
+        return area;
+    }
+    // 自绘标题栏（WindowTitleBar）占据客户区顶部，Toast 绝不能覆盖标题文本
+    // 或右上角的最小化/最大化/关闭按钮，因此可堆叠区域从标题栏下缘开始。
+    for (const auto& child : root->GetChildren()) {
+        if (!child) {
+            continue;
+        }
+        if (auto* chrome = dynamic_cast<IWindowChrome*>(child.get())) {
+            if (const UIElement* el = chrome->GetChromeElement()) {
+                const Rect chromeBounds = el->GetBounds();
+                if (chromeBounds.height > 0.0f
+                    && chromeBounds.y >= area.y
+                    && chromeBounds.y + chromeBounds.height <= area.y + area.height) {
+                    const float skip = chromeBounds.y + chromeBounds.height - area.y;
+                    area.y += skip;
+                    area.height -= skip;
+                }
+            }
+            break;
+        }
+    }
+    return area;
+}
+
+Rect ToastCenter::GetToastAreaRect() const {
+    UIElement* root = const_cast<ToastCenter*>(this);
+    while (root && root->GetParent()) {
+        root = root->GetParent();
+    }
+    return root ? ComputeToastAreaRect(root) : m_bounds;
 }
 
 void ToastCenter::Compact() {
@@ -165,7 +205,7 @@ void ToastCenter::OnRenderOverlay(GraphicsContext& ctx) {
     Compact();
     if (m_toasts.empty()) return;
 
-    Rect windowRect = GetWindowRect();
+    Rect windowRect = GetToastAreaRect();
     const float gap = 10.0f;
 
     float topLeftY = windowRect.y + 18.0f;
@@ -243,7 +283,7 @@ void ToastCenter::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) co
 
         Rect bounds = toast->GetRenderBounds();
         if (bounds.IsEmpty()) {
-            bounds = toast->CalculateBounds(GetWindowRect(), 0);
+            bounds = toast->CalculateBounds(GetToastAreaRect(), 0);
         }
         bounds = bounds.Inflate(8.0f);
         dirtyRect = hasDirty ? dirtyRect.Union(bounds) : bounds;

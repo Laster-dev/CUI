@@ -7,6 +7,13 @@
 
 namespace CUI {
 
+/**
+ * @brief 计算 Toast 的可堆叠放置区域。
+ * 完整客户区减去自绘标题栏带（WindowTitleBar）——Toast 绝不能覆盖标题
+ * 文本或右上角的最小化/最大化/关闭按钮。
+ */
+Rect ComputeToastAreaRect(UIElement* root);
+
 class ToastCenter : public UIElement {
 public:
     ToastCenter();
@@ -57,6 +64,7 @@ private:
     void Compact();
     void ScheduleAutoCloseWake();
     Rect GetWindowRect() const;
+    Rect GetToastAreaRect() const;
 
     std::vector<std::shared_ptr<Toast>> m_toasts;
 };

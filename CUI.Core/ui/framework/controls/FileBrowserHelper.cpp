@@ -373,9 +373,8 @@ void FileBrowserSession::RenderChrome(
             filterBtn.y,
             filterBtn.width - 26.0f,
             filterBtn.height);
-        ctx.DrawText(GetActiveFilterLabel(), filterText, tokens.textPrimary, "Segoe UI", 11.0f,
+        ctx.DrawText(GetActiveFilterLabel(), filterText, tokens.textPrimary, "Segoe UI", 12.0f,
             DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL, true);
-
         Rect chevronBox(filterBtn.x + filterBtn.width - 18.0f, filterBtn.y, 16.0f, filterBtn.height);
         ctx.DrawChevron(
             chevronBox,
@@ -445,7 +444,7 @@ void FileBrowserSession::RenderFilterDropdown(
             Rect(item.x + 8.0f, item.y, item.width - 12.0f, item.height),
             itemColor,
             "Segoe UI",
-            11.0f,
+            12.0f,
             DWRITE_TEXT_ALIGNMENT_LEADING,
             DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
             selected ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL,

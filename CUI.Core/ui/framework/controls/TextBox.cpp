@@ -82,7 +82,7 @@ TextBox::TextBox() {
     SetPlaceholderColorToken(ThemeTokenId::TextMuted);
     SetColor(ThemeManager::Instance().GetColor("textPrimary"));
     SetFontFamily("微软雅黑");
-    SetFontSize(13.0f);
+    SetFontSize(12.0f);
     SetPadding(Thickness(0, 18, 0, 8));
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     SetMinHeight(48.0f);

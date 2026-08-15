@@ -56,7 +56,7 @@ ComboBox::ComboBox() {
     SetBorderThickness(1.0f);
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    SetFontSize(13.0f);
+    SetFontSize(12.0f);
     SetFontFamily("微软雅黑");
     SetPadding(Thickness(10, 6, 10, 6));
     SetCornerRadius(3.0f);

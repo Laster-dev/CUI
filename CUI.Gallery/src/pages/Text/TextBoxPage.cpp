@@ -27,6 +27,7 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
     auto clear = Button("清空")
+		.Width(80.0f)
         .OnClick([basic](UIElement*) {
             basic->Text.Set("");
             });
@@ -85,8 +86,7 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
             "Text 与 State 双向绑定，状态栏由 MakeComputed 派生；通过 Text.Set 可程序化修改内容。",
             Column(12, {
                 basic,
-                Row(8, {clear }),
-                status,
+                Row(8, {clear,status }),
             }),
         },
         {

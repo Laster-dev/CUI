@@ -1060,7 +1060,11 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
         SetLayeredWindowAttributes(m_hwnd, 0, 255, LWA_ALPHA);
     }
 
-    m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode);
+    const bool needsPerPixelAlpha =
+        m_transparentMode
+        || (m_backdropType != CUI::BackdropType::None
+            && m_backdropType != CUI::BackdropType::Solid);
+    m_gfxContext.SetRequirePerPixelAlpha(needsPerPixelAlpha);
     if (!m_gfxContext.Initialize(m_hwnd)) {
         return false;
     }
@@ -1091,12 +1095,18 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 void Window::SetBackdropType(CUI::BackdropType type) {
     m_backdropType = type;
     if (m_hwnd) {
-        m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode);
+        const bool needsPerPixelAlpha =
+            m_transparentMode
+            || (type != CUI::BackdropType::None && type != CUI::BackdropType::Solid);
+        m_gfxContext.SetRequirePerPixelAlpha(needsPerPixelAlpha);
         m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
         MaterialHost::Apply(m_hwnd, type, m_themeMode);
         UpdateDwmChrome();
         m_gfxContext.GetResources().ReleaseDeviceResources();
+        m_themeRippleActive = false;
+        m_themeRippleProgress = 1.0f;
         m_sceneLayer.ResetCache();
+        m_themeOldSceneLayer.ResetCache();
         ApplyVisualState();
         RequestFullRepaint();
     } else {
@@ -1200,7 +1210,11 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
 void Window::SetTransparentMode(bool enabled) {
     m_transparentMode = enabled;
     if (m_hwnd) {
-        m_gfxContext.SetRequirePerPixelAlpha(m_transparentMode);
+        const bool needsPerPixelAlpha =
+            enabled
+            || (m_backdropType != CUI::BackdropType::None
+                && m_backdropType != CUI::BackdropType::Solid);
+        m_gfxContext.SetRequirePerPixelAlpha(needsPerPixelAlpha);
         m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
         RequestFullRepaint();
     }
@@ -2126,6 +2140,8 @@ void Window::OnPaint() {
         DrawKeyboardFocusRing();
         m_gfxContext.SetPaintBounds(savedPaintBounds);
     };
+
+
 
     // Do not freeze the scene during ContentDialog scrim animations. Reusing the
     // old scene cache here makes under-scrim interactions look stalled for a few

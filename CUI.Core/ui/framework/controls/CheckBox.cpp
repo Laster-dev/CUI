@@ -34,7 +34,7 @@ CheckBox::CheckBox() {
     SetColorToken(ThemeTokenId::TextPrimary);
     SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
     SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    SetFontSize(13.0f);
+    SetFontSize(12.0f);
     SetFontFamily("微软雅黑");
     SetPadding(Thickness(4, 4, 4, 4));
     SetCornerRadius(3.0f);

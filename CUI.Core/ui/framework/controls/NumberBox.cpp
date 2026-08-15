@@ -243,7 +243,7 @@ NumberBox::NumberBox() {
     SetHeight(28.0f);
     SetPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
     SetCornerRadius(3.0f);
-    SetFontSize(13.0f);
+    SetFontSize(12.0f);
     SetFontFamily("Segoe UI");
 
     SetBackgroundToken(ThemeTokenId::InputBackground);

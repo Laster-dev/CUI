@@ -36,7 +36,7 @@ Expander::Expander() {
     SetBorderThickness(1.0f);
     SetPadding(Thickness(0.0f));
     SetFontFamily("Segoe UI");
-    SetFontSize(14.0f);
+    SetFontSize(12.0f);
     SetAlign(Alignment::Stretch);
     SetClipToBounds(false);
     m_expandAnim.Reset(0.0f);

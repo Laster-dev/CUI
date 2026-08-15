@@ -78,7 +78,7 @@ AutoSuggestBox::AutoSuggestBox() {
     SetBorderThickness(0.0f);
     SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary));
     SetFontFamily("微软雅黑");
-    SetFontSize(13.0f);
+    SetFontSize(12.0f);
     SetPadding(Thickness(0, 0, 0, 0));
     SetCornerRadius(0.0f);
     SetWidth(280.0f);

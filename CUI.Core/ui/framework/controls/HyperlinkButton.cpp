@@ -7,7 +7,7 @@ HyperlinkButton::HyperlinkButton() {
     SetText("HyperlinkButton");
     SetColorToken(ThemeTokenId::AccentColor);
     SetColor(ThemeManager::Instance().GetColor("accentColor"));
-    SetFontSize(13.0f);
+    SetFontSize(12.0f);
     SetFontFamily("微软雅黑");
     SetPadding(Thickness(2, 2, 2, 2));
 }

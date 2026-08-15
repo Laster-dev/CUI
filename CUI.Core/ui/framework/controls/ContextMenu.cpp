@@ -16,7 +16,7 @@ MenuItem::MenuItem() {
     SetText("");
     SetColorToken(ThemeTokenId::TextSecondary);
     SetColor(ThemeManager::Instance().GetColor("textSecondary"));
-    SetFontSize(16.0f);
+    SetFontSize(12.0f);
     SetFontFamily("微软雅黑");
     SetFontWeight(CUI::FontWeight::Normal);
     SetHeight(ContextMenu::kItemHeight);

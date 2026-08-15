@@ -22,7 +22,7 @@ ListBox::ListBox() {
     SetBorderThickness(1.0f);
     SetColor(ThemeManager::Instance().GetColor("textPrimary"));
     SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
-    SetFontSize(13.0f);
+    SetFontSize(12.0f);
     SetFontFamily("微软雅黑");
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     SetItemHeight(28.0f);

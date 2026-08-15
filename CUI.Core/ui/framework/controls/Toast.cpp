@@ -427,7 +427,8 @@ void Toast::OnRenderOverlay(GraphicsContext& ctx) {
     if (m_state == 3) return;
     UIElement* root = this;
     while (root->GetParent()) root = root->GetParent();
-    Rect windowRect = root ? root->GetBounds() : m_boundsCache;
+    // 跳过自绘标题栏带，避免 TopLeft/TopRight 的 Toast 覆盖标题或窗口按钮。
+    Rect windowRect = root ? ComputeToastAreaRect(root) : m_boundsCache;
     Rect bounds = CalculateBounds(windowRect, 0);
 
     ToastCorner corner = GetCorner();

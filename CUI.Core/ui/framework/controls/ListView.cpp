@@ -64,7 +64,7 @@ ListView::ListView() {
     SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
     SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
     SetBorderThickness(1.0f);
-    SetFontSize(16.0f);
+    SetFontSize(12.0f);
     SetFontFamily("微软雅黑");
     SetFontWeight(CUI::FontWeight::Normal);
     SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);

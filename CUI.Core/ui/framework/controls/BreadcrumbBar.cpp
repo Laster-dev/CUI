@@ -27,7 +27,7 @@ BreadcrumbBar::BreadcrumbBar() {
     SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
     SetCornerRadius(0.0f);
     SetFontFamily("微软雅黑");
-    SetFontSize(16.0f);
+    SetFontSize(12.0f);
     SetWidth(-1.0f);
     SetHeight(34.0f);
 }

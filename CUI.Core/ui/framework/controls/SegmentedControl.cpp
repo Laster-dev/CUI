@@ -31,7 +31,7 @@ SegmentedControl::SegmentedControl() {
     SetWidth(280.0f);
     SetCornerRadius(6.0f);
     SetBorderThickness(1.5f);
-    SetFontSize(13.0f);
+    SetFontSize(12.0f);
     SetFontFamily("微软雅黑");
     SetPadding(Thickness(0, 0, 0, 0));
     SetBackgroundToken(ThemeTokenId::InputBackground);

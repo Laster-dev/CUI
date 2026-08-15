@@ -23,8 +23,6 @@ Element BuildLogViewPage() {
     // ==========================================
     auto logView = LogViewWidget()
         .Height(300.0f)
-        .Background(D2D1::ColorF(0x141416, 0.9f))
-        .Border(D2D1::ColorF(0x27272A, 1.0f), 1.0f)
         .CornerRadius(6.0f)
         .Build();
 

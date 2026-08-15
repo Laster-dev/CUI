@@ -31,7 +31,7 @@ TextBlock::TextBlock() {
     SetColorToken(ThemeTokenId::TextSecondary);
     SetColor(ThemeManager::Instance().GetColor("textSecondary"));
     SetFontFamily("微软雅黑");
-    SetFontSize(13.0f);
+    SetFontSize(12.0f);
     SetFontWeight(CUI::FontWeight::Normal);
 }
 
