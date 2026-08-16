@@ -224,6 +224,11 @@ public:
     float GetDpiScale() const { return m_dpiScale; }
 
     /**
+     * @brief 获取 DPI 缩放后的逻辑窗口客户区尺寸。
+     */
+    Size GetLogicalClientSize() const { return m_logicalClientSize; }
+
+    /**
      * @brief 获取滚动计算后的平均显示帧率。
      */
     float GetDisplayFps() const;

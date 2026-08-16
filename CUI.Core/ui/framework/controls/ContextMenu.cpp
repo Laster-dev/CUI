@@ -70,10 +70,11 @@ float MenuItem::MeasurePreferredContentWidth(GraphicsContext& ctx) const {
 
     float right = 12.0f;
     if (HasSubMenu()) {
-        right = 28.0f;
+        right = 24.0f;
     } else if (!m_shortcutText.empty()) {
-        const Size sc = ctx.MeasureText(m_shortcutText, font, 14.0f, DWRITE_FONT_WEIGHT_NORMAL);
-        right = sc.width + 24.0f;
+        const float shortcutFontSize = (std::max)(10.0f, fontSize - 1.0f);
+        const Size sc = ctx.MeasureText(m_shortcutText, font, shortcutFontSize, DWRITE_FONT_WEIGHT_NORMAL);
+        right = sc.width + 20.0f;
     }
 
     return left + label.width + right;
@@ -102,6 +103,7 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
     std::string shortcut = GetShortcutText();
     std::string font = GetFontFamily();
     float fontSize = GetFontSize();
+    const float shortcutFontSize = (std::max)(10.0f, fontSize - 1.0f);
 
     D2D1_COLOR_F textColor = enabled
         ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary)
@@ -126,7 +128,7 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
     if (HasSubMenu()) {
         rightReserve = 24.0f;
     } else if (!shortcut.empty()) {
-        const Size sc = ctx.MeasureText(shortcut, font, 14.0f, DWRITE_FONT_WEIGHT_NORMAL);
+        const Size sc = ctx.MeasureText(shortcut, font, shortcutFontSize, DWRITE_FONT_WEIGHT_NORMAL);
         rightReserve = sc.width + 20.0f;
     }
 
@@ -138,13 +140,13 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
 
     if (HasSubMenu()) {
         Rect arrowRect(m_bounds.x + m_bounds.width - 20.0f, m_bounds.y, 16.0f, m_bounds.height);
-        ctx.DrawText(">", arrowRect, textColor, font, 14.0f, DWRITE_TEXT_ALIGNMENT_TRAILING,
+        ctx.DrawText(">", arrowRect, textColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING,
                      DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
     } else if (!shortcut.empty()) {
         Rect shortcutRect(m_bounds.x + m_bounds.width - rightReserve, m_bounds.y,
                           rightReserve - 8.0f, m_bounds.height);
         D2D1_COLOR_F scColor = enabled ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted) : textColor;
-        ctx.DrawText(shortcut, shortcutRect, scColor, font, 14.0f, DWRITE_TEXT_ALIGNMENT_TRAILING,
+        ctx.DrawText(shortcut, shortcutRect, scColor, font, shortcutFontSize, DWRITE_TEXT_ALIGNMENT_TRAILING,
                      DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
     }
 }
