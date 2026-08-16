@@ -225,6 +225,7 @@ bool AnimationService::StepSpring(
 
 void AnimationService::RegisterElement(UIElement* element) {
     if (!element) return;
+    std::lock_guard<std::mutex> lock(m_mutex);
     if (std::find(m_registeredElements.begin(), m_registeredElements.end(), element) == m_registeredElements.end()) {
         m_registeredElements.push_back(element);
     }
@@ -232,38 +233,55 @@ void AnimationService::RegisterElement(UIElement* element) {
 
 void AnimationService::UnregisterElement(UIElement* element) {
     if (!element) return;
-    m_registeredElements.erase(
-        std::remove(m_registeredElements.begin(), m_registeredElements.end(), element),
-        m_registeredElements.end());
-    m_animatingElements.erase(
-        std::remove(m_animatingElements.begin(), m_animatingElements.end(), element),
-        m_animatingElements.end());
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it1 = std::remove(m_registeredElements.begin(), m_registeredElements.end(), element);
+    if (it1 != m_registeredElements.end()) {
+        m_registeredElements.erase(it1, m_registeredElements.end());
+    }
+    auto it2 = std::remove(m_animatingElements.begin(), m_animatingElements.end(), element);
+    if (it2 != m_animatingElements.end()) {
+        m_animatingElements.erase(it2, m_animatingElements.end());
+    }
 }
 
 void AnimationService::RequestAnimationTicks(UIElement* element) {
     if (!element) return;
-    RegisterElement(element);
-    if (std::find(m_animatingElements.begin(), m_animatingElements.end(), element) == m_animatingElements.end()) {
-        m_animatingElements.push_back(element);
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (std::find(m_registeredElements.begin(), m_registeredElements.end(), element) == m_registeredElements.end()) {
+            m_registeredElements.push_back(element);
+        }
+        if (std::find(m_animatingElements.begin(), m_animatingElements.end(), element) == m_animatingElements.end()) {
+            m_animatingElements.push_back(element);
+        }
     }
     WakeFrame();
 }
 
 void AnimationService::CancelAnimationTicks(UIElement* element) {
     if (!element) return;
-    m_animatingElements.erase(
-        std::remove(m_animatingElements.begin(), m_animatingElements.end(), element),
-        m_animatingElements.end());
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = std::remove(m_animatingElements.begin(), m_animatingElements.end(), element);
+    if (it != m_animatingElements.end()) {
+        m_animatingElements.erase(it, m_animatingElements.end());
+    }
 }
 
 bool AnimationService::IsRegistered(const UIElement* element) const {
     if (!element) return false;
+    std::lock_guard<std::mutex> lock(m_mutex);
     return std::find(m_registeredElements.begin(), m_registeredElements.end(), element) != m_registeredElements.end();
 }
 
 bool AnimationService::IsAnimating(const UIElement* element) const {
     if (!element) return false;
+    std::lock_guard<std::mutex> lock(m_mutex);
     return std::find(m_animatingElements.begin(), m_animatingElements.end(), element) != m_animatingElements.end();
+}
+
+bool AnimationService::HasAnimating() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return !m_animatingElements.empty();
 }
 
 bool AnimationService::Tick(clock::time_point now) {
@@ -279,12 +297,15 @@ bool AnimationService::Tick(clock::time_point now) {
 
     UIElement::SetAnimationDeltaSeconds(m_deltaSeconds);
 
-    if (m_animatingElements.empty()) {
-        return false;
+    std::vector<UIElement*> animSnapshot;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_animatingElements.empty()) {
+            return false;
+        }
+        animSnapshot = m_animatingElements;
     }
 
-    // 拍下快照进行安全迭代
-    std::vector<UIElement*> animSnapshot = m_animatingElements;
     std::vector<UIElement*> stillAnimating;
 
     for (UIElement* el : animSnapshot) {
@@ -299,6 +320,7 @@ bool AnimationService::Tick(clock::time_point now) {
         }
     }
 
+    std::lock_guard<std::mutex> lock(m_mutex);
     m_animatingElements = std::move(stillAnimating);
     return !m_animatingElements.empty();
 }

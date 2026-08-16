@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <functional>
+#include <mutex>
 #include <vector>
 
 namespace CUI {
@@ -92,7 +93,7 @@ public:
     bool IsRegistered(const UIElement* element) const;
     bool IsAnimating(const UIElement* element) const;
 
-    bool HasAnimating() const { return !m_animatingElements.empty(); }
+    bool HasAnimating() const;
 
     // 驱动所有当前活跃的动画控件进行 OnAnimationTick，返回是否仍有控件在动画中
     bool Tick(clock::time_point now);
@@ -113,6 +114,7 @@ private:
     clock::time_point m_lastFrameTime{};
     bool m_hasLastFrameTime = false;
 
+    mutable std::mutex m_mutex;
     std::vector<UIElement*> m_registeredElements; // 所有当前处于 Visible 可视树中的控件
     std::vector<UIElement*> m_animatingElements;  // 正在请求逐帧时钟 Tick 的控件
     std::function<void()> m_frameWakeCallback;    // 帧唤醒回调
