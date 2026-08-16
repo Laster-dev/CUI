@@ -14,6 +14,7 @@
 #include "../controls/Flyout.h"
 #include "../controls/ProgressBarDiag.h"
 #include "../controls/docking/DockFloatWindow.h"
+#include "../animation/AnimationService.h"
 #include "../animation/FrameScheduler.h"
 #include "../input/RoutedEvent.h"
 #include <windowsx.h>
@@ -49,6 +50,7 @@ Window* Window::Current() {
 }
 
 namespace {
+static std::vector<Window*> s_allWindows;
 constexpr UINT WM_CUI_RASTER_COMPLETE = WM_APP + 45;
 constexpr UINT WM_CUI_CLOSE_POPUPS = WM_APP + 46;
 
@@ -370,6 +372,7 @@ Window::Window() : ThemeMode(this), BackdropType(this), RenderStatsOverlayVisibl
     if (!s_current) {
         s_current = this;
     }
+    s_allWindows.push_back(this);
     m_sceneLayer.SetCacheable(true);
 }
 
@@ -972,6 +975,7 @@ bool Window::DispatchKey(int vkCode, bool sysKey) {
 
 Window::~Window() {
     StopMiddleClickAutoscroll();
+    s_allWindows.erase(std::remove(s_allWindows.begin(), s_allWindows.end(), this), s_allWindows.end());
     if (s_current == this) {
         s_current = nullptr;
     }
@@ -1341,16 +1345,102 @@ void Window::SetLowPerformanceMode(bool enabled) {
     RequestFullRepaint();
 }
 
-void Window::RunMessageLoop() {
-    s_current = this;
-    AnimationManager::SetCurrent(&m_animationManager);
-    FrameScheduler::SetCurrent(&m_frameScheduler);
-    PopupHost::SetCurrent(&m_popupHost);
-    DragDropService::SetCurrent(&m_dragDrop);
+bool Window::PumpFrameStep(std::chrono::steady_clock::time_point now) {
+    if (!m_hwnd || !IsWindow(m_hwnd) || !m_rootElement) {
+        return false;
+    }
 
+    const float refreshHz = GetWindowRefreshRateHz(m_hwnd);
+    const double targetFps = m_lowPerformanceMode
+        ? 8.0
+        : static_cast<double>(std::clamp(refreshHz, 30.0f, 240.0f));
+    const auto targetFrame = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+        std::chrono::duration<double>(1.0 / targetFps));
+    m_frameScheduler.SetMinFrameInterval(targetFrame);
+    m_animationManager.SetTargetFrameSeconds(static_cast<float>(1.0 / targetFps));
+
+    m_animationManager.DispatchDueWakes(now);
+    const bool hasPendingLayout =
+        m_rootElement
+        && m_rootElement->HasLayoutDirtyInSubtree();
+    const bool serviceActive = AnimationService::Instance().HasAnimating();
+    if (m_animationManager.HasAnimating()
+        || serviceActive
+        || m_themeRippleActive
+        || m_animationManager.ConsumeFrameRequest()
+        || hasPendingLayout
+        || !m_pendingDirtyRegion.IsEmpty()
+        || HasPendingNativePaint()) {
+        m_frameScheduler.ScheduleFrame();
+    }
+    if (auto focused = LockElement(m_focusedElement)) {
+        if (focused->NeedsAutoScrollTick()) {
+            m_frameScheduler.ScheduleFrame();
+        }
+    }
+    if (auto middle = LockElement(m_middleScrollElement)) {
+        if (middle->NeedsAutoScrollTick()) {
+            m_frameScheduler.ScheduleFrame();
+        }
+    }
+    if (m_animationActive) {
+        m_frameScheduler.ScheduleFrame();
+    }
+
+    const bool frameDue = m_frameScheduler.ConsumeDue(now);
+    bool animating = m_animationActive || m_themeRippleActive;
+    bool didFrame = false;
+    if (frameDue) {
+        FlushLayoutIfNeeded();
+
+        m_animationManager.BeginFrame(now, m_animationActive);
+        UIElement::SetAnimationDeltaSeconds(m_animationManager.GetDeltaSeconds());
+        animating = m_animationManager.Tick();
+        if (m_popupHost.TickAnimations()) {
+            animating = true;
+        }
+        DockFloatWindow::PresentAll();
+        if (auto focused = LockElement(m_focusedElement)) {
+            if (focused->NeedsAutoScrollTick()) {
+                focused->OnAutoScrollTick();
+                animating = true;
+            }
+        }
+        if (auto middle = LockElement(m_middleScrollElement)) {
+            const auto focused = LockElement(m_focusedElement);
+            if (middle.get() != focused.get() && middle->NeedsAutoScrollTick()) {
+                middle->OnAutoScrollTick();
+                animating = true;
+            }
+        }
+        didFrame = true;
+    }
+    m_wasAnimationActive = m_animationActive;
+    m_animationActive = animating;
+
+    if (didFrame) {
+        CommitFrame(animating || m_wasAnimationActive);
+
+        // Sync paint is safe again: OnPaint no longer InvalidateRect during
+        // ripple, so UpdateWindow cannot re-enter until the wave ends.
+        if (HasPendingNativePaint()) {
+            UpdateWindow(m_hwnd);
+        }
+        MSG paintMsg = {};
+        while (PeekMessage(&paintMsg, m_hwnd, WM_PAINT, WM_PAINT, PM_REMOVE)) {
+            TranslateMessage(&paintMsg);
+            DispatchMessage(&paintMsg);
+        }
+        if (animating || m_themeRippleActive) {
+            m_frameScheduler.ScheduleFrame();
+        }
+    }
+    return didFrame;
+}
+
+void Window::RunMessageLoop() {
     MSG msg = {};
     using clock = std::chrono::steady_clock;
-    bool animationActive = false;
 
     for (;;) {
         // Theme ripple must never starve input. Drain mouse/keyboard before any
@@ -1380,7 +1470,7 @@ void Window::RunMessageLoop() {
             }
             if (msg.message == WM_MOUSEMOVE) {
                 MSG newest = msg;
-                while (PeekMessage(&newest, m_hwnd, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE)) {
+                while (PeekMessage(&newest, msg.hwnd, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE)) {
                     msg = newest;
                 }
             }
@@ -1393,90 +1483,55 @@ void Window::RunMessageLoop() {
             InvalidatePendingRenderRegions(false);
         }
 
-        const bool wasAnimationActive = animationActive;
         const auto now = clock::now();
-        const float refreshHz = GetWindowRefreshRateHz(m_hwnd);
-        const double targetFps = m_lowPerformanceMode
-            ? 8.0
-            : static_cast<double>(std::clamp(refreshHz, 30.0f, 240.0f));
-        const auto targetFrame = std::chrono::duration_cast<clock::duration>(
-            std::chrono::duration<double>(1.0 / targetFps));
-        m_frameScheduler.SetMinFrameInterval(targetFrame);
-        m_animationManager.SetTargetFrameSeconds(static_cast<float>(1.0 / targetFps));
+        const bool globalServiceAnimating = AnimationService::Instance().Tick(now);
+        bool anyDidFrame = false;
+        bool anyWantContinuous = globalServiceAnimating;
+        bool anyHasPending = false;
+        int minWaitMs = -1;
 
-        m_animationManager.DispatchDueWakes(now);
-        const bool hasPendingLayout =
-            m_rootElement
-            && m_rootElement->HasLayoutDirtyInSubtree();
-        if (m_animationManager.HasAnimating()
-            || m_themeRippleActive
-            || m_animationManager.ConsumeFrameRequest()
-            || hasPendingLayout
-            || !m_pendingDirtyRegion.IsEmpty()
-            || HasPendingNativePaint()) {
-            m_frameScheduler.ScheduleFrame();
-        }
-        if (auto focused = LockElement(m_focusedElement)) {
-            if (focused->NeedsAutoScrollTick()) {
-                m_frameScheduler.ScheduleFrame();
+        std::vector<Window*> windowsSnapshot = s_allWindows;
+        for (Window* win : windowsSnapshot) {
+            if (!win || !win->m_hwnd || !IsWindow(win->m_hwnd)) {
+                continue;
             }
-        }
-        if (auto middle = LockElement(m_middleScrollElement)) {
-            if (middle->NeedsAutoScrollTick()) {
-                m_frameScheduler.ScheduleFrame();
-            }
-        }
-        if (animationActive) {
-            m_frameScheduler.ScheduleFrame();
-        }
 
-        const bool frameDue = m_frameScheduler.ConsumeDue(now);
-        bool animating = animationActive || m_themeRippleActive;
-        bool didFrame = false;
-        if (frameDue && m_rootElement) {
-            FlushLayoutIfNeeded();
+            Window::s_current = win;
+            AnimationManager::SetCurrent(&win->m_animationManager);
+            FrameScheduler::SetCurrent(&win->m_frameScheduler);
+            PopupHost::SetCurrent(&win->m_popupHost);
+            DragDropService::SetCurrent(&win->m_dragDrop);
 
-            m_animationManager.BeginFrame(now, animationActive);
-            UIElement::SetAnimationDeltaSeconds(m_animationManager.GetDeltaSeconds());
-            animating = m_animationManager.Tick();
-            if (m_popupHost.TickAnimations()) {
-                animating = true;
+            const bool didFrame = win->PumpFrameStep(now);
+            if (didFrame) {
+                anyDidFrame = true;
             }
-            DockFloatWindow::PresentAll();
-            if (auto focused = LockElement(m_focusedElement)) {
-                if (focused->NeedsAutoScrollTick()) {
-                    focused->OnAutoScrollTick();
-                    animating = true;
+
+            const bool wantContinuous = win->m_animationActive
+                || win->m_animationManager.HasAnimating()
+                || win->m_themeRippleActive;
+            if (wantContinuous) {
+                anyWantContinuous = true;
+            }
+            if (win->m_frameScheduler.HasPending() || win->m_animationManager.HasPendingWake()) {
+                anyHasPending = true;
+                const int schedMs = win->m_frameScheduler.GetMsUntilDeadline(now);
+                const int wakeMs = win->m_animationManager.GetMsUntilNextWake(now);
+                int waitMs = -1;
+                if (schedMs >= 0) waitMs = schedMs;
+                if (wakeMs >= 0) waitMs = (waitMs < 0) ? wakeMs : (std::min)(waitMs, wakeMs);
+                if (waitMs >= 0) {
+                    minWaitMs = (minWaitMs < 0) ? waitMs : (std::min)(minWaitMs, waitMs);
                 }
             }
-            if (auto middle = LockElement(m_middleScrollElement)) {
-                const auto focused = LockElement(m_focusedElement);
-                if (middle.get() != focused.get() && middle->NeedsAutoScrollTick()) {
-                    middle->OnAutoScrollTick();
-                    animating = true;
-                }
-            }
-            didFrame = true;
         }
-        animationActive = animating;
 
-        if (didFrame) {
-            CommitFrame(animating || wasAnimationActive);
-
-            // Sync paint is safe again: OnPaint no longer InvalidateRect during
-            // ripple, so UpdateWindow cannot re-enter until the wave ends.
-            if (HasPendingNativePaint()) {
-                UpdateWindow(m_hwnd);
-            }
-            MSG paintMsg = {};
-            while (PeekMessage(&paintMsg, m_hwnd, WM_PAINT, WM_PAINT, PM_REMOVE)) {
-                TranslateMessage(&paintMsg);
-                DispatchMessage(&paintMsg);
-            }
-            if (animating || m_themeRippleActive) {
-                m_frameScheduler.ScheduleFrame();
-            }
-        }
+        // Restore primary window context
+        Window::s_current = this;
+        AnimationManager::SetCurrent(&m_animationManager);
+        FrameScheduler::SetCurrent(&m_frameScheduler);
+        PopupHost::SetCurrent(&m_popupHost);
+        DragDropService::SetCurrent(&m_dragDrop);
 
         if (!hadMessage) {
             if (PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
@@ -1485,29 +1540,12 @@ void Window::RunMessageLoop() {
             if (HasPendingNativePaint()) {
                 continue;
             }
-            const bool wantContinuous = animationActive || m_animationManager.HasAnimating() || m_themeRippleActive;
-            if (wantContinuous) {
-                // After a frame, do not sleep — DXGI Present(1) already paced us.
-                // Sleeping targetFrame here stacked on Present and halved FPS.
-                const DWORD waitMs = didFrame ? 0
-                    : static_cast<DWORD>((std::max)(1, static_cast<int>(
-                        std::chrono::duration_cast<std::chrono::milliseconds>(targetFrame).count())));
+            if (anyWantContinuous) {
+                const DWORD waitMs = anyDidFrame ? 0 : 1;
                 MsgWaitForMultipleObjectsEx(0, nullptr, waitMs, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
-            } else if (m_frameScheduler.HasPending() || m_animationManager.HasPendingWake()) {
-                const int schedMs = m_frameScheduler.GetMsUntilDeadline(clock::now());
-                const int wakeMs = m_animationManager.GetMsUntilNextWake(clock::now());
-                int waitMs = -1;
-                if (schedMs >= 0) {
-                    waitMs = schedMs;
-                }
-                if (wakeMs >= 0) {
-                    waitMs = (waitMs < 0) ? wakeMs : (std::min)(waitMs, wakeMs);
-                }
-                if (waitMs < 0) {
-                    waitMs = 0;
-                }
+            } else if (anyHasPending && minWaitMs >= 0) {
                 MsgWaitForMultipleObjectsEx(
-                    0, nullptr, static_cast<DWORD>(waitMs), QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                    0, nullptr, static_cast<DWORD>(minWaitMs), QS_ALLINPUT, MWMO_INPUTAVAILABLE);
             } else {
                 WaitMessage();
             }

@@ -125,6 +125,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ui\framework\animation\AnimationManager.cpp" />
+    <ClCompile Include="ui\framework\animation\AnimationService.cpp" />
     <ClCompile Include="ui\framework\animation\AnimationSystem.cpp" />
     <ClCompile Include="ui\framework\animation\FrameScheduler.cpp" />
     <ClCompile Include="ui\framework\controls\terminal\AnsiColors.cpp" />
@@ -243,6 +244,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ui\framework\animation\AnimationManager.h" />
+    <ClInclude Include="ui\framework\animation\AnimationService.h" />
     <ClInclude Include="ui\framework\animation\AnimationSystem.h" />
     <ClInclude Include="ui\framework\animation\FrameScheduler.h" />
     <ClInclude Include="ui\framework\controls\terminal\AnsiColors.h" />

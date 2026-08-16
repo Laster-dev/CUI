@@ -1,4 +1,5 @@
 #include "UIElement.h"
+#include "../animation/AnimationService.h"
 #include "../core/PropertyId.h"
 #include "../style/ThemeManager.h"
 #include "../style/ThemeTokenId.h"
@@ -480,6 +481,15 @@ void UIElement::SetVisibility(Visibility v) {
         return;
     }
     m_visibility = v;
+    if (v == Visibility::Visible) {
+        AnimationService::Instance().RegisterElement(this);
+        if (HasSelfAnimation()) {
+            RequestAnimationTicks();
+        }
+    } else {
+        AnimationService::Instance().UnregisterElement(this);
+        m_animationTicksRegistered = false;
+    }
     // Collapsed/Visible changes alter the effective visual tree and every parent
     // layout/cache must stop reusing pixels from the previous arrangement.
     NotifyVisualTreeChanged();

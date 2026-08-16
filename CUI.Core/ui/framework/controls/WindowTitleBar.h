@@ -84,6 +84,49 @@ public:
     Rect GetMinimizeButtonRect() const; // 计算并返回最小化按钮在标题栏局部坐标系下的矩形包络盒
     Rect GetMaximizeButtonRect() const; // 计算并返回最大化按钮在标题栏局部坐标系下的矩形包络盒
     Rect GetCloseButtonRect() const;    // 计算并返回关闭按钮在标题栏局部坐标系下的矩形包络盒
+    float GetCaptionButtonsLeft() const; // 计算最左侧窗口控制按钮的 X 轴起点
+
+    bool IsMinimizeButtonVisible() const { return m_isMinimizeButtonVisible; }
+    void SetIsMinimizeButtonVisible(bool visible) {
+        if (m_isMinimizeButtonVisible == visible) return;
+        m_isMinimizeButtonVisible = visible;
+        MarkRenderContentDirty();
+    }
+
+    bool IsMaximizeButtonVisible() const { return m_isMaximizeButtonVisible; }
+    void SetIsMaximizeButtonVisible(bool visible) {
+        if (m_isMaximizeButtonVisible == visible) return;
+        m_isMaximizeButtonVisible = visible;
+        MarkRenderContentDirty();
+    }
+
+    bool IsCloseButtonVisible() const { return m_isCloseButtonVisible; }
+    void SetIsCloseButtonVisible(bool visible) {
+        if (m_isCloseButtonVisible == visible) return;
+        m_isCloseButtonVisible = visible;
+        MarkRenderContentDirty();
+    }
+
+    bool IsMinimizeButtonEnabled() const { return m_isMinimizeButtonEnabled; }
+    void SetIsMinimizeButtonEnabled(bool enabled) {
+        if (m_isMinimizeButtonEnabled == enabled) return;
+        m_isMinimizeButtonEnabled = enabled;
+        MarkRenderContentDirty();
+    }
+
+    bool IsMaximizeButtonEnabled() const { return m_isMaximizeButtonEnabled; }
+    void SetIsMaximizeButtonEnabled(bool enabled) {
+        if (m_isMaximizeButtonEnabled == enabled) return;
+        m_isMaximizeButtonEnabled = enabled;
+        MarkRenderContentDirty();
+    }
+
+    bool IsCloseButtonEnabled() const { return m_isCloseButtonEnabled; }
+    void SetIsCloseButtonEnabled(bool enabled) {
+        if (m_isCloseButtonEnabled == enabled) return;
+        m_isCloseButtonEnabled = enabled;
+        MarkRenderContentDirty();
+    }
 
 private:
     bool IsMenuBarHit(float x, float y) const; // 坐标点是否落入菜单栏区域
@@ -108,6 +151,12 @@ private:
     AnimatedScalar m_minHoverAnim{ 0.0f };                            // 最小化按钮 Hover 状态淡入淡出动画时钟
     AnimatedScalar m_maxHoverAnim{ 0.0f };                            // 最大化按钮 Hover 状态淡入淡出动画时钟
     AnimatedScalar m_closeHoverAnim{ 0.0f };                          // 关闭按钮 Hover 状态淡入淡出动画时钟
+    bool m_isMinimizeButtonVisible = true;                            // 最小化按钮是否可见
+    bool m_isMaximizeButtonVisible = true;                            // 最大化按钮是否可见
+    bool m_isCloseButtonVisible = true;                               // 关闭按钮是否可见
+    bool m_isMinimizeButtonEnabled = true;                            // 最小化按钮是否可用
+    bool m_isMaximizeButtonEnabled = true;                            // 最大化按钮是否可用
+    bool m_isCloseButtonEnabled = true;                               // 关闭按钮是否可用
 };
 
 } // namespace CUI

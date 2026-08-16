@@ -1,5 +1,6 @@
 #include "UIElement.h"
 #include "../window/Window.h"
+#include "../animation/AnimationService.h"
 #include "../animation/AnimationManager.h"
 #include "../animation/FrameScheduler.h"
 #include "../layout/Layout.h"
@@ -190,6 +191,7 @@ UIElement::UIElement() {
 
 UIElement::~UIElement() {
     UnbindText();
+    AnimationService::Instance().UnregisterElement(this);
     CancelAnimationTicks();
     if (AnimationManager* mgr = AnimationManager::Current()) {
         mgr->CancelWake(this);
@@ -241,32 +243,21 @@ void UIElement::SetAnimationHost(UIElement* host) {
         return;
     }
     m_animationHost = host;
-    // Attaching the host makes IsInLiveTree true (via host → live root). Re-arm
-    // any pending self animation that RequestAnimationTicks dropped earlier
-    // while this control looked detached.
     if (m_animationHost && HasSelfAnimation()) {
         RequestAnimationTicks();
     }
 }
 
 void UIElement::RequestAnimationTicks() {
-    // May no-op if AnimationManager live-tree gate rejects this element (detached
-    // after page swap, or popup-hosted without SetAnimationHost). Check
-    // IsAnimationTicksRegistered() / IsInLiveTree if ticks never arrive.
+    AnimationService::Instance().RequestAnimationTicks(this);
+    m_animationTicksRegistered = true;
     if (AnimationManager* mgr = AnimationManager::Current()) {
-        if (m_animationTicksRegistered && !mgr->IsRegistered(this)) {
-            // Flag/list desync — recover so pending work (e.g. Nav content swap) can run.
-            m_animationTicksRegistered = false;
-        }
-        if (!m_animationTicksRegistered) {
+        if (!mgr->IsRegistered(this)) {
             mgr->RegisterAnimating(this);
-            m_animationTicksRegistered = mgr->IsRegistered(this);
         }
-        // Always wake a frame. Early-return when already registered used to skip
-        // ScheduleFrame, so SetContentFactory after a settled Nav never applied.
-        if (FrameScheduler* sched = FrameScheduler::Current()) {
-            sched->ScheduleFrame();
-        }
+    }
+    if (FrameScheduler* sched = FrameScheduler::Current()) {
+        sched->ScheduleFrame();
     }
 }
 
@@ -456,6 +447,7 @@ void UIElement::OnRoutedEvent(RoutedEventArgs& args) {
 }
 
 void UIElement::CancelAnimationTicks() {
+    AnimationService::Instance().CancelAnimationTicks(this);
     if (!m_animationTicksRegistered) {
         return;
     }
@@ -1093,19 +1085,21 @@ void UIElement::OnThemeChanged() {
 }
 
 void UIElement::SetAnimationsEnabled(bool enabled) {
+    AnimationService::Instance().SetAnimationsEnabled(enabled);
     s_animationsEnabled = enabled;
 }
 
 bool UIElement::AreAnimationsEnabled() {
-    return s_animationsEnabled;
+    return AnimationService::Instance().AreAnimationsEnabled();
 }
 
 void UIElement::SetAnimationDeltaSeconds(float dtSeconds) {
+    AnimationService::Instance().SetDeltaSeconds(dtSeconds);
     s_animationDeltaSeconds = std::clamp(dtSeconds, 1.0f / 240.0f, 0.050f);
 }
 
 float UIElement::GetAnimationDeltaSeconds() {
-    return s_animationDeltaSeconds;
+    return AnimationService::Instance().GetDeltaSeconds();
 }
 
 void UIElement::SetBounds(const Rect& bounds) {

@@ -1,40 +1,37 @@
 #pragma once
 
-#include <algorithm>
-#include <cmath>
+#include "AnimationService.h"
 
 namespace CUI {
 
-struct AnimationSpec {
-    float responseAt60Hz = 0.20f;
-    float epsilon = 0.01f;
-    // 0 = unlimited (classic exponential settle). >0 snaps to target after this
-    // many seconds — only opt in when a hard CSS-like duration is desired.
-    float maxDurationSeconds = 0.0f;
-};
-
-// WinUI 3 flyout/menu enter: cubic ease-out over ~220ms (not exponential jump).
-struct PopupReveal {
-    static constexpr AnimationSpec kSpec{ 0.20f, 0.005f, 0.22f };
-};
-
+/**
+ * @brief 保持向后兼容的静态动画代理。内部所有计算完全委托给 AnimationService 中央服务。
+ */
 class AnimationSystem {
 public:
-    static float BlendFactor(float responseAt60Hz, float dtSeconds);
-
-    static bool Step(float& current, float target, float dtSeconds, const AnimationSpec& spec) {
-        return Step(current, target, dtSeconds, spec.responseAt60Hz, spec.epsilon);
+    static float BlendFactor(float responseAt60Hz, float dtSeconds) {
+        return AnimationService::BlendFactor(responseAt60Hz, dtSeconds);
     }
 
-    static bool Step(float& current, float target, float dtSeconds, float responseAt60Hz, float epsilon);
+    static bool Step(float& current, float target, float dtSeconds, const AnimationSpec& spec) {
+        return AnimationService::Step(current, target, dtSeconds, spec);
+    }
 
-    // Finite-duration ease-out (CSS-like). Returns false when finished.
-    static bool StepDuration(float& current, float from, float target, float elapsed, float durationSeconds);
+    static bool Step(float& current, float target, float dtSeconds, float responseAt60Hz, float epsilon = 0.01f) {
+        return AnimationService::Step(current, target, dtSeconds, responseAt60Hz, epsilon);
+    }
+
+    static bool StepDuration(float& current, float from, float target, float elapsed, float durationSeconds, EasingType easing = EasingType::EaseOutCubic) {
+        return AnimationService::StepDuration(current, from, target, elapsed, durationSeconds, easing);
+    }
 };
 
+/**
+ * @brief 标量浮点平滑动画过渡控制器。统一基于 AnimationService 进行算法步进。
+ */
 class AnimatedScalar {
 public:
-    explicit AnimatedScalar(float value = 0.0f) : m_current(value), m_target(value) {}
+    explicit AnimatedScalar(float value = 0.0f) : m_current(value), m_target(value), m_from(value) {}
 
     float Current() const { return m_current; }
     float Target() const { return m_target; }
@@ -62,13 +59,11 @@ public:
             return changed;
         }
 
-        // Fixed-duration path: total play time is always maxDurationSeconds,
-        // independent of how far we travel or how many UI items are involved.
         if (spec.maxDurationSeconds > 0.0f) {
             const float prev = m_current;
             m_elapsed += std::clamp(dtSeconds, 0.0f, 0.05f);
-            const bool moving = AnimationSystem::StepDuration(
-                m_current, m_from, m_target, m_elapsed, spec.maxDurationSeconds);
+            const bool moving = AnimationService::StepDuration(
+                m_current, m_from, m_target, m_elapsed, spec.maxDurationSeconds, spec.easing);
             if (!moving) {
                 m_current = m_target;
                 m_elapsed = 0.0f;
@@ -76,7 +71,7 @@ public:
             return moving || std::abs(m_current - prev) > 0.0001f;
         }
 
-        const bool changed = AnimationSystem::Step(m_current, m_target, dtSeconds, spec);
+        const bool changed = AnimationService::Step(m_current, m_target, dtSeconds, spec);
         if (!changed) {
             m_elapsed = 0.0f;
             return false;

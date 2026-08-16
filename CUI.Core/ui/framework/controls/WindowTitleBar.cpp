@@ -160,19 +160,36 @@ bool WindowTitleBar::EnsureNativeIconBitmap(GraphicsContext& ctx) {
     return true;
 }
 
-Rect WindowTitleBar::GetMinimizeButtonRect() const {
+Rect WindowTitleBar::GetCloseButtonRect() const {
+    if (!m_isCloseButtonVisible) return Rect();
     const float right = m_bounds.x + m_bounds.width;
-    return Rect(right - kCaptionButtonWidth * 3.0f, m_bounds.y, kCaptionButtonWidth, m_bounds.height);
+    return Rect(right - kCaptionButtonWidth, m_bounds.y, kCaptionButtonWidth, m_bounds.height);
 }
 
 Rect WindowTitleBar::GetMaximizeButtonRect() const {
+    if (!m_isMaximizeButtonVisible) return Rect();
     const float right = m_bounds.x + m_bounds.width;
-    return Rect(right - kCaptionButtonWidth * 2.0f, m_bounds.y, kCaptionButtonWidth, m_bounds.height);
+    float offset = kCaptionButtonWidth;
+    if (m_isCloseButtonVisible) offset += kCaptionButtonWidth;
+    return Rect(right - offset, m_bounds.y, kCaptionButtonWidth, m_bounds.height);
 }
 
-Rect WindowTitleBar::GetCloseButtonRect() const {
+Rect WindowTitleBar::GetMinimizeButtonRect() const {
+    if (!m_isMinimizeButtonVisible) return Rect();
     const float right = m_bounds.x + m_bounds.width;
-    return Rect(right - kCaptionButtonWidth, m_bounds.y, kCaptionButtonWidth, m_bounds.height);
+    float offset = kCaptionButtonWidth;
+    if (m_isCloseButtonVisible) offset += kCaptionButtonWidth;
+    if (m_isMaximizeButtonVisible) offset += kCaptionButtonWidth;
+    return Rect(right - offset, m_bounds.y, kCaptionButtonWidth, m_bounds.height);
+}
+
+float WindowTitleBar::GetCaptionButtonsLeft() const {
+    const float right = m_bounds.x + m_bounds.width;
+    float totalW = 0.0f;
+    if (m_isCloseButtonVisible) totalW += kCaptionButtonWidth;
+    if (m_isMaximizeButtonVisible) totalW += kCaptionButtonWidth;
+    if (m_isMinimizeButtonVisible) totalW += kCaptionButtonWidth;
+    return right - totalW;
 }
 
 void WindowTitleBar::SetRightContent(const std::shared_ptr<UIElement>& content) {
@@ -196,19 +213,19 @@ bool WindowTitleBar::IsRightContentHit(float x, float y) const {
     return m_rightContent && m_rightContent->HitTest(x, y) != nullptr;
 }
 bool WindowTitleBar::IsCaptionButtonHit(float x, float y) const {
-    return GetMinimizeButtonRect().Contains(x, y)
-        || GetMaximizeButtonRect().Contains(x, y)
-        || GetCloseButtonRect().Contains(x, y);
+    return (m_isMinimizeButtonVisible && GetMinimizeButtonRect().Contains(x, y))
+        || (m_isMaximizeButtonVisible && GetMaximizeButtonRect().Contains(x, y))
+        || (m_isCloseButtonVisible && GetCloseButtonRect().Contains(x, y));
 }
 
 int WindowTitleBar::HitTestHoverRegion(float x, float y) const {
-    if (GetCloseButtonRect().Contains(x, y)) {
+    if (m_isCloseButtonVisible && m_isCloseButtonEnabled && GetCloseButtonRect().Contains(x, y)) {
         return 3;
     }
-    if (GetMaximizeButtonRect().Contains(x, y)) {
+    if (m_isMaximizeButtonVisible && m_isMaximizeButtonEnabled && GetMaximizeButtonRect().Contains(x, y)) {
         return 2;
     }
-    if (GetMinimizeButtonRect().Contains(x, y)) {
+    if (m_isMinimizeButtonVisible && m_isMinimizeButtonEnabled && GetMinimizeButtonRect().Contains(x, y)) {
         return 1;
     }
     if (IsMenuBarHit(x, y)) {
@@ -308,7 +325,7 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     const float captionHoverPeak = lightTheme ? 0.08f : 0.14f;
 
     const float titleLeft = menuBarRect.x + menuBarRect.width + 12.0f;
-    const float titleRight = GetMinimizeButtonRect().x - 8.0f;
+    const float titleRight = GetCaptionButtonsLeft() - 8.0f;
     if (titleRight > titleLeft) {
         ctx.DrawText(
             m_title,
@@ -329,37 +346,50 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     const float minHoverT = m_minHoverAnim.Current();
     const float maxHoverT = m_maxHoverAnim.Current();
     const float closeHoverT = m_closeHoverAnim.Current();
-
-    if (minHoverT > 0.001f) {
-        ctx.FillRect(minRect, D2D1::ColorF(
-            tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b,
-            captionHoverPeak * minHoverT));
-    }
-    if (maxHoverT > 0.001f) {
-        ctx.FillRect(maxRect, D2D1::ColorF(
-            tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b,
-            captionHoverPeak * maxHoverT));
-    }
-    if (closeHoverT > 0.001f) {
-        D2D1_COLOR_F closeBg = tokens.dangerColor;
-        closeBg.a *= closeHoverT;
-        ctx.FillRect(closeRect, closeBg);
-    }
-
+    const D2D1_COLOR_F disabledColor = tokens.textMuted;
     const float iconCenterY = m_bounds.y + m_bounds.height * 0.5f;
-    ctx.DrawLine(Point(minRect.x + 18.0f, iconCenterY), Point(minRect.x + 28.0f, iconCenterY), titleColor, 1.0f);
 
-    if (isMaximized) {
-        ctx.DrawRect(Rect(maxRect.x + 20.0f, iconCenterY - 4.0f, 8.0f, 8.0f), titleColor, 1.0f);
-        ctx.DrawRect(Rect(maxRect.x + 18.0f, iconCenterY - 6.0f, 8.0f, 8.0f), titleColor, 1.0f);
-    } else {
-        ctx.DrawRect(Rect(maxRect.x + 18.0f, iconCenterY - 5.0f, 10.0f, 10.0f), titleColor, 1.0f);
+    // 1. 最小化按钮
+    if (m_isMinimizeButtonVisible) {
+        if (m_isMinimizeButtonEnabled && minHoverT > 0.001f) {
+            ctx.FillRect(minRect, D2D1::ColorF(
+                tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b,
+                captionHoverPeak * minHoverT));
+        }
+        const D2D1_COLOR_F minColor = m_isMinimizeButtonEnabled ? titleColor : disabledColor;
+        ctx.DrawLine(Point(minRect.x + 18.0f, iconCenterY), Point(minRect.x + 28.0f, iconCenterY), minColor, 1.0f);
     }
 
-    const D2D1_COLOR_F closeIconColor = LerpColor(titleColor, tokens.accentForeground, closeHoverT);
-    const float closeCenterX = closeRect.x + closeRect.width * 0.5f;
-    ctx.DrawLine(Point(closeCenterX - 5.0f, iconCenterY - 5.0f), Point(closeCenterX + 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
-    ctx.DrawLine(Point(closeCenterX + 5.0f, iconCenterY - 5.0f), Point(closeCenterX - 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
+    // 2. 最大化按钮
+    if (m_isMaximizeButtonVisible) {
+        if (m_isMaximizeButtonEnabled && maxHoverT > 0.001f) {
+            ctx.FillRect(maxRect, D2D1::ColorF(
+                tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b,
+                captionHoverPeak * maxHoverT));
+        }
+        const D2D1_COLOR_F maxColor = m_isMaximizeButtonEnabled ? titleColor : disabledColor;
+        if (isMaximized) {
+            ctx.DrawRect(Rect(maxRect.x + 20.0f, iconCenterY - 4.0f, 8.0f, 8.0f), maxColor, 1.0f);
+            ctx.DrawRect(Rect(maxRect.x + 18.0f, iconCenterY - 6.0f, 8.0f, 8.0f), maxColor, 1.0f);
+        } else {
+            ctx.DrawRect(Rect(maxRect.x + 18.0f, iconCenterY - 5.0f, 10.0f, 10.0f), maxColor, 1.0f);
+        }
+    }
+
+    // 3. 关闭按钮
+    if (m_isCloseButtonVisible) {
+        if (m_isCloseButtonEnabled && closeHoverT > 0.001f) {
+            D2D1_COLOR_F closeBg = tokens.dangerColor;
+            closeBg.a *= closeHoverT;
+            ctx.FillRect(closeRect, closeBg);
+        }
+        const D2D1_COLOR_F closeIconColor = m_isCloseButtonEnabled
+            ? LerpColor(titleColor, tokens.accentForeground, closeHoverT)
+            : disabledColor;
+        const float closeCenterX = closeRect.x + closeRect.width * 0.5f;
+        ctx.DrawLine(Point(closeCenterX - 5.0f, iconCenterY - 5.0f), Point(closeCenterX + 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
+        ctx.DrawLine(Point(closeCenterX + 5.0f, iconCenterY - 5.0f), Point(closeCenterX - 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);
+    }
 }
 
 void WindowTitleBar::OnRenderOverlay(GraphicsContext& ctx) {
@@ -388,14 +418,14 @@ Rect WindowTitleBar::LayoutRightContent() {
         return Rect();
     }
 
-    const Rect minimize = GetMinimizeButtonRect();
+    const float captionLeft = GetCaptionButtonsLeft();
     const float left = m_bounds.x + 36.0f;
-    const float availableWidth = (std::max)(0.0f, minimize.x - left - 8.0f);
+    const float availableWidth = (std::max)(0.0f, captionLeft - left - 8.0f);
     const Size desired = m_rightContent->Measure(Size(availableWidth, m_bounds.height));
     const float width = (std::min)(desired.width, availableWidth);
     const float height = (std::min)(desired.height, (std::max)(0.0f, m_bounds.height - 6.0f));
     const Rect contentRect(
-        minimize.x - 8.0f - width,
+        captionLeft - 8.0f - width,
         m_bounds.y + (m_bounds.height - height) * 0.5f,
         width,
         height);
@@ -479,14 +509,14 @@ LRESULT WindowTitleBar::HitTestNonClient(float x, float y) const {
     if (!m_bounds.Contains(x, y)) {
         return HTNOWHERE;
     }
-    if (GetCloseButtonRect().Contains(x, y)) {
-        return HTCLOSE;
+    if (m_isCloseButtonVisible && GetCloseButtonRect().Contains(x, y)) {
+        return m_isCloseButtonEnabled ? HTCLOSE : HTBORDER;
     }
-    if (GetMaximizeButtonRect().Contains(x, y)) {
-        return HTMAXBUTTON;
+    if (m_isMaximizeButtonVisible && GetMaximizeButtonRect().Contains(x, y)) {
+        return m_isMaximizeButtonEnabled ? HTMAXBUTTON : HTBORDER;
     }
-    if (GetMinimizeButtonRect().Contains(x, y)) {
-        return HTMINBUTTON;
+    if (m_isMinimizeButtonVisible && GetMinimizeButtonRect().Contains(x, y)) {
+        return m_isMinimizeButtonEnabled ? HTMINBUTTON : HTBORDER;
     }
     return HTNOWHERE;
 }

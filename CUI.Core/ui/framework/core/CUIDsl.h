@@ -48,6 +48,7 @@
 #include "../controls/Splitter.h"
 #include "../controls/Expander.h"
 #include "../controls/Flyout.h"
+#include "../controls/WindowTitleBar.h"
 #include "../controls/MessageBox.h"
 #include "../controls/shapes/Shapes.h"
 #include "../controls/CanvasControl.h"
@@ -895,6 +896,12 @@ inline ElementBuilder<MenuBar> MenuBarWidget() { // 快速生成水平顶级菜�
 
 inline ElementBuilder<DockManager> DockManagerWidget() { // 快速生成高级停靠窗体管理器
     return ElementBuilder<DockManager>();
+}
+
+inline ElementBuilder<WindowTitleBar> TitleBarWidget(const std::string& title = "CUI Application") { // 快速生成窗口顶部自定义标题栏
+    auto t = ElementBuilder<WindowTitleBar>();
+    t->SetTitle(title);
+    return t;
 }
 
 inline ElementBuilder<Image> ImageWidget() { // 快速生成图片加载盒

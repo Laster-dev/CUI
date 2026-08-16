@@ -367,6 +367,8 @@ private:
     bool m_lowPerformanceMode = false;                                  // 低画质性能节省运行模式
     bool m_flushInputDirty = false;                                     // 标识输入设备状态发生改变，窗口下一次 Relayout 必须刷新
     CUI::BackdropType m_backdropType = CUI::BackdropType::None;                   // 当前窗口下发的毛玻璃后置背景类型样式
+    bool PumpFrameStep(std::chrono::steady_clock::time_point now);     // 驱动单帧排版、动画计算与画面提交
+
     CUI::ThemeMode m_themeMode = CUI::ThemeMode::Dark;                             // 当前窗口所采纳的样式主题模式（Light / Dark）
     CUI::WindowMaterialState m_materialState;                                     // 统一材质状态（一处计算、处处消费）
     uint64_t m_materialGeneration = 0;                                            // 材质代次：每次切换自增，驱动场景缓存失效
@@ -374,6 +376,8 @@ private:
     mutable std::chrono::steady_clock::time_point m_overlayFpsSampleStart{}; // 性能面板帧率采样开始时间戳
     mutable unsigned m_overlayFrameCounter = 0;                         // 性能面板渲染累计帧数
     mutable float m_overlayFps = 0.0f;                                  // 性能面板展示的当前 FPS 缓存数值
+    bool m_animationActive = false;                                     // 标记窗口当前是否有活跃运行中的过渡动画
+    bool m_wasAnimationActive = false;                                  // 上一帧是否包含运行中的过渡动画
 };
 
 } // namespace CUI
