@@ -1224,25 +1224,23 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
         return;
     }
 
-    // If a wave is already playing, keep the current live destination scene as the
-    // next "from" snapshot so the new click starts a fresh wave immediately.
+    auto renderFullWindow = [&]() {
+        if (m_rootElement) {
+            m_rootElement->Render(m_gfxContext);
+            m_rootElement->RenderOverlay(m_gfxContext);
+        }
+        m_popupHost.Render(m_gfxContext);
+        m_dragDrop.RenderOverlay(m_gfxContext);
+        DrawKeyboardFocusRing();
+    };
+
+    // 1. Capture old theme full window snapshot into m_themeOldSceneLayer
     D2D1_COLOR_F oldClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
-    if (!m_sceneLayer.IsValid() || !m_sceneLayer.GetCacheBitmap()) {
-        if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, viewportBounds, oldClearBg, true)) {
-            m_gfxContext.SetPaintBounds(viewportBounds);
-            if (m_rootElement) {
-                m_rootElement->Render(m_gfxContext);
-            }
-            m_gfxContext.PopLayerTarget(m_sceneLayer);
-            m_sceneLayer.Validate();
-        }
-    }
-    if (m_sceneLayer.GetCacheBitmap()) {
-        if (m_gfxContext.PushLayerTarget(m_themeOldSceneLayer, sceneSize, viewportBounds, oldClearBg, true)) {
-            m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
-            m_gfxContext.PopLayerTarget(m_themeOldSceneLayer);
-            m_themeOldSceneLayer.Validate();
-        }
+    if (m_gfxContext.PushLayerTarget(m_themeOldSceneLayer, sceneSize, viewportBounds, oldClearBg, true)) {
+        m_gfxContext.SetPaintBounds(viewportBounds);
+        renderFullWindow();
+        m_gfxContext.PopLayerTarget(m_themeOldSceneLayer);
+        m_themeOldSceneLayer.Validate();
     }
 
     // Apply theme tokens + refresh control caches before capturing the destination scene.
@@ -1257,13 +1255,11 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     }
     m_onThemeChanged.Invoke(this, theme);
 
-    // Pre-render destination theme into the live scene layer (one heavy frame only).
+    // 2. Pre-render destination theme full window snapshot into m_sceneLayer
     D2D1_COLOR_F newClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
     if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, viewportBounds, newClearBg, true)) {
         m_gfxContext.SetPaintBounds(viewportBounds);
-        if (m_rootElement) {
-            m_rootElement->Render(m_gfxContext);
-        }
+        renderFullWindow();
         m_gfxContext.PopLayerTarget(m_sceneLayer);
         m_sceneLayer.Validate();
         m_sceneLayer.SetStamp(BuildRenderCacheStamp());
@@ -2467,6 +2463,7 @@ void Window::OnPaint() {
         // 不允许把上一帧内容当作透明背景继续使用（会覆盖云母）。
         m_gfxContext.GetD2DContext()->Clear(sceneClearColor);
 
+        bool isRippleComposing = false;
         if (m_themeRippleActive && m_themeOldSceneLayer.GetCacheBitmap()) {
             auto now = std::chrono::steady_clock::now();
             float elapsedSec = std::chrono::duration<float>(now - m_themeRippleStartTime).count();
@@ -2494,6 +2491,8 @@ void Window::OnPaint() {
                 m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
                 m_gfxContext.PopClip();
 
+                isRippleComposing = true;
+
                 // Pace the next frame via the scheduler ONLY.
                 // Do NOT InvalidateRect here: that re-queues WM_PAINT from inside
                 // the paint handler and the message loop would keep dispatching
@@ -2505,6 +2504,8 @@ void Window::OnPaint() {
                 m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
                 m_themeRippleActive = false;
                 m_themeOldSceneLayer.ResetCache();
+                m_sceneLayer.ResetCache();
+                RequestFullRepaint();
             }
         } else if (m_themeRippleActive) {
             // Old snapshot lost — finish immediately so we never stick with
@@ -2512,11 +2513,15 @@ void Window::OnPaint() {
             m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
             m_themeRippleActive = false;
             m_themeOldSceneLayer.ResetCache();
+            m_sceneLayer.ResetCache();
+            RequestFullRepaint();
         } else {
             m_gfxContext.DrawLayer(m_sceneLayer, viewportBounds);
         }
 
-        renderOverlaysOnly();
+        if (!isRippleComposing) {
+            renderOverlaysOnly();
+        }
         SampleDisplayFps();
         DrawRenderStatsOverlay();
         m_gfxContext.EndDraw();

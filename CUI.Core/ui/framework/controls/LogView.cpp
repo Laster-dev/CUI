@@ -303,7 +303,7 @@ void LogView::SetProperty(PropertyId id, const Value& val) {
         SetMaxEntries(n > 0.0f ? static_cast<uint32_t>(n) : m_cap);
         return;
     }
-    default: UIElement::SetProperty(id, val); return;
+    default: Control::SetProperty(id, val); return;
     }
 }
 
