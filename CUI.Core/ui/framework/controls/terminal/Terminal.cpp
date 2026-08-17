@@ -323,13 +323,17 @@ void Terminal::SetScrollDisp(int yDisp) {
     RequestRedraw();
 }
 
-std::string Terminal::GetSelectionText() {
+std::wstring Terminal::GetSelectionTextW() {
     SelectionModel& m = m_selection.Model();
     if (!m.HasSelection) {
-        return std::string();
+        return std::wstring();
     }
     m.Normalize();
-    return Utf8FromUtf16(m_buffers.Active().GetSelectedText(m.StartCol, m.StartRow, m.EndCol, m.EndRow));
+    return m_buffers.Active().GetSelectedText(m.StartCol, m.StartRow, m.EndCol, m.EndRow);
+}
+
+std::string Terminal::GetSelectionText() {
+    return Utf8FromUtf16(GetSelectionTextW());
 }
 
 int Terminal::CountMatches(const std::wstring& query) {

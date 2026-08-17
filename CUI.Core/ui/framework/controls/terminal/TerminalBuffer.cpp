@@ -442,19 +442,30 @@ std::wstring TerminalBuffer::GetSelectedText(int startCol, int startRow, int end
     }
 
     std::wstring result;
-    bool first = true;
     for (int y = startRow; y <= endRow; ++y) {
         if (y < 0 || y >= static_cast<int>(m_lines.size())) {
             continue;
         }
         const BufferLine& line = *m_lines[static_cast<size_t>(y)];
         const int s = (y == startRow) ? startCol : 0;
-        const int e = (y == endRow) ? endCol + 1 : m_cols;
-        if (!first) {
+        int e = m_cols;
+        if (y == endRow) {
+            e = endCol + 1;
+            if (endCol >= 0 && endCol < line.Length() && line[endCol].GetWidth() >= 2) {
+                e = endCol + line[endCol].GetWidth();
+            }
+        }
+
+        std::wstring lineText = line.GetText(s, e);
+        if (y == endRow || !line.IsWrapped()) {
+            lineText = TrimEnd(lineText);
+        }
+
+        result += lineText;
+
+        if (y < endRow && !line.IsWrapped()) {
             result += L"\r\n";
         }
-        result += TrimEnd(line.GetText(s, e));
-        first = false;
     }
     return result;
 }

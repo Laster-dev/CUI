@@ -78,13 +78,35 @@ void SelectionService::SelectWord(int absRow, int col, const std::function<Buffe
     }
 
     col = std::clamp(col, 0, (std::max)(0, cols - 1));
+    if (col > 0 && (*line)[col].GetWidth() == 0 && (*line)[col - 1].GetWidth() >= 2) {
+        col--;
+    }
+
     int start = col;
     int end = col;
-    while (start > 0 && start - 1 < line->Length() && IsWordChar((*line)[start - 1].GetChar())) {
-        start--;
+    while (start > 0 && start - 1 < line->Length()) {
+        int prev = start - 1;
+        if ((*line)[prev].GetWidth() == 0 && prev > 0 && (*line)[prev - 1].GetWidth() >= 2) {
+            prev--;
+        }
+        if (!IsWordChar((*line)[prev].GetChar())) {
+            break;
+        }
+        start = prev;
     }
-    while (end < cols - 1 && end + 1 < line->Length() && IsWordChar((*line)[end + 1].GetChar())) {
-        end++;
+    while (end < cols - 1 && end + 1 < line->Length()) {
+        int next = end + 1;
+        if (!IsWordChar((*line)[next].GetChar())) {
+            break;
+        }
+        if ((*line)[next].GetWidth() >= 2 && next + 1 < cols) {
+            next++;
+        }
+        end = next;
+    }
+
+    if (end < cols - 1 && (*line)[end].GetWidth() >= 2) {
+        end += (*line)[end].GetWidth() - 1;
     }
 
     m_model.HasSelection = true;
@@ -108,7 +130,8 @@ void SelectionService::Clear() {
 }
 
 bool SelectionService::IsWordChar(wchar_t c) {
-    return std::iswalnum(static_cast<wint_t>(c)) != 0 || c == L'_' || c == L'-' || c == L'.';
+    if (c == 0 || c == L' ' || c == L'\t' || c == L'\r' || c == L'\n') return false;
+    return std::iswalnum(static_cast<wint_t>(c)) != 0 || c == L'_' || c == L'-' || c == L'.' || c == L':' || c == L'/' || c == L'\\' || c > 127;
 }
 
 } // namespace Term

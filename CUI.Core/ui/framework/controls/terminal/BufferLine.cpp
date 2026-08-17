@@ -1,4 +1,5 @@
 #include "BufferLine.h"
+#include "UnicodeWidth.h"
 #include <algorithm>
 
 namespace CUI {
@@ -49,7 +50,13 @@ void BufferLine::Clear() {
 std::wstring BufferLine::GetTrimmedText() const {
     int end = static_cast<int>(m_cells.size());
     while (end > 0) {
-        const int ch = m_cells[static_cast<size_t>(end - 1)].GetCodePoint();
+        const CellData& cell = m_cells[static_cast<size_t>(end - 1)];
+        if (cell.GetWidth() == 0) {
+            if (end >= 2 && !m_cells[static_cast<size_t>(end - 2)].IsEmpty()) {
+                break;
+            }
+        }
+        const int ch = cell.GetCodePoint();
         if (ch != 0 && ch != ' ') {
             break;
         }
@@ -60,12 +67,7 @@ std::wstring BufferLine::GetTrimmedText() const {
         return std::wstring();
     }
 
-    std::wstring result;
-    result.reserve(static_cast<size_t>(end));
-    for (int i = 0; i < end; ++i) {
-        result.push_back(m_cells[static_cast<size_t>(i)].GetChar());
-    }
-    return result;
+    return GetText(0, end);
 }
 
 std::wstring BufferLine::GetText(int start, int end) const {
@@ -79,7 +81,15 @@ std::wstring BufferLine::GetText(int start, int end) const {
     std::wstring result;
     result.reserve(static_cast<size_t>(end - start));
     for (int i = start; i < end; ++i) {
-        result.push_back(m_cells[static_cast<size_t>(i)].GetChar());
+        const CellData& cell = m_cells[static_cast<size_t>(i)];
+        if (cell.GetWidth() == 0) {
+            continue;
+        }
+        int cp = cell.GetCodePoint();
+        if (cp == 0) {
+            cp = ' ';
+        }
+        AppendUtf16CodePoint(result, cp);
     }
     return result;
 }

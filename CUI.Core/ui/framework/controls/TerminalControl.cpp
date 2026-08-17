@@ -310,11 +310,11 @@ void TerminalControl::ShowFind(bool show) {
 }
 
 void TerminalControl::CopySelectionToClipboard() {
-    const std::string text = m_terminal->GetSelectionText();
+    const std::wstring text = m_terminal->GetSelectionTextW();
     if (text.empty()) {
         return;
     }
-    SetClipboardUnicode(Term::Utf16FromUtf8(text));
+    SetClipboardUnicode(text);
 }
 
 void TerminalControl::PasteFromClipboard() {

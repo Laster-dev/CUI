@@ -84,16 +84,26 @@ void TabView::RemoveTab(int index) {
     }
 
     m_tabs.erase(m_tabs.begin() + index);
-    MarkHeaderDirty();
-    MarkContentDirty();
 
-    if (m_selectedIndex >= static_cast<int>(m_tabs.size())) {
+    if (m_tabs.empty()) {
+        m_selectedIndex = -1;
+        MarkHeaderDirty();
+        MarkContentDirty();
+        m_tabClosedEvent.Invoke(this, index);
+        return;
+    }
+
+    // 若删除的 Tab 在当前激活 Tab 之前，当前索引需向前移一位保持指向同一页面
+    if (index < m_selectedIndex) {
+        m_selectedIndex--;
+    } else if (m_selectedIndex >= static_cast<int>(m_tabs.size())) {
         m_selectedIndex = static_cast<int>(m_tabs.size()) - 1;
     }
 
-    if (m_selectedIndex >= 0) {
-        SetSelectedIndex(m_selectedIndex);
-    }
+    // 重置并强制重新激活目标 Tab 的可见性
+    int targetIndex = m_selectedIndex;
+    m_selectedIndex = -1; // 强制 SetSelectedIndex 不被 early-return 拦截
+    SetSelectedIndex(targetIndex);
 
     m_tabClosedEvent.Invoke(this, index);
 }

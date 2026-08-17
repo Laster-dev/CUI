@@ -90,6 +90,7 @@ public:
     void SetScrollDisp(int yDisp);
 
     std::string GetSelectionText();
+    std::wstring GetSelectionTextW();
 
     bool FindNext(const std::wstring& query, int& absRow, int& col) {
         return Find(query, absRow, col, true);

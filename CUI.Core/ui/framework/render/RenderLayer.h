@@ -1,8 +1,10 @@
 #pragma once
-
-#include "../core/Value.h"
+#include <windows.h>
+#include <unknwn.h>
+#include <d2d1.h>
 #include <d2d1_1.h>
 #include <wrl/client.h>
+#include "../core/Value.h"
 
 namespace CUI {
 

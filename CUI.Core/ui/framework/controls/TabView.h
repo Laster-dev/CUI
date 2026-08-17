@@ -33,6 +33,8 @@ public:
     void RemoveTab(int index);
     void SetSelectedIndex(int index);
     int GetSelectedIndex() const { return m_selectedIndex; }
+    size_t GetTabCount() const { return m_tabs.size(); }
+    bool IsEmpty() const { return m_tabs.empty(); }
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;
