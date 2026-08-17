@@ -65,6 +65,7 @@ public:
     virtual void OnMouseUp(Point pt) override;
     virtual void OnMouseLeave() override;
     virtual void OnMouseRightClick(Point pt) override;
+    virtual void OnMouseDblClick(Point pt) override;
     virtual bool OnContextMenuRelease(Point pt) override;
     virtual bool OnMiddleButtonDown(Point pt) override;
     virtual void OnMiddleButtonUp(Point pt) override;

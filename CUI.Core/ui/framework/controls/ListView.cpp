@@ -1238,6 +1238,33 @@ void ListView::OnMouseLeave() {
     RequestAnimationTicks();
 }
 
+void ListView::OnMouseDblClick(Point pt) {
+    Control::OnMouseDblClick(pt);
+
+    // 标题栏区域不算行双击
+    if (pt.y >= m_bounds.y && pt.y <= m_bounds.y + m_headerHeight) {
+        return;
+    }
+
+    // 计算命中行并确保选中态一致，然后派发 OnRowDoubleClicked
+    // （此前框架从未触发该事件：WM_LBUTTONDBLCLK → OnMouseDblClick 是空实现）
+    const int row = GetRowIndexFromY(pt.y);
+    if (row < 0 || row >= static_cast<int>(GetRowCount())) {
+        return;
+    }
+    if (!IsRowSelected(row)) {
+        if (m_selectionMode == ListViewSelectionMode::Single) {
+            m_selectedIndices.clear();
+        }
+        m_selectedIndices.insert(row);
+        m_anchorIndex = row;
+        m_caretIndex = row;
+        m_onSelectionChangedEvent.Invoke(this, row);
+    }
+    m_onRowDoubleClickedEvent.Invoke(this, row);
+    InvalidateRowsLayer();
+}
+
 void ListView::OnMouseRightClick(Point pt) {
     Control::OnMouseRightClick(pt);
     m_headerContextMenuPending = false;

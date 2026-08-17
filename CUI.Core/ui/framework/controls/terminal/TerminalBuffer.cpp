@@ -85,6 +85,18 @@ void TerminalBuffer::Resize(int cols, int rows) {
         }
     }
 
+    // 行数变化后重新锚定内容：裁剪光标行下方的空白行，使光标行靠近视口底部。
+    // 否则输出（如启动横幅）若在 Resize 之前已冲刷进缓冲区，会被留在
+    // BaseY 上方的回退区，视口只画空白行（多开终端时第 2 个及之后空白）。
+    if (CursorY >= 0 && CursorY < static_cast<int>(m_lines.size())) {
+        while (static_cast<int>(m_lines.size()) > CursorY + 1) {
+            if (!m_lines.back()->GetTrimmedText().empty()) {
+                break;
+            }
+            m_lines.pop_back();
+        }
+    }
+
     EnsureViewportLines();
     CursorX = (std::min)(CursorX, m_cols - 1);
     CursorY = (std::min)(CursorY, m_rows - 1);

@@ -5,6 +5,9 @@
 #include "terminal/MouseReporter.h"
 #include "terminal/UnicodeWidth.h"
 #include <algorithm>
+#include <cstdarg>
+#include <cstdio>
+#include <set>
 #include <shellapi.h>
 #include <windows.h>
 
@@ -597,11 +600,49 @@ bool TerminalControl::OnAnimationTick() {
     return more;
 }
 
+// ===== TEMP DEBUG: 第二个终端空白诊断（诊断后删除） =====
+static void TermDbg(const char* fmt, ...) {
+    FILE* f = nullptr;
+    char path[MAX_PATH] = {};
+    GetTempPathA(MAX_PATH, path);
+    strncat_s(path, MAX_PATH, "term_dbg.log", _TRUNCATE);
+    if (fopen_s(&f, path, "a") == 0 && f) {
+        va_list args;
+        va_start(args, fmt);
+        vfprintf(f, fmt, args);
+        va_end(args);
+        fputs("\n", f);
+        fclose(f);
+    }
+}
+// ===== END TEMP DEBUG =====
+
 void TerminalControl::OnRender(GraphicsContext& ctx) {
     m_hwnd = ctx.GetHwnd();
     m_renderer->SetDpi(ctx.GetDpiScale());
     m_renderer->EnsureMetrics(ctx);
     RecalculateSize(ctx);
+
+    // TEMP DEBUG: 每个实例前 5 帧记录渲染关键状态
+    static std::set<const TerminalControl*> s_dbgLogged;
+    if (s_dbgLogged.size() < 12 && s_dbgLogged.count(this) == 0) {
+        const Rect b = m_bounds;
+        const Rect s = GetSurfaceRect();
+        const Rect pb = ctx.GetPaintBounds();
+        TermDbg("[term] inst=%p bounds=(%.0f,%.0f,%.0fx%.0f) surface=(%.0f,%.0f,%.0fx%.0f)"
+                " metrics=%d outPending=%d vis=%d backend=%p cols=%d rows=%d bufLen=%d pb=(%.0f,%.0f,%.0fx%.0f)",
+                (void*)this, b.x, b.y, b.width, b.height, s.x, s.y, s.width, s.height,
+                m_renderer->HasMetrics() ? 1 : 0,
+                m_outputPending.load() ? 1 : 0,
+                (int)GetVisibility(), (void*)m_backend,
+                m_terminal ? m_terminal->Cols() : -1,
+                m_terminal ? m_terminal->Rows() : -1,
+                m_terminal ? m_terminal->Buffers().Active().Length() : -1,
+                pb.x, pb.y, pb.width, pb.height);
+        if (b.width > 0.0f && b.height > 0.0f) {
+            s_dbgLogged.insert(this);
+        }
+    }
 
     // Guarantee forward progress even if animation ticks are throttled.
     // Cap work here so a paint never digests a huge flood before drawing —
@@ -655,9 +696,12 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
     }
 
     // Dirty-row painting: skip bands the compositor did not ask us to repaint.
+    int paintedRows = 0;
+    int culledRows = 0;
     for (int row = 0; row < rows; ++row) {
         const Rect rowRect = GetRowRect(row);
         if (!ctx.IntersectsPaintBounds(rowRect)) {
+            ++culledRows;
             continue;
         }
         Term::BufferLine& line = buf.GetViewportLine(row);
@@ -665,6 +709,22 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
         m_renderer->PaintRow(ctx, line, cols, surface.x, rowRect.y);
         line.SetIsDirty(false);
         m_boundLines[static_cast<size_t>(row)] = &line;
+        ++paintedRows;
+    }
+
+    // TEMP DEBUG: 行绘制结果（首次有效帧记录一次）
+    static std::set<const TerminalControl*> s_dbgPainted;
+    if (s_dbgPainted.size() < 12 && s_dbgPainted.count(this) == 0 && rows > 0) {
+        s_dbgPainted.insert(this);
+        std::wstring firstText = buf.GetViewportLine(0).GetTrimmedText();
+        std::string firstUtf8;
+        for (wchar_t wc : firstText) {
+            if (wc < 128) firstUtf8 += (char)wc;
+            else firstUtf8 += '?';
+        }
+        TermDbg("[rows] inst=%p painted=%d culled=%d rows=%d cols=%d line0='%s' len=%d",
+                (void*)this, paintedRows, culledRows, rows, cols,
+                firstUtf8.c_str(), (int)firstText.size());
     }
 
     const bool blink = m_terminal->Options().CursorBlink && m_terminal->Input().CursorBlink();

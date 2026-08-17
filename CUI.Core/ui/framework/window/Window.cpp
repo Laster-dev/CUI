@@ -1010,7 +1010,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     WNDCLASSEX wc = {};
     wc.cbSize = sizeof(WNDCLASSEX);
-    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
@@ -1550,6 +1550,32 @@ void Window::RunMessageLoop() {
 }
 
 void Window::SetRootElement(std::shared_ptr<UIElement> root) {
+    if (m_hwnd && GetCapture() == m_hwnd) {
+        ::ReleaseCapture();
+    }
+    if (auto hovered = LockElement(m_hoveredElement)) {
+        hovered->OnMouseLeave();
+    }
+    m_hoveredElement.reset();
+    m_hoveredRaw = nullptr;
+    m_pressedElement.reset();
+    m_pressedRaw = nullptr;
+    m_rpressedElement.reset();
+    m_middleScrollElement.reset();
+    if (auto focused = LockElement(m_focusedElement)) {
+        focused->OnBlur();
+    }
+    m_focusedElement.reset();
+    if (m_activeContextMenu) {
+        m_activeContextMenu->Hide();
+        m_activeContextMenu = nullptr;
+    }
+    m_pendingContextMenu = nullptr;
+    m_pendingContextMenuTarget = nullptr;
+    m_popupHost.CloseAll();
+    m_commands.Clear();
+    m_trackingMouse = false;
+
     m_rootElement = root;
     m_animationManager.SetLiveRoot(m_rootElement.get());
     if (m_rootElement) {
@@ -1572,6 +1598,9 @@ void Window::SetRootElement(std::shared_ptr<UIElement> root) {
         m_rootElement->SyncRenderState();
     }
     Relayout();
+    if (m_hwnd) {
+        ::SetCursor(LoadCursor(nullptr, IDC_ARROW));
+    }
 }
 
 void Window::ApplyVisualState() {
