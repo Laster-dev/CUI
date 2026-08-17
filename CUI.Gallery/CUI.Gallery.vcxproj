@@ -165,6 +165,7 @@
     <ClCompile Include="src\catalog\CategoryRegistrations.cpp" />
     <ClCompile Include="src\pages\SamplePage.cpp" />
     <ClCompile Include="src\chrome\GalleryShell.cpp" />
+    <ClCompile Include="src\chrome\GalleryStatusBar.cpp" />
     <ClCompile Include="src\chrome\HomePage.cpp" />
     <ClCompile Include="src\chrome\ConventionsPage.cpp" />
     <ClCompile Include="src\chrome\SettingsPage.cpp" />
@@ -247,6 +248,7 @@
     <ClInclude Include="src\catalog\CategoryRegistrations.h" />
     <ClInclude Include="src\pages\SamplePage.h" />
     <ClInclude Include="src\chrome\GalleryShell.h" />
+    <ClInclude Include="src\chrome\GalleryStatusBar.h" />
     <ClInclude Include="src\chrome\HomePage.h" />
     <ClInclude Include="src\chrome\ConventionsPage.h" />
     <ClInclude Include="src\chrome\SettingsPage.h" />

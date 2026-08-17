@@ -87,7 +87,7 @@ std::shared_ptr<UIElement> BuildDropDownButtonPage() {
     color->AddItem("灰色");
     color->AddItem("黑色");
 
-    State<int> colorSelection{ -1 };
+    State<int> colorSelection{ 1 };
     color->SelectedIndex->Bind(colorSelection);
     auto backgroundColor = MakeComputed<Color>([](int index) {
         return ColorForIndex(index);

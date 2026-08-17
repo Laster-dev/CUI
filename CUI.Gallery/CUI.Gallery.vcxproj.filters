@@ -75,6 +75,9 @@
     <ClCompile Include="src\chrome\GalleryShell.cpp">
       <Filter>src\chrome</Filter>
     </ClCompile>
+    <ClCompile Include="src\chrome\GalleryStatusBar.cpp">
+      <Filter>src\chrome</Filter>
+    </ClCompile>
     <ClCompile Include="src\chrome\HomePage.cpp">
       <Filter>src\chrome</Filter>
     </ClCompile>
@@ -315,6 +318,9 @@
       <Filter>src\pages</Filter>
     </ClInclude>
     <ClInclude Include="src\chrome\GalleryShell.h">
+      <Filter>src\chrome</Filter>
+    </ClInclude>
+    <ClInclude Include="src\chrome\GalleryStatusBar.h">
       <Filter>src\chrome</Filter>
     </ClInclude>
     <ClInclude Include="src\chrome\HomePage.h">

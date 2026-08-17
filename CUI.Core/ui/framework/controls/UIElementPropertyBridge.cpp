@@ -1164,6 +1164,7 @@ void UIElement::SetBackground(D2D1_COLOR_F c) {
     if (ColorUnchanged(m_hasBackgroundColor, m_backgroundColor, c)) return;
     m_backgroundColor = c;
     m_hasBackgroundColor = true;
+    m_backgroundToken = ThemeTokenId::Unset;
     NotifyFieldChanged(PropertyId::Background, Value(c));
 }
 
@@ -1171,6 +1172,7 @@ void UIElement::SetHoverBackground(D2D1_COLOR_F c) {
     if (ColorUnchanged(m_hasHoverBackgroundColor, m_hoverBackgroundColor, c)) return;
     m_hoverBackgroundColor = c;
     m_hasHoverBackgroundColor = true;
+    m_hoverBackgroundToken = ThemeTokenId::Unset;
     NotifyFieldChanged(PropertyId::HoverBackground, Value(c));
 }
 
@@ -1178,6 +1180,7 @@ void UIElement::SetPressedBackground(D2D1_COLOR_F c) {
     if (ColorUnchanged(m_hasPressedBackgroundColor, m_pressedBackgroundColor, c)) return;
     m_pressedBackgroundColor = c;
     m_hasPressedBackgroundColor = true;
+    m_pressedBackgroundToken = ThemeTokenId::Unset;
     NotifyFieldChanged(PropertyId::PressedBackground, Value(c));
 }
 
@@ -1185,6 +1188,7 @@ void UIElement::SetBorderBrush(D2D1_COLOR_F c) {
     if (ColorUnchanged(m_hasBorderBrushColor, m_borderBrushColor, c)) return;
     m_borderBrushColor = c;
     m_hasBorderBrushColor = true;
+    m_borderToken = ThemeTokenId::Unset;
     NotifyFieldChanged(PropertyId::BorderBrush, Value(c));
 }
 
@@ -1192,6 +1196,7 @@ void UIElement::SetColor(D2D1_COLOR_F c) {
     if (ColorUnchanged(m_hasColorValue, m_colorValue, c)) return;
     m_colorValue = c;
     m_hasColorValue = true;
+    m_colorToken = ThemeTokenId::Unset;
     NotifyFieldChanged(PropertyId::Color, Value(c));
 }
 

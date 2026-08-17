@@ -1,4 +1,5 @@
 #include "chrome/GalleryShell.h"
+#include "chrome/GalleryStatusBar.h"
 #include "chrome/HomePage.h"
 #include "chrome/ConventionsPage.h"
 #include "chrome/SettingsPage.h"
@@ -75,7 +76,7 @@ namespace Gallery {
             }
         };
 
-        std::shared_ptr<NavigationView> BuildNavigation() {
+        std::shared_ptr<NavigationView> BuildNavigation(const std::shared_ptr<GalleryStatusBar>& statusBar) {
             auto nav = std::make_shared<NavigationView>();
             nav->SetHeader(std::string());
             nav->SetPaneTitle("CUI Gallery");
@@ -129,11 +130,26 @@ namespace Gallery {
 
             auto cache = std::make_shared<PageCache>();
 
-            auto navigate = [nav, cache](const std::string& tag) {
+            auto navigate = [nav, cache, statusBar](const std::string& tag) {
                 if (tag.empty()) {
                     return;
                 }
                 nav->NavigateTo(tag);
+
+                std::string pageTitle = "主页";
+                if (tag == kHomeTag) {
+                    pageTitle = "主页";
+                } else if (tag == kSettingsTag) {
+                    pageTitle = "设置";
+                } else if (tag == kConventionsTag) {
+                    pageTitle = "全局约定";
+                } else if (const Entry* entry = FindByTag(tag)) {
+                    pageTitle = entry->title;
+                }
+                if (statusBar) {
+                    statusBar->SetCurrentPage(pageTitle);
+                }
+
                 if (tag == kSettingsTag || tag == kConventionsTag) {
                     nav->SetContent(cache->Resolve(tag));
                     return;
@@ -188,6 +204,9 @@ namespace Gallery {
 
             nav->SetSelectedItem(homeItem.get());
             nav->SetContent(cache->Resolve(kHomeTag));
+            if (statusBar) {
+                statusBar->SetCurrentPage("主页");
+            }
             return nav;
         }
 
@@ -248,11 +267,12 @@ namespace Gallery {
             }
             });
 
-        auto nav = BuildNavigation();
+        auto statusBar = std::make_shared<GalleryStatusBar>();
+        auto nav = BuildNavigation(statusBar);
         auto toastCenter = std::make_shared<ToastCenter>();
         toastCenter->SetId("toastCenter");
 
-        auto root = Column(0, { titleBar, nav, toastCenter });
+        auto root = Column(0, { titleBar, nav, statusBar, toastCenter });
         root->BackgroundToken = ThemeTokenId::WindowBackground;
         return root;
     }

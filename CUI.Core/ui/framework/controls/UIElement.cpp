@@ -769,9 +769,11 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
 void UIElement::OnRender(GraphicsContext& ctx) {
     const float radius = m_cornerRadius;
 
-    D2D1_COLOR_F bg = (m_backgroundToken != ThemeTokenId::Unset)
-        ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
-        : (m_hasBackgroundColor ? m_backgroundColor : D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F bg = m_hasBackgroundColor
+        ? m_backgroundColor
+        : ((m_backgroundToken != ThemeTokenId::Unset)
+            ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
+            : D2D1::ColorF(0, 0, 0, 0));
     if (bg.a > 0.0f) {
         if (radius > 0.0f) {
             ctx.FillRoundedRect(m_bounds, radius, bg);
@@ -780,9 +782,11 @@ void UIElement::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    D2D1_COLOR_F borderBrush = (m_borderToken != ThemeTokenId::Unset)
-        ? ResolveThemeColor(m_borderToken, ThemeTokenId::CardBorder)
-        : (m_hasBorderBrushColor ? m_borderBrushColor : D2D1::ColorF(0, 0, 0, 0));
+    D2D1_COLOR_F borderBrush = m_hasBorderBrushColor
+        ? m_borderBrushColor
+        : ((m_borderToken != ThemeTokenId::Unset)
+            ? ResolveThemeColor(m_borderToken, ThemeTokenId::CardBorder)
+            : D2D1::ColorF(0, 0, 0, 0));
     const float borderThickness = m_borderThickness;
     if (borderBrush.a > 0.0f && borderThickness > 0.0f) {
         if (radius > 0.0f) {
