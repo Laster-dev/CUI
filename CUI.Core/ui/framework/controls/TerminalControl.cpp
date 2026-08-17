@@ -171,8 +171,8 @@ void TerminalControl::InitTerminal(const std::string& shellPath) {
     SetBorderToken(ThemeTokenId::CardBorder);
     SetBorderThickness(1.0f);
     SetCornerRadius(4.0f);
-    SetWidth(680.0f);
-    SetHeight(420.0f);
+    // 不显式设置 Width/Height：显式尺寸会阻止 FlexPanel 的 Stretch/FlexGrow 拉伸，
+    // 保持 -1（自适应）让父容器通过 Align(Stretch) + FlexGrow 铺满剩余空间。
 
     BuildFindBar();
     BuildContextMenu();
