@@ -13,6 +13,7 @@
 #include "../controls/ComboBox.h"
 #include "../controls/Flyout.h"
 #include "../controls/ProgressBarDiag.h"
+#include <iostream>
 #include "../controls/docking/DockFloatWindow.h"
 #include "../animation/AnimationService.h"
 #include "../animation/FrameScheduler.h"
@@ -525,10 +526,6 @@ void Window::RegisterShellDropTarget() {
     if (!m_hwnd || m_oleDropRegistered) {
         return;
     }
-    const HRESULT ole = OleInitialize(nullptr);
-    if (ole == S_OK) {
-        m_needOleUninit = true;
-    }
     auto* target = new (std::nothrow) WindowOleDropTarget(this);
     if (!target) {
         DragAcceptFiles(m_hwnd, TRUE);
@@ -997,6 +994,7 @@ Window::~Window() {
     if (m_hwnd) {
         DestroyWindow(m_hwnd);
     }
+    m_gfxContext.Shutdown();
     if (m_needOleUninit) {
         OleUninitialize();
         m_needOleUninit = false;
@@ -1004,6 +1002,14 @@ Window::~Window() {
 }
 
 bool Window::Create(const std::string& title, int width, int height, bool transparentMode) {
+    if (!m_needOleUninit) {
+        const HRESULT ole = OleInitialize(nullptr);
+        if (FAILED(ole)) {
+            return false;
+        }
+        m_needOleUninit = true;
+    }
+
     EnsureProcessDpiAwareness();
     m_transparentMode = transparentMode;
     HINSTANCE hInstance = GetModuleHandle(nullptr);
@@ -1054,7 +1060,11 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
         this
     );
 
-    if (!m_hwnd) return false;
+    if (!m_hwnd) {
+        OleUninitialize();
+        m_needOleUninit = false;
+        return false;
+    }
 
     m_dpiScale = GetDpiScaleForWindow(m_hwnd);
 

@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 
 #pragma comment(lib, "d2d1.lib")
 #pragma comment(lib, "dwrite.lib")
@@ -31,10 +32,14 @@ bool GraphicsContext::Initialize(HWND hwnd) {
     m_hwnd = hwnd;
 
     HRESULT hr = CreateDeviceIndependentResources();
-    if (FAILED(hr)) return false;
+    if (FAILED(hr)) {
+        return false;
+    }
 
     hr = CreateDeviceResources();
-    if (FAILED(hr)) return false;
+    if (FAILED(hr)) {
+        return false;
+    }
 
     return true;
 }
@@ -62,8 +67,7 @@ HRESULT GraphicsContext::CreateDeviceIndependentResources() {
     hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &m_dwriteFactory);
     if (FAILED(hr)) return hr;
 
-    hr = CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory2), &m_wicFactory);
-    return hr;
+    return CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory2), &m_wicFactory);
 }
 
 HRESULT GraphicsContext::BindSwapChainTarget(float dpiX, float dpiY) {
@@ -151,7 +155,9 @@ HRESULT GraphicsContext::CreateDeviceResources() {
             &d3dContext
         );
     }
-    if (FAILED(hr)) return hr;
+    if (FAILED(hr)) {
+        return hr;
+    }
 
     m_d3dDevice = d3dDevice;
     // Required before any secondary D2D device context / raster worker touches the GPU.
@@ -325,6 +331,21 @@ void GraphicsContext::Resize(UINT width, UINT height) {
     m_resources.Initialize(m_d2dContext.Get(), m_dwriteFactory.Get());
 }
 
+void GraphicsContext::Shutdown() {
+    ReleaseDeviceResources();
+    m_targetStack.clear();
+    m_clipStack.clear();
+    m_clipIsLayer.clear();
+    m_opacityStack.clear();
+    m_transformStack.clear();
+    m_inheritedTextStyleStack.clear();
+    m_iconBitmapCache.clear();
+    m_svgCache.clear();
+    m_wicFactory.Reset();
+    m_dwriteFactory.Reset();
+    m_d2dFactory.Reset();
+    m_hwnd = nullptr;
+}
 void GraphicsContext::ReleaseDeviceResources() {
     m_svgCache.clear();
     m_iconBitmapCache.clear();

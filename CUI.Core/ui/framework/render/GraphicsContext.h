@@ -33,6 +33,7 @@ public:
     bool RequiresPerPixelAlpha() const { return m_requirePerPixelAlpha; }
     void Resize(UINT width, UINT height);
     void ReleaseDeviceResources();
+    void Shutdown();
 
     void BeginDraw();
     HRESULT EndDraw();
