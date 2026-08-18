@@ -281,11 +281,13 @@ public:
      */
     void SetActiveContextMenu(std::shared_ptr<ContextMenu> menu) { m_activeContextMenu = menu; }
 
+protected:
+    virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);                         // 实例消息路由处理函数
+
 private:
     static Window* s_current; // 全局窗口单例静态缓存指针
 
     static LRESULT CALLBACK WindowProc(::HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam); // 静态 Win32 回调入口
-    LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);                         // 实例消息路由处理函数
 
     void OnPaint();                                                     // 处理 WM_PAINT 并刷新 Direct2D 画面
     void OnResize(UINT width, UINT height);                             // 处理 WM_SIZE 改变后台缓冲区尺寸
