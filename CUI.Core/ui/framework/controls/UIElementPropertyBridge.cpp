@@ -913,6 +913,7 @@ void UIElement::SetText(const std::string& text) {
     if (m_text == text) return;
     m_text = text;
     NotifyFieldChanged(PropertyId::Text, Value(text));
+    InvalidateMeasure();
 }
 
 void UIElement::BindText(const std::shared_ptr<Observable<std::string>>& value) {
