@@ -1984,6 +1984,10 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     case WM_LBUTTONDBLCLK:
         StopMiddleClickAutoscroll();
+        // Windows replaces the second button-down with WM_LBUTTONDBLCLK.
+        // Replay the normal click lifecycle so rapid repeated clicks are not swallowed.
+        OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        OnLButtonUp(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         OnLButtonDblClick(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         InvalidatePendingRenderRegions(true);
         return 0;
