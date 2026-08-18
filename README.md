@@ -79,9 +79,6 @@ CUI 提供了全套工业级自绘控件，以下为 `CUI.Gallery` 控件演示�
 使用 CUI 创建一个现代化 Fluent 窗口只需几行 C++ 代码：
 
 ```cpp
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
 #include "framework/window/Window.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/Button.h"
