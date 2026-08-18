@@ -1060,7 +1060,9 @@ void ScrollViewer::OnAutoScrollTick() {
 void ScrollViewer::OnMouseWheel(float delta) {
     float maxScroll = GetMaxScroll();
     if (maxScroll <= 0.0f) {
-        UIElement::OnMouseWheel(delta);
+        // No scrollable space — swallow the event instead of bubbling to parent.
+        // Bubbling when embedded in NavigationView causes infinite recursion:
+        // NavigationView → ScrollViewer → UIElement → parent (NavigationView) → loop.
         return;
     }
 
