@@ -115,6 +115,7 @@ void MenuPopupWindow::Hide() {
 void MenuPopupWindow::Invalidate() {
     if (m_hwnd && IsWindow(m_hwnd)) {
         InvalidateRect(m_hwnd, nullptr, FALSE);
+        UpdateWindow(m_hwnd);
     }
 }
 

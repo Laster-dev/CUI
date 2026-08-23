@@ -1026,7 +1026,18 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     RegisterClassEx(&wc);
 
-    std::wstring wTitle(title.begin(), title.end());
+    // 标题为 UTF-8，必须按 UTF-8 → UTF-16 转换；逐字节拷贝会把每个 UTF-8 字节
+    // 当成一个 wchar_t，中文标题（远程 Shell/Listener Manager 等）在任务栏变乱码。
+    std::wstring wTitle;
+    if (!title.empty())
+    {
+        const int n = MultiByteToWideChar(CP_UTF8, 0, title.c_str(), -1, nullptr, 0);
+        if (n > 1)
+        {
+            wTitle.resize(static_cast<std::size_t>(n - 1));
+            MultiByteToWideChar(CP_UTF8, 0, title.c_str(), -1, wTitle.data(), n);
+        }
+    }
 
     // DirectComposition host requires WS_EX_NOREDIRECTIONBITMAP so GDI's opaque
     // redirection surface does not cover premul swap-chain alpha.
@@ -1065,6 +1076,29 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
         m_needOleUninit = false;
         return false;
     }
+
+    RECT workArea{};
+    HMONITOR monitor = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo{};
+    monitorInfo.cbSize = sizeof(monitorInfo);
+    if (monitor && GetMonitorInfo(monitor, &monitorInfo)) {
+        workArea = monitorInfo.rcWork;
+    } else {
+        workArea.left = GetSystemMetrics(SM_XVIRTUALSCREEN);
+        workArea.top = GetSystemMetrics(SM_YVIRTUALSCREEN);
+        workArea.right = workArea.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        workArea.bottom = workArea.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
+    }
+    RECT windowRect{};
+    GetWindowRect(m_hwnd, &windowRect);
+    const int windowWidth = windowRect.right - windowRect.left;
+    const int windowHeight = windowRect.bottom - windowRect.top;
+    const int workWidth = workArea.right - workArea.left;
+    const int workHeight = workArea.bottom - workArea.top;
+    SetWindowPos(m_hwnd, nullptr,
+        workArea.left + (workWidth - windowWidth) / 2,
+        workArea.top + (workHeight - windowHeight) / 2,
+        0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 
     m_dpiScale = GetDpiScaleForWindow(m_hwnd);
 
@@ -1329,6 +1363,18 @@ void Window::Show() {
         Relayout();
         RequestFullRepaint();
         UpdateWindow(m_hwnd);
+    }
+}
+
+void Window::Close() {
+    if (m_hwnd && IsWindow(m_hwnd)) {
+        PostMessage(m_hwnd, WM_CLOSE, 0, 0);
+    }
+}
+
+void Window::Hide() {
+    if (m_hwnd && IsWindow(m_hwnd)) {
+        ShowWindow(m_hwnd, SW_HIDE);
     }
 }
 

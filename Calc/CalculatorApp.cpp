@@ -122,15 +122,15 @@ std::shared_ptr<UIElement> CalculatorApp::BuildDisplayPanel() {
         .FontSize(14.0f)
         .ColorToken(ThemeTokenId::TextMuted)
         .Build();
-    m_historyText->SetTextAlign("Right");
+    m_historyText->SetTextAlign(TextAlignment::Right);
     m_historyText->SetHeight(24.0f);
 
     m_displayText = Text("0")
         .FontSize(40.0f)
         .ColorToken(ThemeTokenId::TextPrimary)
         .Build();
-    m_displayText->SetTextAlign("Right");
-    m_displayText->SetVerticalAlign("Center");
+    m_displayText->SetTextAlign(TextAlignment::Right);
+    m_displayText->SetVerticalAlign(TextVerticalAlignment::Center);
     m_displayText->SetMinHeight(72.0f);
 
     column->AddChild(m_historyText);

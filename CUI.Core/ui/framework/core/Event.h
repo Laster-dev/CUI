@@ -24,6 +24,10 @@ public:
         return id;
     }
 
+    EventId Subscribe(Handler handler) {
+        return Connect(handler);
+    }
+
     void Disconnect(EventId id) {
         m_handlers.erase(
             std::remove_if(m_handlers.begin(), m_handlers.end(),

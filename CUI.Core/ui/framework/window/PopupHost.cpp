@@ -110,6 +110,12 @@ bool PopupHost::TickAnimations() {
         if (!p) {
             continue;
         }
+        // A popup destroyed while still registered (e.g. a ContextMenu whose
+        // last shared_ptr was released mid-open) would crash the virtual calls
+        // below. Prune invalid entries defensively before touching them.
+        if (!p->IsPopupOpen()) {
+            continue;
+        }
         if (p->TickPopupAnimation()) {
             any = true;
         }

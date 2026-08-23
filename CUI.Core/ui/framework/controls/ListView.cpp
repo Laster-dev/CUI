@@ -40,6 +40,9 @@ constexpr float kPillRadius = 4.0f;
 constexpr float kScrollbarThumbW = 6.0f;
 constexpr float kScrollbarEdgeGap = 12.0f;
 constexpr float kScrollbarHitPad = 2.0f;
+constexpr float kHScrollbarThumbH = 6.0f;
+constexpr float kHScrollbarBottomGap = 4.0f;
+constexpr float kHScrollbarHitPad = 2.0f;
 
 float ScrollbarTrackX(const Rect& bounds) {
     return bounds.x + bounds.width - kScrollbarEdgeGap - kScrollbarThumbW;
@@ -50,6 +53,20 @@ bool IsOverScrollbar(const Rect& bounds, float headerHeight, Point pt, bool canS
     const float x0 = ScrollbarTrackX(bounds) - kScrollbarHitPad;
     const float x1 = ScrollbarTrackX(bounds) + kScrollbarThumbW + kScrollbarHitPad;
     return pt.x >= x0 && pt.x < x1 && pt.y >= bounds.y + headerHeight;
+}
+
+float HScrollbarTrackY(const Rect& bounds) {
+    return bounds.y + bounds.height - kHScrollbarBottomGap - kHScrollbarThumbH;
+}
+
+bool IsOverHScrollbar(const Rect& bounds, Point pt, bool canScrollH, bool canScrollV) {
+    if (!canScrollH) return false;
+    const float trackY = HScrollbarTrackY(bounds);
+    float rightEdge = bounds.x + bounds.width;
+    if (canScrollV) rightEdge -= (kScrollbarEdgeGap + kScrollbarThumbW);
+    return pt.x >= bounds.x && pt.x < rightEdge
+        && pt.y >= trackY - kHScrollbarHitPad
+        && pt.y < trackY + kHScrollbarThumbH + kHScrollbarHitPad;
 }
 
 } // namespace
@@ -441,6 +458,13 @@ bool ListView::OnContextMenuRelease(Point pt) {
     }
     // After a right-button marquee, suppress the default empty context menu.
     if (didRubberBand) {
+        return true;
+    }
+    // Right-click on blank space (below the rows / no row under the cursor)
+    // must dismiss an already-open menu, not re-open the list's own menu at
+    // the new click position. Suppress it so Window::OnRButtonUp does not
+    // fall back to showing the control's default context menu.
+    if (GetRowIndexFromY(pt.y) < 0) {
         return true;
     }
     return false;
@@ -902,6 +926,22 @@ void ListView::OnRender(GraphicsContext& ctx) {
         ctx.FillRoundedRect(thumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.75f * vis));
     }
 
+    // --- Horizontal scrollbar ---
+    if (m_maxScrollX > 0.0f) {
+        float hTrackY = HScrollbarTrackY(m_bounds);
+        float hTrackX = m_bounds.x + 4.0f;
+        float hTrackW = m_bounds.width - 8.0f;
+        if (m_maxScrollY > 0.0f) hTrackW -= (kScrollbarEdgeGap + kScrollbarThumbW);
+
+        float totalW = GetTotalColumnsWidth();
+        float hThumbW = std::max(20.0f, hTrackW * (hTrackW / totalW));
+        float hThumbX = hTrackX + (m_scrollX / m_maxScrollX) * (hTrackW - hThumbW);
+
+        Rect hThumbRect(hThumbX, hTrackY, hThumbW, kHScrollbarThumbH);
+        const float hVis = (std::max)(m_scrollbarAutoHide.Opacity(), 0.55f);
+        ctx.FillRoundedRect(hThumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.75f * hVis));
+    }
+
     if (m_isReorderingColumn && m_reorderingColumnIndex >= 0 && m_reorderingColumnIndex < static_cast<int>(m_columns.size())) {
         D2D1_COLOR_F accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
 
@@ -960,6 +1000,17 @@ void ListView::OnMouseDown(Point pt) {
     m_initialSelectedBeforeDrag = m_selectedIndices;
     m_isReorderingColumn = false;
     m_reorderingColumnIndex = -1;
+
+    // 0. Check Horizontal ScrollBar Track / Thumb Click
+    if (IsOverHScrollbar(m_bounds, pt, m_maxScrollX > 0.0f, m_maxScrollY > 0.0f)) {
+        m_isDraggingHScrollbar = true;
+        m_scrollbarAutoHide.SetDragging(true, this);
+        m_scrollbarAutoHide.NotifyActivity(this);
+        RequestAnimationTicks();
+        m_hDragStartX = pt.x;
+        m_hDragStartScrollX = m_scrollX;
+        return;
+    }
 
     // 1. Check Vertical ScrollBar Track / Thumb Click
     if (IsOverScrollbar(m_bounds, m_headerHeight, pt, m_maxScrollY > 0.0f)) {
@@ -1061,7 +1112,25 @@ void ListView::OnMouseMove(Point pt) {
         RequestAnimationTicks();
     }
 
-    // 1. Check ScrollBar Dragging
+    // 1a. Check Horizontal ScrollBar Dragging
+    if (m_isDraggingHScrollbar && m_isPressed) {
+        float deltaX = pt.x - m_hDragStartX;
+        float totalW = GetTotalColumnsWidth();
+        float hTrackW = m_bounds.width - 8.0f;
+        if (m_maxScrollY > 0.0f) hTrackW -= (kScrollbarEdgeGap + kScrollbarThumbW);
+        float hThumbW = std::max(20.0f, hTrackW * (hTrackW / totalW));
+        float scrollableTrackW = hTrackW - hThumbW;
+
+        if (scrollableTrackW > 0.0f) {
+            m_scrollX = m_hDragStartScrollX + (deltaX / scrollableTrackW) * m_maxScrollX;
+            ClampScroll();
+            m_scrollbarAutoHide.NotifyActivity(this);
+            MarkRenderRectDirty(m_bounds);
+        }
+        return;
+    }
+
+    // 1. Check Vertical ScrollBar Dragging
     if (m_isDraggingScrollbar && m_isPressed) {
         float deltaY = pt.y - m_dragStartY;
         float trackH = m_bounds.height - m_headerHeight - 4.0f;
@@ -1222,6 +1291,7 @@ void ListView::OnMouseUp(Point pt) {
     m_reorderingColumnIndex = -1;
     m_isRubberBandSelecting = false;
     m_isDraggingScrollbar = false;
+    m_isDraggingHScrollbar = false;
     m_scrollbarAutoHide.SetDragging(false, this);
     m_pendingRowClick = -1;
     RequestAnimationTicks();

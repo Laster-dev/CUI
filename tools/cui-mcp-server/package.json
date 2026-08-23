@@ -1,0 +1,14 @@
+{
+  "name": "cui-mcp-server",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "MCP bridge for CUI desktop applications",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "^3.25.76"
+  }
+}

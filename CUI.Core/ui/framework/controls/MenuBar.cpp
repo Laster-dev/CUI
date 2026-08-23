@@ -192,15 +192,18 @@ void MenuBar::OpenMenu(int index) {
             SyncHoverAnimationTargets();
             InvalidateMenuChrome(previous, -1);
             RequestAnimationTicks();
+            // Drop the assignment once the dropdown closes so a stale menu
+            // never hijacks right-clicks elsewhere in the window.
+            SetContextMenu(nullptr);
         });
         menu->ShowAt(m_menus[index].bounds.x, m_bounds.y + m_bounds.height);
         menu->HighlightFirst();
 
-        UIElement* curr = this;
-        while (curr) {
-            curr->SetContextMenu(menu);
-            curr = curr->GetParent();
-        }
+        // Expose the dropdown as the context menu of the MenuBar itself only.
+        // Propagating it to the whole ancestor chain made every right-click in
+        // the window (online list, log control, ...) resolve to this menu
+        // instead of the target control's own context menu.
+        SetContextMenu(menu);
     }
 }
 
@@ -209,6 +212,7 @@ void MenuBar::CloseActiveMenu() {
     // Clear open index before Hide so ClosedCallback does not double-invalidate.
     m_activeOpenIndex = -1;
     HideAllMenusExcept(-1);
+    SetContextMenu(nullptr);
     SyncHoverAnimationTargets();
     InvalidateMenuChrome(previousOpen, m_hoveredIndex);
     RequestAnimationTicks();

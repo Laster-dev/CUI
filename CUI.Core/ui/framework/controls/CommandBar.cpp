@@ -109,6 +109,9 @@ void CommandBar::EnsureOverflowChrome() {
             if (m_overflowBtn) {
                 m_overflowBtn->MarkRenderRectDirty(m_overflowBtn->GetBounds());
             }
+            // Light-dismiss / item-click close: drop the stale assignment so it
+            // never hijacks right-clicks elsewhere in the window.
+            SetContextMenu(nullptr);
         });
     }
 }
@@ -537,14 +540,14 @@ void CommandBar::SetOverflowOpen(bool open) {
         RebuildOverflowMenu();
         const Rect btn = m_overflowBtn ? m_overflowBtn->GetBounds() : m_bounds;
         m_overflowMenu->ShowAt(btn.x + btn.width - 180.0f, btn.y + btn.height);
-        UIElement* curr = this;
-        while (curr) {
-            curr->SetContextMenu(m_overflowMenu);
-            curr = curr->GetParent();
-        }
+        // Expose the overflow dropdown as the context menu of the CommandBar
+        // itself only; propagating it to the ancestor chain hijacks every
+        // right-click in the window.
+        SetContextMenu(m_overflowMenu);
         m_onOverflowOpened.Invoke();
     } else if (m_overflowMenu->IsOpen()) {
         m_overflowMenu->Hide();
+        SetContextMenu(nullptr);
     }
 }
 

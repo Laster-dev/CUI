@@ -330,12 +330,19 @@ void UIElement::FlushLayout(Size availableSize, const Rect& arrangeRect) {
         Arrange(arrangeRect);
         m_arrangeDirty = false;
     } else {
-        // Children may still be dirty even if this node is not.
+        // A child can still carry a stale m_measureDirty here: most Measure
+        // overrides (Button, TextBlock, TextBox, InfoBar, ...) never clear the
+        // flag, so the child stays flagged even though this node's own
+        // Measure/Arrange already ran and its DesiredSize/bounds are current.
+        // Never re-arrange it with its own bounds: child->m_bounds is already
+        // Margin-inset, and Arrange subtracts Margin a second time, visibly
+        // squeezing every control that has a Margin on the first frame after
+        // open (a resize temporarily "fixes" it by forcing a fresh root
+        // Arrange). Just clear the stale flags.
         for (auto& child : m_children) {
             if (child && (child->m_measureDirty || child->m_arrangeDirty)) {
-                child->FlushLayout(
-                    Size(child->m_bounds.width, child->m_bounds.height),
-                    child->m_bounds);
+                child->m_measureDirty = false;
+                child->m_arrangeDirty = false;
             }
         }
     }

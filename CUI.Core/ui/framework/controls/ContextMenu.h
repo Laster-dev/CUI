@@ -120,6 +120,12 @@ public:
     std::shared_ptr<ContextMenu> GetActiveSubMenu() const { return m_activeSubMenu; }
     ContextMenu* GetOwnerMenu() const { return m_ownerMenu; }
     void SetOwnerMenu(ContextMenu* owner) { m_ownerMenu = owner; }
+    ::HWND GetOwnerHwnd() const {
+        if (m_ownerHwnd) return m_ownerHwnd;
+        if (m_ownerMenu) return m_ownerMenu->GetOwnerHwnd();
+        return nullptr;
+    }
+    void SetOwnerHwnd(::HWND hwnd) { m_ownerHwnd = hwnd; }
 
     // IPopup
     virtual bool IsPopupOpen() const override { return m_isOpen; }
@@ -150,6 +156,7 @@ private:
     int m_hoveredIndex = -1;
     std::shared_ptr<ContextMenu> m_activeSubMenu = nullptr;
     ContextMenu* m_ownerMenu = nullptr; // parent menu when this is a submenu
+    ::HWND m_ownerHwnd = nullptr;
 
     // Scrolling support when content height exceeds visible height.
     float m_scrollOffset = 0.0f;
@@ -157,7 +164,6 @@ private:
     float m_itemWidth = 0.0f;
     ScrollbarAutoHide m_scrollbarAutoHide;
 
-    AnimatedScalar m_openAnim{ 0.0f };
     bool m_hostedExternally = false;
     std::unique_ptr<class MenuPopupWindow> m_popupSurface;
     LazyPopulateFn m_lazyPopulate;

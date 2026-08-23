@@ -55,6 +55,16 @@ public:
     void Show();
 
     /**
+     * @brief 关闭当前窗口（向操作系统发送 WM_CLOSE 消息）。
+     */
+    void Close();
+
+    /**
+     * @brief 隐藏当前窗口。
+     */
+    void Hide();
+
+    /**
      * @brief 阻塞并运行 Win32 消息循环（GetMessage / DispatchMessage）。
      */
     void RunMessageLoop();

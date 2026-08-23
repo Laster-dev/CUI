@@ -280,6 +280,9 @@ private:
     bool m_isDraggingScrollbar = false;
     float m_dragStartY = 0.0f;
     float m_dragStartScrollY = 0.0f;
+    bool m_isDraggingHScrollbar = false;
+    float m_hDragStartX = 0.0f;
+    float m_hDragStartScrollX = 0.0f;
     ScrollbarAutoHide m_scrollbarAutoHide;
 
     float m_headerHeight = 32.0f;

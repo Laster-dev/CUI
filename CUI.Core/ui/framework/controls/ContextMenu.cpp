@@ -9,7 +9,7 @@
 namespace CUI {
 
 namespace {
-constexpr AnimationSpec kMenuHoverSpec{ 0.22f, 0.01f, 0.16f }; // cubic ease-out via maxDurationSeconds
+constexpr AnimationSpec kMenuHoverSpec{ 0.05f, 0.001f, 0.05f }; // snappy hover feedback
 } // namespace
 
 MenuItem::MenuItem() {
@@ -139,9 +139,13 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
                  DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
 
     if (HasSubMenu()) {
-        Rect arrowRect(m_bounds.x + m_bounds.width - 20.0f, m_bounds.y, 16.0f, m_bounds.height);
-        ctx.DrawText(">", arrowRect, textColor, font, 11.0f, DWRITE_TEXT_ALIGNMENT_TRAILING,
-                     DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+        // Submenu chevron — inline SVG triangle, tinted to match the theme.
+        constexpr const char* kSubmenuArrowSvg =
+            "<svg viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'>"
+            "<path d='M707.128889 488.846222L386.275556 259.697778a28.444444 28.444444 0 0 0-44.942223 23.153778v458.296888a28.444444 28.444444 0 0 0 44.942223 23.153778l320.853333-229.148444a28.444444 28.444444 0 0 0 0-46.307556'/>"
+            "</svg>";
+        Rect arrowRect(m_bounds.x + m_bounds.width - 20.0f, m_bounds.y + (m_bounds.height - 14.0f) * 0.5f, 14.0f, 14.0f);
+        ctx.DrawIcon(kSubmenuArrowSvg, arrowRect, textColor, enabled ? 1.0f : 0.45f);
     } else if (!shortcut.empty()) {
         Rect shortcutRect(m_bounds.x + m_bounds.width - rightReserve, m_bounds.y,
                           rightReserve - 8.0f, m_bounds.height);
@@ -251,7 +255,24 @@ ContextMenu::ContextMenu() {
     SetCornerRadius(8.0f);
 }
 
-ContextMenu::~ContextMenu() = default;
+ContextMenu::~ContextMenu() {
+    // PopupHost::m_open holds raw IPopup* pointers. If this menu is destroyed
+    // while still registered (window/page teardown, submenu release, …), the
+    // host would dereference freed memory on the next TickAnimations() frame.
+    // Unregister here so destruction never leaves a dangling popup pointer.
+    if (m_isOpen) {
+        if (PopupHost* host = PopupHost::Current()) {
+            host->Close(this);
+        }
+    }
+    if (m_popupSurface) {
+        m_popupSurface->Hide();
+    }
+    if (m_activeSubMenu) {
+        m_activeSubMenu->Hide();
+        m_activeSubMenu = nullptr;
+    }
+}
 
 std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, std::function<void()> onClick) {
     auto cmd = onClick ? std::make_shared<Command>(std::move(onClick)) : nullptr;
@@ -305,6 +326,9 @@ std::shared_ptr<MenuItem> ContextMenu::AddSubMenuItem(const std::string& text) {
     auto item = std::make_shared<MenuItem>(text);
     auto subMenu = std::make_shared<ContextMenu>();
     subMenu->SetOwnerMenu(this);
+    if (auto owner = GetOwnerHwnd()) {
+        subMenu->SetOwnerHwnd(owner);
+    }
     item->SetSubMenu(subMenu);
     item->SetParentContextMenu(this);
     m_items.push_back(item);
@@ -408,13 +432,8 @@ void ContextMenu::RelayoutItems() {
 }
 
 void ContextMenu::BeginOpenAnimation() {
-    if (!UIElement::AreAnimationsEnabled()) {
-        m_openAnim.Reset(1.0f);
-        return;
-    }
-    m_openAnim.Reset(0.0f);
-    m_openAnim.SetTarget(1.0f);
-    RequestAnimationTicks();
+    // Context menus open instantly — no popup reveal animation.
+    MarkRenderContentDirty();
 }
 
 void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
@@ -427,9 +446,14 @@ void ContextMenu::ShowAt(float x, float y, float windowW, float windowH) {
     const float itemW = ComputePreferredWidth();
     const float totalH = ComputeContentHeight();
 
-    ::HWND owner = nullptr;
-    if (PopupHost* host = PopupHost::Current()) {
-        owner = host->GetOwnerHwnd();
+    ::HWND owner = GetOwnerHwnd();
+    if (!owner) {
+        if (PopupHost* host = PopupHost::Current()) {
+            owner = host->GetOwnerHwnd();
+        }
+    }
+    if (owner) {
+        m_ownerHwnd = owner;
     }
 
     if (owner) {
@@ -483,9 +507,17 @@ void ContextMenu::ShowSubMenuAt(Rect parentItemBounds, float windowW, float wind
     }
 
     ContextMenu* parent = m_ownerMenu;
-    ::HWND owner = nullptr;
-    if (PopupHost* host = PopupHost::Current()) {
-        owner = host->GetOwnerHwnd();
+    ::HWND owner = GetOwnerHwnd();
+    if (!owner && parent) {
+        owner = parent->GetOwnerHwnd();
+    }
+    if (!owner) {
+        if (PopupHost* host = PopupHost::Current()) {
+            owner = host->GetOwnerHwnd();
+        }
+    }
+    if (owner) {
+        m_ownerHwnd = owner;
     }
 
     // Dedicated popup ::HWND sized to this submenu only (avoids stretching the parent
@@ -547,7 +579,6 @@ void ContextMenu::CloseActiveSubMenu() {
 void ContextMenu::Hide() {
     const bool wasOpen = m_isOpen;
     m_isOpen = false;
-    m_openAnim.Reset(0.0f);
     if (m_activeSubMenu) {
         m_activeSubMenu->Hide();
         m_activeSubMenu = nullptr;
@@ -656,11 +687,6 @@ bool ContextMenu::TickItemHoverAnimations() {
 
 bool ContextMenu::TickPopupAnimation() {
     bool any = TickItemHoverAnimations();
-    m_openAnim.SetTarget(m_isOpen ? 1.0f : 0.0f);
-    if (m_openAnim.Tick(UIElement::GetAnimationDeltaSeconds(), PopupReveal::kSpec)) {
-        MarkRenderContentDirty();
-        any = true;
-    }
     const float prev = m_scrollbarAutoHide.Opacity();
     const bool hideAnimating = m_scrollbarAutoHide.Tick(UIElement::GetAnimationDeltaSeconds());
     if (std::abs(prev - m_scrollbarAutoHide.Opacity()) > 0.001f) {
@@ -685,7 +711,6 @@ bool ContextMenu::OnAnimationTick() {
 }
 
 bool ContextMenu::HasSelfAnimation() const {
-    if (m_openAnim.IsAnimating()) return true;
     if (m_scrollbarAutoHide.NeedsTicks()) return true;
     for (const auto& item : m_items) {
         if (item && item->HasSelfAnimation()) return true;
@@ -712,16 +737,12 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
     if (!m_isOpen || m_items.empty()) return;
 
     float radius = GetCornerRadius();
-    const float progress = UIElement::AreAnimationsEnabled() ? m_openAnim.Current() : 1.0f;
-    if (progress <= 0.001f) {
-        return;
-    }
 
     D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
     D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
 
     const Rect drawBounds = m_bounds;
-    ctx.PushPopupReveal(drawBounds, progress, Point(drawBounds.x, drawBounds.y));
+    // No popup reveal animation — context menus appear instantly.
     ctx.FillRoundedRect(drawBounds, radius, bg);
     ctx.DrawRoundedRect(drawBounds, radius, border, 1.0f);
 
@@ -756,7 +777,6 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
     }
 
     ctx.PopClip();
-    ctx.PopPopupReveal();
 
     if (m_activeSubMenu && m_activeSubMenu->IsOpen() && !m_activeSubMenu->IsExternallyHosted()) {
         m_activeSubMenu->RenderPopup(ctx);
@@ -781,13 +801,7 @@ UIElement* ContextMenu::HitTestOverlay(float x, float y) {
     if (m_bounds.Contains(x, y)) {
         for (auto it = m_items.rbegin(); it != m_items.rend(); ++it) {
             if ((*it)->GetBounds().Contains(x, y)) {
-                auto item = (*it);
-                if (item->HasSubMenu()) {
-                    OpenSubMenuForItem(item.get());
-                } else if (!item->IsSeparator()) {
-                    CloseActiveSubMenu();
-                }
-                return item.get();
+                return (*it).get();
             }
         }
         return this;
