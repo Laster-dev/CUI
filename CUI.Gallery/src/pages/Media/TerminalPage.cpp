@@ -170,7 +170,7 @@ private:
     std::string DirListing() {
         return
             "\x1b[1;34mdrwxr-xr-x\x1b[0m cui  cui  4.0K  08-14 18:30 \x1b[34m.\x1b[0m\r\n"
-            "\x1b[1;34mdrwxr-xr-x\x1b[0m cui  cui  4.0K  08-14 18:30 \x1b[34m..\x1b[0m\r\n"
+            "\x1b[1;34mdrwxr-xr-x\x1b[0m cui  cui  4.0K  08-14 18:30 \x1b[34m.\x1b[0m\r\n"
             "\x1b[1;34mdrwxr-xr-x\x1b[0m cui  cui  4.0K  08-14 18:30 \x1b[34msrc\x1b[0m\r\n"
             "\x1b[1;34mdrwxr-xr-x\x1b[0m cui  cui  4.0K  08-15 09:02 \x1b[34mbuild\x1b[0m\r\n"
             "\x1b[1;34mdrwxr-xr-x\x1b[0m cui  cui  4.0K  08-15 09:02 \x1b[34massets\x1b[0m\r\n"
@@ -272,7 +272,7 @@ Element BuildTerminalPage() {
     static std::shared_ptr<DemoShellBackend> s_demoBackend = std::make_shared<DemoShellBackend>();
 
     auto demoTerm = std::make_shared<TerminalControl>();
-    demoTerm->SetHeight(400.0f);
+    CUI::DSL::Borrow(demoTerm).Height(400.0f);
     demoTerm->AttachBackend(s_demoBackend.get());
 
     auto status1 = MakeStatus("点击终端聚焦后可直接输入；或使用下方按钮注入演示命令。输入 help 查看全部命令。");
@@ -293,18 +293,18 @@ Element BuildTerminalPage() {
 
     // ---------- 第 2 节：真实 ConPty 对接（真实 Shell） ----------
     auto realTerm = std::make_shared<TerminalControl>("cmd.exe");
-    realTerm->SetHeight(320.0f);
+    CUI::DSL::Borrow(realTerm).Height(320.0f);
     realTerm->AttachBackend(nullptr); // 阻止自动拉起，由按钮显式启动
 
     auto status2 = MakeStatus("点击按钮拉起真实的 Windows 伪控制台 (ConPty) 子进程，可直接在终端内交互。");
 
     auto btnCmd = ElevatedButton("启动 cmd.exe", [realTerm, status2](UIElement*) {
         realTerm->StartShell("cmd.exe");
-        status2->Text = "已启动 cmd.exe（ConPty 子进程），现在可以在终端内直接输入命令...";
+        status2->Text = "已启动 cmd.exe（ConPty 子进程），现在可以在终端内直接输入命令..";
     }).Build();
     auto btnPwsh = ElevatedButton("启动 PowerShell", [realTerm, status2](UIElement*) {
         realTerm->StartShell("powershell.exe");
-        status2->Text = "已启动 PowerShell（ConPty 子进程），现在可以在终端内直接输入命令...";
+        status2->Text = "已启动 PowerShell（ConPty 子进程），现在可以在终端内直接输入命令..";
     }).Build();
     auto btnStop = ElevatedButton("停止 Shell", [realTerm, status2](UIElement*) {
         realTerm->StopShell();
@@ -319,7 +319,7 @@ Element BuildTerminalPage() {
     static std::shared_ptr<PaletteBackend> s_paletteBackend = std::make_shared<PaletteBackend>();
 
     auto paletteTerm = std::make_shared<TerminalControl>();
-    paletteTerm->SetHeight(280.0f);
+    CUI::DSL::Borrow(paletteTerm).Height(280.0f);
     paletteTerm->AttachBackend(s_paletteBackend.get());
 
     auto status3 = MakeStatus("切换主题观察终端配色；Ctrl+滚轮或下方按钮可缩放字体。");
@@ -407,3 +407,7 @@ std::string title = terminal->GetTerminalTitle(); // OSC 0 上报的标题
 }
 
 } // namespace Gallery
+
+
+
+

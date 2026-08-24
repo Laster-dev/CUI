@@ -17,32 +17,32 @@ using namespace CUI::DSL;
 namespace {
 std::shared_ptr<Button> MakeBtn(const std::string& text) {
     auto btn = std::make_shared<Button>(text);
-    btn->SetWidth(88.0f);
-    btn->SetHeight(32.0f);
-    btn->SetCornerRadius(4.0f);
+    CUI::DSL::Borrow(btn).Width(88.0f);
+    CUI::DSL::Borrow(btn).Height(32.0f);
+    CUI::DSL::Borrow(btn).CornerRadius(4.0f);
     return btn;
 }
 
 void ApplySales(ChartBase& chart, bool quarterly) {
     if (quarterly) {
-        chart.SetCategories({ "Q1", "Q2", "Q3", "Q4" });
+        DSL::Borrow(chart).Categories({ "Q1", "Q2", "Q3", "Q4" });
         ChartSeries a;
         a.name = "华北";
         a.values = { 82.0f, 91.0f, 76.0f, 104.0f };
         ChartSeries b;
         b.name = "华东";
         b.values = { 64.0f, 70.0f, 88.0f, 95.0f };
-        chart.SetSeries({ std::move(a), std::move(b) });
+        DSL::Borrow(chart).Series({ std::move(a), std::move(b) });
         return;
     }
-    chart.SetCategories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
+    DSL::Borrow(chart).Categories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
     ChartSeries a;
     a.name = "华北";
     a.values = { 12.0f, 18.0f, 15.0f, 22.0f, 28.0f, 24.0f, 31.0f };
     ChartSeries b;
     b.name = "华东";
     b.values = { 9.0f, 14.0f, 19.0f, 16.0f, 21.0f, 27.0f, 25.0f };
-    chart.SetSeries({ std::move(a), std::move(b) });
+    DSL::Borrow(chart).Series({ std::move(a), std::move(b) });
 }
 
 std::string FormatHover(ChartBase* chart, int index, int series) {
@@ -139,7 +139,7 @@ private:
             m_hist.pop_front();
         }
         if (m_readout) {
-            m_readout->SetText(FormatPerfReadout(snap));
+            CUI::DSL::Borrow(m_readout).Text(FormatPerfReadout(snap));
         }
 
         const int n = static_cast<int>(m_hist.size());
@@ -170,10 +170,10 @@ private:
         const bool first = m_first;
         m_first = false;
         if (m_mem) {
-            m_mem->SetLiveData(cats, { priv, full }, first);
+            DSL::Borrow(m_mem).LiveData(cats, { priv, full }, first);
         }
         if (m_load) {
-            m_load->SetLiveData(std::move(cats), { std::move(cpu), std::move(gpu), std::move(fps) }, first);
+            DSL::Borrow(m_load).LiveData(std::move(cats), { std::move(cpu), std::move(gpu), std::move(fps) }, first);
         }
     }
 
@@ -193,18 +193,18 @@ ShowcasePage BuildChartPage(const ShowcaseContext& ctx) {
     ApplySales(*line, false);
     ApplySales(*bar, false);
     ApplySales(*pie, false);
-    line->SetText("折线 · 月度销量");
-    bar->SetText("柱状 · 月度销量");
-    pie->SetText("饼图 · 华北月度占比");
-    bar->SetVisibility(Visibility::Collapsed);
-    pie->SetVisibility(Visibility::Collapsed);
+    CUI::DSL::Borrow(line).Text("折线 · 月度销量");
+    CUI::DSL::Borrow(bar).Text("柱状 · 月度销量");
+    CUI::DSL::Borrow(pie).Text("饼图 · 华北月度占比");
+    CUI::DSL::Borrow(bar).Visibility(Visibility::Collapsed);
+    CUI::DSL::Borrow(pie).Visibility(Visibility::Collapsed);
 
     auto hover = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("悬停或 ← → 读值", 12.0f, "textSecondary", false));
 
     auto bindHover = [hover](ChartBase* chart) {
         chart->OnHoverChanged().Connect([hover](ChartBase* sender, int index, int series) {
-            hover->SetText(FormatHover(sender, index, series));
+            CUI::DSL::Borrow(hover).Text(FormatHover(sender, index, series));
         });
     };
     bindHover(line.get());
@@ -212,9 +212,9 @@ ShowcasePage BuildChartPage(const ShowcaseContext& ctx) {
     bindHover(pie.get());
 
     auto show = [line, bar, pie](int which) {
-        line->SetVisibility(which == 0 ? Visibility::Visible : Visibility::Collapsed);
-        bar->SetVisibility(which == 1 ? Visibility::Visible : Visibility::Collapsed);
-        pie->SetVisibility(which == 2 ? Visibility::Visible : Visibility::Collapsed);
+        CUI::DSL::Borrow(line).Visibility(which == 0 ? Visibility::Visible : Visibility::Collapsed);
+        CUI::DSL::Borrow(bar).Visibility(which == 1 ? Visibility::Visible : Visibility::Collapsed);
+        CUI::DSL::Borrow(pie).Visibility(which == 2 ? Visibility::Visible : Visibility::Collapsed);
     };
 
     auto btnLine = MakeBtn("折线");
@@ -229,42 +229,42 @@ ShowcasePage BuildChartPage(const ShowcaseContext& ctx) {
         ApplySales(*line, false);
         ApplySales(*bar, false);
         ApplySales(*pie, false);
-        line->SetText("折线 · 月度销量");
-        bar->SetText("柱状 · 月度销量");
-        pie->SetText("饼图 · 华北月度占比");
+        CUI::DSL::Borrow(line).Text("折线 · 月度销量");
+        CUI::DSL::Borrow(bar).Text("柱状 · 月度销量");
+        CUI::DSL::Borrow(pie).Text("饼图 · 华北月度占比");
     });
     auto btnQuarter = MakeBtn("季度");
     btnQuarter->OnClick().Connect([line, bar, pie](UIElement*) {
         ApplySales(*line, true);
         ApplySales(*bar, true);
         ApplySales(*pie, true);
-        line->SetText("折线 · 季度销量");
-        bar->SetText("柱状 · 季度销量");
-        pie->SetText("饼图 · 华北季度占比");
+        CUI::DSL::Borrow(line).Text("折线 · 季度销量");
+        CUI::DSL::Borrow(bar).Text("柱状 · 季度销量");
+        CUI::DSL::Borrow(pie).Text("饼图 · 华北季度占比");
     });
 
     auto chkGrid = std::make_shared<CheckBox>("网格");
-    chkGrid->SetState(CheckState::Checked);
+    CUI::DSL::Borrow(chkGrid).State(CheckState::Checked);
     chkGrid->OnCheckStateChanged().Connect([line, bar](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
-        line->SetShowGrid(on);
-        bar->SetShowGrid(on);
+        DSL::Borrow(line).ShowGrid(on);
+        DSL::Borrow(bar).ShowGrid(on);
     });
     auto chkLegend = std::make_shared<CheckBox>("图例");
-    chkLegend->SetState(CheckState::Checked);
+    CUI::DSL::Borrow(chkLegend).State(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([line, bar, pie](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
-        line->SetShowLegend(on);
-        bar->SetShowLegend(on);
-        pie->SetShowLegend(on);
+        DSL::Borrow(line).ShowLegend(on);
+        DSL::Borrow(bar).ShowLegend(on);
+        DSL::Borrow(pie).ShowLegend(on);
     });
 
     auto memChart = std::make_shared<LineChart>();
-    memChart->SetText("进程内存 (MB)");
-    memChart->SetHeight(200.0f);
+    CUI::DSL::Borrow(memChart).Text("进程内存 (MB)");
+    CUI::DSL::Borrow(memChart).Height(200.0f);
     auto loadChart = std::make_shared<LineChart>();
-    loadChart->SetText("CPU / GPU / FPS");
-    loadChart->SetHeight(200.0f);
+    CUI::DSL::Borrow(loadChart).Text("CPU / GPU / FPS");
+    CUI::DSL::Borrow(loadChart).Height(200.0f);
     auto perfReadout = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("对接底栏同一采样…", 12.0f, "textPrimary", true));
     auto pump = std::make_shared<PerfChartPump>(memChart, loadChart, perfReadout);

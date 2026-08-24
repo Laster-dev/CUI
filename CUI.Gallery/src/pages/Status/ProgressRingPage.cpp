@@ -13,8 +13,8 @@ namespace {
 
 std::shared_ptr<ProgressRing> MakeRing(float size, float value, bool indeterminate) {
     auto ring = ProgressRingWidget(value, indeterminate);
-    ring->SetWidth(size);
-    ring->SetHeight(size);
+    CUI::DSL::Borrow(ring).Width(size);
+    CUI::DSL::Borrow(ring).Height(size);
     return ring;
 }
 
@@ -23,18 +23,18 @@ std::shared_ptr<ProgressRing> MakeRing(float size, float value, bool indetermina
 Element BuildProgressRingPage() {
     // 确定进度：滑块驱动弧线增长。
     auto determinate = ProgressRingWidget(60.0f, false);
-    determinate->SetWidth(96.0f);
-    determinate->SetHeight(96.0f);
+    CUI::DSL::Borrow(determinate).Width(96.0f);
+    CUI::DSL::Borrow(determinate).Height(96.0f);
 
     State<float> value{ 60.0f };
     auto slider = SliderWidget(60.0f, 0.0f, 100.0f);
-    slider->SetStep(1.0f);
-    slider->Width = 280.0f;
+    CUI::DSL::Borrow(slider).Step(1.0f);
+    CUI::DSL::Borrow(slider).Width(280.0f);
     slider->ValueProperty.Bind(value);
 
     auto ring = determinate;
     value.OnChanged().Connect([ring](const float& v) {
-        ring->SetValue(v);
+        CUI::DSL::Borrow(ring).Value(v);
     });
 
     auto statusValue = MakeComputed<std::string>([](float v) {
@@ -45,7 +45,7 @@ Element BuildProgressRingPage() {
 
     auto indeterminate = ToggleSwitchTile("不确定模式", false);
     indeterminate->OnToggled().Connect([ring](ToggleSwitch*, bool on) {
-        ring->SetIsIndeterminate(on);
+        CUI::DSL::Borrow(ring).IsIndeterminate(on);
     });
 
     SamplePageSpec spec;
@@ -62,7 +62,7 @@ Element BuildProgressRingPage() {
         },
         {
             "不确定模式",
-            "SetIsIndeterminate(true) 后弧线不断追逐旋转，用于等待场景。",
+            ".IsIndeterminate(true) 后弧线不断追逐旋转，用于等待场景。",
             Row(24, {
                 MakeRing(24.0f, 0.0f, true),
                 MakeRing(48.0f, 0.0f, true),
@@ -73,11 +73,16 @@ Element BuildProgressRingPage() {
     };
     spec.source =
         "auto ring = ProgressRingWidget(60.0f, false);\n"
-        "ring->SetWidth(96.0f);\n"
-        "ring->SetHeight(96.0f);\n"
-        "ring->SetValue(75.0f);          // 确定进度\n"
-        "ring->SetIsIndeterminate(true); // 不确定模式\n";
+        "ring.Width(96.0f);\n"
+        "ring.Height(96.0f);\n"
+        "ring.Value(75.0f);          // 确定进度\n"
+        "ring.IsIndeterminate(true); // 不确定模式\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+
+
+

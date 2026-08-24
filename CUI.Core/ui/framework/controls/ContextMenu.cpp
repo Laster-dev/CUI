@@ -1,4 +1,5 @@
 #include "ContextMenu.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
 #include "../window/MenuPopupWindow.h"
@@ -13,19 +14,20 @@ constexpr AnimationSpec kMenuHoverSpec{ 0.05f, 0.001f, 0.05f }; // snappy hover 
 } // namespace
 
 MenuItem::MenuItem() {
-    SetText("");
-    SetColorToken(ThemeTokenId::TextSecondary);
-    SetColor(ThemeManager::Instance().GetColor("textSecondary"));
-    SetFontSize(12.0f);
-    SetFontFamily("微软雅黑");
-    SetFontWeight(CUI::FontWeight::Normal);
-    SetHeight(ContextMenu::kItemHeight);
+    DSL::Borrow(this)
+        .Text("")
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .Foreground(ThemeManager::Instance().GetColor("textSecondary"))
+        .FontSize(12.0f)
+        .FontFamily("微软雅黑")
+        .FontWeight(CUI::FontWeight::Normal)
+        .Height(ContextMenu::kItemHeight);
 }
 
 MenuItem::MenuItem(const std::string& text, std::function<void()> onClick) : MenuItem() {
-    SetText(text);
+    auto builder = DSL::Borrow(this).Text(text);
     if (onClick) {
-        SetCommand(std::make_shared<Command>(std::move(onClick)));
+        builder.Command(std::make_shared<Command>(std::move(onClick)));
     }
 }
 
@@ -247,12 +249,13 @@ void MenuItem::ExecuteCommand() {
 // ---------------- ContextMenu ----------------
 
 ContextMenu::ContextMenu() {
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
-    SetBorderThickness(1.0f);
-    SetCornerRadius(8.0f);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .Background(ThemeManager::Instance().GetColor("cardBackground"))
+        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderBrush(ThemeManager::Instance().GetColor("cardBorder"))
+        .BorderThickness(1.0f)
+        .CornerRadius(8.0f);
 }
 
 ContextMenu::~ContextMenu() {
@@ -296,8 +299,8 @@ std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, std::sha
 }
 
 std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, const std::string& shortcut, std::shared_ptr<Command> command) {
-    auto item = std::make_shared<MenuItem>(text);
-    item->SetParentContextMenu(this);
+    auto item = DSL::Fluent::Control<MenuItem>(text).Build();
+    DSL::Borrow(item).ParentContextMenu(this);
     if (command) {
         if (command->GetLabel().empty()) {
             command->SetLabel(text);
@@ -305,15 +308,15 @@ std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, const st
         if (!shortcut.empty() && command->GetGesture().IsEmpty()) {
             command->SetGesture(shortcut);
         }
-        item->SetCommand(std::move(command));
+        DSL::Borrow(item).Command(std::move(command));
     }
     if (!shortcut.empty()) {
-        item->SetShortcutText(shortcut);
+        DSL::Borrow(item).ShortcutText(shortcut);
     } else if (item->GetCommand() && !item->GetCommand()->GetGesture().IsEmpty()) {
-        item->SetShortcutText(item->GetCommand()->GetGesture().ToDisplayString());
+        DSL::Borrow(item).ShortcutText(item->GetCommand()->GetGesture().ToDisplayString());
     }
     m_items.push_back(item);
-    AddChild(item);
+    DSL::Borrow(this).AddChild(item);
     return item;
 }
 
@@ -323,24 +326,23 @@ std::shared_ptr<ContextMenu> ContextMenu::AddSubMenu(const std::string& text) {
 }
 
 std::shared_ptr<MenuItem> ContextMenu::AddSubMenuItem(const std::string& text) {
-    auto item = std::make_shared<MenuItem>(text);
+    auto item = DSL::Fluent::Control<MenuItem>(text).Build();
     auto subMenu = std::make_shared<ContextMenu>();
     subMenu->SetOwnerMenu(this);
     if (auto owner = GetOwnerHwnd()) {
         subMenu->SetOwnerHwnd(owner);
     }
-    item->SetSubMenu(subMenu);
-    item->SetParentContextMenu(this);
+    DSL::Borrow(item).SubMenu(subMenu);
+    DSL::Borrow(item).ParentContextMenu(this);
     m_items.push_back(item);
-    AddChild(item);
+    DSL::Borrow(this).AddChild(item);
     return item;
 }
 
 void ContextMenu::AddSeparator() {
-    auto item = std::make_shared<MenuItem>();
-    item->SetIsSeparator(true);
+    auto item = DSL::Fluent::Control<MenuItem>().IsSeparator().Build();
     m_items.push_back(item);
-    AddChild(item);
+    DSL::Borrow(this).AddChild(item);
 }
 
 void ContextMenu::ClearItems() {
@@ -939,3 +941,4 @@ bool ContextMenu::HandleKey(int vkCode) {
 }
 
 } // namespace CUI
+

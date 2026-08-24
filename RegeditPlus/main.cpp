@@ -1,4 +1,4 @@
-﻿#include <shellscalingapi.h>
+#include <shellscalingapi.h>
 #include <windows.h>
 #include <objbase.h>
 #include "App.h"

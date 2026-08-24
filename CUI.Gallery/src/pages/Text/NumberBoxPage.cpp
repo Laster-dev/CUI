@@ -14,7 +14,7 @@ namespace Gallery {
 
 std::shared_ptr<UIElement> BuildNumberBoxPage() {
     auto basic = NumberBoxWidget(12.5).Width(150).Height(28).Build();
-    basic->SetStep(0.5f);
+    CUI::DSL::Borrow(basic).Step(0.5f);
     basic->ToolTip = "支持 ▲/▼、滚轮、上下键；可输入表达式如 1+2*3";
 
     State<float> basicValue{ 12.5f };
@@ -26,15 +26,15 @@ std::shared_ptr<UIElement> BuildNumberBoxPage() {
     basicStatus->Text.Bind(basicStatusValue, BindingMode::OneWay);
 
     auto disabled = NumberBoxWidget(42).Width(150).Height(28).Build();
-    disabled->IsEnabledProperty = false;
+    CUI::DSL::Borrow(disabled).IsEnabled(false);
 
     auto ranged = NumberBoxWidget();
-    ranged->Width = 150.0f;
-    ranged->Height = 28.0f;
-    ranged->SetMinimum(0.0f);
-    ranged->SetMaximum(100.0f);
-    ranged->SetStep(5.0f);
-    ranged->SetValue(60.0f);
+    CUI::DSL::Borrow(ranged).Width(150.0f);
+    CUI::DSL::Borrow(ranged).Height(28.0f);
+    CUI::DSL::Borrow(ranged).Minimum(0.0f);
+    CUI::DSL::Borrow(ranged).Maximum(100.0f);
+    CUI::DSL::Borrow(ranged).Step(5.0f);
+    CUI::DSL::Borrow(ranged).Value(60.0f);
 
     State<float> rangedValue{ 60.0f };
     ranged->ValueProperty.Bind(rangedValue, BindingMode::TwoWay);
@@ -68,12 +68,13 @@ std::shared_ptr<UIElement> BuildNumberBoxPage() {
     };
     spec.source =
         "auto box = NumberBoxWidget(12.5).Width(150).Build();\n"
-        "box->SetStep(0.5f);\n"
-        "box->SetMinimum(0.0f);\n"
-        "box->SetMaximum(100.0f);\n"
+        "box.Step(0.5f);\n"
+        "box.Minimum(0.0f);\n"
+        "box.Maximum(100.0f);\n"
         "State<float> value{ 12.5f };\n"
         "box->ValueProperty.Bind(value, BindingMode::TwoWay);\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+

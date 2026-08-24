@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ToggleSwitch.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -21,17 +22,17 @@ float FluentEaseOut(float t) {
 ToggleSwitch::ToggleSwitch() {
     IsOn.Initialize(*this);
     auto& theme = ThemeManager::Instance();
-    SetOnColorToken(ThemeTokenId::AccentColor);
-    SetOffColorToken(ThemeTokenId::InputBorder);
-    SetKnobColorToken(ThemeTokenId::AccentForeground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetColorToken(ThemeTokenId::TextSecondary);
-    // No control chrome fill — focus/hover must not paint a rectangular backdrop.
-    SetBorderBrush(theme.GetColor("cardBorder"));
-    SetColor(theme.GetColor("textSecondary"));
-    SetBorderThickness(0.0f);
-    SetWidth(170.0f);
-    SetHeight(28.0f);
+    DSL::Borrow(this)
+        .OnColorToken(ThemeTokenId::AccentColor)
+        .OffColorToken(ThemeTokenId::InputBorder)
+        .KnobColorToken(ThemeTokenId::AccentForeground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .BorderBrush(theme.GetColor("cardBorder"))
+        .Foreground(theme.GetColor("textSecondary"))
+        .BorderThickness(0.0f)
+        .Width(170.0f)
+        .Height(28.0f);
     m_knobPosAnim.Reset(0.0f);
 }
 

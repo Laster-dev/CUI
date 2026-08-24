@@ -15,13 +15,13 @@ std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::
     }
     ThemeTokenId id = ThemeTokenIdFromName(tokenName);
     if (tokenProp == "theme.backgroundToken") {
-        element->SetBackgroundToken(id);
-        element->SetBackground(ThemeManager::Instance().GetColor(tokenName));
+        CUI::DSL::Borrow(element).BackgroundToken(id);
+        CUI::DSL::Borrow(element).Background(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.borderToken") {
-        element->SetBorderToken(id);
-        element->SetBorderBrush(ThemeManager::Instance().GetColor(tokenName));
+        CUI::DSL::Borrow(element).BorderToken(id);
+        CUI::DSL::Borrow(element).BorderBrush(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.colorToken") {
-        element->SetColorToken(id);
+        CUI::DSL::Borrow(element).ForegroundToken(id);
     }
     return element;
 }

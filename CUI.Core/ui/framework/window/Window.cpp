@@ -190,7 +190,7 @@ private:
                             files.push_back(Utf16ToUtf8(path));
                         }
                     }
-                    pkg.SetFiles(std::move(files));
+                    pkg.Files(std::move(files));
                     GlobalUnlock(stg.hGlobal);
                 }
             }
@@ -201,7 +201,7 @@ private:
         if (SUCCEEDED(data->GetData(&textFmt, &stg))) {
             if (stg.hGlobal) {
                 if (const auto* text = static_cast<const wchar_t*>(GlobalLock(stg.hGlobal))) {
-                    pkg.SetText(Utf16ToUtf8(text));
+                    pkg.Text(Utf16ToUtf8(text));
                     GlobalUnlock(stg.hGlobal);
                 }
             }
@@ -2274,7 +2274,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             }
             DragFinish(hdrop);
             DataPackage pkg;
-            pkg.SetFiles(std::move(files));
+            pkg.Files(std::move(files));
             m_dragDrop.DeliverExternal(logical, std::move(pkg), m_rootElement.get());
             InvalidatePendingRenderRegions(true);
         }

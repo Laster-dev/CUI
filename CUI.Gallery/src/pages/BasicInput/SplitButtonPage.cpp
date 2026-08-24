@@ -28,14 +28,14 @@ std::shared_ptr<UIElement> BuildSplitButtonPage() {
         color->Background = Color::Red; status->Text = "已选择红色。"; color->Blur();
     });
     
-    color->Background = Color::Red;
-    color->HoverBackground = Color::Red;
+    CUI::DSL::Borrow(color).Background(Color::Red);
+    CUI::DSL::Borrow(color).HoverBackground(Color::Red);
     
     color->AddItem("红色", [status, color] { color->Background = Color::Red; color->HoverBackground = Color::Red; status->Text = "已选择红色。"; color->Blur(); });
     color->AddItem("绿色", [status, color] { color->Background = Color::Green; color->HoverBackground = Color::Green; status->Text = "已选择绿色。"; color->Blur(); });
     color->AddItem("蓝色", [status, color] { color->Background = Color::Blue; color->HoverBackground = Color::Blue; status->Text = "已选择蓝色。"; color->Blur(); });
     color->AddItem("黄色", [status, color] { color->Background = Color::Yellow; color->HoverBackground = Color::Yellow; status->Text = "已选择黄色。"; color->Blur(); });
-    color->Width = 120.0f;
+    CUI::DSL::Borrow(color).Width(120.0f);
 
     SamplePageSpec spec;
     spec.title = "SplitButton(拆分按钮)";
@@ -55,3 +55,6 @@ std::shared_ptr<UIElement> BuildSplitButtonPage() {
 }
 
 } // namespace Gallery
+
+
+

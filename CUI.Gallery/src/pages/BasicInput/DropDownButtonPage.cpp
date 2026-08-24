@@ -75,7 +75,7 @@ std::shared_ptr<UIElement> BuildDropDownButtonPage() {
 
     auto disabled = DropDownButtonWidget("不可用");
     disabled->AddItem("一项");
-    disabled->IsEnabledProperty = false;
+    CUI::DSL::Borrow(disabled).IsEnabled(false);
 
     auto color = DropDownButtonWidget("背景颜色展示");
     color->AddItem("红色");
@@ -129,3 +129,6 @@ std::shared_ptr<UIElement> BuildDropDownButtonPage() {
 }
 
 } // namespace Gallery
+
+
+

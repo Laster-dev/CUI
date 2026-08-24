@@ -17,37 +17,35 @@ using namespace CUI::DSL;
 namespace {
 
 std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string& body, int variant) {
-    auto chk = std::make_shared<CheckBox>();
-    chk->SetText(variant % 2 == 0 ? "启用示例功能" : "允许用户输入");
-    chk->SetState((variant % 2 == 0) ? CheckState::Checked : CheckState::Unchecked);
+    auto chk = Fluent::Control<CheckBox>().Build();
+    ElementBuilder<CheckBox>(chk).State((variant % 2 == 0) ? CheckState::Checked : CheckState::Unchecked);
 
-    auto toggle = std::make_shared<ToggleSwitch>();
-    toggle->SetHeader(variant % 2 == 0 ? "ToggleSwitch" : "Quick Toggle");
-    toggle->SetIsOn(variant % 2 == 0);
+    auto toggle = Fluent::Control<ToggleSwitch>().Build();
+    ElementBuilder<ToggleSwitch>(toggle).Header(variant % 2 == 0 ? "ToggleSwitch" : "Quick Toggle").IsOn(variant % 2 == 0);
 
-    auto combo = std::make_shared<ComboBox>();
-    combo->SetWidth(240.0f);
-    combo->SetHeight(32.0f);
-    combo->AddItem(variant % 2 == 0 ? "WinUI-like" : "CUI-custom");
-    combo->AddItem("Dark/Light");
-    combo->AddItem("Accent");
-    combo->SetSelectedIndex(variant % 3);
+    auto combo = Fluent::Control<ComboBox>().Build();
+    ElementBuilder<ComboBox>(combo).Width(240.0f);
+    ElementBuilder<ComboBox>(combo).Height(32.0f);
+    ElementBuilder<ComboBox>(combo).AddItem(variant % 2 == 0 ? "WinUI-like" : "CUI-custom");
+    ElementBuilder<ComboBox>(combo).AddItem("Dark/Light");
+    ElementBuilder<ComboBox>(combo).AddItem("Accent");
+    ElementBuilder<ComboBox>(combo).SelectedIndex(variant % 3);
 
     auto list = std::make_shared<ListBox>();
-    list->SetHeight(120.0f);
-    list->SetItemHeight(28.0f);
-    list->SetSelectionMode(ListBoxSelectionMode::Single);
+    ElementBuilder<ListBox>(list).Height(120.0f);
+    CUI::DSL::Borrow(list).ItemHeight(28.0f);
+    DSL::Borrow(list).SelectionMode(ListBoxSelectionMode::Single);
     list->AddItem(variant % 2 == 0 ? "One" : "Alpha");
     list->AddItem(variant % 2 == 0 ? "Two" : "Beta");
     list->AddItem(variant % 2 == 0 ? "Three" : "Gamma");
-    list->SetSelectedIndex(0);
+    ElementBuilder<ListBox>(list).SelectedIndex(0);
 
     auto input = std::make_shared<TextBox>("Type something...");
-    input->SetWidth(360.0f);
+    ElementBuilder<TextBox>(input).Width(360.0f);
 
     return Column(12).Children({
-        std::make_shared<TextBlock>(title),
-        std::make_shared<TextBlock>(body),
+        Fluent::TextBlock(title).Build(),
+        Fluent::TextBlock(body).Build(),
         chk,
         toggle,
         combo,
@@ -59,12 +57,12 @@ std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string&
 } // namespace
 
 ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
-    auto nav = std::make_shared<NavigationView>();
-    nav->SetPaneTitle("CUI");
-    nav->SetHeader("Home");
-    nav->SetAlwaysShowHeader(true);
-    nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
-    nav->SetIsSettingsVisible(true);
+    auto nav = Fluent::Control<NavigationView>().Build();
+    ElementBuilder<NavigationView>(nav).PaneTitle("CUI");
+    ElementBuilder<NavigationView>(nav).Header("Home");
+    ElementBuilder<NavigationView>(nav).AlwaysShowHeader(true);
+    ElementBuilder<NavigationView>(nav).PaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
+    ElementBuilder<NavigationView>(nav).IsSettingsVisible(true);
 
     auto pageHome = MakePage("Home", "WinUI 3 NavigationView: PaneDisplayMode / DisplayMode / IsPaneOpen 三者分离。", 0);
     auto pageApps = MakePage("Apps", "MenuItems + FooterMenuItems + SettingsItem 共用单一选中模型。", 1);
@@ -72,89 +70,89 @@ ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
     auto pageMusic = MakePage("Music", "LeftCompact / LeftMinimal 下 IsPaneOpen 控制 overlay/inline 行为。", 3);
     auto pageSettings = MakePage("Settings", "内置 SettingsItem；ItemInvoked → SelectionChanged。", 4);
 
-    nav->SetContent(pageHome);
+    ElementBuilder<NavigationView>(nav).Content(pageHome);
 
     // MenuItems
-    auto home = std::make_shared<NavigationViewItem>("Home", "🏠");
-    home->SetTag("home");
-    nav->AddMenuItem(home);
+    auto home = Fluent::Control<NavigationViewItem>("Home", "🏠").Build();
+    ElementBuilder<NavigationViewItem>(home).Tag("home");
+    ElementBuilder<NavigationView>(nav).AddMenuItem(home);
 
-    nav->AddMenuItem(std::make_shared<NavigationViewItemHeader>("Library"));
+    ElementBuilder<NavigationView>(nav).AddMenuItem(Fluent::Control<NavigationViewItemHeader>("Library").Build()).Build();
 
-    auto apps = std::make_shared<NavigationViewItem>("Apps", "⚡");
-    apps->SetTag("apps");
-    nav->AddMenuItem(apps);
+    auto apps = Fluent::Control<NavigationViewItem>("Apps", "⚡").Build();
+    ElementBuilder<NavigationViewItem>(apps).Tag("apps");
+    ElementBuilder<NavigationView>(nav).AddMenuItem(apps);
 
-    auto docs = std::make_shared<NavigationViewItem>("Documents", "📄");
-    docs->SetTag("docs");
+    auto docs = Fluent::Control<NavigationViewItem>("Documents", "📄").Build();
+    ElementBuilder<NavigationViewItem>(docs).Tag("docs");
     // Hierarchy: parent does not select; expands children.
-    docs->SetSelectsOnInvoked(false);
-    auto docsAll = std::make_shared<NavigationViewItem>("All files", "📁");
-    docsAll->SetTag("docs-all");
-    auto docsRecent = std::make_shared<NavigationViewItem>("Recent", "🕒");
-    docsRecent->SetTag("docs-recent");
-    docs->AddMenuItem(docsAll);
-    docs->AddMenuItem(docsRecent);
-    nav->AddMenuItem(docs);
+    ElementBuilder<NavigationViewItem>(docs).SelectsOnInvoked(false);
+    auto docsAll = Fluent::Control<NavigationViewItem>("All files", "📁").Build();
+    ElementBuilder<NavigationViewItem>(docsAll).Tag("docs-all");
+    auto docsRecent = Fluent::Control<NavigationViewItem>("Recent", "🕒").Build();
+    ElementBuilder<NavigationViewItem>(docsRecent).Tag("docs-recent");
+    ElementBuilder<NavigationViewItem>(docs).AddNestedItem(docsAll);
+    ElementBuilder<NavigationViewItem>(docs).AddNestedItem(docsRecent);
+    ElementBuilder<NavigationView>(nav).AddMenuItem(docs);
 
-    nav->AddMenuItem(std::make_shared<NavigationViewItemSeparator>());
+    ElementBuilder<NavigationView>(nav).AddMenuItem(Fluent::Control<NavigationViewItemSeparator>().Build());
 
-    auto music = std::make_shared<NavigationViewItem>("Music", "🎵");
-    music->SetTag("music");
-    nav->AddMenuItem(music);
+    auto music = Fluent::Control<NavigationViewItem>("Music", "🎵").Build();
+    ElementBuilder<NavigationViewItem>(music).Tag("music");
+    ElementBuilder<NavigationView>(nav).AddMenuItem(music);
 
     // Footer
-    auto account = std::make_shared<NavigationViewItem>("Account", "👤");
-    account->SetTag("account");
-    nav->AddFooterMenuItem(account);
+    auto account = Fluent::Control<NavigationViewItem>("Account", "👤").Build();
+    ElementBuilder<NavigationViewItem>(account).Tag("account");
+    ElementBuilder<NavigationView>(nav).AddFooterMenuItem(account);
 
     // AutoSuggest slot
-    auto search = std::make_shared<TextBox>();
-    search->SetPlaceholder("Search");
-    search->SetHeight(32.0f);
-    nav->SetAutoSuggestBox(search);
+    auto search = Fluent::TextBox();
+    ElementBuilder<TextBox>(search).Placeholder("Search").Height(32.0f);
+    CUI::DSL::Borrow(search).Height(32.0f);
+    ElementBuilder<NavigationView>(nav).AutoSuggestBox(search);
 
-    nav->SetSelectedItem(home.get());
+    ElementBuilder<NavigationView>(nav).SelectedItem(home.get());
 
-    nav->OnItemInvoked().Connect([nav, pageHome, pageApps, pageDocs, pageMusic, pageSettings,
+    ElementBuilder<NavigationView>(nav).OnNavigationItemInvoked([nav, pageHome, pageApps, pageDocs, pageMusic, pageSettings,
                                   docsAll, docsRecent](NavigationView*, const NavigationViewItemInvokedEventArgs& args) {
         if (!args.InvokedItem) {
             return;
         }
         if (args.IsSettingsInvoked) {
-            nav->SetHeader("Settings");
-            nav->SetContent(pageSettings);
+            ElementBuilder<NavigationView>(nav).Header("Settings");
+            ElementBuilder<NavigationView>(nav).Content(pageSettings);
             return;
         }
         const std::string& tag = args.InvokedItem->GetTag();
         if (tag == "home") {
-            nav->SetHeader("Home");
-            nav->SetContent(pageHome);
+            ElementBuilder<NavigationView>(nav).Header("Home");
+            ElementBuilder<NavigationView>(nav).Content(pageHome);
         } else if (tag == "apps") {
-            nav->SetHeader("Apps");
-            nav->SetContent(pageApps);
+            ElementBuilder<NavigationView>(nav).Header("Apps");
+            ElementBuilder<NavigationView>(nav).Content(pageApps);
         } else if (tag == "docs" || tag == "docs-all" || tag == "docs-recent") {
-            nav->SetHeader("Documents");
-            nav->SetContent(pageDocs);
+            ElementBuilder<NavigationView>(nav).Header("Documents");
+            ElementBuilder<NavigationView>(nav).Content(pageDocs);
         } else if (tag == "music") {
-            nav->SetHeader("Music");
-            nav->SetContent(pageMusic);
+            ElementBuilder<NavigationView>(nav).Header("Music");
+            ElementBuilder<NavigationView>(nav).Content(pageMusic);
         } else if (tag == "account") {
-            nav->SetHeader("Account");
-            nav->SetContent(MakePage("Account", "FooterMenuItems 与 MenuItems 共享选中。", 5));
+            ElementBuilder<NavigationView>(nav).Header("Account");
+            ElementBuilder<NavigationView>(nav).Content(MakePage("Account", "FooterMenuItems 与 MenuItems 共享选中。", 5));
         }
         (void)docsAll;
         (void)docsRecent;
     });
 
     // PaneDisplayMode switcher
-    auto modeBox = std::make_shared<ComboBox>();
+    auto modeBox = Fluent::Control<ComboBox>().Build();
     modeBox->AddItem("Auto");
     modeBox->AddItem("Left");
     modeBox->AddItem("LeftCompact");
     modeBox->AddItem("LeftMinimal");
     modeBox->AddItem("Top");
-    modeBox->SetSelectedIndex(0);
+    CUI::DSL::Borrow(modeBox).SelectedIndex(0);
     modeBox->OnSelectionChanged().Connect([nav](ComboBox* box, int index, const std::string&) {
         static const NavigationViewPaneDisplayMode kModes[] = {
             NavigationViewPaneDisplayMode::Auto,
@@ -164,26 +162,26 @@ ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
             NavigationViewPaneDisplayMode::Top
         };
         if (index >= 0 && index < 5) {
-            nav->SetPaneDisplayMode(kModes[index]);
+            ElementBuilder<NavigationView>(nav).PaneDisplayMode(kModes[index]);
         }
         (void)box;
     });
 
-    auto chkHeader = std::make_shared<CheckBox>();
-    chkHeader->SetText("AlwaysShowHeader");
-    chkHeader->SetState(CheckState::Checked);
+    auto chkHeader = Fluent::Control<CheckBox>().Build();
+    ElementBuilder<CheckBox>(chkHeader).Text("AlwaysShowHeader");
+    CUI::DSL::Borrow(chkHeader).State(CheckState::Checked);
     chkHeader->OnCheckStateChanged().Connect([nav](CheckBox*, CheckState state) {
-        nav->SetAlwaysShowHeader(state == CheckState::Checked);
+        ElementBuilder<NavigationView>(nav).AlwaysShowHeader(state == CheckState::Checked);
     });
 
-    auto btnToggle = std::make_shared<Button>("Toggle Pane");
+    auto btnToggle = Fluent::Button("Toggle Pane").Build();
     btnToggle->OnClick().Connect([nav](UIElement*) {
         nav->TogglePane();
     });
 
-    auto modeLabel = std::make_shared<TextBlock>("PaneDisplayMode");
-    nav->SetWidth(860.0f);
-    nav->SetHeight(420.0f);
+    auto modeLabel = Fluent::TextBlock("PaneDisplayMode").Build();
+    ElementBuilder<NavigationView>(nav).Width(860.0f);
+    ElementBuilder<NavigationView>(nav).Height(420.0f);
 
     auto demo = Column(12).Children({
         Row(12).Children({ modeLabel, modeBox, btnToggle, chkHeader }).Build(),
@@ -195,3 +193,4 @@ ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
         "PaneDisplayMode / DisplayMode / IsPaneOpen 分离；MenuItems · Footer · Settings · Header/Separator · 层级 · Top。",
         demo) };
 }
+

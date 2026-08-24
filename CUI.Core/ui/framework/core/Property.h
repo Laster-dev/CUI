@@ -261,7 +261,6 @@ public:
 
     // 隐式互操作转换
     operator std::shared_ptr<T>() const { return m_ptr; }
-    operator std::shared_ptr<UIElement>() const { return m_ptr; }
 
     std::shared_ptr<T> Build() const { return m_ptr; }
 
@@ -270,3 +269,4 @@ protected:
 };
 
 } // namespace CUI
+

@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "DatePicker.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
 #include <sstream>
@@ -19,16 +20,17 @@ DatePicker::DatePicker() : FormattedDate(this) {
     m_month = tmVal.tm_mon + 1;
     m_day = tmVal.tm_mday;
 
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetBorderToken(ThemeTokenId::InputBorder);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetBackground(tokens.inputBackground);
-    SetBorderBrush(tokens.inputBorder);
-    SetBorderThickness(1.0f);
-    SetColor(tokens.textPrimary);
-    SetCornerRadius(4.0f);
-    SetWidth(160.0f);
-    SetHeight(30.0f);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .BorderToken(ThemeTokenId::InputBorder)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .Background(tokens.inputBackground)
+        .BorderBrush(tokens.inputBorder)
+        .BorderThickness(1.0f)
+        .Foreground(tokens.textPrimary)
+        .CornerRadius(4.0f)
+        .Width(160.0f)
+        .Height(30.0f);
 }
 
 Value DatePicker::GetProperty(PropertyId id) const {

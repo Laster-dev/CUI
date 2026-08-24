@@ -35,9 +35,9 @@ std::string DescribeTheme(ThemeManager& tm, ThemeSource source) {
 
 Element MakeSwatch(const std::string& name, ThemeTokenId token) {
     auto chip = Container().Size(44.0f, 44.0f).CornerRadius(8.0f);
-    chip->BackgroundToken = token;
-    chip->BorderToken = ThemeTokenId::CardBorder;
-    chip->BorderThickness = 1.0f;
+    CUI::DSL::Borrow(chip).BackgroundToken(token);
+    CUI::DSL::Borrow(chip).BorderToken(ThemeTokenId::CardBorder);
+    CUI::DSL::Borrow(chip).BorderThickness(1.0f);
     return Column(4, { chip, MakeLabel(name, 11.0f, ThemeTokenId::TextMuted, false) });
 }
 
@@ -50,28 +50,28 @@ Element BuildThemePage() {
     auto status = MakeStatus(DescribeTheme(tm, tm.GetThemeSource()));
 
     auto mode = SegmentedWidget({ "跟随系统", "浅色", "深色" });
-    mode->SetSelectedIndex(IndexForThemeSource(tm.GetThemeSource()));
+    CUI::DSL::Borrow(mode).SelectedIndex(IndexForThemeSource(tm.GetThemeSource()));
     mode->OnSelectionChanged().Connect([window, &tm, status](SegmentedControl*, int index, const std::string&) {
         const ThemeSource source = ThemeSourceFromIndex(index);
         if (source == ThemeSource::System) {
-            tm.SetThemeSource(ThemeSource::System);
+ 
         } else if (window) {
-            window->SetThemeMode(source == ThemeSource::Dark ? ThemeMode::Dark : ThemeMode::Light);
+            window->Fluent().Theme(source == ThemeSource::Dark ? ThemeMode::Dark : ThemeMode::Light).Apply();
         }
-        status->Text = DescribeTheme(tm, source);
+        CUI::DSL::Borrow(status).Text(DescribeTheme(tm, source));
     });
 
     // 预览：全部通过 ThemeTokenId 取色，切换主题后随广播自动重绘。
     auto secondaryBtn = ElevatedButton("次要操作");
-    secondaryBtn->SetBackgroundToken(ThemeTokenId::CardBackground);
-    secondaryBtn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    secondaryBtn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    secondaryBtn->SetBorderToken(ThemeTokenId::CardBorder);
-    secondaryBtn->SetBorderThickness(1.0f);
-    secondaryBtn->SetColorToken(ThemeTokenId::TextPrimary);
+    CUI::DSL::Borrow(secondaryBtn).BackgroundToken(ThemeTokenId::CardBackground);
+    CUI::DSL::Borrow(secondaryBtn).HoverBackgroundToken(ThemeTokenId::HoverBackground);
+    CUI::DSL::Borrow(secondaryBtn).PressedBackgroundToken(ThemeTokenId::PressedBackground);
+    CUI::DSL::Borrow(secondaryBtn).BorderToken(ThemeTokenId::CardBorder);
+    CUI::DSL::Borrow(secondaryBtn).BorderThickness(1.0f);
+    CUI::DSL::Borrow(secondaryBtn).ForegroundToken(ThemeTokenId::TextPrimary);
 
     auto input = TextField("输入内容");
-    input->Width = 240.0f;
+    CUI::DSL::Borrow(input).Width(240.0f);
 
     auto preview = Column(14, {
         MakeLabel("主题预览", 18.0f, ThemeTokenId::TextPrimary, true),
@@ -106,14 +106,20 @@ Element BuildThemePage() {
     };
     spec.source =
         "// 跟随系统（监听 Windows 广播）\n"
-        "ThemeManager::Instance().SetThemeSource(ThemeSource::System);\n"
+ 
         "// 手动锁定深浅\n"
-        "window->SetThemeMode(ThemeMode::Dark);\n"
-        "window->SetThemeMode(ThemeMode::Light);\n"
+        "window.Fluent().Theme(ThemeMode::Dark).Apply();\n"
+        "window.Fluent().Theme(ThemeMode::Light).Apply();\n"
         "// 控件只声明 Token，不写死颜色\n"
-        "control->SetBackgroundToken(ThemeTokenId::CardBackground);\n"
-        "control->SetColorToken(ThemeTokenId::TextPrimary);\n";
+        "control.BackgroundToken(ThemeTokenId::CardBackground);\n"
+        "control.ColorToken(ThemeTokenId::TextPrimary);\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+
+
+
+

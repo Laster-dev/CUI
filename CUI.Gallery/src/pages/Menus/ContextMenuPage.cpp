@@ -46,7 +46,7 @@ Element BuildContextMenuPage() {
     auto itemDetailList = viewSubMenu->AddItem("详细列表", [statusLabel]() {
         statusLabel->Text = "视图模式已切换为：【详细信息列表 (Details)】";
     });
-    itemDetailList->SetChecked(true);
+    DSL::Borrow(itemDetailList).Checked(true);
 
     workspaceMenu->AddSeparator();
 
@@ -93,7 +93,7 @@ Element BuildContextMenuPage() {
         .CornerRadius(8.0f)
         .Padding(16.0f);
 
-    workspaceArea->SetContextMenu(workspaceMenu);
+    DSL::Borrow(workspaceArea).ContextMenu(workspaceMenu);
 
     // ==========================================
     // 示例 2: 代码编辑器专属右键菜单
@@ -103,7 +103,7 @@ Element BuildContextMenuPage() {
         statusLabel->Text = "编辑器：【代码格式化完成】(符合 Clang-Format 标准)";
     });
     codeMenu->AddItem("转到定义", "F12", [statusLabel]() {
-        statusLabel->Text = "编辑器：【正在定位符号声明位置...】";
+        statusLabel->Text = "编辑器：【正在定位符号声明位置..】";
     });
     codeMenu->AddItem("查找所有引用", "Shift+F12", [statusLabel]() {
         statusLabel->Text = "编辑器：【检索到 14 处符号引用实例】";
@@ -127,9 +127,9 @@ Element BuildContextMenuPage() {
               "    return app->Run();\n"
               "}")
         .Height(110.0f);
-    codeEditorArea->SetAcceptsReturn(true);
-    codeEditorArea->SetTextWrapping(true);
-    codeEditorArea->SetContextMenu(codeMenu);
+    CUI::DSL::Borrow(codeEditorArea).AcceptsReturn(true);
+    CUI::DSL::Borrow(codeEditorArea).TextWrapping(true);
+    DSL::Borrow(codeEditorArea).ContextMenu(codeMenu);
 
     SamplePageSpec spec;
     spec.title = "ContextMenu (上下文右键菜单)";
@@ -157,18 +157,21 @@ auto menu = std::make_shared<ContextMenu>();
 
 // 2. 添加多级级联子菜单
 auto subMenu = menu->AddSubMenu("新建 (New)");
-subMenu->AddItem("文本文档 (.txt)", []() { /* ... */ });
-subMenu->AddItem("C++ 源代码 (.cpp)", []() { /* ... */ });
+subMenu->AddItem("文本文档 (.txt)", []() { /* .. */ });
+subMenu->AddItem("C++ 源代码 (.cpp)", []() { /* .. */ });
 
 menu->AddSeparator();
-menu->AddItem("剪切", "Ctrl+X", []() { /* ... */ });
-menu->AddItem("复制", "Ctrl+C", []() { /* ... */ });
+menu->AddItem("剪切", "Ctrl+X", []() { /* .. */ });
+menu->AddItem("复制", "Ctrl+C", []() { /* .. */ });
 
 // 3. 将右键菜单挂载至任意目标控件
-targetElement->SetContextMenu(menu);
+DSL::Borrow(targetElement).ContextMenu(menu);
 )cpp";
 
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+

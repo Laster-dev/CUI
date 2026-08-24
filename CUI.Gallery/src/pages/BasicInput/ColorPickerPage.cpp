@@ -33,7 +33,7 @@ Element BuildColorPickerPage() {
         .Height(24.0f)
         .CornerRadius(4.0f)
         .BorderThickness(1.0f);
-    chip->BorderToken = ThemeTokenId::CardBorder;
+    CUI::DSL::Borrow(chip).BorderToken(ThemeTokenId::CardBorder);
 
     State<Color> selectedColor{ Color(0, 0, 0, 1) };
     picker->SelectedColor.Bind(selectedColor);
@@ -70,3 +70,6 @@ Element BuildColorPickerPage() {
 }
 
 } // namespace Gallery
+
+
+

@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ProgressRing.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -57,13 +58,14 @@ float NormalizeAngle(float radians) {
 } // namespace
 
 ProgressRing::ProgressRing() {
-    SetFillColorToken(ThemeTokenId::AccentColor);
-    SetTrackColorToken(ThemeTokenId::CardBorder);
-    SetWidth(32.0f);
-    SetHeight(32.0f);
-    SetHoverBackgroundToken(ThemeTokenId::Unset);
-    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    DSL::Borrow(this)
+        .FillColorToken(ThemeTokenId::AccentColor)
+        .TrackColorToken(ThemeTokenId::CardBorder)
+        .Width(32.0f)
+        .Height(32.0f)
+        .HoverBackgroundToken(ThemeTokenId::Unset)
+        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
+        .Background(D2D1::ColorF(0, 0, 0, 0));
     m_displayValue = GetValue();
 }
 

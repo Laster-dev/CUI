@@ -1,5 +1,6 @@
 #include "DockFloatWindow.h"
 #include "DockManager.h"
+#include "../../core/CUIDsl.h"
 #include "../../window/Dpi.h"
 #include "../../style/ThemeManager.h"
 #include "../../controls/UIElement.h"
@@ -186,10 +187,11 @@ bool DockFloatWindow::Show(DockManager* manager,
     if (m_content) {
         // Stay parented under DockManager so AnimationManager::IsInLiveTree succeeds.
         m_content->SetPresentsOnOwnerWindow(false);
-        m_content->SetVisibility(Visibility::Visible);
-        m_content->SetAlign(Alignment::Stretch);
-        m_content->SetWidth(-1.0f);
-        m_content->SetHeight(-1.0f);
+        DSL::Borrow(m_content)
+            .Visibility(Visibility::Visible)
+            .Align(Alignment::Stretch)
+            .Width(-1.0f)
+            .Height(-1.0f);
         if (m_content->HasSelfAnimation()) {
             m_content->RequestAnimationTicks();
         }
@@ -427,7 +429,7 @@ void DockFloatWindow::Relayout() {
     const float ch = static_cast<float>(crc.bottom) / m_dpiScale;
     const float bodyH = (std::max)(0.0f, ch - m_titleH);
     const Rect content(0.0f, m_titleH, cw, bodyH);
-    m_content->SetVisibility(Visibility::Visible);
+    DSL::Borrow(m_content).Visibility(Visibility::Visible);
     m_content->Measure(Size(content.width, content.height));
     m_content->Arrange(content);
 }

@@ -3,6 +3,7 @@
 #endif
 #include "InfoBar.h"
 #include "../core/Value.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -56,17 +57,18 @@ D2D1_COLOR_F WarningColor() {
 } // namespace
 
 InfoBar::InfoBar() {
-    SetWidth(-1.0f);
-    SetHeight(-1.0f);
-    SetAlign(Alignment::Stretch);
-    SetClipToBounds(true);
-    SetCornerRadius(kRadius);
-    SetBorderThickness(1.0f);
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetTitleColorToken(ThemeTokenId::TextPrimary);
-    SetMessageColorToken(ThemeTokenId::TextSecondary);
-    SetAccentColorToken(ThemeTokenId::AccentColor);
+    DSL::Borrow(this)
+        .Width(-1.0f)
+        .Height(-1.0f)
+        .Align(Alignment::Stretch)
+        .ClipToBounds(true)
+        .CornerRadius(kRadius)
+        .BorderThickness(1.0f)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .TitleColorToken(ThemeTokenId::TextPrimary)
+        .MessageColorToken(ThemeTokenId::TextSecondary)
+        .AccentColorToken(ThemeTokenId::AccentColor);
     EnsureChrome();
     SyncChrome();
     m_openAnim.Reset(1.0f);
@@ -142,32 +144,33 @@ void InfoBar::SetProperty(PropertyId id, const Value& val) {
 
 void InfoBar::EnsureChrome() {
     if (!m_actionBtn) {
-        m_actionBtn = std::make_shared<Button>("");
-        m_actionBtn->SetHeight(kActionH);
-        m_actionBtn->SetCornerRadius(4.0f);
-        m_actionBtn->SetBorderThickness(0.0f);
-        m_actionBtn->SetPadding(Thickness(12.0f, 4.0f, 12.0f, 4.0f));
-        m_actionBtn->SetFontSize(12.0f);
-        m_actionBtn->OnClick().Connect([this](UIElement*) { InvokeAction(); });
-        AddChild(m_actionBtn);
+        m_actionBtn = DSL::Fluent::Button()
+            .Height(kActionH)
+            .CornerRadius(4.0f)
+            .BorderThickness(0.0f)
+            .Padding(12.0f, 4.0f, 12.0f, 4.0f)
+            .FontSize(12.0f)
+            .OnClick([this](UIElement*) { InvokeAction(); })
+            .Build();
+        DSL::Borrow(this).AddChild(m_actionBtn);
     }
     if (!m_closeBtn) {
-        m_closeBtn = std::make_shared<Button>();
-        m_closeBtn->SetText("");
-        m_closeBtn->SetIcon(kSvgClose);
-        m_closeBtn->SetToolTip("关闭");
-        m_closeBtn->SetWidth(kClose);
-        m_closeBtn->SetHeight(kClose);
-        m_closeBtn->SetPadding(Thickness(6.0f));
-        m_closeBtn->SetCornerRadius(4.0f);
-        m_closeBtn->SetBorderThickness(0.0f);
-        m_closeBtn->SetBackgroundToken(ThemeTokenId::Unset);
-        m_closeBtn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-        m_closeBtn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-        m_closeBtn->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-        m_closeBtn->SetColorToken(ThemeTokenId::TextSecondary);
-        m_closeBtn->OnClick().Connect([this](UIElement*) { CloseFromUser(); });
-        AddChild(m_closeBtn);
+        m_closeBtn = DSL::Fluent::Button()
+            .Icon(kSvgClose)
+            .ToolTip("关闭")
+            .Width(kClose)
+            .Height(kClose)
+            .Padding(6.0f)
+            .CornerRadius(4.0f)
+            .BorderThickness(0.0f)
+            .BackgroundToken(ThemeTokenId::Unset)
+            .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+            .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+            .Background(D2D1::ColorF(0, 0, 0, 0))
+            .ForegroundToken(ThemeTokenId::TextSecondary)
+            .OnClick([this](UIElement*) { CloseFromUser(); })
+            .Build();
+        DSL::Borrow(this).AddChild(m_closeBtn);
     }
 }
 
@@ -175,22 +178,24 @@ void InfoBar::SyncChrome() {
     EnsureChrome();
     const bool showAction = m_isOpen && !m_actionText.empty();
     const bool showClose = m_isOpen && m_isClosable;
-    m_actionBtn->SetText(m_actionText);
-    m_actionBtn->SetVisibility(showAction ? Visibility::Visible : Visibility::Collapsed);
+    DSL::Borrow(m_actionBtn)
+        .Text(m_actionText)
+        .Visibility(showAction ? Visibility::Visible : Visibility::Collapsed);
     if (m_actionCommand) {
-        m_actionBtn->SetCommand(m_actionCommand);
+        DSL::Borrow(m_actionBtn).Command(m_actionCommand);
     }
-    m_closeBtn->SetVisibility(showClose ? Visibility::Visible : Visibility::Collapsed);
+    DSL::Borrow(m_closeBtn).Visibility(showClose ? Visibility::Visible : Visibility::Collapsed);
 
     const Palette pal = Colors();
-    m_actionBtn->SetBackgroundToken(ThemeTokenId::Unset);
-    m_actionBtn->SetHoverBackgroundToken(ThemeTokenId::Unset);
-    m_actionBtn->SetPressedBackgroundToken(ThemeTokenId::Unset);
-    m_actionBtn->SetBackground(pal.accent);
-    m_actionBtn->SetHoverBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::White), 0.12f));
-    m_actionBtn->SetPressedBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::Black), 0.12f));
-    m_actionBtn->SetColorToken(ThemeTokenId::AccentForeground);
-    m_actionBtn->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground));
+    DSL::Borrow(m_actionBtn)
+        .BackgroundToken(ThemeTokenId::Unset)
+        .HoverBackgroundToken(ThemeTokenId::Unset)
+        .PressedBackgroundToken(ThemeTokenId::Unset)
+        .Background(pal.accent)
+        .HoverBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::White), 0.12f))
+        .PressedBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::Black), 0.12f))
+        .ForegroundToken(ThemeTokenId::AccentForeground)
+        .Foreground(ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground));
 }
 
 void InfoBar::SetTitle(const std::string& title) {
@@ -573,3 +578,4 @@ void InfoBar::OnThemeChanged() {
 }
 
 } // namespace CUI
+

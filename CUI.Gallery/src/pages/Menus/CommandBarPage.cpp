@@ -84,7 +84,7 @@ Element BuildCommandBarPage() {
 
     auto secPdf = docCmdBar->AddSecondary("导出为 PDF", "📑");
     secPdf->OnClick.Connect([statusLabel](UIElement*) {
-        statusLabel->Text = "正在生成并导出为【PDF 格式文件】...";
+        statusLabel->Text = "正在生成并导出为【PDF 格式文件】..";
     });
 
     docCmdBar->AddSecondarySeparator();
@@ -100,8 +100,8 @@ Element BuildCommandBarPage() {
               "它能够智能感知可用宽度，当空间不足时自动将次要操作以及溢出的主要操作收纳进右侧的【更多 (…)】下拉菜单中。\n"
               "支持普通动作按钮、状态开关按钮、水平分隔线以及次要功能项。")
         .Height(100.0f);
-    mockEditor->SetAcceptsReturn(true);
-    mockEditor->SetTextWrapping(true);
+    CUI::DSL::Borrow(mockEditor).AcceptsReturn(true);
+    CUI::DSL::Borrow(mockEditor).TextWrapping(true);
 
     // ==========================================
     // 示例 2: 标签显示模式切换 (Label Position)
@@ -132,7 +132,7 @@ Element BuildCommandBarPage() {
     btnToggleMode->OnClick.Connect([mediaCmdBar, statusLabel](UIElement* sender) {
         auto btn = dynamic_cast<ToggleButton*>(sender);
         bool iconOnly = btn && btn->IsChecked();
-        mediaCmdBar->SetLabelPosition(iconOnly ? CommandBarLabelPosition::Collapsed : CommandBarLabelPosition::Right);
+        DSL::Borrow(mediaCmdBar).LabelPosition(iconOnly ? CommandBarLabelPosition::Collapsed : CommandBarLabelPosition::Right);
         statusLabel->Text = iconOnly ? "当前命令栏显示模式：仅图标紧凑模式 (Collapsed)" : "当前命令栏显示模式：文字与图标并排模式 (Right)";
     });
 
@@ -163,12 +163,12 @@ Element BuildCommandBarPage() {
 auto cmdBar = CommandBarWidget().Build();
 
 auto btnNew = cmdBar->AddButton("新建", "📄");
-btnNew->OnClick.Connect([](UIElement*) { /* ... */ });
+btnNew->OnClick.Connect([](UIElement*) { /* .. */ });
 
 // 2. 添加开关型按钮
 auto toggleBold = cmdBar->AddToggle("加粗", "𝐁");
 
-// 3. 添加次要菜单项（收纳于 ... 溢出菜单）
+// 3. 添加次要菜单项（收纳于 .. 溢出菜单）
 cmdBar->AddSecondary("导出为 PDF", "📑");
 cmdBar->AddSecondary("文档属性", "ℹ️");
 )cpp";
@@ -177,3 +177,6 @@ cmdBar->AddSecondary("文档属性", "ℹ️");
 }
 
 } // namespace Gallery
+
+
+

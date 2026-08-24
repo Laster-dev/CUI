@@ -12,7 +12,7 @@ namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleSwitchPage() {
     auto notify = ToggleSwitchWidget();
-    notify->SetHeader("通知");
+    DSL::Borrow(notify).Header("通知");
     
     State<bool> notifyOn{ false };
     notify->IsOn.Bind(notifyOn);
@@ -25,12 +25,12 @@ std::shared_ptr<UIElement> BuildToggleSwitchPage() {
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
     auto wifi = ToggleSwitchWidget();
-    wifi->SetHeader("Wi-Fi");
-    wifi->SetIsOn(true);
+    DSL::Borrow(wifi).Header("Wi-Fi");
+    DSL::Borrow(wifi).IsOn(true);
 
     auto locked = ToggleSwitchWidget();
-    locked->SetHeader("飞行模式");
-    locked->IsEnabledProperty = false;
+    DSL::Borrow(locked).Header("飞行模式");
+    CUI::DSL::Borrow(locked).IsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ToggleSwitch(开关)";
@@ -54,3 +54,6 @@ std::shared_ptr<UIElement> BuildToggleSwitchPage() {
 }
 
 } // namespace Gallery
+
+
+

@@ -15,7 +15,7 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
         .FontWeight(FontWeight::Bold);
     
     auto italic = ToggleButtonWidget("斜体");
-    italic->FontStyle = FontStyle::Italic;
+    CUI::DSL::Borrow(italic).FontStyle(FontStyle::Italic);
     
     auto underline = ToggleButtonWidget("下划线");
     underline->Underline = true;
@@ -56,8 +56,8 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
     status->Strikethrough.Bind(strikethroughChecked, BindingMode::OneWay);
 
     auto locked = ToggleButtonWidget("已锁定");
-    locked->SetIsChecked(true);
-    locked->IsEnabledProperty = false;
+    DSL::Borrow(locked).IsChecked(true);
+    CUI::DSL::Borrow(locked).IsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ToggleButton(切换按钮)";
@@ -79,3 +79,6 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
 }
 
 } // namespace Gallery
+
+
+

@@ -27,10 +27,11 @@ class DragChip : public Control, public CUI::IDragSource {
 public:
     explicit DragChip(std::string payload, std::string icon = "🏷️")
         : m_payload(std::move(payload)), m_icon(std::move(icon)) {
-        SetText(m_payload);
-        SetHeight(32.0f);
-        SetCornerRadius(16.0f);
-        SetToolTip("按住鼠标左键可拖拽此数据包至右侧列表、输入框或文件投放槽；按住 Ctrl 为复制。");
+        Borrow(this)
+            .Text(m_payload)
+            .Height(32.0f)
+            .CornerRadius(16.0f)
+            .ToolTip("按住鼠标左键可拖拽此数据包至右侧列表、输入框或文件投放槽；按住 Ctrl 为复制。");
     }
 
     ~DragChip() override {
@@ -90,7 +91,7 @@ public:
     DataPackage BeginDrag(Point pt) override {
         (void)pt;
         DataPackage pkg;
-        pkg.SetText(m_payload);
+ 
         return pkg;
     }
 
@@ -111,8 +112,7 @@ class DropZoneWell : public Control, public CUI::IDropTarget {
 public:
     explicit DropZoneWell(std::function<void(const std::string&)> onReceived)
         : m_onReceived(std::move(onReceived)) {
-        SetHeight(88.0f);
-        SetCornerRadius(8.0f);
+        Borrow(this).Height(88.0f).CornerRadius(8.0f);
     }
 
     ~DropZoneWell() override {
@@ -234,16 +234,16 @@ Element BuildDragDropPage() {
     // 1. 列表间拖拽互换 (ListBox 跨列表拖拽)
     // ==========================================
     auto listA = std::make_shared<ListBox>();
-    listA->SetHeight(180.0f);
-    listA->SetAllowDrag(true);
-    listA->SetAllowDrop(true);
-    listA->SetItems({ "📄 MainWindow.cpp", "📄 AppStyles.xaml", "📄 CMakeLists.txt", "📄 README.md" });
+    CUI::DSL::Borrow(listA).Height(180.0f);
+    DSL::Borrow(listA).AllowDrag(true);
+    CUI::DSL::Borrow(listA).AllowDrop(true);
+    CUI::DSL::Borrow(listA).Items({ "📄 MainWindow.cpp", "📄 AppStyles.xaml", "📄 CMakeLists.txt", "📄 README.md" });
 
     auto listB = std::make_shared<ListBox>();
-    listB->SetHeight(180.0f);
-    listB->SetAllowDrag(true);
-    listB->SetAllowDrop(true);
-    listB->SetItems({ "📦 CUI.Core.lib", "📦 Direct2D.dll", "📦 Assets.zip" });
+    CUI::DSL::Borrow(listB).Height(180.0f);
+    DSL::Borrow(listB).AllowDrag(true);
+    CUI::DSL::Borrow(listB).AllowDrop(true);
+    CUI::DSL::Borrow(listB).Items({ "📦 CUI.Core.lib", "📦 Direct2D.dll", "📦 Assets.zip" });
 
     listA->OnSelectionChanged().Connect([statusLabel](ListBox*, int idx, const std::string& text) {
         if (idx >= 0) {
@@ -265,14 +265,14 @@ Element BuildDragDropPage() {
     auto chip3 = std::make_shared<DragChip>("主题 Token: AccentColor", "🎨");
 
     auto well = std::make_shared<DropZoneWell>([statusLabel](const std::string& msg) {
-        statusLabel->Text = msg;
+        CUI::DSL::Borrow(statusLabel).Text(msg);
     });
 
     // 3. 接受拖放的文本输入框
     auto dropInput = TextField()
-        .Text("可拖放文本或文件路径至此输入框...")
+        .Text("可拖放文本或文件路径至此输入框..")
         .Height(36.0f);
-    dropInput->SetAllowDrop(true);
+    CUI::DSL::Borrow(dropInput).AllowDrop(true);
 
     SamplePageSpec spec;
     spec.title = "Drag and Drop (拖放服务)";
@@ -310,7 +310,7 @@ Element BuildDragDropPage() {
 class MyDragSource : public Control, public IDragSource {
     DataPackage BeginDrag(Point pt) override {
         DataPackage pkg;
-        pkg.SetText("Payload");
+ 
         return pkg;
     }
 };
@@ -333,3 +333,8 @@ class MyDropTarget : public Control, public IDropTarget {
 }
 
 } // namespace Gallery
+
+
+
+
+

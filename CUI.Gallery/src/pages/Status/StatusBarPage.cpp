@@ -34,8 +34,8 @@ Element BuildStatusBarPage() {
     bar->AddSeparator(StatusBarItemAlignment::Left);
     int idChanges = bar->AddTextItem("0 错误, 0 警告", StatusBarItemAlignment::Left);
 
-    int idProgress = bar->AddProgressItem("后台索引中...", StatusBarItemAlignment::Right, 130.0f);
-    bar->SetItemProgress(idProgress, 0.65f);
+    int idProgress = bar->AddProgressItem("后台索引中..", StatusBarItemAlignment::Right, 130.0f);
+    DSL::Borrow(bar).ItemProgress(idProgress, 0.65f);
     bar->AddSeparator(StatusBarItemAlignment::Right);
     int idPos = bar->AddTextItem("Ln 128, Col 32", StatusBarItemAlignment::Right, 100.0f);
     bar->AddSeparator(StatusBarItemAlignment::Right);
@@ -52,12 +52,12 @@ Element BuildStatusBarPage() {
             s_prog += 0.20f;
             if (s_prog > 1.05f) {
                 s_prog = 0.0f;
-                bar->SetItemText(idProgress, "就绪");
-                bar->SetItemProgress(idProgress, -1.0f);
+                DSL::Borrow(bar).ItemText(idProgress, "就绪");
+                DSL::Borrow(bar).ItemProgress(idProgress, -1.0f);
                 statusLabel->Text = "后台任务已完成，进度条隐藏。";
             } else {
-                bar->SetItemText(idProgress, std::format("构建进度 {:.0f}%", s_prog * 100.0f));
-                bar->SetItemProgress(idProgress, s_prog);
+                DSL::Borrow(bar).ItemText(idProgress, std::format("构建进度 {:.0f}%", s_prog * 100.0f));
+                DSL::Borrow(bar).ItemProgress(idProgress, s_prog);
                 statusLabel->Text = std::format("已更新后台进度为 {:.0f}%", s_prog * 100.0f);
             }
         });
@@ -67,10 +67,10 @@ Element BuildStatusBarPage() {
         .OnClick([bar, idBranch, statusLabel](UIElement*) {
             s_branchToggle = !s_branchToggle;
             if (s_branchToggle) {
-                bar->SetItemText(idBranch, "🔀 feature/fluent-v2");
+                DSL::Borrow(bar).ItemText(idBranch, "🔀 feature/fluent-v2");
                 statusLabel->Text = "状态栏已切换为特性分支：【feature/fluent-v2】";
             } else {
-                bar->SetItemText(idBranch, "🌿 main*");
+                DSL::Borrow(bar).ItemText(idBranch, "🌿 main*");
                 statusLabel->Text = "状态栏已切回主干分支：【main*】";
             }
         });
@@ -79,7 +79,7 @@ Element BuildStatusBarPage() {
     auto btnCursor = Button("模拟光标移动")
         .OnClick([bar, idPos, statusLabel](UIElement*) {
             s_lineNum += 15;
-            bar->SetItemText(idPos, std::format("Ln {}, Col 12", s_lineNum));
+            DSL::Borrow(bar).ItemText(idPos, std::format("Ln {}, Col 12", s_lineNum));
             statusLabel->Text = std::format("已更新当前编辑光标坐标：Ln {}, Col 12", s_lineNum);
         });
 
@@ -114,8 +114,8 @@ int idStatus = bar->AddTextItem("就绪", StatusBarItemAlignment::Left);
 int idBranch = bar->AddTextItem("🌿 main*", StatusBarItemAlignment::Left);
 
 // 3. 添加右侧进度条与编码
-int idProgress = bar->AddProgressItem("同步中...", StatusBarItemAlignment::Right, 120.0f);
-bar->SetItemProgress(idProgress, 0.75f);
+int idProgress = bar->AddProgressItem("同步中..", StatusBarItemAlignment::Right, 120.0f);
+DSL::Borrow(bar).ItemProgress(idProgress, 0.75f);
 int idEncoding = bar->AddTextItem("UTF-8", StatusBarItemAlignment::Right, 60.0f);
 )cpp";
 
@@ -123,3 +123,6 @@ int idEncoding = bar->AddTextItem("UTF-8", StatusBarItemAlignment::Right, 60.0f)
 }
 
 } // namespace Gallery
+
+
+

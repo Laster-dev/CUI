@@ -36,17 +36,17 @@ std::string FormatHover(ChartBase* chart, int index, int series) {
 
 void ApplySales(ChartBase& chart, bool quarterly) {
     if (quarterly) {
-        chart.SetCategories({ "Q1", "Q2", "Q3", "Q4" });
+        DSL::Borrow(chart).Categories({ "Q1", "Q2", "Q3", "Q4" });
         ChartSeries a;
         a.name = "华北";
         a.values = { 82.0f, 91.0f, 76.0f, 104.0f };
         ChartSeries b;
         b.name = "华东";
         b.values = { 64.0f, 70.0f, 88.0f, 95.0f };
-        chart.SetSeries({ std::move(a), std::move(b) });
+        DSL::Borrow(chart).Series({ std::move(a), std::move(b) });
         return;
     }
-    chart.SetCategories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
+    DSL::Borrow(chart).Categories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
     ChartSeries a;
     a.name = "华北";
     a.values = { 12.0f, 18.0f, 15.0f, 22.0f, 28.0f, 24.0f, 31.0f };
@@ -56,11 +56,11 @@ void ApplySales(ChartBase& chart, bool quarterly) {
     ChartSeries c;
     c.name = "华南";
     c.values = { 6.0f, 9.0f, 13.0f, 11.0f, 17.0f, 15.0f, 19.0f };
-    chart.SetSeries({ std::move(a), std::move(b), std::move(c) });
+    DSL::Borrow(chart).Series({ std::move(a), std::move(b), std::move(c) });
 }
 
 void ApplyRandom(ChartBase& chart) {
-    chart.SetCategories({ "A组", "B组", "C组", "D组", "E组", "F组" });
+    DSL::Borrow(chart).Categories({ "A组", "B组", "C组", "D组", "E组", "F组" });
     std::mt19937 rng(20260815);
     ChartSeries a;
     a.name = "CPU";
@@ -73,7 +73,7 @@ void ApplyRandom(ChartBase& chart) {
         b.values.push_back(std::uniform_real_distribution<float>(12.0f, 60.0f)(rng));
         c.values.push_back(std::uniform_real_distribution<float>(5.0f, 30.0f)(rng));
     }
-    chart.SetSeries({ std::move(a), std::move(b), std::move(c) });
+    DSL::Borrow(chart).Series({ std::move(a), std::move(b), std::move(c) });
 }
 
 } // anonymous namespace
@@ -81,13 +81,13 @@ void ApplyRandom(ChartBase& chart) {
 Element BuildBarChartPage() {
     // ---------- 1. 常规用法（多系列分组柱状图） ----------
     auto bar = std::make_shared<BarChart>();
-    bar->SetText("柱状图 · 月度销量对比");
-    bar->SetHeight(320.0f);
+    CUI::DSL::Borrow(bar).Text("柱状图 · 月度销量对比");
+    CUI::DSL::Borrow(bar).Height(320.0f);
     ApplySales(*bar, false);
 
     auto status1 = MakeStatus("悬停柱体或按 ← → 方向键读值");
     bar->OnHoverChanged().Connect([status1](ChartBase* sender, int index, int series) {
-        status1->Text = FormatHover(sender, index, series);
+        CUI::DSL::Borrow(status1).Text(FormatHover(sender, index, series));
     });
 
     auto btnMonth = ElevatedButton("月度数据", [bar](UIElement*) { ApplySales(*bar, false); }).Build();
@@ -96,9 +96,9 @@ Element BuildBarChartPage() {
 
     // ---------- 2. 自定义颜色系列 ----------
     auto colorChart = std::make_shared<BarChart>();
-    colorChart->SetText("自定义系列颜色 · 三个渠道");
-    colorChart->SetHeight(280.0f);
-    colorChart->SetCategories({ "1月", "2月", "3月", "4月" });
+    CUI::DSL::Borrow(colorChart).Text("自定义系列颜色 · 三个渠道");
+    CUI::DSL::Borrow(colorChart).Height(280.0f);
+    DSL::Borrow(colorChart).Categories({ "1月", "2月", "3月", "4月" });
 
     ChartSeries web;
     web.name = "线上商城";
@@ -115,14 +115,14 @@ Element BuildBarChartPage() {
     agent.color = D2D1::ColorF(D2D1::ColorF::MediumSeaGreen, 0.95f);
     agent.hasColor = true;
     agent.values = { 12.0f, 15.0f, 19.0f, 22.0f };
-    colorChart->SetSeries({ std::move(web), std::move(store), std::move(agent) });
+    DSL::Borrow(colorChart).Series({ std::move(web), std::move(store), std::move(agent) });
 
     auto status2 = MakeStatus("每个系列通过 ChartSeries.color + hasColor 指定专属颜色。");
 
     // ---------- 3. 动态更新 + 显示选项 ----------
     auto dyn = std::make_shared<BarChart>();
-    dyn->SetText("动态数据 · 三资源负载（随机）");
-    dyn->SetHeight(280.0f);
+    CUI::DSL::Borrow(dyn).Text("动态数据 · 三资源负载（随机）");
+    CUI::DSL::Borrow(dyn).Height(280.0f);
     ApplyRandom(*dyn);
 
     auto status3 = MakeStatus("点击“随机重掷”生成新数据并重放入场生长动画。");
@@ -133,19 +133,19 @@ Element BuildBarChartPage() {
     auto btnReveal3 = ElevatedButton("重放入场动画", [dyn](UIElement*) { dyn->PlayReveal(); }).Build();
 
     auto chkGrid = CheckboxTile("显示网格").Build();
-    chkGrid->SetState(CheckState::Checked);
+    CUI::DSL::Borrow(chkGrid).State(CheckState::Checked);
     chkGrid->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
-        dyn->SetShowGrid(st == CheckState::Checked);
+        DSL::Borrow(dyn).ShowGrid(st == CheckState::Checked);
     });
     auto chkLegend = CheckboxTile("显示图例").Build();
-    chkLegend->SetState(CheckState::Checked);
+    CUI::DSL::Borrow(chkLegend).State(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
-        dyn->SetShowLegend(st == CheckState::Checked);
+        DSL::Borrow(dyn).ShowLegend(st == CheckState::Checked);
     });
     auto chkTip = CheckboxTile("悬停提示卡片").Build();
-    chkTip->SetState(CheckState::Checked);
+    CUI::DSL::Borrow(chkTip).State(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
-        dyn->SetShowTooltip(st == CheckState::Checked);
+        DSL::Borrow(dyn).ShowTooltip(st == CheckState::Checked);
     });
 
     SamplePageSpec spec;
@@ -186,9 +186,9 @@ Element BuildBarChartPage() {
     spec.source = R"(
 // 1) 构建柱状图
 auto chart = std::make_shared<BarChart>();
-chart->SetText("销量对比");
-chart->SetHeight(320.0f);
-chart->SetCategories({ "1月", "2月", "3月" });
+CUI::DSL::Borrow(chart).Text("销量对比");
+CUI::DSL::Borrow(chart).Height(320.0f);
+DSL::Borrow(chart).Categories({ "1月", "2月", "3月" });
 
 // 2) 指定系列颜色（可选，默认自动取色）
 ChartSeries s;
@@ -196,15 +196,16 @@ s.name = "线上商城";
 s.values = { 26.0f, 32.0f, 29.0f };
 s.color = D2D1::ColorF(D2D1::ColorF::DodgerBlue, 0.95f);
 s.hasColor = true;
-chart->SetSeries({ std::move(s) });
+DSL::Borrow(chart).Series({ std::move(s) });
 
 // 3) 更新数据 / 动画 / 显示
-chart->SetSeries(newSeries);   // 自动重放入场生长动画
+DSL::Borrow(chart).Series(newSeries);   // 自动重放入场生长动画
 chart->PlayReveal();
-chart->SetShowGrid(false);
+DSL::Borrow(chart).ShowGrid(false);
 )";
 
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+

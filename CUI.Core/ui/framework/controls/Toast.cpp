@@ -1,5 +1,6 @@
 #include "Toast.h"
 #include "ToastCenter.h"
+#include "../core/CUIDsl.h"
 #include "../animation/AnimationManager.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
@@ -85,7 +86,7 @@ void Toast::SetType(ToastType type) {
         break;
     }
     m_accent = ThemeHex(accentToken);
-    SetAccentColorToken(ThemeTokenIdFromName(accentToken));
+    DSL::Borrow(this).AccentColorToken(ThemeTokenIdFromName(accentToken));
 }
 
 Toast::Toast() {
@@ -93,28 +94,31 @@ Toast::Toast() {
     m_accent = ThemeHex("accentColor");
     m_titleColor = ThemeHex("textPrimary");
     m_messageColor = ThemeHex("textSecondary");
-    SetVisibility(Visibility::Visible);
-    SetOpacity(1.0f);
-    SetWidth(m_width);
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetAccentColorToken(ThemeTokenId::AccentColor);
-    SetTitleColorToken(ThemeTokenId::TextPrimary);
-    SetMessageColorToken(ThemeTokenId::TextSecondary);
-    SetBackground(m_background);
+    DSL::Borrow(this)
+        .Visibility(Visibility::Visible)
+        .Opacity(1.0f)
+        .Width(m_width)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .AccentColorToken(ThemeTokenId::AccentColor)
+        .TitleColorToken(ThemeTokenId::TextPrimary)
+        .MessageColorToken(ThemeTokenId::TextSecondary)
+        .Background(m_background);
 
-    m_txtTitle = std::make_shared<TextBlock>(m_titleText);
-    m_txtTitle->SetFontSize(15.0f);
-    m_txtTitle->SetFontWeight(CUI::FontWeight::Bold);
-    m_txtTitle->SetColorToken(ThemeTokenId::TextPrimary);
-    m_txtTitle->SetColor(Value::ParseColor(m_titleColor));
+    m_txtTitle = DSL::Fluent::TextBlock(m_titleText)
+        .FontSize(15.0f)
+        .FontWeight(CUI::FontWeight::Bold)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .Foreground(Value::ParseColor(m_titleColor))
+        .Build();
 
-    m_txtMessage = std::make_shared<TextBlock>(m_messageText);
-    m_txtMessage->SetFontSize(12.5f);
-    m_txtMessage->SetColorToken(ThemeTokenId::TextSecondary);
-    m_txtMessage->SetColor(Value::ParseColor(m_messageColor));
+    m_txtMessage = DSL::Fluent::TextBlock(m_messageText)
+        .FontSize(12.5f)
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .Foreground(Value::ParseColor(m_messageColor))
+        .Build();
 
-    AddChild(m_txtTitle);
-    AddChild(m_txtMessage);
+    DSL::Borrow(this).AddChild(m_txtTitle);
+    DSL::Borrow(this).AddChild(m_txtMessage);
 }
 
 Toast::~Toast() {
@@ -205,12 +209,10 @@ void Toast::SyncMembersFromProperties() {
 void Toast::UpdateTextElements() {
     SyncMembersFromProperties();
     if (m_txtTitle) {
-        m_txtTitle->SetText(m_titleText);
-        m_txtTitle->SetColor(Value::ParseColor(m_titleColor));
+        DSL::Borrow(m_txtTitle).Text(m_titleText).Foreground(Value::ParseColor(m_titleColor));
     }
     if (m_txtMessage) {
-        m_txtMessage->SetText(m_messageText);
-        m_txtMessage->SetColor(Value::ParseColor(m_messageColor));
+        DSL::Borrow(m_txtMessage).Text(m_messageText).Foreground(Value::ParseColor(m_messageColor));
     }
 }
 
@@ -391,14 +393,12 @@ void Toast::RenderContent(GraphicsContext& ctx, const Rect& bounds, float opacit
     float innerW = renderRect.width - (m_closeable ? 44.0f : 28.0f);
 
     if (m_txtTitle) {
-        m_txtTitle->SetText(m_titleText);
-        m_txtTitle->SetColor(titleClr);
+        DSL::Borrow(m_txtTitle).Text(m_titleText).Foreground(titleClr);
         m_txtTitle->Arrange(Rect(innerX, innerY, innerW, 22.0f));
         m_txtTitle->Render(ctx);
     }
     if (m_txtMessage) {
-        m_txtMessage->SetText(m_messageText);
-        m_txtMessage->SetColor(messageClr);
+        DSL::Borrow(m_txtMessage).Text(m_messageText).Foreground(messageClr);
         m_txtMessage->Arrange(Rect(innerX, innerY + 26.0f, innerW, 40.0f));
         m_txtMessage->Render(ctx);
     }
@@ -624,3 +624,4 @@ std::shared_ptr<Toast> Toast::Show(UIElement* root,
 }
 
 } // namespace CUI
+

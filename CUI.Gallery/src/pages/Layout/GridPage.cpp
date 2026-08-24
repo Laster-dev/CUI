@@ -32,57 +32,57 @@ std::shared_ptr<CUI::Button> MakeCell(
 
 Element BuildGridPage() {
     auto proportionalGrid = GridWidget();
-    proportionalGrid->SetColumnDefinitions("1*,2*,100");
-    proportionalGrid->SetRowDefinitions("Auto,Auto,Auto");
-    proportionalGrid->AddChild(MakeCell("第 1 列 · 1*", Rgb(0x007ACC), 0, 0));
-    proportionalGrid->AddChild(MakeCell("第 2 列 · 2*", Rgb(0x0E639C), 0, 1));
-    proportionalGrid->AddChild(MakeCell("100px", Rgb(0x10B981), 0, 2));
-    proportionalGrid->AddChild(MakeCell("跨越前两列", Rgb(0xD13438), 1, 0, 2));
-    proportionalGrid->AddChild(MakeCell("第 3 列", Rgb(0xF783AC), 1, 2));
-    proportionalGrid->AddChild(MakeCell("每行由内容高度决定", Rgb(0x845EF7), 2, 0, 3));
+    DSL::Borrow(proportionalGrid).ColumnDefinitions("1*,2*,100");
+    DSL::Borrow(proportionalGrid).RowDefinitions("Auto,Auto,Auto");
+    CUI::DSL::Borrow(proportionalGrid).AddChild(MakeCell("第 1 列 · 1*", Rgb(0x007ACC), 0, 0));
+    CUI::DSL::Borrow(proportionalGrid).AddChild(MakeCell("第 2 列 · 2*", Rgb(0x0E639C), 0, 1));
+    CUI::DSL::Borrow(proportionalGrid).AddChild(MakeCell("100px", Rgb(0x10B981), 0, 2));
+    CUI::DSL::Borrow(proportionalGrid).AddChild(MakeCell("跨越前两列", Rgb(0xD13438), 1, 0, 2));
+    CUI::DSL::Borrow(proportionalGrid).AddChild(MakeCell("第 3 列", Rgb(0xF783AC), 1, 2));
+    CUI::DSL::Borrow(proportionalGrid).AddChild(MakeCell("每行由内容高度决定", Rgb(0x845EF7), 2, 0, 3));
 
     auto spanGrid = GridWidget();
-    spanGrid->SetColumnDefinitions("1*,1*,1*");
-    spanGrid->SetRowDefinitions("Auto,Auto,Auto");
-    spanGrid->AddChild(MakeCell("横向跨 2 列", Rgb(0x007ACC), 0, 0, 2));
-    spanGrid->AddChild(MakeCell("右上", Rgb(0x10B981), 0, 2));
-    spanGrid->AddChild(MakeCell("左下", Rgb(0xD13438), 1, 0));
-    spanGrid->AddChild(MakeCell("纵向跨 2 行", Rgb(0x0E639C), 1, 1, 1, 2));
-    spanGrid->AddChild(MakeCell("右中", Rgb(0x845EF7), 1, 2));
-    spanGrid->AddChild(MakeCell("底部", Rgb(0xF783AC), 2, 0));
-    spanGrid->AddChild(MakeCell("右下", Rgb(0x22B8CF), 2, 2));
+    DSL::Borrow(spanGrid).ColumnDefinitions("1*,1*,1*");
+    DSL::Borrow(spanGrid).RowDefinitions("Auto,Auto,Auto");
+    CUI::DSL::Borrow(spanGrid).AddChild(MakeCell("横向跨 2 列", Rgb(0x007ACC), 0, 0, 2));
+    CUI::DSL::Borrow(spanGrid).AddChild(MakeCell("右上", Rgb(0x10B981), 0, 2));
+    CUI::DSL::Borrow(spanGrid).AddChild(MakeCell("左下", Rgb(0xD13438), 1, 0));
+    CUI::DSL::Borrow(spanGrid).AddChild(MakeCell("纵向跨 2 行", Rgb(0x0E639C), 1, 1, 1, 2));
+    CUI::DSL::Borrow(spanGrid).AddChild(MakeCell("右中", Rgb(0x845EF7), 1, 2));
+    CUI::DSL::Borrow(spanGrid).AddChild(MakeCell("底部", Rgb(0xF783AC), 2, 0));
+    CUI::DSL::Borrow(spanGrid).AddChild(MakeCell("右下", Rgb(0x22B8CF), 2, 2));
 
     auto liveGrid = GridWidget();
     auto cellA = MakeCell("A", Rgb(0x007ACC), 0, 0);
     auto cellB = MakeCell("B", Rgb(0x10B981), 0, 1);
     auto cellC = MakeCell("C", Rgb(0xD13438), 0, 2);
-    liveGrid->AddChild(cellA);
-    liveGrid->AddChild(cellB);
-    liveGrid->AddChild(cellC);
-    liveGrid->SetColumnDefinitions("1*,1*,1*");
-    liveGrid->SetRowDefinitions("Auto");
+    CUI::DSL::Borrow(liveGrid).AddChild(cellA);
+    CUI::DSL::Borrow(liveGrid).AddChild(cellB);
+    CUI::DSL::Borrow(liveGrid).AddChild(cellC);
+    DSL::Borrow(liveGrid).ColumnDefinitions("1*,1*,1*");
+    DSL::Borrow(liveGrid).RowDefinitions("Auto");
 
     auto layoutCombo = ComboBoxWidget();
     layoutCombo->AddItem("三列均分（1*, 1*, 1*）");
     layoutCombo->AddItem("左窄右宽（1*, 2*）");
     layoutCombo->AddItem("右窄左宽（2*, 1*）");
-    layoutCombo->SetSelectedIndex(0);
+    CUI::DSL::Borrow(layoutCombo).SelectedIndex(0);
 
     State<int> layoutIndex{ 0 };
     layoutCombo->SelectedIndex.Bind(layoutIndex);
 
     auto applyPreset = [liveGrid, cellA, cellB, cellC](int index) {
         if (index == 0) {
-            liveGrid->SetColumnDefinitions("1*,1*,1*");
-            liveGrid->SetRowDefinitions("Auto");
+            DSL::Borrow(liveGrid).ColumnDefinitions("1*,1*,1*");
+            DSL::Borrow(liveGrid).RowDefinitions("Auto");
             cellA->GridRow = 0; cellA->GridColumn = 0; cellA->GridColumnSpan = 1;
             cellB->GridRow = 0; cellB->GridColumn = 1; cellB->GridColumnSpan = 1;
             cellC->GridRow = 0; cellC->GridColumn = 2; cellC->GridColumnSpan = 1;
             return;
         }
 
-        liveGrid->SetColumnDefinitions(index == 1 ? "1*,2*" : "2*,1*");
-        liveGrid->SetRowDefinitions("Auto,Auto");
+        DSL::Borrow(liveGrid).ColumnDefinitions(index == 1 ? "1*,2*" : "2*,1*");
+        DSL::Borrow(liveGrid).RowDefinitions("Auto,Auto");
         cellA->GridRow = 0; cellA->GridColumn = 0; cellA->GridColumnSpan = 1;
         cellB->GridRow = 0; cellB->GridColumn = 1; cellB->GridColumnSpan = 1;
         cellC->GridRow = 1; cellC->GridColumn = 0; cellC->GridColumnSpan = 2;
@@ -130,8 +130,8 @@ Element BuildGridPage() {
     };
     spec.source =
         "auto grid = GridWidget();\n"
-        "grid->SetColumnDefinitions(\"1*,2*,100\");\n"
-        "grid->SetRowDefinitions(\"Auto,Auto,Auto\");\n"
+        "DSL::Borrow(grid).ColumnDefinitions(\"1*,2*,100\");\n"
+        "DSL::Borrow(grid).RowDefinitions(\"Auto,Auto,Auto\");\n"
         "// 宽度由父容器提供，因此 * 列按比例分配。\n"
         "// 页面垂直滚动时高度无界，因此使用 Auto 行。\n"
         "\n"
@@ -142,3 +142,6 @@ Element BuildGridPage() {
 }
 
 } // namespace Gallery
+
+
+

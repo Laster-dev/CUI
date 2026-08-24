@@ -403,7 +403,7 @@ LRESULT CALLBACK EverythingApp::WndSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
     if (msg == WM_ENEO_STATUS) {
         auto* str = reinterpret_cast<std::string*>(lParam);
         if (str) {
-            if (self->m_statusLeft) self->m_statusLeft->SetText(*str);
+            if (self->m_statusLeft) CUI::DSL::Borrow(self->m_statusLeft).Text(*str);
             delete str;
         }
         return 0;
@@ -429,13 +429,6 @@ LRESULT CALLBACK EverythingApp::WndSubclassProc(HWND hwnd, UINT msg, WPARAM wPar
 }
 
 int EverythingApp::Run() {
-    if (!m_window.Create("Everything", 1100, 680, false)) {
-        return -1;
-    }
-    m_window.SetThemeMode(ThemeManager::Instance().GetThemeMode());
-    m_window.SetBackdropType(BackdropType::None);
-    m_window.SetRenderStatsOverlayVisible(false);
-
     m_dataSource.engine = &m_engine;
     m_dataSource.results = &m_results;
     m_dataSource.frequentFiles = &m_frequentFiles;
@@ -443,9 +436,18 @@ int EverythingApp::Run() {
     m_dataSource.icons = &m_iconCache;
 
     LoadFrequentFiles();
-
     m_root = BuildRoot();
-    m_window.SetRootElement(m_root);
+
+    auto windowBuilder = m_window.Fluent()
+        .Title("Everything")
+        .Size(1100, 680)
+        .Theme(ThemeManager::Instance().GetThemeMode())
+        .Backdrop(BackdropType::None)
+        .RenderStats(false)
+        .Root(m_root)
+        .Build();
+    if (!windowBuilder) return -1;
+
     m_window.OnThemeChanged().Connect([this](Window*, ThemeMode) { ApplyChromeColors(); });
     ApplyChromeColors();
 
@@ -458,8 +460,7 @@ int EverythingApp::Run() {
         if (h) PostMessageW(h, WM_ENEO_CHANGED, 0, 0);
     });
 
-    m_window.Show();
-
+    windowBuilder.Show();
     m_engine.StartAsync(
         [this](const std::string& status) { OnEngineStatus(status); },
         [this]() {
@@ -467,44 +468,43 @@ int EverythingApp::Run() {
             if (h) PostMessageW(h, WM_ENEO_READY, 0, 0);
         });
 
-    m_window.RunMessageLoop();
+    windowBuilder.Run();
     m_searchGeneration.fetch_add(1);
     m_engine.Stop();
     return 0;
 }
-
 std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
     auto root = Column(0).BackgroundToken(ThemeTokenId::WindowBackground).Build();
-    root->SetColorToken(ThemeTokenId::TextPrimary);
+    CUI::DSL::Borrow(root).ForegroundToken(ThemeTokenId::TextPrimary);
 
     m_titleBar = std::make_shared<WindowTitleBar>();
     m_titleBar->SetTitle("Everything");
     BuildMenus();
 
     auto searchRow = Row(0).Build();
-    searchRow->SetHeight(40.0f);
-    searchRow->SetPadding(Thickness(6, 4, 6, 4));
-    searchRow->SetBackgroundToken(ThemeTokenId::PaneBackground);
-    searchRow->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+    CUI::DSL::Borrow(searchRow).Height(40.0f);
+    CUI::DSL::Borrow(searchRow).Padding(Thickness(6, 4, 6, 4));
+    CUI::DSL::Borrow(searchRow).BackgroundToken(ThemeTokenId::PaneBackground);
+    CUI::DSL::Borrow(searchRow).Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
 
     m_searchBox = std::make_shared<TextBox>();
-    m_searchBox->SetPlaceholder("");
-    m_searchBox->SetHeight(32.0f);
-    m_searchBox->SetFlexGrow(1.0f);
-    m_searchBox->SetFontFamily("微软雅黑");
-    m_searchBox->SetFontSize(14.0f);
-    m_searchBox->SetPadding(Thickness(8, 2, 8, 2));
+    CUI::DSL::Borrow(m_searchBox).Placeholder("");
+    CUI::DSL::Borrow(m_searchBox).Height(32.0f);
+    CUI::DSL::Borrow(m_searchBox).FlexGrow(1.0f);
+    CUI::DSL::Borrow(m_searchBox).FontFamily("微软雅黑");
+    CUI::DSL::Borrow(m_searchBox).FontSize(14.0f);
+    CUI::DSL::Borrow(m_searchBox).Padding(Thickness(8, 2, 8, 2));
     m_searchBox->OnTextChanged().Connect([this](TextBox*, const std::string& query) {
         QueueSearch(query);
     });
-    searchRow->AddChild(m_searchBox);
+    CUI::DSL::Borrow(searchRow).AddChild(m_searchBox);
 
     m_typeFilter = std::make_shared<ComboBox>();
-    m_typeFilter->SetWidth(150.0f);
-    m_typeFilter->SetHeight(32.0f);
-    m_typeFilter->SetMargin(Thickness(6, 0, 0, 0));
-    m_typeFilter->SetFontFamily("微软雅黑");
-    m_typeFilter->SetFontSize(13.0f);
+    CUI::DSL::Borrow(m_typeFilter).Width(150.0f);
+    CUI::DSL::Borrow(m_typeFilter).Height(32.0f);
+    CUI::DSL::Borrow(m_typeFilter).Margin(Thickness(6, 0, 0, 0));
+    CUI::DSL::Borrow(m_typeFilter).FontFamily("微软雅黑");
+    CUI::DSL::Borrow(m_typeFilter).FontSize(13.0f);
     m_typeFilter->AddItem("文件+文件夹");
     m_typeFilter->AddItem("文件");
     m_typeFilter->AddItem("文件夹");
@@ -517,21 +517,21 @@ std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
         }
         if (!m_lastQuery.empty()) QueueSearch(m_lastQuery);
     });
-    searchRow->AddChild(m_typeFilter);
+    CUI::DSL::Borrow(searchRow).AddChild(m_typeFilter);
 
     m_resultsList = std::make_shared<ListView>();
-    m_resultsList->SetWidth(-1.0f);
-    m_resultsList->SetHeight(-1.0f);
-    m_resultsList->SetFlexGrow(1.0f);
+    CUI::DSL::Borrow(m_resultsList).Width(-1.0f);
+    CUI::DSL::Borrow(m_resultsList).Height(-1.0f);
+    CUI::DSL::Borrow(m_resultsList).FlexGrow(1.0f);
     m_resultsList->AddColumn("名称", 280.0f);
     m_resultsList->AddColumn("路径", 420.0f);
     m_resultsList->AddColumn("大小", 100.0f);
     m_resultsList->AddColumn("修改日期", 140.0f);
     m_resultsList->SetRowHeight(24.0f);
     m_resultsList->SetShowGridLines(false);
-    m_resultsList->SetFontFamily("微软雅黑");
-    m_resultsList->SetFontSize(13.0f);
-    m_resultsList->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
+    CUI::DSL::Borrow(m_resultsList).FontFamily("微软雅黑");
+    CUI::DSL::Borrow(m_resultsList).FontSize(13.0f);
+    CUI::DSL::Borrow(m_resultsList).Background(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
     m_resultsList->SetVirtualMode(0, &m_dataSource);
     m_resultsList->OnRowDoubleClicked().Connect([this](ListView*, int row) {
         if (m_displayMode == ListDisplayMode::FrequentFiles) {
@@ -580,27 +580,27 @@ std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
     });
 
     m_statusBar = Row(0).Build();
-    m_statusBar->SetHeight(26.0f);
-    m_statusBar->SetPadding(Thickness(10, 2, 10, 2));
-    m_statusBar->SetBackgroundToken(ThemeTokenId::PaneBackground);
-    m_statusBar->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+    CUI::DSL::Borrow(m_statusBar).Height(26.0f);
+    CUI::DSL::Borrow(m_statusBar).Padding(Thickness(10, 2, 10, 2));
+    CUI::DSL::Borrow(m_statusBar).BackgroundToken(ThemeTokenId::PaneBackground);
+    CUI::DSL::Borrow(m_statusBar).Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
 
     m_statusLeft = Text("正在初始化...").FontSize(12.0f).FontFamily("微软雅黑").Build();
-    m_statusLeft->SetColorToken(ThemeTokenId::TextSecondary);
-    m_statusLeft->SetFlexGrow(1.0f);
+    CUI::DSL::Borrow(m_statusLeft).ForegroundToken(ThemeTokenId::TextSecondary);
+    CUI::DSL::Borrow(m_statusLeft).FlexGrow(1.0f);
     m_statusLeft->SetTextAlign(TextAlignment::Left);
 
     m_statusRight = Text("").FontSize(12.0f).FontFamily("微软雅黑").Build();
-    m_statusRight->SetColorToken(ThemeTokenId::TextSecondary);
+    CUI::DSL::Borrow(m_statusRight).ForegroundToken(ThemeTokenId::TextSecondary);
     m_statusRight->SetTextAlign(TextAlignment::Right);
 
-    m_statusBar->AddChild(m_statusLeft);
-    m_statusBar->AddChild(m_statusRight);
+    CUI::DSL::Borrow(m_statusBar).AddChild(m_statusLeft);
+    CUI::DSL::Borrow(m_statusBar).AddChild(m_statusRight);
 
-    root->AddChild(m_titleBar);
-    root->AddChild(searchRow);
-    root->AddChild(m_resultsList);
-    root->AddChild(m_statusBar);
+    CUI::DSL::Borrow(root).AddChild(m_titleBar);
+    CUI::DSL::Borrow(root).AddChild(searchRow);
+    CUI::DSL::Borrow(root).AddChild(m_resultsList);
+    CUI::DSL::Borrow(root).AddChild(m_statusBar);
     return root;
 }
 
@@ -612,7 +612,7 @@ void EverythingApp::BuildMenus() {
     auto fileMenu = menuBar.AddMenu("文件(F)");
     fileMenu->AddItem("首页(H)", [this]() {
         if (m_searchBox) {
-            m_searchBox->SetText("");
+            CUI::DSL::Borrow(m_searchBox).Text("");
             QueueSearch("");
         }
     });
@@ -651,7 +651,7 @@ void EverythingApp::BuildMenus() {
     m_menuStatusBar = viewMenu->AddItem("状态栏(S)", [this]() {
         m_statusBarVisible = !m_statusBarVisible;
         if (m_statusBar) {
-            m_statusBar->SetVisibility(m_statusBarVisible ? Visibility::Visible : Visibility::Collapsed);
+            CUI::DSL::Borrow(m_statusBar).Visibility(m_statusBarVisible ? Visibility::Visible : Visibility::Collapsed);
         }
         RefreshSearchMenuChecks();
     });
@@ -666,7 +666,7 @@ void EverythingApp::BuildMenus() {
             "重建索引可能需要几分钟，期间仍可操作界面。\n\n确定要继续吗？",
             [this](DialogResult result) {
                 if (result != DialogResult::Primary) return;
-                if (m_statusLeft) m_statusLeft->SetText("正在重建索引...");
+                if (m_statusLeft) CUI::DSL::Borrow(m_statusLeft).Text("正在重建索引...");
                 m_engine.RebuildIndexAsync(
                     [this](const std::string& s) { OnEngineStatus(s); },
                     [this]() {
@@ -678,7 +678,7 @@ void EverythingApp::BuildMenus() {
     toolsMenu->AddItem("保存数据库(S)", [this]() {
         bool ok = m_engine.SaveDatabase();
         if (m_statusLeft) {
-            m_statusLeft->SetText(ok ? "Everything.db 已保存" : "保存失败（可能需要管理员权限）");
+            CUI::DSL::Borrow(m_statusLeft).Text(ok ? "Everything.db 已保存" : "保存失败（可能需要管理员权限）");
         }
     });
 
@@ -815,7 +815,7 @@ void EverythingApp::ShowFrequentFiles() {
         }
     }
     if (m_statusLeft) {
-        m_statusLeft->SetText(m_frequentFiles.empty() ? "就绪" : "常用文件");
+        CUI::DSL::Borrow(m_statusLeft).Text(m_frequentFiles.empty() ? "就绪" : "常用文件");
     }
 }
 
@@ -913,7 +913,7 @@ void EverythingApp::ApplySearchResults(std::vector<SearchResultRef>&& results, d
                << " | [UI渲染]: " << std::setprecision(1) << ui_ms << " ms"
                << " | [总计]: " << std::setprecision(1) << (totalMs + ui_ms) << " ms";
         }
-        m_statusLeft->SetText(ss.str());
+        CUI::DSL::Borrow(m_statusLeft).Text(ss.str());
     }
 
     // Force immediate Direct2D frame rendering & DWM Present (bypass WM_PAINT queue delay)
@@ -930,7 +930,7 @@ void EverythingApp::RefreshStatusBar() {
     if (s.total_memory_bytes) ss << "  |  " << FormatBytes(s.total_memory_bytes);
     if (s.loaded_from_db) ss << "  |  DB";
     if (s.usn_active) ss << "  |  USN";
-    if (m_statusRight) m_statusRight->SetText(ss.str());
+    if (m_statusRight) CUI::DSL::Borrow(m_statusRight).Text(ss.str());
 }
 
 void EverythingApp::OnEngineReady() {
@@ -945,7 +945,7 @@ void EverythingApp::OnEngineReady() {
             ss << "就绪 — 已索引 " << s.live_file_count << " 个文件";
             if (s.elevated) ss << " [USN/MFT]";
             else ss << " [标准扫描]";
-            m_statusLeft->SetText(ss.str());
+            CUI::DSL::Borrow(m_statusLeft).Text(ss.str());
         }
     }
 }
@@ -1142,11 +1142,14 @@ void EverythingApp::ToggleTheme() {
 void EverythingApp::ApplyChromeColors() {
     auto& tm = ThemeManager::Instance();
     if (m_resultsList) {
-        m_resultsList->SetBackground(tm.GetColor(ThemeTokenId::WindowBackground));
+        CUI::DSL::Borrow(m_resultsList).Background(tm.GetColor(ThemeTokenId::WindowBackground));
     }
     if (m_statusBar) {
-        m_statusBar->SetBackground(tm.GetColor(ThemeTokenId::PaneBackground));
+        CUI::DSL::Borrow(m_statusBar).Background(tm.GetColor(ThemeTokenId::PaneBackground));
     }
 }
 
 } // namespace EverythingNEO
+
+
+

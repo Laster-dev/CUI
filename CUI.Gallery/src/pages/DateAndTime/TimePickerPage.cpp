@@ -38,8 +38,8 @@ Element BuildTimePickerPage() {
         .OnClick([selectedTime](UIElement*) { selectedTime = "06:15"; });
 
     auto disabled = TimePickerWidget();
-    disabled->SetTime(9, 0);
-    disabled->IsEnabledProperty = false;
+    DSL::Borrow(disabled).Time(9, 0);
+    CUI::DSL::Borrow(disabled).IsEnabled(false);
 
     auto second = TimePickerWidget();
     State<std::string> reminderTime{ "21:00" };
@@ -85,3 +85,6 @@ Element BuildTimePickerPage() {
 }
 
 } // namespace Gallery
+
+
+

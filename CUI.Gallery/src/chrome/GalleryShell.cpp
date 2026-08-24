@@ -78,24 +78,24 @@ namespace Gallery {
 
         std::shared_ptr<NavigationView> BuildNavigation(const std::shared_ptr<GalleryStatusBar>& statusBar) {
             auto nav = std::make_shared<NavigationView>();
-            nav->SetHeader(std::string());
-            nav->SetPaneTitle("CUI Gallery");
+            DSL::Borrow(nav).Header(std::string());
+            DSL::Borrow(nav).PaneTitle("CUI Gallery");
 
-            nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
-            nav->SetIsSettingsVisible(true);
+            DSL::Borrow(nav).PaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
+            DSL::Borrow(nav).IsSettingsVisible(true);
             if (auto* settings = nav->SettingsItem()) {
-                settings->SetContent("设置");
+                settings->Content = "设置";
             }
-            nav->SetIsPaneOpen(true);
-            nav->FlexGrow = 1.0f;
-            nav->Align = Alignment::Stretch;
+            DSL::Borrow(nav).IsPaneOpen(true);
+            CUI::DSL::Borrow(nav).FlexGrow(1.0f);
+            CUI::DSL::Borrow(nav).Align(Alignment::Stretch);
 
             auto homeItem = std::make_shared<NavigationViewItem>("主页");
-            homeItem->SetTag(kHomeTag);
+            DSL::Borrow(homeItem).Tag(kHomeTag);
             nav->AddMenuItem(homeItem);
 
             auto conventionsItem = std::make_shared<NavigationViewItem>("全局约定");
-            conventionsItem->SetTag(kConventionsTag);
+            DSL::Borrow(conventionsItem).Tag(kConventionsTag);
             nav->AddMenuItem(conventionsItem);
 
             for (Category category : CategoryOrder()) {
@@ -104,10 +104,10 @@ namespace Gallery {
                     continue;
                 }
                 auto folder = std::make_shared<NavigationViewItem>(CategoryDisplayName(category));
-                folder->SetSelectsOnInvoked(false);
+                DSL::Borrow(folder).SelectsOnInvoked(false);
                 for (const Entry* entry : items) {
                     auto child = std::make_shared<NavigationViewItem>(entry->title);
-                    child->SetTag(entry->tag);
+                    DSL::Borrow(child).Tag(entry->tag);
                     folder->AddMenuItem(child);
                 }
                 nav->AddMenuItem(folder);
@@ -115,18 +115,18 @@ namespace Gallery {
 
             auto search = std::make_shared<AutoSuggestBox>();
             search->Placeholder = "搜索控件";
-            search->SetMaxVisibleSuggestions(10);
+            DSL::Borrow(search).MaxVisibleSuggestions(10);
             {
                 std::vector<std::string> titles;
                 for (const auto& e : Entries()) {
                     titles.push_back(e.title);
                 }
-                search->SetSuggestionItems(titles);
-                search->SetSuggestionProvider([](const std::string& query) {
+                DSL::Borrow(search).SuggestionItems(titles);
+                DSL::Borrow(search).SuggestionProvider([](const std::string& query) {
                     return SearchTitles(query);
                     });
             }
-            nav->SetAutoSuggestBox(search);
+            DSL::Borrow(nav).AutoSuggestBox(search);
 
             auto cache = std::make_shared<PageCache>();
 
@@ -147,20 +147,20 @@ namespace Gallery {
                     pageTitle = entry->title;
                 }
                 if (statusBar) {
-                    statusBar->SetCurrentPage(pageTitle);
+                    DSL::Borrow(statusBar).CurrentPage(pageTitle);
                 }
 
                 if (tag == kSettingsTag || tag == kConventionsTag) {
-                    nav->SetContent(cache->Resolve(tag));
+                    CUI::DSL::Borrow(nav).Content(cache->Resolve(tag));
                     return;
                 }
                 if (cache->Contains(tag) || tag == kHomeTag) {
                     if (auto page = cache->Resolve(tag)) {
-                        nav->SetContent(page);
+                        CUI::DSL::Borrow(nav).Content(page);
                     }
                     return;
                 }
-                nav->SetContentFactory([cache, tag]() {
+                DSL::Borrow(nav).ContentFactory([cache, tag]() {
                     return cache->Resolve(tag);
                 });
             };
@@ -202,10 +202,10 @@ namespace Gallery {
                 navigate(tag);
                 });
 
-            nav->SetSelectedItem(homeItem.get());
-            nav->SetContent(cache->Resolve(kHomeTag));
+            CUI::DSL::Borrow(nav).SelectedItem(homeItem.get());
+            CUI::DSL::Borrow(nav).Content(cache->Resolve(kHomeTag));
             if (statusBar) {
-                statusBar->SetCurrentPage("主页");
+                DSL::Borrow(statusBar).CurrentPage("主页");
             }
             return nav;
         }
@@ -214,7 +214,7 @@ namespace Gallery {
 
     Element BuildGalleryRoot() {
         auto titleBar = std::make_shared<WindowTitleBar>();
-        titleBar->SetTitle("CUI Gallery");
+        CUI::DSL::Borrow(titleBar).Title("CUI Gallery");
         constexpr const char* kSvgStar =
             "<svg viewBox=\"0 0 1024 1024\" xmlns=\"http://www.w3.org/2000/svg\">"
             "<path d=\"M512 64l138.88 281.387 310.4 45.12-224.64 218.987 53.035 309.173L512 772.693 234.325 918.667l53.035-309.173L62.72 390.507l310.4-45.12z\"/>"
@@ -222,19 +222,19 @@ namespace Gallery {
         titleBar->Icon = kSvgStar;
 		//构建主题切换控件
         auto ThemeModeRange = std::make_shared<SegmentedControl>();
-        ThemeModeRange->Width = 120.0f;
-		ThemeModeRange->Margin = Thickness(2, 2, 10, 2);
+        CUI::DSL::Borrow(ThemeModeRange).Width(120.0f);
+		CUI::DSL::Borrow(ThemeModeRange).Margin(Thickness(2, 2, 10, 2));
         ThemeModeRange->AddItem("Dark");
         ThemeModeRange->AddItem("Light");
         ThemeModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
             if (auto* window = Window::Current()) {
-                window->SetThemeMode(item == "Dark" ? ThemeMode::Dark : ThemeMode::Light);
+                DSL::Borrow(window).ThemeMode(item == "Dark" ? ThemeMode::Dark : ThemeMode::Light);
             }
         });
 		//构建动画|低性能模式切换控件
 		auto AnimationModeRange = std::make_shared<SegmentedControl>();
-		AnimationModeRange->Width = 120.0f;
-		AnimationModeRange->Margin = Thickness(2, 2, 10, 2);
+		CUI::DSL::Borrow(AnimationModeRange).Width(120.0f);
+		CUI::DSL::Borrow(AnimationModeRange).Margin(Thickness(2, 2, 10, 2));
 		AnimationModeRange->AddItem("动画");
 		AnimationModeRange->AddItem("低性能");
         AnimationModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
@@ -247,7 +247,7 @@ namespace Gallery {
 		rightContent->AddChild(ThemeModeRange);
 		rightContent->AddChild(AnimationModeRange);
 		//设置右侧内容
-		titleBar->SetRightContent(rightContent);
+		DSL::Borrow(titleBar).RightContent(rightContent);
 
 
        
@@ -270,11 +270,13 @@ namespace Gallery {
         auto statusBar = std::make_shared<GalleryStatusBar>();
         auto nav = BuildNavigation(statusBar);
         auto toastCenter = std::make_shared<ToastCenter>();
-        toastCenter->SetId("toastCenter");
+        DSL::Borrow(toastCenter).Id("toastCenter");
 
         auto root = Column(0, { titleBar, nav, statusBar, toastCenter });
-        root->BackgroundToken = ThemeTokenId::WindowBackground;
+        CUI::DSL::Borrow(root).BackgroundToken(ThemeTokenId::WindowBackground);
         return root;
     }
 
 } // namespace Gallery
+
+

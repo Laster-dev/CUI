@@ -19,23 +19,23 @@ std::shared_ptr<CUI::StackPanel> MakePane(
     float flexGrow,
     float minMain) {
     auto pane = Column(6).Padding(10).Build();
-    pane->AddChild(MakeLabel(title, 12.0f, ThemeTokenId::TextPrimary, true));
-    pane->AddChild(MakeLabel(hint, 11.0f, ThemeTokenId::TextSecondary, false));
+    CUI::DSL::Borrow(pane).AddChild(MakeLabel(title, 12.0f, ThemeTokenId::TextPrimary, true));
+    CUI::DSL::Borrow(pane).AddChild(MakeLabel(hint, 11.0f, ThemeTokenId::TextSecondary, false));
     if (flexGrow > 0.0f) {
-        pane->FlexGrow = flexGrow;
+        CUI::DSL::Borrow(pane).FlexGrow(flexGrow);
     }
     if (minMain > 0.0f) {
-        pane->MinWidth = minMain;
-        pane->MinHeight = minMain;
+        CUI::DSL::Borrow(pane).MinWidth(minMain);
+        CUI::DSL::Borrow(pane).MinHeight(minMain);
     }
     return pane;
 }
 
 void StyleContainer(const std::shared_ptr<CUI::UIElement>& container) {
-    container->BackgroundToken = ThemeTokenId::CardBackground;
-    container->BorderToken = ThemeTokenId::CardBorder;
-    container->BorderThickness = 1.0f;
-    container->ClipToBounds = true;
+    CUI::DSL::Borrow(container).BackgroundToken(ThemeTokenId::CardBackground);
+    CUI::DSL::Borrow(container).BorderToken(ThemeTokenId::CardBorder);
+    CUI::DSL::Borrow(container).BorderThickness(1.0f);
+    CUI::DSL::Borrow(container).ClipToBounds(true);
 }
 
 } // namespace
@@ -43,16 +43,16 @@ void StyleContainer(const std::shared_ptr<CUI::UIElement>& container) {
 std::shared_ptr<UIElement> BuildSplitterPage() {
     // —— 水平拆分（左右分栏）——
     auto leftPane = Column(6).Width(150).MinWidth(80).Padding(10).Build();
-    leftPane->BackgroundToken = ThemeTokenId::PaneBackground;
-    leftPane->AddChild(MakeLabel("导航", 12.0f, ThemeTokenId::TextPrimary, true));
-    leftPane->AddChild(MakeLabel("• 项目", 11.0f, ThemeTokenId::TextSecondary, false));
-    leftPane->AddChild(MakeLabel("• 文档", 11.0f, ThemeTokenId::TextSecondary, false));
-    leftPane->AddChild(MakeLabel("• 设置", 11.0f, ThemeTokenId::TextSecondary, false));
+    CUI::DSL::Borrow(leftPane).BackgroundToken(ThemeTokenId::PaneBackground);
+    CUI::DSL::Borrow(leftPane).AddChild(MakeLabel("导航", 12.0f, ThemeTokenId::TextPrimary, true));
+    CUI::DSL::Borrow(leftPane).AddChild(MakeLabel("• 项目", 11.0f, ThemeTokenId::TextSecondary, false));
+    CUI::DSL::Borrow(leftPane).AddChild(MakeLabel("• 文档", 11.0f, ThemeTokenId::TextSecondary, false));
+    CUI::DSL::Borrow(leftPane).AddChild(MakeLabel("• 设置", 11.0f, ThemeTokenId::TextSecondary, false));
 
     auto rightPane = Column(6).FlexGrow(1.0f).MinWidth(120).Padding(10).Build();
-    rightPane->BackgroundToken = ThemeTokenId::CardBackground;
-    rightPane->AddChild(MakeLabel("内容区", 12.0f, ThemeTokenId::TextPrimary, true));
-    rightPane->AddChild(MakeLabel("拖拽中间的分隔条调整左右宽度。", 11.0f, ThemeTokenId::TextSecondary, false));
+    CUI::DSL::Borrow(rightPane).BackgroundToken(ThemeTokenId::CardBackground);
+    CUI::DSL::Borrow(rightPane).AddChild(MakeLabel("内容区", 12.0f, ThemeTokenId::TextPrimary, true));
+    CUI::DSL::Borrow(rightPane).AddChild(MakeLabel("拖拽中间的分隔条调整左右宽度。", 11.0f, ThemeTokenId::TextSecondary, false));
 
     auto splitLR = SplitterWidget(Orientation::Vertical).Build();
 
@@ -61,14 +61,14 @@ std::shared_ptr<UIElement> BuildSplitterPage() {
 
     // —— 垂直拆分（上下分栏）——
     auto topPane = Column(4).Height(90).MinHeight(50).Padding(10).Build();
-    topPane->BackgroundToken = ThemeTokenId::PaneBackground;
-    topPane->AddChild(MakeLabel("编辑器", 12.0f, ThemeTokenId::TextPrimary, true));
+    CUI::DSL::Borrow(topPane).BackgroundToken(ThemeTokenId::PaneBackground);
+    CUI::DSL::Borrow(topPane).AddChild(MakeLabel("编辑器", 12.0f, ThemeTokenId::TextPrimary, true));
     topPane->AddChild(MakeLabel("int main() { return 0; }", 11.0f, ThemeTokenId::TextSecondary, false));
 
     auto bottomPane = Column(4).FlexGrow(1.0f).MinHeight(50).Padding(10).Build();
-    bottomPane->BackgroundToken = ThemeTokenId::CardBackground;
-    bottomPane->AddChild(MakeLabel("输出", 12.0f, ThemeTokenId::TextPrimary, true));
-    bottomPane->AddChild(MakeLabel("构建成功。", 11.0f, ThemeTokenId::TextSecondary, false));
+    CUI::DSL::Borrow(bottomPane).BackgroundToken(ThemeTokenId::CardBackground);
+    CUI::DSL::Borrow(bottomPane).AddChild(MakeLabel("输出", 12.0f, ThemeTokenId::TextPrimary, true));
+    CUI::DSL::Borrow(bottomPane).AddChild(MakeLabel("构建成功。", 11.0f, ThemeTokenId::TextSecondary, false));
 
     auto splitTB = SplitterWidget(Orientation::Horizontal).Build();
 
@@ -77,13 +77,13 @@ std::shared_ptr<UIElement> BuildSplitterPage() {
 
     // —— 三栏双分隔条 ——
     auto p1 = MakePane("栏 A", "宽 110px，最小 60px。", 0.0f, 60.0f);
-    p1->Width = 110.0f;
-    p1->BackgroundToken = ThemeTokenId::PaneBackground;
+    CUI::DSL::Borrow(p1).Width(110.0f);
+    CUI::DSL::Borrow(p1).BackgroundToken(ThemeTokenId::PaneBackground);
     auto p2 = MakePane("栏 B", "弹性伸缩，最小 80px。", 1.0f, 80.0f);
-    p2->BackgroundToken = ThemeTokenId::CardBackground;
+    CUI::DSL::Borrow(p2).BackgroundToken(ThemeTokenId::CardBackground);
     auto p3 = MakePane("栏 C", "宽 130px，最小 60px。", 0.0f, 60.0f);
-    p3->Width = 130.0f;
-    p3->BackgroundToken = ThemeTokenId::PaneBackground;
+    CUI::DSL::Borrow(p3).Width(130.0f);
+    CUI::DSL::Borrow(p3).BackgroundToken(ThemeTokenId::PaneBackground);
 
     auto s1 = SplitterWidget(Orientation::Vertical).Build();
     auto s2 = SplitterWidget(Orientation::Vertical).Build();
@@ -95,7 +95,7 @@ std::shared_ptr<UIElement> BuildSplitterPage() {
     auto eventStatus = MakeStatus("拖拽上方的分隔条，观察 SplitterMoved 事件输出。");
     splitLR->OnSplitterMoved().Connect(
         [leftPane, rightPane, eventStatus](Splitter*, float delta) {
-            eventStatus->Text.Set(std::format(
+            CUI::DSL::Borrow(eventStatus).Text(std::format(
                 "SplitterMoved：位移 {:+0.1f}px → 左栏 {:.0f}px / 右栏 {:.0f}px",
                 delta, leftPane->GetBounds().width, rightPane->GetBounds().width));
         });
@@ -154,3 +154,6 @@ std::shared_ptr<UIElement> BuildSplitterPage() {
 }
 
 } // namespace Gallery
+
+
+

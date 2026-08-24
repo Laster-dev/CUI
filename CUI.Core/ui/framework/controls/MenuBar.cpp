@@ -1,4 +1,5 @@
 #include "MenuBar.h"
+#include "../core/CUIDsl.h"
 #include "../window/Window.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
@@ -12,14 +13,15 @@ constexpr AnimationSpec kMenuBarHoverSpec{ 0.22f, 0.01f, 0.16f };
 } // namespace
 
 MenuBar::MenuBar() {
-    SetHeight(30.0f);
+    DSL::Borrow(this)
+        .Height(30.0f)
     // Hosted on the title bar: do not fill an opaque pane. Control::OnRender would
     // cover the parent's 1px bottom hairline (drawn before children).
-    SetBackgroundToken(ThemeTokenId::Unset);
-    SetHoverBackgroundToken(ThemeTokenId::Unset);
-    SetPressedBackgroundToken(ThemeTokenId::Unset);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
+        .BackgroundToken(ThemeTokenId::Unset)
+        .HoverBackgroundToken(ThemeTokenId::Unset)
+        .PressedBackgroundToken(ThemeTokenId::Unset)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .KeyboardNavigationMode(KeyboardNavigationMode::Cycle);
 }
 
 std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {

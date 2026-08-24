@@ -35,10 +35,10 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     auto list = ListBoxWidget()
         .Height(220.0f)
         .Width(360.0f);
-    list->SetSelectionMode(ListBoxSelectionMode::Extended);
-    list->SetAllowDrag(true);
-    list->SetAllowDrop(true);
-    list->SetItems({ "收件箱", "今天", "本周", "已完成", "已归档", "垃圾箱" });
+    CUI::DSL::Borrow(list).SelectionMode(ListBoxSelectionMode::Extended);
+    list.AllowDrag(true);
+    CUI::DSL::Borrow(list).AllowDrop(true);
+    CUI::DSL::Borrow(list).Items({ "收件箱", "今天", "本周", "已完成", "已归档", "垃圾箱" });
 
     State<std::string> selectionText{ "选择一个项目；扩展模式支持 Ctrl / Shift 和 Ctrl+A。" };
     State<int> selectedIndex{ -1 };
@@ -65,7 +65,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
             if (text.empty()) text = "新项目 " + std::to_string(generated.Get());
             generated = generated.Get() + 1;
             list->AddItem(text);
-            input->Text->Set("");
+            CUI::DSL::Borrow(input).Text("");
             selectionText = "已在末尾追加：" + text + "。";
             });
     auto insert = Button("插入首项")
@@ -89,7 +89,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
             });
     auto reset = Button("重置数据")
         .OnClick([list, selectionText](UIElement*) {
-            list->SetItems({ "收件箱", "今天", "本周", "已完成", "已归档", "垃圾箱" });
+            CUI::DSL::Borrow(list).Items({ "收件箱", "今天", "本周", "已完成", "已归档", "垃圾箱" });
             list->ClearSelection();
             selectionText = "已重置为 6 个内存项目。";
             });
@@ -102,19 +102,19 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
 
     auto single = Button("单选")
         .OnClick([list, selectionText](UIElement*) {
-            list->SetSelectionMode(ListBoxSelectionMode::Single);
+            CUI::DSL::Borrow(list).SelectionMode(ListBoxSelectionMode::Single);
             list->ClearSelection();
             selectionText = "已切换为单选模式。";
             });
     auto multiple = Button("多选")
         .OnClick([list, selectionText](UIElement*) {
-            list->SetSelectionMode(ListBoxSelectionMode::Multiple);
+            CUI::DSL::Borrow(list).SelectionMode(ListBoxSelectionMode::Multiple);
             list->ClearSelection();
             selectionText = "已切换为多选模式；单击可逐项切换。";
             });
     auto extended = Button("扩展选择")
         .OnClick([list, selectionText](UIElement*) {
-            list->SetSelectionMode(ListBoxSelectionMode::Extended);
+            CUI::DSL::Borrow(list).SelectionMode(ListBoxSelectionMode::Extended);
             list->ClearSelection();
             selectionText = "已切换为扩展选择模式；支持 Ctrl / Shift。";
             });
@@ -141,8 +141,8 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     auto virtualList = ListBoxWidget()
         .Height(180.0f)
         .Width(360.0f);
-    virtualList->SetVirtualMode(10000, &virtualSource);
-    virtualList->SetSelectionMode(ListBoxSelectionMode::Single);
+    virtualList.VirtualMode(10000, &virtualSource);
+    virtualList.SelectionMode(ListBoxSelectionMode::Single);
     State<std::string> virtualStatusText{ "虚拟模式仅按需索引文本；可滚动、选择和键盘导航。" };
     auto virtualStatus = MakeStatus("");
     virtualStatus->Text.Bind(virtualStatusText, BindingMode::OneWay);
@@ -150,7 +150,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
         virtualStatusText = "虚拟项目：第 " + std::to_string(index + 1) + " 项：" + text + "。";
     });
     auto jump = Button("定位到第 5000 项")
-        .OnClick([virtualList](UIElement*) { virtualList->SetSelectedIndex(4999); });
+        .OnClick([virtualList](UIElement*) { CUI::DSL::Borrow(virtualList).SelectedIndex(4999); });
 
     SamplePageSpec spec;
     spec.title = "ListBox(列表框)";
@@ -180,12 +180,18 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     };
     spec.source =
         "auto list = ListBoxWidget();\n"
-        "list->SetItems({ \"收件箱\", \"今天\", \"本周\" });\n"
-        "list->SetSelectionMode(ListBoxSelectionMode::Extended);\n"
-        "list->OnSelectionChanged().Connect(...);\n"
+        "CUI::DSL::Borrow(list).Items({ \"收件箱\", \"今天\", \"本周\" });\n"
+        "CUI::DSL::Borrow(list).SelectionMode(ListBoxSelectionMode::Extended);\n"
+        "list->OnSelectionChanged().Connect(..);\n"
         "list->AddItem(\"新项目\");\n"
-        "list->SetVirtualMode(10000, &dataSource);\n";
+        "list.VirtualMode(10000, &dataSource);\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+
+
+
+

@@ -1,15 +1,18 @@
 #include "PasswordBox.h"
+#include "../core/CUIDsl.h"
 
 namespace CUI {
 
 PasswordBox::PasswordBox() : TextBox("请输入密码"), Password(this) {
-    SetIsPasswordMode(true);
-    SetShowRevealButton(true);
+    DSL::Borrow(this)
+        .IsPasswordMode(true)
+        .ShowRevealButton(true);
 }
 
 PasswordBox::PasswordBox(const std::string& placeholder) : TextBox(placeholder), Password(this) {
-    SetIsPasswordMode(true);
-    SetShowRevealButton(true);
+    DSL::Borrow(this)
+        .IsPasswordMode(true)
+        .ShowRevealButton(true);
 }
 
 Value PasswordBox::GetProperty(PropertyId id) const {

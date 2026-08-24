@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildRadioButtonPage(const ShowcaseContext& ctx) {
     auto radioA = RadioButtonTile("选项 1 (Option A)", "DemoGroup").Build();
-    radioA->SetState(CheckState::Checked);
+    CUI::DSL::Borrow(radioA).State(CheckState::Checked);
     auto radioB = RadioButtonTile("选项 2 (Option B)", "DemoGroup").Build();
     auto radioC = RadioButtonTile("选项 3 (Option C)", "DemoGroup").Build();
     return { "RadioButton 单选框", CreatePage(

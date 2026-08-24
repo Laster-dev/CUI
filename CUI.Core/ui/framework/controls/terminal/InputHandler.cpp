@@ -583,7 +583,7 @@ void InputHandler::CharAttributes(const Params& p) {
     }
     if (attr.GetCodePoint() == 0) {
         attr.SetCodePoint(' ');
-        attr.SetWidth(1);
+        attr.Width(1);
     }
     attr.LinkId = m_links.ActiveId();
     Buf().CurAttr = attr;

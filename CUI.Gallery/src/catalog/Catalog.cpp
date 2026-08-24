@@ -137,3 +137,6 @@ std::vector<std::string> SearchTitles(const std::string& query) {
 }
 
 } // namespace Gallery
+
+
+

@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ListBox.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../dnd/DragDropService.h"
 #include <cmath>
@@ -12,23 +13,24 @@
 namespace CUI {
 
 ListBox::ListBox() {
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
-    SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
-    SetBorderThickness(1.0f);
-    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
-    SetFontSize(12.0f);
-    SetFontFamily("微软雅黑");
-    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    SetItemHeight(28.0f);
-    SetCornerRadius(4.0f);
-    SetWidth(240.0f);
-    SetHeight(300.0f);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .SelectedBackgroundToken(ThemeTokenId::SelectedBackground)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .Background(ThemeManager::Instance().GetColor("cardBackground"))
+        .BorderBrush(ThemeManager::Instance().GetColor("cardBorder"))
+        .BorderThickness(1.0f)
+        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
+        .HoverBackground(ThemeManager::Instance().GetColor("hoverBackground"))
+        .FontSize(12.0f)
+        .FontFamily("微软雅黑")
+        .KeyboardNavigationMode(KeyboardNavigationMode::Contained)
+        .ItemHeight(28.0f)
+        .CornerRadius(4.0f)
+        .Width(240.0f)
+        .Height(300.0f);
     SelectedIndex.Initialize(*this);
     m_itemsLayer.SetCacheable(true);
 }
@@ -75,7 +77,7 @@ void ListBox::AddItem(const std::string& item) {
 void ListBox::AddItem(std::shared_ptr<UIElement> customElement) {
     if (customElement) {
         m_itemDatas.push_back({ "", customElement });
-        AddChild(customElement);
+        DSL::Borrow(this).AddChild(customElement);
         InvalidateItemsLayer();
     }
 }
@@ -106,7 +108,7 @@ void ListBox::RemoveItem(int index) {
         return;
     }
     if (m_itemDatas[static_cast<size_t>(index)].customElement) {
-        RemoveChild(m_itemDatas[static_cast<size_t>(index)].customElement);
+        DSL::Borrow(this).RemoveChild(m_itemDatas[static_cast<size_t>(index)].customElement);
     }
     m_itemDatas.erase(m_itemDatas.begin() + index);
     if (m_selectedIndex == index) {
@@ -966,8 +968,8 @@ DataPackage ListBox::BeginDrag(Point pt) {
     DataPackage pkg;
     m_dragSourceIndex = m_pressIndex;
     if (m_dragSourceIndex >= 0 && static_cast<size_t>(m_dragSourceIndex) < GetItemCount()) {
-        pkg.SetText(GetItemAt(static_cast<size_t>(m_dragSourceIndex)));
-        pkg.SetFormat("cui/list-item", std::to_string(m_dragSourceIndex));
+        pkg.Text(GetItemAt(static_cast<size_t>(m_dragSourceIndex)));
+        pkg.Format("cui/list-item", std::to_string(m_dragSourceIndex));
     }
     return pkg;
 }

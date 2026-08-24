@@ -5,6 +5,7 @@
 #include "TextBlock.h"
 #include "Button.h"
 #include "../style/ThemeManager.h"
+#include "../core/CUIDsl.h"
 #include "../window/PopupPlacement.h"
 #include <algorithm>
 #include <cmath>
@@ -46,67 +47,69 @@ Size MeasureWrapped(const std::string& text, float fontSize, float maxWidth, DWR
 } // namespace
 
 TeachingTip::TeachingTip() {
-    SetVisibility(Visibility::Visible);
-    SetClipToBounds(false);
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetTitleColorToken(ThemeTokenId::TextPrimary);
-    SetMessageColorToken(ThemeTokenId::TextSecondary);
-    SetAccentColorToken(ThemeTokenId::AccentColor);
+    DSL::Borrow(this)
+        .Visibility(Visibility::Visible)
+        .ClipToBounds(false)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .TitleColorToken(ThemeTokenId::TextPrimary)
+        .MessageColorToken(ThemeTokenId::TextSecondary)
+        .AccentColorToken(ThemeTokenId::AccentColor);
 
     // 气泡外壳自绘；内部标题/正文/按钮全部复用现有控件。
-    m_titleText = std::make_shared<TextBlock>();
-    m_titleText->SetFontFamily("微软雅黑");
-    m_titleText->SetFontSize(14.0f);
-    m_titleText->SetFontWeight(CUI::FontWeight::SemiBold);
-    m_titleText->SetLineSpacing(1.25f); // 长标题同样自动换行
-    m_titleText->SetColorToken(GetTitleColorToken());
+    m_titleText = DSL::Fluent::TextBlock()
+        .FontFamily("微软雅黑")
+        .FontSize(14.0f)
+        .FontWeight(CUI::FontWeight::SemiBold)
+        .LineSpacing(1.25f)
+        .ForegroundToken(GetTitleColorToken())
+        .Build();
 
-    m_messageText = std::make_shared<TextBlock>();
-    m_messageText->SetFontFamily("微软雅黑");
-    m_messageText->SetFontSize(12.0f);
-    m_messageText->SetColorToken(GetMessageColorToken());
-    m_messageText->SetLineSpacing(1.25f); // 启用自动换行
+    m_messageText = DSL::Fluent::TextBlock()
+        .FontFamily("微软雅黑")
+        .FontSize(12.0f)
+        .ForegroundToken(GetMessageColorToken())
+        .LineSpacing(1.25f)
+        .Build();
 
-    m_actionButton = std::make_shared<Button>();
-    m_actionButton->SetFontFamily("微软雅黑");
-    m_actionButton->SetFontSize(12.0f);
-    m_actionButton->SetFontWeight(CUI::FontWeight::SemiBold);
-    m_actionButton->SetCornerRadius(4.0f);
-    m_actionButton->SetBorderThickness(0.0f);
-    m_actionButton->OnClick().Connect([this](UIElement*) {
+    m_actionButton = DSL::Fluent::Button()
+        .FontFamily("微软雅黑")
+        .FontSize(12.0f)
+        .FontWeight(CUI::FontWeight::SemiBold)
+        .CornerRadius(4.0f)
+        .BorderThickness(0.0f)
+        .OnClick([this](UIElement*) {
         m_onAction.Invoke();
         Close();
     });
 
     m_closeButton = std::make_shared<Button>();
-    m_closeButton->SetText("×");
-    m_closeButton->SetFontFamily("微软雅黑");
-    m_closeButton->SetFontSize(14.0f);
-    m_closeButton->SetBackgroundToken(ThemeTokenId::Unset);
-    m_closeButton->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    m_closeButton->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    m_closeButton->SetBorderToken(ThemeTokenId::Unset);
-    m_closeButton->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    m_closeButton->SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
-    m_closeButton->SetColorToken(ThemeTokenId::TextSecondary);
-    m_closeButton->SetBorderThickness(0.0f);
-    m_closeButton->SetCornerRadius(4.0f);
-    m_closeButton->SetPadding(Thickness(0, 0, 0, 0));
-    m_closeButton->OnClick().Connect([this](UIElement*) {
-        Close();
-    });
+    DSL::Borrow(m_closeButton)
+        .Text("×")
+        .FontFamily("微软雅黑")
+        .FontSize(14.0f)
+        .BackgroundToken(ThemeTokenId::Unset)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+        .BorderToken(ThemeTokenId::Unset)
+        .Background(D2D1::ColorF(0, 0, 0, 0))
+        .BorderBrush(D2D1::ColorF(0, 0, 0, 0))
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .BorderThickness(0.0f)
+        .CornerRadius(4.0f)
+        .Padding(0.0f)
+        .OnClick([this](UIElement*) { Close(); });
 
     // 挂到自身子树上（经 ShowAround 的 SetAnimationHost 链可进入活树），
     // 并标记为 overlay 合成，避免主树渲染时重复绘制。
-    m_titleText->SetOverlayComposed(true);
-    AddChild(m_titleText);
-    m_messageText->SetOverlayComposed(true);
-    AddChild(m_messageText);
-    m_actionButton->SetOverlayComposed(true);
-    AddChild(m_actionButton);
-    m_closeButton->SetOverlayComposed(true);
-    AddChild(m_closeButton);
+    DSL::Borrow(m_titleText).OverlayComposed(true);
+    DSL::Borrow(this).AddChild(m_titleText);
+    DSL::Borrow(m_messageText).OverlayComposed(true);
+    DSL::Borrow(this).AddChild(m_messageText);
+    DSL::Borrow(m_actionButton).OverlayComposed(true);
+    DSL::Borrow(this).AddChild(m_actionButton);
+    DSL::Borrow(m_closeButton).OverlayComposed(true);
+    DSL::Borrow(this).AddChild(m_closeButton);
 }
 
 Value TeachingTip::GetProperty(PropertyId id) const {
@@ -166,7 +169,7 @@ void TeachingTip::SetTitle(const std::string& title) {
     }
     m_title = title;
     if (m_titleText) {
-        m_titleText->SetText(title);
+        DSL::Borrow(m_titleText).Text(title);
     }
     if (m_isOpen) {
         Relayout();
@@ -180,7 +183,7 @@ void TeachingTip::SetMessage(const std::string& message) {
     }
     m_message = message;
     if (m_messageText) {
-        m_messageText->SetText(message);
+        DSL::Borrow(m_messageText).Text(message);
     }
     if (m_isOpen) {
         Relayout();
@@ -194,8 +197,9 @@ void TeachingTip::SetActionText(const std::string& text) {
     }
     m_actionText = text;
     if (m_actionButton) {
-        m_actionButton->SetText(text);
-        m_actionButton->SetVisibility(text.empty() ? Visibility::Collapsed : Visibility::Visible);
+        DSL::Borrow(m_actionButton)
+            .Text(text)
+            .Visibility(text.empty() ? Visibility::Collapsed : Visibility::Visible);
     }
     if (m_isOpen) {
         Relayout();
@@ -209,7 +213,7 @@ void TeachingTip::SetIsCloseVisible(bool visible) {
     }
     m_closeVisible = visible;
     if (m_closeButton) {
-        m_closeButton->SetVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
+        DSL::Borrow(m_closeButton).Visibility(visible ? Visibility::Visible : Visibility::Collapsed);
     }
     if (m_isOpen) {
         Relayout();
@@ -347,11 +351,11 @@ void TeachingTip::Relayout() {
     // 气泡外壳自绘；内部标题/正文/按钮均为真实子控件，这里只摆放边界。
     if (m_titleText) {
         m_titleText->SetBounds(m_titleRect);
-        m_titleText->SetVisibility(m_titleRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
+        DSL::Borrow(m_titleText).Visibility(m_titleRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
     }
     if (m_messageText) {
         m_messageText->SetBounds(m_bodyRect);
-        m_messageText->SetVisibility(m_bodyRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
+        DSL::Borrow(m_messageText).Visibility(m_bodyRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
     }
     if (m_actionButton) {
         m_actionButton->SetBounds(m_actionRect);
@@ -609,3 +613,4 @@ void TeachingTip::OnNavigatedFrom() {
 }
 
 } // namespace CUI
+

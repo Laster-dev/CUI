@@ -7,6 +7,7 @@
 #endif
 
 #include "TopologyView.h"
+#include "../../core/CUIDsl.h"
 #include "../../render/GraphicsContext.h"
 #include "../../style/ThemeManager.h"
 #include <algorithm>
@@ -29,8 +30,7 @@ TopologyView::TopologyView()
     , FlowParticles(this)
     , ReadOnly(this)
 {
-    SetWidth(-1.0f);
-    SetHeight(560.0f);
+    DSL::Borrow(this).Width(-1.0f).Height(560.0f);
     m_zoomAnimator.Reset(1.0f);
     m_panXAnimator.Reset(60.0f);
     m_panYAnimator.Reset(60.0f);

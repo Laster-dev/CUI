@@ -52,7 +52,7 @@ if (RetryCount > 0) {
 }
 ```
 )markdown");
-    markdown->Height = 560.0f;
+    CUI::DSL::Borrow(markdown).Height(560.0f);
 
     SamplePageSpec spec;
     spec.title = "MarkdownView(Markdown 视图)";
@@ -61,9 +61,12 @@ if (RetryCount > 0) {
         { "渲染预览", "单击链接、滚动、选择文本与复制代码均可直接体验。", markdown },
     };
     spec.source =
-        "auto markdown = std::make_shared<MarkdownView>(R\"markdown(... )markdown\");\n"
+        "auto markdown = std::make_shared<MarkdownView>(R\"markdown(.. )markdown\");\n"
         "markdown->Height = 560.0f;\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+

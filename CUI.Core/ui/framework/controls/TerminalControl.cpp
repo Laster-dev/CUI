@@ -1,5 +1,6 @@
 #include "TerminalControl.h"
 #include "ContextMenu.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "terminal/KeyboardTranslator.h"
 #include "terminal/MouseReporter.h"
@@ -164,13 +165,14 @@ void TerminalControl::InitTerminal(const std::string& shellPath) {
         return true;
     };
 
-    SetFontFamily(Term::TerminalOptions::DefaultFontFamily());
-    SetFontSize(m_terminal->Options().FontSize);
-    SetBackground(m_terminal->Options().Theme.Background.ToD2D());
-    SetColor(m_terminal->Options().Theme.Foreground.ToD2D());
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetBorderThickness(1.0f);
-    SetCornerRadius(4.0f);
+    DSL::Borrow(this)
+        .FontFamily(Term::TerminalOptions::DefaultFontFamily())
+        .FontSize(m_terminal->Options().FontSize)
+        .Background(m_terminal->Options().Theme.Background.ToD2D())
+        .Foreground(m_terminal->Options().Theme.Foreground.ToD2D())
+        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderThickness(1.0f)
+        .CornerRadius(4.0f);
     // 不显式设置 Width/Height：显式尺寸会阻止 FlexPanel 的 Stretch/FlexGrow 拉伸，
     // 保持 -1（自适应）让父容器通过 Align(Stretch) + FlexGrow 铺满剩余空间。
 
@@ -216,10 +218,11 @@ HCURSOR TerminalControl::GetCursor() const {
 
 void TerminalControl::BuildFindBar() {
     m_findBox = std::make_shared<FindBox>(this);
-    m_findBox->SetVisibility(Visibility::Collapsed);
-    m_findBox->SetWidth(220.0f);
-    m_findBox->SetHeight(26.0f);
-    AddChild(m_findBox);
+    DSL::Borrow(m_findBox)
+        .Visibility(Visibility::Collapsed)
+        .Width(220.0f)
+        .Height(26.0f);
+    DSL::Borrow(this).AddChild(m_findBox);
 }
 
 void TerminalControl::BuildContextMenu() {
@@ -278,8 +281,9 @@ void TerminalControl::WriteInput(const std::string& text) {
 void TerminalControl::ApplyTheme(const Term::TerminalTheme& theme) {
     m_terminal->Options().Theme = theme;
     m_renderer->ApplyTheme(theme);
-    SetBackground(theme.Background.ToD2D());
-    SetColor(theme.Foreground.ToD2D());
+    DSL::Borrow(this)
+        .Background(theme.Background.ToD2D())
+        .Foreground(theme.Foreground.ToD2D());
     MarkViewportDirty();
 }
 
@@ -301,7 +305,7 @@ void TerminalControl::Zoom(int deltaSteps) {
 void TerminalControl::ShowFind(bool show) {
     m_findVisible = show;
     if (m_findBox) {
-        m_findBox->SetVisibility(show ? Visibility::Visible : Visibility::Collapsed);
+        DSL::Borrow(m_findBox).Visibility(show ? Visibility::Visible : Visibility::Collapsed);
         if (show) {
             m_findBox->SelectAll();
         }

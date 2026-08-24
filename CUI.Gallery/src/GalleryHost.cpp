@@ -18,3 +18,7 @@ void Host::Navigate(const std::string& tag) {
 }
 
 } // namespace Gallery
+
+
+
+

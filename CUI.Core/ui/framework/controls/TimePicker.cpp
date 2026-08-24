@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "TimePicker.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
 #include "../window/Dpi.h"
@@ -49,16 +50,17 @@ TimePicker::TimePicker() : FormattedTime(this) {
     m_hour = tmVal.tm_hour;
     m_minute = tmVal.tm_min;
 
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetBorderToken(ThemeTokenId::InputBorder);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetBackground(tokens.inputBackground);
-    SetBorderBrush(tokens.inputBorder);
-    SetBorderThickness(1.0f);
-    SetColor(tokens.textPrimary);
-    SetCornerRadius(4.0f);
-    SetWidth(140.0f);
-    SetHeight(30.0f);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .BorderToken(ThemeTokenId::InputBorder)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .Background(tokens.inputBackground)
+        .BorderBrush(tokens.inputBorder)
+        .BorderThickness(1.0f)
+        .Foreground(tokens.textPrimary)
+        .CornerRadius(4.0f)
+        .Width(140.0f)
+        .Height(30.0f);
 
     m_hourPosition = static_cast<float>(m_hour);
     m_minutePosition = static_cast<float>(m_minute);

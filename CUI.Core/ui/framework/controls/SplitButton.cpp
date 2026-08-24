@@ -2,17 +2,18 @@
 #define NOMINMAX
 #endif
 #include "SplitButton.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 
 namespace CUI {
 
 SplitButton::SplitButton() {
-    SetText("Split");
+    DSL::Borrow(this).Text("Split");
 }
 
 SplitButton::SplitButton(const std::string& text) : SplitButton() {
-    SetText(text);
+    DSL::Borrow(this).Text(text);
 }
 
 Rect SplitButton::PrimaryRect() const {

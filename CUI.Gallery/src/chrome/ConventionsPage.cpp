@@ -1,3 +1,4 @@
+#include "framework/core/CUIDsl.h"
 #include "chrome/ConventionsPage.h"
 
 #include "framework/controls/MarkdownView.h"
@@ -22,7 +23,7 @@ constexpr const char* kNamingConventions = R"markdown(
 
 ## 统一命名规则
 *   **类与结构体 (Class & Struct)**: 采用 `PascalCase`（如 `UIElement`, `ButtonFlyoutItem`）。
-*   **公共方法与接口 (Public Methods)**: 采用 `PascalCase`（如 `MeasureOverride()`, `SetSelectedIndex()`）。
+*   **公共方法与接口 (Public Methods)**: 采用 `PascalCase`（如 `MeasureOverride()`, `.SelectedIndex()`）。
 *   **私有与保护成员变量 (Private/Protected Fields)**: 采用 `m_` 前缀加 `camelCase` 格式（如 `m_selectedIndex`, `m_isDropDownOpen`）。
 *   **静态成员变量 (Static Fields)**: 采用 `s_` 前缀加 `camelCase` 格式（如 `s_animationsEnabled`）。
 *   **事件 (Events)**: 采用动词加过去式，并以 `Event` 结尾。在属性声明中采用 `PascalCase`（如 `OnThemeChanged`），私有变量中采用 `m_` 前缀且以 `Event` 结尾（如 `m_onSelectionChangedEvent`）。
@@ -31,7 +32,7 @@ constexpr const char* kNamingConventions = R"markdown(
 ## 命名对照表
 | 类别 | 格式 | 示例 |
 | :--- | :--- | :--- |
-| **属性代理** | `PascalCase` | `PropertyRef<int, ...> SelectedIndex;` |
+| **属性代理** | `PascalCase` | `PropertyRef<int, ..> SelectedIndex;` |
 | **外部事件接口** | `On` + 过去式 | `Event<>& OnClosed();` |
 | **内部事件源** | `m_` + `on` + 过去式 + `Event` | `Event<> m_onClosedEvent;` |
 
@@ -46,7 +47,7 @@ constexpr const char* kLifecycle = R"markdown(
 控件必须具备严格且对称的生命周期管理，以彻底消灭 Windows 应用常见的内存泄漏与悬挂指针：
 
 ## 控件创建、初始化与销毁流程
-*   **控件创建**: 一律使用 `DSL::Make<T>()` 进行工厂化实例化，返回 `std::shared_ptr<T>`。禁止直接使用裸 `new`。
+*   **控件创建**: 一律使用 `CUI::DSL::Make<T>()` 进行工厂化实例化，返回 `std::shared_ptr<T>`。禁止直接使用裸 `new`。
 *   **树的建立 (Attach)**: 子控件通过 `AddChild` 归入父容器。建立树状关系后，自动向上传递 `InvalidateMeasure` 激活布局流。
 *   **析构与释放 (Detach)**:
     1.  当控件从排版树中移除（`RemoveChild`）时，其 `m_parent` 被置空。
@@ -80,7 +81,7 @@ wifi->IsChecked.Bind(stateWifi, BindingMode::TwoWay);
 *   绑定后的 `Bind()` 拥有最高更新级，任何对绑定属性的交互修改，必须经由 `IsUpdating()` 过滤锁判定，以阻止产生因双向同步而导致的死循环更新。
 
 ## 类型转换器的统一接口规范
-*   在类型不一致的绑定场景中（如 `float` 数值绑定到 `std::string` 文本显示），必须提供统一的类型转换器接口 `IValueConverter<TSource, TTarget>` 或使用 `MakeConverter(...)` 进行隐式翻译，禁止在 UI 业务方法中手工强转。
+*   在类型不一致的绑定场景中（如 `float` 数值绑定到 `std::string` 文本显示），必须提供统一的类型转换器接口 `IValueConverter<TSource, TTarget>` 或使用 `MakeConverter(..)` 进行隐式翻译，禁止在 UI 业务方法中手工强转。
 )markdown";
 
 // 4. 事件与消息传递 (Events & Message Dispatching)
@@ -193,12 +194,12 @@ Element BuildConventionsPage() {
 
     // 左侧章节选择列表
     auto listBox = std::make_shared<ListBox>();
-    listBox->Width = 200.0f;
-    listBox->Height = -1.0f;
-    listBox->Align = Alignment::Stretch;
-    listBox->BackgroundToken = ThemeTokenId::PaneBackground;
-    listBox->BorderToken = ThemeTokenId::CardBorder;
-    listBox->BorderThickness = 1.0f;
+    CUI::DSL::Borrow(listBox).Width(200.0f);
+    CUI::DSL::Borrow(listBox).Height(-1.0f);
+    CUI::DSL::Borrow(listBox).Align(Alignment::Stretch);
+    CUI::DSL::Borrow(listBox).BackgroundToken(ThemeTokenId::PaneBackground);
+    CUI::DSL::Borrow(listBox).BorderToken(ThemeTokenId::CardBorder);
+    CUI::DSL::Borrow(listBox).BorderThickness(1.0f);
 
     for (const auto& ch : chapters) {
         listBox->AddItem(ch);
@@ -206,31 +207,34 @@ Element BuildConventionsPage() {
 
     // 右侧 Markdown 文档视图
     auto docView = std::make_shared<MarkdownView>(documents[0]);
-    docView->Height = -1.0f;
-    docView->FlexGrow = 1.0f;
-    docView->Align = Alignment::Stretch;
+    CUI::DSL::Borrow(docView).Height(-1.0f);
+    CUI::DSL::Borrow(docView).FlexGrow(1.0f);
+    CUI::DSL::Borrow(docView).Align(Alignment::Stretch);
 
     // 连接选中修改事件，点击菜单项时动态切换右侧展示的 Markdown 内容
     listBox->OnSelectionChanged().Connect([docView, documents](ListBox*, int index, const std::string&) {
         if (index >= 0 && index < static_cast<int>(documents.size())) {
-            docView->SetMarkdown(documents[index]);
+            DSL::Borrow(docView).Markdown(documents[index]);
         }
     });
 
     // 默认选中第一章
-    listBox->SetSelectedIndex(0);
+    CUI::DSL::Borrow(listBox).SelectedIndex(0);
 
     // 水平线性布局组装
     auto page = std::make_shared<StackPanel>(Orientation::Horizontal);
-    page->Gap = 16.0f;
-    page->Padding = Thickness(24.0f);
-    page->FlexGrow = 1.0f;
-    page->Align = Alignment::Stretch;
-    page->BackgroundToken = ThemeTokenId::WindowBackground;
-    page->AddChild(listBox);
-    page->AddChild(docView);
+    CUI::DSL::Borrow(page).Gap(16.0f);
+    CUI::DSL::Borrow(page).Padding(Thickness(24.0f));
+    CUI::DSL::Borrow(page).FlexGrow(1.0f);
+    CUI::DSL::Borrow(page).Align(Alignment::Stretch);
+    CUI::DSL::Borrow(page).BackgroundToken(ThemeTokenId::WindowBackground);
+    CUI::DSL::Borrow(page).AddChild(listBox);
+    CUI::DSL::Borrow(page).AddChild(docView);
 
     return page;
 }
 
 } // namespace Gallery
+
+
+

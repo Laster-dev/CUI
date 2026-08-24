@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "Image.h"
+#include "../core/CUIDsl.h"
 #include "../core/Value.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
@@ -42,23 +43,17 @@ const char* FileNameOf(const std::string& path) {
 
 Image::Image() {
     m_badgeColor = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
-    SetWidth(24.0f);
-    SetHeight(24.0f);
-    SetClipToBounds(true);
+    DSL::Borrow(this).Width(24.0f).Height(24.0f).ClipToBounds(true);
 }
 
 Image::Image(ImageType type, const std::string& text)
     : m_imageType(type), m_badgeText(text), m_badgeColor(ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor)) {
-    SetWidth(24.0f);
-    SetHeight(24.0f);
-    SetClipToBounds(true);
+    DSL::Borrow(this).Width(24.0f).Height(24.0f).ClipToBounds(true);
 }
 
 Image::Image(ImageType type, const std::string& text, D2D1_COLOR_F color)
     : m_imageType(type), m_badgeText(text), m_badgeColor(color) {
-    SetWidth(24.0f);
-    SetHeight(24.0f);
-    SetClipToBounds(true);
+    DSL::Borrow(this).Width(24.0f).Height(24.0f).ClipToBounds(true);
 }
 
 namespace {

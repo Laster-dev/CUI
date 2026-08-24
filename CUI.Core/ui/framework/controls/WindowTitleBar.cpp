@@ -1,4 +1,5 @@
 #include "WindowTitleBar.h"
+#include "../core/CUIDsl.h"
 
 #include "../style/ThemeManager.h"
 #include "../window/Dpi.h"
@@ -43,14 +44,15 @@ std::string DefaultIconTextFromTitle(const std::string& title) {
 } // namespace
 
 WindowTitleBar::WindowTitleBar() : RightContent(this), MenuBar(this) {
-    SetHeight(36.0f);
-    SetBackgroundToken(ThemeTokenId::PaneBackground);
-    SetHoverBackgroundToken(ThemeTokenId::PaneBackground);
-    SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetTitle("CUI Application");
-    m_menuBar = std::make_shared<CUI::MenuBar>();
-    AddChild(m_menuBar);
+    DSL::Borrow(this)
+        .Height(36.0f)
+        .BackgroundToken(ThemeTokenId::PaneBackground)
+        .HoverBackgroundToken(ThemeTokenId::PaneBackground)
+        .PressedBackgroundToken(ThemeTokenId::PaneBackground)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .Title("CUI Application");
+    m_menuBar = DSL::Fluent::Control<CUI::MenuBar>().Build();
+    DSL::Borrow(this).AddChild(m_menuBar);
 }
 
 WindowTitleBar::~WindowTitleBar() {
@@ -197,11 +199,11 @@ void WindowTitleBar::SetRightContent(const std::shared_ptr<UIElement>& content) 
         return;
     }
     if (m_rightContent) {
-        RemoveChild(m_rightContent);
+        DSL::Borrow(this).RemoveChild(m_rightContent);
     }
     m_rightContent = content;
     if (m_rightContent) {
-        AddChild(m_rightContent);
+        DSL::Borrow(this).AddChild(m_rightContent);
     }
 }
 
@@ -303,7 +305,13 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     if (!drewNative) {
         const std::string& icon = GetIcon().empty() ? (m_iconText.empty() ? DefaultIconTextFromTitle(m_title) : m_iconText) : GetIcon();
         if (GraphicsContext::LooksLikeSvg(icon)) {
-            ctx.DrawIcon(icon, iconRect, tokens.accentForeground);
+            const bool usesThemePaint = icon.find("var(--") != std::string::npos
+                || icon.find("currentColor") != std::string::npos;
+            if (usesThemePaint) {
+                ctx.DrawSvg(icon, iconRect, nullptr, 1.0f, &tokens.textPrimary);
+            } else {
+                ctx.DrawIcon(icon, iconRect, tokens.accentForeground);
+            }
         } else {
             ctx.FillRoundedRect(iconRect, 4.0f, tokens.accentColor);
             ctx.DrawText(

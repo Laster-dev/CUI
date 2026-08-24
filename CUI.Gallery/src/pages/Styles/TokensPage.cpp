@@ -19,17 +19,17 @@ Element BuildTokensPage() {
         const D2D1_COLOR_F color = tm.GetFlatColor(name);
 
         auto chip = Container().Size(56.0f, 56.0f).CornerRadius(8.0f);
-        chip->Background = color;
-        chip->BorderToken = ThemeTokenId::CardBorder;
-        chip->BorderThickness = 1.0f;
+        CUI::DSL::Borrow(chip).Background(color);
+        CUI::DSL::Borrow(chip).BorderToken(ThemeTokenId::CardBorder);
+        CUI::DSL::Borrow(chip).BorderThickness(1.0f);
 
         auto item = Column(8, {
             chip,
             MakeLabel(name, 12.0f, ThemeTokenId::TextPrimary, false),
             MakeLabel(tm.GetColorHex(name), 11.0f, ThemeTokenId::TextMuted, false),
         });
-        item->Width = 128.0f;
-        grid->AddChild(item);
+        CUI::DSL::Borrow(item).Width(128.0f);
+        CUI::DSL::Borrow(grid).AddChild(item);
     }
 
     SamplePageSpec spec;
@@ -43,11 +43,15 @@ Element BuildTokensPage() {
         },
     };
     spec.source =
-        "control->SetBackgroundToken(ThemeTokenId::CardBackground);\n"
-        "control->SetColorToken(ThemeTokenId::TextPrimary);\n"
+        "control.BackgroundToken(ThemeTokenId::CardBackground);\n"
+        "control.ColorToken(ThemeTokenId::TextPrimary);\n"
         "D2D1_COLOR_F accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);\n"
         "std::string hex = ThemeManager::Instance().GetColorHex(\"accentColor\");\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+
+

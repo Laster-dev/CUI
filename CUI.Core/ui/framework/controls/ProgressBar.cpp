@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ProgressBar.h"
+#include "../core/CUIDsl.h"
 #include "ProgressBarDiag.h"
 #include "../animation/AnimationManager.h"
 #include "../style/ThemeManager.h"
@@ -23,15 +24,15 @@ constexpr float kMaxChunkFrac = 0.12f + 0.38f;
 } // namespace
 
 ProgressBar::ProgressBar() {
-    SetFillColorToken(ThemeTokenId::AccentColor);
-    SetTrackColorToken(ThemeTokenId::CardBorder);
-    SetWidth(200.0f);
-    SetHeight(3.0f);
-    SetCornerRadius(1.5f);
-    m_displayValue = GetValue();
-    SetHoverBackgroundToken(ThemeTokenId::Unset);
-    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    DSL::Borrow(this)
+        .FillColorToken(ThemeTokenId::AccentColor)
+        .TrackColorToken(ThemeTokenId::CardBorder)
+        .Width(200.0f)
+        .Height(3.0f)
+        .CornerRadius(1.5f)
+        .HoverBackgroundToken(ThemeTokenId::Unset)
+        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
+        .Background(D2D1::ColorF(0, 0, 0, 0));
     ProgressBarDiag::Log("[PB] ctor this=%p", (void*)this);
 }
 

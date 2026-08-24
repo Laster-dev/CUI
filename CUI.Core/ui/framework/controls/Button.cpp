@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "Button.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <windows.h>
 #include <algorithm>
@@ -17,27 +18,28 @@ float FrameBlend(float factorAt60Hz) {
 }
 
 Button::Button() {
-    SetText("Button");
-    SetBackgroundToken(ThemeTokenId::AccentColor);
-    SetHoverBackgroundToken(ThemeTokenId::AccentColor);
-    SetPressedBackgroundToken(ThemeTokenId::AccentColor);
-    SetBorderToken(ThemeTokenId::AccentColor);
-    SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    SetColorToken(ThemeTokenId::AccentForeground);
-    SetBackground(ThemeManager::Instance().GetColor("accentColor"));
-    SetHoverBackground(ThemeManager::Instance().GetColor("accentColor"));
-    SetPressedBackground(ThemeManager::Instance().GetColor("accentColor"));
-    SetBorderBrush(ThemeManager::Instance().GetColor("accentColor"));
-    SetColor(ThemeManager::Instance().GetColor("accentForeground"));
-    SetFontSize(12.0f);
-    SetFontFamily("微软雅黑");
-    SetPadding(Thickness(8, 4, 8, 4));
-    SetCornerRadius(4.0f);
-    SetBorderThickness(0.0f);
+    DSL::Borrow(this)
+        .Text("Button")
+        .BackgroundToken(ThemeTokenId::AccentColor)
+        .HoverBackgroundToken(ThemeTokenId::AccentColor)
+        .PressedBackgroundToken(ThemeTokenId::AccentColor)
+        .BorderToken(ThemeTokenId::AccentColor)
+        .FocusedBorderToken(ThemeTokenId::FocusedBorder)
+        .ForegroundToken(ThemeTokenId::AccentForeground)
+        .Background(ThemeManager::Instance().GetColor("accentColor"))
+        .HoverBackground(ThemeManager::Instance().GetColor("accentColor"))
+        .PressedBackground(ThemeManager::Instance().GetColor("accentColor"))
+        .BorderBrush(ThemeManager::Instance().GetColor("accentColor"))
+        .Foreground(ThemeManager::Instance().GetColor("accentForeground"))
+        .FontSize(12.0f)
+        .FontFamily("微软雅黑")
+        .Padding(8.0f, 4.0f, 8.0f, 4.0f)
+        .CornerRadius(4.0f)
+        .BorderThickness(0.0f);
 }
 
 Button::Button(const std::string& text) : Button() {
-    SetText(text);
+    DSL::Borrow(this).Text(text);
 }
 
 Size Button::Measure(Size availableSize) {

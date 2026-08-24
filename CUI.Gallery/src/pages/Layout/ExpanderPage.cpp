@@ -23,8 +23,8 @@ Element BuildExpanderPage() {
     });
 
     auto basicExpander = ExpanderWidget("账号设置");
-    basicExpander->SetSubtitle("点击头部展开或折叠内容");
-    basicExpander->SetContent(formContent);
+    CUI::DSL::Borrow(basicExpander).Subtitle("点击头部展开或折叠内容");
+    CUI::DSL::Borrow(basicExpander).Content(formContent);
 
     // —— 默认展开 + 状态事件 ——
     State<bool> expandedState{ true };
@@ -39,9 +39,9 @@ Element BuildExpanderPage() {
     });
 
     auto eventExpander = ExpanderWidget("使用条款");
-    eventExpander->SetSubtitle("默认处于展开状态");
-    eventExpander->SetIsExpanded(true);
-    eventExpander->SetContent(termsContent);
+    CUI::DSL::Borrow(eventExpander).Subtitle("默认处于展开状态");
+    CUI::DSL::Borrow(eventExpander).IsExpanded(true);
+    CUI::DSL::Borrow(eventExpander).Content(termsContent);
     eventExpander->OnExpandedChanged().Connect([expandedState](Expander*, bool expanded) {
         expandedState = expanded;
     });
@@ -54,15 +54,15 @@ Element BuildExpanderPage() {
 
     // —— 向上展开 + 嵌套 ——
     auto nestedInner = ExpanderWidget("内层折叠面板");
-    nestedInner->SetSubtitle("Expander 内可以继续嵌套 Expander");
-    nestedInner->SetContent(Column(8, {
+    CUI::DSL::Borrow(nestedInner).Subtitle("Expander 内可以继续嵌套 Expander");
+    CUI::DSL::Borrow(nestedInner).Content(Column(8, {
         MakeLabel("这是嵌套在最里层的内容。", 12.0f, ThemeTokenId::TextMuted, false),
     }));
 
     auto upExpander = ExpanderWidget("向上展开（嵌套示例）");
-    upExpander->SetSubtitle("SetExpandDirection(Up) 后从底部向上展开");
-    upExpander->SetExpandDirection(ExpandDirection::Up);
-    upExpander->SetContent(nestedInner);
+    CUI::DSL::Borrow(upExpander).Subtitle("SetExpandDirection(Up) 后从底部向上展开");
+    CUI::DSL::Borrow(upExpander).ExpandDirection(ExpandDirection::Up);
+    CUI::DSL::Borrow(upExpander).Content(nestedInner);
 
     SamplePageSpec spec;
     spec.title = "Expander(折叠控件)";
@@ -95,18 +95,20 @@ Element BuildExpanderPage() {
     };
     spec.source =
         "auto expander = ExpanderWidget(\"账号设置\");\n"
-        "expander->SetSubtitle(\"点击头部展开或折叠内容\");\n"
-        "expander->SetContent(formContent);\n"
+        "DSL::Borrow(expander).Subtitle(\"点击头部展开或折叠内容\");\n"
+        "expander.Content(formContent);\n"
         "\n"
         "// 默认展开 + 事件监听\n"
-        "expander->SetIsExpanded(true);\n"
+        "expander.IsExpanded(true);\n"
         "expander->OnExpandedChanged().Connect([](Expander*, bool expanded) {\n"
         "    status->Text = expanded ? \"已展开\" : \"已折叠\";\n"
         "});\n"
         "\n"
         "// 向上展开\n"
-        "expander->SetExpandDirection(ExpandDirection::Up);\n";
+        "expander.ExpandDirection(ExpandDirection::Up);\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+

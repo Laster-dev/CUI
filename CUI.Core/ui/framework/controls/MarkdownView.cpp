@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "MarkdownView.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../core/Value.h"
 #include <algorithm>
@@ -36,20 +37,21 @@ std::string JoinCodeLines(const std::vector<std::string>& lines) {
 }
 
 void StyleCopyButton(Button& btn) {
-    btn.SetText("");
-    btn.SetIcon(kSvgCopy);
-    btn.SetToolTip("复制");
-    btn.SetWidth(kCopyBtn);
-    btn.SetHeight(kCopyBtn);
-    btn.SetFontSize(16.0f);
-    btn.SetPadding(Thickness(5.0f));
-    btn.SetCornerRadius(4.0f);
-    btn.SetBorderThickness(0.0f);
-    btn.SetBackgroundToken(ThemeTokenId::Unset);
-    btn.SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    btn.SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    btn.SetBackground(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
-    btn.SetColorToken(ThemeTokenId::AccentColor);
+    DSL::Borrow(&btn)
+        .Text("")
+        .Icon(kSvgCopy)
+        .ToolTip("复制")
+        .Width(kCopyBtn)
+        .Height(kCopyBtn)
+        .FontSize(16.0f)
+        .Padding(5.0f)
+        .CornerRadius(4.0f)
+        .BorderThickness(0.0f)
+        .BackgroundToken(ThemeTokenId::Unset)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+        .Background(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f))
+        .ForegroundToken(ThemeTokenId::AccentColor);
 }
 
 bool CopyUtf8(const std::string& text) {
@@ -83,17 +85,18 @@ bool IsWordChar(unsigned char c) {
 } // namespace
 
 MarkdownView::MarkdownView() {
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetBorderThickness(1.0f);
-    SetCornerRadius(6.0f);
-    SetWidth(-1.0f);
-    SetHeight(420.0f);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .BorderThickness(1.0f)
+        .CornerRadius(6.0f)
+        .Width(-1.0f)
+        .Height(420.0f);
 }
 
 MarkdownView::MarkdownView(const std::string& markdown) : MarkdownView() {
-    SetMarkdown(markdown);
+    DSL::Borrow(this).Text(markdown);
 }
 
 Value MarkdownView::GetProperty(PropertyId id) const {

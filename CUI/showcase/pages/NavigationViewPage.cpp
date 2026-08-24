@@ -1,3 +1,4 @@
+#include "framework/core/CUIDsl.h"
 #include "../app/ShowcaseHelpers.h"
 #include "framework/controls/NavigationView.h"
 #include "framework/controls/Button.h"
@@ -7,12 +8,13 @@
 #include "framework/style/ThemeManager.h"
 
 namespace CUI {
+using namespace CUI::DSL;
 
 std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) {
     auto title = std::make_shared<TextBlock>("NavigationView & Theme 导航与主题系统");
-    title->SetFontWeight("Bold");
-    title->SetColorToken(ThemeTokenId::TextPrimary);
-    title->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    CUI::DSL::Borrow(title).FontWeight(CUI::FontWeight::Bold);
+    CUI::DSL::Borrow(title).ForegroundToken(ThemeTokenId::TextPrimary);
+    CUI::DSL::Borrow(title).Foreground(ThemeManager::Instance().GetColor("textPrimary"));
 
     auto nav = std::make_shared<NavigationView>();
     nav->SetHeader("CUI WinUI 3 Navigation");
@@ -32,9 +34,9 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
         std::make_shared<TextBlock>("此页配置明暗主题 (Theme)。")
     }).Build();
 
-    nav->AddItem("home", "首页 (Home)", "🏠", pageHome);
-    nav->AddItem("apps", "应用 (Apps)", "⚡", pageApp);
-    nav->AddItem("settings", "设置 (Settings)", "⚙️", pageSettings);
+    CUI::DSL::Borrow(nav).AddMenuItem(CUI::DSL::Fluent::Control<CUI::NavigationViewItem>("首页 (Home)").Icon("🏠").Content(pageHome).Build());
+    CUI::DSL::Borrow(nav).AddMenuItem(CUI::DSL::Fluent::Control<CUI::NavigationViewItem>("应用 (Apps)").Icon("⚡").Content(pageApp).Build());
+    CUI::DSL::Borrow(nav).AddMenuItem(CUI::DSL::Fluent::Control<CUI::NavigationViewItem>("设置 (Settings)").Icon("⚙️").Content(pageSettings).Build());
 
     // Mode Switcher Buttons
     auto btnLeft = std::make_shared<Button>("Left 侧边模式");
@@ -58,20 +60,22 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
         if (win) win->SetThemeMode(ThemeMode::Light);
     });
 
-    auto cardModes = ControlCard("NavigationView 导航模式切换", Row(10.0f).Children({
+    auto cardModes = Column(10.0f).Children({
+        CreateShowcaseText("NavigationView 导航模式切换", 13.0f, "textPrimary", true),
         btnLeft, btnLeftCompact, btnTop
-    }).Build());
+    }).Build();
 
-    auto cardBackdrop = ControlCard("明暗主题切换", Column(12.0f).Children({
+    auto cardBackdrop = Column(12.0f).Children({
+        CreateShowcaseText("明暗主题切换", 13.0f, "textPrimary", true),
         Row(12.0f).Children({
             std::make_shared<TextBlock>("明暗主题:"),
             btnDark,
             btnLight
         }).Build()
-    }).Build());
+    }).Build();
 
-    nav->SetWidth(800.0f);
-    nav->SetHeight(340.0f);
+    CUI::DSL::Borrow(nav).Width(800.0f);
+    CUI::DSL::Borrow(nav).Height(340.0f);
 
     return Column(16.0f).Children({
         title,

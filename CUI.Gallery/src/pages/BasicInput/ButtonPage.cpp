@@ -41,7 +41,7 @@ constexpr const char* kSvgStar =
 } // namespace
 
 Element BuildButtonPage() {
-    auto status = MakeStatus("准备就绪。尝试点击任意按钮...");
+    auto status = MakeStatus("准备就绪。尝试点击任意按钮..");
 
     // 1. 标准样式
     auto btnAccent = Button("主要按钮 (Accent)")
@@ -51,7 +51,7 @@ Element BuildButtonPage() {
         .BackgroundToken(ThemeTokenId::CardBackground)
         .HoverBackgroundToken(ThemeTokenId::HoverBackground)
         .PressedBackgroundToken(ThemeTokenId::PressedBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .OnClick([status](UIElement*) { status->Text = "点击了：标准按钮 (Standard)"; });
 
@@ -59,7 +59,7 @@ Element BuildButtonPage() {
         .BackgroundToken(ThemeTokenId::Unset)
         .HoverBackgroundToken(ThemeTokenId::HoverBackground)
         .PressedBackgroundToken(ThemeTokenId::PressedBackground)
-        .ColorToken(ThemeTokenId::AccentColor)
+        .ForegroundToken(ThemeTokenId::AccentColor)
         .BorderToken(ThemeTokenId::AccentColor, 1.0f)
         .OnClick([status](UIElement*) { status->Text = "点击了：轮廓按钮 (Outline)"; });
 
@@ -67,27 +67,27 @@ Element BuildButtonPage() {
         .BackgroundToken(ThemeTokenId::Unset)
         .HoverBackgroundToken(ThemeTokenId::HoverBackground)
         .PressedBackgroundToken(ThemeTokenId::PressedBackground)
-        .ColorToken(ThemeTokenId::AccentColor)
+        .ForegroundToken(ThemeTokenId::AccentColor)
         .BorderToken(ThemeTokenId::Unset, 0.0f)
         .OnClick([status](UIElement*) { status->Text = "点击了：文本按钮 (Subtle)"; });
 
     auto btnDisabled = Button("禁用按钮 (Disabled)")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextMuted)
+        .ForegroundToken(ThemeTokenId::TextMuted)
         .BorderToken(ThemeTokenId::CardBorder)
-        .Enabled(false);
+        .IsEnabled(false);
     // 2. 颜色与预设
     auto btnDanger = Button("危险操作 (Danger)")
         .Background("#E53935")
-        .Hover("#D32F2F")
-        .Pressed("#B71C1C")
+        .HoverBackground("#D32F2F")
+        .PressedBackground("#B71C1C")
         .Foreground(Color::White)
         .OnClick([status](UIElement*) { status->Text = "点击了：危险操作按钮 (Crimson)"; });
 
     auto btnSuccess = Button("成功状态 (Success)")
         .Background("#2E7D32")
-        .Hover("#1B5E20")
-        .Pressed("#0D3C10")
+        .HoverBackground("#1B5E20")
+        .PressedBackground("#0D3C10")
         .Foreground(Color::White)
         .OnClick([status](UIElement*) {
             status->Text = "点击了：成功状态按钮 (Emerald)";
@@ -95,15 +95,15 @@ Element BuildButtonPage() {
 
     auto btnWarning = Button("警告提示 (Warning)")
         .Background("#F57C00")
-        .Hover("#E65100")
-        .Pressed("#BF360C")
+        .HoverBackground("#E65100")
+        .PressedBackground("#BF360C")
         .Foreground(Color::White)
         .OnClick([status](UIElement*) { status->Text = "点击了：警告提示按钮 (Amber)"; });
 
     auto btnPurple = Button("紫色梦幻 (Purple)")
         .Background("#7B1FA2")
-        .Hover("#6A1B9A")
-        .Pressed("#4A148C")
+        .HoverBackground("#6A1B9A")
+        .PressedBackground("#4A148C")
         .Foreground(Color::White)
         .OnClick([status](UIElement*) { status->Text = "点击了：紫色梦幻按钮 (Purple)"; });
 
@@ -142,7 +142,7 @@ Element BuildButtonPage() {
     auto btnAdd = Button("新建项目").Icon("➕")
         .OnClick([status](UIElement*) { status->Text = "点击了：Unicode 图标按钮 (➕ 新建)"; });
     auto btnSvgHeart = Button("点赞").Icon(kSvgHeart)
-        .Background("#E91E63").Hover("#D81B60").Pressed("#C2185B").Foreground(Color::White)
+        .Background("#E91E63").HoverBackground("#D81B60").PressedBackground("#C2185B").Foreground(Color::White)
         .OnClick([status](UIElement*) { status->Text = "点击了：SVG 心形矢量按钮"; });
     auto btnSvgSearch = Button("搜索文档").Icon(kSvgSearch)
         .OnClick([status](UIElement*) { status->Text = "点击了：SVG 搜索矢量按钮"; });
@@ -207,9 +207,12 @@ Element BuildButtonPage() {
         "    .CornerRadius(20.0f);\n\n"
         "// 4. SVG Vector Icon Button\n"
         "auto svgBtn = Button(\"Like\")\n"
-        "    .Icon(\"<svg>...</svg>\");\n";
+        "    .Icon(\"<svg>..</svg>\");\n";
 
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+

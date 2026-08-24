@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "RangeSlider.h"
+#include "../core/CUIDsl.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -27,15 +28,16 @@ std::string FormatRangeValue(float v) {
 RangeSlider::RangeSlider() : Minimum(this), Maximum(this), Step(this) {
     LowerValue.Initialize(*this);
     UpperValue.Initialize(*this);
-    SetOrientation(Orientation::Horizontal);
-    SetTrackColorToken(ThemeTokenId::InputBorder);
-    SetActiveTrackColorToken(ThemeTokenId::AccentColor);
-    SetThumbColorToken(ThemeTokenId::AccentColor);
-    SetWidth(280.0f);
-    SetHeight(48.0f);
+    DSL::Borrow(this)
+        .Orientation(Orientation::Horizontal)
+        .TrackColorToken(ThemeTokenId::InputBorder)
+        .ActiveTrackColorToken(ThemeTokenId::AccentColor)
+        .ThumbColorToken(ThemeTokenId::AccentColor)
+        .Width(280.0f)
+        .Height(48.0f)
+        .KeyboardNavigationMode(KeyboardNavigationMode::Contained);
     m_lowerAnim.Reset(m_lower);
     m_upperAnim.Reset(m_upper);
-    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
 Value RangeSlider::GetProperty(PropertyId id) const {

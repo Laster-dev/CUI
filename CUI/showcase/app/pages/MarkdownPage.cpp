@@ -38,7 +38,7 @@ const char* kSampleDoc = R"MD(# MarkdownView
 
 ```cpp
 MdLayoutResult layout = LayoutMarkdown(ctx, blocks, width, true);
-view->SetMarkdown(source);
+DSL::Borrow(view).Markdown(source);
 ```
 
 ## 表格
@@ -70,49 +70,49 @@ const char* kSampleCompact = R"MD(# 紧凑样例
 
 ShowcasePage BuildMarkdownPage(const ShowcaseContext& ctx) {
     auto view = std::make_shared<MarkdownView>();
-    view->SetWidth(-1.0f);
-    view->SetHeight(520.0f);
-    view->SetShowCodeLineNumbers(true);
-    view->SetMarkdown(kSampleDoc);
+    CUI::DSL::Borrow(view).Width(-1.0f);
+    CUI::DSL::Borrow(view).Height(520.0f);
+    DSL::Borrow(view).ShowCodeLineNumbers(true);
+    DSL::Borrow(view).Markdown(kSampleDoc);
 
     auto log = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("提示：拖选复制；点击链接会打开浏览器。", 12.0f, "#B5CEA8", false, "Consolas"));
 
     view->OnLinkClicked().Connect([window = ctx.windowRef, log](MarkdownView*, const std::string& url) {
-        log->SetText("[链接] " + url);
+        CUI::DSL::Borrow(log).Text("[链接] " + url);
         if (window) {
             Toast::Show(window->GetRootElement().get(), "Markdown", url, ToastCorner::BottomRight, 1800);
         }
     });
 
     auto fullBtn = std::make_shared<Button>("完整样例");
-    fullBtn->SetWidth(100.0f);
-    fullBtn->SetHeight(32.0f);
+    CUI::DSL::Borrow(fullBtn).Width(100.0f);
+    CUI::DSL::Borrow(fullBtn).Height(32.0f);
     fullBtn->OnClick().Connect([view, log](UIElement*) {
-        view->SetMarkdown(kSampleDoc);
-        log->SetText("已加载完整样例");
+        DSL::Borrow(view).Markdown(kSampleDoc);
+        CUI::DSL::Borrow(log).Text("已加载完整样例");
     });
     auto shortBtn = std::make_shared<Button>("紧凑样例");
-    shortBtn->SetWidth(100.0f);
-    shortBtn->SetHeight(32.0f);
+    CUI::DSL::Borrow(shortBtn).Width(100.0f);
+    CUI::DSL::Borrow(shortBtn).Height(32.0f);
     shortBtn->OnClick().Connect([view, log](UIElement*) {
-        view->SetMarkdown(kSampleCompact);
-        log->SetText("已加载紧凑样例");
+        DSL::Borrow(view).Markdown(kSampleCompact);
+        CUI::DSL::Borrow(log).Text("已加载紧凑样例");
     });
     auto copyBtn = std::make_shared<Button>("复制选区");
-    copyBtn->SetWidth(100.0f);
-    copyBtn->SetHeight(32.0f);
+    CUI::DSL::Borrow(copyBtn).Width(100.0f);
+    CUI::DSL::Borrow(copyBtn).Height(32.0f);
     copyBtn->OnClick().Connect([view, log](UIElement*) {
         view->CopySelection();
         const auto sel = view->GetSelectedText();
-        log->SetText(sel.empty() ? "已复制全文" : ("已复制 " + std::to_string(sel.size()) + " 字符"));
+        CUI::DSL::Borrow(log).Text(sel.empty() ? "已复制全文" : ("已复制 " + std::to_string(sel.size()) + " 字符"));
     });
     auto linesBtn = std::make_shared<Button>("切换行号");
-    linesBtn->SetWidth(100.0f);
-    linesBtn->SetHeight(32.0f);
+    CUI::DSL::Borrow(linesBtn).Width(100.0f);
+    CUI::DSL::Borrow(linesBtn).Height(32.0f);
     linesBtn->OnClick().Connect([view, log](UIElement*) {
-        view->SetShowCodeLineNumbers(!view->GetShowCodeLineNumbers());
-        log->SetText(view->GetShowCodeLineNumbers() ? "代码行号：开" : "代码行号：关");
+        DSL::Borrow(view).ShowCodeLineNumbers(!view->GetShowCodeLineNumbers());
+        CUI::DSL::Borrow(log).Text(view->GetShowCodeLineNumbers() ? "代码行号：开" : "代码行号：关");
     });
 
     auto demo = Column(12).Children({

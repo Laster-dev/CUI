@@ -37,8 +37,8 @@ Element BuildComboBoxPage() {
     auto disabled = ComboBoxWidget()
         .Width(220.0f);
     disabled->AddItem("不可用");
-    disabled->SetSelectedIndex(0);
-    disabled->IsEnabledProperty = false;
+    CUI::DSL::Borrow(disabled).SelectedIndex(0);
+    CUI::DSL::Borrow(disabled).IsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ComboBox(组合框)";
@@ -61,3 +61,6 @@ Element BuildComboBoxPage() {
 }
 
 } // namespace Gallery
+
+
+

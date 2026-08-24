@@ -2,17 +2,20 @@
 
 namespace CUI {
 
-void DataPackage::SetText(std::string text) {
+DataPackage& DataPackage::Text(std::string text) {
     m_text = std::move(text);
     m_hasText = true;
+    return *this;
 }
 
-void DataPackage::SetFiles(std::vector<std::string> paths) {
+DataPackage& DataPackage::Files(std::vector<std::string> paths) {
     m_files = std::move(paths);
+    return *this;
 }
 
-void DataPackage::SetFormat(const std::string& mime, std::string payload) {
+DataPackage& DataPackage::Format(const std::string& mime, std::string payload) {
     m_formats[mime] = std::move(payload);
+    return *this;
 }
 
 bool DataPackage::HasFormat(const std::string& mime) const {

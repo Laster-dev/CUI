@@ -47,8 +47,8 @@ Element BuildDatePickerPage() {
         .OnClick([selectedDate](UIElement*) { selectedDate = "1990-06-15"; });
 
     auto disabled = DatePickerWidget();
-    disabled->SetDate(2026, 12, 31);
-    disabled->IsEnabledProperty = false;
+    DSL::Borrow(disabled).Date(2026, 12, 31);
+    CUI::DSL::Borrow(disabled).IsEnabled(false);
 
     auto programmatic = Button("程序设置 2030-05-20")
         .OnClick([selectedDate](UIElement*) { selectedDate = "2030-05-20"; });
@@ -81,3 +81,6 @@ Element BuildDatePickerPage() {
 }
 
 } // namespace Gallery
+
+
+

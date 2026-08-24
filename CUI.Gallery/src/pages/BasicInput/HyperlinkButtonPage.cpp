@@ -34,7 +34,7 @@ std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
     });
 
     auto disabled = HyperlinkButtonWidget("不可用链接");
-    disabled->IsEnabledProperty = false;
+    CUI::DSL::Borrow(disabled).IsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "HyperlinkButton(超链接按钮)";
@@ -50,9 +50,12 @@ std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
         },
     };
     spec.source =
-        "auto docs = HyperlinkButtonWidget(\"打开文档\", \"https://learn.microsoft.com...\");\n"
+        "auto docs = HyperlinkButtonWidget(\"打开文档\", \"https://learn.microsoft.com..\");\n"
         "docs->OnClick().Connect([](UIElement*) { /* open link */ });\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+

@@ -19,7 +19,7 @@ std::shared_ptr<TreeViewItem> TreeItem(const std::string& header, const std::str
     auto item = std::make_shared<TreeViewItem>();
     item->header = header;
     item->icon = icon;
-    item->isExpanded = expanded;
+    CUI::DSL::Borrow(item).IsExpanded(expanded);
     item->expandAnim.Reset(expanded ? 1.0f : 0.0f);
     return item;
 }
@@ -61,11 +61,11 @@ std::vector<std::shared_ptr<TreeViewItem>> BuildProjectTree() {
     return { workspace };
 }
 
-void SetExpandedRecursively(TreeView* tree, const std::vector<std::shared_ptr<TreeViewItem>>& items, bool expanded) {
+void ExpandedRecursively(TreeView* tree, const std::vector<std::shared_ptr<TreeViewItem>>& items, bool expanded) {
     for (const auto& item : items) {
         if (!item) continue;
-        tree->SetItemExpanded(item, expanded);
-        SetExpandedRecursively(tree, item->children, expanded);
+        CUI::DSL::Borrow(tree).ItemExpanded(item, expanded);
+        ExpandedRecursively(tree, item->children, expanded);
     }
 }
 
@@ -75,7 +75,7 @@ Element BuildTreeViewPage() {
     auto tree = TreeViewWidget()
         .Height(330.0f)
         .Width(520.0f);
-    tree->SetItems(BuildProjectTree());
+    CUI::DSL::Borrow(tree).Items(BuildProjectTree());
 
     State<std::string> treeStatusText{ "选择节点，单击箭头展开或折叠；双击节点可作为打开命令。" };
     auto treeStatus = MakeStatus("");
@@ -92,24 +92,24 @@ Element BuildTreeViewPage() {
 
     auto expandAll = Button("全部展开")
         .OnClick([tree, treeStatusText](UIElement*) {
-            SetExpandedRecursively(tree.get(), tree->GetItems(), true);
+            ExpandedRecursively(tree.get(), tree->GetItems(), true);
             treeStatusText = "已展开所有包含子项的节点。";
             });
     auto collapseAll = Button("全部折叠")
         .OnClick([tree, treeStatusText](UIElement*) {
-            SetExpandedRecursively(tree.get(), tree->GetItems(), false);
+            ExpandedRecursively(tree.get(), tree->GetItems(), false);
             treeStatusText = "已折叠所有分支。";
             });
     auto selectRoot = Button("选择根节点")
         .OnClick([tree](UIElement*) {
-            if (!tree->GetItems().empty()) tree->SetSelectedItem(tree->GetItems().front());
+            if (!tree->GetItems().empty()) CUI::DSL::Borrow(tree).SelectedItem(tree->GetItems().front());
             });
     auto clearSelection = Button("清除选择")
-        .OnClick([tree](UIElement*) { tree->SetSelectedItem(nullptr); });
+        .OnClick([tree](UIElement*) { CUI::DSL::Borrow(tree).SelectedItem(nullptr); });
     auto indentCompact = Button("紧凑缩进")
-        .OnClick([tree](UIElement*) { tree->SetIndentWidth(14.0f); });
+        .OnClick([tree](UIElement*) { CUI::DSL::Borrow(tree).IndentWidth(14.0f); });
     auto indentWide = Button("宽松缩进")
-        .OnClick([tree](UIElement*) { tree->SetIndentWidth(28.0f); });
+        .OnClick([tree](UIElement*) { CUI::DSL::Borrow(tree).IndentWidth(28.0f); });
 
     State<int> newNodeSerial{ 1 };
     auto addRoot = Button("添加根节点")
@@ -118,7 +118,7 @@ Element BuildTreeViewPage() {
             newNodeSerial = serial + 1;
             auto item = tree->AddItem("动态根节点 " + std::to_string(serial), true);
             item->icon = "✨";
-            tree->SetSelectedItem(item);
+            CUI::DSL::Borrow(tree).SelectedItem(item);
             treeStatusText = "已添加并选中动态根节点。";
             });
     auto addChild = Button("向选中项加载子项")
@@ -133,7 +133,7 @@ Element BuildTreeViewPage() {
             auto child = TreeItem("延迟加载子项 " + std::to_string(serial), "📄");
             child->parent = parent.get();
             parent->children.push_back(child);
-            tree->SetItemExpanded(parent, true);
+            CUI::DSL::Borrow(tree).ItemExpanded(parent, true);
             tree->InvalidateVisibleItems();
             treeStatusText = "已为 " + parent->header + " 加载一个子项。";
             });
@@ -144,7 +144,7 @@ Element BuildTreeViewPage() {
             });
     auto resetTree = Button("替换整个数据源")
         .OnClick([tree, treeStatusText](UIElement*) {
-            tree->SetItems(BuildProjectTree());
+            CUI::DSL::Borrow(tree).Items(BuildProjectTree());
             treeStatusText = "已通过 SetItems 替换整个树形集合。";
             });
 
@@ -167,7 +167,7 @@ Element BuildTreeViewPage() {
             for (const auto& child : lazyRoot->children) child->parent = lazyRoot.get();
             lazyTree->InvalidateVisibleItems();
             }
-            lazyTree->SetItemExpanded(lazyRoot, true);
+            CUI::DSL::Borrow(lazyTree).ItemExpanded(lazyRoot, true);
             lazyStatusText = "延迟子项已加载；再次点击不会重复创建。";
             });
 
@@ -195,11 +195,19 @@ Element BuildTreeViewPage() {
     spec.source =
         "auto root = TreeItem(\"CUI 工作区\", \"📁\", true);\n"
         "root->children.push_back(TreeItem(\"CUI.Core\", \"📦\"));\n"
-        "tree->SetItems({ root });\n"
-        "tree->SetItemExpanded(root, true);\n"
-        "tree->OnSelectionChanged().Connect(...);\n"
+        "tree.Items({ root });\n"
+        "CUI::DSL::Borrow(tree).ItemExpanded(root, true);\n"
+        "tree->OnSelectionChanged().Connect(..);\n"
         "// 修改 children 后：tree->InvalidateVisibleItems();\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+
+
+
+
+
+

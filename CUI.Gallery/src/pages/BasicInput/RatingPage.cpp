@@ -13,8 +13,8 @@ namespace Gallery {
 
 Element BuildRatingControlPage() {
     auto rating = RatingWidget();
-    rating->SetMaxRating(5);
-    rating->SetStep(0.5f);
+    DSL::Borrow(rating).MaxRating(5);
+    CUI::DSL::Borrow(rating).Step(0.5f);
 
     State<float> ratingValue{ 3.5f };
     rating->ValueProperty.Bind(ratingValue);
@@ -27,9 +27,9 @@ Element BuildRatingControlPage() {
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
     auto readOnly = RatingWidget();
-    readOnly->SetMaxRating(5);
-    readOnly->SetIsReadOnly(true);
-    readOnly->SetValue(4.0f);
+    DSL::Borrow(readOnly).MaxRating(5);
+    CUI::DSL::Borrow(readOnly).IsReadOnly(true);
+    CUI::DSL::Borrow(readOnly).Value(4.0f);
 
     SamplePageSpec spec;
     spec.title = "RatingControl(评分)";
@@ -56,3 +56,6 @@ Element BuildRatingControlPage() {
 }
 
 } // namespace Gallery
+
+
+

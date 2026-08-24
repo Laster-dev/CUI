@@ -53,70 +53,70 @@ void FillCatalog(ListBox& list, float lo, float hi) {
     if (rows.empty()) {
         rows.emplace_back("（当前区间没有商品）");
     }
-    list.SetItems(rows);
+    DSL::Borrow(list).Items(rows);
 }
 } // namespace
 
 ShowcasePage BuildRangeSliderPage(const ShowcaseContext& ctx) {
     auto price = std::make_shared<RangeSlider>();
-    price->SetMinimum(0.0f);
-    price->SetMaximum(5000.0f);
-    price->SetStep(50.0f);
-    price->SetMinimumRange(50.0f);
-    price->SetRange(150.0f, 1500.0f);
-    price->SetWidth(360.0f);
-    price->SetHeight(48.0f);
-    price->SetToolTip("拖任一端筛选价格；两滑块不可交叉。");
+    DSL::Borrow(price).Minimum(0.0f);
+    DSL::Borrow(price).Maximum(5000.0f);
+    DSL::Borrow(price).Step(50.0f);
+    DSL::Borrow(price).MinimumRange(50.0f);
+    DSL::Borrow(price).Range(150.0f, 1500.0f);
+    CUI::DSL::Borrow(price).Width(360.0f);
+    CUI::DSL::Borrow(price).Height(48.0f);
+    CUI::DSL::Borrow(price).ToolTip("拖任一端筛选价格；两滑块不可交叉。");
 
     auto priceLabel = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText(FormatPriceRange(price->GetLowerValue(), price->GetUpperValue()), 14.0f, "textPrimary", true));
 
     auto catalog = std::make_shared<ListBox>();
-    catalog->SetHeight(148.0f);
-    catalog->SetWidth(360.0f);
+    CUI::DSL::Borrow(catalog).Height(148.0f);
+    CUI::DSL::Borrow(catalog).Width(360.0f);
     FillCatalog(*catalog, price->GetLowerValue(), price->GetUpperValue());
 
     price->OnValueChanged().Connect([priceLabel, catalog](RangeSlider*, float lo, float hi) {
-        priceLabel->SetText(FormatPriceRange(lo, hi));
+        CUI::DSL::Borrow(priceLabel).Text(FormatPriceRange(lo, hi));
         FillCatalog(*catalog, lo, hi);
     });
 
     auto btnBudget = std::make_shared<Button>("百元档");
-    btnBudget->OnClick().Connect([price](UIElement*) { price->SetRange(0.0f, 300.0f); });
+    btnBudget->OnClick().Connect([price](UIElement*) { DSL::Borrow(price).Range(0.0f, 300.0f); });
     auto btnMid = std::make_shared<Button>("中端");
-    btnMid->OnClick().Connect([price](UIElement*) { price->SetRange(200.0f, 1500.0f); });
+    btnMid->OnClick().Connect([price](UIElement*) { DSL::Borrow(price).Range(200.0f, 1500.0f); });
     auto btnAll = std::make_shared<Button>("全部");
-    btnAll->OnClick().Connect([price](UIElement*) { price->SetRange(0.0f, 5000.0f); });
+    btnAll->OnClick().Connect([price](UIElement*) { DSL::Borrow(price).Range(0.0f, 5000.0f); });
 
     auto vertical = std::make_shared<RangeSlider>();
-    vertical->SetOrientation(Orientation::Vertical);
-    vertical->SetMinimum(0.0f);
-    vertical->SetMaximum(100.0f);
-    vertical->SetStep(1.0f);
-    vertical->SetMinimumRange(5.0f);
-    vertical->SetRange(20.0f, 80.0f);
-    vertical->SetWidth(80.0f);
-    vertical->SetHeight(200.0f);
+    DSL::Borrow(vertical).Orientation(Orientation::Vertical);
+    DSL::Borrow(vertical).Minimum(0.0f);
+    DSL::Borrow(vertical).Maximum(100.0f);
+    DSL::Borrow(vertical).Step(1.0f);
+    DSL::Borrow(vertical).MinimumRange(5.0f);
+    DSL::Borrow(vertical).Range(20.0f, 80.0f);
+    CUI::DSL::Borrow(vertical).Width(80.0f);
+    CUI::DSL::Borrow(vertical).Height(200.0f);
 
     auto vertLabel = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText(FormatPlainRange(20.0f, 80.0f, "%"), 13.0f, "textPrimary", true));
     vertical->OnValueChanged().Connect([vertLabel](RangeSlider*, float lo, float hi) {
-        vertLabel->SetText(FormatPlainRange(lo, hi, "%"));
+        CUI::DSL::Borrow(vertLabel).Text(FormatPlainRange(lo, hi, "%"));
     });
 
     auto gapSlider = std::make_shared<RangeSlider>();
-    gapSlider->SetMinimum(0.0f);
-    gapSlider->SetMaximum(100.0f);
-    gapSlider->SetStep(1.0f);
-    gapSlider->SetMinimumRange(20.0f);
-    gapSlider->SetRange(25.0f, 70.0f);
-    gapSlider->SetWidth(320.0f);
-    gapSlider->SetHeight(48.0f);
+    DSL::Borrow(gapSlider).Minimum(0.0f);
+    DSL::Borrow(gapSlider).Maximum(100.0f);
+    DSL::Borrow(gapSlider).Step(1.0f);
+    DSL::Borrow(gapSlider).MinimumRange(20.0f);
+    DSL::Borrow(gapSlider).Range(25.0f, 70.0f);
+    CUI::DSL::Borrow(gapSlider).Width(320.0f);
+    CUI::DSL::Borrow(gapSlider).Height(48.0f);
 
     auto gapLabel = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("跨度至少 20  ·  " + FormatPlainRange(25.0f, 70.0f, ""), 12.0f, "textSecondary", false));
     gapSlider->OnValueChanged().Connect([gapLabel](RangeSlider*, float lo, float hi) {
-        gapLabel->SetText("跨度至少 20  ·  " + FormatPlainRange(lo, hi, ""));
+        CUI::DSL::Borrow(gapLabel).Text("跨度至少 20  ·  " + FormatPlainRange(lo, hi, ""));
     });
 
     auto demo = Column(12).Children({

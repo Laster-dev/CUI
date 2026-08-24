@@ -1,4 +1,5 @@
 #include "NavigationViewItem.h"
+#include "../core/CUIDsl.h"
 #include "NavigationView.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
@@ -34,7 +35,7 @@ void NavigationViewItemBase::SetIsSelected(bool selected) {
 NavigationViewItemHeader::NavigationViewItemHeader(const std::string& text) {
     m_text = text;
     // Defaults via theme tokens only — paint path resolves through ThemeManager.
-    SetColorToken(ThemeTokenId::TextSecondary);
+    DSL::Borrow(this).ForegroundToken(ThemeTokenId::TextSecondary);
 }
 
 void NavigationViewItemHeader::SetText(const std::string& text) {
@@ -91,16 +92,17 @@ void NavigationViewItem::StyleDefaults() {
     // the single color source unless user code overrides a property.
     // Hover/selected fills are drawn inset in OnRender — keep Control hover
     // tokens unset so GetAnimatedBackground cannot paint a second full-bounds layer.
-    SetHoverBackgroundToken(ThemeTokenId::Unset);
-    SetPressedBackgroundToken(ThemeTokenId::Unset);
-    SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetSecondaryColorToken(ThemeTokenId::TextSecondary);
-    SetIndicatorColorToken(ThemeTokenId::AccentColor);
-    SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetCornerRadius(6.0f);
+    DSL::Borrow(this)
+        .HoverBackgroundToken(ThemeTokenId::Unset)
+        .PressedBackgroundToken(ThemeTokenId::Unset)
+        .SelectedBackgroundToken(ThemeTokenId::SelectedBackground)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .SecondaryColorToken(ThemeTokenId::TextSecondary)
+        .IndicatorColorToken(ThemeTokenId::AccentColor)
+        .Background(D2D1::ColorF(0, 0, 0, 0))
+        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
+        .PressedBackground(D2D1::ColorF(0, 0, 0, 0))
+        .CornerRadius(6.0f);
 }
 
 void NavigationViewItem::SetContent(const std::string& content) {

@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "PagingControl.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -25,15 +26,16 @@ D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float alpha) {
 } // namespace
 
 PagingControl::PagingControl() {
-    SetColorToken(ThemeTokenId::TextMuted);
-    SetBackgroundToken(ThemeTokenId::Unset);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    SetColor(ThemeManager::Instance().GetColor("textMuted"));
-    SetFontFamily("Segoe UI");
-    SetFontSize(12.0f);
-    SetHeight(kHeight);
-    SetWidth(-1.0f);
+    DSL::Borrow(this)
+        .ForegroundToken(ThemeTokenId::TextMuted)
+        .BackgroundToken(ThemeTokenId::Unset)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+        .Foreground(ThemeManager::Instance().GetColor("textMuted"))
+        .FontFamily("Segoe UI")
+        .FontSize(12.0f)
+        .Height(kHeight)
+        .Width(-1.0f);
     RebuildPageList();
 }
 

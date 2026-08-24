@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ScrollViewer.h"
+#include "../core/CUIDsl.h"
 #include "MiddleClickAutoscroll.h"
 #include "../animation/FrameScheduler.h"
 #include "../render/CompositionContext.h"
@@ -63,9 +64,10 @@ void RenderVisibleSubtree(UIElement* element, GraphicsContext& ctx, const Rect& 
 }
 
 ScrollViewer::ScrollViewer() {
-    SetTrackColorToken(ThemeTokenId::CardBorder);
-    SetThumbColorToken(ThemeTokenId::TextMuted);
-    SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    DSL::Borrow(this)
+        .TrackColorToken(ThemeTokenId::CardBorder)
+        .ThumbColorToken(ThemeTokenId::TextMuted)
+        .Background(D2D1::ColorF(0, 0, 0, 0));
     QueryPerformanceFrequency(&m_qpcFreq);
     m_scrollAnimator.Reset(0.0f);
     GetRenderNode().GetLayer().SetCacheable(true);

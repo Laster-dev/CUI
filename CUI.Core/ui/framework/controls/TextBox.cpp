@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "TextBox.h"
+#include "../core/CUIDsl.h"
 #include "ContextMenu.h"
 #include "MessageBox.h"
 #include "../animation/AnimationManager.h"
@@ -69,23 +70,24 @@ std::wstring BuildDisplayText(const std::wstring& wtext, int cursorPos, const st
 } // namespace
 
 TextBox::TextBox() {
-    SetText("");
-    SetPlaceholder("");
-    SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
-    SetBorderThickness(0.0f);
-    SetUnderlineColorToken(ThemeTokenId::InputBorder);
-    SetActiveUnderlineColorToken(ThemeTokenId::AccentColor);
-    SetCaretColorToken(ThemeTokenId::AccentColor);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetPlaceholderColorToken(ThemeTokenId::TextMuted);
-    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    SetFontFamily("微软雅黑");
-    SetFontSize(12.0f);
-    SetPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
-    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    SetMinHeight(32.0f);
+    DSL::Borrow(this)
+        .Text("")
+        .Placeholder("")
+        .Background(D2D1::ColorF(0, 0, 0, 0))
+        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
+        .BorderBrush(D2D1::ColorF(0, 0, 0, 0))
+        .BorderThickness(0.0f)
+        .UnderlineColorToken(ThemeTokenId::InputBorder)
+        .ActiveUnderlineColorToken(ThemeTokenId::AccentColor)
+        .CaretColorToken(ThemeTokenId::AccentColor)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .PlaceholderColorToken(ThemeTokenId::TextMuted)
+        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
+        .FontFamily("微软雅黑")
+        .FontSize(12.0f)
+        .Padding(8.0f, 6.0f, 8.0f, 6.0f)
+        .KeyboardNavigationMode(KeyboardNavigationMode::Contained)
+        .MinHeight(32.0f);
 }
 
 TextBox::TextBox(const std::string& placeholder) : TextBox() {

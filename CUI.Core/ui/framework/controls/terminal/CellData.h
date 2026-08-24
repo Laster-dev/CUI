@@ -45,7 +45,7 @@ struct CellData {
     void SetCodePoint(int value) { Content = (Content & ~ContentMask) | (value & ContentMask); }
 
     int GetWidth() const { return (Content & WidthMask) >> WidthShift; }
-    void SetWidth(int value) { Content = (Content & ~WidthMask) | ((value << WidthShift) & WidthMask); }
+    CellData& Width(int value) { Content = (Content & ~WidthMask) | ((value << WidthShift) & WidthMask); return *this; }
 
     // Mirrors CellData.Char in the C# source: code points above U+FFFF collapse to '?'.
     wchar_t GetChar() const {
@@ -55,7 +55,7 @@ struct CellData {
 
     void SetChar(wchar_t value) {
         SetCodePoint(static_cast<int>(value));
-        SetWidth(value == 0 ? 0 : 1);
+        Width(value == 0 ? 0 : 1);
     }
 
     bool IsEmpty() const {

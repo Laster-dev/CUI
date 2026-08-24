@@ -12,11 +12,11 @@ namespace Gallery {
 namespace {
 
 void StyleBox(std::shared_ptr<TextBlock> t) {
-    t->BackgroundToken = ThemeTokenId::CardBackground;
-    t->BorderToken = ThemeTokenId::CardBorder;
-    t->BorderThickness = 1.0f;
-    t->Padding = Thickness(8, 4, 8, 4);
-    t->Margin = Thickness(0, 0, 0, 4);
+    CUI::DSL::Borrow(t).BackgroundToken(ThemeTokenId::CardBackground);
+    CUI::DSL::Borrow(t).BorderToken(ThemeTokenId::CardBorder);
+    CUI::DSL::Borrow(t).BorderThickness(1.0f);
+    CUI::DSL::Borrow(t).Padding(Thickness(8, 4, 8, 4));
+    CUI::DSL::Borrow(t).Margin(Thickness(0, 0, 0, 4));
 }
 
 } // namespace
@@ -42,22 +42,22 @@ std::shared_ptr<UIElement> BuildTextBlockPage() {
     auto colored = Text("自定义颜色 #E68A00").FontSize(14).Color(Color::Hex("#E68A00")).Build();
 
     auto left = Text("左对齐 Left").FontSize(13).Width(240).Build();
-    left->SetTextAlign(TextAlignment::Left);
+    DSL::Borrow(left).TextAlign(TextAlignment::Left);
     auto center = Text("居中对齐 Center").FontSize(13).Width(240).Build();
-    center->SetTextAlign(TextAlignment::Center);
+    DSL::Borrow(center).TextAlign(TextAlignment::Center);
     auto right = Text("右对齐 Right").FontSize(13).Width(240).Build();
-    right->SetTextAlign(TextAlignment::Right);
+    DSL::Borrow(right).TextAlign(TextAlignment::Right);
     StyleBox(left);
     StyleBox(center);
     StyleBox(right);
 
     auto multiline = Text();
-    multiline->SetText("第一行：DirectWrite 自绘文本\n"
+    CUI::DSL::Borrow(multiline).Text("第一行：DirectWrite 自绘文本\n"
                        "第二行：显式 \\n 换行\n"
                        "第三行：行距 LineSpacing = 1.6");
-    multiline->Width = 360.0f;
-    multiline->SetLineSpacing(1.6f);
-    multiline->FontSize = 13.0f;
+    CUI::DSL::Borrow(multiline).Width(360.0f);
+    DSL::Borrow(multiline).LineSpacing(1.6f);
+    CUI::DSL::Borrow(multiline).FontSize(13.0f);
 
     SamplePageSpec spec;
     spec.title = "TextBlock(文本块)";
@@ -99,10 +99,11 @@ std::shared_ptr<UIElement> BuildTextBlockPage() {
     spec.source =
         "auto t = Text(\"你好，世界\").FontSize(16).Build();\n"
         "t->ColorToken = ThemeTokenId::TextPrimary;\n"
-        "t->SetTextAlign(TextAlignment::Center);\n"
-        "t->SetLineSpacing(1.6f);\n"
+        "DSL::Borrow(t).TextAlign(TextAlignment::Center);\n"
+        "DSL::Borrow(t).LineSpacing(1.6f);\n"
         "t->Underline = true;\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+

@@ -50,17 +50,17 @@ Element BuildSettingsPage() {
     auto btnLight = CUI::DSL::Fluent::Button("浅色");
     btnDark->OnClick().Connect([window](UIElement*) {
         if (window) {
-            window->SetThemeMode(ThemeMode::Dark);
+            DSL::Borrow(window).ThemeMode(ThemeMode::Dark);
         }
     });
     btnLight->OnClick().Connect([window](UIElement*) {
         if (window) {
-            window->SetThemeMode(ThemeMode::Light);
+            DSL::Borrow(window).ThemeMode(ThemeMode::Light);
         }
     });
 
     auto backdrop = std::make_shared<ComboBox>();
-    backdrop->Width = 200.0f;
+    CUI::DSL::Borrow(backdrop).Width(200.0f);
     backdrop->AddItem("关闭");
     backdrop->AddItem("自动材质");
     backdrop->AddItem("纯色");
@@ -69,28 +69,28 @@ Element BuildSettingsPage() {
     backdrop->AddItem("亚克力");
     backdrop->AddItem("兼容模糊");
     if (window) {
-        backdrop->SetSelectedIndex(IndexForBackdrop(window->GetBackdropType()));
+        CUI::DSL::Borrow(backdrop).SelectedIndex(IndexForBackdrop(window->GetBackdropType()));
     }
     backdrop->OnSelectionChanged().Connect([window](ComboBox*, int index, const std::string&) {
         if (window) {
-            window->SetBackdropType(BackdropFromIndex(index));
+            DSL::Borrow(window).BackdropType(BackdropFromIndex(index));
         }
     });
 
     auto anim = std::make_shared<ToggleSwitch>();
-    anim->SetHeader("动效");
-    anim->SetIsOn(UIElement::AreAnimationsEnabled());
+    CUI::DSL::Borrow(anim).Header("动效");
+    CUI::DSL::Borrow(anim).IsOn(UIElement::AreAnimationsEnabled());
     anim->OnToggled().Connect([](ToggleSwitch*, bool on) {
         UIElement::SetAnimationsEnabled(on);
     });
 
     auto stats = std::make_shared<CheckBox>("显示渲染统计叠加层");
     if (window && window->IsRenderStatsOverlayVisible()) {
-        stats->SetState(CheckState::Checked);
+        CUI::DSL::Borrow(stats).State(CheckState::Checked);
     }
     stats->OnCheckStateChanged().Connect([window](CheckBox*, CheckState state) {
         if (window) {
-            window->SetRenderStatsOverlayVisible(state == CheckState::Checked);
+            DSL::Borrow(window).RenderStatsOverlayVisible(state == CheckState::Checked);
         }
     });
 
@@ -114,14 +114,18 @@ Element BuildSettingsPage() {
             stats,
         }, 12.0f),
     }).Build();
-    body->BackgroundToken = ThemeTokenId::WindowBackground;
+    CUI::DSL::Borrow(body).BackgroundToken(ThemeTokenId::WindowBackground);
 
     auto scroll = std::make_shared<ScrollViewer>();
-    scroll->Align = Alignment::Stretch;
-    scroll->FlexGrow = 1.0f;
-    scroll->BackgroundToken = ThemeTokenId::WindowBackground;
-    scroll->AddChild(body);
+    CUI::DSL::Borrow(scroll).Align(Alignment::Stretch);
+    CUI::DSL::Borrow(scroll).FlexGrow(1.0f);
+    CUI::DSL::Borrow(scroll).BackgroundToken(ThemeTokenId::WindowBackground);
+    CUI::DSL::Borrow(scroll).AddChild(body);
     return scroll;
 }
 
 } // namespace Gallery
+
+
+
+

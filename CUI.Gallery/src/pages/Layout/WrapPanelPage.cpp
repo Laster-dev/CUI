@@ -30,14 +30,14 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
         .Gap(10.0f);
     const float widths[] = { 64, 96, 120, 76, 140, 88, 104, 128, 72, 92, 116, 84 };
     for (int i = 0; i < 12; ++i) {
-        horizontal->AddChild(MakeChip(std::format("项目 {}", i + 1), widths[i]));
+        CUI::DSL::Borrow(horizontal).AddChild(MakeChip(std::format("项目 {}", i + 1), widths[i]));
     }
 
     // —— 垂直换列（统一规格）——
     auto vertical = WrapPanelWidget("Vertical").Build();
-    vertical->ItemWidth = 88.0f;
-    vertical->ItemHeight = 34.0f;
-    vertical->Gap = 8.0f;
+    CUI::DSL::Borrow(vertical).ItemWidth(88.0f);
+    CUI::DSL::Borrow(vertical).ItemHeight(34.0f);
+    CUI::DSL::Borrow(vertical).Gap(8.0f);
     const D2D1_COLOR_F colors[] = {
         Rgb(0x007ACC), Rgb(0x0E639C), Rgb(0x10B981), Rgb(0xD13438),
         Rgb(0x845EF7), Rgb(0xF783AC), Rgb(0x22B8CF), Rgb(0xF59F00),
@@ -48,14 +48,14 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
             .Width(88.0f)
             .Height(34.0f)
             .Build();
-        vertical->AddChild(c);
+        CUI::DSL::Borrow(vertical).AddChild(c);
     }
 
     // —— 宽度变化实时重排 ——
     auto liveWrap = WrapPanelWidget("Horizontal")
         .Gap(10.0f);
     for (int i = 0; i < 10; ++i) {
-        liveWrap->AddChild(MakeChip(std::format("标签 {}", i + 1), widths[i % 12]));
+        CUI::DSL::Borrow(liveWrap).AddChild(MakeChip(std::format("标签 {}", i + 1), widths[i % 12]));
     }
 
     auto justified = WrapPanelWidget("Horizontal").Gap(10).Justified().FillLastLine().Build();
@@ -64,8 +64,8 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
         auto chip = ElevatedButton(labels[i]).Background(colors[i % 8]).Padding(14, 8, 14, 8)
             .MinWidth(72.0f)
             .MaxWidth(180.0f);
-        chip->FlexGrow = i % 3 == 0 ? 2.0f : 1.0f;
-        justified->AddChild(chip);
+        CUI::DSL::Borrow(chip).FlexGrow(i % 3 == 0 ? 2.0f : 1.0f);
+        CUI::DSL::Borrow(justified).AddChild(chip);
     }
 
     auto widthStatus = MakeStatus("宽度由卡片可用空间决定；缩放窗口可观察自动换行。");
@@ -84,7 +84,7 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
         },
         {
             "垂直换列（统一规格）",
-            "SetOrientation(Vertical) 配合 SetItemWidth / SetItemHeight 让所有子项等宽等高，超出高度时换到下一列。",
+            ".Orientation(Vertical) 配合 SetItemWidth / SetItemHeight 让所有子项等宽等高，超出高度时换到下一列。",
             Column(12, {
                 vertical,
                 MakeStatus("纵向模式按可用高度排列；在受限宿主中超出后自动换到下一列。"),
@@ -127,3 +127,6 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
 }
 
 } // namespace Gallery
+
+
+

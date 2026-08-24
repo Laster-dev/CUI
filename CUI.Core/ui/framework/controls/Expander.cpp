@@ -1,4 +1,5 @@
 #include "Expander.h"
+#include "../core/CUIDsl.h"
 #include "ProgressBarDiag.h"
 #include "ScrollViewer.h"
 #include "../window/Window.h"
@@ -27,18 +28,19 @@ D2D1_COLOR_F MixColor(D2D1_COLOR_F a, D2D1_COLOR_F b, float t) {
 }
 
 Expander::Expander() {
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetCornerRadius(kCornerRadius);
-    SetBorderThickness(1.0f);
-    SetPadding(Thickness(0.0f));
-    SetFontFamily("Segoe UI");
-    SetFontSize(12.0f);
-    SetAlign(Alignment::Stretch);
-    SetClipToBounds(false);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .CornerRadius(kCornerRadius)
+        .BorderThickness(1.0f)
+        .Padding(0.0f)
+        .FontFamily("Segoe UI")
+        .FontSize(12.0f)
+        .Align(Alignment::Stretch)
+        .ClipToBounds(false);
     m_expandAnim.Reset(0.0f);
 }
 
@@ -147,11 +149,11 @@ void Expander::SetContent(std::shared_ptr<UIElement> content) {
     }
 
     if (m_content) {
-        RemoveChild(m_content);
+        DSL::Borrow(this).RemoveChild(m_content);
     }
     m_content = std::move(content);
     if (m_content) {
-        AddChild(m_content);
+        DSL::Borrow(this).AddChild(m_content);
     }
 
     UpdateContentVisibility();
@@ -283,7 +285,7 @@ void Expander::UpdateContentVisibility() {
         ProgressBarDiag::Log("[EXP] UpdateContentVisibility this=%p header=%s keepVisible=%d target=%.3f current=%.3f",
             (void*)this, m_header.c_str(), keepVisible ? 1 : 0, m_expandAnim.Target(), m_expandAnim.Current());
     }
-    m_content->SetVisibility(next);
+    DSL::Borrow(m_content).Visibility(next);
 }
 
 void Expander::InvalidateExpanderLayout() {

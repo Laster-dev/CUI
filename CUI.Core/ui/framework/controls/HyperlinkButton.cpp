@@ -1,20 +1,21 @@
 #include "../style/ThemeManager.h"
 #include "HyperlinkButton.h"
+#include "../core/CUIDsl.h"
 
 namespace CUI {
 
 HyperlinkButton::HyperlinkButton() {
-    SetText("HyperlinkButton");
-    SetColorToken(ThemeTokenId::AccentColor);
-    SetColor(ThemeManager::Instance().GetColor("accentColor"));
-    SetFontSize(12.0f);
-    SetFontFamily("微软雅黑");
-    SetPadding(Thickness(2, 2, 2, 2));
+    DSL::Borrow(this)
+        .Text("HyperlinkButton")
+        .ForegroundToken(ThemeTokenId::AccentColor)
+        .Foreground(ThemeManager::Instance().GetColor("accentColor"))
+        .FontSize(12.0f)
+        .FontFamily("微软雅黑")
+        .Padding(2.0f, 2.0f, 2.0f, 2.0f);
 }
 
 HyperlinkButton::HyperlinkButton(const std::string& text, const std::string& uri) : HyperlinkButton() {
-    SetText(text);
-    SetNavigateUri(uri);
+    DSL::Borrow(this).Text(text).NavigateUri(uri);
 }
 
 Value HyperlinkButton::GetProperty(PropertyId id) const {

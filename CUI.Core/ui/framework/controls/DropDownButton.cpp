@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "DropDownButton.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
 #include <algorithm>
@@ -11,12 +12,13 @@ namespace CUI {
 
 DropDownButton::DropDownButton() {
     SelectedIndex.Initialize(*this);
-    SetText("DropDown");
-    SetPadding(Thickness(10.0f, 4.0f, 4.0f, 4.0f));
+    DSL::Borrow(this)
+        .Text("DropDown")
+        .Padding(Thickness(10.0f, 4.0f, 4.0f, 4.0f));
 }
 
 DropDownButton::DropDownButton(const std::string& text) : DropDownButton() {
-    SetText(text);
+    DSL::Borrow(this).Text(text);
 }
 
 Value DropDownButton::GetProperty(PropertyId id) const {

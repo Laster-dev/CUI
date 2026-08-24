@@ -130,7 +130,8 @@ public:
         const std::string& source,
         const Rect& dest,
         const D2D1_COLOR_F* tint = nullptr,
-        float opacity = 1.0f);
+        float opacity = 1.0f,
+        const D2D1_COLOR_F* foreground = nullptr);
     // SVG markup/path, else emoji/glyph text centered in dest.
     void DrawIcon(
         const std::string& icon,
@@ -289,7 +290,10 @@ private:
     };
     std::unordered_map<std::string, SvgCacheEntry> m_svgCache;
     ComPtr<ID2D1DeviceContext5> GetSvgContext();
-    const SvgCacheEntry* GetOrCreateSvg(const std::string& source, const D2D1_COLOR_F* tint);
+    const SvgCacheEntry* GetOrCreateSvg(
+        const std::string& source,
+        const D2D1_COLOR_F* tint,
+        const D2D1_COLOR_F* foreground);
 };
 
 } // namespace CUI

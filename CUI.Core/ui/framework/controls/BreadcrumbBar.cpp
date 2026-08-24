@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "BreadcrumbBar.h"
+#include "../core/CUIDsl.h"
 #include "ContextMenu.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
@@ -17,19 +18,20 @@ constexpr const char* kEllipsis = "...";
 
 BreadcrumbBar::BreadcrumbBar() {
     m_pathNodes = { "Home", "Controls", "BreadcrumbBar" };
-    SetBackgroundToken(ThemeTokenId::PaneBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetColorToken(ThemeTokenId::TextSecondary);
-    SetActiveColorToken(ThemeTokenId::TextPrimary);
-    SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
-    SetBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
-    SetBorderThickness(1.0f);
-    SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
-    SetCornerRadius(0.0f);
-    SetFontFamily("微软雅黑");
-    SetFontSize(12.0f);
-    SetWidth(-1.0f);
-    SetHeight(34.0f);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::PaneBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .ActiveColorToken(ThemeTokenId::TextPrimary)
+        .Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground))
+        .BorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder))
+        .BorderThickness(1.0f)
+        .Foreground(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary))
+        .CornerRadius(0.0f)
+        .FontFamily("微软雅黑")
+        .FontSize(12.0f)
+        .Width(-1.0f)
+        .Height(34.0f);
 }
 
 Size BreadcrumbBar::Measure(Size availableSize) {
@@ -244,7 +246,7 @@ void BreadcrumbBar::ShowOverflowMenu(const VisualSlot& ellipsisSlot) {
     }
 
     if (!m_overflowMenu) {
-        m_overflowMenu = std::make_shared<ContextMenu>();
+        m_overflowMenu = DSL::Fluent::Control<ContextMenu>().Build();
     }
     m_overflowMenu->ClearItems();
 
@@ -253,7 +255,7 @@ void BreadcrumbBar::ShowOverflowMenu(const VisualSlot& ellipsisSlot) {
             continue;
         }
         const std::string label = m_pathNodes[static_cast<size_t>(index)];
-        m_overflowMenu->AddItem(label, [this, index, label]() {
+        DSL::Borrow(m_overflowMenu).AddItem(label, [this, index, label]() {
             m_onItemClickedEvent.Invoke(this, index, label);
         });
     }
@@ -347,3 +349,4 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
 }
 
 } // namespace CUI
+

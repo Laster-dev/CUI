@@ -3,6 +3,7 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="AutoGuard/AutoGuard.vcxproj" Id="9d4c8f6e-6e53-4d55-92b5-5c7d13f1d4a8" />
   <Project Path="Calc/Calc.vcxproj" Id="25d3f652-0d3a-4d57-81a8-3b3617494cd8" />
   <Project Path="CUI.Core/CUI.Core.vcxproj" Id="3e8b5749-34b8-4a1c-8a95-e2a421319b1a" />
   <Project Path="CUI.Gallery/CUI.Gallery.vcxproj" Id="9b2fa898-ae36-4d3f-ad8a-a0ae46d8ac53" />

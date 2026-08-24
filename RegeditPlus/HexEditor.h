@@ -25,7 +25,7 @@ public:
     void OnMouseMove(CUI::Point pt) override;
     void OnMouseUp(CUI::Point pt) override;
     void OnMouseWheel(float delta) override;
-    void OnKeyDown(int vkCode) override;
+    bool OnKeyDown(int vkCode) override;
     void OnCharInput(wchar_t ch) override;
     void OnFocus() override;
     void OnBlur() override;

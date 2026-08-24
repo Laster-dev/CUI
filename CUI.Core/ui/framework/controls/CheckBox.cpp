@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "CheckBox.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <windows.h>
 #include <algorithm>
@@ -28,20 +29,21 @@ Point LerpPoint(const Point& a, const Point& b, float t) {
 CheckBox::CheckBox() {
     Checked.Initialize(*this);
     State.Initialize(*this);
-    SetText("CheckBox");
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetCheckedBackgroundToken(ThemeTokenId::AccentColor);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
-    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    SetFontSize(12.0f);
-    SetFontFamily("微软雅黑");
-    SetPadding(Thickness(4, 4, 4, 4));
-    SetCornerRadius(3.0f);
+    DSL::Borrow(this)
+        .Text("CheckBox")
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .CheckedBackgroundToken(ThemeTokenId::AccentColor)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .Background(ThemeManager::Instance().GetColor("inputBackground"))
+        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
+        .FontSize(12.0f)
+        .FontFamily("微软雅黑")
+        .Padding(4.0f)
+        .CornerRadius(3.0f);
 }
 
 CheckBox::CheckBox(const std::string& text) : CheckBox() {
-    SetText(text);
+    DSL::Borrow(this).Text(text);
 }
 
 CheckBox::~CheckBox() {

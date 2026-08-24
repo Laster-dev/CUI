@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "RatingControl.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -35,14 +36,15 @@ void StarPoints(Point center, float radius, Point out[10]) {
 
 RatingControl::RatingControl() : MaxRating(this), Step(this), Value(this) {
     ValueProperty.Initialize(*this);
-    SetFillColorToken(ThemeTokenId::AccentColor);
-    SetTrackColorToken(ThemeTokenId::CardBorder);
-    SetColorToken(ThemeTokenId::TextSecondary);
-    SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetWidth(-1.0f);
-    SetHeight(32.0f);
+    DSL::Borrow(this)
+        .FillColorToken(ThemeTokenId::AccentColor)
+        .TrackColorToken(ThemeTokenId::CardBorder)
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .Background(D2D1::ColorF(0, 0, 0, 0))
+        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
+        .PressedBackground(D2D1::ColorF(0, 0, 0, 0))
+        .Width(-1.0f)
+        .Height(32.0f);
     m_displayValueAnim.Reset(m_value);
 }
 

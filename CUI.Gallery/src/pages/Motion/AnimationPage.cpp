@@ -28,7 +28,7 @@ public:
     void ToggleExpanded() {
         m_expanded = !m_expanded;
         if (m_expanded) {
-            m_widthScalar.SetTarget(360.0f);
+ 
             m_heightScalar.SetTarget(100.0f);
             m_radiusScalar.SetTarget(24.0f);
             m_opacityScalar.SetTarget(0.95f);
@@ -40,7 +40,7 @@ public:
             m_opacityScalar.Reset(m_opacityScalar.Current());
             m_offsetScalar.Reset(m_offsetScalar.Current());
 
-            m_widthScalar.SetTarget(160.0f);
+ 
             m_heightScalar.SetTarget(60.0f);
             m_radiusScalar.SetTarget(8.0f);
             m_opacityScalar.SetTarget(1.0f);
@@ -113,7 +113,7 @@ private:
 class SpringBallControl : public UIElement {
 public:
     SpringBallControl() {
-        SetHeight(100.0f);
+        Borrow(this).Height(100.0f);
         m_currentX = 20.0f;
         m_targetX = 20.0f;
         m_velocity = 0.0f;
@@ -174,7 +174,7 @@ class RaceTrackIndicator : public UIElement {
 public:
     RaceTrackIndicator(EasingType type, ThemeTokenId token)
         : m_type(type), m_token(token) {
-        SetHeight(28.0f);
+        Borrow(this).Height(28.0f);
     }
 
     void StartRace(float durationSec) {
@@ -245,7 +245,7 @@ Element BuildAnimationPage() {
     auto statusGlobal = MakeStatus(initialEnabled ? "当前状态：全局动画已开启（流畅过渡）" : "当前状态：全局动画已禁用（即刻吸附）");
 
     toggleAnim->OnToggled().Connect([statusGlobal](ToggleSwitch*, bool on) {
-        AnimationService::Instance().SetAnimationsEnabled(on);
+ 
         statusGlobal->Text = on ? "当前状态：全局动画已开启（流畅过渡）" : "当前状态：全局动画已禁用（即刻吸附）";
     });
 
@@ -280,13 +280,13 @@ Element BuildAnimationPage() {
     int colorIdx = 0;
     for (const auto& item : easings) {
         auto ind = std::make_shared<RaceTrackIndicator>(item.second, tokens[colorIdx % 9]);
-        ind->Width = 460.0f;
+        CUI::DSL::Borrow(ind).Width(460.0f);
         tracks.push_back(ind);
 
         auto lbl = MakeLabel(item.first, 12.0f, ThemeTokenId::TextPrimary, false);
-        lbl->Width = 170.0f;
+        CUI::DSL::Borrow(lbl).Width(170.0f);
 
-        tracksColumn->AddChild(Row(8, { lbl, ind }).Build());
+        CUI::DSL::Borrow(tracksColumn).AddChild(Row(8, { lbl, ind }).Build());
         colorIdx++;
     }
 
@@ -299,7 +299,7 @@ Element BuildAnimationPage() {
 
     auto btnReset = Button("重置位置 (Reset)")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f)
         .OnClick([tracks](UIElement*) {
@@ -317,11 +317,11 @@ Element BuildAnimationPage() {
 
     // 4. 物理弹簧振荡器
     auto springBall = std::make_shared<SpringBallControl>();
-    springBall->Width = 460.0f;
+    CUI::DSL::Borrow(springBall).Width(460.0f);
 
     auto btnSpringLeft = Button("移至左侧 (20px)")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f)
         .OnClick([springBall](UIElement*) { springBall->TriggerImpulse(20.0f); });
@@ -331,27 +331,27 @@ Element BuildAnimationPage() {
 
     auto btnSpringRight = Button("移至右侧 (420px)")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f)
         .OnClick([springBall](UIElement*) { springBall->TriggerImpulse(420.0f); });
 
     auto sliderStiffness = SliderWidget(180.0f, 40.0f, 400.0f);
-    sliderStiffness->Width = 180.0f;
+    CUI::DSL::Borrow(sliderStiffness).Width(180.0f);
 
     auto sliderDamping = SliderWidget(18.0f, 4.0f, 50.0f);
-    sliderDamping->Width = 180.0f;
+    CUI::DSL::Borrow(sliderDamping).Width(180.0f);
 
     auto statusStiffness = MakeStatus(std::format("刚度 (Stiffness): {:.0f}", 180.0f));
     auto statusDamping = MakeStatus(std::format("阻尼 (Damping): {:.1f}", 18.0f));
 
     sliderStiffness->OnValueChanged().Connect([springBall, statusStiffness](Slider*, float k) {
-        springBall->SetStiffness(k);
+        DSL::Borrow(springBall).Stiffness(k);
         statusStiffness->Text = std::format("刚度 (Stiffness): {:.0f}", k);
     });
 
     sliderDamping->OnValueChanged().Connect([springBall, statusDamping](Slider*, float d) {
-        springBall->SetDamping(d);
+        DSL::Borrow(springBall).Damping(d);
         statusDamping->Text = std::format("阻尼 (Damping): {:.1f}", d);
     });
 
@@ -395,10 +395,10 @@ Element BuildAnimationPage() {
     };
     spec.source =
         "// 1. 全局动画开关与状态控制\n"
-        "AnimationService::Instance().SetAnimationsEnabled(true);\n\n"
+ 
         "// 2. 标量动画过渡 (AnimatedScalar)\n"
         "AnimatedScalar widthScalar(160.0f);\n"
-        "widthScalar.SetTarget(360.0f);\n"
+ 
         "AnimationSpec spec{ 0.22f, 0.01f, 0.35f, EasingType::EaseOutCubic };\n"
         "widthScalar.Tick(dt, spec);\n\n"
         "// 3. 欠阻尼物理弹簧步进 (StepSpring)\n"
@@ -409,3 +409,7 @@ Element BuildAnimationPage() {
 }
 
 } // namespace Gallery
+
+
+
+

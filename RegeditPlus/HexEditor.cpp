@@ -1,6 +1,7 @@
 #include "HexEditor.h"
 #include "BinaryValueDialog.h"
 #include "framework/style/ThemeManager.h"
+#include "framework/core/CUIDsl.h"
 #include "framework/animation/AnimationManager.h"
 #include "framework/controls/MessageBox.h"
 
@@ -14,12 +15,13 @@ using namespace CUI;
 namespace RegeditPlus {
 
 HexEditor::HexEditor() {
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetBorderToken(ThemeTokenId::InputBorder);
-    SetBorderThickness(1.0f);
-    SetFontFamily("Consolas");
-    SetFontSize(13.0f);
-    SetColorToken(ThemeTokenId::TextPrimary);
+    CUI::DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .BorderToken(ThemeTokenId::InputBorder)
+        .BorderThickness(1.0f)
+        .FontFamily("Consolas")
+        .FontSize(13.0f)
+        .ForegroundToken(ThemeTokenId::TextPrimary);
 }
 
 void HexEditor::SetBytes(std::vector<BYTE> data) {
@@ -347,10 +349,9 @@ void HexEditor::DeleteSelectionOrByte(bool forward) {
     NotifyDirty();
 }
 
-void HexEditor::OnKeyDown(int vkCode) {
-    if (!IsEnabled()) return;
+bool HexEditor::OnKeyDown(int vkCode) {
+    if (!IsEnabled()) return false;
     const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-
     auto moveCaret = [&](int nib) {
         nib = std::clamp(nib, 0, ByteCount() * 2);
         m_caretNibble = nib;
@@ -358,24 +359,23 @@ void HexEditor::OnKeyDown(int vkCode) {
         EnsureCaretVisible();
         NotifyDirty();
     };
-
     switch (vkCode) {
-        case VK_LEFT:  moveCaret(m_caretNibble - 1); break;
-        case VK_RIGHT: moveCaret(m_caretNibble + 1); break;
-        case VK_UP:    moveCaret(m_caretNibble - m_bytesPerRow * 2); break;
-        case VK_DOWN:  moveCaret(m_caretNibble + m_bytesPerRow * 2); break;
-        case VK_HOME:  moveCaret((m_caretNibble / 2 / m_bytesPerRow) * m_bytesPerRow * 2); break;
-        case VK_END: {
-            int rowStart = (m_caretNibble / 2 / m_bytesPerRow) * m_bytesPerRow;
-            int rowEnd = (std::min)(rowStart + m_bytesPerRow, ByteCount());
-            moveCaret(rowEnd * 2);
-            break;
-        }
-        case VK_PRIOR: m_scrollRow -= 8; ClampScroll(); NotifyDirty(); break;
-        case VK_NEXT:  m_scrollRow += 8; ClampScroll(); NotifyDirty(); break;
-        case VK_DELETE: DeleteSelectionOrByte(true); break;
-        case VK_BACK:   DeleteSelectionOrByte(false); break;
-        default: break;
+    case VK_LEFT: moveCaret(m_caretNibble - 1); return true;
+    case VK_RIGHT: moveCaret(m_caretNibble + 1); return true;
+    case VK_UP: moveCaret(m_caretNibble - m_bytesPerRow * 2); return true;
+    case VK_DOWN: moveCaret(m_caretNibble + m_bytesPerRow * 2); return true;
+    case VK_HOME: moveCaret((m_caretNibble / 2 / m_bytesPerRow) * m_bytesPerRow * 2); return true;
+    case VK_END: {
+        int rowStart = (m_caretNibble / 2 / m_bytesPerRow) * m_bytesPerRow;
+        int rowEnd = (std::min)(rowStart + m_bytesPerRow, ByteCount());
+        moveCaret(rowEnd * 2);
+        return true;
+    }
+    case VK_PRIOR: m_scrollRow -= 8; ClampScroll(); NotifyDirty(); return true;
+    case VK_NEXT: m_scrollRow += 8; ClampScroll(); NotifyDirty(); return true;
+    case VK_DELETE: DeleteSelectionOrByte(true); return true;
+    case VK_BACK: DeleteSelectionOrByte(false); return true;
+    default: return false;
     }
 }
 

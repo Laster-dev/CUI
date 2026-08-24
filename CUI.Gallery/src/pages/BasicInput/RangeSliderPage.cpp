@@ -13,10 +13,10 @@ namespace Gallery {
 
 Element BuildRangeSliderPage() {
     auto price = RangeSliderWidget();
-    price->SetMinimum(0.0f);
-    price->SetMaximum(1000.0f);
-    price->SetStep(10.0f);
-    price->Width = 320.0f;
+    CUI::DSL::Borrow(price).Minimum(0.0f);
+    CUI::DSL::Borrow(price).Maximum(1000.0f);
+    CUI::DSL::Borrow(price).Step(10.0f);
+    CUI::DSL::Borrow(price).Width(320.0f);
 
     State<float> lowerValue{ 200.0f };
     State<float> upperValue{ 800.0f };
@@ -50,3 +50,6 @@ Element BuildRangeSliderPage() {
 }
 
 } // namespace Gallery
+
+
+

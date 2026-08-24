@@ -1,3 +1,4 @@
+#include "framework/core/CUIDsl.h"
 #include "PageRegistry.h"
 #include "../ShowcaseHelpers.h"
 
@@ -20,9 +21,9 @@ ShowcasePage BuildTreeViewPage(const ShowcaseContext& ctx) {
     rootFeatures->children = { childDsl, childRender, childInput };
 
     auto tree = std::make_shared<CUI::TreeView>();
-    tree->SetItems({ rootDocs, rootFeatures });
-    tree->SetWidth(300.0f);
-    tree->SetHeight(360.0f);
+    CUI::DSL::Borrow(tree).Items({ rootDocs, rootFeatures });
+    CUI::DSL::Borrow(tree).Width(300.0f);
+    CUI::DSL::Borrow(tree).Height(360.0f);
 
     return { "TreeView 树形图", CreatePage(
         "TreeView 树形视图控件 (支持层级折叠/展开与多项交互)",

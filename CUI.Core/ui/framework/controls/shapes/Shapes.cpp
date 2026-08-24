@@ -1,4 +1,5 @@
 #include "Shapes.h"
+#include "../../style/ThemeManager.h"
 #include <cmath>
 
 namespace CUI {
@@ -131,7 +132,12 @@ void SvgIcon::OnRender(GraphicsContext& ctx) {
     // 渲染采用世界坐标：SVG 视口需叠加元素左上角偏移。
     Rect bounds{ m_bounds.x, m_bounds.y, m_bounds.width, m_bounds.height };
 
-    ctx.DrawSvg(m_source, bounds, (m_useTint ? &m_tintColor : nullptr), GetOpacity());
+    D2D1_COLOR_F foreground = GetColorValue();
+    if (!HasColorValue()) {
+        foreground = ThemeManager::Instance().GetColor(
+            GetColorToken() == ThemeTokenId::Unset ? ThemeTokenId::TextPrimary : GetColorToken());
+    }
+    ctx.DrawSvg(m_source, bounds, (m_useTint ? &m_tintColor : nullptr), GetOpacity(), &foreground);
 }
 
 } // namespace CUI

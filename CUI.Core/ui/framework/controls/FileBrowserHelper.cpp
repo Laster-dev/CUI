@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "FileBrowserHelper.h"
+#include "../core/CUIDsl.h"
 #include "../core/Value.h"
 #include "../style/ThemeManager.h"
 #include "BreadcrumbBar.h"
@@ -453,17 +454,17 @@ void FileBrowserSession::RenderFilterDropdown(
 }
 
 FileBrowserBreadcrumbHost::FileBrowserBreadcrumbHost() {
-    m_bar = std::make_shared<BreadcrumbBar>();
-    m_bar->SetFontFamily("Segoe UI");
-    m_bar->SetFontSize(12.0f);
-    m_bar->SetHeight(FileBrowserSession::kHeaderH - 1.0f);
-    m_bar->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    m_bar->SetBorderThickness(0.0f);
-    m_bar->SetBackgroundToken(ThemeTokenId::Unset);
-    m_bar->SetBorderToken(ThemeTokenId::Unset);
-    m_bar->SetColorToken(ThemeTokenId::TextSecondary);
-    m_bar->SetActiveColorToken(ThemeTokenId::TextPrimary);
-    m_bar->OnItemClicked().Connect([this](BreadcrumbBar*, int index, const std::string&) {
+    m_bar = DSL::Fluent::Control<BreadcrumbBar>()
+        .FontFamily("Segoe UI")
+        .FontSize(12.0f)
+        .Height(FileBrowserSession::kHeaderH - 1.0f)
+        .Background(D2D1::ColorF(0, 0, 0, 0))
+        .BorderThickness(0.0f)
+        .BackgroundToken(ThemeTokenId::Unset)
+        .BorderToken(ThemeTokenId::Unset)
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .ActiveColorToken(ThemeTokenId::TextPrimary)
+        .OnBreadcrumbItemClicked([this](BreadcrumbBar*, int index, const std::string&) {
         if (!m_onNavigate) {
             return;
         }
@@ -475,7 +476,7 @@ void FileBrowserBreadcrumbHost::AttachTo(UIElement* owner) {
     if (!owner || !m_bar) {
         return;
     }
-    m_bar->SetOverlayComposed(true);
+    DSL::Borrow(m_bar).OverlayComposed(true);
     owner->AddChildQuiet(m_bar);
 }
 
@@ -484,7 +485,7 @@ void FileBrowserBreadcrumbHost::SetNavigateHandler(NavigateCallback handler) {
 }
 
 void FileBrowserBreadcrumbHost::Sync(const std::string& currentPath) {
-    m_bar->SetPath(BuildFileBrowserBreadcrumb(currentPath));
+    DSL::Borrow(m_bar).PathNodes(BuildFileBrowserBreadcrumb(currentPath));
 }
 
 void FileBrowserBreadcrumbHost::Layout(const FileBrowserSession& session, const Rect& pop) {
@@ -518,20 +519,20 @@ Rect FileBrowserBreadcrumbHost::GetOverflowMenuClientBounds() const {
 }
 
 FileBrowserTreeHost::FileBrowserTreeHost() {
-    m_tree = std::make_shared<TreeView>();
-    m_tree->SetFontFamily("Segoe UI");
-    m_tree->SetFontSize(12.0f);
-    // Same surface as the popup chrome — no nested rounded border box.
-    m_tree->SetCornerRadius(0.0f);
-    m_tree->SetBorderThickness(0.0f);
-    m_tree->SetBackgroundToken(ThemeTokenId::CardBackground);
-    m_tree->SetBorderToken(ThemeTokenId::Unset);
-    m_tree->SetColorToken(ThemeTokenId::TextPrimary);
-    m_tree->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    m_tree->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
-    m_tree->SetIndentWidth(16.0f);
+    m_tree = DSL::Fluent::Control<TreeView>()
+        .FontFamily("Segoe UI")
+        .FontSize(12.0f)
+        .CornerRadius(0.0f)
+        .BorderThickness(0.0f)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::Unset)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .SelectedBackgroundToken(ThemeTokenId::SelectedBackground)
+        .IndentWidth(16.0f)
+        .Build();
 
-    m_tree->OnSelectionChanged().Connect([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
+    DSL::Borrow(m_tree).OnSelectionChanged([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
         if (!item || item->tag.empty() || IsPlaceholderChild(item)) {
             return;
         }
@@ -546,7 +547,7 @@ FileBrowserTreeHost::FileBrowserTreeHost() {
         }
     });
 
-    m_tree->OnItemToggled().Connect([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
+    DSL::Borrow(m_tree).OnItemToggled([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
         if (!item || m_loadingGuard) {
             return;
         }
@@ -555,7 +556,7 @@ FileBrowserTreeHost::FileBrowserTreeHost() {
         }
     });
 
-    m_tree->OnItemDoubleClicked().Connect([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
+    DSL::Borrow(m_tree).OnItemDoubleClicked([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
         if (!item || item->tag.empty() || IsPlaceholderChild(item)) {
             return;
         }
@@ -576,7 +577,7 @@ void FileBrowserTreeHost::AttachTo(UIElement* owner) {
     if (!owner || !m_tree) {
         return;
     }
-    m_tree->SetOverlayComposed(true);
+    DSL::Borrow(m_tree).OverlayComposed(true);
     owner->AddChildQuiet(m_tree);
 }
 
@@ -739,14 +740,14 @@ void FileBrowserTreeHost::RebuildRoots(const FileBrowserSession& session) {
     for (auto& child : computer->children) {
         child->parent = computer.get();
     }
-    m_tree->AddItem(computer);
+    DSL::Borrow(m_tree).AddTreeItem(computer);
 }
 
 void FileBrowserTreeHost::ExpandToPath(const std::string& path, const FileBrowserSession& session) {
     if (path.empty()) {
         auto roots = m_tree->GetItems();
         if (!roots.empty()) {
-            m_tree->SetSelectedItem(roots[0]);
+            DSL::Borrow(m_tree).SelectedTreeItem(roots[0]);
         }
         return;
     }
@@ -800,7 +801,7 @@ void FileBrowserTreeHost::ExpandToPath(const std::string& path, const FileBrowse
         current->isExpanded = true;
         current->expandAnim.Reset(1.0f);
         m_tree->InvalidateVisibleItems();
-        m_tree->SetSelectedItem(current);
+        DSL::Borrow(m_tree).SelectedTreeItem(current);
     }
 }
 
@@ -853,8 +854,7 @@ void FileBrowserTreeHost::GoUp(const FileBrowserSession& session) {
 
 void FileBrowserTreeHost::Layout(const Rect& listRect) {
     m_tree->SetBounds(listRect);
-    m_tree->SetWidth(listRect.width);
-    m_tree->SetHeight(listRect.height);
+    DSL::Borrow(m_tree).Width(listRect.width).Height(listRect.height);
 }
 
 void FileBrowserTreeHost::Render(GraphicsContext& ctx) {
@@ -907,3 +907,4 @@ bool FileBrowserTreeHost::TryConfirm(const FileBrowserSession& session, std::str
 }
 
 } // namespace CUI
+

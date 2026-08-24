@@ -14,10 +14,10 @@ namespace Gallery {
 
 Element BuildSliderPage() {
     auto volume = SliderWidget();
-    volume->SetMinimum(0.0f);
-    volume->SetMaximum(100.0f);
-    volume->SetStep(1.0f);
-    volume->Width = 280.0f;
+    CUI::DSL::Borrow(volume).Minimum(0.0f);
+    CUI::DSL::Borrow(volume).Maximum(100.0f);
+    CUI::DSL::Borrow(volume).Step(1.0f);
+    CUI::DSL::Borrow(volume).Width(280.0f);
 
     State<float> volumeValue{ 40.0f };
     volume->ValueProperty.Bind(volumeValue);
@@ -31,10 +31,10 @@ Element BuildSliderPage() {
 
     auto vertical = SliderWidget()
         .Orientation(Orientation::Vertical);
-    vertical->SetMinimum(0.0f);
-    vertical->SetMaximum(100.0f);
-    vertical->Width = 32.0f;
-    vertical->Height = 160.0f;
+    CUI::DSL::Borrow(vertical).Minimum(0.0f);
+    CUI::DSL::Borrow(vertical).Maximum(100.0f);
+    CUI::DSL::Borrow(vertical).Width(32.0f);
+    CUI::DSL::Borrow(vertical).Height(160.0f);
 
     State<float> verticalValue{ 70.0f };
     vertical->ValueProperty.Bind(verticalValue);
@@ -57,7 +57,7 @@ Element BuildSliderPage() {
         },
         {
             "垂直",
-            "SetOrientation(Orientation::Vertical)，并给控件足够高度。",
+            ".Orientation(Orientation::Vertical)，并给控件足够高度。",
             Column(10, {
                 Row(16, {vertical, verticalStatus }),
             }),
@@ -70,3 +70,6 @@ Element BuildSliderPage() {
 }
 
 } // namespace Gallery
+
+
+

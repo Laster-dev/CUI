@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildPasswordBoxPage(const ShowcaseContext& ctx) {
     auto pwdBox = PasswordBoxWidget("请输入您的安全密码").Build();
-    pwdBox->SetToolTip("悬停提示: 点击右侧眼睛图标可查看明文");
+    CUI::DSL::Borrow(pwdBox).ToolTip("悬停提示: 点击右侧眼睛图标可查看明文");
 
     return { "PasswordBox 密码框", CreatePage(
         "PasswordBox 密码输入框控件",

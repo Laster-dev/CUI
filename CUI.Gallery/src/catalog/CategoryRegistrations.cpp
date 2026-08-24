@@ -121,3 +121,6 @@ void WindowingCatalog::Register(std::vector<Entry>& entries) {
 }
 
 } // namespace Gallery
+
+
+

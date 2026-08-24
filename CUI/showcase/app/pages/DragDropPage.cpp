@@ -19,11 +19,7 @@ class DragChip : public Control, public CUI::IDragSource {
 public:
     explicit DragChip(std::string payload)
         : m_payload(std::move(payload)) {
-        SetText(m_payload);
-        SetWidth(148.0f);
-        SetHeight(34.0f);
-        SetCornerRadius(17.0f);
-        SetToolTip("按住拖到列表或输入框；Ctrl 为复制");
+        Borrow(this).Text(m_payload).Width(148.0f).Height(34.0f).CornerRadius(17.0f).ToolTip("按住拖到列表或输入框；Ctrl 为复制");
     }
 
     ~DragChip() override {
@@ -80,7 +76,7 @@ public:
     DataPackage BeginDrag(Point pt) override {
         (void)pt;
         DataPackage pkg;
-        pkg.SetText(m_payload);
+        pkg.Text(m_payload);
         return pkg;
     }
 
@@ -97,10 +93,7 @@ class FileDropWell : public Control, public CUI::IDropTarget {
 public:
     explicit FileDropWell(std::function<void(const std::vector<std::string>&)> onFiles)
         : m_onFiles(std::move(onFiles)) {
-        SetWidth(-1.0f);
-        SetHeight(88.0f);
-        SetCornerRadius(8.0f);
-        SetToolTip("从资源管理器拖入文件");
+        Borrow(this).Width(-1.0f).Height(88.0f).CornerRadius(8.0f).ToolTip("从资源管理器拖入文件");
     }
 
     ~FileDropWell() override {
@@ -200,11 +193,11 @@ private:
 
 std::shared_ptr<ListBox> MakeDemoList(const std::vector<std::string>& items, float width) {
     auto list = std::make_shared<ListBox>();
-    list->SetWidth(width);
-    list->SetHeight(220.0f);
-    list->SetAllowDrag(true);
-    list->SetAllowDrop(true);
-    list->SetItems(items);
+    CUI::DSL::Borrow(list).Width(width);
+    CUI::DSL::Borrow(list).Height(220.0f);
+    DSL::Borrow(list).AllowDrag(true);
+    CUI::DSL::Borrow(list).AllowDrop(true);
+    DSL::Borrow(list).Items(items);
     return list;
 }
 
@@ -220,7 +213,7 @@ ShowcasePage BuildDragDropPage(const ShowcaseContext& ctx) {
         CreateShowcaseText("日志：就绪。两列表互拖；Ctrl=复制，Esc=取消。", 12.0f, "#B5CEA8", false, "Consolas"));
 
     auto appendLog = [log](const std::string& line) {
-        log->SetText(line);
+        CUI::DSL::Borrow(log).Text(line);
     };
 
     left->OnSelectionChanged().Connect([appendLog](ListBox*, int idx, const std::string& text) {
@@ -238,11 +231,11 @@ ShowcasePage BuildDragDropPage(const ShowcaseContext& ctx) {
     auto chipB = std::make_shared<DragChip>("标签：紧急");
 
     auto inbox = std::make_shared<TextBox>("拖放到此输入框（文本或文件路径）");
-    inbox->SetAllowDrop(true);
-    inbox->SetAcceptsReturn(true);
-    inbox->SetTextWrapping(true);
-    inbox->SetWidth(-1.0f);
-    inbox->SetHeight(72.0f);
+    CUI::DSL::Borrow(inbox).AllowDrop(true);
+    CUI::DSL::Borrow(inbox).AcceptsReturn(true);
+    CUI::DSL::Borrow(inbox).TextWrapping(true);
+    CUI::DSL::Borrow(inbox).Width(-1.0f);
+    CUI::DSL::Borrow(inbox).Height(72.0f);
     inbox->OnTextChanged().Connect([appendLog](TextBox*, const std::string& text) {
         appendLog("[输入框] " + text);
     });
@@ -288,3 +281,4 @@ ShowcasePage BuildDragDropPage(const ShowcaseContext& ctx) {
         "框架 DataPackage + IDragSource / IDropTarget + DragDropService。列表互拖、控件接入、外部文件拖入。",
         demo) };
 }
+

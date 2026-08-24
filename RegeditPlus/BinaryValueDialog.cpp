@@ -1,6 +1,7 @@
 #include "BinaryValueDialog.h"
 #include "framework/style/ThemeManager.h"
 #include "framework/style/ThemeTokenId.h"
+#include "framework/core/CUIDsl.h"
 
 #include <algorithm>
 #include <cmath>
@@ -26,52 +27,59 @@ float EaseIn(float t) { t = Clamp01(t); return t * t * t; }
 } // namespace
 
 BinaryValueDialog::BinaryValueDialog() {
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
+    CUI::DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::CardBorder);
 
     m_title = std::make_shared<TextBlock>("编辑二进制数值");
-    m_title->SetFontSize(16.0f);
-    m_title->SetFontWeight("Bold");
-    m_title->SetFontFamily("微软雅黑");
-    m_title->SetColorToken(ThemeTokenId::TextPrimary);
+    CUI::DSL::Borrow(m_title)
+        .FontSize(16.0f)
+        .FontWeight(CUI::FontWeight::Bold)
+        .FontFamily("微软雅黑")
+        .ForegroundToken(ThemeTokenId::TextPrimary);
 
     m_nameLabel = std::make_shared<TextBlock>("数值名称(N):");
-    m_nameLabel->SetFontSize(13.0f);
-    m_nameLabel->SetFontFamily("微软雅黑");
-    m_nameLabel->SetColorToken(ThemeTokenId::TextPrimary);
+    CUI::DSL::Borrow(m_nameLabel)
+        .FontSize(13.0f)
+        .FontFamily("微软雅黑")
+        .ForegroundToken(ThemeTokenId::TextPrimary);
 
     m_nameBox = std::make_shared<TextBox>();
-    m_nameBox->SetFontFamily("微软雅黑");
-    m_nameBox->SetFontSize(13.0f);
-    m_nameBox->SetHeight(28.0f);
-    m_nameBox->SetIsReadOnly(true);
+    CUI::DSL::Borrow(m_nameBox)
+        .FontFamily("微软雅黑")
+        .FontSize(13.0f)
+        .Height(28.0f)
+        .IsReadOnly(true);
 
     m_dataLabel = std::make_shared<TextBlock>("数值数据(V):");
-    m_dataLabel->SetFontSize(13.0f);
-    m_dataLabel->SetFontFamily("微软雅黑");
-    m_dataLabel->SetColorToken(ThemeTokenId::TextPrimary);
+    CUI::DSL::Borrow(m_dataLabel)
+        .FontSize(13.0f)
+        .FontFamily("微软雅黑")
+        .ForegroundToken(ThemeTokenId::TextPrimary);
 
     m_hex = std::make_shared<HexEditor>();
-    m_hex->SetBytesPerRow(8);
+    CUI::DSL::Borrow(m_hex).BytesPerRow(8);
 
     auto styleSecondary = [](const std::shared_ptr<Button>& btn) {
-        btn->SetBackgroundToken(ThemeTokenId::CardBackground);
-        btn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-        btn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-        btn->SetBorderToken(ThemeTokenId::CardBorder);
-        btn->SetBorderThickness(1.0f);
-        btn->SetColorToken(ThemeTokenId::TextPrimary);
-        btn->SetFontFamily("微软雅黑");
-        btn->SetPadding(Thickness(16, 6, 16, 6));
+        CUI::DSL::Borrow(btn)
+            .BackgroundToken(ThemeTokenId::CardBackground)
+            .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+            .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+            .BorderToken(ThemeTokenId::CardBorder)
+            .BorderThickness(1.0f)
+            .ForegroundToken(ThemeTokenId::TextPrimary)
+            .FontFamily("微软雅黑")
+            .Padding(16.0f, 6.0f, 16.0f, 6.0f);
     };
 
     m_ok = std::make_shared<Button>("确定");
-    m_ok->SetBackgroundToken(ThemeTokenId::AccentColor);
-    m_ok->SetHoverBackgroundToken(ThemeTokenId::AccentColor);
-    m_ok->SetPressedBackgroundToken(ThemeTokenId::AccentColor);
-    m_ok->SetColorToken(ThemeTokenId::AccentForeground);
-    m_ok->SetFontFamily("微软雅黑");
-    m_ok->SetPadding(Thickness(16, 6, 16, 6));
+    CUI::DSL::Borrow(m_ok)
+        .BackgroundToken(ThemeTokenId::AccentColor)
+        .HoverBackgroundToken(ThemeTokenId::AccentColor)
+        .PressedBackgroundToken(ThemeTokenId::AccentColor)
+        .ForegroundToken(ThemeTokenId::AccentForeground)
+        .FontFamily("微软雅黑")
+        .Padding(16.0f, 6.0f, 16.0f, 6.0f);
     m_ok->OnClick().Connect([this](UIElement*) {
         auto data = m_hex ? m_hex->GetBytes() : std::vector<BYTE>{};
         auto cb = m_callback;
@@ -87,13 +95,14 @@ BinaryValueDialog::BinaryValueDialog() {
         if (cb) cb(false, {});
     });
 
-    AddChild(m_title);
-    AddChild(m_nameLabel);
-    AddChild(m_nameBox);
-    AddChild(m_dataLabel);
-    AddChild(m_hex);
-    AddChild(m_ok);
-    AddChild(m_cancel);
+    CUI::DSL::Borrow(this)
+        .AddChild(m_title)
+        .AddChild(m_nameLabel)
+        .AddChild(m_nameBox)
+        .AddChild(m_dataLabel)
+        .AddChild(m_hex)
+        .AddChild(m_ok)
+        .AddChild(m_cancel);
 }
 
 void BinaryValueDialog::InvalidateCard() {
@@ -106,7 +115,7 @@ void BinaryValueDialog::Show(UIElement* root, const std::wstring& valueName,
                              std::function<void(bool, std::vector<BYTE>)> callback) {
     if (!root) return;
     m_callback = std::move(callback);
-    if (m_nameBox) m_nameBox->SetText(WideToUtf8(valueName));
+    if (m_nameBox) CUI::DSL::Borrow(m_nameBox).Text(WideToUtf8(valueName));
     if (m_hex) m_hex->SetBytes(std::move(data));
 
     m_isOpen = true;
@@ -241,8 +250,8 @@ void BinaryValueDialog::LayoutChildren() {
     const float btnArea = 56.0f;
     const float hexH = (std::max)(120.0f, m_dialogBounds.y + m_dialogBounds.height - btnArea - y);
     if (m_hex) {
-        m_hex->SetWidth(w);
-        m_hex->SetHeight(hexH);
+        CUI::DSL::Borrow(m_hex).Width(w);
+        CUI::DSL::Borrow(m_hex).Height(hexH);
         m_hex->Measure(Size(w, hexH));
         m_hex->Arrange(Rect(x, y, w, hexH));
     }

@@ -170,7 +170,7 @@ void TerminalBuffer::Reflow(int newCols) {
             for (int t = 1; t < w && col + t < newCols; ++t) {
                 CellData trail = cell;
                 trail.SetCodePoint(0);
-                trail.SetWidth(0);
+                trail.Width(0);
                 (*row)[col + t].SetFrom(trail);
             }
             col += w;
@@ -230,7 +230,7 @@ void TerminalBuffer::PrintChar(int codePoint, int width) {
 
     CellData cell = CurAttr;
     cell.SetCodePoint(codePoint);
-    cell.SetWidth(width);
+    cell.Width(width);
     cell.LinkId = ActiveLinkId;
     line[CursorX].SetFrom(cell);
 
@@ -238,7 +238,7 @@ void TerminalBuffer::PrintChar(int codePoint, int width) {
     for (int i = 1; i < width && CursorX + i < m_cols; ++i) {
         CellData empty = CurAttr;
         empty.SetCodePoint(0);
-        empty.SetWidth(0);
+        empty.Width(0);
         line[CursorX + i].SetFrom(empty);
     }
 
@@ -495,7 +495,7 @@ void TerminalBuffer::InsertCells(int n) {
 CellData TerminalBuffer::EraseCell() const {
     CellData cell = CurAttr;
     cell.SetCodePoint(' ');
-    cell.SetWidth(1);
+    cell.Width(1);
     // Erase uses current bg typically; keep attrs minimal
     cell.Attrs = 0;
     return cell;

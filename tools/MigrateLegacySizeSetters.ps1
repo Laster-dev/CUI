@@ -1,3 +1,6 @@
+# Deprecated: this script generated property-assignment code and must not be used
+# for the Fluent Builder-only migration. Use an explicit Builder migration instead.
+throw "MigrateLegacySizeSetters.ps1 is deprecated; it generates non-Fluent code."
 param(
     [Parameter(Mandatory = $false)]
     [string]$Path = "CUI.Gallery\src",

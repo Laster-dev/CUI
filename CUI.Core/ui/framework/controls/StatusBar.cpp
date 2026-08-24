@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "StatusBar.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -18,18 +19,19 @@ constexpr float kProgressMinW = 56.0f;
 } // namespace
 
 StatusBar::StatusBar() {
-    SetBackgroundToken(ThemeTokenId::PaneBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetColorToken(ThemeTokenId::TextSecondary);
-    SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
-    SetBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
-    SetBorderThickness(1.0f);
-    SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
-    SetFontFamily("Segoe UI");
-    SetFontSize(11.0f);
-    SetHeight(kBarH);
-    SetWidth(-1.0f);
-    SetCornerRadius(0.0f);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::PaneBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground))
+        .BorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder))
+        .BorderThickness(1.0f)
+        .Foreground(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary))
+        .FontFamily("Segoe UI")
+        .FontSize(11.0f)
+        .Height(kBarH)
+        .Width(-1.0f)
+        .CornerRadius(0.0f);
 }
 
 Size StatusBar::Measure(Size availableSize) {

@@ -13,9 +13,9 @@ public:
     CUIWindow(const std::string& title = "CUI Modern Window", int width = 1200, int height = 750);
     ~CUIWindow() = default;
 
-    void SetContent(std::shared_ptr<UIElement> rootContent);
-    void Show();
-    void Run();
+    CUIWindow& Content(std::shared_ptr<UIElement> rootContent);
+    CUIWindow& Show();
+    CUIWindow& Run();
 
     Window& GetNativeWindow() { return m_window; }
     HWND GetHWND() const { return m_window.GetHWND(); }

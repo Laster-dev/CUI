@@ -1,0 +1,6 @@
+*** Begin Patch
+*** Update File: CUI.Gallery/src/pages/BasicInput/RangeSliderPage.cpp
+@@
+-    CUI::DSL::Borrow(price).Minimum(0.0f);
++    CUI::DSL::Borrow(price).Minimum(0.0f);
+*** End Patch

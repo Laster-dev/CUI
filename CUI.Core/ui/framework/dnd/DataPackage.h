@@ -25,15 +25,15 @@ inline bool HasEffect(DragDropEffects mask, DragDropEffects bit) {
 
 class DataPackage {
 public:
-    void SetText(std::string text);
+    DataPackage& Text(std::string text);
     bool HasText() const { return m_hasText; }
     const std::string& GetText() const { return m_text; }
 
-    void SetFiles(std::vector<std::string> paths);
+    DataPackage& Files(std::vector<std::string> paths);
     bool HasFiles() const { return !m_files.empty(); }
     const std::vector<std::string>& GetFiles() const { return m_files; }
 
-    void SetFormat(const std::string& mime, std::string payload);
+    DataPackage& Format(const std::string& mime, std::string payload);
     bool HasFormat(const std::string& mime) const;
     std::string GetFormat(const std::string& mime) const;
 

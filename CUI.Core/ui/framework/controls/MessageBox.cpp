@@ -1,111 +1,117 @@
 #include "MessageBox.h"
 #include "../style/ThemeManager.h"
+#include "../core/CUIDsl.h"
 #include <algorithm>
 
 namespace CUI {
 
 ContentDialog::ContentDialog() {
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
+    DSL::ElementBuilder<ContentDialog>(std::shared_ptr<ContentDialog>(this, [](ContentDialog*) {}))
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::CardBorder);
 
-    m_txtTitle = std::make_shared<TextBlock>(m_titleText);
-    m_txtTitle->SetFontSize(18.0f);
-    m_txtTitle->SetFontWeight(CUI::FontWeight::Bold);
-    m_txtTitle->SetFontFamily("微软雅黑");
-    m_txtTitle->SetColorToken(ThemeTokenId::TextPrimary);
-    m_txtTitle->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    m_txtTitle = DSL::Fluent::TextBlock(m_titleText)
+        .FontSize(18.0f)
+        .FontWeight(CUI::FontWeight::Bold)
+        .FontFamily("微软雅黑")
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
+        .Build();
 
-    m_txtMessage = std::make_shared<TextBlock>(m_messageText);
-    m_txtMessage->SetFontSize(14.0f);
-    m_txtMessage->SetFontFamily("微软雅黑");
-    m_txtMessage->SetColorToken(ThemeTokenId::TextSecondary);
-    m_txtMessage->SetColor(ThemeManager::Instance().GetColor("textSecondary"));
+    m_txtMessage = DSL::Fluent::TextBlock(m_messageText)
+        .FontSize(14.0f)
+        .FontFamily("微软雅黑")
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .Foreground(ThemeManager::Instance().GetColor("textSecondary"))
+        .Build();
 
-    m_inputBox = std::make_shared<TextBox>();
-    m_inputBox->SetFontFamily("微软雅黑");
-    m_inputBox->SetFontSize(16.0f);
-    m_inputBox->SetHeight(32.0f);
-    m_inputBox->SetVisibility(Visibility::Collapsed);
+    m_inputBox = DSL::Fluent::TextBox()
+        .FontFamily("微软雅黑")
+        .FontSize(16.0f)
+        .Height(32.0f)
+        .Visibility(Visibility::Collapsed)
+        .Build();
 
-    m_btnPrimary = std::make_shared<Button>(m_primaryText);
-    m_btnPrimary->SetBackgroundToken(ThemeTokenId::AccentColor);
-    m_btnPrimary->SetHoverBackgroundToken(ThemeTokenId::AccentColor);
-    m_btnPrimary->SetPressedBackgroundToken(ThemeTokenId::AccentColor);
-    m_btnPrimary->SetBackground(ThemeManager::Instance().GetColor("accentColor"));
-    m_btnPrimary->SetColorToken(ThemeTokenId::AccentForeground);
-    m_btnPrimary->SetColor(ThemeManager::Instance().GetColor("accentForeground"));
-    m_btnPrimary->SetFontFamily("微软雅黑");
-    m_btnPrimary->SetPadding(Thickness(16, 6, 16, 6));
-    m_btnPrimary->OnClick().Connect([this](UIElement*) {
+    m_btnPrimary = DSL::Fluent::Button(m_primaryText)
+        .BackgroundToken(ThemeTokenId::AccentColor)
+        .HoverBackgroundToken(ThemeTokenId::AccentColor)
+        .PressedBackgroundToken(ThemeTokenId::AccentColor)
+        .Background(ThemeManager::Instance().GetColor("accentColor"))
+        .ForegroundToken(ThemeTokenId::AccentForeground)
+        .Foreground(ThemeManager::Instance().GetColor("accentForeground"))
+        .FontFamily("微软雅黑")
+        .Padding(16.0f, 6.0f, 16.0f, 6.0f)
+        .OnClick([this](UIElement*) {
         DialogResult res = DialogResult::Primary;
         Hide();
         if (m_callback) m_callback(res);
     });
 
     auto styleSecondaryButton = [](const std::shared_ptr<Button>& btn) {
-        btn->SetBackgroundToken(ThemeTokenId::CardBackground);
-        btn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-        btn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-        btn->SetBorderToken(ThemeTokenId::CardBorder);
-        btn->SetBorderThickness(1.0f);
-        btn->SetColorToken(ThemeTokenId::TextPrimary);
-        btn->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-        btn->SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
-        btn->SetFontFamily("微软雅黑");
-        btn->SetPadding(Thickness(16, 6, 16, 6));
+        DSL::ElementBuilder<Button>(btn)
+            .BackgroundToken(ThemeTokenId::CardBackground)
+            .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+            .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+            .BorderToken(ThemeTokenId::CardBorder)
+            .BorderThickness(1.0f)
+            .ForegroundToken(ThemeTokenId::TextPrimary)
+            .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
+            .Background(ThemeManager::Instance().GetColor("cardBackground"))
+            .FontFamily("微软雅黑")
+            .Padding(16.0f, 6.0f, 16.0f, 6.0f);
     };
 
-    m_btnSecondary = std::make_shared<Button>(m_secondaryText);
+    m_btnSecondary = DSL::Fluent::Button(m_secondaryText).Build();
     styleSecondaryButton(m_btnSecondary);
-    m_btnSecondary->OnClick().Connect([this](UIElement*) {
+    DSL::ElementBuilder<Button>(m_btnSecondary).OnClick([this](UIElement*) {
         DialogResult res = DialogResult::Secondary;
         Hide();
         if (m_callback) m_callback(res);
     });
 
-    m_btnClose = std::make_shared<Button>(m_closeText);
+    m_btnClose = DSL::Fluent::Button(m_closeText).Build();
     styleSecondaryButton(m_btnClose);
-    m_btnClose->OnClick().Connect([this](UIElement*) {
+    DSL::ElementBuilder<Button>(m_btnClose).OnClick([this](UIElement*) {
         DialogResult res = DialogResult::Cancel;
         Hide();
         if (m_callback) m_callback(res);
     });
 
-    AddChild(m_txtTitle);
-    AddChild(m_txtMessage);
-    AddChild(m_inputBox);
-    AddChild(m_btnPrimary);
-    AddChild(m_btnSecondary);
-    AddChild(m_btnClose);
+    DSL::Borrow(this).AddChild(m_txtTitle);
+    DSL::Borrow(this).AddChild(m_txtMessage);
+    DSL::Borrow(this).AddChild(m_inputBox);
+    DSL::Borrow(this).AddChild(m_btnPrimary);
+    DSL::Borrow(this).AddChild(m_btnSecondary);
+    DSL::Borrow(this).AddChild(m_btnClose);
 }
 
 void ContentDialog::SetTitle(const std::string& title) {
     m_titleText = title;
-    if (m_txtTitle) m_txtTitle->SetText(title);
+    if (m_txtTitle) DSL::ElementBuilder<TextBlock>(m_txtTitle).Text(title);
     InvalidateCard();
 }
 
 void ContentDialog::SetMessage(const std::string& message) {
     m_messageText = message;
-    if (m_txtMessage) m_txtMessage->SetText(message);
+    if (m_txtMessage) DSL::ElementBuilder<TextBlock>(m_txtMessage).Text(message);
     InvalidateCard();
 }
 
 void ContentDialog::SetPrimaryButtonText(const std::string& text) {
     m_primaryText = text;
-    if (m_btnPrimary) m_btnPrimary->SetText(text);
+    if (m_btnPrimary) DSL::ElementBuilder<Button>(m_btnPrimary).Text(text);
     InvalidateCard();
 }
 
 void ContentDialog::SetSecondaryButtonText(const std::string& text) {
     m_secondaryText = text;
-    if (m_btnSecondary) m_btnSecondary->SetText(text);
+    if (m_btnSecondary) DSL::ElementBuilder<Button>(m_btnSecondary).Text(text);
     InvalidateCard();
 }
 
 void ContentDialog::SetCloseButtonText(const std::string& text) {
     m_closeText = text;
-    if (m_btnClose) m_btnClose->SetText(text);
+    if (m_btnClose) DSL::ElementBuilder<Button>(m_btnClose).Text(text);
     InvalidateCard();
 }
 
@@ -113,18 +119,18 @@ void ContentDialog::SetInputEnabled(bool enabled, bool multiline) {
     m_inputEnabled = enabled;
     m_inputMultiline = multiline;
     if (m_inputBox) {
-        m_inputBox->SetVisibility(enabled ? Visibility::Visible : Visibility::Collapsed);
-        m_inputBox->SetAcceptsReturn(multiline);
-        m_inputBox->SetTextWrapping(multiline);
-        m_inputBox->SetHeight(multiline ? 120.0f : 32.0f);
+        DSL::ElementBuilder<TextBox>(m_inputBox).Visibility(enabled ? Visibility::Visible : Visibility::Collapsed);
+        DSL::ElementBuilder<TextBox>(m_inputBox).AcceptsReturn(multiline);
+        DSL::ElementBuilder<TextBox>(m_inputBox).TextWrapping(multiline);
+        DSL::ElementBuilder<TextBox>(m_inputBox).Height(multiline ? 120.0f : 32.0f);
     }
     InvalidateCard();
 }
 
 void ContentDialog::SetInputText(const std::string& text) {
     if (m_inputBox) {
-        m_inputBox->SetText(text);
-        m_inputBox->SelectAll();
+        DSL::ElementBuilder<TextBox>(m_inputBox).Text(text);
+        DSL::ElementBuilder<TextBox>(m_inputBox).SelectAll();
     }
     InvalidateCard();
 }
@@ -472,11 +478,12 @@ void ContentDialog::ShowMessageBox(UIElement* root, const std::string& title, co
                                    std::function<void(DialogResult)> callback) {
     if (!root) return;
 
-    auto dlg = std::make_shared<ContentDialog>();
-    dlg->SetTitle(title);
-    dlg->SetMessage(message);
-    dlg->SetPrimaryButtonText("确定");
-    dlg->SetCloseButtonText("取消");
+    auto dlg = DSL::Fluent::Control<ContentDialog>()
+        .Title(title)
+        .Message(message)
+        .PrimaryButtonText("确定")
+        .CloseButtonText("取消")
+        .Build();
     dlg->Show(callback);
 
     root->AddChildQuiet(dlg);
@@ -496,13 +503,14 @@ void ContentDialog::ShowInputBox(
     std::function<void(DialogResult, const std::string&)> callback) {
     if (!root) return;
 
-    auto dlg = std::make_shared<ContentDialog>();
-    dlg->SetTitle(title);
-    dlg->SetMessage(message);
-    dlg->SetInputEnabled(true, multiline);
-    dlg->SetInputText(initialText);
-    dlg->SetPrimaryButtonText("确定");
-    dlg->SetCloseButtonText("取消");
+    auto dlg = DSL::Fluent::Control<ContentDialog>()
+        .Title(title)
+        .Message(message)
+        .InputEnabled(true, multiline)
+        .InputText(initialText)
+        .PrimaryButtonText("确定")
+        .CloseButtonText("取消")
+        .Build();
     dlg->Show([dlg, callback](DialogResult r) {
         if (callback) {
             callback(r, dlg->GetInputText());
@@ -518,3 +526,5 @@ void ContentDialog::ShowInputBox(
 }
 
 } // namespace CUI
+
+

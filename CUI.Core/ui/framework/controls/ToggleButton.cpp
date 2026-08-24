@@ -2,18 +2,19 @@
 #define NOMINMAX
 #endif
 #include "ToggleButton.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 
 namespace CUI {
 
 ToggleButton::ToggleButton() {
     IsOn.Initialize(*this);
-    SetText("Toggle");
+    DSL::Borrow(this).Text("Toggle");
     ApplyCheckedChrome();
 }
 
 ToggleButton::ToggleButton(const std::string& text) : ToggleButton() {
-    SetText(text);
+    DSL::Borrow(this).Text(text);
 }
 
 Value ToggleButton::GetProperty(PropertyId id) const {
@@ -41,29 +42,31 @@ void ToggleButton::SetProperty(PropertyId id, const Value& val) {
 void ToggleButton::ApplyCheckedChrome() {
     ThemeManager& theme = ThemeManager::Instance();
     if (m_isChecked) {
-        SetBackgroundToken(ThemeTokenId::AccentColor);
-        SetHoverBackgroundToken(ThemeTokenId::AccentColor);
-        SetPressedBackgroundToken(ThemeTokenId::AccentColor);
-        SetBorderToken(ThemeTokenId::AccentColor);
-        SetColorToken(ThemeTokenId::AccentForeground);
-        SetBackground(theme.GetColor("accentColor"));
-        SetHoverBackground(theme.GetColor("accentColor"));
-        SetPressedBackground(theme.GetColor("accentColor"));
-        SetBorderBrush(theme.GetColor("accentColor"));
-        SetColor(theme.GetColor("accentForeground"));
-        SetBorderThickness(0.0f);
+        DSL::Borrow(this)
+            .BackgroundToken(ThemeTokenId::AccentColor)
+            .HoverBackgroundToken(ThemeTokenId::AccentColor)
+            .PressedBackgroundToken(ThemeTokenId::AccentColor)
+            .BorderToken(ThemeTokenId::AccentColor)
+            .ForegroundToken(ThemeTokenId::AccentForeground)
+            .Background(theme.GetColor("accentColor"))
+            .HoverBackground(theme.GetColor("accentColor"))
+            .PressedBackground(theme.GetColor("accentColor"))
+            .BorderBrush(theme.GetColor("accentColor"))
+            .Foreground(theme.GetColor("accentForeground"))
+            .BorderThickness(0.0f);
     } else {
-        SetBackgroundToken(ThemeTokenId::CardBackground);
-        SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-        SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-        SetBorderToken(ThemeTokenId::CardBorder);
-        SetColorToken(ThemeTokenId::TextPrimary);
-        SetBackground(theme.GetColor("cardBackground"));
-        SetHoverBackground(theme.GetColor("hoverBackground"));
-        SetPressedBackground(theme.GetColor("pressedBackground"));
-        SetBorderBrush(theme.GetColor("cardBorder"));
-        SetColor(theme.GetColor("textPrimary"));
-        SetBorderThickness(1.0f);
+        DSL::Borrow(this)
+            .BackgroundToken(ThemeTokenId::CardBackground)
+            .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+            .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+            .BorderToken(ThemeTokenId::CardBorder)
+            .ForegroundToken(ThemeTokenId::TextPrimary)
+            .Background(theme.GetColor("cardBackground"))
+            .HoverBackground(theme.GetColor("hoverBackground"))
+            .PressedBackground(theme.GetColor("pressedBackground"))
+            .BorderBrush(theme.GetColor("cardBorder"))
+            .Foreground(theme.GetColor("textPrimary"))
+            .BorderThickness(1.0f);
     }
 }
 

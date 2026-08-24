@@ -48,41 +48,40 @@ std::shared_ptr<Window> SpawnMaterialWindow(
     auto win = std::make_shared<Window>();
     const int width = transparentMode ? 380 : 580;
     const int height = transparentMode ? 240 : 400;
-
-    if (!win->Create(title, width, height, transparentMode)) {
-        return nullptr;
-    }
-
-    win->SetBackdropType(backdrop);
+    auto windowBuilder = win->Fluent()
+        .Title(title)
+        .Size(width, height)
+        .Transparent(transparentMode)
+        .Backdrop(backdrop);
 
     // 构建子窗口的根容器（垂直排列）
     auto root = Column(0).Build();
-    root->SetFlexGrow(1.0f);
-    root->SetAlign(Alignment::Stretch);
+    CUI::DSL::Borrow(root).FlexGrow(1.0f);
+    CUI::DSL::Borrow(root).Align(Alignment::Stretch);
 
     if (transparentMode) {
-        root->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-        root->SetBackgroundToken(ThemeTokenId::Unset);
+        CUI::DSL::Borrow(root).Background(D2D1::ColorF(0, 0, 0, 0));
+        CUI::DSL::Borrow(root).BackgroundToken(ThemeTokenId::Unset);
     } else {
-        root->SetBackgroundToken(ThemeTokenId::WindowBackground);
+        CUI::DSL::Borrow(root).BackgroundToken(ThemeTokenId::WindowBackground);
     }
 
     // 1. 挂载自定义窗口标题栏（若启用）
     if (options.hasTitleBar && !transparentMode) {
         auto titleBar = TitleBarWidget(title).Build();
-        titleBar->SetIsMinimizeButtonVisible(options.minVisible);
-        titleBar->SetIsMaximizeButtonVisible(options.maxVisible);
-        titleBar->SetIsCloseButtonVisible(options.closeVisible);
-        titleBar->SetIsMinimizeButtonEnabled(options.minEnabled);
-        titleBar->SetIsMaximizeButtonEnabled(options.maxEnabled);
-        titleBar->SetIsCloseButtonEnabled(options.closeEnabled);
-        root->AddChild(titleBar);
+        DSL::Borrow(titleBar).IsMinimizeButtonVisible(options.minVisible);
+        DSL::Borrow(titleBar).IsMaximizeButtonVisible(options.maxVisible);
+        DSL::Borrow(titleBar).IsCloseButtonVisible(options.closeVisible);
+        DSL::Borrow(titleBar).IsMinimizeButtonEnabled(options.minEnabled);
+        DSL::Borrow(titleBar).IsMaximizeButtonEnabled(options.maxEnabled);
+        DSL::Borrow(titleBar).IsCloseButtonEnabled(options.closeEnabled);
+        CUI::DSL::Borrow(root).AddChild(titleBar);
     }
 
     // 2. 窗口内部主体内容区
     auto contentArea = Column(14).Padding(20).Build();
-    contentArea->SetFlexGrow(1.0f);
-    contentArea->SetAlign(Alignment::Stretch);
+    CUI::DSL::Borrow(contentArea).FlexGrow(1.0f);
+    CUI::DSL::Borrow(contentArea).Align(Alignment::Stretch);
 
     const std::string materialName = MaterialHost::DisplayNameZh(backdrop);
     auto titleLabel = MakeLabel(title, 18.0f, ThemeTokenId::TextPrimary, true);
@@ -105,7 +104,7 @@ std::shared_ptr<Window> SpawnMaterialWindow(
             s_counter++;
             auto textBlock = std::dynamic_pointer_cast<TextBlock>(counterText);
             if (textBlock) {
-                textBlock->SetText(std::format("计数：{}", s_counter));
+                CUI::DSL::Borrow(textBlock).Text(std::format("计数：{}", s_counter));
             }
         });
 
@@ -118,13 +117,13 @@ std::shared_ptr<Window> SpawnMaterialWindow(
             }
         });
 
-    auto input = TextField("在此新窗口中输入文本...")
+    auto input = TextField("在此新窗口中输入文本..")
         .Height(32.0f)
         .Width(320.0f);
 
     auto progress = ProgressBarWidget(70.0f);
-    progress->SetHeight(6.0f);
-    progress->SetWidth(320.0f);
+    CUI::DSL::Borrow(progress).Height(6.0f);
+    CUI::DSL::Borrow(progress).Width(320.0f);
 
     auto card = Column(12, {
         titleLabel,
@@ -136,20 +135,19 @@ std::shared_ptr<Window> SpawnMaterialWindow(
     }).Padding(16).CornerRadius(8).Build();
 
     if (transparentMode) {
-        card->SetBackground(D2D1::ColorF(0.12f, 0.14f, 0.18f, 0.88f));
-        card->SetBorderBrush(D2D1::ColorF(0.38f, 0.65f, 0.98f, 0.65f));
-        card->SetBorderThickness(1.5f);
+        CUI::DSL::Borrow(card).Background(D2D1::ColorF(0.12f, 0.14f, 0.18f, 0.88f));
+        CUI::DSL::Borrow(card).BorderBrush(D2D1::ColorF(0.38f, 0.65f, 0.98f, 0.65f));
+        CUI::DSL::Borrow(card).BorderThickness(1.5f);
     } else {
-        card->SetBackgroundToken(ThemeTokenId::CardBackground);
-        card->SetBorderToken(ThemeTokenId::CardBorder);
-        card->SetBorderThickness(1.0f);
+        CUI::DSL::Borrow(card).BackgroundToken(ThemeTokenId::CardBackground);
+        CUI::DSL::Borrow(card).BorderToken(ThemeTokenId::CardBorder);
+        CUI::DSL::Borrow(card).BorderThickness(1.0f);
     }
 
-    contentArea->AddChild(card);
-    root->AddChild(contentArea);
+    CUI::DSL::Borrow(contentArea).AddChild(card);
+    CUI::DSL::Borrow(root).AddChild(contentArea);
 
-    win->SetRootElement(root);
-    win->Show();
+    windowBuilder.Root(root).Build().Show();
 
     s_spawnedWindows.push_back(win);
     return win;
@@ -303,7 +301,7 @@ Element BuildWindowPage() {
     spec.sections = {
         {
             "创建各种系统材质的独立窗口 (Create Windows of Different Backdrops)",
-            "点击下方按钮，将调用 win->Create(...) 与 win->SetBackdropType(...) 实时创建并弹出对应 DWM 背景材质与标准标题栏的独立窗口。",
+            "点击下方按钮，将调用 win->Fluent().Title(..) 与 DSL::Borrow(win).BackdropType(..) 实时创建并弹出对应 DWM 背景材质与标准标题栏的独立窗口。",
             Column(12, {
                 Row(8, { btnSpawnMica, btnSpawnMicaAlt, btnSpawnAcrylic }).AlignVertical(Alignment::Center),
                 Row(8, { btnSpawnSolid, btnSpawnNone }).AlignVertical(Alignment::Center),
@@ -323,22 +321,31 @@ Element BuildWindowPage() {
 
     spec.source = R"cpp(// 1. 创建带自定义标题栏与 Acrylic 材质的独立窗口
 auto win = std::make_shared<Window>();
-win->Create("Acrylic 窗口", 600, 400, false);
-win->SetBackdropType(BackdropType::Acrylic);
+auto windowBuilder = win->Fluent()
+    .Title("Acrylic 窗口")
+    .Size(600, 400)
+    .Backdrop(BackdropType::Acrylic);
 
 auto titleBar = TitleBarWidget("我的定制窗口").Build();
 // 标题栏按钮显隐与禁用控制
-titleBar->SetIsMinimizeButtonVisible(false); // 隐藏最小化
-titleBar->SetIsCloseButtonEnabled(false);    // 禁用关闭按钮
+DSL::Borrow(titleBar).IsMinimizeButtonVisible(false); // 隐藏最小化
+DSL::Borrow(titleBar).IsCloseButtonEnabled(false);    // 禁用关闭按钮
 
 auto root = Column(0).Build();
-root->AddChild(titleBar);
-root->AddChild(MakeLabel("窗口内容...", 14.0f, ThemeTokenId::TextPrimary));
-win->SetRootElement(root);
-win->Show();
+CUI::DSL::Borrow(root).AddChild(titleBar);
+CUI::DSL::Borrow(root).AddChild(MakeLabel("窗口内容..", 14.0f, ThemeTokenId::TextPrimary));
+windowBuilder.Root(root).Build().Show();
 )cpp";
 
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+
+
+
+
+
+

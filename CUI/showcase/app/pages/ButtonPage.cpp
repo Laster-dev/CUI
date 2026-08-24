@@ -20,69 +20,82 @@ std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::
     }
     ThemeTokenId id = ThemeTokenIdFromName(tokenName);
     if (tokenProp == "theme.backgroundToken") {
-        element->SetBackgroundToken(id);
-        element->SetBackground(ThemeManager::Instance().GetColor(tokenName));
+        CUI::DSL::Borrow(element).BackgroundToken(id);
+        CUI::DSL::Borrow(element).Background(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.borderToken") {
-        element->SetBorderToken(id);
-        element->SetBorderBrush(ThemeManager::Instance().GetColor(tokenName));
+        CUI::DSL::Borrow(element).BorderToken(id);
+        CUI::DSL::Borrow(element).BorderBrush(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.hoverBackgroundToken") {
-        element->SetHoverBackgroundToken(id);
+        ElementBuilder<T>(element).HoverBackgroundToken(id);
     } else if (tokenProp == "theme.pressedBackgroundToken") {
-        element->SetPressedBackgroundToken(id);
+        ElementBuilder<T>(element).PressedBackgroundToken(id);
     } else if (tokenProp == "theme.colorToken") {
-        element->SetColorToken(id);
+        ElementBuilder<T>(element).ForegroundToken(id);
     } else if (tokenProp == "theme.focusedBorderToken") {
-        element->SetFocusedBorderToken(id);
+        ElementBuilder<T>(element).FocusedBorderToken(id);
     }
     return element;
 }
 
-void WireFlyout(DropDownButton& btn, Window* window, const std::shared_ptr<UIElement>& log, const char* kind) {
+template<typename T>
+void WireFlyout(ElementBuilder<T>& btn, Window* window, const std::shared_ptr<UIElement>& log, const char* kind) {
     btn.AddItem("新建", [window, log, kind]() {
-        log->SetText(std::string("[") + kind + "] 菜单：新建");
+        ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text(std::string("[") + kind + "] 菜单：新建");
         Toast::Show(window->GetRootElement().get(), kind, "新建", ToastCorner::BottomRight, 1800);
     });
     btn.AddItem("打开", [window, log, kind]() {
-        log->SetText(std::string("[") + kind + "] 菜单：打开");
+        ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text(std::string("[") + kind + "] 菜单：打开");
         Toast::Show(window->GetRootElement().get(), kind, "打开", ToastCorner::BottomRight, 1800);
     });
     btn.AddSeparator();
     btn.AddItem("删除", [window, log, kind]() {
-        log->SetText(std::string("[") + kind + "] 菜单：删除");
+        ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text(std::string("[") + kind + "] 菜单：删除");
         Toast::Show(window->GetRootElement().get(), kind, "删除", ToastCorner::BottomRight, 1800);
     });
 }
 } // namespace
 
 ShowcasePage BuildButtonPage(const ShowcaseContext& ctx) {
-    auto target = ElevatedButton("交互测试按钮").Background(Rgb(0x007ACC)).HoverBackground(Rgb(0x0098FF)).PressedBackground(Rgb(0x005A9E)).FontSize(14).Padding(16, 8, 16, 8).CornerRadius(4).ToolTip("框架 SetToolTip：任意页可复用，支持换行与延迟显示/隐藏。").Build();
     auto log = CreateShowcaseText("[就绪] 点击目标按钮或按钮族触发事件…", 12.0f, "#B5CEA8", false, "Consolas");
-    target->OnClick().Connect([window = ctx.windowRef, log](UIElement*) {
-        log->SetText("[事件] OnClick 已触发，按钮交互链路正常。");
-        Toast::Show(window->GetRootElement().get(), "Button", "按钮点击触发 OnClick 事件！", ToastCorner::BottomRight, 2200);
-    });
+    auto target = ElevatedButton("交互测试按钮")
+        .Background(Rgb(0x007ACC))
+        .HoverBackground(Rgb(0x0098FF))
+        .PressedBackground(Rgb(0x005A9E))
+        .FontSize(14)
+        .Padding(16, 8, 16, 8)
+        .CornerRadius(4)
+        .ToolTip("框架 SetToolTip：任意页可复用，支持换行与延迟显示/隐藏。")
+        .OnClick([window = ctx.windowRef, log](UIElement*) {
+            ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text("[事件] OnClick 已触发，按钮交互链路正常。");
+            Toast::Show(window->GetRootElement().get(), "Button", "按钮点击触发 OnClick 事件！", ToastCorner::BottomRight, 2200);
+        })
+        .Build();
 
-    auto toggle = std::make_shared<ToggleButton>("Bold");
-    toggle->SetIcon("B");
     auto toggleState = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("未选中", 12.0f, "textSecondary", false));
-    toggle->OnToggled().Connect([toggleState, log](ToggleButton*, bool on) {
-        toggleState->SetText(on ? "已选中" : "未选中");
-        log->SetText(on ? "[ToggleButton] 锁定选中" : "[ToggleButton] 取消选中");
-    });
+    auto toggle = Fluent::ToggleButton("Bold")
+        .Icon("B")
+        .OnToggled([toggleState, log](ToggleButton*, bool on) {
+            ElementBuilder<TextBlock>(toggleState).Text(on ? "已选中" : "未选中");
+            ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text(on ? "[ToggleButton] 锁定选中" : "[ToggleButton] 取消选中");
+        })
+        .Build();
 
-    auto split = std::make_shared<SplitButton>("保存");
-    split->OnClick().Connect([window = ctx.windowRef, log](UIElement*) {
-        log->SetText("[SplitButton] 主区 Click = 保存");
-        Toast::Show(window->GetRootElement().get(), "SplitButton", "主区：保存", ToastCorner::BottomRight, 1800);
-    });
-    WireFlyout(*split, ctx.windowRef, log, "SplitButton");
+    auto splitBuilder = Fluent::SplitButton("保存")
+        .OnClick([window = ctx.windowRef, log](UIElement*) {
+            ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text("[SplitButton] 主区 Click = 保存");
+            Toast::Show(window->GetRootElement().get(), "SplitButton", "主区：保存", ToastCorner::BottomRight, 1800);
+        });
+    WireFlyout(splitBuilder, ctx.windowRef, log, "SplitButton");
+    auto split = splitBuilder.Build();
 
-    auto drop = std::make_shared<DropDownButton>("更多");
-    WireFlyout(*drop, ctx.windowRef, log, "DropDownButton");
-    drop->OnItemChosen().Connect([log](DropDownButton*, int, const std::string& text) {
-        log->SetText("[DropDownButton] 选中 " + text);
-    });
+    auto dropBuilder = Fluent::DropDownButton("更多");
+    WireFlyout(dropBuilder, ctx.windowRef, log, "DropDownButton");
+    auto drop = dropBuilder
+        .OnItemChosen([log](DropDownButton*, int, const std::string& text) {
+            ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text("[DropDownButton] 选中 " + text);
+        })
+        .Build();
 
     auto family = Row(16).Children({
         Column(8).Children({

@@ -1,3 +1,4 @@
+#include "framework/core/CUIDsl.h"
 #include "ShellContextMenu.h"
 
 #include <shlobj.h>
@@ -374,7 +375,7 @@ void AddShellItem(CUI::ContextMenu& menu, HMENU hMenu, int index,
         const int subIndex = index;
         auto item = menu.AddSubMenuItem(label.empty() ? "..." : label);
         if (icon) item->SetNativeIcon(icon, true);
-        if (disabled) item->SetIsEnabled(false);
+        if (disabled) CUI::DSL::Borrow(item).IsEnabled(false);
         if (checked) item->SetChecked(true);
         auto sub = item->GetSubMenu();
         sub->SetLazyPopulate([session, hSub, subIndex, idCmdFirst](CUI::ContextMenu& dest) {
@@ -388,7 +389,7 @@ void AddShellItem(CUI::ContextMenu& menu, HMENU hMenu, int index,
         if (session) session->Invoke(menuId);
     });
     if (icon) item->SetNativeIcon(icon, true);
-    if (disabled) item->SetIsEnabled(false);
+    if (disabled) CUI::DSL::Borrow(item).IsEnabled(false);
     if (checked) item->SetChecked(true);
 }
 

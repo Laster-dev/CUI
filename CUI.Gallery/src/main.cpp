@@ -21,10 +21,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     int exitCode = -1;
     {
         CUI::Window window;
-        if (window.Create("CUI Gallery", 1280, 800, false)) {
-            window.SetRootElement(Gallery::BuildGalleryRoot());
-            window.Show();
-            window.RunMessageLoop();
+        auto windowBuilder = window.Fluent()
+            .Title("CUI Gallery")
+            .Size(1280, 800)
+            .Root(Gallery::BuildGalleryRoot())
+            .Build();
+        if (windowBuilder) {
+            windowBuilder.Show().Run();
             exitCode = 0;
         }
     }
@@ -32,3 +35,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     CoUninitialize();
     return exitCode;
 }
+
+
+
+
+

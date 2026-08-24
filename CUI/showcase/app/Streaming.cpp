@@ -1,3 +1,4 @@
+#include "framework/core/CUIDsl.h"
 #include "Streaming.h"
 #include <Windows.h>
 #include <atomic>
@@ -16,11 +17,11 @@ std::shared_ptr<Image> g_streamImage = nullptr;
 
 std::shared_ptr<Image> CreateStreamImage() {
     auto image = std::make_shared<Image>();
-    image->SetWidth(420.0f);
-    image->SetHeight(240.0f);
-    image->SetStretch(Stretch::Fill);
-    image->SetImageType(ImageType::DynamicBitmap);
-    image->SetClipToBounds(true);
+    CUI::DSL::Borrow(image).Width(420.0f);
+    CUI::DSL::Borrow(image).Height(240.0f);
+    CUI::DSL::Borrow(image).Stretch(Stretch::Fill);
+    DSL::Borrow(image).ImageType(ImageType::DynamicBitmap);
+    CUI::DSL::Borrow(image).ClipToBounds(true);
     return image;
 }
 
@@ -30,8 +31,8 @@ void StartStreamingThread(Window* window, const std::shared_ptr<Image>& image) {
 
     g_activeWindow = window;
     g_streamImage = image;
-    image->SetStretch(Stretch::Fill);
-    image->SetImageType(ImageType::DynamicBitmap);
+    CUI::DSL::Borrow(image).Stretch(Stretch::Fill);
+    DSL::Borrow(image).ImageType(ImageType::DynamicBitmap);
     image->RequestAnimationTicks();
     g_isStreaming = true;
     g_streamThread = std::thread([]() {

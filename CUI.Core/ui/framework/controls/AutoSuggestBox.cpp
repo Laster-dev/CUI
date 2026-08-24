@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "AutoSuggestBox.h"
+#include "../core/CUIDsl.h"
 #include "TextBox.h"
 #include "../core/Value.h"
 #include "../style/ThemeManager.h"
@@ -69,24 +70,25 @@ bool ContainsInsensitive(const std::string& hay, const std::string& needle) {
 } // namespace
 
 AutoSuggestBox::AutoSuggestBox() {
-    SetPlaceholder("搜索…");
-    SetBackgroundToken(ThemeTokenId::Unset);
-    SetHoverBackgroundToken(ThemeTokenId::Unset);
-    SetBorderToken(ThemeTokenId::Unset);
-    SetFocusedBorderToken(ThemeTokenId::Unset);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetPlaceholderColorToken(ThemeTokenId::TextMuted);
-    SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
-    SetBorderThickness(0.0f);
-    SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary));
-    SetFontFamily("微软雅黑");
-    SetFontSize(12.0f);
-    SetPadding(Thickness(0, 0, 0, 0));
-    SetCornerRadius(0.0f);
-    SetWidth(280.0f);
-    SetHeight(32.0f);
+    DSL::Borrow(this)
+        .Placeholder("搜索…")
+        .BackgroundToken(ThemeTokenId::Unset)
+        .HoverBackgroundToken(ThemeTokenId::Unset)
+        .BorderToken(ThemeTokenId::Unset)
+        .FocusedBorderToken(ThemeTokenId::Unset)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .PlaceholderColorToken(ThemeTokenId::TextMuted)
+        .Background(D2D1::ColorF(0, 0, 0, 0))
+        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
+        .BorderBrush(D2D1::ColorF(0, 0, 0, 0))
+        .BorderThickness(0.0f)
+        .Foreground(ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary))
+        .FontFamily("微软雅黑")
+        .FontSize(12.0f)
+        .Padding(0.0f)
+        .CornerRadius(0.0f)
+        .Width(280.0f)
+        .Height(32.0f);
     UIElement::SetText("");
 
     auto field = std::make_shared<AutoSuggestField>();
@@ -99,21 +101,22 @@ AutoSuggestBox::AutoSuggestBox() {
         }
         SetTextInternal(text, true, true);
     });
-    AddChild(m_field);
+    DSL::Borrow(this).AddChild(m_field);
 }
 
 void AutoSuggestBox::StyleField() {
     if (!m_field) {
         return;
     }
-    m_field->SetPlaceholder(GetPlaceholder());
-    m_field->SetFontFamily(GetFontFamily());
-    m_field->SetFontSize(GetFontSize());
-    m_field->SetColorToken(GetColorToken());
-    m_field->SetPlaceholderColorToken(GetPlaceholderColorToken());
-    m_field->SetWidth(GetWidth() >= 0.0f ? GetWidth() : 280.0f);
-    m_field->SetHeight(GetHeight() >= 0.0f ? GetHeight() : 32.0f);
-    m_field->SetPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
+    DSL::Borrow(m_field)
+        .Placeholder(GetPlaceholder())
+        .FontFamily(GetFontFamily())
+        .FontSize(GetFontSize())
+        .ForegroundToken(GetColorToken())
+        .PlaceholderColorToken(GetPlaceholderColorToken())
+        .Width(GetWidth() >= 0.0f ? GetWidth() : 280.0f)
+        .Height(GetHeight() >= 0.0f ? GetHeight() : 32.0f)
+        .Padding(8.0f, 6.0f, 8.0f, 6.0f);
 }
 
 HCURSOR AutoSuggestBox::GetCursor() const {
@@ -123,7 +126,7 @@ HCURSOR AutoSuggestBox::GetCursor() const {
 void AutoSuggestBox::SetPlaceholder(const std::string& text) {
     UIElement::SetPlaceholder(text);
     if (m_field) {
-        m_field->SetPlaceholder(text);
+        DSL::Borrow(m_field).Placeholder(text);
     }
     MarkRenderContentDirty();
 }
@@ -142,7 +145,7 @@ void AutoSuggestBox::SetTextInternal(const std::string& text, bool fireChanged, 
     UIElement::SetText(text);
     if (m_field && m_field->GetText() != text) {
         m_syncingField = true;
-        m_field->SetText(text);
+        DSL::Borrow(m_field).Text(text);
         m_syncingField = false;
     }
     MarkRenderContentDirty();
@@ -201,10 +204,10 @@ void AutoSuggestBox::LayoutField() {
         return;
     }
     if (m_field->GetFontSize() != GetFontSize()) {
-        m_field->SetFontSize(GetFontSize());
+        DSL::Borrow(m_field).FontSize(GetFontSize());
     }
     if (m_field->GetFontFamily() != GetFontFamily()) {
-        m_field->SetFontFamily(GetFontFamily());
+        DSL::Borrow(m_field).FontFamily(GetFontFamily());
     }
     const Rect r = m_bounds;
     m_field->Measure(Size(r.width, r.height));

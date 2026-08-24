@@ -18,7 +18,7 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
     auto bluetooth = CheckboxTile("蓝牙");
     auto airplane = CheckboxTile("飞行模式");
     auto selectAll = CheckboxTile("全选");
-    selectAll->SetIsThreeState(true);
+    DSL::Borrow(selectAll).IsThreeState(true);
 
     State<bool> wifiValue{ true };
     State<bool> bluetoothValue{ true };
@@ -105,3 +105,6 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
 }
 
 } // namespace Gallery
+
+
+

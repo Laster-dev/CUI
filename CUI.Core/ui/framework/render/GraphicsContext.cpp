@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "GraphicsContext.h"
+#include "../style/ThemeManager.h"
 #include <d3d11.h>
 #include <d3d11_4.h>
 #include <dxgi1_2.h>
@@ -1168,6 +1169,61 @@ D2D1_SIZE_F ParseSvgViewport(const std::string& svg) {
     return size;
 }
 
+
+std::string SvgColorLiteral(const D2D1_COLOR_F& color) {
+    char buf[48];
+    const int r = std::clamp(static_cast<int>(color.r * 255.0f + 0.5f), 0, 255);
+    const int g = std::clamp(static_cast<int>(color.g * 255.0f + 0.5f), 0, 255);
+    const int b = std::clamp(static_cast<int>(color.b * 255.0f + 0.5f), 0, 255);
+    std::snprintf(buf, sizeof(buf), "#%02x%02x%02x", r, g, b);
+    return buf;
+}
+
+ThemeTokenId SvgThemeToken(const std::string& name) {
+    if (name == "foreground" || name == "text-primary") return ThemeTokenId::TextPrimary;
+    if (name == "background") return ThemeTokenId::WindowBackground;
+    if (name == "accent") return ThemeTokenId::AccentColor;
+    if (name == "text-secondary") return ThemeTokenId::TextSecondary;
+    if (name == "disabled") return ThemeTokenId::TextMuted;
+    if (name == "border") return ThemeTokenId::CardBorder;
+    return ThemeTokenId::Unset;
+}
+
+std::string ResolveSvgThemeVariables(
+    const std::string& markup,
+    const D2D1_COLOR_F* foreground) {
+    std::string resolved;
+    resolved.reserve(markup.size());
+    const D2D1_COLOR_F defaultForeground = ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary);
+    const D2D1_COLOR_F& foregroundColor = foreground ? *foreground : defaultForeground;
+    size_t cursor = 0;
+    while (cursor < markup.size()) {
+        const size_t start = markup.find("var(--", cursor);
+        if (start == std::string::npos) {
+            resolved.append(markup, cursor, std::string::npos);
+            break;
+        }
+        resolved.append(markup, cursor, start - cursor);
+        const size_t nameStart = start + 6;
+        const size_t end = markup.find(')', nameStart);
+        if (end == std::string::npos) {
+            resolved.append(markup, start, std::string::npos);
+            break;
+        }
+        const std::string name = markup.substr(nameStart, end - nameStart);
+        if (name == "foreground" || name == "currentColor") {
+            resolved += SvgColorLiteral(foregroundColor);
+        } else {
+            const ThemeTokenId token = SvgThemeToken(name);
+            resolved += token == ThemeTokenId::Unset
+                ? markup.substr(start, end - start + 1)
+                : SvgColorLiteral(ThemeManager::Instance().GetColor(token));
+        }
+        cursor = end + 1;
+    }
+    return resolved;
+}
+
 std::string TintCacheKey(const D2D1_COLOR_F* tint) {
     if (!tint) {
         return "none";
@@ -1222,15 +1278,11 @@ ComPtr<ID2D1DeviceContext5> GraphicsContext::GetSvgContext() {
 
 const GraphicsContext::SvgCacheEntry* GraphicsContext::GetOrCreateSvg(
     const std::string& source,
-    const D2D1_COLOR_F* tint) {
+    const D2D1_COLOR_F* tint,
+    const D2D1_COLOR_F* foreground) {
     ComPtr<ID2D1DeviceContext5> ctx5 = GetSvgContext();
     if (!ctx5 || source.empty()) {
         return nullptr;
-    }
-
-    const std::string key = source + "|" + TintCacheKey(tint);
-    if (const auto it = m_svgCache.find(key); it != m_svgCache.end() && it->second.doc) {
-        return &it->second;
     }
 
     std::string markup = source;
@@ -1239,6 +1291,12 @@ const GraphicsContext::SvgCacheEntry* GraphicsContext::GetOrCreateSvg(
         if (!ReadFileUtf8(source, markup)) {
             return nullptr;
         }
+    }
+    markup = ResolveSvgThemeVariables(markup, foreground);
+
+    const std::string key = markup + "|" + TintCacheKey(tint);
+    if (const auto it = m_svgCache.find(key); it != m_svgCache.end() && it->second.doc) {
+        return &it->second;
     }
 
     ComPtr<IStream> stream;
@@ -1271,12 +1329,16 @@ void GraphicsContext::DrawSvg(
     const std::string& source,
     const Rect& dest,
     const D2D1_COLOR_F* tint,
-    float opacity) {
+    float opacity,
+    const D2D1_COLOR_F* foreground) {
     if (source.empty() || dest.width <= 0.5f || dest.height <= 0.5f) {
         return;
     }
     ComPtr<ID2D1DeviceContext5> ctx5 = GetSvgContext();
-    const SvgCacheEntry* entry = GetOrCreateSvg(source, tint);
+    const bool hasThemePaint = source.find("var(--") != std::string::npos
+        || source.find("currentColor") != std::string::npos;
+    const D2D1_COLOR_F* effectiveTint = hasThemePaint ? nullptr : tint;
+    const SvgCacheEntry* entry = GetOrCreateSvg(source, effectiveTint, foreground);
     if (!ctx5 || !entry || !entry->doc) {
         return;
     }
@@ -1315,7 +1377,7 @@ void GraphicsContext::DrawIcon(
         return;
     }
     if (LooksLikeSvg(icon)) {
-        DrawSvg(icon, dest, &color, opacity);
+        DrawSvg(icon, dest, &color, opacity, &color);
         return;
     }
     const float size = (glyphSize > 0.5f) ? glyphSize : (std::max)(8.0f, dest.height * 0.78f);

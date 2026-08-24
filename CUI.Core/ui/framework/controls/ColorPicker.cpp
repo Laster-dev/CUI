@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ColorPicker.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
 #include <algorithm>
@@ -12,8 +13,7 @@ ColorPicker::ColorPicker() {
     SelectedColor.Initialize(*this);
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     m_selectedColor = tokens.accentColor;
-    SetWidth(220.0f);
-    SetHeight(32.0f);
+    DSL::Borrow(this).Width(220.0f).Height(32.0f);
 
     m_swatches = {
         tokens.accentColor,

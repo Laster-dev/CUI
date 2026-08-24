@@ -26,16 +26,16 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
     auto noReveal = PasswordBoxWidget("隐藏明文切换按钮").Width(280).Height(28).Build();
-    noReveal->SetShowRevealButton(false);
+    CUI::DSL::Borrow(noReveal).ShowRevealButton(false);
 
     auto prefilled = PasswordBoxWidget();
     prefilled->Placeholder = "密码框";
-    prefilled->Width = 280.0f;
-    prefilled->Height = 28.0f;
-    prefilled->SetPassword("P@ssw0rd!123");
+    CUI::DSL::Borrow(prefilled).Width(280.0f);
+    CUI::DSL::Borrow(prefilled).Height(28.0f);
+    DSL::Borrow(prefilled).Password("P@ssw0rd!123");
 
     auto disabled = PasswordBoxWidget("不可用").Width(280).Height(28).Build();
-    disabled->IsEnabledProperty = false;
+    CUI::DSL::Borrow(disabled).IsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "PasswordBox(密码框)";
@@ -61,7 +61,7 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
     };
     spec.source =
         "auto pwd = PasswordBoxWidget(\"请输入密码\").Build();\n"
-        "pwd->SetShowRevealButton(true);\n"
+        "pwd.ShowRevealButton(true);\n"
         "State<std::string> password{ \"\" };\n"
         "pwd->Text.Bind(password, BindingMode::TwoWay);\n"
         "std::string value = pwd->GetPassword();\n";
@@ -69,3 +69,5 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
 }
 
 } // namespace Gallery
+
+

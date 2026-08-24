@@ -179,28 +179,28 @@ Element BuildTopologyPage() {
 
     auto btnParticles = ToggleButtonWidget("流向粒子")
         .OnClick([topoPtr](UIElement*) {
-            topoPtr->SetFlowParticlesEnabled(!topoPtr->IsFlowParticlesEnabled());
+            DSL::Borrow(topoPtr).FlowParticlesEnabled(!topoPtr->IsFlowParticlesEnabled());
         });
 
     // --- 2. 排版算法切换 ---
     auto btnLeftRight = Button("水平分层(子树隔离)")
         .OnClick([topoPtr](UIElement*) {
-            topoPtr->SetLayoutType(TopologyLayoutType::HierarchicalLeftRight);
+            DSL::Borrow(topoPtr).LayoutType(TopologyLayoutType::HierarchicalLeftRight);
         });
 
     auto btnTopDown = Button("垂直树状")
         .OnClick([topoPtr](UIElement*) {
-            topoPtr->SetLayoutType(TopologyLayoutType::HierarchicalTopDown);
+            DSL::Borrow(topoPtr).LayoutType(TopologyLayoutType::HierarchicalTopDown);
         });
 
     auto btnRadial = Button("径向同心圆")
         .OnClick([topoPtr](UIElement*) {
-            topoPtr->SetLayoutType(TopologyLayoutType::Radial);
+            DSL::Borrow(topoPtr).LayoutType(TopologyLayoutType::Radial);
         });
 
     auto btnForce = Button("弹性力导向")
         .OnClick([topoPtr](UIElement*) {
-            topoPtr->SetLayoutType(TopologyLayoutType::ForceDirected);
+            DSL::Borrow(topoPtr).LayoutType(TopologyLayoutType::ForceDirected);
         });
 
     // --- 3. 编辑能力 vs 只读功能切换展示 ---
@@ -208,7 +208,7 @@ Element BuildTopologyPage() {
     auto btnReadOnlyToggle = ToggleButtonWidget("只读模式 (Read-Only)")
         .OnClick([topoPtr, statusLabel](UIElement* sender) {
             bool isReadOnly = !topoPtr->IsReadOnly();
-            topoPtr->SetIsReadOnly(isReadOnly);
+            CUI::DSL::Borrow(topoPtr).IsReadOnly(isReadOnly);
             statusLabel->Text = isReadOnly ? "当前模式：只读预览模式 (已锁定节点拖拽与编辑删除能力)" : "当前模式：可编辑模式 (支持自由拖拽排布、增删节点与连线)";
         });
 
@@ -309,3 +309,4 @@ auto topology = TopologyWidget()
 }
 
 } // namespace Gallery
+

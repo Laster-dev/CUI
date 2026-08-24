@@ -124,8 +124,6 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ui\framework\automation\AutomationHost.cpp" />
-    <ClCompile Include="ui\framework\automation\AutomationPipeServer.cpp" />
     <ClCompile Include="ui\framework\animation\AnimationManager.cpp" />
     <ClCompile Include="ui\framework\animation\AnimationService.cpp" />
     <ClCompile Include="ui\framework\animation\AnimationSystem.cpp" />
@@ -342,8 +340,6 @@
     <ClInclude Include="ui\framework\controls\ToastCenter.h" />
     <ClInclude Include="ui\framework\controls\ToggleSwitch.h" />
     <ClInclude Include="ui\framework\controls\TreeView.h" />
-    <ClInclude Include="ui\framework\automation\AutomationHost.h" />
-    <ClInclude Include="ui\framework\automation\AutomationPipeServer.h" />
     <ClInclude Include="ui\framework\controls\UIElement.h" />
     <ClInclude Include="ui\framework\controls\WindowTitleBar.h" />
     <ClInclude Include="ui\framework\controls\topology\TopologyModel.h" />

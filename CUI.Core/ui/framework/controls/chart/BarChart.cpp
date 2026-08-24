@@ -2,13 +2,14 @@
 #define NOMINMAX
 #endif
 #include "BarChart.h"
+#include "../../core/CUIDsl.h"
 #include <algorithm>
 #include <cmath>
 
 namespace CUI {
 
 BarChart::BarChart() {
-    SetText("柱状图");
+    DSL::Borrow(this).Text("柱状图");
 }
 
 bool BarChart::BarRect(const Rect& plot, int category, int series, Rect& out) const {

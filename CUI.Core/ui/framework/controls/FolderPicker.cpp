@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "FolderPicker.h"
+#include "../core/CUIDsl.h"
 #include "BreadcrumbBar.h"
 #include "TreeView.h"
 #include "../style/ThemeManager.h"
@@ -16,23 +17,24 @@ constexpr float kDefaultH = 32.0f;
 } // namespace
 
 FolderPicker::FolderPicker() {
-    SetPlaceholder("未选择文件夹...");
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    SetBorderToken(ThemeTokenId::InputBorder);
-    SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
-    SetBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
-    SetBorderThickness(1.0f);
-    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    SetFontFamily("Segoe UI");
-    SetFontSize(12.0f);
-    SetPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
-    SetCornerRadius(4.0f);
-    SetWidth(320.0f);
-    SetHeight(kDefaultH);
+    DSL::Borrow(this)
+        .Placeholder("未选择文件夹...")
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+        .BorderToken(ThemeTokenId::InputBorder)
+        .FocusedBorderToken(ThemeTokenId::FocusedBorder)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .Background(ThemeManager::Instance().GetColor("inputBackground"))
+        .BorderBrush(ThemeManager::Instance().GetColor("inputBorder"))
+        .BorderThickness(1.0f)
+        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
+        .FontFamily("Segoe UI")
+        .FontSize(12.0f)
+        .Padding(8.0f, 4.0f, 4.0f, 4.0f)
+        .CornerRadius(4.0f)
+        .Width(320.0f)
+        .Height(kDefaultH);
 
     m_breadcrumbHost.AttachTo(this);
     m_treeHost.AttachTo(this);

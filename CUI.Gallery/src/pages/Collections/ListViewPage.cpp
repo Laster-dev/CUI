@@ -41,13 +41,13 @@ std::vector<std::vector<std::string>> DemoRows() {
 
 Element BuildListViewPage() {
     auto table = ListViewWidget();
-    table->Height = 250.0f;
-    table->Width = 620.0f;
+    CUI::DSL::Borrow(table).Height(250.0f);
+    CUI::DSL::Borrow(table).Width(620.0f);
     table->AddColumn("名称", 240.0f);
     table->AddColumn("类型", 150.0f);
     table->AddColumn("大小", 120.0f);
-    table->SetRows(DemoRows());
-    table->SetSelectionMode(ListViewSelectionMode::Extended);
+    CUI::DSL::Borrow(table).Rows(DemoRows());
+    DSL::Borrow(table).SelectionMode(ListViewSelectionMode::Extended);
 
     State<std::string> tableStatusText{ "单击表头可排序；拖动列分隔线可调整宽度。" };
     State<int> selectedRow{ -1 };
@@ -78,7 +78,7 @@ Element BuildListViewPage() {
             });
     auto resetRows = Button("重置行")
         .OnClick([table, tableStatusText](UIElement*) {
-            table->SetRows(DemoRows());
+            CUI::DSL::Borrow(table).Rows(DemoRows());
             table->ClearSelection();
             tableStatusText = "已恢复内存中的演示行。";
             });
@@ -96,26 +96,26 @@ Element BuildListViewPage() {
     pickSecond->OnClick().Connect([selectedRow](UIElement*) { selectedRow = 1; });
     auto compactRows = Button("紧凑行高")
         .OnClick([table, tableStatusText](UIElement*) {
-            table->SetRowHeight(22.0f);
+            DSL::Borrow(table).RowHeight(22.0f);
             tableStatusText = "行高已设为 22px。";
             });
     auto comfortableRows = Button("舒适行高")
         .OnClick([table, tableStatusText](UIElement*) {
-            table->SetRowHeight(36.0f);
+            DSL::Borrow(table).RowHeight(36.0f);
             tableStatusText = "行高已设为 36px。";
             });
     auto toggleGrid = Button("切换网格线")
         .OnClick([table](UIElement*) {
-            table->SetShowGridLines(!table->GetShowGridLines());
+            DSL::Borrow(table).ShowGridLines(!table->GetShowGridLines());
             });
     auto toggleSizeColumn = Button("显示/隐藏大小列")
         .OnClick([table](UIElement*) {
-            table->SetColumnVisible(2, !table->IsColumnVisible(2));
+            DSL::Borrow(table).ColumnVisible(2, !table->IsColumnVisible(2));
             });
 
     auto customCells = ListViewWidget();
-    customCells->Height = 140.0f;
-    customCells->Width = 620.0f;
+    CUI::DSL::Borrow(customCells).Height(140.0f);
+    CUI::DSL::Borrow(customCells).Width(620.0f);
     customCells->AddColumn("任务", 280.0f);
     customCells->AddColumn("状态", 180.0f);
     auto ready = Text("✓ 已完成")
@@ -127,13 +127,13 @@ Element BuildListViewPage() {
 
     static DemoListViewDataSource virtualSource;
     auto virtualTable = ListViewWidget();
-    virtualTable->Height = 210.0f;
-    virtualTable->Width = 620.0f;
+    CUI::DSL::Borrow(virtualTable).Height(210.0f);
+    CUI::DSL::Borrow(virtualTable).Width(620.0f);
     virtualTable->AddColumn("名称", 280.0f);
     virtualTable->AddColumn("类别", 150.0f);
     virtualTable->AddColumn("大小", 120.0f);
-    virtualTable->SetVirtualMode(100000, &virtualSource);
-    virtualTable->SetShowGridLines(false);
+    DSL::Borrow(virtualTable).VirtualMode(100000, &virtualSource);
+    DSL::Borrow(virtualTable).ShowGridLines(false);
     State<std::string> virtualStatusText{ "虚拟表格包含 100,000 行；滚动时仅按需读取单元格文本。" };
     auto virtualStatus = MakeStatus("");
     virtualStatus->Text.Bind(virtualStatusText, BindingMode::OneWay);
@@ -142,8 +142,8 @@ Element BuildListViewPage() {
     });
     auto reveal = Button("定位到第 50,000 行")
         .OnClick([virtualTable](UIElement*) {
-            virtualTable->SetCaretIndex(49999);
-            virtualTable->SetRowSelected(49999, true);
+            DSL::Borrow(virtualTable).CaretIndex(49999);
+            DSL::Borrow(virtualTable).RowSelected(49999, true);
             virtualTable->EnsureVisible(49999);
             });
 
@@ -177,9 +177,12 @@ Element BuildListViewPage() {
         "table->AddColumn(\"名称\", 240);\n"
         "table->AddColumn(\"类型\", 150);\n"
         "table->Rows = rows;\n"
-        "table->SetSelectionMode(ListViewSelectionMode::Extended);\n"
-        "table->SetVirtualMode(100000, &dataSource);\n";
+        "DSL::Borrow(table).SelectionMode(ListViewSelectionMode::Extended);\n"
+        "DSL::Borrow(table).VirtualMode(100000, &dataSource);\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+

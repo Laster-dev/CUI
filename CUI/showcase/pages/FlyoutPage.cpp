@@ -1,3 +1,4 @@
+#include "framework/core/CUIDsl.h"
 #include "../app/ShowcaseHelpers.h"
 #include "framework/controls/Flyout.h"
 #include "framework/controls/Button.h"
@@ -6,22 +7,23 @@
 #include "framework/style/ThemeManager.h"
 
 namespace CUI {
+using namespace CUI::DSL;
 
 std::shared_ptr<UIElement> CreateFlyoutPage(const ShowcaseContext& ctx) {
     auto title = std::make_shared<TextBlock>("Flyout 弹出框展示页");
-    title->SetFontSize(18.0f);
-    title->SetFontWeight("Bold");
-    title->SetColorToken(ThemeTokenId::TextPrimary);
-    title->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    CUI::DSL::Borrow(title).FontSize(18.0f);
+    CUI::DSL::Borrow(title).FontWeight(CUI::FontWeight::Bold);
+    CUI::DSL::Borrow(title).ForegroundToken(ThemeTokenId::TextPrimary);
+    CUI::DSL::Borrow(title).Foreground(ThemeManager::Instance().GetColor("textPrimary"));
 
     auto desc = std::make_shared<TextBlock>("WinUI 3 风格 Flyout 弹出窗口，支持 64ms 极速高度展开与折叠收起动画。");
-    desc->SetFontSize(12.0f);
-    desc->SetColorToken(ThemeTokenId::TextMuted);
-    desc->SetColor(ThemeManager::Instance().GetColor("textMuted"));
+    CUI::DSL::Borrow(desc).FontSize(12.0f);
+    CUI::DSL::Borrow(desc).ForegroundToken(ThemeTokenId::TextMuted);
+    CUI::DSL::Borrow(desc).Foreground(ThemeManager::Instance().GetColor("textMuted"));
 
     auto btnTrigger = std::make_shared<Button>("点击打开 Flyout 弹出框 🚀");
-    btnTrigger->SetWidth(220.0f);
-    btnTrigger->SetHeight(36.0f);
+    CUI::DSL::Borrow(btnTrigger).Width(220.0f);
+    CUI::DSL::Borrow(btnTrigger).Height(36.0f);
 
     auto flyoutContent = Column(8.0f).Children({
         std::make_shared<TextBlock>("💡 这是 Flyout 内部内容"),
@@ -38,10 +40,11 @@ std::shared_ptr<UIElement> CreateFlyoutPage(const ShowcaseContext& ctx) {
         }
     });
 
-    auto card = ControlCard("WinUI 3 Flyout 弹出控制", Column(16.0f).Children({
+    auto card = Column(16.0f).Children({
+        CreateShowcaseText("WinUI 3 Flyout 弹出控制", 13.0f, "textPrimary", true),
         btnTrigger,
         flyout
-    }).Build());
+    }).Build();
 
     return Column(16.0f).Children({
         title,

@@ -12,61 +12,61 @@ using namespace CUI::DSL;
 namespace {
 std::shared_ptr<Button> MakeTipButton(const std::string& text) {
     auto btn = std::make_shared<Button>(text);
-    btn->SetWidth(132.0f);
-    btn->SetHeight(34.0f);
-    btn->SetCornerRadius(4.0f);
+    CUI::DSL::Borrow(btn).Width(132.0f);
+    CUI::DSL::Borrow(btn).Height(34.0f);
+    CUI::DSL::Borrow(btn).CornerRadius(4.0f);
     return btn;
 }
 } // namespace
 
 ShowcasePage BuildTeachingTipPage(const ShowcaseContext& ctx) {
     auto shortTip = MakeTipButton("短提示");
-    shortTip->SetToolTip("保存");
+    CUI::DSL::Borrow(shortTip).ToolTip("保存");
 
     auto wrapTip = MakeTipButton("长文本换行");
-    wrapTip->SetToolTip(
+    CUI::DSL::Borrow(wrapTip).ToolTip(
         "这是框架 SetToolTip 的换行示例：超过最大宽度后自动折行，气泡带三角并在靠近视口边缘时翻转。");
-    wrapTip->SetToolTipMaxWidth(220.0f);
+    DSL::Borrow(wrapTip).ToolTipMaxWidth(220.0f);
 
     auto timeoutTip = MakeTipButton("超时自动隐藏");
-    timeoutTip->SetToolTip("悬停约 0.45s 后出现，显示 3 秒后自动消失；移出还有短暂隐藏延迟。");
-    timeoutTip->SetToolTipAutoHideMs(3000);
+    CUI::DSL::Borrow(timeoutTip).ToolTip("悬停约 0.45s 后出现，显示 3 秒后自动消失；移出还有短暂隐藏延迟。");
+    DSL::Borrow(timeoutTip).ToolTipAutoHideMs(3000);
 
     auto anchor = MakeTipButton("锚点目标");
-    anchor->SetWidth(160.0f);
-    anchor->SetToolTip("TeachingTip 会指向这个锚点。");
+    CUI::DSL::Borrow(anchor).Width(160.0f);
+    CUI::DSL::Borrow(anchor).ToolTip("TeachingTip 会指向这个锚点。");
 
     auto tip = std::make_shared<TeachingTip>();
-    tip->SetTitle("欢迎使用 TeachingTip");
-    tip->SetMessage("自绘气泡 + 三角指向锚点。标题、正文、关闭与操作都是热区，不是 Button 子控件。");
-    tip->SetActionText("知道了");
-    tip->SetPreferredPlacement(BubblePlacement::Bottom);
+    DSL::Borrow(tip).Title("欢迎使用 TeachingTip");
+    DSL::Borrow(tip).Message("自绘气泡 + 三角指向锚点。标题、正文、关闭与操作都是热区，不是 Button 子控件。");
+    DSL::Borrow(tip).ActionText("知道了");
+    DSL::Borrow(tip).PreferredPlacement(BubblePlacement::Bottom);
 
     auto log = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("操作日志：就绪", 12.0f, "#B5CEA8", false, "Consolas"));
 
     tip->OnAction().Connect([window = ctx.windowRef, log]() {
-        log->SetText("[TeachingTip] 操作按钮");
+        CUI::DSL::Borrow(log).Text("[TeachingTip] 操作按钮");
         if (window) {
             Toast::Show(window->GetRootElement().get(), "TeachingTip", "操作按钮", ToastCorner::BottomRight, 1800);
         }
     });
     tip->OnClosed().Connect([log]() {
-        log->SetText("[TeachingTip] 已关闭");
+        CUI::DSL::Borrow(log).Text("[TeachingTip] 已关闭");
     });
 
     auto openAt = [tip, anchor](BubblePlacement placement, bool modal) {
         return [tip, anchor, placement, modal](UIElement*) {
-            tip->SetIsModal(modal);
-            tip->SetPreferredPlacement(placement);
+            DSL::Borrow(tip).IsModal(modal);
+            DSL::Borrow(tip).PreferredPlacement(placement);
             if (modal) {
-                tip->SetTitle("模态引导");
-                tip->SetMessage("遮罩打开期间点击空白处、关闭或 Esc 均可关掉。场景在开关动画期间冻结。");
-                tip->SetActionText("完成");
+                DSL::Borrow(tip).Title("模态引导");
+                DSL::Borrow(tip).Message("遮罩打开期间点击空白处、关闭或 Esc 均可关掉。场景在开关动画期间冻结。");
+                DSL::Borrow(tip).ActionText("完成");
             } else {
-                tip->SetTitle("欢迎使用 TeachingTip");
-                tip->SetMessage("自绘气泡 + 三角指向锚点。标题、正文、关闭与操作都是热区，不是 Button 子控件。");
-                tip->SetActionText("知道了");
+                DSL::Borrow(tip).Title("欢迎使用 TeachingTip");
+                DSL::Borrow(tip).Message("自绘气泡 + 三角指向锚点。标题、正文、关闭与操作都是热区，不是 Button 子控件。");
+                DSL::Borrow(tip).ActionText("知道了");
             }
             tip->ShowAround(anchor.get());
         };

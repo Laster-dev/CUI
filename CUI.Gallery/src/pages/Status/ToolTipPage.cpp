@@ -62,7 +62,7 @@ Element BuildToolTipPage() {
     // 3. 多种控件的通用 ToolTip 挂载
     // ==========================================
     auto toggleAutoSave = ToggleButtonWidget("自动同步 (Auto Sync)");
-    toggleAutoSave->SetToolTip("开启后，每当文档内容发生更改时将自动写入本地缓存文件");
+    CUI::DSL::Borrow(toggleAutoSave).ToolTip("开启后，每当文档内容发生更改时将自动写入本地缓存文件");
 
     auto txtSample = TextField()
         .Text("鼠标悬停在输入框查看提示")
@@ -99,13 +99,16 @@ Element BuildToolTipPage() {
     spec.source = R"cpp(// 1. 在链式 DSL 中直接配置 ToolTip
 auto btn = Button("保存")
     .ToolTip("保存当前修改 (Ctrl + S)")
-    .OnClick([](UIElement*) { /* ... */ });
+    .OnClick([](UIElement*) { /* .. */ });
 
 // 2. 在任意 UIElement 实例上动态设置
-element->SetToolTip("多行提示说明：\n- 第一点\n- 第二点");
+CUI::DSL::Borrow(element).ToolTip("多行提示说明：\n- 第一点\n- 第二点");
 )cpp";
 
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+

@@ -1,4 +1,5 @@
 #include "TextBlock.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../core/Value.h"
 #include <algorithm>
@@ -27,16 +28,17 @@ void TextBlock::SetProperty(PropertyId id, const Value& val) {
 }
 
 TextBlock::TextBlock() {
-    SetText("");
-    SetColorToken(ThemeTokenId::TextSecondary);
-    SetColor(ThemeManager::Instance().GetColor("textSecondary"));
-    SetFontFamily("微软雅黑");
-    SetFontSize(12.0f);
-    SetFontWeight(CUI::FontWeight::Normal);
+    DSL::Borrow(this)
+        .Text("")
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .Foreground(ThemeManager::Instance().GetColor("textSecondary"))
+        .FontFamily("微软雅黑")
+        .FontSize(12.0f)
+        .FontWeight(CUI::FontWeight::Normal);
 }
 
 TextBlock::TextBlock(const std::string& text) : TextBlock() {
-    SetText(text);
+    DSL::Borrow(this).Text(text);
 }
 
 Size TextBlock::Measure(Size availableSize) {

@@ -13,12 +13,12 @@ ShowcasePage BuildSegmentedPage(const ShowcaseContext& ctx) {
     auto status = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("当前：规则", 12.0f, "textSecondary", false));
     target->OnSelectionChanged().Connect([window = ctx.windowRef, status](SegmentedControl*, int, const std::string& item) {
-        status->SetText("当前：" + item);
+        CUI::DSL::Borrow(status).Text("当前：" + item);
         Toast::Show(window->GetRootElement().get(), "SegmentedControl", item, ToastCorner::BottomRight, 1400);
     });
 
     auto compact = SegmentedWidget({ "日", "周", "月", "年" }).Width(240).Height(28).Build();
-    compact->SetSelectedIndex(1);
+    CUI::DSL::Borrow(compact).SelectedIndex(1);
 
     auto demo = Column(12).Children({
         CreateDemoSurface({

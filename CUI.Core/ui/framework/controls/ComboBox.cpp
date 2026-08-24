@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ComboBox.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
 #include <windows.h>
@@ -42,26 +43,27 @@ bool ComboBox::HasProperty(PropertyId id) const {
 
 ComboBox::ComboBox() {
     SelectedIndex.Initialize(*this);
-    SetPlaceholder("Select option...");
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetBorderToken(ThemeTokenId::InputBorder);
-    SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetDropdownBackgroundToken(ThemeTokenId::CardBackground);
-    SetSelectedItemBackgroundToken(ThemeTokenId::SelectedBackground);
-    SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
-    SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
-    SetBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
-    SetBorderThickness(1.0f);
-    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    SetFontSize(12.0f);
-    SetFontFamily("微软雅黑");
-    SetPadding(Thickness(10, 6, 10, 6));
-    SetCornerRadius(3.0f);
-    SetWidth(200.0f);
-    SetHeight(32.0f);
+    DSL::Borrow(this)
+        .Placeholder("Select option...")
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .BorderToken(ThemeTokenId::InputBorder)
+        .FocusedBorderToken(ThemeTokenId::FocusedBorder)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .DropdownBackgroundToken(ThemeTokenId::CardBackground)
+        .SelectedItemBackgroundToken(ThemeTokenId::SelectedBackground)
+        .Background(ThemeManager::Instance().GetColor("inputBackground"))
+        .HoverBackground(ThemeManager::Instance().GetColor("hoverBackground"))
+        .BorderBrush(ThemeManager::Instance().GetColor("inputBorder"))
+        .BorderThickness(1.0f)
+        .KeyboardNavigationMode(KeyboardNavigationMode::Contained)
+        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
+        .FontSize(12.0f)
+        .FontFamily("微软雅黑")
+        .Padding(10.0f, 6.0f, 10.0f, 6.0f)
+        .CornerRadius(3.0f)
+        .Width(200.0f)
+        .Height(32.0f);
 }
 
 void ComboBox::SetProperty(PropertyId id, const Value& val) {

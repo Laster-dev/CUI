@@ -24,13 +24,13 @@ public:
     AnimatedPopupBox() {
         m_opacityScalar.Reset(0.0f);
         m_offsetScalar.Reset(-16.0f);
-        SetHeight(70.0f);
+        Borrow(this).Height(70.0f);
     }
 
     void TriggerReveal(float durationSec, EasingType easing, float startOffset) {
         m_opacityScalar.Reset(0.0f);
         m_offsetScalar.Reset(-startOffset);
-        m_opacityScalar.SetTarget(1.0f);
+ 
         m_offsetScalar.SetTarget(0.0f);
         m_duration = durationSec;
         m_easing = easing;
@@ -94,13 +94,13 @@ Element BuildPopupRevealPage() {
     auto btnFlyout = Button("弹出 Flyout 气泡")
         .OnClick([status](UIElement* src) {
             auto flyout = FlyoutWidget();
-            flyout->SetPlacement(FlyoutPlacement::Bottom);
+            DSL::Borrow(flyout).Placement(FlyoutPlacement::Bottom);
             auto content = Column(8, {
                 MakeLabel("Fluent 220ms Flyout", 14.0f, ThemeTokenId::TextPrimary, true),
                 MakeLabel("采用 EaseOutCubic 曲线展开，带有轻微 Y 轴滑入与阴影合成。", 12.0f, ThemeTokenId::TextSecondary, false),
             });
-            flyout->SetContent(content.Build());
-            src->AddChild(flyout);
+            CUI::DSL::Borrow(flyout).Content(content.Build());
+            CUI::DSL::Borrow(src).AddChild(flyout);
             flyout->ShowAt(src);
             status->Text = "已呼出 Flyout 气泡层。";
         });
@@ -109,14 +109,14 @@ Element BuildPopupRevealPage() {
     auto btnTeachingTip = Button("弹出 TeachingTip 引导")
         .OnClick([status](UIElement* src) {
             auto tip = TeachingTipWidget();
-            tip->SetTitle("智能引导提示 (TeachingTip)");
-            tip->SetMessage("由 AnimationService 自动调度浮层生命周期。小三角气泡锚定于宿主四周展开。");
-            tip->SetActionText("我知道了");
+            CUI::DSL::Borrow(tip).Title("智能引导提示 (TeachingTip)");
+            CUI::DSL::Borrow(tip).Message("由 AnimationService 自动调度浮层生命周期。小三角气泡锚定于宿主四周展开。");
+            CUI::DSL::Borrow(tip).ActionText("我知道了");
             tip->OnAction().Connect([status, tip]() {
                 status->Text = "已点击【我知道了】，提示气泡已消退。";
                 tip->Close();
             });
-            src->AddChild(tip);
+            CUI::DSL::Borrow(src).AddChild(tip);
             tip->ShowAround(src);
             status->Text = "已呼出 TeachingTip 教学提示。";
         });
@@ -133,7 +133,7 @@ Element BuildPopupRevealPage() {
 
     auto btnContextMenu = Button("呼出 ContextMenu 级联菜单")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f)
         .OnClick([menu, status](UIElement* src) {
@@ -142,27 +142,27 @@ Element BuildPopupRevealPage() {
                 ::GetCursorPos(&pt);
                 ::ScreenToClient(win->GetHWND(), &pt);
                 Point logicalPt = win->ClientPointToLogical(pt.x, pt.y);
-                win->SetActiveContextMenu(menu);
+                DSL::Borrow(win).ActiveContextMenu(menu);
                 menu->ShowAt(logicalPt.x, logicalPt.y);
                 status->Text = "已呼出 ContextMenu 级联菜单。";
             }
         });
 
-    btnContextMenu->SetContextMenu(menu);
+    DSL::Borrow(btnContextMenu).ContextMenu(menu);
 
     // 4. ContentDialog 模态对话框
     auto btnDialog = Button("弹出模态对话框 (ContentDialog)")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f)
         .OnClick([status](UIElement* src) {
             auto dlg = ContentDialogWidget();
-            dlg->SetTitle("模态弹窗过渡动效");
-            dlg->SetMessage("观察背景半透明遮罩的平滑渐显，以及卡片从 95% 轻微缩放展开至 100% 的质感过渡。");
-            dlg->SetPrimaryButtonText("确定");
-            dlg->SetCloseButtonText("取消");
-            src->AddChild(dlg);
+            CUI::DSL::Borrow(dlg).Title("模态弹窗过渡动效");
+            CUI::DSL::Borrow(dlg).Message("观察背景半透明遮罩的平滑渐显，以及卡片从 95% 轻微缩放展开至 100% 的质感过渡。");
+            DSL::Borrow(dlg).PrimaryButtonText("确定");
+            DSL::Borrow(dlg).CloseButtonText("取消");
+            CUI::DSL::Borrow(src).AddChild(dlg);
             dlg->Show([status, dlg](DialogResult r) {
                 status->Text = (r == DialogResult::Primary) ? "对话框已确认 (Primary)" : "对话框已取消 (Close)";
             });
@@ -175,17 +175,17 @@ Element BuildPopupRevealPage() {
     combo->AddItem("Spring 欠阻尼弹性展开");
     combo->AddItem("Linear 匀速展开");
     combo->AddItem("EaseOutBack 过冲展开");
-    combo->SetSelectedIndex(0);
+    CUI::DSL::Borrow(combo).SelectedIndex(0);
 
     // 6. 缓动参数微调模拟台
     auto animatedTestBox = std::make_shared<AnimatedPopupBox>();
-    animatedTestBox->Width = 440.0f;
+    CUI::DSL::Borrow(animatedTestBox).Width(440.0f);
 
     auto sliderDuration = SliderWidget(220.0f, 80.0f, 600.0f);
-    sliderDuration->Width = 180.0f;
+    CUI::DSL::Borrow(sliderDuration).Width(180.0f);
 
     auto sliderOffset = SliderWidget(16.0f, 0.0f, 40.0f);
-    sliderOffset->Width = 180.0f;
+    CUI::DSL::Borrow(sliderOffset).Width(180.0f);
 
     auto statusDuration = MakeStatus(std::format("展开时长 (Duration): {:.0f} ms", 220.0f));
     auto statusOffset = MakeStatus(std::format("位移偏移量 (Slide Offset): {:.0f} px", 16.0f));
@@ -252,3 +252,9 @@ Element BuildPopupRevealPage() {
 }
 
 } // namespace Gallery
+
+
+
+
+
+

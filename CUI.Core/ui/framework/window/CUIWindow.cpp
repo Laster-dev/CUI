@@ -3,59 +3,73 @@
 #endif
 #include "CUIWindow.h"
 #include "../style/ThemeManager.h"
+#include "../core/CUIDsl.h"
 
 namespace CUI {
 
 CUIWindow::CUIWindow(const std::string& title, int width, int height) {
     auto& theme = ThemeManager::Instance();
-    m_rootContainer = std::make_shared<StackPanel>();
-    m_rootContainer->SetOrientation(Orientation::Vertical);
-    m_rootContainer->SetBackgroundToken(ThemeTokenId::WindowBackground);
-    m_rootContainer->SetBackground(theme.GetColor("windowBackground"));
+    m_rootContainer = DSL::Fluent::StackPanel()
+        .Orientation(Orientation::Vertical)
+        .BackgroundToken(ThemeTokenId::WindowBackground)
+        .Background(theme.GetColor("windowBackground"))
+        .Build();
 
     SetupHeader(title);
 
-    m_contentContainer = std::make_shared<Panel>();
-    m_contentContainer->SetFlexGrow(1.0f);
-    m_contentContainer->SetAlign(Alignment::Stretch);
+    m_contentContainer = DSL::Fluent::Panel()
+        .FlexGrow(1.0f)
+        .Align(Alignment::Stretch)
+        .Build();
+    DSL::ElementBuilder<StackPanel>(m_rootContainer)
+        .AddChild(m_headerBar)
+        .AddChild(m_contentContainer);
 
-    m_rootContainer->AddChild(m_headerBar);
-    m_rootContainer->AddChild(m_contentContainer);
-
-    m_window.Create(title, width, height);
-    m_window.SetRootElement(m_rootContainer);
+    m_window.Fluent()
+        .Title(title)
+        .Size(width, height)
+        .Root(m_rootContainer)
+        .Build();
 }
 
 void CUIWindow::SetupHeader(const std::string& title) {
     auto& theme = ThemeManager::Instance();
-    m_headerBar = std::make_shared<Panel>();
-    m_headerBar->SetHeight(32.0f);
-    m_headerBar->SetBackgroundToken(ThemeTokenId::PaneBackground);
-    m_headerBar->SetBackground(theme.GetColor("paneBackground"));
+    m_headerBar = DSL::Fluent::Panel()
+        .Height(32.0f)
+        .BackgroundToken(ThemeTokenId::PaneBackground)
+        .Background(theme.GetColor("paneBackground"))
+        .Build();
 
-    auto txtTitle = std::make_shared<TextBlock>(title);
-    txtTitle->SetFontSize(12.0f);
-    txtTitle->SetColorToken(ThemeTokenId::TextPrimary);
-    txtTitle->SetColor(theme.GetColor("textPrimary"));
-    txtTitle->SetMargin(Thickness(12, 8, 0, 0));
-    m_headerBar->AddChild(txtTitle);
+    auto txtTitle = DSL::Fluent::TextBlock(title)
+        .FontSize(12.0f)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .Foreground(theme.GetColor("textPrimary"))
+        .Margin(12.0f, 8.0f, 0.0f, 0.0f)
+        .Build();
+    DSL::ElementBuilder<Panel>(m_headerBar).AddChild(txtTitle);
 }
 
-void CUIWindow::SetContent(std::shared_ptr<UIElement> rootContent) {
+CUIWindow& CUIWindow::Content(std::shared_ptr<UIElement> rootContent) {
     if (m_contentContainer) {
-        m_contentContainer->ClearChildren();
+        DSL::ElementBuilder<Panel>(m_contentContainer).ClearChildren();
         if (rootContent) {
-            m_contentContainer->AddChild(rootContent);
+            DSL::ElementBuilder<Panel>(m_contentContainer).AddChild(rootContent);
         }
     }
+    return *this;
 }
 
-void CUIWindow::Show() {
+CUIWindow& CUIWindow::Show() {
     m_window.Show();
+    return *this;
 }
 
-void CUIWindow::Run() {
+CUIWindow& CUIWindow::Run() {
     m_window.RunMessageLoop();
+    return *this;
 }
 
 } // namespace CUI
+
+
+

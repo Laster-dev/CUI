@@ -86,7 +86,7 @@ ShowcasePage BuildCommandBarPage(const ShowcaseContext& ctx) {
         CreateShowcaseText("窄栏溢出：—", 12.0f, "textSecondary", false));
 
     auto logFn = [window = ctx.windowRef, log](const char* name) {
-        log->SetText(std::string("[CommandBar] ") + name);
+        CUI::DSL::Borrow(log).Text(std::string("[CommandBar] ") + name);
         if (window) {
             Toast::Show(window->GetRootElement().get(), "CommandBar", name,
                         ToastType::Info, ToastCorner::BottomRight, 1200);
@@ -94,28 +94,28 @@ ShowcasePage BuildCommandBarPage(const ShowcaseContext& ctx) {
     };
 
     auto full = std::make_shared<CommandBar>();
-    full->SetLabelPosition(CommandBarLabelPosition::Right);
+    DSL::Borrow(full).LabelPosition(CommandBarLabelPosition::Right);
     FillBar(*full, logFn);
 
     auto compact = std::make_shared<CommandBar>();
-    compact->SetLabelPosition(CommandBarLabelPosition::Collapsed);
+    DSL::Borrow(compact).LabelPosition(CommandBarLabelPosition::Collapsed);
     FillBar(*compact, logFn);
 
     auto narrow = std::make_shared<CommandBar>();
-    narrow->SetWidth(280.0f);
-    narrow->SetAlign(Alignment::Start);
-    narrow->SetLabelPosition(CommandBarLabelPosition::Right);
+    CUI::DSL::Borrow(narrow).Width(280.0f);
+    CUI::DSL::Borrow(narrow).Align(Alignment::Start);
+    DSL::Borrow(narrow).LabelPosition(CommandBarLabelPosition::Right);
     FillBar(*narrow, logFn);
     narrow->OnOverflowOpened().Connect([overflowHint, narrow]() {
-        overflowHint->SetText("窄栏溢出：已打开，共 "
+        CUI::DSL::Borrow(overflowHint).Text("窄栏溢出：已打开，共 "
             + std::to_string(narrow->GetOverflowCount()) + " 项进菜单");
     });
 
     auto btnLabels = std::make_shared<Button>("切换文字");
     btnLabels->OnClick().Connect([full, log](UIElement*) {
         const bool show = full->GetLabelPosition() != CommandBarLabelPosition::Right;
-        full->SetLabelPosition(show ? CommandBarLabelPosition::Right : CommandBarLabelPosition::Collapsed);
-        log->SetText(show ? "[CommandBar] 显示文字" : "[CommandBar] 仅图标");
+        DSL::Borrow(full).LabelPosition(show ? CommandBarLabelPosition::Right : CommandBarLabelPosition::Collapsed);
+        CUI::DSL::Borrow(log).Text(show ? "[CommandBar] 显示文字" : "[CommandBar] 仅图标");
     });
 
     auto demo = Column(12).Children({

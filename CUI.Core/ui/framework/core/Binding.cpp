@@ -1,4 +1,5 @@
 #include "Binding.h"
+#include "CUIDsl.h"
 #include "../controls/UIElement.h"
 #include "../style/ThemeTokenId.h"
 
@@ -143,54 +144,54 @@ Value GetElementProperty(UIElement* e, PropertyId id) {
 void SetElementProperty(UIElement* e, PropertyId id, const Value& val) {
     if (!e || id == PropertyId::None) return;
     switch (id) {
-    case PropertyId::Width: e->SetWidth(val.AsFloat()); break;
-    case PropertyId::Height: e->SetHeight(val.AsFloat()); break;
-    case PropertyId::MinWidth: e->SetMinWidth(val.AsFloat()); break;
-    case PropertyId::MinHeight: e->SetMinHeight(val.AsFloat()); break;
-    case PropertyId::MaxWidth: e->SetMaxWidth(val.AsFloat()); break;
-    case PropertyId::MaxHeight: e->SetMaxHeight(val.AsFloat()); break;
-    case PropertyId::Margin: e->SetMargin(ThicknessFromValue(val)); break;
-    case PropertyId::Padding: e->SetPadding(ThicknessFromValue(val)); break;
-    case PropertyId::Visibility: e->SetVisibility(ParseVisibility(val.AsString("Visible"))); break;
-    case PropertyId::IsEnabled: e->SetIsEnabled(val.AsBool()); break;
-    case PropertyId::Opacity: e->SetOpacity(val.AsFloat()); break;
-    case PropertyId::CornerRadius: e->SetCornerRadius(val.AsFloat()); break;
-    case PropertyId::BorderThickness: e->SetBorderThickness(val.AsFloat()); break;
-    case PropertyId::FlexGrow: e->SetFlexGrow(val.AsFloat()); break;
-    case PropertyId::Align: e->SetAlign(ParseAlignment(val.AsString("Stretch"))); break;
+    case PropertyId::Width: DSL::Borrow(e).Width(val.AsFloat()); break;
+    case PropertyId::Height: DSL::Borrow(e).Height(val.AsFloat()); break;
+    case PropertyId::MinWidth: DSL::Borrow(e).MinWidth(val.AsFloat()); break;
+    case PropertyId::MinHeight: DSL::Borrow(e).MinHeight(val.AsFloat()); break;
+    case PropertyId::MaxWidth: DSL::Borrow(e).MaxWidth(val.AsFloat()); break;
+    case PropertyId::MaxHeight: DSL::Borrow(e).MaxHeight(val.AsFloat()); break;
+    case PropertyId::Margin: DSL::Borrow(e).Margin(ThicknessFromValue(val)); break;
+    case PropertyId::Padding: DSL::Borrow(e).Padding(ThicknessFromValue(val)); break;
+    case PropertyId::Visibility: DSL::Borrow(e).Visibility(ParseVisibility(val.AsString("Visible"))); break;
+    case PropertyId::IsEnabled: DSL::Borrow(e).IsEnabled(val.AsBool()); break;
+    case PropertyId::Opacity: DSL::Borrow(e).Opacity(val.AsFloat()); break;
+    case PropertyId::CornerRadius: DSL::Borrow(e).CornerRadius(val.AsFloat()); break;
+    case PropertyId::BorderThickness: DSL::Borrow(e).BorderThickness(val.AsFloat()); break;
+    case PropertyId::FlexGrow: DSL::Borrow(e).FlexGrow(val.AsFloat()); break;
+    case PropertyId::Align: DSL::Borrow(e).Align(ParseAlignment(val.AsString("Stretch"))); break;
     case PropertyId::AlignHorizontal: e->SetAlignHorizontal(ParseAlignment(val.AsString("Stretch"))); break;
     case PropertyId::AlignVertical: e->SetAlignVertical(ParseAlignment(val.AsString("Stretch"))); break;
-    case PropertyId::Orientation: e->SetOrientation(ParseOrientation(val.AsString("Vertical"))); break;
-    case PropertyId::Gap: e->SetGap(val.AsFloat()); break;
-    case PropertyId::ItemWidth: e->SetItemWidth(val.AsFloat()); break;
-    case PropertyId::ItemHeight: e->SetItemHeight(val.AsFloat()); break;
-    case PropertyId::LastChildFill: e->SetLastChildFill(val.AsBool()); break;
-    case PropertyId::JustifyLines: e->SetJustifyLines(val.AsBool()); break;
-    case PropertyId::FillLastLine: e->SetFillLastLine(val.AsBool()); break;
-    case PropertyId::Rows: e->SetRows(val.AsInt()); break;
-    case PropertyId::Columns: e->SetColumns(val.AsInt()); break;
-    case PropertyId::ClipToBounds: e->SetClipToBounds(val.AsBool()); break;
-    case PropertyId::CanvasLeft: e->SetCanvasLeft(val.AsFloat()); break;
-    case PropertyId::CanvasTop: e->SetCanvasTop(val.AsFloat()); break;
-    case PropertyId::CanvasRight: e->SetCanvasRight(val.AsFloat()); break;
-    case PropertyId::CanvasBottom: e->SetCanvasBottom(val.AsFloat()); break;
-    case PropertyId::ZIndex: e->SetZIndex(val.AsInt()); break;
-    case PropertyId::GridColumn: e->SetGridColumn(val.AsInt()); break;
-    case PropertyId::GridRow: e->SetGridRow(val.AsInt()); break;
-    case PropertyId::GridColumnSpan: e->SetGridColumnSpan(val.AsInt()); break;
-    case PropertyId::GridRowSpan: e->SetGridRowSpan(val.AsInt()); break;
-    case PropertyId::Dock: e->SetDock(ParseDock(val.AsString("Left"))); break;
-    case PropertyId::Text: e->SetText(val.AsString()); break;
-    case PropertyId::Placeholder: e->SetPlaceholder(val.AsString()); break;
-    case PropertyId::FontFamily: e->SetFontFamily(val.AsString()); break;
-    case PropertyId::FontSize: e->SetFontSize(val.AsFloat()); break;
-    case PropertyId::FontWeight: e->SetFontWeight(FontWeightFromString(val.AsString())); break;
-    case PropertyId::FontStyle: e->SetFontStyle(FontStyleFromString(val.AsString())); break;
-    case PropertyId::FontStretch: e->SetFontStretch(FontStretchFromString(val.AsString())); break;
+    case PropertyId::Orientation: DSL::Borrow(e).Orientation(ParseOrientation(val.AsString("Vertical"))); break;
+    case PropertyId::Gap: DSL::Borrow(e).Gap(val.AsFloat()); break;
+    case PropertyId::ItemWidth: DSL::Borrow(e).ItemWidth(val.AsFloat()); break;
+    case PropertyId::ItemHeight: DSL::Borrow(e).ItemHeight(val.AsFloat()); break;
+    case PropertyId::LastChildFill: DSL::Borrow(e).LastChildFill(val.AsBool()); break;
+    case PropertyId::JustifyLines: DSL::Borrow(e).JustifyLines(val.AsBool()); break;
+    case PropertyId::FillLastLine: DSL::Borrow(e).FillLastLine(val.AsBool()); break;
+    case PropertyId::Rows: DSL::Borrow(e).Rows(val.AsInt()); break;
+    case PropertyId::Columns: DSL::Borrow(e).Columns(val.AsInt()); break;
+    case PropertyId::ClipToBounds: DSL::Borrow(e).ClipToBounds(val.AsBool()); break;
+    case PropertyId::CanvasLeft: DSL::Borrow(e).CanvasLeft(val.AsFloat()); break;
+    case PropertyId::CanvasTop: DSL::Borrow(e).CanvasTop(val.AsFloat()); break;
+    case PropertyId::CanvasRight: DSL::Borrow(e).CanvasRight(val.AsFloat()); break;
+    case PropertyId::CanvasBottom: DSL::Borrow(e).CanvasBottom(val.AsFloat()); break;
+    case PropertyId::ZIndex: DSL::Borrow(e).ZIndex(val.AsInt()); break;
+    case PropertyId::GridColumn: DSL::Borrow(e).GridColumn(val.AsInt()); break;
+    case PropertyId::GridRow: DSL::Borrow(e).GridRow(val.AsInt()); break;
+    case PropertyId::GridColumnSpan: DSL::Borrow(e).GridColumnSpan(val.AsInt()); break;
+    case PropertyId::GridRowSpan: DSL::Borrow(e).GridRowSpan(val.AsInt()); break;
+    case PropertyId::Dock: DSL::Borrow(e).Dock(ParseDock(val.AsString("Left"))); break;
+    case PropertyId::Text: DSL::Borrow(e).Text(val.AsString()); break;
+    case PropertyId::Placeholder: DSL::Borrow(e).Placeholder(val.AsString()); break;
+    case PropertyId::FontFamily: DSL::Borrow(e).FontFamily(val.AsString()); break;
+    case PropertyId::FontSize: DSL::Borrow(e).FontSize(val.AsFloat()); break;
+    case PropertyId::FontWeight: DSL::Borrow(e).FontWeight(FontWeightFromString(val.AsString())); break;
+    case PropertyId::FontStyle: DSL::Borrow(e).FontStyle(FontStyleFromString(val.AsString())); break;
+    case PropertyId::FontStretch: DSL::Borrow(e).FontStretch(FontStretchFromString(val.AsString())); break;
     case PropertyId::IsUnderline: e->SetIsUnderline(val.AsBool()); break;
     case PropertyId::IsStrikethrough: e->SetIsStrikethrough(val.AsBool()); break;
     case PropertyId::ToolTip: e->SetToolTip(val.AsString()); break;
-    case PropertyId::BackgroundToken: e->SetBackgroundToken(TokenFromValue(val)); break;
+    case PropertyId::BackgroundToken: DSL::Borrow(e).BackgroundToken(TokenFromValue(val)); break;
     case PropertyId::HoverBackgroundToken: e->SetHoverBackgroundToken(TokenFromValue(val)); break;
     case PropertyId::PressedBackgroundToken: e->SetPressedBackgroundToken(TokenFromValue(val)); break;
     case PropertyId::DisabledBackgroundToken: e->SetDisabledBackgroundToken(TokenFromValue(val)); break;
@@ -278,3 +279,4 @@ void Binding::UpdateSource() {
 }
 
 } // namespace CUI
+

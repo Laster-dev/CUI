@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "RadioButton.h"
+#include "../core/CUIDsl.h"
 #include "../window/Window.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
@@ -17,17 +18,19 @@ float EaseLine(float t) {
 }
 
 RadioButton::RadioButton() : CheckBox("RadioButton") {
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetAccentColorToken(ThemeTokenId::AccentColor);
-    SetColorToken(ThemeTokenId::TextSecondary);
-    SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .AccentColorToken(ThemeTokenId::AccentColor)
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .Background(ThemeManager::Instance().GetColor("inputBackground"));
 }
 
 RadioButton::RadioButton(const std::string& text) : CheckBox(text) {
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetAccentColorToken(ThemeTokenId::AccentColor);
-    SetColorToken(ThemeTokenId::TextSecondary);
-    SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .AccentColorToken(ThemeTokenId::AccentColor)
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .Background(ThemeManager::Instance().GetColor("inputBackground"));
 }
 
 Value RadioButton::GetProperty(PropertyId id) const {

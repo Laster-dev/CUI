@@ -12,7 +12,7 @@ namespace Gallery {
 
 Element BuildSegmentedControlPage() {
     auto range = SegmentedWidget();
-    range->Width = 280.0f;
+    CUI::DSL::Borrow(range).Width(280.0f);
     range->AddItem("日");
     range->AddItem("周");
     range->AddItem("月");
@@ -49,3 +49,6 @@ Element BuildSegmentedControlPage() {
 }
 
 } // namespace Gallery
+
+
+

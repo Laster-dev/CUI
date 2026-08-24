@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "LineChart.h"
+#include "../../core/CUIDsl.h"
 #include "../../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -10,7 +11,7 @@
 namespace CUI {
 
 LineChart::LineChart() {
-    SetText("折线图");
+    DSL::Borrow(this).Text("折线图");
 }
 
 void LineChart::BindHoverMotion(const Rect& plot) {

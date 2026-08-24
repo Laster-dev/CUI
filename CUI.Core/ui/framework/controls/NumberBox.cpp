@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "NumberBox.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../core/Value.h"
 #include "../input/RoutedEvent.h"
@@ -239,42 +240,43 @@ void NumberBox::Field::OnBlur() {
 
 NumberBox::NumberBox() {
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
-    SetWidth(120.0f);
-    SetHeight(28.0f);
-    SetPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
-    SetCornerRadius(3.0f);
-    SetFontSize(12.0f);
-    SetFontFamily("Segoe UI");
-
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetBorderToken(ThemeTokenId::InputBorder);
-    SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetBackground(tokens.inputBackground);
-    SetBorderBrush(tokens.inputBorder);
-    SetColor(tokens.textPrimary);
-    SetBorderThickness(1.0f);
+    DSL::Borrow(this)
+        .Width(120.0f)
+        .Height(28.0f)
+        .Padding(8.0f, 4.0f, 4.0f, 4.0f)
+        .CornerRadius(3.0f)
+        .FontSize(12.0f)
+        .FontFamily("Segoe UI")
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .BorderToken(ThemeTokenId::InputBorder)
+        .FocusedBorderToken(ThemeTokenId::FocusedBorder)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .Background(tokens.inputBackground)
+        .BorderBrush(tokens.inputBorder)
+        .Foreground(tokens.textPrimary)
+        .BorderThickness(1.0f);
 
     ValueProperty.Initialize(*this);
     m_field = std::make_shared<Field>();
     m_field->host = this;
-    m_field->SetFontFamily(GetFontFamily());
-    m_field->SetFontSize(GetFontSize());
-    m_field->SetPadding(Thickness(2.0f, 0.0f, 2.0f, 0.0f));
-    m_field->SetBorderThickness(0.0f);
-    m_field->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    m_field->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    m_field->SetBackgroundToken(ThemeTokenId::Unset);
-    m_field->SetHoverBackgroundToken(ThemeTokenId::Unset);
-    m_field->SetUnderlineColorToken(ThemeTokenId::Unset);
-    m_field->SetActiveUnderlineColorToken(ThemeTokenId::Unset);
-    m_field->SetColorToken(ThemeTokenId::TextPrimary);
-    m_field->SetAcceptsReturn(false);
+    DSL::Borrow(m_field)
+        .FontFamily(GetFontFamily())
+        .FontSize(GetFontSize())
+        .Padding(2.0f, 0.0f, 2.0f, 0.0f)
+        .BorderThickness(0.0f)
+        .Background(D2D1::ColorF(0, 0, 0, 0))
+        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
+        .BackgroundToken(ThemeTokenId::Unset)
+        .HoverBackgroundToken(ThemeTokenId::Unset)
+        .UnderlineColorToken(ThemeTokenId::Unset)
+        .ActiveUnderlineColorToken(ThemeTokenId::Unset)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .AcceptsReturn(false);
     m_field->OnTextChanged().Connect([this](TextBox*, const std::string&) {
         OnFieldTextChanged();
     });
-    AddChild(m_field);
+    DSL::Borrow(this).AddChild(m_field);
     SyncTextFromValue();
 }
 

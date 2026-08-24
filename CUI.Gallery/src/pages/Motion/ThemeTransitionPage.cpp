@@ -15,9 +15,9 @@ namespace {
 
 Element MakeColorChip(const std::string& name, ThemeTokenId token) {
     auto chip = Container().Size(48.0f, 48.0f).CornerRadius(8.0f);
-    chip->BackgroundToken = token;
-    chip->BorderToken = ThemeTokenId::CardBorder;
-    chip->BorderThickness = 1.0f;
+    CUI::DSL::Borrow(chip).BackgroundToken(token);
+    CUI::DSL::Borrow(chip).BorderToken(ThemeTokenId::CardBorder);
+    CUI::DSL::Borrow(chip).BorderThickness(1.0f);
     return Column(4, {
         chip,
         MakeLabel(name, 11.0f, ThemeTokenId::TextMuted, false)
@@ -37,7 +37,7 @@ Element BuildThemeTransitionPage() {
             const ThemeMode nextMode = (ThemeManager::Instance().GetThemeMode() == ThemeMode::Dark)
                 ? ThemeMode::Light
                 : ThemeMode::Dark;
-            win->SetThemeModeWithRipple(nextMode, origin);
+            DSL::Borrow(win).ThemeModeWithRipple(nextMode, origin);
             statusTheme->Text = std::string("当前系统主题：")
                 + (nextMode == ThemeMode::Dark ? "深色模式 (Dark)" : "浅色模式 (Light)")
                 + " [波纹扩散已完成]";
@@ -57,7 +57,7 @@ Element BuildThemeTransitionPage() {
 
     auto btnTopLeft = Button("左上角 (Top-Left)")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f)
         .OnClick([triggerTransition](UIElement*) {
@@ -66,7 +66,7 @@ Element BuildThemeTransitionPage() {
 
     auto btnTopRight = Button("右上角 (Top-Right)")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f)
         .OnClick([triggerTransition](UIElement*) {
@@ -79,7 +79,7 @@ Element BuildThemeTransitionPage() {
 
     auto btnBottomLeft = Button("左下角 (Bottom-Left)")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f)
         .OnClick([triggerTransition](UIElement*) {
@@ -92,7 +92,7 @@ Element BuildThemeTransitionPage() {
 
     auto btnBottomRight = Button("右下角 (Bottom-Right)")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f)
         .OnClick([triggerTransition](UIElement*) {
@@ -108,24 +108,24 @@ Element BuildThemeTransitionPage() {
     auto sampleBtn = Button("主要操作 (Primary)");
     auto sampleSecondary = Button("次要操作 (Secondary)")
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f);
     auto sampleSlider = SliderWidget(65.0f, 0.0f, 100.0f);
-    sampleSlider->Width = 180.0f;
+    CUI::DSL::Borrow(sampleSlider).Width(180.0f);
     auto sampleToggle = ToggleSwitchTile("开关状态", true);
     auto sampleCheck = CheckboxTile("记住配置 (Remember)");
-    auto sampleInput = TextField("输入测试文本...");
-    sampleInput->Width = 200.0f;
+    auto sampleInput = TextField("输入测试文本..");
+    CUI::DSL::Borrow(sampleInput).Width(200.0f);
     auto sampleBar = ProgressBarWidget(60.0f, false);
-    sampleBar->Height = 6.0f;
-    sampleBar->Align = Alignment::Stretch;
+    CUI::DSL::Borrow(sampleBar).Height(6.0f);
+    CUI::DSL::Borrow(sampleBar).Align(Alignment::Stretch);
 
     auto sandboxCard = Container().Padding(16.0f).CornerRadius(12.0f);
-    sandboxCard->BackgroundToken = ThemeTokenId::CardBackground;
-    sandboxCard->BorderToken = ThemeTokenId::CardBorder;
-    sandboxCard->BorderThickness = 1.0f;
-    sandboxCard->AddChild(Column(14, {
+    CUI::DSL::Borrow(sandboxCard).BackgroundToken(ThemeTokenId::CardBackground);
+    CUI::DSL::Borrow(sandboxCard).BorderToken(ThemeTokenId::CardBorder);
+    CUI::DSL::Borrow(sandboxCard).BorderThickness(1.0f);
+    CUI::DSL::Borrow(sandboxCard).AddChild(Column(14, {
         MakeLabel("主题响应沙盒 (Theme Live Sandbox)", 16.0f, ThemeTokenId::TextPrimary, true),
         MakeLabel("波纹扫过时，所有 Token 配色将随 Direct2D 裁剪圆圈平滑刷新，无闪烁无重叠。", 12.0f, ThemeTokenId::TextSecondary, false),
         Row(12, { sampleBtn, sampleSecondary, sampleToggle, sampleCheck }),
@@ -180,9 +180,13 @@ Element BuildThemeTransitionPage() {
     spec.source =
         "// 触发从指定点开始的径向波纹扩散主题切换\n"
         "Point clickOrigin(500.0f, 350.0f);\n"
-        "Window::Current()->SetThemeModeWithRipple(ThemeMode::Dark, clickOrigin);\n";
+        "Window::Current()->Fluent().Theme(ThemeMode::Dark).Apply();\n";
 
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+
+
+

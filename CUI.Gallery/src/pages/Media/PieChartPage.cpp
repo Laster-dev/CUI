@@ -43,27 +43,27 @@ std::string FormatPieHover(ChartBase* chart, int index) {
 }
 
 void ApplyMonthly(ChartBase& chart) {
-    chart.SetCategories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
+    DSL::Borrow(chart).Categories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
     ChartSeries s;
     s.name = "华北";
     s.values = { 12.0f, 18.0f, 15.0f, 22.0f, 28.0f, 24.0f, 31.0f };
-    chart.SetSeries({ std::move(s) });
+    DSL::Borrow(chart).Series({ std::move(s) });
 }
 
 void ApplyQuarterly(ChartBase& chart) {
-    chart.SetCategories({ "Q1", "Q2", "Q3", "Q4" });
+    DSL::Borrow(chart).Categories({ "Q1", "Q2", "Q3", "Q4" });
     ChartSeries s;
     s.name = "华北";
     s.values = { 82.0f, 91.0f, 76.0f, 104.0f };
-    chart.SetSeries({ std::move(s) });
+    DSL::Borrow(chart).Series({ std::move(s) });
 }
 
 void ApplyCustom(ChartBase& chart) {
-    chart.SetCategories({ "操作系统", "数据库", "中间件", "缓存", "消息队列", "其他" });
+    DSL::Borrow(chart).Categories({ "操作系统", "数据库", "中间件", "缓存", "消息队列", "其他" });
     ChartSeries s;
     s.name = "资源占比";
     s.values = { 34.0f, 22.0f, 15.0f, 12.0f, 9.0f, 8.0f };
-    chart.SetSeries({ std::move(s) });
+    DSL::Borrow(chart).Series({ std::move(s) });
 }
 
 } // anonymous namespace
@@ -71,13 +71,13 @@ void ApplyCustom(ChartBase& chart) {
 Element BuildPieChartPage() {
     // ---------- 1. 常规用法 ----------
     auto pie = std::make_shared<PieChart>();
-    pie->SetText("饼图 · 华北月度销量占比");
-    pie->SetHeight(320.0f);
+    CUI::DSL::Borrow(pie).Text("饼图 · 华北月度销量占比");
+    CUI::DSL::Borrow(pie).Height(320.0f);
     ApplyMonthly(*pie);
 
     auto status1 = MakeStatus("悬停扇区读值，扇区平滑向外凸出高亮");
     pie->OnHoverChanged().Connect([status1](ChartBase* sender, int index, int) {
-        status1->Text = FormatPieHover(sender, index);
+        CUI::DSL::Borrow(status1).Text(FormatPieHover(sender, index));
     });
 
     auto btnMonth = ElevatedButton("月度数据", [pie](UIElement*) { ApplyMonthly(*pie); }).Build();
@@ -87,22 +87,22 @@ Element BuildPieChartPage() {
 
     // ---------- 2. 显示选项 ----------
     auto optPie = std::make_shared<PieChart>();
-    optPie->SetText("显示选项 · 图例 / 悬停提示");
-    optPie->SetHeight(280.0f);
+    CUI::DSL::Borrow(optPie).Text("显示选项 · 图例 / 悬停提示");
+    CUI::DSL::Borrow(optPie).Height(280.0f);
     ApplyCustom(*optPie);
 
     auto status2 = MakeStatus("图例与悬停提示可独立开关；饼图图例按百分比扇区自绘。");
     auto chkLegend = CheckboxTile("显示图例").Build();
-    chkLegend->SetState(CheckState::Checked);
+    CUI::DSL::Borrow(chkLegend).State(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([optPie, status2](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
-        optPie->SetShowLegend(on);
+        DSL::Borrow(optPie).ShowLegend(on);
         status2->Text = on ? "图例已显示。" : "图例已隐藏。";
     });
     auto chkTip = CheckboxTile("悬停提示卡片").Build();
-    chkTip->SetState(CheckState::Checked);
+    CUI::DSL::Borrow(chkTip).State(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([optPie](CheckBox*, CheckState st) {
-        optPie->SetShowTooltip(st == CheckState::Checked);
+        DSL::Borrow(optPie).ShowTooltip(st == CheckState::Checked);
     });
     auto btnReveal2 = ElevatedButton("重放入场动画", [optPie](UIElement*) { optPie->PlayReveal(); }).Build();
 
@@ -135,13 +135,13 @@ Element BuildPieChartPage() {
     spec.source = R"(
 // 1) 构建饼图（单系列多分类 → 每分类一个扇区）
 auto pie = std::make_shared<PieChart>();
-pie->SetText("资源占比");
-pie->SetHeight(320.0f);
-pie->SetCategories({ "操作系统", "数据库", "中间件" });
+CUI::DSL::Borrow(pie).Text("资源占比");
+CUI::DSL::Borrow(pie).Height(320.0f);
+DSL::Borrow(pie).Categories({ "操作系统", "数据库", "中间件" });
 ChartSeries s;
 s.name = "占比";
 s.values = { 34.0f, 22.0f, 15.0f };
-pie->SetSeries({ std::move(s) });
+DSL::Borrow(pie).Series({ std::move(s) });
 
 // 2) 悬停读值（提示卡片自动含百分比）
 pie->OnHoverChanged().Connect([](ChartBase* c, int idx, int) {
@@ -149,8 +149,8 @@ pie->OnHoverChanged().Connect([](ChartBase* c, int idx, int) {
 });
 
 // 3) 显示控制
-pie->SetShowLegend(true);
-pie->SetShowTooltip(true);
+DSL::Borrow(pie).ShowLegend(true);
+DSL::Borrow(pie).ShowTooltip(true);
 pie->PlayReveal();
 )";
 
@@ -158,3 +158,4 @@ pie->PlayReveal();
 }
 
 } // namespace Gallery
+

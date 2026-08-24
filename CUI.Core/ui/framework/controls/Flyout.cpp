@@ -1,4 +1,5 @@
 #include "Flyout.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include "../window/PopupPlacement.h"
 #include <algorithm>
@@ -22,20 +23,21 @@ void CollectSubtreeElements(UIElement* el, std::vector<UIElement*>& out) {
 // ---------------- FlyoutPresenter ----------------
 
 FlyoutPresenter::FlyoutPresenter() {
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetBorderThickness(1.0f);
-    SetCornerRadius(8.0f);
-    SetPadding(Thickness(14.0f));
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderThickness(1.0f)
+        .CornerRadius(8.0f)
+        .Padding(14.0f);
 }
 
 void FlyoutPresenter::SetContent(std::shared_ptr<UIElement> content) {
     if (m_content) {
-        RemoveChild(m_content);
+        DSL::Borrow(this).RemoveChild(m_content);
     }
     m_content = content;
     if (m_content) {
-        AddChild(m_content);
+        DSL::Borrow(this).AddChild(m_content);
     }
 }
 
@@ -91,9 +93,10 @@ void FlyoutPresenter::OnRender(GraphicsContext& ctx) {
 Flyout::Flyout() {
     // Presenter is overlay-only — not a layout child (avoids eating Column space
     // and having Arrange overwrite ShowAt coordinates on every Relayout).
-    m_presenter = std::make_shared<FlyoutPresenter>();
-    SetVisibility(Visibility::Visible);
-    SetClipToBounds(false);
+    m_presenter = DSL::Fluent::Control<FlyoutPresenter>().Build();
+    DSL::Borrow(this)
+        .Visibility(Visibility::Visible)
+        .ClipToBounds(false);
 }
 
 Flyout::Flyout(std::shared_ptr<UIElement> content) : Flyout() {

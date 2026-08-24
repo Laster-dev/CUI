@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ListView.h"
+#include "../core/CUIDsl.h"
 #include "ContextMenu.h"
 #include "MiddleClickAutoscroll.h"
 #include "../style/ThemeManager.h"
@@ -72,24 +73,23 @@ bool IsOverHScrollbar(const Rect& bounds, Point pt, bool canScrollH, bool canScr
 } // namespace
 
 ListView::ListView() {
-    // 只绑 token；绘制走 ThemeManager。列表表面用 card，勿用 window（材质模式下 window 全透明）。
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetHeaderBackgroundToken(ThemeTokenId::PaneBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetGridLineBrushToken(ThemeTokenId::InputBorder);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetBorderThickness(1.0f);
-    SetFontSize(12.0f);
-    SetFontFamily("微软雅黑");
-    SetFontWeight(CUI::FontWeight::Normal);
-    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    SetCornerRadius(4.0f);
-    // No fixed size — let parent layout stretch ListView to the pane.
-    SetWidth(-1.0f);
-    SetHeight(-1.0f);
-    SetRowHeight(30.0f);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .HeaderBackgroundToken(ThemeTokenId::PaneBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .GridLineBrushToken(ThemeTokenId::InputBorder)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .SelectedBackgroundToken(ThemeTokenId::SelectedBackground)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .BorderThickness(1.0f)
+        .FontSize(12.0f)
+        .FontFamily("微软雅黑")
+        .FontWeight(CUI::FontWeight::Normal)
+        .KeyboardNavigationMode(KeyboardNavigationMode::Contained)
+        .CornerRadius(4.0f)
+        .Width(-1.0f)
+        .Height(-1.0f)
+        .RowHeight(30.0f);
     SelectedIndex.Initialize(*this);
     m_rowsLayer.SetCacheable(true);
 }

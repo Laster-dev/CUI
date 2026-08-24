@@ -21,11 +21,11 @@ std::shared_ptr<CUI::Button> MakeDockBar(
     Dock dock,
     float mainSize = 0.0f) {
     auto bar = ElevatedButton(text).Background(color).Build();
-    bar->SetDock(dock);
+    CUI::DSL::Borrow(bar).Dock(dock);
     if (dock == Dock::Left || dock == Dock::Right) {
-        bar->Width = mainSize > 0.0f ? mainSize : 90.0f;
+        CUI::DSL::Borrow(bar).Width(mainSize > 0.0f ? mainSize : 90.0f);
     } else {
-        bar->Height = mainSize > 0.0f ? mainSize : 32.0f;
+        CUI::DSL::Borrow(bar).Height(mainSize > 0.0f ? mainSize : 32.0f);
     }
     return bar;
 }
@@ -81,7 +81,7 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
     dockCombo->AddItem("Top（贴顶，高 44px）");
     dockCombo->AddItem("Right（贴右，宽 100px）");
     dockCombo->AddItem("Bottom（贴底，高 44px）");
-    dockCombo->SetSelectedIndex(0);
+    CUI::DSL::Borrow(dockCombo).SelectedIndex(0);
 
     State<int> dockIndex{ 0 };
     dockCombo->SelectedIndex.Bind(dockIndex);
@@ -90,14 +90,14 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
     auto applyDock = [hero](int index) {
         const Dock docks[] = { Dock::Left, Dock::Top, Dock::Right, Dock::Bottom };
         const D2D1_COLOR_F colors[] = { Rgb(0x007ACC), Rgb(0x10B981), Rgb(0xF59F00), Rgb(0x845EF7) };
-        hero->SetDock(docks[index]);
-        hero->Background = colors[index];
+        CUI::DSL::Borrow(hero).Dock(docks[index]);
+        CUI::DSL::Borrow(hero).Background(colors[index]);
         if (docks[index] == Dock::Left || docks[index] == Dock::Right) {
-            hero->Width = 100.0f;
-            hero->Height = -1.0f;
+            CUI::DSL::Borrow(hero).Width(100.0f);
+            CUI::DSL::Borrow(hero).Height(-1.0f);
         } else {
-            hero->Height = 44.0f;
-            hero->Width = -1.0f;
+            CUI::DSL::Borrow(hero).Height(44.0f);
+            CUI::DSL::Borrow(hero).Width(-1.0f);
         }
     };
     dockCombo->OnSelectionChanged().Connect([applyDock](ComboBox*, int index, const std::string&) {
@@ -154,19 +154,21 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
     spec.source =
         "auto dock = DockPanelWidget().Width(520).Height(240).Build();\n"
         "auto top = ElevatedButton(\"顶栏\").Build();\n"
-        "top->SetDock(Dock::Top);      // 停靠到顶部\n"
+        "top.Dock(Dock::Top);      // 停靠到顶部\n"
         "dock->AddChild(top);\n"
         "\n"
         "auto left = ElevatedButton(\"侧栏\").Build();\n"
-        "left->SetDock(Dock::Left);\n"
+        "left.Dock(Dock::Left);\n"
         "dock->AddChild(left);\n"
         "\n"
         "// 最后添加的子元素默认填满剩余区域\n"
         "dock->AddChild(ElevatedButton(\"中央填充\").Build());\n"
         "\n"
-        "dock->SetLastChildFill(false); // 关闭后最后一项按自身 Dock 停靠\n"
-        "item->SetDock(Dock::Right);     // 运行时切换停靠方位，布局自动重排\n";
+        "dock.LastChildFill(false); // 关闭后最后一项按自身 Dock 停靠\n"
+        "item.Dock(Dock::Right);     // 运行时切换停靠方位，布局自动重排\n";
     return BuildSamplePage(spec);
 }
 
 } // namespace Gallery
+
+

@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "Slider.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -11,14 +12,15 @@ namespace {}
 
 Slider::Slider() {
     ValueProperty.Initialize(*this);
-    SetOrientation(Orientation::Horizontal);
-    SetTrackColorToken(ThemeTokenId::InputBorder);
-    SetActiveTrackColorToken(ThemeTokenId::AccentColor);
-    SetThumbColorToken(ThemeTokenId::AccentColor);
-    SetWidth(200.0f);
-    SetHeight(24.0f);
+    DSL::Borrow(this)
+        .Orientation(Orientation::Horizontal)
+        .TrackColorToken(ThemeTokenId::InputBorder)
+        .ActiveTrackColorToken(ThemeTokenId::AccentColor)
+        .ThumbColorToken(ThemeTokenId::AccentColor)
+        .Width(200.0f)
+        .Height(24.0f);
     m_displayValueAnim.Reset(GetValue());
-    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    DSL::Borrow(this).KeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
 Value Slider::GetProperty(PropertyId id) const {

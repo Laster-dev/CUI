@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "ChartBase.h"
+#include "../../core/CUIDsl.h"
 #include "../../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -39,17 +40,18 @@ float EaseOutCubic(float t) {
 } // namespace
 
 ChartBase::ChartBase() {
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetBorderThickness(1.0f);
-    SetCornerRadius(6.0f);
-    SetColorToken(ThemeTokenId::TextSecondary);
-    SetTitleColorToken(ThemeTokenId::TextPrimary);
-    SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
-    SetWidth(-1.0f);
-    SetHeight(260.0f);
-    SetClipToBounds(true);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderThickness(1.0f)
+        .CornerRadius(6.0f)
+        .ForegroundToken(ThemeTokenId::TextSecondary)
+        .TitleColorToken(ThemeTokenId::TextPrimary)
+        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
+        .PressedBackground(D2D1::ColorF(0, 0, 0, 0))
+        .Width(-1.0f)
+        .Height(260.0f)
+        .ClipToBounds(true);
     m_reveal.Reset(0.0f);
     m_reveal.SetTarget(1.0f);
 }

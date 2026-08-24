@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "Splitter.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 
@@ -13,16 +14,15 @@ constexpr float kHitPad = 5.0f;
 }
 
 Splitter::Splitter() {
-    SetOrientation(Orientation::Vertical);
-    SetBackgroundToken(ThemeTokenId::CardBorder);
-    SetHoverBackgroundToken(ThemeTokenId::AccentColor);
-    SetBackground(ThemeManager::Instance().GetColor("cardBorder"));
-    SetHoverBackground(ThemeManager::Instance().GetColor("accentColor"));
-    // Vertical bar: fixed width, stretch height (-1). Never set both to thickness
-    // or Measure/Arrange produce a 10x10 square.
-    SetWidth(kDefaultThickness);
-    SetHeight(-1.0f);
-    SetAlign(Alignment::Stretch);
+    DSL::Borrow(this)
+        .Orientation(Orientation::Vertical)
+        .BackgroundToken(ThemeTokenId::CardBorder)
+        .HoverBackgroundToken(ThemeTokenId::AccentColor)
+        .Background(ThemeManager::Instance().GetColor("cardBorder"))
+        .HoverBackground(ThemeManager::Instance().GetColor("accentColor"))
+        .Width(kDefaultThickness)
+        .Height(-1.0f)
+        .Align(Alignment::Stretch);
 }
 
 HCURSOR Splitter::GetCursor() const {

@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "PieChart.h"
+#include "../../core/CUIDsl.h"
 #include "../../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -32,7 +33,7 @@ void FillSlice(GraphicsContext& ctx, Point center, float radius, float start, fl
 } // namespace
 
 PieChart::PieChart() {
-    SetText("饼图");
+    DSL::Borrow(this).Text("饼图");
 }
 
 void PieChart::CollectSlices(std::vector<Slice>& slices, float& total) const {

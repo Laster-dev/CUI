@@ -1,4 +1,5 @@
 #include "DockManager.h"
+#include "../../core/CUIDsl.h"
 #include "DockLayoutSerializer.h"
 #include "../../window/Window.h"
 #include "../../window/Dpi.h"
@@ -39,10 +40,11 @@ AnimationSpec GuideSpec() {
 } // namespace
 
 DockManager::DockManager() {
-    SetBackgroundToken(ThemeTokenId::WindowBackground);
-    SetClipToBounds(true);
-    SetMinWidth(320.0f);
-    SetMinHeight(240.0f);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::WindowBackground)
+        .ClipToBounds(true)
+        .MinWidth(320.0f)
+        .MinHeight(240.0f);
 }
 
 DockManager::~DockManager() {
@@ -698,7 +700,7 @@ void DockManager::RelayoutContents() {
         if (!m_panes[i].content || isFloated(i)) {
             continue;
         }
-        m_panes[i].content->SetVisibility(Visibility::Collapsed);
+        DSL::Borrow(m_panes[i].content).Visibility(Visibility::Collapsed);
     }
 
     m_geom = ComputeGeom(m_bounds);
@@ -718,7 +720,7 @@ void DockManager::RelayoutContents() {
                 continue;
             }
             if (idx == sel && g.visible && g.content.height > 1.0f && g.content.width > 1.0f) {
-                content->SetVisibility(Visibility::Visible);
+                DSL::Borrow(content).Visibility(Visibility::Visible);
                 content->Measure(Size(g.content.width, g.content.height));
                 content->Arrange(g.content);
             }
@@ -736,7 +738,7 @@ void DockManager::RelayoutContents() {
         const SlotGeom peek = MakePeekGeom();
         if (peek.visible && peek.content.width > 1.0f && peek.content.height > 1.0f) {
             auto& content = m_panes[m_peekPane].content;
-            content->SetVisibility(Visibility::Visible);
+            DSL::Borrow(content).Visibility(Visibility::Visible);
             content->Measure(Size(peek.content.width, peek.content.height));
             content->Arrange(peek.content);
             RemoveChildQuiet(content);

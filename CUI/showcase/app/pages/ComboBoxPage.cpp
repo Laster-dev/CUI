@@ -12,13 +12,13 @@ ShowcasePage BuildComboBoxPage(const ShowcaseContext& ctx) {
     target->AddItem("VS Code Dark+");
     target->AddItem("WinUI 3 Light");
     target->AddItem("Monokai Pro");
-    target->SetSelectedIndex(0);
-    target->SetWidth(240.0f);
+    CUI::DSL::Borrow(target).SelectedIndex(0);
+    CUI::DSL::Borrow(target).Width(240.0f);
 
     auto input = TextField("自定义新主题").Width(280).Height(48).Build();
-    input->SetColorToken(ThemeTokenId::TextPrimary);
-    input->SetPlaceholderColorToken(ThemeTokenId::TextMuted);
-    input->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    CUI::DSL::Borrow(input).ForegroundToken(ThemeTokenId::TextPrimary);
+    CUI::DSL::Borrow(input).PlaceholderColorToken(ThemeTokenId::TextMuted);
+    CUI::DSL::Borrow(input).Foreground(ThemeManager::Instance().GetColor("textPrimary"));
 
     auto addBtn = ElevatedButton("添加选项到下拉菜单").Padding(12, 6, 12, 6).Build();
     addBtn->OnClick().Connect([window = ctx.windowRef, target, input](UIElement*) {

@@ -36,8 +36,58 @@ public:
      */
     static Window* Current();
 
-    Window();
+Window();
     virtual ~Window();
+
+    class FluentBuilder {
+    public:
+        explicit FluentBuilder(Window& window) : m_window(window) {}
+        FluentBuilder& Title(std::string title) { m_title = std::move(title); return *this; }
+        FluentBuilder& Size(int width, int height) { m_width = width; m_height = height; return *this; }
+        FluentBuilder& Transparent(bool enabled = true) { m_transparent = enabled; return *this; }
+        FluentBuilder& Theme(CUI::ThemeMode mode) { m_theme = mode; return *this; }
+        FluentBuilder& Backdrop(CUI::BackdropType type) { m_backdrop = type; return *this; }
+        FluentBuilder& RenderStats(bool visible) { m_renderStats = visible; return *this; }
+        FluentBuilder& Root(std::shared_ptr<UIElement> root) { m_root = std::move(root); return *this; }
+        FluentBuilder& Apply() {
+            if (m_window.GetHWND()) {
+                m_window.SetThemeMode(m_theme);
+                m_window.SetBackdropType(m_backdrop);
+                m_window.SetRenderStatsOverlayVisible(m_renderStats);
+                if (m_root) m_window.SetRootElement(std::move(m_root));
+            }
+            return *this;
+        }
+        FluentBuilder& Build() {
+            if (!m_built) {
+                m_built = m_window.Create(m_title, m_width, m_height, m_transparent);
+                if (m_built) {
+                    m_window.SetThemeMode(m_theme);
+                    m_window.SetBackdropType(m_backdrop);
+                    m_window.SetRenderStatsOverlayVisible(m_renderStats);
+                }
+            }
+            if (m_built && m_root) m_window.SetRootElement(std::move(m_root));
+            return *this;
+        }
+        explicit operator bool() const { return m_built; }
+        FluentBuilder& Show() { if (m_built) m_window.Show(); return *this; }
+        FluentBuilder& Run() { if (m_built) m_window.RunMessageLoop(); return *this; }
+        bool Built() const { return m_built; }
+    private:
+        Window& m_window;
+        std::string m_title = "CUI Modern Window";
+        int m_width = 1280;
+        int m_height = 800;
+        bool m_transparent = false;
+        CUI::ThemeMode m_theme = CUI::ThemeMode::Dark;
+        CUI::BackdropType m_backdrop = CUI::BackdropType::None;
+        bool m_renderStats = false;
+        bool m_built = false;
+        std::shared_ptr<UIElement> m_root;
+    };
+
+    FluentBuilder Fluent() { return FluentBuilder(*this); }
 
     /**
      * @brief 创建原生 Win32 宿主窗口。
@@ -398,3 +448,9 @@ private:
 };
 
 } // namespace CUI
+
+
+
+
+
+

@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "SegmentedControl.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -27,21 +28,22 @@ D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
 
 SegmentedControl::SegmentedControl() {
     SelectedIndex.Initialize(*this);
-    SetHeight(32.0f);
-    SetWidth(280.0f);
-    SetCornerRadius(6.0f);
-    SetBorderThickness(1.5f);
-    SetFontSize(12.0f);
-    SetFontFamily("微软雅黑");
-    SetPadding(Thickness(0, 0, 0, 0));
-    SetBackgroundToken(ThemeTokenId::InputBackground);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    SetBorderToken(ThemeTokenId::AccentColor);
-    SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    SetColorToken(ThemeTokenId::AccentColor);
-    SetSelectedItemBackgroundToken(ThemeTokenId::AccentColor);
-    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    DSL::Borrow(this)
+        .Height(32.0f)
+        .Width(280.0f)
+        .CornerRadius(6.0f)
+        .BorderThickness(1.5f)
+        .FontSize(12.0f)
+        .FontFamily("微软雅黑")
+        .Padding(0.0f)
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
+        .BorderToken(ThemeTokenId::AccentColor)
+        .FocusedBorderToken(ThemeTokenId::FocusedBorder)
+        .ForegroundToken(ThemeTokenId::AccentColor)
+        .SelectedBackgroundToken(ThemeTokenId::AccentColor)
+        .KeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
 namespace {

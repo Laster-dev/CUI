@@ -31,16 +31,10 @@ struct ButtonSpec {
 } // namespace
 
 int CalculatorApp::Run() {
-    if (!m_window.Create("Calc", 380, 600, false)) {
-        return -1;
-    }
+    auto windowBuilder = m_window.Fluent().Title("Calc").Size(380, 600).Theme(ThemeMode::Dark).Backdrop(BackdropType::None).Root(BuildRoot()).Build();
+    if (!windowBuilder) return -1;
 
-    m_window.SetThemeMode(ThemeMode::Dark);
-    m_window.SetBackdropType(BackdropType::None);
-    m_window.SetRenderStatsOverlayVisible(false);
-    m_window.SetRootElement(BuildRoot());
-    m_window.Show();
-    m_window.RunMessageLoop();
+    windowBuilder.Show().Run();
     return 0;
 }
 
@@ -48,10 +42,9 @@ std::shared_ptr<UIElement> CalculatorApp::BuildRoot() {
     auto root = Column(0)
         .BackgroundToken(ThemeTokenId::WindowBackground)
         .Build();
-    root->SetColorToken(ThemeTokenId::TextPrimary);
+    ElementBuilder<StackPanel>(root).ForegroundToken(ThemeTokenId::TextPrimary);
 
-    auto titleBar = std::make_shared<WindowTitleBar>();
-    titleBar->SetTitle("计算器");
+    auto titleBar = ElementBuilder<WindowTitleBar>().Title("计算器").Build();
     //titleBar->SetIconText("C");
 
     //auto fileMenu = titleBar->GetMenuBar().AddMenu("File");
@@ -74,34 +67,34 @@ std::shared_ptr<UIElement> CalculatorApp::BuildRoot() {
     auto content = Column(16)
         .Padding(18)
         .Build();
-    content->SetFlexGrow(1.0f);
+    ElementBuilder<StackPanel>(content).FlexGrow(1.0f);
 
     auto title = Text("Calculator")
         .FontSize(28.0f)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .Build();
 
     auto subtitle = Text("Built with the CUI framework")
         .FontSize(12.0f)
-        .ColorToken(ThemeTokenId::TextMuted)
+        .ForegroundToken(ThemeTokenId::TextMuted)
         .Build();
 
-    content->AddChild(title);
-    content->AddChild(subtitle);
-    content->AddChild(BuildDisplayPanel());
+    ElementBuilder<StackPanel>(content).AddChild(title);
+    ElementBuilder<StackPanel>(content).AddChild(subtitle);
+    ElementBuilder<StackPanel>(content).AddChild(BuildDisplayPanel());
 
     auto grid = GridWidget().Build();
-    grid->SetColumnDefinitions("1*,1*,1*,1*");
-    grid->SetRowDefinitions("1*,1*,1*,1*,1*");
-    grid->SetFlexGrow(1.0f);
-    grid->SetGap(10.0f);
+    ElementBuilder<Grid>(grid).ColumnDefinitions("1*,1*,1*,1*");
+    ElementBuilder<Grid>(grid).RowDefinitions("1*,1*,1*,1*,1*");
+    ElementBuilder<Grid>(grid).FlexGrow(1.0f);
+    ElementBuilder<Grid>(grid).Gap(10.0f);
     BuildButtons(*grid);
 
     auto gridHost = Expanded(grid).Build();
-    content->AddChild(gridHost);
+    ElementBuilder<StackPanel>(content).AddChild(gridHost);
 
-    root->AddChild(titleBar);
-    root->AddChild(content);
+    ElementBuilder<StackPanel>(root).AddChild(titleBar);
+    ElementBuilder<StackPanel>(root).AddChild(content);
 
     UpdateDisplay();
     return root;
@@ -116,26 +109,26 @@ std::shared_ptr<UIElement> CalculatorApp::BuildDisplayPanel() {
         .Build();
 
     auto column = Column(8).Build();
-    column->SetMinHeight(130.0f);
+    ElementBuilder<StackPanel>(column).MinHeight(130.0f);
 
     m_historyText = Text("")
         .FontSize(14.0f)
-        .ColorToken(ThemeTokenId::TextMuted)
+        .ForegroundToken(ThemeTokenId::TextMuted)
         .Build();
-    m_historyText->SetTextAlign(TextAlignment::Right);
-    m_historyText->SetHeight(24.0f);
+    ElementBuilder<TextBlock>(m_historyText).TextAlign(TextAlignment::Right);
+    ElementBuilder<TextBlock>(m_historyText).Height(24.0f);
 
     m_displayText = Text("0")
         .FontSize(40.0f)
-        .ColorToken(ThemeTokenId::TextPrimary)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
         .Build();
-    m_displayText->SetTextAlign(TextAlignment::Right);
-    m_displayText->SetVerticalAlign(TextVerticalAlignment::Center);
-    m_displayText->SetMinHeight(72.0f);
+    ElementBuilder<TextBlock>(m_displayText).TextAlign(TextAlignment::Right);
+    ElementBuilder<TextBlock>(m_displayText).VerticalAlign(TextVerticalAlignment::Center);
+    ElementBuilder<TextBlock>(m_displayText).MinHeight(72.0f);
 
-    column->AddChild(m_historyText);
-    column->AddChild(m_displayText);
-    card->AddChild(column);
+    ElementBuilder<StackPanel>(column).AddChild(m_historyText);
+    ElementBuilder<StackPanel>(column).AddChild(m_displayText);
+    ElementBuilder<Panel>(card).AddChild(column);
     return card;
 }
 
@@ -143,14 +136,15 @@ std::shared_ptr<Button> CalculatorApp::CreateButton(const std::string& text,
                                                     ThemeTokenId backgroundToken,
                                                     ThemeTokenId textToken,
                                                     float minHeight) {
-    auto button = ElevatedButton(text).Build();
-    button->SetBackgroundToken(backgroundToken);
-    button->SetColorToken(textToken);
-    button->SetBorderToken(ThemeTokenId::CardBorder);
-    button->SetBorderThickness(1.0f);
-    button->SetCornerRadius(16.0f);
-    button->SetFontSize(20.0f);
-    button->SetMinHeight(minHeight);
+    auto button = ElevatedButton(text)
+        .BackgroundToken(backgroundToken)
+        .ForegroundToken(textToken)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderThickness(1.0f)
+        .CornerRadius(16.0f)
+        .FontSize(20.0f)
+        .MinHeight(minHeight)
+        .Build();
     return button;
 }
 
@@ -179,10 +173,10 @@ void CalculatorApp::BuildButtons(Grid& grid) {
 
     for (const ButtonSpec& spec : specs) {
         auto button = CreateButton(spec.text, spec.backgroundToken, spec.textToken, 64.0f);
-        button->SetGridRow(spec.row);
-        button->SetGridColumn(spec.column);
-        button->SetGridColumnSpan(spec.columnSpan);
-		button->SetMargin(5.0f);
+        ElementBuilder<Button>(button).GridRow(spec.row);
+        ElementBuilder<Button>(button).GridColumn(spec.column);
+        ElementBuilder<Button>(button).GridColumnSpan(spec.columnSpan);
+        ElementBuilder<Button>(button).Margin(5.0f);
         const std::string label = spec.text;
         button->OnClick().Connect([this, label](UIElement*) {
             if (label == "C") {
@@ -324,10 +318,10 @@ void CalculatorApp::SetError(const std::string& message) {
 
 void CalculatorApp::UpdateDisplay() {
     if (m_historyText) {
-        m_historyText->SetText(m_history);
+        ElementBuilder<TextBlock>(m_historyText).Text(m_history);
     }
     if (m_displayText) {
-        m_displayText->SetText(m_input);
+        ElementBuilder<TextBlock>(m_displayText).Text(m_input);
     }
 }
 
@@ -393,3 +387,5 @@ std::string CalculatorApp::FormatNumber(double value) {
 }
 
 } // namespace Calc
+
+

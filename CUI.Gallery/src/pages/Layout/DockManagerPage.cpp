@@ -29,9 +29,9 @@ Element BuildDockManagerPage() {
         .Build();
 
     // 默认分栏初始物理尺寸
-    dock->SetSideSize(DockSide::Left, 190.0f);
-    dock->SetSideSize(DockSide::Right, 190.0f);
-    dock->SetSideSize(DockSide::Bottom, 120.0f);
+    DSL::Borrow(dock).SideSize(DockSide::Left, 190.0f);
+    DSL::Borrow(dock).SideSize(DockSide::Right, 190.0f);
+    DSL::Borrow(dock).SideSize(DockSide::Bottom, 120.0f);
 
     // ==========================================
     // 2. 构造左侧工具栏面板 (Left Panes)
@@ -53,7 +53,7 @@ Element BuildDockManagerPage() {
         Text("  + AddToolPane(title, content, side)").FontSize(11.0f),
         Text("  + AddDocument(title, content)").FontSize(11.0f),
         Text("  + FloatPane(paneIndex, pt)").FontSize(11.0f),
-        Text("  + SetPaneAutoHide(paneIndex, bool)").FontSize(11.0f),
+        Text("  + .PaneAutoHide(paneIndex, bool)").FontSize(11.0f),
         Text("  + SaveLayout(path) / LoadLayout(path)").FontSize(11.0f),
     }).Padding(8.0f).Background(D2D1::ColorF(0x18181B, 0.4f)).Build();
 
@@ -74,8 +74,8 @@ Element BuildDockManagerPage() {
               "    return 0;\n"
               "}")
         .Height(200.0f);
-    codeEditor->SetAcceptsReturn(true);
-    codeEditor->SetTextWrapping(true);
+    CUI::DSL::Borrow(codeEditor).AcceptsReturn(true);
+    CUI::DSL::Borrow(codeEditor).TextWrapping(true);
 
     // 3.2 架构说明文档
     auto archDoc = TextField()
@@ -87,8 +87,8 @@ Element BuildDockManagerPage() {
               "   - 九宫格吸附罗盘 (Compass Guides)；\n"
               "   - 边缘窄条折叠抽屉 (AutoHide Strips)。")
         .Height(200.0f);
-    archDoc->SetAcceptsReturn(true);
-    archDoc->SetTextWrapping(true);
+    CUI::DSL::Borrow(archDoc).AcceptsReturn(true);
+    CUI::DSL::Borrow(archDoc).TextWrapping(true);
 
     dock->AddDocument("Main.cpp", codeEditor.Build());
     dock->AddDocument("Architecture.md", archDoc.Build());
@@ -118,7 +118,7 @@ Element BuildDockManagerPage() {
     // 5. 构造底部输出与控制台面板 (Bottom Panes)
     // ==========================================
     auto outputContent = Column(4, {
-        Text("[18:50:12] [生成] 正在启动 x64-Debug 增量构建...").FontSize(11.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)),
+        Text("[18:50:12] [生成] 正在启动 x64-Debug 增量构建..").FontSize(11.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)),
         Text("[18:50:14] [生成] CUI.Core.lib -> 已完成 0 错误，0 警告。").FontSize(11.0f).Foreground(D2D1::ColorF(0x4ADE80, 1.0f)),
         Text("[18:50:15] [生成] 停靠管理器布局树初始化完成，视口就绪。").FontSize(11.0f).Foreground(D2D1::ColorF(0x38BDF8, 1.0f)),
     }).Padding(8.0f).Background(D2D1::ColorF(0x141416, 0.8f)).Build();
@@ -155,8 +155,8 @@ Element BuildDockManagerPage() {
             auto docBox = TextField()
                 .Text(std::format("// 这是动态新建的文档：{}\n// 支持在中央文档区成组并排或拖出为悬浮窗口。", title))
                 .Height(160.0f);
-            docBox->SetAcceptsReturn(true);
-            docBox->SetTextWrapping(true);
+            CUI::DSL::Borrow(docBox).AcceptsReturn(true);
+            CUI::DSL::Borrow(docBox).TextWrapping(true);
 
             dock->AddDocument(title, docBox.Build());
             statusLabel->Text = std::format("已向中央文档区添加新标签页：【{}】", title);
@@ -166,7 +166,7 @@ Element BuildDockManagerPage() {
         .OnClick([dock, paneSolution, statusLabel](UIElement*) {
             static bool autoHidden = false;
             autoHidden = !autoHidden;
-            dock->SetPaneAutoHide(paneSolution, autoHidden);
+            DSL::Borrow(dock).PaneAutoHide(paneSolution, autoHidden);
             statusLabel->Text = autoHidden
                 ? "已将【解决方案资源管理器】收拢折叠至左侧窄条，鼠标悬停窄条即可抽屉式滑出展示。"
                 : "已恢复【解决方案资源管理器】的常驻固定停靠状态。";
@@ -206,7 +206,7 @@ dock->AddToolPane("属性检查器", propsContent, DockSide::Right);
 dock->AddToolPane("输出控制台", outputContent, DockSide::Bottom);
 
 // 3. 动态控制 AutoHide 折叠或独立悬浮
-dock->SetPaneAutoHide(paneIndex, true); // 折叠为边缘窄条
+DSL::Borrow(dock).PaneAutoHide(paneIndex, true); // 折叠为边缘窄条
 dock->FloatPane(paneIndex);             // 剥离为原生独立悬浮子窗口
 )cpp";
 
@@ -214,3 +214,6 @@ dock->FloatPane(paneIndex);             // 剥离为原生独立悬浮子窗口
 }
 
 } // namespace Gallery
+
+
+

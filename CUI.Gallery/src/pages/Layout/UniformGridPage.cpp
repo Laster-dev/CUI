@@ -30,32 +30,32 @@ std::shared_ptr<UIElement> BuildUniformGridPage() {
     // —— 固定行列 ——
     auto fixed = UniformGridWidget(2, 3).Width(520).Height(180).Build();
     for (int i = 0; i < 6; ++i) {
-        fixed->AddChild(MakeCell(std::format("格 {}", i + 1), i));
+        CUI::DSL::Borrow(fixed).AddChild(MakeCell(std::format("格 {}", i + 1), i));
     }
 
     // —— 自动计算行列 ——
     auto autoGrid = UniformGridWidget(0, 0).Width(520).Height(180).Build();
     for (int i = 0; i < 7; ++i) {
-        autoGrid->AddChild(MakeCell(std::format("自动 {}", i + 1), i));
+        CUI::DSL::Borrow(autoGrid).AddChild(MakeCell(std::format("自动 {}", i + 1), i));
     }
 
     // —— 只指定列数 ——
     auto colsOnly = UniformGridWidget(0, 4).Width(520).Height(150).Build();
     for (int i = 0; i < 8; ++i) {
-        colsOnly->AddChild(MakeCell(std::format("项 {}", i + 1), i));
+        CUI::DSL::Borrow(colsOnly).AddChild(MakeCell(std::format("项 {}", i + 1), i));
     }
 
     // —— 运行时调整行列 ——
     auto liveGrid = UniformGridWidget(2, 3).Width(520).Height(220).Build();
-    liveGrid->ClipToBounds = true;
+    CUI::DSL::Borrow(liveGrid).ClipToBounds(true);
     for (int i = 0; i < 8; ++i) {
-        liveGrid->AddChild(MakeCell(std::format("格 {}", i + 1), i));
+        CUI::DSL::Borrow(liveGrid).AddChild(MakeCell(std::format("格 {}", i + 1), i));
     }
 
     auto rowsSlider = SliderWidget(2.0f, 1.0f, 4.0f).Build();
-    rowsSlider->FlexGrow = 1.0f;
+    CUI::DSL::Borrow(rowsSlider).FlexGrow(1.0f);
     auto colsSlider = SliderWidget(3.0f, 1.0f, 5.0f).Build();
-    colsSlider->FlexGrow = 1.0f;
+    CUI::DSL::Borrow(colsSlider).FlexGrow(1.0f);
 
     State<float> rowsValue{ 2.0f };
     State<float> colsValue{ 3.0f };
@@ -120,7 +120,7 @@ std::shared_ptr<UIElement> BuildUniformGridPage() {
     spec.source =
         "auto grid = UniformGridWidget(2, 3).Width(520).Height(180).Build();\n"
         "grid->AddChild(ElevatedButton(\"格 1\").Build());\n"
-        "// ... 共 6 个子元素，均分 2 行 × 3 列\n"
+        "// .. 共 6 个子元素，均分 2 行 × 3 列\n"
         "\n"
         "// 行列传 0 时自动推导：√n 行、按需补列\n"
         "auto autoGrid = UniformGridWidget(0, 0).Build();\n"
@@ -136,3 +136,6 @@ std::shared_ptr<UIElement> BuildUniformGridPage() {
 }
 
 } // namespace Gallery
+
+
+

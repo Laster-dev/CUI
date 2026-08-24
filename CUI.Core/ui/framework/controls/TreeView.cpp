@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "TreeView.h"
+#include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -28,25 +29,25 @@ constexpr float kTreeSelectPillRadius = 4.0f;
 } // namespace
 
 TreeView::TreeView() {
-    SetBackgroundToken(ThemeTokenId::CardBackground);
-    SetBorderToken(ThemeTokenId::CardBorder);
-    SetColorToken(ThemeTokenId::TextPrimary);
-    SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
-    SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
-    SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
-    SetBorderThickness(1.0f);
-    SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
-    SetFontSize(12.0f);
-    SetFontFamily("微软雅黑");
-    SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    SetFontWeight(CUI::FontWeight::Normal);
-    SetItemHeight(28.0f);
-    SetCornerRadius(4.0f);
-    // Let parent panes stretch the tree; fixed 260px left a blank strip beside it.
-    SetWidth(-1.0f);
-    SetHeight(-1.0f);
+    DSL::Borrow(this)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .ForegroundToken(ThemeTokenId::TextPrimary)
+        .SelectedBackgroundToken(ThemeTokenId::SelectedBackground)
+        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
+        .Background(ThemeManager::Instance().GetColor("cardBackground"))
+        .BorderBrush(ThemeManager::Instance().GetColor("cardBorder"))
+        .BorderThickness(1.0f)
+        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
+        .HoverBackground(ThemeManager::Instance().GetColor("hoverBackground"))
+        .FontSize(12.0f)
+        .FontFamily("微软雅黑")
+        .KeyboardNavigationMode(KeyboardNavigationMode::Contained)
+        .FontWeight(CUI::FontWeight::Normal)
+        .ItemHeight(28.0f)
+        .CornerRadius(4.0f)
+        .Width(-1.0f)
+        .Height(-1.0f);
     m_scrollAnimator.Reset(0.0f);
 }
 
