@@ -47,6 +47,9 @@ public:
 
     std::string GetSelectedItem() const; // 读取当前选中的分段项目文本
 
+    void SetItemEnabled(int index, bool enabled); // 设置指定分段选项的启用/禁用状态
+    bool IsItemEnabled(int index) const; // 检查指定分段选项是否处于启用状态
+
     Event<SegmentedControl*, int, const std::string&>& OnSelectionChanged() { return m_onSelectionChangedEvent; } // 分段更改时的事件发布中心
 
 private:
@@ -56,6 +59,7 @@ private:
     float MeasureContentWidth() const; // 计算单行文字卡片全部并排的理想测量总宽
 
     std::vector<std::string> m_items;                                   // 分段项目选项队列
+    std::vector<bool> m_itemEnabled;                                     // 分段项目各选项启用状态队列
     int m_selectedIndex = -1;                                           // 被选中分段项的行号
     int m_hoverIndex = -1;                                              // 鼠标指针正 Hover 的分段项行号
     int m_pressedIndex = -1;                                            // 鼠标左键按下捕获的分段项行号

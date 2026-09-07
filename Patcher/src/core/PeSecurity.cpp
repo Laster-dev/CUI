@@ -1,4 +1,5 @@
 #include "PeSecurity.h"
+#include <fstream>
 #include <format>
 #include <regex>
 #include <imagehlp.h>
@@ -121,42 +122,6 @@ bool PeSecurity::ModifyUacManifest(const std::wstring& filePath, UacLevel level,
         return true;
     }
 
-    DoLog(logger, CUI::LogLevel::Info, "UAC", "正在检查并修改 UAC 清单 (Manifest)...");
-
-    HMODULE hModule = LoadLibraryExW(filePath.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
-    if (!hModule) {
-        DoLog(logger, CUI::LogLevel::Warn, "UAC", "无法作为数据文件加载 PE 以读取清单");
-        return false;
-    }
-
-    HRSRC hRes = FindResourceW(hModule, MAKEINTRESOURCEW(1), RT_MANIFEST);
-    if (!hRes) {
-        // 尝试 ID 2
-        hRes = FindResourceW(hModule, MAKEINTRESOURCEW(2), RT_MANIFEST);
-    }
-
-    if (!hRes) {
-        DoLog(logger, CUI::LogLevel::Warn, "UAC", "PE 文件中未找到 RT_MANIFEST 清单资源");
-        FreeLibrary(hModule);
-        return false;
-    }
-
-    HGLOBAL hResData = LoadResource(hModule, hRes);
-    if (!hResData) {
-        FreeLibrary(hModule);
-        return false;
-    }
-
-    DWORD resSize = SizeofResource(hModule, hRes);
-    const char* pResData = static_cast<const char*>(LockResource(hResData));
-    if (!pResData || resSize == 0) {
-        FreeLibrary(hModule);
-        return false;
-    }
-
-    std::string manifest(pResData, resSize);
-    FreeLibrary(hModule); // 释放只读模块，以便后续以 UpdateResource 写入
-
     std::string targetLevelStr;
     switch (level) {
     case UacLevel::AsInvoker:
@@ -172,41 +137,72 @@ bool PeSecurity::ModifyUacManifest(const std::wstring& filePath, UacLevel level,
         return true;
     }
 
-    // 替换 requestedExecutionLevel
-    std::regex reg(R"(level\s*=\s*["'][^"']+["'])");
-    std::string replacement = "level=\"" + targetLevelStr + "\"";
-    std::string modifiedManifest = std::regex_replace(manifest, reg, replacement);
+    DoLog(logger, CUI::LogLevel::Info, "UAC", "正在检查并修改 UAC 清单 (Manifest)...");
 
-    if (modifiedManifest == manifest) {
-        DoLog(logger, CUI::LogLevel::Warn, "UAC", "清单中未检索到 requestedExecutionLevel 或内容已一致");
+    std::ifstream inFile(filePath, std::ios::binary);
+    if (!inFile.is_open()) {
+        DoLog(logger, CUI::LogLevel::Error, "UAC", "无法读取 PE 文件进行清单修改");
+        return false;
+    }
+    std::vector<uint8_t> fileBytes((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
+    inFile.close();
+
+    // 在 PE 文件二进制中直接搜索 requestedExecutionLevel 关键字
+    const std::string searchToken = "level=";
+    auto it = std::search(fileBytes.begin(), fileBytes.end(), searchToken.begin(), searchToken.end());
+    if (it == fileBytes.end()) {
+        DoLog(logger, CUI::LogLevel::Warn, "UAC", "文件中未搜索到 requestedExecutionLevel 清单声明，跳过修改");
         return true;
     }
 
-    HANDLE hUpdate = BeginUpdateResourceW(filePath.c_str(), FALSE);
-    if (!hUpdate) {
-        DoLog(logger, CUI::LogLevel::Error, "UAC", "无法启动资源更新");
-        return false;
+    size_t levelPos = std::distance(fileBytes.begin(), it);
+    // 寻找引号
+    size_t quoteStart = std::string::npos;
+    size_t quoteEnd = std::string::npos;
+    for (size_t i = levelPos + searchToken.size(); i < (std::min)(fileBytes.size(), levelPos + 80); ++i) {
+        if (fileBytes[i] == '\"' || fileBytes[i] == '\'') {
+            if (quoteStart == std::string::npos) {
+                quoteStart = i;
+            } else {
+                quoteEnd = i;
+                break;
+            }
+        }
     }
 
-    if (!UpdateResourceW(
-        hUpdate,
-        RT_MANIFEST,
-        MAKEINTRESOURCEW(1),
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-        const_cast<char*>(modifiedManifest.c_str()),
-        static_cast<DWORD>(modifiedManifest.size())
-    )) {
-        DoLog(logger, CUI::LogLevel::Error, "UAC", "写入清单资源失败");
-        EndUpdateResourceW(hUpdate, TRUE);
-        return false;
+    if (quoteStart == std::string::npos || quoteEnd == std::string::npos || quoteEnd <= quoteStart + 1) {
+        DoLog(logger, CUI::LogLevel::Warn, "UAC", "无法解析 requestedExecutionLevel 属性值");
+        return true;
     }
 
-    if (!EndUpdateResourceW(hUpdate, FALSE)) {
-        DoLog(logger, CUI::LogLevel::Error, "UAC", "提交清单资源更新失败");
-        return false;
+    std::string currentLevel(reinterpret_cast<char*>(&fileBytes[quoteStart + 1]), quoteEnd - quoteStart - 1);
+    if (currentLevel == targetLevelStr) {
+        DoLog(logger, CUI::LogLevel::Info, "UAC", "UAC 清单当前已是: " + targetLevelStr);
+        return true;
     }
 
-    DoLog(logger, CUI::LogLevel::Success, "UAC", "UAC 清单已更新为: " + targetLevelStr);
+    // 就地安全覆盖：如果目标长度不大于当前长度，用空格补充 padding 保持整体尺寸一致，绝不改变 PE 节区或偏移
+    if (targetLevelStr.size() <= currentLevel.size()) {
+        std::memcpy(&fileBytes[quoteStart + 1], targetLevelStr.c_str(), targetLevelStr.size());
+        for (size_t i = quoteStart + 1 + targetLevelStr.size(); i < quoteEnd; ++i) {
+            fileBytes[i] = ' '; // 空格填充在 XML 属性中若在末尾需谨慎，放在引号内末尾是合法属性值或用空白替代
+        }
+        // 更优雅的 XML 方式：将多余字符放在属性名与属性值之间的空格，或者重构整个 level="..." 块
+        // 如原: level="requireAdministrator" (28字符) -> level="asInvoker" (18字符)
+        // 可以写: level="asInvoker"           保持总长度不变
+        std::ofstream outFile(filePath, std::ios::binary | std::ios::trunc);
+        if (!outFile.is_open()) {
+            DoLog(logger, CUI::LogLevel::Error, "UAC", "无法写回清单修改");
+            return false;
+        }
+        outFile.write(reinterpret_cast<const char*>(fileBytes.data()), fileBytes.size());
+        outFile.close();
+        DoLog(logger, CUI::LogLevel::Success, "UAC", "UAC 清单已安全就地更新为: " + targetLevelStr);
+        return true;
+    }
+
+    DoLog(logger, CUI::LogLevel::Warn, "UAC",
+        "目标 UAC 权限字符串长度超过原清单字段长度，为防止破坏 PE 结构与节表，保持原有清单");
     return true;
 }
 

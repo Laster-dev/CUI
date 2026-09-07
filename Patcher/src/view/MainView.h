@@ -28,6 +28,7 @@ private:
     void RunPatch();
     void ResetAll();
     void OpenOutputDir();
+    void UpdateModeAvailability();
 
     CUI::Window* m_window = nullptr;
 

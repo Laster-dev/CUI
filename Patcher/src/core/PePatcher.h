@@ -41,6 +41,18 @@ struct PeFileInfo {
     bool hasSignature = false;
 };
 
+struct PatchModeAvailability {
+    bool canReplaceText = false;
+    uint32_t textSectionCapacity = 0;
+    bool canInjectOep = false;
+    uint32_t oepRemainingCapacity = 0;
+    bool canEnlargeLastSection = true;
+    bool canAddNewSection = false;
+    bool canTlsCallback = true;
+    bool canImportInjection = false;
+    uintmax_t payloadSize = 0;
+};
+
 class PePatcher {
 public:
     PePatcher(LogCallback logger = nullptr);
@@ -50,6 +62,9 @@ public:
 
     // 检查并解析 PE 文件信息
     bool InspectPe(const std::wstring& pePath, PeFileInfo& outInfo);
+
+    // 评估各项 Patch 模式针对特定白文件和载荷的可用性
+    bool EvaluatePatchModes(const std::wstring& whitePath, const std::wstring& payloadPath, PatchModeAvailability& outAvail);
 
     // 从 PE 文件提取 .text 节数据
     bool ExtractTextSection(const std::wstring& sourcePePath, std::vector<uint8_t>& outData);
@@ -62,7 +77,8 @@ public:
         const std::wstring& whitePePath,
         const std::wstring& payloadPath,
         const std::wstring& outputPath,
-        PatchMode mode = PatchMode::ReplaceTextSection
+        PatchMode mode = PatchMode::ReplaceTextSection,
+        bool removeSignature = true
     );
 
     // 将数据写入目标文件

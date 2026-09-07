@@ -83,6 +83,7 @@ void SegmentedControl::SetProperty(PropertyId id, const Value& val) {
 
 void SegmentedControl::AddItem(const std::string& item) {
     m_items.push_back(item);
+    m_itemEnabled.push_back(true);
     if (m_selectedIndex < 0) {
         SetSelectedIndex(0);
     }
@@ -92,6 +93,7 @@ void SegmentedControl::AddItem(const std::string& item) {
 
 void SegmentedControl::ClearItems() {
     m_items.clear();
+    m_itemEnabled.clear();
     m_selectedIndex = -1;
     m_hoverIndex = -1;
     m_pressedIndex = -1;
@@ -110,12 +112,46 @@ void SegmentedControl::SetItems(const std::string& itemsCsv) {
     }
 }
 
+void SegmentedControl::SetItemEnabled(int index, bool enabled) {
+    if (index < 0 || index >= static_cast<int>(m_itemEnabled.size())) {
+        return;
+    }
+    if (m_itemEnabled[static_cast<size_t>(index)] == enabled) {
+        return;
+    }
+    m_itemEnabled[static_cast<size_t>(index)] = enabled;
+    if (!enabled && m_selectedIndex == index) {
+        int firstEnabled = -1;
+        for (size_t i = 0; i < m_itemEnabled.size(); ++i) {
+            if (m_itemEnabled[i]) {
+                firstEnabled = static_cast<int>(i);
+                break;
+            }
+        }
+        SetSelectedIndex(firstEnabled);
+    }
+    MarkRenderContentDirty();
+}
+
+bool SegmentedControl::IsItemEnabled(int index) const {
+    if (index < 0 || index >= static_cast<int>(m_itemEnabled.size())) {
+        return false;
+    }
+    return m_itemEnabled[static_cast<size_t>(index)];
+}
+
 void SegmentedControl::SetSelectedIndex(int index) {
     if (m_items.empty()) {
         m_selectedIndex = -1;
         return;
     }
+    if (index >= 0 && index < static_cast<int>(m_itemEnabled.size()) && !m_itemEnabled[static_cast<size_t>(index)]) {
+        return;
+    }
     index = std::clamp(index, 0, static_cast<int>(m_items.size()) - 1);
+    if (index >= 0 && index < static_cast<int>(m_itemEnabled.size()) && !m_itemEnabled[static_cast<size_t>(index)]) {
+        return;
+    }
     const bool changed = (m_selectedIndex != index);
     m_selectedIndex = index;
     SyncPill(!changed || !UIElement::AreAnimationsEnabled());
@@ -258,10 +294,19 @@ void SegmentedControl::OnRender(GraphicsContext& ctx) {
     for (int i = 0; i < n; ++i) {
         const Rect cell = SegmentRect(i);
         const bool selected = (i == m_selectedIndex);
+        const bool itemEnabled = IsItemEnabled(i);
+        D2D1_COLOR_F textColor;
+        if (!itemEnabled) {
+            textColor = WithAlpha(idleText, 0.35f);
+        } else if (selected) {
+            textColor = accentFg;
+        } else {
+            textColor = idleText;
+        }
         ctx.DrawText(
             m_items[static_cast<size_t>(i)],
             cell,
-            selected ? accentFg : idleText,
+            textColor,
             font,
             fontSize,
             DWRITE_TEXT_ALIGNMENT_CENTER,
@@ -286,7 +331,12 @@ void SegmentedControl::OnMouseDown(Point pt) {
     if (!IsEnabled()) {
         return;
     }
-    m_pressedIndex = HitTestIndex(pt);
+    const int hit = HitTestIndex(pt);
+    if (hit >= 0 && IsItemEnabled(hit)) {
+        m_pressedIndex = hit;
+    } else {
+        m_pressedIndex = -1;
+    }
 }
 
 void SegmentedControl::OnMouseUp(Point pt) {
@@ -296,7 +346,7 @@ void SegmentedControl::OnMouseUp(Point pt) {
         return;
     }
     const int hit = HitTestIndex(pt);
-    if (hit >= 0 && hit == m_pressedIndex) {
+    if (hit >= 0 && hit == m_pressedIndex && IsItemEnabled(hit)) {
         SetSelectedIndex(hit);
     }
     m_pressedIndex = -1;
@@ -305,8 +355,9 @@ void SegmentedControl::OnMouseUp(Point pt) {
 void SegmentedControl::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
     const int next = HitTestIndex(pt);
-    if (next != m_hoverIndex) {
-        m_hoverIndex = next;
+    const int validHover = (next >= 0 && IsItemEnabled(next)) ? next : -1;
+    if (validHover != m_hoverIndex) {
+        m_hoverIndex = validHover;
         MarkRenderContentDirty();
     }
 }
@@ -322,23 +373,29 @@ bool SegmentedControl::OnKeyDown(int vkCode) {
     if (!IsEnabled() || m_items.empty()) {
         return Control::OnKeyDown(vkCode);
     }
-    const int last = static_cast<int>(m_items.size()) - 1;
-    switch (vkCode) {
-    case VK_LEFT:
-        SetSelectedIndex(m_selectedIndex <= 0 ? last : m_selectedIndex - 1);
+    const int n = static_cast<int>(m_items.size());
+    if (vkCode == VK_LEFT) {
+        int target = m_selectedIndex;
+        for (int step = 1; step <= n; ++step) {
+            int candidate = (target - step + n) % n;
+            if (IsItemEnabled(candidate)) {
+                SetSelectedIndex(candidate);
+                return true;
+            }
+        }
         return true;
-    case VK_RIGHT:
-        SetSelectedIndex(m_selectedIndex >= last ? 0 : m_selectedIndex + 1);
+    } else if (vkCode == VK_RIGHT) {
+        int target = m_selectedIndex;
+        for (int step = 1; step <= n; ++step) {
+            int candidate = (target + step) % n;
+            if (IsItemEnabled(candidate)) {
+                SetSelectedIndex(candidate);
+                return true;
+            }
+        }
         return true;
-    case VK_HOME:
-        SetSelectedIndex(0);
-        return true;
-    case VK_END:
-        SetSelectedIndex(last);
-        return true;
-    default:
-        return Control::OnKeyDown(vkCode);
     }
+    return Control::OnKeyDown(vkCode);
 }
 
 bool SegmentedControl::OnAnimationTick() {

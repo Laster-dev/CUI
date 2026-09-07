@@ -143,6 +143,14 @@ std::shared_ptr<UIElement> MainView::BuildFilesArea() {
         .Build();
     m_fpPayload->AddFilter("所有文件 (*.*)", "*.*");
 
+    m_fpWhite->OnPathChanged().Connect([this](FilePicker*, const std::string&) {
+        UpdateModeAvailability();
+    });
+
+    m_fpPayload->OnPathChanged().Connect([this](FilePicker*, const std::string&) {
+        UpdateModeAvailability();
+    });
+
     auto makeRow = [](const std::string& label, std::shared_ptr<UIElement> picker) {
         return Row(6.0f, {
             Text(label)
@@ -170,10 +178,14 @@ std::shared_ptr<UIElement> MainView::BuildFilesArea() {
 std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
     // 1. Patch 模式
     m_segPatchMode = ElementBuilder<SegmentedControl>()
-        .AddItem("覆盖 .text 代码段")
-        .AddItem("入口点注入Payload")
+        .AddItem(".text覆盖")
+        .AddItem("OEP覆盖")
+        .AddItem("末节扩容")
+        .AddItem("新增节区")
+        .AddItem("TLS回调")
+        .AddItem("导入表注入")
         .Height(26.0f)
-        .Width(260.0f)
+        .Width(480.0f)
         .Build();
     m_segPatchMode->SetSelectedIndex(0);
 
@@ -185,7 +197,7 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
         .Height(26.0f)
         .Width(280.0f)
         .Build();
-    m_segSubsystem->SetSelectedIndex(1);
+    m_segSubsystem->SetSelectedIndex(0);
 
     // 3. UAC 权限清单
     m_segUac = ElementBuilder<SegmentedControl>()
@@ -195,7 +207,7 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
         .Height(26.0f)
         .Width(280.0f)
         .Build();
-    m_segUac->SetSelectedIndex(1);
+    m_segUac->SetSelectedIndex(0);
 
     // 4. 开关
     m_swRemoveSig = ToggleSwitchTile("剥离数字签名", true).Build();
@@ -283,9 +295,78 @@ void MainView::ResetAll() {
     if (m_fpWhite) m_fpWhite->SetPath("");
     if (m_fpPayload) m_fpPayload->SetPath("");
     m_lastOutputPath.clear();
+    if (m_segPatchMode) {
+        for (int i = 0; i < 6; ++i) {
+            m_segPatchMode->SetItemEnabled(i, true);
+        }
+    }
     if (m_logView) m_logView->Clear();
     if (m_logView) {
         m_logView->Append(LogLevel::Info, "System", "已重置输入与日志");
+    }
+}
+
+void MainView::UpdateModeAvailability() {
+    if (!m_segPatchMode) return;
+
+    std::string whiteStr = m_fpWhite ? m_fpWhite->GetPath() : "";
+    std::string payloadStr = m_fpPayload ? m_fpPayload->GetPath() : "";
+
+    // 若尚未选全两个文件，重置所有模式为可用
+    if (whiteStr.empty() || payloadStr.empty()) {
+        for (int i = 0; i < 6; ++i) {
+            m_segPatchMode->SetItemEnabled(i, true);
+        }
+        return;
+    }
+
+    std::wstring whitePath = Utf8ToWide(whiteStr);
+    std::wstring payloadPath = Utf8ToWide(payloadStr);
+
+    if (!std::filesystem::exists(whitePath) || !std::filesystem::exists(payloadPath)) {
+        return;
+    }
+
+    Core::PatchModeAvailability avail;
+    if (!m_pePatcher->EvaluatePatchModes(whitePath, payloadPath, avail)) {
+        return;
+    }
+
+    // 0: .text覆盖
+    // 1: OEP覆盖
+    // 2: 末节扩容
+    // 3: 新增节区
+    // 4: TLS回调
+    // 5: 导入表注入
+    m_segPatchMode->SetItemEnabled(0, avail.canReplaceText);
+    m_segPatchMode->SetItemEnabled(1, avail.canInjectOep);
+    m_segPatchMode->SetItemEnabled(2, avail.canEnlargeLastSection);
+    m_segPatchMode->SetItemEnabled(3, avail.canAddNewSection);
+    m_segPatchMode->SetItemEnabled(4, avail.canTlsCallback);
+    m_segPatchMode->SetItemEnabled(5, avail.canImportInjection);
+
+    // 在日志栏给出明确的容量评估提示
+    std::string infoMsg = "载荷大小: " + std::to_string(avail.payloadSize) + " 字节 (";
+    char sizeBuf[64];
+    snprintf(sizeBuf, sizeof(sizeBuf), "%.2f KB", avail.payloadSize / 1024.0f);
+    infoMsg += sizeBuf;
+    infoMsg += ") | .text容量: " + std::to_string(avail.textSectionCapacity) + " 字节";
+    infoMsg += " | OEP余量: " + std::to_string(avail.oepRemainingCapacity) + " 字节";
+    m_logView->Append(LogLevel::Info, "PE", infoMsg);
+
+    std::vector<std::string> disabledModes;
+    if (!avail.canReplaceText) disabledModes.push_back(".text覆盖(空间不足)");
+    if (!avail.canInjectOep) disabledModes.push_back("OEP覆盖(空间不足)");
+    if (!avail.canAddNewSection) disabledModes.push_back("新增节区(节头空间不足)");
+    if (!avail.canImportInjection) disabledModes.push_back("导入表注入(需DLL格式)");
+
+    if (!disabledModes.empty()) {
+        std::string warnMsg = "已自动禁用不兼容模式: ";
+        for (size_t i = 0; i < disabledModes.size(); ++i) {
+            if (i > 0) warnMsg += ", ";
+            warnMsg += disabledModes[i];
+        }
+        m_logView->Append(LogLevel::Warn, "Patch", warnMsg);
     }
 }
 
@@ -342,7 +423,15 @@ void MainView::RunPatch() {
 
     // 读取选项
     int patchModeIdx = m_segPatchMode ? m_segPatchMode->GetSelectedIndex() : 0;
-    auto patchMode = (patchModeIdx == 1) ? Core::PatchMode::InjectEntryPoint : Core::PatchMode::ReplaceTextSection;
+    Core::PatchMode patchMode = Core::PatchMode::ReplaceTextSection;
+    switch (patchModeIdx) {
+    case 1: patchMode = Core::PatchMode::InjectEntryPoint; break;
+    case 2: patchMode = Core::PatchMode::EnlargeLastSection; break;
+    case 3: patchMode = Core::PatchMode::AddNewSection; break;
+    case 4: patchMode = Core::PatchMode::TlsCallback; break;
+    case 5: patchMode = Core::PatchMode::ImportInjection; break;
+    default: break;
+    }
 
     int subIdx = m_segSubsystem ? m_segSubsystem->GetSelectedIndex() : 0;
     auto subType = Core::SubsystemType::KeepOriginal;
@@ -357,8 +446,8 @@ void MainView::RunPatch() {
     bool bRemoveSig = m_swRemoveSig && m_swRemoveSig->GetIsOn();
     bool bWipeTimestamp = m_swWipeTimestamp && m_swWipeTimestamp->GetIsOn();
 
-    // 执行核心 Patch 逻辑
-    bool success = m_pePatcher->ExecutePatch(whitePath, payloadPath, m_lastOutputPath, patchMode);
+    // 执行核心 Patch 逻辑（数字签名在 Patch 阶段统一安全处理）
+    bool success = m_pePatcher->ExecutePatch(whitePath, payloadPath, m_lastOutputPath, patchMode, bRemoveSig);
     if (!success) {
         m_logView->Append(LogLevel::Error, "Patch", "Patch 失败，请检查上方日志详情");
         return;
@@ -370,12 +459,7 @@ void MainView::RunPatch() {
         }
     };
 
-    // 1. 剥离数字签名
-    if (bRemoveSig) {
-        Core::PeSecurity::RemoveSignature(m_lastOutputPath, logger);
-    }
-
-    // 2. 子系统转换
+    // 1. 子系统转换
     if (subType != Core::SubsystemType::KeepOriginal) {
         Core::PeSecurity::ConvertSubsystem(m_lastOutputPath, subType, logger);
     }
@@ -390,7 +474,20 @@ void MainView::RunPatch() {
         Core::PeSecurity::WipeTimeDateStamp(m_lastOutputPath, 0, logger);
     }
 
-    m_logView->Append(LogLevel::Info, "Complete", "Patch 处理完成。");
+    // 导入表注入模式: 载荷 DLL 未被嵌入，需复制到输出目录与主程序一同分发
+    if (patchMode == Core::PatchMode::ImportInjection) {
+        std::filesystem::path payloadFs = payloadPath;
+        const std::wstring dllName = payloadFs.filename().wstring();
+        std::error_code copyEc;
+        std::filesystem::copy_file(payloadFs, outDir / dllName, std::filesystem::copy_options::overwrite_existing, copyEc);
+        if (!copyEc) {
+            m_logView->Append(LogLevel::Success, "Complete", "载荷 DLL 已复制到输出目录，分发时请与主程序放在同一目录");
+        } else {
+            m_logView->Append(LogLevel::Warn, "Complete", "载荷 DLL 复制到输出目录失败，请手动分发");
+        }
+    }
+
+    m_logView->Append(LogLevel::Success, "Complete", "Patch 处理完成。");
     m_logView->Append(LogLevel::Info, "Complete", "输出文件: " + outStr);
 
     // Patch 完成后自动弹出资源管理器定位选中该文件
