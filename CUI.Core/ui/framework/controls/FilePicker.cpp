@@ -74,6 +74,53 @@ float FilePicker::PopupProgress() const {
     return m_popupAnim.Current();
 }
 
+FilePicker::~FilePicker() {
+    if (auto* dnd = DragDropService::Current()) {
+        dnd->AbortIfParticipant(nullptr, this);
+    }
+}
+
+DragDropEffects FilePicker::OnDragOver(Point pt, const DataPackage& data, DragDropEffects allowed) {
+    (void)pt;
+    if (!m_allowDrop) {
+        return DragDropEffects::None;
+    }
+    if (!data.HasFiles()) {
+        return DragDropEffects::None;
+    }
+    if (!m_dropHover) {
+        m_dropHover = true;
+        MarkPickerDirty();
+    }
+    if (HasEffect(allowed, DragDropEffects::Copy)) {
+        return DragDropEffects::Copy;
+    }
+    return allowed;
+}
+
+void FilePicker::OnDragLeave() {
+    if (m_dropHover) {
+        m_dropHover = false;
+        MarkPickerDirty();
+    }
+}
+
+bool FilePicker::OnDrop(Point pt, DataPackage& data, DragDropEffects effect) {
+    (void)pt;
+    (void)effect;
+    m_dropHover = false;
+    if (!m_allowDrop || !data.HasFiles()) {
+        return false;
+    }
+    const auto& files = data.GetFiles();
+    if (files.empty()) {
+        return false;
+    }
+    // 取第一个文件路径填入（多文件拖入时忽略其余）
+    SetPath(files.front());
+    return true;
+}
+
 void FilePicker::SetPath(const std::string& path) {
     if (GetText() == path) {
         return;
@@ -339,8 +386,16 @@ void FilePicker::OnRender(GraphicsContext& ctx) {
     const float borderW = m_isFocused ? 1.5f : GetBorderThickness();
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
-    if (borderW > 0.0f) {
-        ctx.DrawRoundedRect(m_bounds, radius, border, borderW);
+    if (m_dropHover) {
+        // 拖拽悬停：高亮提示可放置
+        ctx.FillRoundedRect(m_bounds, radius, BlendColor(tokens.accentColor, bg, 0.82f));
+    }
+    if (borderW > 0.0f || m_dropHover) {
+        ctx.DrawRoundedRect(
+            m_bounds,
+            radius,
+            m_dropHover ? tokens.accentColor : border,
+            m_dropHover ? 2.0f : borderW);
     }
 
     const Rect browse = BrowseRect();

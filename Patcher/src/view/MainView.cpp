@@ -313,7 +313,7 @@ void MainView::RunPatch() {
 
     // 校验输入
     if (whiteStr.empty() || payloadStr.empty()) {
-        m_logView->Append(LogLevel::Warn, "Validate", "白文件或载荷路径未填写");
+        m_logView->Append(LogLevel::Error, "Validate", "白文件或载荷路径未填写");
         return;
     }
 

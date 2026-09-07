@@ -22,7 +22,11 @@ inline std::string WstrToUtf8(const std::wstring& wstr) {
 
 enum class PatchMode {
     ReplaceTextSection = 0,  // 覆盖 .text 代码段
-    InjectEntryPoint = 1     // 入口点注入 / 劫持
+    InjectEntryPoint = 1,    // 入口点注入 / 劫持
+    EnlargeLastSection = 2,  // 扩容末尾节注入（扩 SizeOfRawData/VirtualSize 并重定向入口点）
+    AddNewSection = 3,       // 新增独立节注入（追加节头 + 追加数据并重定向入口点）
+    TlsCallback = 4,         // TLS 回调注入（不修改入口点，OEP 之前执行）
+    ImportInjection = 5      // 导入表注入（载荷须为 DLL，由系统加载器加载）
 };
 
 struct PeFileInfo {
@@ -66,6 +70,19 @@ public:
 
 private:
     void Log(CUI::LogLevel level, const std::string& tag, const std::string& msg);
+
+    // ---- 扩展注入模式 ----
+    // 定位占据文件末尾的节，扩容 RawSize/VirtualSize/SizeOfImage，返回可安全写入的文件偏移与对应 RVA
+    bool ExpandLastSection(std::vector<uint8_t>& buf, size_t neededBytes,
+                           uint32_t& outAppendFileOffset, uint32_t& outAppendRVA, DWORD extraCharacteristics);
+    // 签名 Overlay 迁移：附加数据前摘除证书块，写出前再挂回文件末尾，避免载荷覆盖证书
+    bool DetachSecurityDirectory(std::vector<uint8_t>& buf, std::vector<uint8_t>& certOut);
+    bool AttachSecurityDirectory(std::vector<uint8_t>& buf, const std::vector<uint8_t>& certIn);
+
+    bool InjectByEnlargeLastSection(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload);
+    bool InjectByNewSection(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload);
+    bool InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload);
+    bool InjectByImportTable(std::vector<uint8_t>& buf, const std::wstring& payloadPath);
 
     LogCallback m_logger;
 };

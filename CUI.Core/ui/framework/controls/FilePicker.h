@@ -2,15 +2,16 @@
 #include "Control.h"
 #include "FileBrowserHelper.h"
 #include "../window/PopupHost.h"
+#include "../dnd/DragDropService.h"
 #include <string>
 #include <vector>
 
 namespace CUI {
 
-class FilePicker : public Control, public IPopup {
+class FilePicker : public Control, public IPopup, public IDropTarget {
 public:
     FilePicker();
-    virtual ~FilePicker() = default;
+    virtual ~FilePicker();
 
     virtual const char* GetClassName() const override { return "FilePicker"; }
     virtual HCURSOR GetCursor() const override;
@@ -51,6 +52,14 @@ public:
     void AddFilter(const std::string& name, const std::string& spec);
     void ClearFilters();
 
+    // 拖放支持：默认允许，将文件拖到选择器上即可填入路径
+    void SetAllowDrop(bool allow) { m_allowDrop = allow; }
+    bool GetAllowDrop() const { return m_allowDrop; }
+
+    DragDropEffects OnDragOver(Point pt, const DataPackage& data, DragDropEffects allowed) override;
+    void OnDragLeave() override;
+    bool OnDrop(Point pt, DataPackage& data, DragDropEffects effect) override;
+
     Event<FilePicker*, const std::string&>& OnPathChanged() { return m_onPathChangedEvent; }
 
 private:
@@ -76,6 +85,8 @@ private:
     FileBrowserSession m_browser;
     FileBrowserBreadcrumbHost m_breadcrumbHost;
     FileBrowserTreeHost m_treeHost;
+    bool m_allowDrop = true;
+    bool m_dropHover = false;
     bool m_hoverUp = false;
     bool m_hoverFilter = false;
     bool m_hoverCancel = false;
