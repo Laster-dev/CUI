@@ -1101,6 +1101,9 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
         0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 
     m_dpiScale = GetDpiScaleForWindow(m_hwnd);
+    if (m_minWindowWidth > 0 || m_minWindowHeight > 0) {
+        SetMinimumSize(m_minWindowWidth, m_minWindowHeight);
+    }
 
     m_themeMode = ThemeManager::Instance().GetThemeMode();
     UpdateDwmChrome();
@@ -1343,6 +1346,33 @@ void Window::SetTransparentMode(bool enabled) {
         m_sceneLayer.ResetCache();
         m_themeOldSceneLayer.ResetCache();
         RequestFullRepaint();
+    }
+}
+
+void Window::SetMinimumSize(int width, int height) {
+    m_minWindowWidth = (std::max)(0, width);
+    m_minWindowHeight = (std::max)(0, height);
+
+    if (!m_hwnd || (m_minWindowWidth <= 0 && m_minWindowHeight <= 0)) {
+        return;
+    }
+
+    const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+    RECT rc{};
+    GetWindowRect(m_hwnd, &rc);
+    const int minWidth = static_cast<int>(std::ceil(static_cast<float>(m_minWindowWidth) * scale));
+    const int minHeight = static_cast<int>(std::ceil(static_cast<float>(m_minWindowHeight) * scale));
+    const int widthNow = rc.right - rc.left;
+    const int heightNow = rc.bottom - rc.top;
+    if (widthNow < minWidth || heightNow < minHeight) {
+        SetWindowPos(
+            m_hwnd,
+            nullptr,
+            rc.left,
+            rc.top,
+            (std::max)(widthNow, minWidth),
+            (std::max)(heightNow, minHeight),
+            SWP_NOZORDER | SWP_NOACTIVATE);
     }
 }
 
@@ -1810,6 +1840,21 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         break;
+
+    case WM_GETMINMAXINFO: {
+        const LRESULT result = DefWindowProc(m_hwnd, uMsg, wParam, lParam);
+        if (m_minWindowWidth > 0 || m_minWindowHeight > 0) {
+            auto* info = reinterpret_cast<MINMAXINFO*>(lParam);
+            if (info) {
+                const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+                const LONG minWidth = static_cast<LONG>(std::ceil(static_cast<float>(m_minWindowWidth) * scale));
+                const LONG minHeight = static_cast<LONG>(std::ceil(static_cast<float>(m_minWindowHeight) * scale));
+                info->ptMinTrackSize.x = (std::max)(info->ptMinTrackSize.x, minWidth);
+                info->ptMinTrackSize.y = (std::max)(info->ptMinTrackSize.y, minHeight);
+            }
+        }
+        return result;
+    }
 
     case WM_NCHITTEST: {
         POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };

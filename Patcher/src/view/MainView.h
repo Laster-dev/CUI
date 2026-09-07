@@ -49,6 +49,7 @@ private:
 
     // 贴底日志框与通知
     std::shared_ptr<CUI::LogView> m_logView;
+    float m_lastLogHeight = 0.0f;
     std::shared_ptr<CUI::ToastCenter> m_toastCenter;
 
     std::unique_ptr<Core::PePatcher> m_pePatcher;

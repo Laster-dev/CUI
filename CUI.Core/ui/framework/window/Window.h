@@ -44,6 +44,7 @@ Window();
         explicit FluentBuilder(Window& window) : m_window(window) {}
         FluentBuilder& Title(std::string title) { m_title = std::move(title); return *this; }
         FluentBuilder& Size(int width, int height) { m_width = width; m_height = height; return *this; }
+        FluentBuilder& MinimumSize(int width, int height) { m_minWidth = width; m_minHeight = height; return *this; }
         FluentBuilder& Transparent(bool enabled = true) { m_transparent = enabled; return *this; }
         FluentBuilder& Theme(CUI::ThemeMode mode) { m_theme = mode; return *this; }
         FluentBuilder& Backdrop(CUI::BackdropType type) { m_backdrop = type; return *this; }
@@ -60,6 +61,9 @@ Window();
         }
         FluentBuilder& Build() {
             if (!m_built) {
+                if (m_minWidth > 0 || m_minHeight > 0) {
+                    m_window.SetMinimumSize(m_minWidth, m_minHeight);
+                }
                 m_built = m_window.Create(m_title, m_width, m_height, m_transparent);
                 if (m_built) {
                     m_window.SetThemeMode(m_theme);
@@ -79,6 +83,8 @@ Window();
         std::string m_title = "CUI Modern Window";
         int m_width = 1280;
         int m_height = 800;
+        int m_minWidth = 0;
+        int m_minHeight = 0;
         bool m_transparent = false;
         CUI::ThemeMode m_theme = CUI::ThemeMode::Dark;
         CUI::BackdropType m_backdrop = CUI::BackdropType::None;
@@ -189,6 +195,16 @@ Window();
      * @brief 标记整棵树重新测算布局并执行立即重排。
      */
     void Relayout();
+
+    /**
+     * @brief 设置窗口可调整到的最小外部尺寸（单位：逻辑 DIP）。
+     */
+    void SetMinimumSize(int width, int height);
+
+    /**
+     * @brief 获取窗口当前设置的最小外部尺寸（单位：逻辑 DIP）。
+     */
+    Size GetMinimumSize() const { return Size(static_cast<float>(m_minWindowWidth), static_cast<float>(m_minWindowHeight)); }
 
     /**
      * @brief 获取窗口的根级元素。
@@ -431,7 +447,9 @@ private:
     float m_themeRippleProgress = 0.0f;                                 // 主题水波纹动画的运行进度 (0.0f - 1.0f)
     std::chrono::steady_clock::time_point m_themeRippleStartTime;       // 主题水波纹动画开始时的高精时间戳
     bool m_showRenderStatsOverlay = false;                              // 是否在画面右上角贴片显示性能计数器
-    bool m_lowPerformanceMode = false;                                  // 低画质性能节省运行模式
+    int m_minWindowWidth = 0;                                           // 窗口最小外部宽度（逻辑 DIP）
+    int m_minWindowHeight = 0;                                          // 窗口最小外部高度（逻辑 DIP）
+    bool m_lowPerformanceMode = false;                                 // 低画质性能节省运行模式
     bool m_flushInputDirty = false;                                     // 标识输入设备状态发生改变，窗口下一次 Relayout 必须刷新
     CUI::BackdropType m_backdropType = CUI::BackdropType::None;                   // 当前窗口下发的毛玻璃后置背景类型样式
     bool PumpFrameStep(std::chrono::steady_clock::time_point now);     // 驱动单帧排版、动画计算与画面提交

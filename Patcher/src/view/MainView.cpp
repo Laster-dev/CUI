@@ -10,6 +10,8 @@
 #include <shellapi.h>
 #include <filesystem>
 #include <format>
+#include <algorithm>
+#include <cmath>
 
 using namespace CUI;
 using namespace CUI::DSL;
@@ -68,7 +70,9 @@ std::shared_ptr<UIElement> MainView::Build() {
     // 日志框初始化：默认展开，直接贴底放，统一使用常驻边框色
     m_logView = LogViewWidget().Build();
     m_logView->SetExpanded(true);
+    m_logView->SetCornerRadius(0.0f);
     m_logView->SetAlign(Alignment::Stretch);
+    m_lastLogHeight = m_logView->GetExpandedHeight();
 
     m_toastCenter = std::make_shared<ToastCenter>();
     DSL::Borrow(m_toastCenter).Id("toastCenter");
@@ -82,20 +86,31 @@ std::shared_ptr<UIElement> MainView::Build() {
 
     m_logView->Append(LogLevel::Info, "System", "程序初始化完成。");
 
-    // 日志框折叠/展开联动窗口自适应缩放（参照 ElNino 设计）
+    // 日志框折叠/展开只调整窗口高度差，不再写死窗口总高度。
+    // 这样用户手动调整窗口大小后，展开日志不会挤压上方控件的可用空间。
     m_logView->OnExpandedChanged().Connect([this](LogView* lv) {
         if (!m_window || !m_window->GetHWND()) return;
         HWND hwnd = m_window->GetHWND();
         RECT rc{};
         GetWindowRect(hwnd, &rc);
-        int currentW = rc.right - rc.left;
-        int currentH = rc.bottom - rc.top;
+        const float newLogHeight = lv->IsExpanded()
+            ? lv->GetExpandedHeight()
+            : 32.0f;
+        const float heightDelta = (newLogHeight - m_lastLogHeight)
+            * ((m_window->GetDpiScale() > 0.001f) ? m_window->GetDpiScale() : 1.0f);
+        m_lastLogHeight = newLogHeight;
+        if (std::abs(heightDelta) < 0.5f) return;
 
-        // 展开时恢复正常高度 520，合上折叠时自动缩小到贴底高度 288
-        int targetH = lv->IsExpanded() ? 520 : 288;
-        if (currentH != targetH) {
-            SetWindowPos(hwnd, nullptr, rc.left, rc.top, currentW, targetH, SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
-        }
+        const int configuredMinHeight = static_cast<int>(std::ceil(
+            m_window->GetMinimumSize().height
+            * ((m_window->GetDpiScale() > 0.001f) ? m_window->GetDpiScale() : 1.0f)));
+        const int targetH = (std::max)({
+            1,
+            configuredMinHeight,
+            static_cast<int>(std::lround(static_cast<float>(rc.bottom - rc.top) + heightDelta))
+        });
+        SetWindowPos(hwnd, nullptr, rc.left, rc.top, rc.right - rc.left, targetH,
+            SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     });
 
     // 上部操作与配置区域：无大间距、无嵌套容器、全面左对齐

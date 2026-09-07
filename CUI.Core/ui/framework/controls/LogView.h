@@ -60,6 +60,7 @@ public:
 
     void SetExpanded(bool expanded);
     bool IsExpanded() const { return m_expanded; }
+    float GetExpandedHeight() const { return m_expandedHeight; }
 
     void SetMaxEntries(uint32_t capacity);
     uint32_t GetMaxEntries() const { return m_cap; }

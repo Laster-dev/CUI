@@ -12,7 +12,8 @@ int main() {
 
     window.Fluent()
         .Title("PE Patch 工具")
-        .Size(680, 520)
+        .Size(680, 580)
+        .MinimumSize(560, 320)
         .Root(root)
         .Build()
         .Show()
