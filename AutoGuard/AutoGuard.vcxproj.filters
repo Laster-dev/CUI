@@ -38,6 +38,21 @@
     <ClCompile Include="viewmodel\MainViewModel.cpp">
       <Filter>ViewModel</Filter>
     </ClCompile>
+    <ClCompile Include="view\IconHelper.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="view\OverviewView.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="view\TreeCategoryView.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="view\DetailStripView.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
+    <ClCompile Include="view\SettingsView.cpp">
+      <Filter>View</Filter>
+    </ClCompile>
     <ClCompile Include="view\MainView.cpp">
       <Filter>View</Filter>
     </ClCompile>
@@ -57,6 +72,21 @@
     </ClInclude>
     <ClInclude Include="viewmodel\MainViewModel.h">
       <Filter>ViewModel</Filter>
+    </ClInclude>
+    <ClInclude Include="view\IconHelper.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="view\OverviewView.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="view\TreeCategoryView.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="view\DetailStripView.h">
+      <Filter>View</Filter>
+    </ClInclude>
+    <ClInclude Include="view\SettingsView.h">
+      <Filter>View</Filter>
     </ClInclude>
     <ClInclude Include="view\MainView.h">
       <Filter>View</Filter>

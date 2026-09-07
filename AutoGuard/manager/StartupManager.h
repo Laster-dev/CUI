@@ -13,9 +13,16 @@ public:
     static bool DeleteEntry(const StartupEntry& entry, std::string& outMessage);
     static bool JumpToImage(const StartupEntry& entry);
     static bool JumpToEntry(const StartupEntry& entry);
-    static bool SearchOnline(const StartupEntry& entry);
     static bool CopyToClipboard(HWND hwnd, const std::string& text);
     static bool ExportReport(const ScanSummary& summary, const std::wstring& outputPath, std::string& outMessage);
+
+    // Dedicated subsystem tools
+    static bool RunScheduledTask(const std::string& taskName, std::string& outMessage);
+    static bool OpenTaskScheduler();
+    static bool ControlService(const std::string& serviceName, const std::string& action, std::string& outMessage);
+    static bool OpenServiceManager();
+    static bool OpenStartupFolder(bool isUser);
+    static bool OpenNetworkConnections();
 };
 
 } // namespace AutoGuard

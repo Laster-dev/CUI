@@ -153,6 +153,11 @@
     <ClCompile Include="scanner\StartupScanner.cpp" />
     <ClCompile Include="manager\StartupManager.cpp" />
     <ClCompile Include="viewmodel\MainViewModel.cpp" />
+    <ClCompile Include="view\IconHelper.cpp" />
+    <ClCompile Include="view\OverviewView.cpp" />
+    <ClCompile Include="view\TreeCategoryView.cpp" />
+    <ClCompile Include="view\DetailStripView.cpp" />
+    <ClCompile Include="view\SettingsView.cpp" />
     <ClCompile Include="view\MainView.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -161,6 +166,11 @@
     <ClInclude Include="scanner\StartupScanner.h" />
     <ClInclude Include="manager\StartupManager.h" />
     <ClInclude Include="viewmodel\MainViewModel.h" />
+    <ClInclude Include="view\IconHelper.h" />
+    <ClInclude Include="view\OverviewView.h" />
+    <ClInclude Include="view\TreeCategoryView.h" />
+    <ClInclude Include="view\DetailStripView.h" />
+    <ClInclude Include="view\SettingsView.h" />
     <ClInclude Include="view\MainView.h" />
   </ItemGroup>
   <ItemGroup>

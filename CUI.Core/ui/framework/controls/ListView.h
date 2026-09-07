@@ -31,6 +31,7 @@ struct ListViewColumn {
 struct ListViewCellData {
     std::string text;
     std::shared_ptr<UIElement> customElement = nullptr;
+    Color textColor{ 0.0f, 0.0f, 0.0f, 0.0f };
 };
 
 // Virtual data source for high-performance 100k+ row ListView
@@ -154,6 +155,12 @@ public:
     void SetRowIcons(const std::vector<HICON>& icons);
     void ClearRowIcons();
 
+    // Optional per-row tags (string identifiers for items)
+    void SetRowTags(const std::vector<std::string>& tags);
+    void ClearRowTags();
+    const std::vector<std::string>& GetRowTags() const { return m_rowTags; }
+    std::string GetRowTag(int rowIndex) const;
+
     // Virtual Mode
     void SetVirtualMode(int rowCount, ListViewDataSource* dataSource);
     void SetVirtualRowCount(int rowCount);
@@ -162,6 +169,10 @@ public:
     // Row Height
     float GetRowHeight() const { return m_rowHeight; }
     void SetRowHeight(float h) { m_rowHeight = h; }
+
+    // Scrollbars
+    void SetShowScrollBars(bool show) { m_showScrollBars = show; InvalidateRowsLayer(); }
+    bool GetShowScrollBars() const { return m_showScrollBars; }
 
     // Content area column/row separators (Everything-style lists usually hide these).
     void SetShowGridLines(bool show) { m_showGridLines = show; InvalidateRowsLayer(); }
@@ -180,6 +191,7 @@ public:
     int GetCaretIndex() const { return m_caretIndex; }
     void SetCaretIndex(int index);
     void EnsureVisible(int rowIndex);
+    void SortByColumn(int col, bool ascending);
 
     PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex; // 主选中行（caret 行）索引的响应式双向绑定属性代理
 
@@ -215,6 +227,7 @@ private:
     std::vector<ListViewColumn> m_columns;
     std::vector<std::vector<ListViewCellData>> m_rows;
     std::vector<HICON> m_rowIcons;
+    std::vector<std::string> m_rowTags;
 
     // Virtual mode state
     bool m_virtualMode = false;
@@ -233,6 +246,7 @@ private:
     bool m_sortAscending = true;
     std::shared_ptr<ContextMenu> m_headerContextMenu;
     ShellContextMenuHandler m_shellContextMenuHandler;
+    bool m_showScrollBars = true;
 
     // Column resizing state
     bool m_isResizingColumn = false;

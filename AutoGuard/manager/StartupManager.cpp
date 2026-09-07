@@ -36,25 +36,25 @@ bool StartupManager::ToggleStatus(StartupEntry& entry, bool enable, std::string&
     }
 
     if (entry.location == StartupLocation::StartupFolder) {
-        std::wstring currentPath = Widen(entry.command);
-        if (enable) {
-            if (currentPath.size() > 9 && currentPath.substr(currentPath.size() - 9) == L".disabled") {
-                std::wstring newPath = currentPath.substr(0, currentPath.size() - 9);
-                if (MoveFileW(currentPath.c_str(), newPath.c_str())) {
-                    entry.status = StartupStatus::Enabled;
-                    entry.command = Narrow(newPath);
-                    outMessage = "已启用启动文件夹项目。";
-                    return true;
-                }
+        HKEY root = (entry.scope == "User") ? HKEY_CURRENT_USER : HKEY_LOCAL_MACHINE;
+        std::wstring approvedSubKey = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\StartupFolder";
+        HKEY hApproved = nullptr;
+        if (RegCreateKeyExW(root, approvedSubKey.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hApproved, nullptr) == ERROR_SUCCESS) {
+            BYTE data[12]{};
+            if (enable) {
+                data[0] = 0x02; // Enabled
+            } else {
+                data[0] = 0x03; // Disabled
+                FILETIME ft;
+                GetSystemTimeAsFileTime(&ft);
+                memcpy(data + 4, &ft, sizeof(FILETIME));
             }
-        } else {
-            std::wstring newPath = currentPath + L".disabled";
-            if (MoveFileW(currentPath.c_str(), newPath.c_str())) {
-                entry.status = StartupStatus::Disabled;
-                entry.command = Narrow(newPath);
-                outMessage = "已禁用启动文件夹项目。";
-                return true;
-            }
+            std::wstring valName = Widen(entry.name);
+            RegSetValueExW(hApproved, valName.c_str(), 0, REG_BINARY, data, sizeof(data));
+            RegCloseKey(hApproved);
+            entry.status = enable ? StartupStatus::Enabled : StartupStatus::Disabled;
+            outMessage = enable ? "已启用启动文件夹项目。" : "已禁用启动文件夹项目。";
+            return true;
         }
         outMessage = "修改启动文件夹项目状态失败（可能需要管理员权限）。";
         return false;
@@ -63,48 +63,32 @@ bool StartupManager::ToggleStatus(StartupEntry& entry, bool enable, std::string&
     if (entry.location == StartupLocation::RegistryRun) {
         HKEY root = entry.isHklm ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER;
         std::string runKeyPath = entry.registryKey.empty() ? "Software\\Microsoft\\Windows\\CurrentVersion\\Run" : entry.registryKey;
-        std::string disabledKeyPath = "Software\\AutoGuard\\DisabledRun";
-
-        if (!enable) {
-            HKEY hSrc = nullptr;
-            if (RegOpenKeyExA(root, runKeyPath.c_str(), 0, KEY_READ | KEY_WRITE, &hSrc) == ERROR_SUCCESS) {
-                char val[4096]{};
-                DWORD valSize = sizeof(val);
-                DWORD type = 0;
-                if (RegQueryValueExA(hSrc, entry.name.c_str(), nullptr, &type, reinterpret_cast<BYTE*>(val), &valSize) == ERROR_SUCCESS) {
-                    HKEY hDst = nullptr;
-                    if (RegCreateKeyExA(root, disabledKeyPath.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hDst, nullptr) == ERROR_SUCCESS) {
-                        RegSetValueExA(hDst, entry.name.c_str(), 0, type, reinterpret_cast<BYTE*>(val), valSize);
-                        RegCloseKey(hDst);
-                        RegDeleteValueA(hSrc, entry.name.c_str());
-                        RegCloseKey(hSrc);
-                        entry.status = StartupStatus::Disabled;
-                        outMessage = "已禁用注册表启动项并安全备份。";
-                        return true;
-                    }
-                }
-                RegCloseKey(hSrc);
-            }
+        std::wstring approvedSubKey;
+        if (runKeyPath.find("Wow6432Node") != std::string::npos || runKeyPath.find("WOW6432Node") != std::string::npos) {
+            approvedSubKey = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run32";
         } else {
-            HKEY hDst = nullptr;
-            if (RegOpenKeyExA(root, disabledKeyPath.c_str(), 0, KEY_READ | KEY_WRITE, &hDst) == ERROR_SUCCESS) {
-                char val[4096]{};
-                DWORD valSize = sizeof(val);
-                DWORD type = 0;
-                if (RegQueryValueExA(hDst, entry.name.c_str(), nullptr, &type, reinterpret_cast<BYTE*>(val), &valSize) == ERROR_SUCCESS) {
-                    HKEY hSrc = nullptr;
-                    if (RegOpenKeyExA(root, runKeyPath.c_str(), 0, KEY_WRITE, &hSrc) == ERROR_SUCCESS) {
-                        RegSetValueExA(hSrc, entry.name.c_str(), 0, type, reinterpret_cast<BYTE*>(val), valSize);
-                        RegCloseKey(hSrc);
-                        RegDeleteValueA(hDst, entry.name.c_str());
-                        RegCloseKey(hDst);
-                        entry.status = StartupStatus::Enabled;
-                        outMessage = "已重新启用注册表启动项。";
-                        return true;
-                    }
-                }
-                RegCloseKey(hDst);
+            approvedSubKey = L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+        }
+
+        HKEY hApproved = nullptr;
+        REGSAM sam = KEY_WRITE | (entry.isHklm ? KEY_WOW64_64KEY : 0);
+        if (RegCreateKeyExW(root, approvedSubKey.c_str(), 0, nullptr, 0, sam, nullptr, &hApproved, nullptr) == ERROR_SUCCESS ||
+            RegCreateKeyExW(root, approvedSubKey.c_str(), 0, nullptr, 0, KEY_WRITE, nullptr, &hApproved, nullptr) == ERROR_SUCCESS) {
+            BYTE data[12]{};
+            if (enable) {
+                data[0] = 0x02; // Windows Standard Enabled
+            } else {
+                data[0] = 0x03; // Windows Standard Disabled
+                FILETIME ft;
+                GetSystemTimeAsFileTime(&ft);
+                memcpy(data + 4, &ft, sizeof(FILETIME));
             }
+            std::wstring valName = Widen(entry.name);
+            RegSetValueExW(hApproved, valName.c_str(), 0, REG_BINARY, data, sizeof(data));
+            RegCloseKey(hApproved);
+            entry.status = enable ? StartupStatus::Enabled : StartupStatus::Disabled;
+            outMessage = enable ? "已启用注册表启动项。" : "已禁用注册表启动项。";
+            return true;
         }
         outMessage = "修改注册表状态失败（可能需要管理员权限）。";
         return false;
@@ -250,7 +234,8 @@ bool StartupManager::JumpToEntry(const StartupEntry& entry) {
         entry.location == StartupLocation::AppInit || entry.location == StartupLocation::KnownDlls ||
         entry.location == StartupLocation::BootExecute || entry.location == StartupLocation::WinsockProvider ||
         entry.location == StartupLocation::PrintMonitor || entry.location == StartupLocation::LsaPackage ||
-        entry.location == StartupLocation::ComHijack) {
+        entry.location == StartupLocation::NetworkProvider || entry.location == StartupLocation::ComHijack ||
+        entry.location == StartupLocation::AppCertDlls || entry.location == StartupLocation::BrowserExtension) {
 
         std::string keyPath = entry.source;
         size_t atPos = keyPath.find('@');
@@ -284,23 +269,11 @@ bool StartupManager::JumpToEntry(const StartupEntry& entry) {
         return true;
     }
 
-    if (entry.location == StartupLocation::StartupFolder) {
+    if (entry.location == StartupLocation::StartupFolder || entry.location == StartupLocation::OfficeAddin) {
         return JumpToImage(entry);
     }
 
     return false;
-}
-
-bool StartupManager::SearchOnline(const StartupEntry& entry) {
-    std::string searchTarget = entry.name;
-    if (!entry.executablePath.empty()) {
-        try {
-            searchTarget = std::filesystem::path(Widen(entry.executablePath)).filename().string();
-        } catch (...) {}
-    }
-    std::wstring url = L"https://www.virustotal.com/gui/search/" + Widen(searchTarget);
-    ShellExecuteW(nullptr, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-    return true;
 }
 
 bool StartupManager::CopyToClipboard(HWND hwnd, const std::string& text) {
@@ -347,6 +320,94 @@ bool StartupManager::ExportReport(const ScanSummary& summary, const std::wstring
     }
 
     outMessage = "报告已成功导出！";
+    return true;
+}
+
+bool StartupManager::RunScheduledTask(const std::string& taskName, std::string& outMessage) {
+    if (taskName.empty()) {
+        outMessage = "未指定任务名称。";
+        return false;
+    }
+    std::wstring params = L"/run /tn \"" + Widen(taskName) + L"\"";
+    HINSTANCE res = ShellExecuteW(nullptr, L"open", L"schtasks.exe", params.c_str(), nullptr, SW_HIDE);
+    if (reinterpret_cast<INT_PTR>(res) > 32) {
+        outMessage = "已请求立即运行计划任务：" + taskName;
+        return true;
+    }
+    outMessage = "运行计划任务失败。";
+    return false;
+}
+
+bool StartupManager::OpenTaskScheduler() {
+    ShellExecuteW(nullptr, L"open", L"taskschd.msc", nullptr, nullptr, SW_SHOWNORMAL);
+    return true;
+}
+
+bool StartupManager::ControlService(const std::string& serviceName, const std::string& action, std::string& outMessage) {
+    if (serviceName.empty()) {
+        outMessage = "未指定服务名称。";
+        return false;
+    }
+    SC_HANDLE manager = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+    if (!manager) {
+        outMessage = "无法打开服务管理器（需管理员权限）。";
+        return false;
+    }
+
+    SC_HANDLE service = OpenServiceW(manager, Widen(serviceName).c_str(), SERVICE_START | SERVICE_STOP | SERVICE_QUERY_STATUS);
+    if (!service) {
+        CloseServiceHandle(manager);
+        outMessage = "打开服务失败：" + serviceName;
+        return false;
+    }
+
+    bool ok = false;
+    if (action == "start") {
+        if (StartServiceW(service, 0, nullptr)) {
+            outMessage = "已成功发送服务启动指令。";
+            ok = true;
+        } else {
+            DWORD err = GetLastError();
+            outMessage = (err == ERROR_SERVICE_ALREADY_RUNNING) ? "服务已处于运行中状态。" : "启动服务失败。";
+        }
+    } else if (action == "stop") {
+        SERVICE_STATUS status{};
+        if (::ControlService(service, SERVICE_CONTROL_STOP, &status)) {
+            outMessage = "已成功发送服务停止指令。";
+            ok = true;
+        } else {
+            outMessage = "停止服务失败。";
+        }
+    } else if (action == "restart") {
+        SERVICE_STATUS status{};
+        ::ControlService(service, SERVICE_CONTROL_STOP, &status);
+        Sleep(500);
+        if (StartServiceW(service, 0, nullptr)) {
+            outMessage = "已成功重启服务。";
+            ok = true;
+        } else {
+            outMessage = "重启服务失败。";
+        }
+    }
+
+    CloseServiceHandle(service);
+    CloseServiceHandle(manager);
+    return ok;
+}
+
+bool StartupManager::OpenServiceManager() {
+    ShellExecuteW(nullptr, L"open", L"services.msc", nullptr, nullptr, SW_SHOWNORMAL);
+    return true;
+}
+
+bool StartupManager::OpenStartupFolder(bool isUser) {
+    std::wstring folder = isUser ? L"shell:startup" : L"shell:common startup";
+    ShellExecuteW(nullptr, L"open", folder.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    return true;
+}
+
+bool StartupManager::OpenNetworkConnections() {
+    ShellExecuteW(nullptr, L"open", L"ncpa.cpl", nullptr, nullptr, SW_SHOWNORMAL);
     return true;
 }
 

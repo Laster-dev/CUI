@@ -122,7 +122,7 @@ LogView::LogView() {
     m_buf.resize(m_cap);
     DSL::Borrow(this)
         .BackgroundToken(ThemeTokenId::CardBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderToken(ThemeTokenId::FocusedBorder)
         .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderThickness(1.0f)
         .CornerRadius(6.0f)

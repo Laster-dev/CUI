@@ -8,14 +8,17 @@
 #include <functional>
 #include <future>
 #include <map>
+#include <unordered_set>
 
 namespace AutoGuard {
 
-struct TreeGroupNode {
-    std::string title;
-    std::string icon;
-    StartupLocation location = StartupLocation::Unknown;
-    std::vector<StartupEntry> entries;
+struct TreeListRow {
+    bool isGroupHeader = false;
+    std::string groupTitle;
+    std::string groupIcon;
+    bool isExpanded = true;
+    size_t groupCount = 0;
+    StartupEntry entry;
 };
 
 class MainViewModel {
@@ -23,8 +26,8 @@ public:
     MainViewModel();
     ~MainViewModel() = default;
 
+    void ScanSync();
     void StartScan(std::function<void()> onCompleted = nullptr);
-    bool CheckScanFinished();
 
     void SetCategory(StartupCategory category);
     StartupCategory GetCategory() const { return m_activeCategory; }
@@ -36,7 +39,11 @@ public:
     const std::string& GetSelectedId() const { return m_selectedId; }
     const StartupEntry* GetSelectedEntry() const;
 
-    std::vector<TreeGroupNode> GetTreeGroups() const;
+    // Tree-ListView rows
+    std::vector<TreeListRow> GetTreeListRows() const;
+    void ToggleGroupExpanded(const std::string& groupTitle);
+    bool IsGroupExpanded(const std::string& groupTitle) const;
+
     const ScanSummary& GetSummary() const { return m_summary; }
     bool IsScanning() const { return m_isScanning; }
 
@@ -47,7 +54,6 @@ public:
     bool DeleteById(const std::string& id, std::string& outMsg);
     bool JumpToImage();
     bool JumpToEntry();
-    bool SearchOnline();
     bool CopyCommand(HWND hwnd);
     bool CopyPath(HWND hwnd);
     bool CleanAllMissing(size_t& outCleanedCount);
@@ -63,9 +69,8 @@ private:
     StartupCategory m_activeCategory = StartupCategory::All;
     std::string m_filterText;
     std::string m_selectedId;
+    std::unordered_set<std::string> m_collapsedGroups;
     bool m_isScanning = false;
-    std::shared_ptr<std::future<ScanSummary>> m_scanFuture;
-    std::function<void()> m_scanCallback;
 };
 
 } // namespace AutoGuard

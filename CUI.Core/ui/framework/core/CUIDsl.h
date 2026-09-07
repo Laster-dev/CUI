@@ -739,6 +739,7 @@ public:
     ElementBuilder& SelectedIndex(int value) { if constexpr (requires { m_ptr->SetSelectedIndex(value); }) m_ptr->SetSelectedIndex(value); return *this; }
     ElementBuilder& SelectionMode(ListBoxSelectionMode value) { if constexpr (requires { m_ptr->SetSelectionMode(value); }) m_ptr->SetSelectionMode(value); return *this; }
     ElementBuilder& SelectionMode(ListViewSelectionMode value) { if constexpr (requires { m_ptr->SetSelectionMode(value); }) m_ptr->SetSelectionMode(value); return *this; }
+    ElementBuilder& ShowScrollBars(bool value) { if constexpr (requires { m_ptr->SetShowScrollBars(value); }) m_ptr->SetShowScrollBars(value); return *this; }
     ElementBuilder& VirtualCount(size_t count) { if constexpr (requires { m_ptr->SetVirtualCount(count); }) m_ptr->SetVirtualCount(count); return *this; }
     template<typename DataSourceT> ElementBuilder& VirtualMode(int count, DataSourceT* source) { if constexpr (requires { m_ptr->SetVirtualMode(count, source); }) m_ptr->SetVirtualMode(count, source); return *this; }
     ElementBuilder& ExpandDirection(ExpandDirection value) { if constexpr (requires { m_ptr->SetExpandDirection(value); }) m_ptr->SetExpandDirection(value); return *this; }
@@ -1417,7 +1418,7 @@ inline ElementBuilder<RadioButton> RadioButtonTile(const std::string& text = "",
 
 inline ElementBuilder<ToggleSwitch> ToggleSwitchTile(const std::string& header = "", bool isOn = false) { // 快速生成滑道式物理开关
     auto t = ElementBuilder<ToggleSwitch>();
-    if (!header.empty()) t.Text(header);
+    if (!header.empty()) t.Header(header);
     t.IsOn(isOn);
     return t;
 }

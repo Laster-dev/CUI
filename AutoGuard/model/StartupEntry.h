@@ -45,6 +45,12 @@ enum class StartupLocation {
     WinsockProvider,
     PrintMonitor,
     LsaPackage,
+    NetworkProvider,
+    CodecDriver,
+    ScreenSaver,
+    AppCertDlls,
+    BrowserExtension,
+    OfficeAddin,
     Unknown
 };
 
@@ -93,6 +99,7 @@ struct StartupEntry {
     std::string fileSizeStr;    // 文件大小 (例如 4,809 K)
     std::string fileVersion;    // 文件版本 (例如 152.0.4191.34)
     std::string fileTimestamp;  // 文件时间 (例如 2026/8/17 6:58)
+    std::string triggerInfo;    // 启动/触发条件 (例如 "开机自启", "登录时触发", "每天/定时计划", "事件触发")
     bool fileExists = true;     // 文件是否存在
     bool canDisable = true;
     bool canDelete = true;
@@ -183,6 +190,12 @@ inline const char* LocationName(StartupLocation value) {
     case StartupLocation::WinsockProvider: return "Winsock Provider";
     case StartupLocation::PrintMonitor: return "Print Monitor";
     case StartupLocation::LsaPackage: return "LSA Package";
+    case StartupLocation::NetworkProvider: return "网络提供商";
+    case StartupLocation::CodecDriver: return "编解码器驱动";
+    case StartupLocation::ScreenSaver: return "屏幕保护程序";
+    case StartupLocation::AppCertDlls: return "AppCert DLLs";
+    case StartupLocation::BrowserExtension: return "浏览器扩展";
+    case StartupLocation::OfficeAddin: return "Office 启动加载";
     default: return "其他入口";
     }
 }
@@ -205,6 +218,12 @@ inline const char* LocationIcon(StartupLocation value) {
     case StartupLocation::WinsockProvider: return "🔌";
     case StartupLocation::PrintMonitor: return "🖨";
     case StartupLocation::LsaPackage: return "🛡";
+    case StartupLocation::NetworkProvider: return "🖧";
+    case StartupLocation::CodecDriver: return "🎬";
+    case StartupLocation::ScreenSaver: return "🖥";
+    case StartupLocation::AppCertDlls: return "🧬";
+    case StartupLocation::BrowserExtension: return "🧩";
+    case StartupLocation::OfficeAddin: return "📎";
     default: return "📄";
     }
 }

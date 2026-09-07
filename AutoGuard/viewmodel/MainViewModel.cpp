@@ -18,35 +18,21 @@ std::string ToLower(std::string s) {
 } // namespace
 
 MainViewModel::MainViewModel() {
+    ScanSync();
+}
+
+void MainViewModel::ScanSync() {
+    m_isScanning = true;
+    m_summary = StartupScanner().Scan();
+    m_isScanning = false;
 }
 
 void MainViewModel::StartScan(std::function<void()> onCompleted) {
-    m_isScanning = true;
-    m_scanCallback = onCompleted;
-    m_scanFuture = std::make_shared<std::future<ScanSummary>>(
-        std::async(std::launch::async, []() {
-            return StartupScanner().Scan();
-        })
-    );
-}
-
-bool MainViewModel::CheckScanFinished() {
-    if (m_scanFuture && m_scanFuture->wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-        m_summary = m_scanFuture->get();
-        m_scanFuture = nullptr;
-        m_isScanning = false;
-        if (m_scanCallback) {
-            auto cb = m_scanCallback;
-            m_scanCallback = nullptr;
-            cb();
-        }
-        return true;
-    }
-    return false;
+    ScanSync();
+    if (onCompleted) onCompleted();
 }
 
 void MainViewModel::SetCategory(StartupCategory category) {
-    if (m_activeCategory == category) return;
     m_activeCategory = category;
     m_selectedId.clear();
 }
@@ -70,19 +56,36 @@ const StartupEntry* MainViewModel::GetSelectedEntry() const {
     return nullptr;
 }
 
-std::vector<TreeGroupNode> MainViewModel::GetTreeGroups() const {
-    std::vector<TreeGroupNode> groups;
+bool MainViewModel::IsGroupExpanded(const std::string& groupTitle) const {
+    return m_collapsedGroups.find(groupTitle) == m_collapsedGroups.end();
+}
+
+void MainViewModel::ToggleGroupExpanded(const std::string& groupTitle) {
+    if (m_collapsedGroups.find(groupTitle) != m_collapsedGroups.end()) {
+        m_collapsedGroups.erase(groupTitle);
+    } else {
+        m_collapsedGroups.insert(groupTitle);
+    }
+}
+
+std::vector<TreeListRow> MainViewModel::GetTreeListRows() const {
+    std::vector<TreeListRow> resultRows;
     const std::string q = ToLower(m_filterText);
 
-    std::map<std::string, size_t> groupIndexMap;
+    // Group items first
+    struct GroupDef {
+        std::string title;
+        std::string icon;
+        std::vector<StartupEntry> items;
+    };
+    std::vector<GroupDef> groups;
+    std::map<std::string, size_t> groupMap;
 
     for (const auto& entry : m_summary.entries) {
-        // 1. Filter category
         if (m_activeCategory != StartupCategory::All && entry.category != m_activeCategory) {
             continue;
         }
 
-        // 2. Filter search query
         if (!q.empty()) {
             if (ToLower(entry.name).find(q) == std::string::npos &&
                 ToLower(entry.description).find(q) == std::string::npos &&
@@ -94,24 +97,46 @@ std::vector<TreeGroupNode> MainViewModel::GetTreeGroups() const {
             }
         }
 
-        // 3. Locate or create group node
         std::string grpName = entry.groupTitle.empty() ? LocationName(entry.location) : entry.groupTitle;
-        auto it = groupIndexMap.find(grpName);
-        if (it == groupIndexMap.end()) {
-            TreeGroupNode groupNode;
-            groupNode.title = grpName;
-            groupNode.icon = LocationIcon(entry.location);
-            groupNode.location = entry.location;
-            groupNode.entries.push_back(entry);
+        auto it = groupMap.find(grpName);
+        if (it == groupMap.end()) {
+            GroupDef gd;
+            gd.title = grpName;
+            gd.icon = LocationIcon(entry.location);
+            gd.items.push_back(entry);
             size_t idx = groups.size();
-            groups.push_back(std::move(groupNode));
-            groupIndexMap[grpName] = idx;
+            groups.push_back(std::move(gd));
+            groupMap[grpName] = idx;
         } else {
-            groups[it->second].entries.push_back(entry);
+            groups[it->second].items.push_back(entry);
         }
     }
 
-    return groups;
+    // Build flattened row list for multi-column tree-list
+    for (const auto& grp : groups) {
+        bool expanded = IsGroupExpanded(grp.title);
+
+        TreeListRow headerRow;
+        headerRow.isGroupHeader = true;
+        headerRow.groupTitle = grp.title;
+        headerRow.groupIcon = grp.icon;
+        headerRow.groupCount = grp.items.size();
+        headerRow.isExpanded = expanded;
+        resultRows.push_back(std::move(headerRow));
+
+        if (expanded) {
+            for (const auto& item : grp.items) {
+                TreeListRow itemRow;
+                itemRow.isGroupHeader = false;
+                itemRow.groupTitle = grp.title;
+                itemRow.groupIcon = grp.icon;
+                itemRow.entry = item;
+                resultRows.push_back(std::move(itemRow));
+            }
+        }
+    }
+
+    return resultRows;
 }
 
 bool MainViewModel::ToggleSelectedStatus(std::string& outMsg) {
@@ -163,14 +188,6 @@ bool MainViewModel::JumpToEntry() {
     const auto* entry = GetSelectedEntry();
     if (entry) {
         return StartupManager::JumpToEntry(*entry);
-    }
-    return false;
-}
-
-bool MainViewModel::SearchOnline() {
-    const auto* entry = GetSelectedEntry();
-    if (entry) {
-        return StartupManager::SearchOnline(*entry);
     }
     return false;
 }

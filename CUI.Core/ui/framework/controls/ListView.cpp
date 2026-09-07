@@ -147,7 +147,7 @@ void ListView::AddRow(const std::vector<std::string>& rowData) {
     std::vector<ListViewCellData> cellRow;
     cellRow.reserve(rowData.size());
     for (const auto& s : rowData) {
-        cellRow.push_back({ s, nullptr });
+        cellRow.push_back({ s, nullptr, Color(0.0f, 0.0f, 0.0f, 0.0f) });
     }
     m_rows.push_back(cellRow);
 }
@@ -197,6 +197,7 @@ void ListView::ClearRows() {
     ClearChildren();
     m_rows.clear();
     m_rowIcons.clear();
+    m_rowTags.clear();
     m_virtualMode = false;
     m_virtualRowCount = 0;
     m_dataSource = nullptr;
@@ -218,6 +219,21 @@ void ListView::SetRowIcons(const std::vector<HICON>& icons) {
 void ListView::ClearRowIcons() {
     m_rowIcons.clear();
     InvalidateRowsLayer();
+}
+
+void ListView::SetRowTags(const std::vector<std::string>& tags) {
+    m_rowTags = tags;
+}
+
+void ListView::ClearRowTags() {
+    m_rowTags.clear();
+}
+
+std::string ListView::GetRowTag(int rowIndex) const {
+    if (rowIndex >= 0 && rowIndex < static_cast<int>(m_rowTags.size())) {
+        return m_rowTags[rowIndex];
+    }
+    return "";
 }
 
 size_t ListView::GetRowCount() const {
@@ -384,6 +400,68 @@ void ListView::SelectRange(int fromIdx, int toIdx, bool keepExisting) {
     InvalidateRowsLayer();
 }
 
+void ListView::SortByColumn(int col, bool ascending) {
+    if (col < 0 || m_rows.empty()) return;
+    m_sortColumn = col;
+    m_sortAscending = ascending;
+
+    std::vector<size_t> indices(m_rows.size());
+    for (size_t i = 0; i < indices.size(); ++i) indices[i] = i;
+
+    std::stable_sort(indices.begin(), indices.end(), [this, col, ascending](size_t a, size_t b) {
+        std::string textA = (col < static_cast<int>(m_rows[a].size())) ? m_rows[a][col].text : "";
+        std::string textB = (col < static_cast<int>(m_rows[b].size())) ? m_rows[b][col].text : "";
+
+        int cmp = 0;
+        try {
+            size_t posA = 0, posB = 0;
+            double numA = std::stod(textA, &posA);
+            double numB = std::stod(textB, &posB);
+            if (posA == textA.size() && posB == textB.size()) {
+                if (numA < numB) cmp = -1;
+                else if (numA > numB) cmp = 1;
+            }
+        } catch (...) {}
+
+        if (cmp == 0) {
+            cmp = _stricmp(textA.c_str(), textB.c_str());
+        }
+
+        return ascending ? (cmp < 0) : (cmp > 0);
+    });
+
+    std::vector<std::vector<ListViewCellData>> sortedRows(m_rows.size());
+    std::vector<HICON> sortedIcons;
+    if (m_rowIcons.size() == m_rows.size()) {
+        sortedIcons.resize(m_rows.size());
+    }
+    std::vector<std::string> sortedTags;
+    if (m_rowTags.size() == m_rows.size()) {
+        sortedTags.resize(m_rows.size());
+    }
+
+    for (size_t i = 0; i < indices.size(); ++i) {
+        sortedRows[i] = std::move(m_rows[indices[i]]);
+        if (!sortedIcons.empty()) {
+            sortedIcons[i] = m_rowIcons[indices[i]];
+        }
+        if (!sortedTags.empty()) {
+            sortedTags[i] = std::move(m_rowTags[indices[i]]);
+        }
+    }
+
+    m_rows = std::move(sortedRows);
+    if (!sortedIcons.empty()) {
+        m_rowIcons = std::move(sortedIcons);
+    }
+    if (!sortedTags.empty()) {
+        m_rowTags = std::move(sortedTags);
+    }
+
+    InvalidateRowsLayer();
+    MarkRenderContentDirty();
+}
+
 float ListView::GetColumnWidth(size_t index) const {
     if (index >= m_columns.size() || !m_columns[index].visible) return 0.0f;
     const float base = m_columns[index].width;
@@ -396,8 +474,9 @@ float ListView::GetColumnWidth(size_t index) const {
         for (size_t i = 0; i + 1 < m_columns.size(); ++i) {
             if (m_columns[i].visible) others += m_columns[i].width;
         }
-        const float avail = (std::max)(0.0f, m_bounds.width - 2.0f);
-        return (std::max)(base, avail - others);
+        if (m_bounds.width > others + base) {
+            return m_bounds.width - others;
+        }
     }
     return base;
 }
@@ -499,7 +578,7 @@ Size ListView::Measure(Size availableSize) {
 
 void ListView::ClampScroll() {
     float totalContentH = m_rowHeight * static_cast<float>(GetRowCount());
-    float viewH = (std::max)(0.0f, m_bounds.height - m_headerHeight - 4.0f);
+    float viewH = (std::max)(0.0f, m_bounds.height - m_headerHeight);
     m_maxScrollY = (std::max)(0.0f, totalContentH - viewH);
     m_targetScrollY = std::clamp(m_targetScrollY, 0.0f, m_maxScrollY);
     m_scrollY = std::clamp(m_scrollY, 0.0f, m_maxScrollY);
@@ -508,9 +587,12 @@ void ListView::ClampScroll() {
         m_scrollYAnim.Reset(m_scrollY);
     }
 
-    float totalColsW = GetTotalColumnsWidth();
-    float viewW = (std::max)(0.0f, m_bounds.width - 4.0f);
-    m_maxScrollX = (std::max)(0.0f, totalColsW - viewW);
+    float baseColsW = 0.0f;
+    for (const auto& col : m_columns) {
+        if (col.visible) baseColsW += col.width;
+    }
+    float viewW = (std::max)(0.0f, m_bounds.width);
+    m_maxScrollX = (baseColsW > viewW) ? (baseColsW - viewW) : 0.0f;
     m_scrollX = std::clamp(m_scrollX, 0.0f, m_maxScrollX);
 }
 
@@ -756,6 +838,12 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
                 }
                 Rect cellRect(cellX + textPad, rowY, (std::max)(0.0f, colW - textPad - 8.0f), m_rowHeight);
                 D2D1_COLOR_F cellClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textClr;
+                if (!isSelected && !m_virtualMode && r >= 0 && r < static_cast<int>(m_rows.size()) && c < m_rows[static_cast<size_t>(r)].size()) {
+                    const auto& cd = m_rows[static_cast<size_t>(r)][c];
+                    if (cd.textColor.a > 0.001f) {
+                        cellClr = cd.textColor;
+                    }
+                }
                 // Clip + ellipsis so long names cannot bleed into the next column.
                 ctx.PushClip(cellRect);
                 ctx.DrawText(cellText, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight, true);
@@ -911,7 +999,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    if (m_maxScrollY > 0.0f) {
+    if (m_showScrollBars && m_maxScrollY > 0.0f) {
         float trackX = ScrollbarTrackX(m_bounds);
         float trackY = m_bounds.y + m_headerHeight + 2.0f;
         float trackH = m_bounds.height - m_headerHeight - 4.0f;
@@ -927,7 +1015,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
     }
 
     // --- Horizontal scrollbar ---
-    if (m_maxScrollX > 0.0f) {
+    if (m_showScrollBars && m_maxScrollX > 0.0f) {
         float hTrackY = HScrollbarTrackY(m_bounds);
         float hTrackX = m_bounds.x + 4.0f;
         float hTrackW = m_bounds.width - 8.0f;
@@ -1002,7 +1090,7 @@ void ListView::OnMouseDown(Point pt) {
     m_reorderingColumnIndex = -1;
 
     // 0. Check Horizontal ScrollBar Track / Thumb Click
-    if (IsOverHScrollbar(m_bounds, pt, m_maxScrollX > 0.0f, m_maxScrollY > 0.0f)) {
+    if (m_showScrollBars && IsOverHScrollbar(m_bounds, pt, m_maxScrollX > 0.0f, m_maxScrollY > 0.0f)) {
         m_isDraggingHScrollbar = true;
         m_scrollbarAutoHide.SetDragging(true, this);
         m_scrollbarAutoHide.NotifyActivity(this);
@@ -1013,7 +1101,7 @@ void ListView::OnMouseDown(Point pt) {
     }
 
     // 1. Check Vertical ScrollBar Track / Thumb Click
-    if (IsOverScrollbar(m_bounds, m_headerHeight, pt, m_maxScrollY > 0.0f)) {
+    if (m_showScrollBars && IsOverScrollbar(m_bounds, m_headerHeight, pt, m_maxScrollY > 0.0f)) {
         m_isDraggingScrollbar = true;
         m_scrollbarAutoHide.SetDragging(true, this);
         m_scrollbarAutoHide.NotifyActivity(this);
@@ -1106,7 +1194,7 @@ void ListView::OnMouseMove(Point pt) {
         return;
     }
 
-    const bool overBar = IsOverScrollbar(m_bounds, m_headerHeight, pt, m_maxScrollY > 0.0f);
+    const bool overBar = m_showScrollBars && IsOverScrollbar(m_bounds, m_headerHeight, pt, m_maxScrollY > 0.0f);
     m_scrollbarAutoHide.SetPointerOver(overBar, this);
     if (overBar) {
         RequestAnimationTicks();
@@ -1278,6 +1366,7 @@ void ListView::OnMouseUp(Point pt) {
                 m_sortColumn = col;
                 m_sortAscending = true;
             }
+            SortByColumn(col, m_sortAscending);
             m_onColumnSortEvent.Invoke(this, col, m_sortAscending);
             InvalidateRowsLayer();
             MarkRenderContentDirty();

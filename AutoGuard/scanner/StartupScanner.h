@@ -29,6 +29,27 @@ public:
     static void ScanPrintMonitors(ScanSummary& result);
     static void ScanLsaPackages(ScanSummary& result);
     static void ScanWmiSubscriptions(ScanSummary& result);
+    static void ScanNetworkProviders(ScanSummary& result);
+    static void ScanRunOnceEx(HKEY root, bool isHklm, const char* subKey, const char* scope, ScanSummary& result);
+    static void ScanShellServiceObjects(ScanSummary& result);
+    static void ScanBrowserHelpers(ScanSummary& result);
+    static void ScanOfficeAddins(ScanSummary& result);
+    static void ScanSafeMode(ScanSummary& result);
+    static void ScanProtocolHandlers(ScanSummary& result);
+    static void ScanDirectShowFilters(ScanSummary& result);
+    static void ScanSharedTaskSchedulers(ScanSummary& result);
+    static void ScanUrlSearchHooks(ScanSummary& result);
+    static void ScanDrivers32Codecs(ScanSummary& result);
+    static void ScanPrintProcessors(ScanSummary& result);
+    static void ScanSecurityProviders(ScanSummary& result);
+    static void ScanScreenSaver(ScanSummary& result);
+    static void ScanAppCertDlls(ScanSummary& result);
+    static void ScanTerminalServer(ScanSummary& result);
+    static void ScanUserInitMprLogonScript(ScanSummary& result);
+    static void ScanPrintProviders(ScanSummary& result);
+    static void ScanShellExecuteHooks(ScanSummary& result);
+    static void ScanChromiumExtensions(ScanSummary& result);
+    static void ScanOfficeStartupFolders(ScanSummary& result);
 
     static void AddEntry(ScanSummary& result, StartupEntry entry);
     static StartupEntry Analyze(StartupEntry entry);

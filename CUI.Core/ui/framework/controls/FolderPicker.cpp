@@ -33,7 +33,6 @@ FolderPicker::FolderPicker() {
         .FontSize(12.0f)
         .Padding(8.0f, 4.0f, 4.0f, 4.0f)
         .CornerRadius(4.0f)
-        .Width(320.0f)
         .Height(kDefaultH);
 
     m_breadcrumbHost.AttachTo(this);
@@ -116,8 +115,14 @@ HCURSOR FolderPicker::GetCursor() const {
 }
 
 Size FolderPicker::Measure(Size availableSize) {
-    (void)availableSize;
-    float w = GetWidth() >= 0.0f ? GetWidth() : 320.0f;
+    float w = GetWidth();
+    if (w < 0.0f) {
+        if (availableSize.width > 0.0f && availableSize.width < 100000.0f) {
+            w = availableSize.width;
+        } else {
+            w = 320.0f;
+        }
+    }
     float h = GetHeight() >= 0.0f ? GetHeight() : kDefaultH;
     m_desiredSize = Size(w, h);
     m_measureDirty = false;
@@ -163,9 +168,10 @@ void FolderPicker::SetPopupOpen(bool open) {
 }
 
 Rect FolderPicker::GetPopupBounds() const {
+    const float popW = (std::max)(m_bounds.width, FileBrowserSession::kPopupW);
     return PlacePopupNearAnchor(
         m_bounds,
-        FileBrowserSession::kPopupW,
+        popW,
         FileBrowserSession::kPopupH,
         GetPopupViewportOrDefault(),
         4.0f);
