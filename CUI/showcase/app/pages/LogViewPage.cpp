@@ -13,7 +13,7 @@ namespace {
 void SeedSample(LogView& log) {
     log.Append(LogLevel::Info, "app", "LogView 就绪 · 折叠只保留最新一条");
     log.Append(LogLevel::Debug, "ui", "虚拟化行高 22px，只绘制可视区");
-    log.Append(LogLevel::Trace, "gpu", "Present 局部脏区，追加不触发布局");
+    log.Append(LogLevel::Success, "gpu", "Present 局部脏区，追加不触发布局");
     log.Append(LogLevel::Warn, "net", "重试 3 次后仍未连上 10.0.0.8:8080");
     log.Append(LogLevel::Error, "net", "connection refused");
     log.Append(LogLevel::Info, "fs", "配置已加载 config.json");
@@ -22,7 +22,7 @@ void SeedSample(LogView& log) {
 
 void Burst(LogView& log, int count) {
     static const LogLevel kLv[] = {
-        LogLevel::Trace, LogLevel::Debug, LogLevel::Info,
+        LogLevel::Success, LogLevel::Debug, LogLevel::Info,
         LogLevel::Warn, LogLevel::Error, LogLevel::Info
     };
     static const char* kCat[] = { "net", "ui", "fs", "gpu", "app" };

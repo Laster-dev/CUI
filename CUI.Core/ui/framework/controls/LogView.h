@@ -13,7 +13,7 @@ class Button;
 class TextBox;
 
 enum class LogLevel : uint8_t {
-    Trace = 0,
+    Success = 0,
     Debug = 1,
     Info = 2,
     Warn = 3,
@@ -34,7 +34,7 @@ public:
     virtual bool HasProperty(PropertyId id) const override;
     void SetProperty(PropertyId id, const Value& val) override;
     virtual HCURSOR GetCursor() const override;
-    bool AcceptsTabFocus() const override { return true; }
+    bool AcceptsTabFocus() const override { return false; }
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;

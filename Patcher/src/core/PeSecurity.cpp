@@ -27,20 +27,20 @@ bool PeSecurity::RemoveSignature(const std::wstring& filePath, LogCallback logge
     );
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        DoLog(logger, CUI::LogLevel::Error, "Signature", "[-] 无法打开文件进行签名处理");
+        DoLog(logger, CUI::LogLevel::Error, "Signature", "无法打开文件进行签名处理");
         return false;
     }
 
     DWORD bytesRead = 0;
     IMAGE_DOS_HEADER dosHeader;
     if (!ReadFile(hFile, &dosHeader, sizeof(dosHeader), &bytesRead, nullptr) || dosHeader.e_magic != IMAGE_DOS_SIGNATURE) {
-        DoLog(logger, CUI::LogLevel::Error, "Signature", "[-] 无效的 DOS 头");
+        DoLog(logger, CUI::LogLevel::Error, "Signature", "无效的 DOS 头");
         CloseHandle(hFile);
         return false;
     }
 
     if (SetFilePointer(hFile, dosHeader.e_lfanew, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
-        DoLog(logger, CUI::LogLevel::Error, "Signature", "[-] 定位 NT 头失败");
+        DoLog(logger, CUI::LogLevel::Error, "Signature", "定位 NT 头失败");
         CloseHandle(hFile);
         return false;
     }
@@ -48,7 +48,7 @@ bool PeSecurity::RemoveSignature(const std::wstring& filePath, LogCallback logge
     DWORD ntSig = 0;
     ReadFile(hFile, &ntSig, sizeof(ntSig), &bytesRead, nullptr);
     if (ntSig != IMAGE_NT_SIGNATURE) {
-        DoLog(logger, CUI::LogLevel::Error, "Signature", "[-] 无效的 NT 签名");
+        DoLog(logger, CUI::LogLevel::Error, "Signature", "无效的 NT 签名");
         CloseHandle(hFile);
         return false;
     }
@@ -70,7 +70,7 @@ bool PeSecurity::RemoveSignature(const std::wstring& filePath, LogCallback logge
         secDirOffset = dosHeader.e_lfanew + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
                        offsetof(IMAGE_OPTIONAL_HEADER32, DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY]);
     } else {
-        DoLog(logger, CUI::LogLevel::Error, "Signature", "[-] 未知的 PE OptionalHeader 格式");
+        DoLog(logger, CUI::LogLevel::Error, "Signature", "未知的 PE OptionalHeader 格式");
         CloseHandle(hFile);
         return false;
     }
@@ -83,13 +83,13 @@ bool PeSecurity::RemoveSignature(const std::wstring& filePath, LogCallback logge
     certSize = secDir.Size;
 
     if (certOffset == 0 || certSize == 0) {
-        DoLog(logger, CUI::LogLevel::Info, "Signature", "[*] 该文件未包含 Authenticode 数字签名");
+        DoLog(logger, CUI::LogLevel::Info, "Signature", "该文件未包含 Authenticode 数字签名");
         CloseHandle(hFile);
         return true;
     }
 
     DoLog(logger, CUI::LogLevel::Info, "Signature", std::format(
-        "[+] 检测到数字签名: 偏移 0x{:X}, 大小 0x{:X} ({} 字节)",
+        "检测到数字签名: 偏移 0x{:X}, 大小 0x{:X} ({} 字节)",
         certOffset, certSize, certSize
     ));
 
@@ -105,14 +105,14 @@ bool PeSecurity::RemoveSignature(const std::wstring& filePath, LogCallback logge
     if (certOffset + certSize <= fileSize && certOffset > 0) {
         SetFilePointer(hFile, certOffset, nullptr, FILE_BEGIN);
         SetEndOfFile(hFile);
-        DoLog(logger, CUI::LogLevel::Info, "Signature", std::format(
-            "[+] 已物理截断文件末尾的签名块，减少文件大小 {} 字节",
+        DoLog(logger, CUI::LogLevel::Success, "Signature", std::format(
+            "已物理截断文件末尾的签名块，减少文件大小 {} 字节",
             fileSize - certOffset
         ));
     }
 
     CloseHandle(hFile);
-    DoLog(logger, CUI::LogLevel::Info, "Signature", "[+] 数字签名已成功剥离");
+    DoLog(logger, CUI::LogLevel::Success, "Signature", "数字签名已成功剥离");
     return true;
 }
 
@@ -125,7 +125,7 @@ bool PeSecurity::ModifyUacManifest(const std::wstring& filePath, UacLevel level,
 
     HMODULE hModule = LoadLibraryExW(filePath.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
     if (!hModule) {
-        DoLog(logger, CUI::LogLevel::Warn, "UAC", "[!] 无法作为数据文件加载 PE 以读取清单");
+        DoLog(logger, CUI::LogLevel::Warn, "UAC", "无法作为数据文件加载 PE 以读取清单");
         return false;
     }
 
@@ -136,7 +136,7 @@ bool PeSecurity::ModifyUacManifest(const std::wstring& filePath, UacLevel level,
     }
 
     if (!hRes) {
-        DoLog(logger, CUI::LogLevel::Warn, "UAC", "[!] PE 文件中未找到 RT_MANIFEST 清单资源");
+        DoLog(logger, CUI::LogLevel::Warn, "UAC", "PE 文件中未找到 RT_MANIFEST 清单资源");
         FreeLibrary(hModule);
         return false;
     }
@@ -178,13 +178,13 @@ bool PeSecurity::ModifyUacManifest(const std::wstring& filePath, UacLevel level,
     std::string modifiedManifest = std::regex_replace(manifest, reg, replacement);
 
     if (modifiedManifest == manifest) {
-        DoLog(logger, CUI::LogLevel::Warn, "UAC", "[*] 清单中未检索到 requestedExecutionLevel 或内容已一致");
+        DoLog(logger, CUI::LogLevel::Warn, "UAC", "清单中未检索到 requestedExecutionLevel 或内容已一致");
         return true;
     }
 
     HANDLE hUpdate = BeginUpdateResourceW(filePath.c_str(), FALSE);
     if (!hUpdate) {
-        DoLog(logger, CUI::LogLevel::Error, "UAC", "[-] 无法启动资源更新");
+        DoLog(logger, CUI::LogLevel::Error, "UAC", "无法启动资源更新");
         return false;
     }
 
@@ -196,17 +196,17 @@ bool PeSecurity::ModifyUacManifest(const std::wstring& filePath, UacLevel level,
         const_cast<char*>(modifiedManifest.c_str()),
         static_cast<DWORD>(modifiedManifest.size())
     )) {
-        DoLog(logger, CUI::LogLevel::Error, "UAC", "[-] 写入清单资源失败");
+        DoLog(logger, CUI::LogLevel::Error, "UAC", "写入清单资源失败");
         EndUpdateResourceW(hUpdate, TRUE);
         return false;
     }
 
     if (!EndUpdateResourceW(hUpdate, FALSE)) {
-        DoLog(logger, CUI::LogLevel::Error, "UAC", "[-] 提交清单资源更新失败");
+        DoLog(logger, CUI::LogLevel::Error, "UAC", "提交清单资源更新失败");
         return false;
     }
 
-    DoLog(logger, CUI::LogLevel::Info, "UAC", "[+] UAC 清单已更新为: " + targetLevelStr);
+    DoLog(logger, CUI::LogLevel::Success, "UAC", "UAC 清单已更新为: " + targetLevelStr);
     return true;
 }
 
@@ -230,7 +230,7 @@ bool PeSecurity::ConvertSubsystem(const std::wstring& filePath, SubsystemType ty
     );
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        DoLog(logger, CUI::LogLevel::Error, "Subsystem", "[-] 无法打开文件修改子系统");
+        DoLog(logger, CUI::LogLevel::Error, "Subsystem", "无法打开文件修改子系统");
         return false;
     }
 
@@ -273,7 +273,7 @@ bool PeSecurity::ConvertSubsystem(const std::wstring& filePath, SubsystemType ty
     WriteFile(hFile, &targetSubsystem, sizeof(targetSubsystem), &bytesWritten, nullptr);
     CloseHandle(hFile);
 
-    DoLog(logger, CUI::LogLevel::Info, "Subsystem", "[+] 子系统已更新为: " + desc);
+    DoLog(logger, CUI::LogLevel::Success, "Subsystem", "子系统已更新为: " + desc);
     return true;
 }
 
@@ -309,7 +309,7 @@ bool PeSecurity::WipeTimeDateStamp(const std::wstring& filePath, DWORD timestamp
     WriteFile(hFile, &timestamp, sizeof(timestamp), &bytesWritten, nullptr);
     CloseHandle(hFile);
 
-    DoLog(logger, CUI::LogLevel::Info, "AntiForensics", "[+] PE 编译时间戳擦除成功");
+    DoLog(logger, CUI::LogLevel::Success, "AntiForensics", "PE 编译时间戳擦除成功");
     return true;
 }
 

@@ -163,18 +163,18 @@ bool PePatcher::ExecutePatch(
     // 1. 读取并验证目标白文件
     std::vector<uint8_t> whiteBuffer;
     if (!ReadBinaryFile(whitePePath, whiteBuffer)) {
-        Log(CUI::LogLevel::Error, "Patch", "[-] 读取目标白文件失败");
+        Log(CUI::LogLevel::Error, "Patch", "读取目标白文件失败");
         return false;
     }
 
     PeFileInfo whiteInfo;
     if (!InspectPe(whitePePath, whiteInfo)) {
-        Log(CUI::LogLevel::Error, "Patch", "[-] 目标白文件 PE 结构校验失败");
+        Log(CUI::LogLevel::Error, "Patch", "目标白文件 PE 结构校验失败");
         return false;
     }
 
     Log(CUI::LogLevel::Info, "PE", std::format(
-        "[+] 白文件架构: {}, ImageBase: 0x{:X}, EntryPoint RVA: 0x{:X} (VA: 0x{:X})",
+        "白文件架构: {}, ImageBase: 0x{:X}, EntryPoint RVA: 0x{:X} (VA: 0x{:X})",
         whiteInfo.is64Bit ? "x64 (64-bit)" : "x86 (32-bit)",
         whiteInfo.imageBase, whiteInfo.entryPointRva, whiteInfo.entryPointVa
     ));
@@ -187,32 +187,32 @@ bool PePatcher::ExecutePatch(
     if (ext == L".exe" || ext == L".dll") {
         Log(CUI::LogLevel::Info, "Payload", "输入载荷为可执行文件，正在解析并提取其 .text 代码段...");
         if (!ExtractTextSection(payloadPath, payloadData)) {
-            Log(CUI::LogLevel::Error, "Payload", "[-] 提取载荷代码段失败");
+            Log(CUI::LogLevel::Error, "Payload", "提取载荷代码段失败");
             return false;
         }
     } else {
         Log(CUI::LogLevel::Info, "Payload", "输入载荷为原始二进制数据 (.bin / .text)...");
         if (!ReadBinaryFile(payloadPath, payloadData)) {
-            Log(CUI::LogLevel::Error, "Payload", "[-] 读取载荷二进制数据失败");
+            Log(CUI::LogLevel::Error, "Payload", "读取载荷二进制数据失败");
             return false;
         }
     }
 
     if (payloadData.empty()) {
-        Log(CUI::LogLevel::Error, "Payload", "[-] 载荷数据为空，终止操作");
+        Log(CUI::LogLevel::Error, "Payload", "载荷数据为空，终止操作");
         return false;
     }
-    Log(CUI::LogLevel::Info, "Payload", std::format("[+] 载荷大小: {} 字节", payloadData.size()));
+    Log(CUI::LogLevel::Info, "Payload", std::format("载荷大小: {} 字节", payloadData.size()));
 
     // 3. 计算注入写入位置
     size_t targetOffset = 0;
     if (mode == PatchMode::ReplaceTextSection) {
         if (whiteInfo.textSectionOffset == 0) {
-            Log(CUI::LogLevel::Error, "Patch", "[-] 白文件中不存在 .text 节，无法执行代码段替换");
+            Log(CUI::LogLevel::Error, "Patch", "白文件中不存在 .text 节，无法执行代码段替换");
             return false;
         }
         targetOffset = whiteInfo.textSectionOffset;
-        Log(CUI::LogLevel::Info, "Patch", std::format("[+] 模式: .text 代码段覆盖，目标文件偏移: 0x{:X}，白文件段容积: {} 字节",
+        Log(CUI::LogLevel::Info, "Patch", std::format("模式: .text 代码段覆盖，目标文件偏移: 0x{:X}，白文件段容积: {} 字节",
             targetOffset, whiteInfo.textSectionSize));
 
         if (payloadData.size() > whiteInfo.textSectionSize) {
@@ -240,10 +240,10 @@ bool PePatcher::ExecutePatch(
         }
 
         if (!foundSec) {
-            Log(CUI::LogLevel::Error, "Patch", "[-] 无法将 EntryPoint RVA 映射到文件偏移");
+            Log(CUI::LogLevel::Error, "Patch", "无法将 EntryPoint RVA 映射到文件偏移");
             return false;
         }
-        Log(CUI::LogLevel::Info, "Patch", std::format("[+] 模式: 入口点注入，EntryPoint 文件偏移: 0x{:X}", targetOffset));
+        Log(CUI::LogLevel::Info, "Patch", std::format("模式: 入口点注入，EntryPoint 文件偏移: 0x{:X}", targetOffset));
     }
 
     // 4. 拷贝覆盖数据
@@ -252,15 +252,15 @@ bool PePatcher::ExecutePatch(
         whiteBuffer.resize(targetOffset + payloadData.size());
     }
     std::memcpy(whiteBuffer.data() + targetOffset, payloadData.data(), payloadData.size());
-    Log(CUI::LogLevel::Info, "Patch", std::format("[+] 数据注入成功，共写入 {} 字节", payloadData.size()));
+    Log(CUI::LogLevel::Info, "Patch", std::format("数据注入成功，共写入 {} 字节", payloadData.size()));
 
     // 5. 写出到目标文件
     if (!WriteBinaryFile(outputPath, whiteBuffer)) {
-        Log(CUI::LogLevel::Error, "Patch", "[-] 输出修补后文件失败: " + WstrToUtf8(outputPath));
+        Log(CUI::LogLevel::Error, "Patch", "输出修补后文件失败: " + WstrToUtf8(outputPath));
         return false;
     }
 
-    Log(CUI::LogLevel::Info, "Patch", "[+] 文件已成功生成: " + WstrToUtf8(outputPath));
+    Log(CUI::LogLevel::Info, "Patch", "文件已成功生成: " + WstrToUtf8(outputPath));
     return true;
 }
 

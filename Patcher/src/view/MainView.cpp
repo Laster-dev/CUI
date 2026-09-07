@@ -72,10 +72,7 @@ std::shared_ptr<UIElement> MainView::Build() {
     m_logView->SetExpanded(true);
     m_logView->SetCornerRadius(0.0f);
     m_logView->SetAlign(Alignment::Stretch);
-    m_lastLogHeight = m_logView->GetExpandedHeight();
 
-    m_toastCenter = std::make_shared<ToastCenter>();
-    DSL::Borrow(m_toastCenter).Id("toastCenter");
 
     // 连接核心日志引擎
     m_pePatcher->SetLogger([this](LogLevel level, const std::string& tag, const std::string& message) {
@@ -86,31 +83,11 @@ std::shared_ptr<UIElement> MainView::Build() {
 
     m_logView->Append(LogLevel::Info, "System", "程序初始化完成。");
 
-    // 日志框折叠/展开只调整窗口高度差，不再写死窗口总高度。
-    // 这样用户手动调整窗口大小后，展开日志不会挤压上方控件的可用空间。
-    m_logView->OnExpandedChanged().Connect([this](LogView* lv) {
-        if (!m_window || !m_window->GetHWND()) return;
-        HWND hwnd = m_window->GetHWND();
-        RECT rc{};
-        GetWindowRect(hwnd, &rc);
-        const float newLogHeight = lv->IsExpanded()
-            ? lv->GetExpandedHeight()
-            : 32.0f;
-        const float heightDelta = (newLogHeight - m_lastLogHeight)
-            * ((m_window->GetDpiScale() > 0.001f) ? m_window->GetDpiScale() : 1.0f);
-        m_lastLogHeight = newLogHeight;
-        if (std::abs(heightDelta) < 0.5f) return;
-
-        const int configuredMinHeight = static_cast<int>(std::ceil(
-            m_window->GetMinimumSize().height
-            * ((m_window->GetDpiScale() > 0.001f) ? m_window->GetDpiScale() : 1.0f)));
-        const int targetH = (std::max)({
-            1,
-            configuredMinHeight,
-            static_cast<int>(std::lround(static_cast<float>(rc.bottom - rc.top) + heightDelta))
-        });
-        SetWindowPos(hwnd, nullptr, rc.left, rc.top, rc.right - rc.left, targetH,
-            SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+    // 禁止日志栏折叠：用户点击 Header 时强制恢复展开状态
+    m_logView->OnExpandedChanged().Connect([](LogView* lv) {
+        if (!lv->IsExpanded()) {
+            lv->SetExpanded(true);
+        }
     });
 
     // 上部操作与配置区域：无大间距、无嵌套容器、全面左对齐
@@ -128,8 +105,7 @@ std::shared_ptr<UIElement> MainView::Build() {
     auto root = Column(0.0f, {
         titleBar,
         topArea,
-        m_logView,
-        m_toastCenter
+        m_logView
     })
     .BackgroundToken(ThemeTokenId::WindowBackground)
     .Align(Alignment::Stretch)
@@ -195,7 +171,7 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
     // 1. Patch 模式
     m_segPatchMode = ElementBuilder<SegmentedControl>()
         .AddItem("覆盖 .text 代码段")
-        .AddItem("入口点注入 (Shellcode)")
+        .AddItem("入口点注入Payload")
         .Height(26.0f)
         .Width(260.0f)
         .Build();
@@ -203,9 +179,9 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
 
     // 2. 子系统类型
     m_segSubsystem = ElementBuilder<SegmentedControl>()
-        .AddItem("保持原样")
-        .AddItem("GUI (无控制台)")
-        .AddItem("控制台程序")
+        .AddItem("KEEP")
+        .AddItem("GUI")
+        .AddItem("CUI")
         .Height(26.0f)
         .Width(280.0f)
         .Build();
@@ -213,9 +189,9 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
 
     // 3. UAC 权限清单
     m_segUac = ElementBuilder<SegmentedControl>()
-        .AddItem("保持原样")
-        .AddItem("普通权限 (asInvoker)")
-        .AddItem("管理员 (requireAdmin)")
+        .AddItem("KEEP")
+        .AddItem("USER")
+        .AddItem("ADMIN")
         .Height(26.0f)
         .Width(280.0f)
         .Build();
@@ -308,8 +284,8 @@ void MainView::ResetAll() {
     if (m_fpPayload) m_fpPayload->SetPath("");
     m_lastOutputPath.clear();
     if (m_logView) m_logView->Clear();
-    if (m_toastCenter) {
-        m_toastCenter->ShowToast("提示", "已重置输入与日志", ToastType::Info, ToastCorner::TopRight, 1500);
+    if (m_logView) {
+        m_logView->Append(LogLevel::Info, "System", "已重置输入与日志");
     }
 }
 
@@ -337,10 +313,7 @@ void MainView::RunPatch() {
 
     // 校验输入
     if (whiteStr.empty() || payloadStr.empty()) {
-        if (m_toastCenter) {
-            m_toastCenter->ShowToast("提示", "请选择白文件与载荷文件", ToastType::Warning, ToastCorner::TopRight, 2500);
-        }
-        m_logView->Append(LogLevel::Warn, "Validate", "[-] 白文件或载荷路径未填写");
+        m_logView->Append(LogLevel::Warn, "Validate", "白文件或载荷路径未填写");
         return;
     }
 
@@ -348,11 +321,11 @@ void MainView::RunPatch() {
     std::wstring payloadPath = Utf8ToWide(payloadStr);
 
     if (!std::filesystem::exists(whitePath)) {
-        m_logView->Append(LogLevel::Error, "Validate", "[-] 白文件不存在: " + whiteStr);
+        m_logView->Append(LogLevel::Error, "Validate", "白文件不存在: " + whiteStr);
         return;
     }
     if (!std::filesystem::exists(payloadPath)) {
-        m_logView->Append(LogLevel::Error, "Validate", "[-] 载荷文件不存在: " + payloadStr);
+        m_logView->Append(LogLevel::Error, "Validate", "载荷文件不存在: " + payloadStr);
         return;
     }
 
@@ -387,9 +360,7 @@ void MainView::RunPatch() {
     // 执行核心 Patch 逻辑
     bool success = m_pePatcher->ExecutePatch(whitePath, payloadPath, m_lastOutputPath, patchMode);
     if (!success) {
-        if (m_toastCenter) {
-            m_toastCenter->ShowToast("错误", "Patch 失败，请检查日志", ToastType::Error, ToastCorner::TopRight, 3000);
-        }
+        m_logView->Append(LogLevel::Error, "Patch", "Patch 失败，请检查上方日志详情");
         return;
     }
 
@@ -421,10 +392,6 @@ void MainView::RunPatch() {
 
     m_logView->Append(LogLevel::Info, "Complete", "Patch 处理完成。");
     m_logView->Append(LogLevel::Info, "Complete", "输出文件: " + outStr);
-
-    if (m_toastCenter) {
-        m_toastCenter->ShowToast("完成", "Patch 处理完成，正在定位输出文件", ToastType::Success, ToastCorner::TopRight, 2500);
-    }
 
     // Patch 完成后自动弹出资源管理器定位选中该文件
     std::wstring selectCmd = L"/select,\"" + m_lastOutputPath + L"\"";

@@ -52,14 +52,14 @@ static void DoLog(LogCallback& logger, CUI::LogLevel level, const std::string& t
 bool IconReplacer::ApplyIcoToExe(const std::wstring& targetExePath, const std::wstring& icoPath, LogCallback logger) {
     std::ifstream file(icoPath, std::ios::binary);
     if (!file.is_open()) {
-        DoLog(logger, CUI::LogLevel::Error, "Icon", "[-] 无法打开 .ico 文件: " + WstrToUtf8(icoPath));
+        DoLog(logger, CUI::LogLevel::Error, "Icon", "无法打开 .ico 文件: " + WstrToUtf8(icoPath));
         return false;
     }
 
     ICONHEADER header;
     file.read(reinterpret_cast<char*>(&header), sizeof(header));
     if (header.idReserved != 0 || header.idType != 1 || header.idCount == 0) {
-        DoLog(logger, CUI::LogLevel::Error, "Icon", "[-] 无效的 .ico 文件头");
+        DoLog(logger, CUI::LogLevel::Error, "Icon", "无效的 .ico 文件头");
         return false;
     }
 
@@ -96,7 +96,7 @@ bool IconReplacer::ApplyIcoToExe(const std::wstring& targetExePath, const std::w
     // 开始更新目标 PE 资源
     HANDLE hUpdate = BeginUpdateResourceW(targetExePath.c_str(), FALSE);
     if (!hUpdate) {
-        DoLog(logger, CUI::LogLevel::Error, "Icon", "[-] 无法启动可执行文件资源更新: " + WstrToUtf8(targetExePath));
+        DoLog(logger, CUI::LogLevel::Error, "Icon", "无法启动可执行文件资源更新: " + WstrToUtf8(targetExePath));
         return false;
     }
 
@@ -110,7 +110,7 @@ bool IconReplacer::ApplyIcoToExe(const std::wstring& targetExePath, const std::w
             iconImages[i].data(),
             static_cast<DWORD>(iconImages[i].size())
         )) {
-            DoLog(logger, CUI::LogLevel::Error, "Icon", std::format("[-] 写入 RT_ICON #{} 失败", i + 1));
+            DoLog(logger, CUI::LogLevel::Error, "Icon", std::format(" 写入 RT_ICON #{} 失败", i + 1));
             EndUpdateResourceW(hUpdate, TRUE);
             return false;
         }
@@ -125,17 +125,17 @@ bool IconReplacer::ApplyIcoToExe(const std::wstring& targetExePath, const std::w
         grpData.data(),
         static_cast<DWORD>(grpData.size())
     )) {
-        DoLog(logger, CUI::LogLevel::Error, "Icon", "[-] 写入 RT_GROUP_ICON 失败");
+        DoLog(logger, CUI::LogLevel::Error, "Icon", "写入 RT_GROUP_ICON 失败");
         EndUpdateResourceW(hUpdate, TRUE);
         return false;
     }
 
     if (!EndUpdateResourceW(hUpdate, FALSE)) {
-        DoLog(logger, CUI::LogLevel::Error, "Icon", "[-] 提交图标资源失败");
+        DoLog(logger, CUI::LogLevel::Error, "Icon", "提交图标资源失败");
         return false;
     }
 
-    DoLog(logger, CUI::LogLevel::Info, "Icon", std::format("[+] 图标已成功替换 (包含 {} 个尺寸子图)", header.idCount));
+    DoLog(logger, CUI::LogLevel::Info, "Icon", std::format("图标已成功替换 (包含 {} 个尺寸子图)", header.idCount));
     return true;
 }
 
@@ -144,7 +144,7 @@ bool IconReplacer::ExtractIconFromExe(const std::wstring& exePath, const std::ws
 
     HMODULE hModule = LoadLibraryExW(exePath.c_str(), nullptr, LOAD_LIBRARY_AS_DATAFILE);
     if (!hModule) {
-        DoLog(logger, CUI::LogLevel::Error, "Icon", "[-] 无法加载源 PE 文件以提取图标");
+        DoLog(logger, CUI::LogLevel::Error, "Icon", "无法加载源 PE 文件以提取图标");
         return false;
     }
 
@@ -156,7 +156,7 @@ bool IconReplacer::ExtractIconFromExe(const std::wstring& exePath, const std::ws
     }
 
     if (!hRes) {
-        DoLog(logger, CUI::LogLevel::Error, "Icon", "[-] 源文件中未找到 RT_GROUP_ICON 资源");
+        DoLog(logger, CUI::LogLevel::Error, "Icon", "源文件中未找到 RT_GROUP_ICON 资源");
         FreeLibrary(hModule);
         return false;
     }
@@ -209,7 +209,7 @@ bool IconReplacer::ExtractIconFromExe(const std::wstring& exePath, const std::ws
 
     outFile.close();
     FreeLibrary(hModule);
-    DoLog(logger, CUI::LogLevel::Info, "Icon", "[+] 图标提取成功保存至: " + WstrToUtf8(outIcoPath));
+    DoLog(logger, CUI::LogLevel::Info, "Icon", "图标提取成功保存至: " + WstrToUtf8(outIcoPath));
     return true;
 }
 
@@ -228,7 +228,7 @@ bool IconReplacer::ReplaceIcon(const std::wstring& targetExePath, const std::wst
         }
         return false;
     } else {
-        DoLog(logger, CUI::LogLevel::Error, "Icon", "[-] 不支持的图标文件格式 (需为 .ico 或包含图标的 .exe)");
+        DoLog(logger, CUI::LogLevel::Error, "Icon", "不支持的图标文件格式 (需为 .ico 或包含图标的 .exe)");
         return false;
     }
 }

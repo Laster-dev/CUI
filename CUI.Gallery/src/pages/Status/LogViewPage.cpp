@@ -28,8 +28,8 @@ Element BuildLogViewPage() {
 
     // 预填初始日志条目
     logView->Append(LogLevel::Info, "System", "CUI 现代桌面 UI 框架引擎初始化完成。");
-    logView->Append(LogLevel::Debug, "D2D1", "已成功绑定 ID2D1DeviceContext6 硬件加速管线。");
-    logView->Append(LogLevel::Trace, "FontCache", "DirectWrite 字体缓存池预热：微软雅黑 (12pt, 14pt, 16pt)。");
+    logView->Append(LogLevel::Success, "D2D1", "已成功绑定 ID2D1DeviceContext6 硬件加速管线。");
+    logView->Append(LogLevel::Debug, "FontCache", "DirectWrite 字体缓存池预热：微软雅黑 (12pt, 14pt, 16pt)。");
     logView->Append(LogLevel::Info, "Layout", "DockManager 主视口弹性排版编排完成，各象限尺寸已就绪。");
     logView->Append(LogLevel::Warn, "TextureCache", "纹理贴图缓存池占用达 64MB，触发 LRU 局部淘汰机制。");
     logView->Append(LogLevel::Error, "NetClient", "远程热重载服务连接失败 (ws://127.0.0.1:9092) - 连接被拒绝。");
@@ -80,7 +80,7 @@ Element BuildLogViewPage() {
 
     SamplePageSpec spec;
     spec.title = "LogView (日志视图)";
-    spec.subtitle = "高性能实时日志流监视器，内置多级别着色 (Trace/Debug/Info/Warn/Error/Fatal)、关键字搜索过滤、自动滚底跟随与剪贴板复制。";
+    spec.subtitle = "高性能实时日志流监视器，内置多级别着色 (Success/Debug/Info/Warn/Error/Fatal)、关键字搜索过滤、自动滚底跟随与剪贴板复制。";
     spec.sections = {
         {
             "高频滚动实时日志看板",

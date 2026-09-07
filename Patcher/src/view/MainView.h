@@ -8,7 +8,6 @@
 #include "framework/controls/SegmentedControl.h"
 #include "framework/controls/ToggleSwitch.h"
 #include "framework/controls/LogView.h"
-#include "framework/controls/ToastCenter.h"
 #include "../core/PePatcher.h"
 
 namespace Patcher::View {
@@ -47,10 +46,8 @@ private:
 
     std::wstring m_lastOutputPath;
 
-    // 贴底日志框与通知
+    // 贴底日志框（所有消息统一走日志，不再使用 Toast）
     std::shared_ptr<CUI::LogView> m_logView;
-    float m_lastLogHeight = 0.0f;
-    std::shared_ptr<CUI::ToastCenter> m_toastCenter;
 
     std::unique_ptr<Core::PePatcher> m_pePatcher;
 };

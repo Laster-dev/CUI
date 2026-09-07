@@ -17,8 +17,8 @@
 namespace CUI {
 namespace {
 
-constexpr const char* kLevelNames[] = { "TRC", "DBG", "INF", "WRN", "ERR", "FTL" };
-constexpr const char* kChipNames[] = { "T", "D", "I", "W", "E", "F" };
+constexpr const char* kLevelNames[] = { "SUC", "DBG", "INF", "WRN", "ERR", "FTL" };
+constexpr const char* kChipNames[] = { "S", "D", "I", "W", "E", "F" };
 
 constexpr const char* kSvgCopy =
     "<svg viewBox=\"0 0 1024 1024\" xmlns=\"http://www.w3.org/2000/svg\">"
@@ -561,8 +561,9 @@ void LogView::SetExpanded(bool expanded) {
     } else {
         m_expandAnim.Reset(expanded ? 1.0f : 0.0f);
     }
-    ApplyExpandLayout();
+    // 先触发回调让外部调整窗口大小，再布局——避免在旧窗口尺寸下用新高度布局导致闪烁
     m_onExpandedChanged.Invoke(this);
+    ApplyExpandLayout();
     NotifyChanged();
     MarkRenderRectDirty(prev.Union(m_bounds).Inflate(4.0f));
 }
@@ -960,7 +961,7 @@ void LogView::DirtyBody() {
 D2D1_COLOR_F LogView::LevelColor(LogLevel level) const {
     auto& theme = ThemeManager::Instance();
     switch (level) {
-    case LogLevel::Trace: return theme.GetColor(ThemeTokenId::TextMuted);
+    case LogLevel::Success: return D2D1::ColorF(0.16f, 0.72f, 0.42f, 1.0f);
     case LogLevel::Debug: return theme.GetColor(ThemeTokenId::TextSecondary);
     case LogLevel::Info: return theme.GetColor(ThemeTokenId::AccentColor);
     case LogLevel::Warn: return D2D1::ColorF(0.90f, 0.68f, 0.12f, 1.0f);
