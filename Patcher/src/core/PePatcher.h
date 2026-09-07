@@ -26,7 +26,8 @@ enum class PatchMode {
     EnlargeLastSection = 2,  // 扩容末尾节注入（扩 SizeOfRawData/VirtualSize 并重定向入口点）
     AddNewSection = 3,       // 新增独立节注入（追加节头 + 追加数据并重定向入口点）
     TlsCallback = 4,         // TLS 回调注入（不修改入口点，OEP 之前执行）
-    ImportInjection = 5      // 导入表注入（载荷须为 DLL，由系统加载器加载）
+    ImportInjection = 5,     // 导入表注入（载荷须为 DLL，由系统加载器加载）
+    DllExportPatch = 6       // DLL 导出函数覆盖（白文件须为 DLL，覆盖指定导出函数/DLLMain 的函数体）
 };
 
 struct PeFileInfo {
@@ -39,6 +40,7 @@ struct PeFileInfo {
     uint32_t textSectionSize = 0;
     uint32_t subsystem = 0;
     bool hasSignature = false;
+    bool isDll = false;      // 目标是否为 DLL（Characteristics & IMAGE_FILE_DLL）
 };
 
 struct PatchModeAvailability {
@@ -50,6 +52,7 @@ struct PatchModeAvailability {
     bool canAddNewSection = false;
     bool canTlsCallback = true;
     bool canImportInjection = false;
+    bool canDllExportPatch = false;   // 白文件须为 DLL
     uintmax_t payloadSize = 0;
 };
 
@@ -69,6 +72,9 @@ public:
     // 从 PE 文件提取 .text 节数据
     bool ExtractTextSection(const std::wstring& sourcePePath, std::vector<uint8_t>& outData);
 
+    // 枚举 DLL 的导出函数名（用于 AutoSuggestBox 建议列表）
+    bool ListDllExports(const std::wstring& dllPath, std::vector<std::string>& outExports);
+
     // 读取原始文件二进制
     bool ReadBinaryFile(const std::wstring& filePath, std::vector<uint8_t>& outData);
 
@@ -78,7 +84,9 @@ public:
         const std::wstring& payloadPath,
         const std::wstring& outputPath,
         PatchMode mode = PatchMode::ReplaceTextSection,
-        bool removeSignature = true
+        bool removeSignature = true,
+        const std::string& dllFuncName = "DLLMain",  // DllExportPatch 模式：要覆盖的导出函数名（空/DLLMain = 入口点）
+        bool disableCfg = true                       // 是否剥离 CFG（GUARD_CF 位与 LOAD_CONFIG 目录）
     );
 
     // 将数据写入目标文件
@@ -95,10 +103,11 @@ private:
     bool DetachSecurityDirectory(std::vector<uint8_t>& buf, std::vector<uint8_t>& certOut);
     bool AttachSecurityDirectory(std::vector<uint8_t>& buf, const std::vector<uint8_t>& certIn);
 
-    bool InjectByEnlargeLastSection(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload);
-    bool InjectByNewSection(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload);
-    bool InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload);
+    bool InjectByEnlargeLastSection(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload, bool disableCfg);
+    bool InjectByNewSection(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload, bool disableCfg);
+    bool InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload, bool disableCfg);
     bool InjectByImportTable(std::vector<uint8_t>& buf, const std::wstring& payloadPath);
+    bool InjectByDllExportPatch(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload, const std::string& funcName);
 
     LogCallback m_logger;
 };

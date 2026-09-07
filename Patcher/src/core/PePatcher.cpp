@@ -130,17 +130,20 @@ uint32_t RvaToOffset(const PeMap& m, const std::vector<uint8_t>& buf, uint32_t r
     return 0;
 }
 
-// 剥离 ASLR (DYNAMIC_BASE/HIGH_ENTROPY_VA) 与 CFG (GUARD_CF)，清空 LOAD_CONFIG，并规避载荷 ImageBase 冲突
-void DisableAslrAndCfg(PeMap& m, bool clearTls = false) {
+// 剥离 ASLR (DYNAMIC_BASE/HIGH_ENTROPY_VA) 并规避载荷 ImageBase 冲突；
+// disableCfg 为 true 时额外剥离 CFG (GUARD_CF) 并清空 LOAD_CONFIG 目录（由界面“禁用CFG”开关控制）
+void DisableAslrAndCfg(PeMap& m, bool clearTls = false, bool disableCfg = true) {
     auto& dllChars = m.DllCharacteristics();
     dllChars &= ~IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
     dllChars &= ~IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA;
-    dllChars &= ~IMAGE_DLLCHARACTERISTICS_GUARD_CF;
+    if (disableCfg) {
+        dllChars &= ~IMAGE_DLLCHARACTERISTICS_GUARD_CF;
 
-    IMAGE_DATA_DIRECTORY* loadConfig = m.DataDir(IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG);
-    if (loadConfig && loadConfig->VirtualAddress != 0) {
-        loadConfig->VirtualAddress = 0;
-        loadConfig->Size = 0;
+        IMAGE_DATA_DIRECTORY* loadConfig = m.DataDir(IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG);
+        if (loadConfig && loadConfig->VirtualAddress != 0) {
+            loadConfig->VirtualAddress = 0;
+            loadConfig->Size = 0;
+        }
     }
 
     if (clearTls) {
@@ -401,6 +404,119 @@ std::vector<uint8_t> BuildTlsWrapper(bool is64, uint32_t wrapperRva, uint32_t pa
     return stub;
 }
 
+// 构造 DllMain 包装 Stub（覆盖 DLL 入口点时使用），解决 0xC0000142 (STATUS_DLL_INIT_FAILED)：
+// 1. 过滤事件：仅 DLL_PROCESS_ATTACH (1) 执行载荷，THREAD_ATTACH/DETACH/PROCESS_DETACH 直接返回 TRUE，避免二次触发
+// 2. 保护非易失寄存器并恢复，避免破坏加载器调用上下文
+// 3. 若 originalOepRva != 0，在载荷返回后跳转至原 OEP；否则强制返回 TRUE(1)
+// 4. 调用约定：x86 入口为 __stdcall(3 参数共 12 字节)，返回须 ret 0x0C 平栈；x64 普通 ret
+std::vector<uint8_t> BuildDllMainWrapper(bool is64, uint32_t wrapperRva, uint32_t payloadRva, uint32_t originalOepRva = 0) {
+    std::vector<uint8_t> stub;
+    if (is64) {
+        if (originalOepRva != 0) {
+            stub = {
+                0x83, 0xFA, 0x01,                // 0x00: cmp edx, 1 (DLL_PROCESS_ATTACH)
+                0x75, 0x43,                      // 0x03: jne JumpOep (offset 0x48)
+                0x9C,                            // 0x05: pushfq
+                0x50, 0x51, 0x52, 0x53,          // 0x06: push rax, rcx, rdx, rbx
+                0x55, 0x56, 0x57,                // 0x0A: push rbp, rsi, rdi
+                0x41, 0x50, 0x41, 0x51,          // 0x0D: push r8, r9
+                0x41, 0x52, 0x41, 0x53,          // 0x11: push r10, r11
+                0x41, 0x54, 0x41, 0x55,          // 0x15: push r12, r13
+                0x41, 0x56, 0x41, 0x57,          // 0x19: push r14, r15
+                0x48, 0x89, 0xE5,                // 0x1D: mov rbp, rsp
+                0x48, 0x83, 0xE4, 0xF0,          // 0x20: and rsp, -16
+                0x48, 0x83, 0xEC, 0x20,          // 0x24: sub rsp, 32
+                0xE8, 0, 0, 0, 0,                // 0x28: call payload (rel32 at 0x29)
+                0x48, 0x89, 0xEC,                // 0x2D: mov rsp, rbp
+                0x41, 0x5F, 0x41, 0x5E,          // 0x30: pop r15, r14
+                0x41, 0x5D, 0x41, 0x5C,          // 0x34: pop r13, r12
+                0x41, 0x5B, 0x41, 0x5A,          // 0x38: pop r11, r10
+                0x41, 0x59, 0x41, 0x58,          // 0x3C: pop r9, r8
+                0x5F, 0x5E, 0x5D,                // 0x40: pop rdi, rsi, rbp
+                0x5B, 0x5A, 0x59, 0x58,          // 0x43: pop rbx, rdx, rcx, rax
+                0x9D,                            // 0x47: popfq
+                0xE9, 0, 0, 0, 0                 // 0x48: jmp original OEP (rel32 at 0x49)
+            };
+            const int32_t callRel32 = static_cast<int32_t>(payloadRva - (wrapperRva + 0x2D));
+            for (int i = 0; i < 4; ++i) stub[0x29 + i] = static_cast<uint8_t>((callRel32 >> (i * 8)) & 0xFF);
+
+            const int32_t jmpRel32 = static_cast<int32_t>(originalOepRva - (wrapperRva + 0x4D));
+            for (int i = 0; i < 4; ++i) stub[0x49 + i] = static_cast<uint8_t>((jmpRel32 >> (i * 8)) & 0xFF);
+        } else {
+            stub = {
+                0x83, 0xFA, 0x01,                // 0x00: cmp edx, 1 (DLL_PROCESS_ATTACH?)
+                0x75, 0x2B,                      // 0x03: jne PassThrough (0x30)
+                0x53,                            // 0x05: push rbx
+                0x56,                            // 0x06: push rsi
+                0x57,                            // 0x07: push rdi
+                0x55,                            // 0x08: push rbp
+                0x41, 0x54,                      // 0x09: push r12
+                0x41, 0x55,                      // 0x0B: push r13
+                0x41, 0x56,                      // 0x0D: push r14
+                0x41, 0x57,                      // 0x0F: push r15
+                0x48, 0x89, 0xE5,                // 0x11: mov rbp, rsp
+                0x48, 0x83, 0xE4, 0xF0,          // 0x14: and rsp, -16
+                0x48, 0x83, 0xEC, 0x20,          // 0x18: sub rsp, 32
+                0xE8, 0, 0, 0, 0,                // 0x1C: call payload (rel32 at 0x1D)
+                0x48, 0x89, 0xEC,                // 0x21: mov rsp, rbp
+                0x41, 0x5F,                      // 0x24: pop r15
+                0x41, 0x5E,                      // 0x26: pop r14
+                0x41, 0x5D,                      // 0x28: pop r13
+                0x41, 0x5C,                      // 0x2A: pop r12
+                0x5D,                            // 0x2C: pop rbp
+                0x5F,                            // 0x2D: pop rdi
+                0x5E,                            // 0x2E: pop rsi
+                0x5B,                            // 0x2F: pop rbx
+                0xB8, 0x01, 0x00, 0x00, 0x00,    // 0x30: PassThrough: mov eax, 1 (TRUE)
+                0xC3                             // 0x35: ret
+            };
+            const int32_t callRel32 = static_cast<int32_t>(payloadRva - (wrapperRva + 0x21));
+            for (int i = 0; i < 4; ++i) stub[0x1D + i] = static_cast<uint8_t>((callRel32 >> (i * 8)) & 0xFF);
+        }
+    } else {
+        if (originalOepRva != 0) {
+            stub = {
+                0x8B, 0x44, 0x24, 0x08,          // 0x00: mov eax, [esp+8] (Reason 参数)
+                0x83, 0xF8, 0x01,                // 0x04: cmp eax, 1
+                0x75, 0x09,                      // 0x07: jne JumpOep (offset 0x12)
+                0x9C,                            // 0x09: pushfd
+                0x60,                            // 0x0A: pushad
+                0xE8, 0, 0, 0, 0,                // 0x0B: call payload (rel32 at 0x0C)
+                0x61,                            // 0x10: popad
+                0x9D,                            // 0x11: popfd
+                0xE9, 0, 0, 0, 0                 // 0x12: jmp original OEP (rel32 at 0x13)
+            };
+            const int32_t callRel32 = static_cast<int32_t>(payloadRva - (wrapperRva + 0x10));
+            for (int i = 0; i < 4; ++i) stub[0x0C + i] = static_cast<uint8_t>((callRel32 >> (i * 8)) & 0xFF);
+
+            const int32_t jmpRel32 = static_cast<int32_t>(originalOepRva - (wrapperRva + 0x17));
+            for (int i = 0; i < 4; ++i) stub[0x13 + i] = static_cast<uint8_t>((jmpRel32 >> (i * 8)) & 0xFF);
+        } else {
+            stub = {
+                0x8B, 0x44, 0x24, 0x08,          // 0x00: mov eax, [esp+8] (Reason 参数)
+                0x83, 0xF8, 0x01,                // 0x04: cmp eax, 1
+                0x75, 0x15,                      // 0x07: jne PassThrough (0x1E)
+                0x53,                            // 0x09: push ebx
+                0x56,                            // 0x0A: push esi
+                0x57,                            // 0x0B: push edi
+                0x55,                            // 0x0C: push ebp
+                0xE8, 0, 0, 0, 0,                // 0x0D: call payload (rel32 at 0x0E)
+                0x5D,                            // 0x12: pop ebp
+                0x5F,                            // 0x13: pop edi
+                0x5E,                            // 0x14: pop esi
+                0x5B,                            // 0x15: pop ebx
+                0xB8, 0x01, 0x00, 0x00, 0x00,    // 0x16: mov eax, 1 (TRUE)
+                0xC2, 0x0C, 0x00,                // 0x1B: ret 0x0C (stdcall 平栈 12 字节)
+                0xB8, 0x01, 0x00, 0x00, 0x00,    // 0x1E: PassThrough: mov eax, 1 (TRUE)
+                0xC2, 0x0C, 0x00                 // 0x23: ret 0x0C
+            };
+            const int32_t callRel32 = static_cast<int32_t>(payloadRva - (wrapperRva + 0x12));
+            for (int i = 0; i < 4; ++i) stub[0x0E + i] = static_cast<uint8_t>((callRel32 >> (i * 8)) & 0xFF);
+        }
+    }
+    return stub;
+}
+
 } // namespace
 
 bool PePatcher::ReadBinaryFile(const std::wstring& filePath, std::vector<uint8_t>& outData) {
@@ -461,6 +577,7 @@ bool PePatcher::InspectPe(const std::wstring& pePath, PeFileInfo& outInfo) {
 
     auto* fileHeader = reinterpret_cast<IMAGE_FILE_HEADER*>(buffer.data() + dosHeader->e_lfanew + sizeof(DWORD));
     outInfo.sectionCount = fileHeader->NumberOfSections;
+    outInfo.isDll = (fileHeader->Characteristics & IMAGE_FILE_DLL) != 0;
 
     WORD optMagic = *reinterpret_cast<WORD*>(buffer.data() + dosHeader->e_lfanew + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER));
     IMAGE_SECTION_HEADER* firstSection = nullptr;
@@ -589,6 +706,9 @@ bool PePatcher::EvaluatePatchModes(const std::wstring& whitePath, const std::wst
     for (auto& c : ext) c = towlower(c);
     outAvail.canImportInjection = (ext == L".dll");
 
+    // 模式 6: DLL 导出函数覆盖（白文件须为 DLL；具体函数的容量在 Patch 时校验）
+    outAvail.canDllExportPatch = info.isDll;
+
     return true;
 }
 
@@ -618,6 +738,52 @@ bool PePatcher::ExtractTextSection(const std::wstring& sourcePePath, std::vector
         buffer.begin() + info.textSectionOffset + info.textSectionSize
     );
     Log(CUI::LogLevel::Success, "PE", std::format("提取 .text 代码段成功，尺寸: {} 字节 (0x{:X})", outData.size(), outData.size()));
+    return true;
+}
+
+// 枚举 DLL 导出函数名（供 AutoSuggestBox 建议），无导出表时返回空列表而非失败
+bool PePatcher::ListDllExports(const std::wstring& dllPath, std::vector<std::string>& outExports) {
+    outExports.clear();
+    std::vector<uint8_t> dll;
+    if (!ReadBinaryFile(dllPath, dll)) {
+        return false;
+    }
+    PeMap dm;
+    if (!MapPeBuffer(dll, dm)) {
+        Log(CUI::LogLevel::Error, "DLL", "文件不是有效的 PE (DLL)");
+        return false;
+    }
+    IMAGE_DATA_DIRECTORY* expDir = dm.DataDir(IMAGE_DIRECTORY_ENTRY_EXPORT);
+    if (expDir->VirtualAddress == 0 || expDir->Size == 0) {
+        return true; // 无导出表：返回空列表，界面仅保留 DLLMain 建议
+    }
+    const uint32_t expOff = RvaToOffset(dm, dll, expDir->VirtualAddress);
+    if (expOff == 0 || expOff + sizeof(IMAGE_EXPORT_DIRECTORY) > dll.size()) {
+        Log(CUI::LogLevel::Error, "DLL", "导出表损坏，无法枚举导出函数");
+        return false;
+    }
+    auto* exp = reinterpret_cast<const IMAGE_EXPORT_DIRECTORY*>(dll.data() + expOff);
+    if (exp->NumberOfNames == 0) {
+        return true;
+    }
+    const uint32_t namesOff = RvaToOffset(dm, dll, exp->AddressOfNames);
+    if (namesOff == 0) {
+        Log(CUI::LogLevel::Error, "DLL", "导出名称表损坏，无法枚举导出函数");
+        return false;
+    }
+    for (DWORD i = 0; i < exp->NumberOfNames; ++i) {
+        if (namesOff + (i + 1) * sizeof(DWORD) > dll.size()) break;
+        const uint32_t nameRva = *reinterpret_cast<const DWORD*>(dll.data() + namesOff + i * sizeof(DWORD));
+        const uint32_t nOff = RvaToOffset(dm, dll, nameRva);
+        if (nOff == 0 || nOff >= dll.size()) continue;
+        const char* p = reinterpret_cast<const char*>(dll.data() + nOff);
+        size_t len = 0;
+        while (nOff + len < dll.size() && p[len] != '\0') ++len;
+        if (len > 0) {
+            outExports.emplace_back(p, len);
+        }
+    }
+    std::sort(outExports.begin(), outExports.end());
     return true;
 }
 
@@ -730,16 +896,35 @@ bool PePatcher::AttachSecurityDirectory(std::vector<uint8_t>& buf, const std::ve
     return true;
 }
 
-// 模式 1: 扩容末尾节并追加载荷，入口点直接指向载荷
-bool PePatcher::InjectByEnlargeLastSection(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload) {
+// 模式 1: 扩容末尾节并追加载荷，入口点重定向至存根/载荷
+bool PePatcher::InjectByEnlargeLastSection(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload, bool disableCfg) {
+    PeMap m;
+    if (!MapPeBuffer(buf, m)) return false;
+    const bool isDll = (m.fileHeader->Characteristics & IMAGE_FILE_DLL) != 0;
+    const uint32_t origOepRva = m.EntryPoint();
+
+    const std::vector<uint8_t> normPayload = NormalizePayload(payload);
+    const bool useWrapper = isDll || (origOepRva != 0);
+
+    const size_t wrapperSize = useWrapper ? BuildDllMainWrapper(m.is64, 0, 0, origOepRva).size() : 0;
+    const size_t totalNeeded = wrapperSize + normPayload.size();
+
     uint32_t appendOff = 0;
     uint32_t appendRVA = 0;
     const DWORD chars = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
-    if (!ExpandLastSection(buf, payload.size(), appendOff, appendRVA, chars)) {
+    if (!ExpandLastSection(buf, totalNeeded, appendOff, appendRVA, chars)) {
         return false;
     }
 
-    std::memcpy(buf.data() + appendOff, payload.data(), payload.size());
+    if (useWrapper) {
+        const uint32_t wrapperRva = appendRVA;
+        const uint32_t payloadRva = appendRVA + static_cast<uint32_t>(wrapperSize);
+        auto wrapper = BuildDllMainWrapper(m.is64, wrapperRva, payloadRva, origOepRva);
+        std::memcpy(buf.data() + appendOff, wrapper.data(), wrapper.size());
+        std::memcpy(buf.data() + appendOff + wrapper.size(), normPayload.data(), normPayload.size());
+    } else {
+        std::memcpy(buf.data() + appendOff, normPayload.data(), normPayload.size());
+    }
 
     PeMap m2;
     if (!MapPeBuffer(buf, m2)) {
@@ -747,16 +932,16 @@ bool PePatcher::InjectByEnlargeLastSection(std::vector<uint8_t>& buf, const std:
         return false;
     }
     m2.SetEntryPoint(appendRVA);
-    DisableAslrAndCfg(m2, true);
+    DisableAslrAndCfg(m2, true, disableCfg);
 
     Log(CUI::LogLevel::Success, "Patch", std::format(
-        "载荷已成功追加至末节 (文件偏移 0x{:X}，RVA 0x{:X})，入口点已直接重定向至载荷",
-        appendOff, appendRVA));
+        "载荷已成功追加至末节 (文件偏移 0x{:X}，RVA 0x{:X})，入口点已安全重定向{}",
+        appendOff, appendRVA, useWrapper ? "（已生成 DllMain 保护/OEP 跳板）" : ""));
     return true;
 }
 
-// 模式 2: 追加新节头 + 末尾数据，入口点直接指向新节
-bool PePatcher::InjectByNewSection(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload) {
+// 模式 2: 追加新节头 + 末尾数据，入口点重定向至新节
+bool PePatcher::InjectByNewSection(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload, bool disableCfg) {
     PeMap m;
     if (!MapPeBuffer(buf, m) || m.SectionCount() == 0) {
         Log(CUI::LogLevel::Error, "Patch", "PE 结构解析失败，无法新增节");
@@ -767,6 +952,15 @@ bool PePatcher::InjectByNewSection(std::vector<uint8_t>& buf, const std::vector<
         Log(CUI::LogLevel::Error, "Patch", "节数量已达上限，无法新增节");
         return false;
     }
+
+    const bool isDll = (m.fileHeader->Characteristics & IMAGE_FILE_DLL) != 0;
+    const uint32_t origOepRva = m.EntryPoint();
+
+    const std::vector<uint8_t> normPayload = NormalizePayload(payload);
+    const bool useWrapper = isDll || (origOepRva != 0);
+
+    const size_t wrapperSize = useWrapper ? BuildDllMainWrapper(m.is64, 0, 0, origOepRva).size() : 0;
+    const size_t totalNeeded = wrapperSize + normPayload.size();
 
     // 节表末尾与首个节实体之间必须有足够空间容纳新节头 (40 字节)
     uint32_t firstRaw = 0xFFFFFFFFu;
@@ -804,23 +998,32 @@ bool PePatcher::InjectByNewSection(std::vector<uint8_t>& buf, const std::vector<
     IMAGE_SECTION_HEADER* ns = &m.sections[nsec];
     const uint32_t newSectionVA = maxEndRVA;
     const uint32_t newSectionRawOff = AlignUp(static_cast<uint32_t>(buf.size()), fileAlign);
-    const uint32_t newSectionRawSize = AlignUp(static_cast<uint32_t>(payload.size()), fileAlign);
+    const uint32_t newSectionRawSize = AlignUp(static_cast<uint32_t>(totalNeeded), fileAlign);
 
     std::memset(ns, 0, sizeof(IMAGE_SECTION_HEADER));
     std::memcpy(ns->Name, ".patch", sizeof(".patch") - 1);
     ns->VirtualAddress = newSectionVA;
-    ns->Misc.VirtualSize = static_cast<uint32_t>(payload.size());
+    ns->Misc.VirtualSize = static_cast<uint32_t>(totalNeeded);
     ns->SizeOfRawData = newSectionRawSize;
     ns->PointerToRawData = newSectionRawOff;
     ns->Characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
 
     m.fileHeader->NumberOfSections = static_cast<WORD>(nsec + 1);
     m.SetSizeOfImage((std::max)(m.SizeOfImage(),
-        AlignUp(newSectionVA + AlignUp(static_cast<uint32_t>(payload.size()), secAlign), secAlign)));
+        AlignUp(newSectionVA + AlignUp(static_cast<uint32_t>(totalNeeded), secAlign), secAlign)));
 
     const size_t newFileSize = static_cast<size_t>(newSectionRawOff) + newSectionRawSize;
     buf.resize(newFileSize, 0);
-    std::memcpy(buf.data() + newSectionRawOff, payload.data(), payload.size());
+
+    if (useWrapper) {
+        const uint32_t wrapperRva = newSectionVA;
+        const uint32_t payloadRva = newSectionVA + static_cast<uint32_t>(wrapperSize);
+        auto wrapper = BuildDllMainWrapper(m.is64, wrapperRva, payloadRva, origOepRva);
+        std::memcpy(buf.data() + newSectionRawOff, wrapper.data(), wrapper.size());
+        std::memcpy(buf.data() + newSectionRawOff + wrapper.size(), normPayload.data(), normPayload.size());
+    } else {
+        std::memcpy(buf.data() + newSectionRawOff, normPayload.data(), normPayload.size());
+    }
 
     // resize 后重新映射再写入口点并解除 ASLR/CFG
     PeMap m2;
@@ -829,16 +1032,13 @@ bool PePatcher::InjectByNewSection(std::vector<uint8_t>& buf, const std::vector<
         return false;
     }
     m2.SetEntryPoint(newSectionVA);
-    DisableAslrAndCfg(m2, true);
+    DisableAslrAndCfg(m2, true, disableCfg);
 
-    Log(CUI::LogLevel::Success, "Patch", std::format(
-        "新节 .patch 已建立 (RVA 0x{:X}，文件偏移 0x{:X})，入口点已直接重定向至新节",
-        newSectionVA, newSectionRawOff));
     return true;
 }
 
 // 模式 3: 构建 TLS 目录与回调数组，入口点保持不变，系统加载器直接执行载荷
-bool PePatcher::InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload) {
+bool PePatcher::InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload, bool disableCfg) {
     PeMap m;
     if (!MapPeBuffer(buf, m)) {
         Log(CUI::LogLevel::Error, "Patch", "PE 结构解析失败，无法注入 TLS 回调");
@@ -890,7 +1090,7 @@ bool PePatcher::InjectByTlsCallback(std::vector<uint8_t>& buf, const std::vector
         return false;
     }
 
-    DisableAslrAndCfg(m2, false);
+    DisableAslrAndCfg(m2, false, disableCfg);
     const uint64_t imageBase = m2.ImageBase();
 
     // 构造异步拉起跳板 Stub
@@ -1105,6 +1305,141 @@ bool PePatcher::InjectByImportTable(std::vector<uint8_t>& buf, const std::wstrin
     Log(CUI::LogLevel::Success, "Import", std::format(
         "导入表已注入: {} ! {} ({})，白文件启动时将由系统加载器自动加载载荷 DLL",
         dllName, byName ? funcName : ("Ordinal#" + std::to_string(ordinal)), is64 ? "x64" : "x86"));
+    Log(CUI::LogLevel::Info, "Import",
+        "提示: 载荷 DLL 的 DllMain 必须返回 TRUE(1)，否则加载器会判定初始化失败，进程启动即报 0xC0000142 (STATUS_DLL_INIT_FAILED)");
+    return true;
+}
+
+// 模式 6: 覆盖 DLL 指定导出函数（或 DLLMain 入口点）的函数体，就地写入，不重定向入口点
+bool PePatcher::InjectByDllExportPatch(std::vector<uint8_t>& buf, const std::vector<uint8_t>& payload, const std::string& funcName) {
+    PeMap m;
+    if (!MapPeBuffer(buf, m)) {
+        Log(CUI::LogLevel::Error, "DLL", "PE 结构解析失败，无法执行 DLL 函数覆盖");
+        return false;
+    }
+    if ((m.fileHeader->Characteristics & IMAGE_FILE_DLL) == 0) {
+        Log(CUI::LogLevel::Error, "DLL", "白文件不是 DLL (缺少 IMAGE_FILE_DLL 标志)，无法执行 DLL 函数覆盖");
+        return false;
+    }
+
+    // 1. 解析目标函数名 -> RVA（空/DLLMain = 入口点；其余按导出名查找）
+    std::string targetName = funcName;
+    while (!targetName.empty() && (targetName.front() == ' ' || targetName.front() == '\t')) targetName.erase(targetName.begin());
+    while (!targetName.empty() && (targetName.back() == ' ' || targetName.back() == '\t')) targetName.pop_back();
+
+    uint32_t targetRva = 0;
+    bool isEntryPoint = false;
+    if (targetName.empty() || _stricmp(targetName.c_str(), "DLLMain") == 0) {
+        targetRva = m.EntryPoint();
+        isEntryPoint = true;
+        if (targetRva == 0) {
+            Log(CUI::LogLevel::Error, "DLL", "DLL 入口点为 0 (可能为资源 DLL)，无法覆盖 DllMain");
+            return false;
+        }
+    } else {
+        IMAGE_DATA_DIRECTORY* expDir = m.DataDir(IMAGE_DIRECTORY_ENTRY_EXPORT);
+        if (expDir->VirtualAddress == 0 || expDir->Size == 0) {
+            Log(CUI::LogLevel::Error, "DLL", std::format("DLL 没有导出表，无法定位导出函数 \"{}\"", targetName));
+            return false;
+        }
+        const uint32_t expOff = RvaToOffset(m, buf, expDir->VirtualAddress);
+        if (expOff == 0 || expOff + sizeof(IMAGE_EXPORT_DIRECTORY) > buf.size()) {
+            Log(CUI::LogLevel::Error, "DLL", "DLL 导出表损坏");
+            return false;
+        }
+        auto* exp = reinterpret_cast<const IMAGE_EXPORT_DIRECTORY*>(buf.data() + expOff);
+        const uint32_t namesOff = RvaToOffset(m, buf, exp->AddressOfNames);
+        const uint32_t ordinalsOff = RvaToOffset(m, buf, exp->AddressOfNameOrdinals);
+        const uint32_t funcsOff = RvaToOffset(m, buf, exp->AddressOfFunctions);
+        if (namesOff == 0 || ordinalsOff == 0 || funcsOff == 0 || exp->NumberOfNames == 0) {
+            Log(CUI::LogLevel::Error, "DLL", "DLL 导出表结构不完整");
+            return false;
+        }
+        bool found = false;
+        for (DWORD i = 0; i < exp->NumberOfNames; ++i) {
+            if (namesOff + (i + 1) * sizeof(DWORD) > buf.size()) break;
+            const uint32_t nameRva = *reinterpret_cast<const DWORD*>(buf.data() + namesOff + i * sizeof(DWORD));
+            const uint32_t nOff = RvaToOffset(m, buf, nameRva);
+            if (nOff == 0 || nOff >= buf.size()) continue;
+            const char* p = reinterpret_cast<const char*>(buf.data() + nOff);
+            size_t len = 0;
+            while (nOff + len < buf.size() && p[len] != '\0') ++len;
+            if (len == 0 || _stricmp(targetName.c_str(), std::string(p, len).c_str()) != 0) continue;
+            if (ordinalsOff + (i + 1) * sizeof(WORD) > buf.size()) break;
+            const WORD ordinal = *reinterpret_cast<const WORD*>(buf.data() + ordinalsOff + i * sizeof(WORD));
+            if (funcsOff + (ordinal + 1) * sizeof(DWORD) > buf.size()) break;
+            targetRva = *reinterpret_cast<const DWORD*>(buf.data() + funcsOff + ordinal * sizeof(DWORD));
+            found = true;
+            break;
+        }
+        if (!found) {
+            Log(CUI::LogLevel::Error, "DLL", std::format(
+                "未找到导出函数 \"{}\" (导出表共 {} 项)，请核对函数名或从下拉建议中选择", targetName, exp->NumberOfNames));
+            return false;
+        }
+        // 转发导出 (RVA 落在导出表范围内) 无函数体可覆盖
+        if (targetRva >= expDir->VirtualAddress && targetRva < expDir->VirtualAddress + expDir->Size) {
+            Log(CUI::LogLevel::Error, "DLL", std::format("导出函数 \"{}\" 为转发导出 (forwarder)，无法覆盖其函数体", targetName));
+            return false;
+        }
+    }
+
+    // 2. RVA -> 文件偏移，并校验所在节剩余容量
+    const uint32_t targetOff = RvaToOffset(m, buf, targetRva);
+    if (targetOff == 0) {
+        Log(CUI::LogLevel::Error, "DLL", std::format("无法将函数 RVA 0x{:X} 映射到文件偏移", targetRva));
+        return false;
+    }
+    IMAGE_SECTION_HEADER* hostSec = nullptr;
+    for (WORD i = 0; i < m.SectionCount(); ++i) {
+        IMAGE_SECTION_HEADER* s = &m.sections[i];
+        if (s->PointerToRawData != 0 &&
+            targetOff >= s->PointerToRawData &&
+            targetOff < s->PointerToRawData + s->SizeOfRawData) {
+            hostSec = s;
+            break;
+        }
+    }
+    if (!hostSec) {
+        Log(CUI::LogLevel::Error, "DLL", std::format("函数文件偏移 0x{:X} 未落在任何节的原始数据范围内", targetOff));
+        return false;
+    }
+    const size_t capacity = (static_cast<size_t>(hostSec->PointerToRawData) + hostSec->SizeOfRawData) - targetOff;
+
+    // 3. 就地覆盖，节标记 RWX
+    hostSec->Characteristics |= (IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_MEM_EXECUTE);
+    const std::vector<uint8_t> norm = NormalizePayload(payload);
+
+    if (isEntryPoint) {
+        // DllMain 包装: 过滤事件(仅 DLL_PROCESS_ATTACH) + 保护非易失寄存器 + call 载荷 + 强制返回 TRUE(1)。
+        // 否则 DllMain 返回 FALSE/垃圾值会被加载器判定初始化失败，进程启动即报 0xC0000142 (STATUS_DLL_INIT_FAILED)
+        const uint32_t wrapperRva = targetRva;
+        const uint32_t payloadRva = targetRva + static_cast<uint32_t>(BuildDllMainWrapper(m.is64, 0, 0).size());
+        auto wrapper = BuildDllMainWrapper(m.is64, wrapperRva, payloadRva);
+        const size_t totalNeeded = wrapper.size() + norm.size();
+        if (totalNeeded > capacity) {
+            Log(CUI::LogLevel::Error, "DLL", std::format(
+                "载荷大小 ({} 字节) 加上 DllMain 包装 Stub ({} 字节) 超出节剩余空间 ({} 字节)，无法覆盖入口点；建议改用扩容末节/新增节模式",
+                norm.size(), wrapper.size(), capacity));
+            return false;
+        }
+        std::memcpy(buf.data() + targetOff, wrapper.data(), wrapper.size());
+        std::memcpy(buf.data() + targetOff + wrapper.size(), norm.data(), norm.size());
+        Log(CUI::LogLevel::Success, "DLL", std::format(
+            "已覆盖 DllMain(入口点): 包装 Stub {} 字节 + 载荷 {} 字节 (RVA 0x{:X})，已过滤非 ATTACH 事件并确保返回 TRUE",
+            wrapper.size(), norm.size(), targetRva));
+    } else {
+        if (norm.size() > capacity) {
+            Log(CUI::LogLevel::Error, "DLL", std::format(
+                "载荷大小 ({} 字节) 超出函数所在节剩余空间 ({} 字节)，无法就地覆盖；建议改用扩容末节/新增节模式",
+                norm.size(), capacity));
+            return false;
+        }
+        std::memcpy(buf.data() + targetOff, norm.data(), norm.size());
+        Log(CUI::LogLevel::Success, "DLL", std::format(
+            "已覆盖函数: {} (RVA 0x{:X}，文件偏移 0x{:X})，写入 {} 字节，入口点保持不变",
+            targetName, targetRva, targetOff, norm.size()));
+    }
     return true;
 }
 
@@ -1113,7 +1448,9 @@ bool PePatcher::ExecutePatch(
     const std::wstring& payloadPath,
     const std::wstring& outputPath,
     PatchMode mode,
-    bool removeSignature
+    bool removeSignature,
+    const std::string& dllFuncName,
+    bool disableCfg
 ) {
     Log(CUI::LogLevel::Info, "Patch", "================== 开始执行 Patch 流程 ==================");
     Log(CUI::LogLevel::Info, "Patch", "目标白文件: " + WstrToUtf8(whitePePath));
@@ -1225,11 +1562,23 @@ bool PePatcher::ExecutePatch(
             Log(CUI::LogLevel::Info, "Patch", std::format("模式: 入口点注入，EntryPoint 文件偏移: 0x{:X}", targetOffset));
         }
 
-        if (targetOffset + payloadData.size() > whiteBuffer.size()) {
-            // 扩容白文件缓冲区
-            whiteBuffer.resize(targetOffset + payloadData.size());
+        std::vector<uint8_t> normPayload = NormalizePayload(payloadData);
+        std::vector<uint8_t> bytesToWrite;
+        if (whiteInfo.isDll) {
+            uint32_t targetRva = (mode == PatchMode::ReplaceTextSection && newOepRva != 0) ? newOepRva : whiteInfo.entryPointRva;
+            uint32_t payloadRva = targetRva + static_cast<uint32_t>(BuildDllMainWrapper(whiteInfo.is64Bit, 0, 0, 0).size());
+            auto wrapper = BuildDllMainWrapper(whiteInfo.is64Bit, targetRva, payloadRva, 0);
+            bytesToWrite.insert(bytesToWrite.end(), wrapper.begin(), wrapper.end());
+            bytesToWrite.insert(bytesToWrite.end(), normPayload.begin(), normPayload.end());
+        } else {
+            bytesToWrite = normPayload;
         }
-        std::memcpy(whiteBuffer.data() + targetOffset, payloadData.data(), payloadData.size());
+
+        if (targetOffset + bytesToWrite.size() > whiteBuffer.size()) {
+            // 扩容白文件缓冲区
+            whiteBuffer.resize(targetOffset + bytesToWrite.size());
+        }
+        std::memcpy(whiteBuffer.data() + targetOffset, bytesToWrite.data(), bytesToWrite.size());
 
         // 统一更新 PE 属性：设置入口点、禁用 ASLR/CFG、清理残留 TLS、解决 ImageBase 冲突
         PeMap m2;
@@ -1237,7 +1586,7 @@ bool PePatcher::ExecutePatch(
             if (newOepRva != 0) {
                 m2.SetEntryPoint(newOepRva);
             }
-            DisableAslrAndCfg(m2, true);
+            DisableAslrAndCfg(m2, true, disableCfg);
             if (removeSignature) {
                 IMAGE_DATA_DIRECTORY* secDir = m2.DataDir(IMAGE_DIRECTORY_ENTRY_SECURITY);
                 if (secDir) {
@@ -1248,6 +1597,26 @@ bool PePatcher::ExecutePatch(
         }
 
         Log(CUI::LogLevel::Success, "Patch", std::format("数据注入成功，共写入 {} 字节", payloadData.size()));
+    } else if (mode == PatchMode::DllExportPatch) {
+        // DLL 函数覆盖: 就地覆盖指定导出函数/DLLMain 的函数体，不追加数据
+        Log(CUI::LogLevel::Info, "DLL", std::format("模式: DLL 导出函数覆盖，目标函数: {}",
+            dllFuncName.empty() ? "DLLMain" : dllFuncName));
+        if (!InjectByDllExportPatch(whiteBuffer, payloadData, dllFuncName)) {
+            Log(CUI::LogLevel::Error, "Patch", "注入失败，已中止写出");
+            return false;
+        }
+        PeMap m2;
+        if (MapPeBuffer(whiteBuffer, m2)) {
+            DisableAslrAndCfg(m2, false, disableCfg);
+            if (removeSignature) {
+                IMAGE_DATA_DIRECTORY* secDir = m2.DataDir(IMAGE_DIRECTORY_ENTRY_SECURITY);
+                if (secDir) {
+                    secDir->VirtualAddress = 0;
+                    secDir->Size = 0;
+                }
+            }
+        }
+        Log(CUI::LogLevel::Success, "Patch", std::format("数据注入成功，共写入 {} 字节", payloadData.size()));
     } else {
         // 附加式模式: 先摘除签名 Overlay
         std::vector<uint8_t> certBlock;
@@ -1257,15 +1626,15 @@ bool PePatcher::ExecutePatch(
         switch (mode) {
         case PatchMode::EnlargeLastSection:
             Log(CUI::LogLevel::Info, "Patch", "模式: 扩容末尾节注入");
-            ok = InjectByEnlargeLastSection(whiteBuffer, payloadData);
+            ok = InjectByEnlargeLastSection(whiteBuffer, payloadData, disableCfg);
             break;
         case PatchMode::AddNewSection:
             Log(CUI::LogLevel::Info, "Patch", "模式: 新增独立节注入");
-            ok = InjectByNewSection(whiteBuffer, payloadData);
+            ok = InjectByNewSection(whiteBuffer, payloadData, disableCfg);
             break;
         case PatchMode::TlsCallback:
             Log(CUI::LogLevel::Info, "Patch", "模式: TLS 回调注入");
-            ok = InjectByTlsCallback(whiteBuffer, payloadData);
+            ok = InjectByTlsCallback(whiteBuffer, payloadData, disableCfg);
             break;
         case PatchMode::ImportInjection:
             Log(CUI::LogLevel::Info, "Patch", "模式: 导入表注入");

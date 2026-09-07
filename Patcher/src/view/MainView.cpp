@@ -176,7 +176,17 @@ std::shared_ptr<UIElement> MainView::BuildFilesArea() {
 }
 
 std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
-    // 1. Patch 模式
+    // 0. 目标类型: 自动识别 / 强制 EXE / 强制 DLL（默认自动，按白文件 PE 特征识别）
+    m_segTargetType = ElementBuilder<SegmentedControl>()
+        .AddItem("自动")
+        .AddItem("EXE")
+        .AddItem("DLL")
+        .Height(26.0f)
+        .Width(280.0f)
+        .Build();
+    m_segTargetType->SetSelectedIndex(0);
+
+    // 1. Patch 模式（EXE / DLL 目标通用，不支持的按可用性变灰）
     m_segPatchMode = ElementBuilder<SegmentedControl>()
         .AddItem(".text覆盖")
         .AddItem("OEP覆盖")
@@ -212,6 +222,16 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
     // 4. 开关
     m_swRemoveSig = ToggleSwitchTile("剥离数字签名", true).Build();
     m_swWipeTimestamp = ToggleSwitchTile("抹除时间戳", true).Build();
+    m_swDisableCfg = ToggleSwitchTile("禁用CFG", true).Build();
+
+    // 5. 覆盖函数输入框: 与目标类型合并在同一行右侧，仅 DLL 目标时显示（自动识别或手动选择 DLL）
+    m_asbDllFunc = AutoSuggestBoxWidget("要覆盖的导出函数 (默认 DLLMain)")
+        .Width(280.0f)
+        .Height(24.0f)
+        .Build();
+    m_asbDllFunc->SetText("DLLMain");
+    m_asbDllFunc->SetSuggestionItems({ "DLLMain" });
+    m_asbDllFunc->SetMaxVisibleSuggestions(12);
 
     auto makeOptionRow = [](const std::string& title, std::shared_ptr<UIElement> ctrl) {
         return Row(6.0f, {
@@ -225,7 +245,35 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
         }).Align(Alignment::Start);
     };
 
+    // 目标类型行: [目标类型: 自动/EXE/DLL] [覆盖函数: 输入框(仅 DLL 时可见)]
+    m_dllFuncArea = Row(6.0f, {
+        Text("覆盖函数:")
+            .FontSize(12.0f)
+            .AlignHorizontal(Alignment::Start)
+            .AlignVertical(Alignment::Center)
+            .ForegroundToken(ThemeTokenId::TextPrimary),
+        m_asbDllFunc
+    }).Align(Alignment::Start).Build();
+    m_dllFuncArea->SetVisibility(Visibility::Collapsed);
+
+    m_targetTypeRow = Row(12.0f, {
+        Text("目标类型:")
+            .FontSize(12.0f)
+            .Width(76.0f)
+            .AlignHorizontal(Alignment::Start)
+            .AlignVertical(Alignment::Center)
+            .ForegroundToken(ThemeTokenId::TextPrimary),
+        m_segTargetType,
+        m_dllFuncArea
+    }).Align(Alignment::Start).Build();
+
+    // 目标类型切换（含自动识别变化）: 即时刷新界面呈现
+    m_segTargetType->OnSelectionChanged().Connect([this](SegmentedControl*, int, const std::string&) {
+        UpdateModeAvailability();
+    });
+
     auto panel = Column(4.0f, {
+        m_targetTypeRow,
         makeOptionRow("Patch模式:", m_segPatchMode),
         makeOptionRow("PE子系统:", m_segSubsystem),
         makeOptionRow("UAC权限:", m_segUac),
@@ -237,7 +285,8 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
                 .AlignVertical(Alignment::Center)
                 .ForegroundToken(ThemeTokenId::TextPrimary),
             m_swRemoveSig,
-            m_swWipeTimestamp
+            m_swWipeTimestamp,
+            m_swDisableCfg
         }).Align(Alignment::Start).Margin(0.0f, 2.0f, 0.0f, 2.0f)
     })
     .Align(Alignment::Start)
@@ -295,11 +344,20 @@ void MainView::ResetAll() {
     if (m_fpWhite) m_fpWhite->SetPath("");
     if (m_fpPayload) m_fpPayload->SetPath("");
     m_lastOutputPath.clear();
+    if (m_segTargetType) m_segTargetType->SetSelectedIndex(0); // 目标类型回“自动”
     if (m_segPatchMode) {
         for (int i = 0; i < 6; ++i) {
             m_segPatchMode->SetItemEnabled(i, true);
         }
     }
+    if (m_asbDllFunc) {
+        m_asbDllFunc->SetText("DLLMain");
+        m_asbDllFunc->SetSuggestionItems({ "DLLMain" });
+    }
+    if (m_swDisableCfg) {
+        m_swDisableCfg->SetIsOn(true);
+    }
+    m_lastTargetDll = false;
     if (m_logView) m_logView->Clear();
     if (m_logView) {
         m_logView->Append(LogLevel::Info, "System", "已重置输入与日志");
@@ -312,9 +370,26 @@ void MainView::UpdateModeAvailability() {
     std::string whiteStr = m_fpWhite ? m_fpWhite->GetPath() : "";
     std::string payloadStr = m_fpPayload ? m_fpPayload->GetPath() : "";
 
-    // 若尚未选全两个文件，重置所有模式为可用
+    // 白文件变化时同步刷新 DLL 导出建议列表（AutoSuggestBox）
+    RefreshDllFunctionSuggestions();
+
+    const bool dllTarget = IsDllTarget();
+
+    // DLL 目标: 目标类型行右侧显示“覆盖函数”输入框；EXE 目标隐藏
+    if (m_dllFuncArea) m_dllFuncArea->SetVisibility(dllTarget ? Visibility::Visible : Visibility::Collapsed);
+
+    if (dllTarget != m_lastTargetDll) {
+        m_lastTargetDll = dllTarget;
+        m_logView->Append(LogLevel::Info, "Target", dllTarget
+            ? "目标类型: DLL，Patch 方式为覆盖指定函数；模式列表中 .text覆盖 / OEP覆盖 不适用于 DLL，已变灰"
+            : "目标类型: EXE，使用 Patch 模式列表中的注入方式");
+    }
+
+    // DLL 目标: .text覆盖 / OEP覆盖 不适用（DLL 的代码 patch 通过“覆盖指定函数”完成），始终变灰
     if (whiteStr.empty() || payloadStr.empty()) {
-        for (int i = 0; i < 6; ++i) {
+        m_segPatchMode->SetItemEnabled(0, !dllTarget);
+        m_segPatchMode->SetItemEnabled(1, !dllTarget);
+        for (int i = 2; i < 6; ++i) {
             m_segPatchMode->SetItemEnabled(i, true);
         }
         return;
@@ -332,14 +407,9 @@ void MainView::UpdateModeAvailability() {
         return;
     }
 
-    // 0: .text覆盖
-    // 1: OEP覆盖
-    // 2: 末节扩容
-    // 3: 新增节区
-    // 4: TLS回调
-    // 5: 导入表注入
-    m_segPatchMode->SetItemEnabled(0, avail.canReplaceText);
-    m_segPatchMode->SetItemEnabled(1, avail.canInjectOep);
+    // 0: .text覆盖  1: OEP覆盖  2: 末节扩容  3: 新增节区  4: TLS回调  5: 导入表注入
+    m_segPatchMode->SetItemEnabled(0, !dllTarget && avail.canReplaceText);
+    m_segPatchMode->SetItemEnabled(1, !dllTarget && avail.canInjectOep);
     m_segPatchMode->SetItemEnabled(2, avail.canEnlargeLastSection);
     m_segPatchMode->SetItemEnabled(3, avail.canAddNewSection);
     m_segPatchMode->SetItemEnabled(4, avail.canTlsCallback);
@@ -368,6 +438,48 @@ void MainView::UpdateModeAvailability() {
         }
         m_logView->Append(LogLevel::Warn, "Patch", warnMsg);
     }
+}
+
+void MainView::RefreshDllFunctionSuggestions() {
+    if (!m_asbDllFunc) return;
+
+    std::vector<std::string> suggestions = { "DLLMain" };
+    std::string whiteStr = m_fpWhite ? m_fpWhite->GetPath() : "";
+    if (!whiteStr.empty()) {
+        std::wstring whitePath = Utf8ToWide(whiteStr);
+        if (std::filesystem::exists(whitePath)) {
+            std::wstring ext = std::filesystem::path(whitePath).extension().wstring();
+            for (auto& c : ext) c = towlower(c);
+            if (ext == L".dll") {
+                std::vector<std::string> exports;
+                if (m_pePatcher->ListDllExports(whitePath, exports)) {
+                    suggestions.insert(suggestions.end(), exports.begin(), exports.end());
+                }
+            }
+        }
+    }
+    m_asbDllFunc->SetSuggestionItems(suggestions);
+}
+
+// 判断当前生效的目标类型: 手动 EXE/DLL 强制；自动模式按白文件 PE 特征识别（退化按扩展名）
+bool MainView::IsDllTarget() {
+    int tIdx = m_segTargetType ? m_segTargetType->GetSelectedIndex() : 0;
+    if (tIdx == 1) return false; // 强制 EXE
+    if (tIdx == 2) return true;  // 强制 DLL
+
+    // 自动识别
+    std::string whiteStr = m_fpWhite ? m_fpWhite->GetPath() : "";
+    if (whiteStr.empty()) return false;
+    std::wstring whitePath = Utf8ToWide(whiteStr);
+    if (!std::filesystem::exists(whitePath)) return false;
+
+    Core::PeFileInfo info;
+    if (m_pePatcher->InspectPe(whitePath, info)) {
+        return info.isDll;
+    }
+    std::wstring ext = std::filesystem::path(whitePath).extension().wstring();
+    for (auto& c : ext) c = towlower(c);
+    return ext == L".dll";
 }
 
 void MainView::OpenOutputDir() {
@@ -410,13 +522,18 @@ void MainView::RunPatch() {
         return;
     }
 
-    // 自动构建统一输出路径：.\out\<原文件名>_Patch.exe
+    // 自动构建统一输出路径：.\out\<原文件名>_Patch.exe (DLL 白文件则输出 _Patch.dll)
     std::filesystem::path outDir = std::filesystem::current_path() / L"out";
     std::error_code ec;
     std::filesystem::create_directories(outDir, ec);
 
     std::filesystem::path p = whitePath;
+    std::wstring whiteExt = p.extension().wstring();
+    for (auto& c : whiteExt) c = towlower(c);
     std::wstring outFileName = p.stem().wstring() + L"_Patch.exe";
+    if (whiteExt == L".dll") {
+        outFileName = p.stem().wstring() + L"_Patch.dll";
+    }
     std::filesystem::path outPath = outDir / outFileName;
     m_lastOutputPath = outPath.wstring();
     std::string outStr = WideToUtf8(m_lastOutputPath);
@@ -424,13 +541,40 @@ void MainView::RunPatch() {
     // 读取选项
     int patchModeIdx = m_segPatchMode ? m_segPatchMode->GetSelectedIndex() : 0;
     Core::PatchMode patchMode = Core::PatchMode::ReplaceTextSection;
-    switch (patchModeIdx) {
-    case 1: patchMode = Core::PatchMode::InjectEntryPoint; break;
-    case 2: patchMode = Core::PatchMode::EnlargeLastSection; break;
-    case 3: patchMode = Core::PatchMode::AddNewSection; break;
-    case 4: patchMode = Core::PatchMode::TlsCallback; break;
-    case 5: patchMode = Core::PatchMode::ImportInjection; break;
-    default: break;
+    std::string dllFuncName = "DLLMain";
+
+    const bool dllTarget = IsDllTarget();
+    if (dllTarget) {
+        // DLL 目标: 默认 Patch 方式 = 覆盖指定函数；也可选择附加式模式（末节扩容/新增节区/TLS回调/导入表注入）
+        switch (patchModeIdx) {
+        case 2: patchMode = Core::PatchMode::EnlargeLastSection; break;
+        case 3: patchMode = Core::PatchMode::AddNewSection; break;
+        case 4: patchMode = Core::PatchMode::TlsCallback; break;
+        case 5: patchMode = Core::PatchMode::ImportInjection; break;
+        default:
+            patchMode = Core::PatchMode::DllExportPatch;
+            if (m_asbDllFunc) {
+                dllFuncName = m_asbDllFunc->GetText();
+                if (dllFuncName.empty()) dllFuncName = "DLLMain";
+            }
+            break;
+        }
+        // 预检: 目标为 DLL 但白文件不是 DLL
+        Core::PeFileInfo whiteInfo;
+        if (m_pePatcher->InspectPe(whitePath, whiteInfo) && !whiteInfo.isDll) {
+            m_logView->Append(LogLevel::Error, "Validate", "目标类型为 DLL，但白文件不是 DLL 文件");
+            return;
+        }
+    } else {
+        // EXE 目标: 使用 Patch 模式列表（patch 入口 / 节注入）
+        switch (patchModeIdx) {
+        case 1: patchMode = Core::PatchMode::InjectEntryPoint; break;
+        case 2: patchMode = Core::PatchMode::EnlargeLastSection; break;
+        case 3: patchMode = Core::PatchMode::AddNewSection; break;
+        case 4: patchMode = Core::PatchMode::TlsCallback; break;
+        case 5: patchMode = Core::PatchMode::ImportInjection; break;
+        default: break;
+        }
     }
 
     int subIdx = m_segSubsystem ? m_segSubsystem->GetSelectedIndex() : 0;
@@ -445,9 +589,14 @@ void MainView::RunPatch() {
 
     bool bRemoveSig = m_swRemoveSig && m_swRemoveSig->GetIsOn();
     bool bWipeTimestamp = m_swWipeTimestamp && m_swWipeTimestamp->GetIsOn();
+    bool bDisableCfg = m_swDisableCfg && m_swDisableCfg->GetIsOn();
+
+    m_logView->Append(LogLevel::Info, "CFG", bDisableCfg
+        ? "禁用CFG: 开，将剥离 GUARD_CF 标志并清空 LOAD_CONFIG 目录"
+        : "禁用CFG: 关，保留目标文件原有 CFG 设置");
 
     // 执行核心 Patch 逻辑（数字签名在 Patch 阶段统一安全处理）
-    bool success = m_pePatcher->ExecutePatch(whitePath, payloadPath, m_lastOutputPath, patchMode, bRemoveSig);
+    bool success = m_pePatcher->ExecutePatch(whitePath, payloadPath, m_lastOutputPath, patchMode, bRemoveSig, dllFuncName, bDisableCfg);
     if (!success) {
         m_logView->Append(LogLevel::Error, "Patch", "Patch 失败，请检查上方日志详情");
         return;
