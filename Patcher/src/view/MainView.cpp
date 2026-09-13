@@ -530,9 +530,9 @@ void MainView::RunPatch() {
     std::filesystem::path p = whitePath;
     std::wstring whiteExt = p.extension().wstring();
     for (auto& c : whiteExt) c = towlower(c);
-    std::wstring outFileName = p.stem().wstring() + L"_Patch.exe";
+    std::wstring outFileName = p.stem().wstring() + L".exe";
     if (whiteExt == L".dll") {
-        outFileName = p.stem().wstring() + L"_Patch.dll";
+        outFileName = p.stem().wstring() + L".dll";
     }
     std::filesystem::path outPath = outDir / outFileName;
     m_lastOutputPath = outPath.wstring();
