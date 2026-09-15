@@ -332,6 +332,10 @@ Window();
      */
     void ApplyFocus(UIElement* target, FocusState state);
 
+    // 模态覆盖层展开时，确保键盘焦点落在覆盖层内部（否则对话框内的输入框收不到字符）。
+    // 返回调整后的焦点元素；不存在打开的模态覆盖层时返回 nullptr。
+    UIElement* EnsureModalOverlayFocus();
+
     /**
      * @brief 将 Win32 原生客户区坐标转化为 DPI 缩放后的 CUI 逻辑二维点坐标。
      */

@@ -2984,6 +2984,9 @@ bool Window::OnLButtonDown(int x, int y) {
     // 4. Non-popup overlays still on the visual tree.
     if (m_rootElement) {
         if (UIElement* overlayHit = m_rootElement->HitTestOverlay(fx, fy)) {
+            // 覆盖层（ContentDialog 等）内的子控件同样需要获得键盘焦点，
+            // 否则对话框里的 TextBox 收不到 WM_CHAR，表现为“无法输入”。
+            applyFocus(overlayHit);
             pressElement(overlayHit);
             return true;
         }
