@@ -1,0 +1,27 @@
+title: CUI 框架文档
+description: CUI.Core —— 基于 Direct2D/DirectComposition 的 C++ Win32 现代 UI 框架开发手册
+theme: minima
+
+# 站点结构
+baseurl: ""
+url: ""
+
+# 导航：顶部自动包含仓库首页与下方列出的页面
+header_pages:
+  - index.md
+
+# 只发布文档，忽略审查类历史文档
+exclude:
+  - review/
+
+# minima 皮肤与排版
+minima:
+  skin: auto          # auto / light / dark，跟随系统深色模式
+  date_format: "%Y-%m-%d"
+
+plugins:
+  - jekyll-optional-front-matter
+  - jekyll-relative-links
+
+# 渲染器交给 GitHub Pages 默认实现，避免自定义 markdown 引擎导致构建告警/失败
+markdown: kramdown

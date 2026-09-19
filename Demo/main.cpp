@@ -1,10 +1,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include "framework/window/Window.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/Button.h"
-#include "framework/controls/TextBlock.h"
+#include "CUI.h"   // 伞形头：一个 include 拿到全部控件、DSL、窗口与渲染能力
 #include <iostream>
 
 using namespace CUI;

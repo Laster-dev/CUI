@@ -347,6 +347,7 @@
     <ClInclude Include="ui\framework\controls\topology\TopologyView.h" />
     <ClInclude Include="ui\framework\core\BindableProperty.h" />
     <ClInclude Include="ui\framework\core\Binding.h" />
+    <ClInclude Include="ui\CUI.h" />
     <ClInclude Include="ui\framework\core\CUIDsl.h" />
     <ClInclude Include="ui\framework\core\Event.h" />
     <ClInclude Include="ui\framework\core\Object.h" />
