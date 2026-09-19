@@ -39,6 +39,8 @@ public:
     void Resize(int cols, int rows);
     void Reset();
     void ClearViewport();
+    // Wipes the viewport *and* the scrollback (what `cls` / `clear` must do).
+    void ClearAll();
 
     void PrintChar(int codePoint, int width = 1);
     void CarriageReturn() { CursorX = 0; }

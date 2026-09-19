@@ -105,7 +105,7 @@ public:
 
 private:
     bool Find(const std::wstring& query, int& absRow, int& col, bool forward);
-    void ApplyFindHit(int y, int idx, int len);
+    void ApplyFindHit(int y, int startCol, int cellSpan);
     void HandleOscColor(int which, const std::string& data);
     static bool TryParseOscColor(const std::string& data, TermColor& color);
     void OnBackendOutput(const char* data, size_t length);

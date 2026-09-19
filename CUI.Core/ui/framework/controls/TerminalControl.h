@@ -132,6 +132,7 @@ private:
     bool m_redrawQueued = false;                                        // 标志是否已有重绘请求在队列中等待调度
     std::atomic<bool> m_outputPending{ false };                         // 标记是否有新接收到的终端命令行回显数据等待冲刷显示
     ::HWND m_hwnd = nullptr;                                              // 主窗口句柄
+    float m_dpiScale = 1.0f;                                            // 当前窗口 DPI 缩放比
 
     int m_lastCols = -1;                                                // 终端前一帧的网格列数限制
     int m_lastRows = -1;                                                // 终端前一帧的网格行数限制

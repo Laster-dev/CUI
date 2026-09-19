@@ -94,5 +94,39 @@ std::wstring BufferLine::GetText(int start, int end) const {
     return result;
 }
 
+int BufferLine::TextIndexToCol(int textIndex) const {
+    if (textIndex <= 0) {
+        return 0;
+    }
+    int seen = 0;
+    const int len = static_cast<int>(m_cells.size());
+    for (int i = 0; i < len; ++i) {
+        if (m_cells[static_cast<size_t>(i)].GetWidth() == 0) {
+            continue;
+        }
+        if (seen == textIndex) {
+            return i;
+        }
+        ++seen;
+    }
+    return len;
+}
+
+int BufferLine::ColToTextIndex(int col) const {
+    if (col <= 0) {
+        return 0;
+    }
+    int seen = 0;
+    const int len = static_cast<int>(m_cells.size());
+    const int limit = (std::min)(col, len);
+    for (int i = 0; i < limit; ++i) {
+        if (m_cells[static_cast<size_t>(i)].GetWidth() == 0) {
+            continue;
+        }
+        ++seen;
+    }
+    return seen;
+}
+
 } // namespace Term
 } // namespace CUI

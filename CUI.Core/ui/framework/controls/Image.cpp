@@ -4,11 +4,13 @@
 #include "Image.h"
 #include "../core/CUIDsl.h"
 #include "../core/Value.h"
+#include "../render/DxLoader.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cstring>
 
-#pragma comment(lib, "windowscodecs.lib")
+// WIC 通过 CoCreateInstance 创建，CLSID 由 DxLoader 提供，无需 windowscodecs.lib。
+
 
 namespace CUI {
 namespace {
@@ -168,7 +170,7 @@ IWICImagingFactory2* Image::EnsureWicFactory() {
         return m_wicFactory.Get();
     }
     const HRESULT hr = CoCreateInstance(
-        CLSID_WICImagingFactory2,
+        Dx::kWicImagingFactory2,
         nullptr,
         CLSCTX_INPROC_SERVER,
         IID_PPV_ARGS(m_wicFactory.ReleaseAndGetAddressOf()));

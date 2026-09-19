@@ -3,6 +3,7 @@
 #endif
 #include "TreeView.h"
 #include "../core/CUIDsl.h"
+#include "../render/DxLoader.h"
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cmath>
@@ -542,7 +543,13 @@ void TreeView::OnRender(GraphicsContext& ctx) {
                 // Perform rotation transform around center of toggle rect for smooth WinUI chevron motion
                 D2D1_POINT_2F center = D2D1::Point2F(toggleRect.x + toggleRect.width * 0.5f, toggleRect.y + toggleRect.height * 0.5f);
                 float angleDegrees = animProgress * 90.0f; // Rotate from Right (0deg) to Down (90deg)
-                D2D1_MATRIX_3X2_F rotMatrix = D2D1::Matrix3x2F::Rotation(angleDegrees, center);
+                // D2D1::Matrix3x2F::Rotation() 内部调用 d2d1.dll 导出的
+                // D2D1MakeRotateMatrix，会引入 d2d1.lib 依赖，改走 DxLoader。
+                D2D1_MATRIX_3X2_F rotMatrix{};
+                Dx::D2D1MakeRotateMatrix(
+                    angleDegrees,
+                    Dx::Point2F{ center.x, center.y },
+                    &rotMatrix);
 
                 ctx.PushTransform(rotMatrix);
                 ctx.DrawChevron(

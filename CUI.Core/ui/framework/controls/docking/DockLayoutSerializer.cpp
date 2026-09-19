@@ -1,5 +1,6 @@
 #include "DockLayoutSerializer.h"
 #include "DockManager.h"
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -20,7 +21,10 @@ void WriteGroup(std::ostream& os, const char* name, const DockTabGroup& g, const
 } // namespace
 
 bool DockLayoutSerializer::Save(const DockManager& manager, const std::wstring& path) {
-    std::ofstream out(path);
+    // std::ofstream 的 wstring 构造是 MSVC 扩展；用 filesystem::path 保证可移植。
+    // 必须用具名变量：直接写 out(std::filesystem::path(path)) 会被解析成函数声明。
+    const std::filesystem::path outPath(path);
+    std::ofstream out(outPath);
     if (!out) {
         return false;
     }
@@ -43,7 +47,8 @@ bool DockLayoutSerializer::Save(const DockManager& manager, const std::wstring& 
 }
 
 bool DockLayoutSerializer::Load(DockManager& manager, const std::wstring& path) {
-    std::ifstream in(path);
+    const std::filesystem::path inPath(path);
+    std::ifstream in(inPath);
     if (!in) {
         return false;
     }

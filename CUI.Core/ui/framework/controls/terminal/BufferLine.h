@@ -29,6 +29,11 @@ public:
     std::wstring GetTrimmedText() const;
     std::wstring GetText(int start, int end) const;
 
+    // Mapping helpers between text indices (GetTrimmedText space, which skips
+    // width-0 trailer cells of double-width glyphs) and grid cell columns.
+    int TextIndexToCol(int textIndex) const;
+    int ColToTextIndex(int col) const;
+
 private:
     std::vector<CellData> m_cells;
     bool m_isWrapped = false;

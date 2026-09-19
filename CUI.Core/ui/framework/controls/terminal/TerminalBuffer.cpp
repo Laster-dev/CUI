@@ -68,6 +68,13 @@ void TerminalBuffer::Resize(int cols, int rows) {
     cols = (std::max)(1, cols);
     rows = (std::max)(1, rows);
 
+    // CursorY is viewport-relative while m_rows/BaseY() decide *which* absolute
+    // lines are on screen, so remember the absolute line the cursor is on and
+    // re-anchor to it at the end. Without this the cursor is pinned to a screen
+    // row: growing the window pulls scrollback in at the top and shifts the
+    // content down while the cursor stays put.
+    const int cursorLineBefore = BaseY() + CursorY;
+
     if (cols != m_cols) {
         Reflow(cols);
     }
@@ -88,8 +95,11 @@ void TerminalBuffer::Resize(int cols, int rows) {
     // 行数变化后重新锚定内容：裁剪光标行下方的空白行，使光标行靠近视口底部。
     // 否则输出（如启动横幅）若在 Resize 之前已冲刷进缓冲区，会被留在
     // BaseY 上方的回退区，视口只画空白行（多开终端时第 2 个及之后空白）。
-    if (CursorY >= 0 && CursorY < static_cast<int>(m_lines.size())) {
-        while (static_cast<int>(m_lines.size()) > CursorY + 1) {
+    // 注意这里必须用绝对行号：CursorY 是视口相对坐标，直接与 m_lines.size()
+    // 比较会在存在回退区时把整段回退误判为“光标行下方的空白”而丢掉。
+    const int cursorLine = BaseY() + CursorY;
+    if (cursorLine >= 0 && cursorLine < static_cast<int>(m_lines.size())) {
+        while (static_cast<int>(m_lines.size()) > cursorLine + 1) {
             if (!m_lines.back()->GetTrimmedText().empty()) {
                 break;
             }
@@ -99,9 +109,8 @@ void TerminalBuffer::Resize(int cols, int rows) {
 
     EnsureViewportLines();
     CursorX = (std::min)(CursorX, m_cols - 1);
-    CursorY = (std::min)(CursorY, m_rows - 1);
     if (CursorX < 0) CursorX = 0;
-    if (CursorY < 0) CursorY = 0;
+    CursorY = (std::min)((std::max)(cursorLineBefore - BaseY(), 0), m_rows - 1);
     YDisp = 0;
 }
 
@@ -206,6 +215,17 @@ void TerminalBuffer::ClearViewport() {
     }
     CursorX = 0;
     CursorY = 0;
+}
+
+void TerminalBuffer::ClearAll() {
+    // Also drop the scrollback: `cls` must not leave the old screen one resize
+    // away — growing the viewport slides BaseY() up and would bring the
+    // "cleared" lines back (see Resize()).
+    m_lines.clear();
+    CursorX = 0;
+    CursorY = 0;
+    YDisp = 0;
+    EnsureViewportLines();
 }
 
 void TerminalBuffer::PrintChar(int codePoint, int width) {
@@ -332,8 +352,7 @@ void TerminalBuffer::EraseInDisplay(int mode) {
     case 2: // entire viewport
     case 3: // viewport + scrollback
         if (mode == 3) {
-            m_lines.clear();
-            EnsureViewportLines();
+            ClearAll();
         } else {
             for (int y = 0; y < m_rows; ++y) {
                 EnsureLine(BaseY() + y);
@@ -459,7 +478,14 @@ std::wstring TerminalBuffer::GetSelectedText(int startCol, int startRow, int end
             continue;
         }
         const BufferLine& line = *m_lines[static_cast<size_t>(y)];
-        const int s = (y == startRow) ? startCol : 0;
+        int s = (y == startRow) ? startCol : 0;
+        // Snap onto wide-char boundaries: starting inside the trailer cell of
+        // a double-width glyph would copy only half of the glyph.
+        if (y == startRow && s > 0 && s < line.Length() && line[s].GetWidth() == 0) {
+            while (s > 0 && line[s].GetWidth() == 0) {
+                --s;
+            }
+        }
         int e = m_cols;
         if (y == endRow) {
             e = endCol + 1;

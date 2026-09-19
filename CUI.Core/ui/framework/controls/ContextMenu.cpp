@@ -92,7 +92,7 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
 
     bool enabled = IsEnabled();
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
-    const float hoverT = m_hoverAnim.Current();
+    const float hoverT = (IsHovered() || m_hoverAnim.Current() > 0.001f) ? 1.0f : 0.0f;
     if (hoverT > 0.001f && enabled) {
         D2D1_COLOR_F hover = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
         const float peak = lightTheme ? 0.16f : 0.32f;
@@ -180,7 +180,7 @@ void MenuItem::OnMouseUp(Point pt) {
 
 void MenuItem::OnMouseEnter() {
     Control::OnMouseEnter();
-    m_hoverAnim.SetTarget(1.0f);
+    m_hoverAnim.Reset(1.0f);
     RequestAnimationTicks();
     if (m_parentMenu) {
         m_parentMenu->MarkRenderContentDirty();
@@ -195,7 +195,7 @@ void MenuItem::OnMouseEnter() {
 
 void MenuItem::OnMouseLeave() {
     Control::OnMouseLeave();
-    m_hoverAnim.SetTarget(0.0f);
+    m_hoverAnim.Reset(0.0f);
     RequestAnimationTicks();
     if (m_parentMenu) {
         m_parentMenu->MarkRenderContentDirty();
@@ -229,9 +229,12 @@ void MenuItem::OnMouseWheel(float delta) {
 }
 
 void MenuItem::SetHighlight(bool highlighted) {
-    m_hoverAnim.SetTarget(highlighted ? 1.0f : 0.0f);
+    m_hoverAnim.Reset(highlighted ? 1.0f : 0.0f);
     RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds);
+    if (m_parentMenu) {
+        m_parentMenu->MarkRenderContentDirty();
+    }
 }
 
 void MenuItem::ExecuteCommand() {

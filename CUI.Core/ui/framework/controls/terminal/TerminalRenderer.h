@@ -43,8 +43,8 @@ public:
     void Render(GraphicsContext& ctx, Terminal& terminal, bool cursorOn,
                 const Rect& area, const std::wstring& imePreedit);
 
-    static bool TryGetSelectionSpan(const SelectionModel& selection, int absRow, int cols,
-                                    int& startCol, int& endCol);
+    static bool TryGetSelectionSpan(const SelectionModel& selection, const BufferLine& line,
+                                    int absRow, int cols, int& startCol, int& endCol);
 
 private:
     struct GlyphRunBatch {

@@ -123,6 +123,7 @@ bool ConPtyBackend::Start(int cols, int rows) {
     m_started = true;
     m_readerAlive = true;
     m_readThread = std::thread(&ConPtyBackend::ReadLoop, this);
+    m_writeThread = std::thread(&ConPtyBackend::WriteLoop, this);
     return true;
 }
 
@@ -131,18 +132,42 @@ void ConPtyBackend::Write(const char* data, size_t length) {
         return;
     }
 
-    std::lock_guard<std::mutex> lock(m_writeMutex);
-    size_t offset = 0;
-    while (offset < length) {
-        DWORD written = 0;
-        const DWORD chunk = static_cast<DWORD>((std::min)(length - offset, static_cast<size_t>(64 * 1024)));
-        if (!WriteFile(m_inputWrite, data + offset, chunk, &written, nullptr)) {
+    // Queue only; the WriteFile to the ConPTY input pipe happens on the
+    // writer thread so the UI thread never blocks on a busy child.
+    {
+        std::lock_guard<std::mutex> lock(m_queueMutex);
+        m_writeQueue.emplace_back(data, length);
+    }
+    m_writeCv.notify_one();
+}
+
+void ConPtyBackend::WriteLoop() {
+    std::string chunk;
+    for (;;) {
+        {
+            std::unique_lock<std::mutex> lock(m_queueMutex);
+            m_writeCv.wait(lock, [this] { return m_cancelled || !m_writeQueue.empty(); });
+            if (m_cancelled) {
+                break;
+            }
+            chunk = std::move(m_writeQueue.front());
+            m_writeQueue.pop_front();
+        }
+        std::lock_guard<std::mutex> lock(m_writeMutex);
+        if (m_inputWrite == nullptr) {
             break;
         }
-        if (written == 0) {
-            break;
+        size_t offset = 0;
+        while (offset < chunk.size()) {
+            DWORD written = 0;
+            const DWORD bytes = static_cast<DWORD>(
+                (std::min)(chunk.size() - offset, static_cast<size_t>(64 * 1024)));
+            if (!WriteFile(m_inputWrite, chunk.data() + offset, bytes, &written, nullptr) ||
+                written == 0) {
+                return;
+            }
+            offset += written;
         }
-        offset += written;
     }
 }
 
@@ -161,6 +186,16 @@ void ConPtyBackend::Stop() {
     if (m_pseudoConsole != nullptr && g_closePseudoConsole != nullptr) {
         g_closePseudoConsole(m_pseudoConsole);
         m_pseudoConsole = nullptr;
+    }
+
+    // Drain the writer before the input handle goes away.
+    m_writeCv.notify_all();
+    if (m_writeThread.joinable()) {
+        if (m_writeThread.get_id() == std::this_thread::get_id()) {
+            m_writeThread.detach();
+        } else {
+            m_writeThread.join();
+        }
     }
 
     SafeClose(m_inputWrite);

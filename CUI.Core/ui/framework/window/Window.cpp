@@ -19,7 +19,7 @@
 #include "../animation/FrameScheduler.h"
 #include "../input/RoutedEvent.h"
 #include <windowsx.h>
-#include <dwmapi.h>
+#include "../render/DxLoader.h"
 #include <imm.h>
 #include <algorithm>
 #include <chrono>
@@ -33,14 +33,10 @@
 #include <shellapi.h>
 #include <ole2.h>
 
+// DWM 入口点经 DxLoader.h 运行时解析，不再链接 dwmapi.lib。
 #pragma comment(lib, "imm32.lib")
-#pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "ole32.lib")
-
-#ifndef DWMWA_WINDOW_CORNER_PREFERENCE
-#define DWMWA_WINDOW_CORNER_PREFERENCE 33
-#endif
 
 namespace CUI {
 
@@ -1525,26 +1521,32 @@ void Window::RunMessageLoop() {
     using clock = std::chrono::steady_clock;
 
     for (;;) {
-        // Theme ripple must never starve input. Drain mouse/keyboard before any
-        // paint/frame work so a second theme click can restart the wave immediately.
-        if (m_themeRippleActive) {
+        // Drain pending input messages (keyboard, mouse, IME) before frame work.
+        // If the user types rapidly or drags the mouse, dispatching queued inputs first
+        // avoids interleaving a 16.7ms Present(1, 0) blocking VSync between every single keystroke.
+        bool hadMessage = false;
+        {
             MSG inputMsg = {};
-            for (;;) {
-                const BOOL gotMouse = PeekMessage(&inputMsg, m_hwnd, WM_MOUSEFIRST, WM_MOUSELAST, PM_REMOVE);
-                const BOOL gotKey = gotMouse ? FALSE
-                    : PeekMessage(&inputMsg, m_hwnd, WM_KEYFIRST, WM_KEYLAST, PM_REMOVE);
-                if (!gotMouse && !gotKey) {
-                    break;
-                }
+            int inputBudget = 100;
+            while (inputBudget-- > 0 &&
+                   (PeekMessage(&inputMsg, nullptr, WM_KEYFIRST, WM_KEYLAST, PM_REMOVE)
+                    || PeekMessage(&inputMsg, nullptr, WM_MOUSEFIRST, WM_MOUSELAST, PM_REMOVE)
+                    || PeekMessage(&inputMsg, nullptr, WM_IME_SETCONTEXT, 0x0291, PM_REMOVE))) {
+                hadMessage = true;
                 if (inputMsg.message == WM_QUIT) {
                     return;
+                }
+                if (inputMsg.message == WM_MOUSEMOVE) {
+                    MSG newest = inputMsg;
+                    while (PeekMessage(&newest, inputMsg.hwnd, WM_MOUSEMOVE, WM_MOUSEMOVE, PM_REMOVE)) {
+                        inputMsg = newest;
+                    }
                 }
                 TranslateMessage(&inputMsg);
                 DispatchMessage(&inputMsg);
             }
         }
 
-        bool hadMessage = false;
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
             hadMessage = true;
             if (msg.message == WM_QUIT) {
@@ -1864,6 +1866,17 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         float fx = logicalPt.x;
         float fy = logicalPt.y;
 
+        // An open popup (combo drop-down, file/folder picker, context menu, ...)
+        // is painted above the whole window — including the custom title bar.
+        // Non-client hit testing must hand those points back as HTCLIENT, or the
+        // caption / min / max / close bands claim them: the click then "falls
+        // through" the popup and drags or closes the window instead of hitting
+        // the popup. Same hit order as OnLButtonDown: popup host, then overlay.
+        if (m_popupHost.HitTest(fx, fy) ||
+            (m_rootElement && m_rootElement->HitTestOverlay(fx, fy))) {
+            return HTCLIENT;
+        }
+
         RECT rc;
         GetClientRect(m_hwnd, &rc);
         const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
@@ -2051,7 +2064,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
             // Narrow DWM handoff: Snap Layouts on maximize, without full native chrome paint.
             LRESULT dwmResult = 0;
-            if (DwmDefWindowProc(m_hwnd, uMsg, wParam, lParam, &dwmResult)) {
+            if (Dx::DwmDefWindowProc(m_hwnd, uMsg, wParam, lParam, &dwmResult)) {
                 return dwmResult;
             }
         }
@@ -2730,12 +2743,13 @@ void Window::UpdateDwmChrome() {
     if (!m_hwnd) return;
 
     const bool maximized = IsZoomed(m_hwnd) != FALSE;
-    const MARGINS margins = maximized ? MARGINS{ 0, 0, 0, 0 } : MARGINS{ 1, 1, 1, 1 };
-    DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+    const Dx::Margins margins = maximized ? Dx::Margins{ 0, 0, 0, 0 } : Dx::Margins{ 1, 1, 1, 1 };
+    Dx::DwmExtendFrameIntoClientArea(m_hwnd, &margins);
 
     // 1. Force Native Windows 11 DWM Rounded Corners (DWMWA_WINDOW_CORNER_PREFERENCE = 33)
-    DWM_WINDOW_CORNER_PREFERENCE preference = maximized ? DWMWCP_DONOTROUND : DWMWCP_ROUND;
-    DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
+    const Dx::DwmCornerPreference preference =
+        maximized ? Dx::DwmCornerDoNotRound : Dx::DwmCornerRound;
+    Dx::DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 
     // Match the app background on Win11's 1px window border.
     const D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().windowBackground;
@@ -2744,7 +2758,7 @@ void Window::UpdateDwmChrome() {
         static_cast<int>(border.g * 255.0f),
         static_cast<int>(border.b * 255.0f)
     );
-    DwmSetWindowAttribute(m_hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
+    Dx::DwmSetWindowAttribute(m_hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
 }
 
 void Window::OnResize(UINT width, UINT height) {

@@ -298,27 +298,39 @@ void Terminal::Reset() {
 }
 
 void Terminal::Clear() {
-    m_buffers.Active().ClearViewport();
+    m_buffers.Active().ClearAll();
     RequestRedraw();
 }
 
 void Terminal::ScrollLines(int delta) {
     TerminalBuffer& buf = m_buffers.Active();
     const int max = (std::max)(0, buf.BaseY());
-    buf.YDisp = std::clamp(buf.YDisp + delta, 0, max);
+    const int next = std::clamp(buf.YDisp + delta, 0, max);
+    if (next == buf.YDisp) {
+        return; // No view change: skip the full-viewport invalidation.
+    }
+    buf.YDisp = next;
     if (ScrollChanged) ScrollChanged();
     RequestRedraw();
 }
 
 void Terminal::ScrollToBottom() {
-    m_buffers.Active().YDisp = 0;
+    TerminalBuffer& buf = m_buffers.Active();
+    if (buf.YDisp == 0) {
+        return; // Already at bottom — common on every keystroke, keep it cheap.
+    }
+    buf.YDisp = 0;
     if (ScrollChanged) ScrollChanged();
     RequestRedraw();
 }
 
 void Terminal::SetScrollDisp(int yDisp) {
     const int max = (std::max)(0, m_buffers.Active().BaseY());
-    m_buffers.Active().YDisp = std::clamp(yDisp, 0, max);
+    const int next = std::clamp(yDisp, 0, max);
+    if (next == m_buffers.Active().YDisp) {
+        return;
+    }
+    m_buffers.Active().YDisp = next;
     if (ScrollChanged) ScrollChanged();
     RequestRedraw();
 }
@@ -362,29 +374,38 @@ bool Terminal::Find(const std::wstring& query, int& absRow, int& col, bool forwa
         return false;
     }
     TerminalBuffer& buf = m_buffers.Active();
+    const int queryLen = static_cast<int>(query.size());
     if (forward) {
         for (int y = (std::max)(0, absRow); y < buf.Length(); ++y) {
-            const std::wstring text = buf.GetLine(y).GetTrimmedText();
-            const int start = (y == absRow) ? (std::max)(0, col) : 0;
+            const BufferLine& line = buf.GetLine(y);
+            const std::wstring text = line.GetTrimmedText();
+            // col is a cell column; search in trimmed-text index space which
+            // skips the width-0 trailer cells of double-width glyphs.
+            const int start = (y == absRow) ? line.ColToTextIndex((std::max)(0, col)) : 0;
             const int idx = IndexOfIgnoreCase(text, query, start);
             if (idx >= 0) {
-                ApplyFindHit(y, idx, static_cast<int>(query.size()));
+                const int hitCol = line.TextIndexToCol(idx);
+                const int span = (std::max)(1, line.TextIndexToCol(idx + queryLen) - hitCol);
+                ApplyFindHit(y, hitCol, span);
                 absRow = y;
-                col = idx;
+                col = hitCol + span; // Exclusive end: next forward search resumes here.
                 return true;
             }
         }
     } else {
         for (int y = (std::min)(absRow, buf.Length() - 1); y >= 0; --y) {
-            const std::wstring text = buf.GetLine(y).GetTrimmedText();
+            const BufferLine& line = buf.GetLine(y);
+            const std::wstring text = line.GetTrimmedText();
             const int end = (y == absRow)
-                ? (std::min)(static_cast<int>(text.size()), (std::max)(0, col))
+                ? (std::min)(static_cast<int>(text.size()), line.ColToTextIndex((std::max)(0, col)))
                 : static_cast<int>(text.size());
             const int idx = LastIndexOfIgnoreCase(text, query, (std::max)(0, end - 1));
-            if (idx >= 0 && (y != absRow || idx < col)) {
-                ApplyFindHit(y, idx, static_cast<int>(query.size()));
+            if (idx >= 0 && (y != absRow || idx < end)) {
+                const int hitCol = line.TextIndexToCol(idx);
+                const int span = (std::max)(1, line.TextIndexToCol(idx + queryLen) - hitCol);
+                ApplyFindHit(y, hitCol, span);
                 absRow = y;
-                col = idx;
+                col = hitCol;
                 return true;
             }
         }
@@ -392,13 +413,13 @@ bool Terminal::Find(const std::wstring& query, int& absRow, int& col, bool forwa
     return false;
 }
 
-void Terminal::ApplyFindHit(int y, int idx, int len) {
+void Terminal::ApplyFindHit(int y, int startCol, int cellSpan) {
     TerminalBuffer& buf = m_buffers.Active();
     SelectionModel& model = m_selection.Model();
     model.HasSelection = true;
     model.StartRow = model.EndRow = y;
-    model.StartCol = idx;
-    model.EndCol = idx + (std::max)(1, len) - 1;
+    model.StartCol = startCol;
+    model.EndCol = startCol + (std::max)(1, cellSpan) - 1;
     const int top = buf.BaseY() - buf.YDisp;
     if (y < top || y >= top + Rows()) {
         SetScrollDisp((std::max)(0, buf.BaseY() - y));

@@ -1,13 +1,6 @@
 #include "WindowBackdrop.h"
 #include "../style/ThemeManager.h"
 
-#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
-#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
-#endif
-#ifndef DWMWA_SYSTEMBACKDROP_TYPE
-#define DWMWA_SYSTEMBACKDROP_TYPE 38
-#endif
-
 namespace CUI {
 namespace {
 constexpr DWORD kDwmBackdropNone = 1;
@@ -81,14 +74,14 @@ bool MaterialHost::Apply(HWND hwnd, BackdropType type, ThemeMode theme) {
 bool MaterialHost::ApplyBackdrop(HWND hwnd, BackdropType type) {
     if (!hwnd) return false;
     const DWORD value = DwmBackdropValue(type);
-    const HRESULT hr = DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &value, sizeof(value));
+    const HRESULT hr = Dx::DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &value, sizeof(value));
     return SUCCEEDED(hr);
 }
 
 bool MaterialHost::ApplyTheme(HWND hwnd, ThemeMode theme) {
     if (!hwnd) return false;
     BOOL darkMode = (theme == ThemeMode::Dark) ? TRUE : FALSE;
-    const HRESULT hr = DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
+    const HRESULT hr = Dx::DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
     return SUCCEEDED(hr);
 }
 

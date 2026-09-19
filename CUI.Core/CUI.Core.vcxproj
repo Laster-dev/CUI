@@ -224,6 +224,7 @@
     <ClCompile Include="ui\framework\layout\Layout.cpp" />
     <ClCompile Include="ui\framework\parser\StyleManager.cpp" />
     <ClCompile Include="ui\framework\render\CompositionContext.cpp" />
+    <ClCompile Include="ui\framework\render\DxLoader.cpp" />
     <ClCompile Include="ui\framework\render\DirtyRegion.cpp" />
     <ClCompile Include="ui\framework\render\GraphicsContext.cpp" />
     <ClCompile Include="ui\framework\render\LayerRasterizer.cpp" />
@@ -361,6 +362,7 @@
     <ClInclude Include="ui\framework\parser\StyleManager.h" />
     <ClInclude Include="ui\framework\render\CompositionContext.h" />
     <ClInclude Include="ui\framework\render\CompositionLayer.h" />
+    <ClInclude Include="ui\framework\render\DxLoader.h" />
     <ClInclude Include="ui\framework\render\DirtyRegion.h" />
     <ClInclude Include="ui\framework\render\GraphicsContext.h" />
     <ClInclude Include="ui\framework\render\LayerRasterizer.h" />

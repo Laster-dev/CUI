@@ -2,6 +2,8 @@
 #include "ITerminalBackend.h"
 #include <windows.h>
 #include <atomic>
+#include <condition_variable>
+#include <deque>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -34,6 +36,7 @@ public:
 
 private:
     void ReadLoop();
+    void WriteLoop();
     static void SafeClose(HANDLE& handle);
 
     std::wstring m_commandLine;
@@ -47,10 +50,17 @@ private:
     LPPROC_THREAD_ATTRIBUTE_LIST m_attrList = nullptr;
 
     std::thread m_readThread;
+    std::thread m_writeThread;
     std::atomic<bool> m_started{ false };
     std::atomic<bool> m_cancelled{ false };
     std::atomic<bool> m_readerAlive{ false };
     std::mutex m_writeMutex;
+    // Keyboard input is queued and flushed on a worker thread: a synchronous
+    // WriteFile to the ConPTY input pipe can block while the child is busy,
+    // which froze the whole UI thread on every keystroke.
+    std::mutex m_queueMutex;
+    std::condition_variable m_writeCv;
+    std::deque<std::string> m_writeQueue;
 
     OutputCallback m_onOutput;
 };

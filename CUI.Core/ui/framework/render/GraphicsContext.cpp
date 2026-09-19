@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "GraphicsContext.h"
+#include "DxLoader.h"
 #include "../style/ThemeManager.h"
 #include <d3d11.h>
 #include <d3d11_4.h>
@@ -13,11 +14,8 @@
 #include <cstring>
 #include <iostream>
 
-#pragma comment(lib, "d2d1.lib")
-#pragma comment(lib, "dwrite.lib")
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "dxgi.lib")
-#pragma comment(lib, "dcomp.lib")
+// DirectX（d2d1 / dwrite / d3d11 / dxgi / dcomp）全部经 DxLoader.h 运行时解析，
+// 不再静态链接对应 import library。
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "shlwapi.lib")
 
@@ -62,13 +60,13 @@ HRESULT GraphicsContext::CreateDeviceIndependentResources() {
     options.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION;
 #endif
 
-    HRESULT hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory1), &options, &m_d2dFactory);
+    HRESULT hr = Dx::D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory1), &options, &m_d2dFactory);
     if (FAILED(hr)) return hr;
 
-    hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &m_dwriteFactory);
+    hr = Dx::DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &m_dwriteFactory);
     if (FAILED(hr)) return hr;
 
-    return CoCreateInstance(CLSID_WICImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory2), &m_wicFactory);
+    return CoCreateInstance(Dx::kWicImagingFactory2, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWICImagingFactory2), &m_wicFactory);
 }
 
 HRESULT GraphicsContext::BindSwapChainTarget(float dpiX, float dpiY) {
@@ -129,7 +127,7 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     ComPtr<ID3D11DeviceContext> d3dContext;
     D3D_FEATURE_LEVEL featureLevel;
 
-    HRESULT hr = D3D11CreateDevice(
+    HRESULT hr = Dx::D3D11CreateDevice(
         nullptr,
         D3D_DRIVER_TYPE_HARDWARE,
         0,
@@ -143,7 +141,7 @@ HRESULT GraphicsContext::CreateDeviceResources() {
     );
 
     if (FAILED(hr)) {
-        hr = D3D11CreateDevice(
+        hr = Dx::D3D11CreateDevice(
             nullptr,
             D3D_DRIVER_TYPE_WARP,
             0,
@@ -227,7 +225,7 @@ HRESULT GraphicsContext::CreateDeviceResources() {
             &m_swapChain
         );
         if (SUCCEEDED(hr)) {
-            hr = DCompositionCreateDevice(dxgiDevice.Get(), IID_PPV_ARGS(&m_dcompDevice));
+            hr = Dx::DCompositionCreateDevice(dxgiDevice.Get(), IID_PPV_ARGS(&m_dcompDevice));
             if (SUCCEEDED(hr)) {
                 hr = m_dcompDevice->CreateTargetForHwnd(m_hwnd, TRUE, &m_dcompTarget);
             }
@@ -2059,7 +2057,11 @@ void GraphicsContext::DrawTextRotated(
     const float destX = center.x - textW * 0.5f;
     const float destY = center.y - textH * 0.5f;
     D2D1_RECT_F dest = D2D1::RectF(destX, destY, destX + textW, destY + textH);
-    PushTransform(D2D1::Matrix3x2F::Rotation(degrees, D2D1::Point2F(center.x, center.y)));
+    // D2D1::Matrix3x2F::Rotation() 内部调用 d2d1.dll 导出的 D2D1MakeRotateMatrix，
+    // 会引入 d2d1.lib 依赖，这里改为经 DxLoader 运行时解析。
+    D2D1_MATRIX_3X2_F rotateMatrix{};
+    Dx::D2D1MakeRotateMatrix(degrees, Dx::Point2F{ center.x, center.y }, &rotateMatrix);
+    PushTransform(rotateMatrix);
     m_d2dContext->DrawBitmap(
         bmp.Get(),
         &dest,
@@ -2139,7 +2141,7 @@ Size GraphicsContext::MeasureText(const std::string& text, const std::string& fo
     if (!factory) {
         static ComPtr<IDWriteFactory> s_sharedDWriteFactory;
         if (!s_sharedDWriteFactory) {
-            DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &s_sharedDWriteFactory);
+            Dx::DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &s_sharedDWriteFactory);
         }
         factory = s_sharedDWriteFactory;
     }
@@ -2185,7 +2187,7 @@ Size GraphicsContext::MeasureText(const std::string& text, const std::string& fo
 ComPtr<IDWriteFactory> GraphicsContext::GetSharedWriteFactory() {
     static ComPtr<IDWriteFactory> s_sharedDWriteFactory;
     if (!s_sharedDWriteFactory) {
-        DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &s_sharedDWriteFactory);
+        Dx::DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), &s_sharedDWriteFactory);
     }
     return s_sharedDWriteFactory;
 }

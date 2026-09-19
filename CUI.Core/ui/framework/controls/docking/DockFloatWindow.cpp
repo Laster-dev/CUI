@@ -5,22 +5,14 @@
 #include "../../style/ThemeManager.h"
 #include "../../controls/UIElement.h"
 #include <windowsx.h>
-#include <dwmapi.h>
+#include "../../render/DxLoader.h"
 #include <cmath>
 #include <algorithm>
 #include <cctype>
 #include <vector>
 
-#pragma comment(lib, "dwmapi.lib")
-
 #ifndef WS_EX_NOREDIRECTIONBITMAP
 #define WS_EX_NOREDIRECTIONBITMAP 0x00200000L
-#endif
-#ifndef DWMWA_WINDOW_CORNER_PREFERENCE
-#define DWMWA_WINDOW_CORNER_PREFERENCE 33
-#endif
-#ifndef DWMWA_BORDER_COLOR
-#define DWMWA_BORDER_COLOR 34
 #endif
 
 namespace CUI {
@@ -106,18 +98,19 @@ void DockFloatWindow::ApplyCuiChrome() {
         return;
     }
     const bool maximized = IsZoomed(m_hwnd) != FALSE;
-    const MARGINS margins = maximized ? MARGINS{ 0, 0, 0, 0 } : MARGINS{ 1, 1, 1, 1 };
-    DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+    const Dx::Margins margins = maximized ? Dx::Margins{ 0, 0, 0, 0 } : Dx::Margins{ 1, 1, 1, 1 };
+    Dx::DwmExtendFrameIntoClientArea(m_hwnd, &margins);
 
-    DWM_WINDOW_CORNER_PREFERENCE preference = maximized ? DWMWCP_DONOTROUND : DWMWCP_ROUND;
-    DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
+    const Dx::DwmCornerPreference preference =
+        maximized ? Dx::DwmCornerDoNotRound : Dx::DwmCornerRound;
+    Dx::DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 
     const D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().windowBackground;
     const COLORREF borderColor = RGB(
         static_cast<int>(border.r * 255.0f),
         static_cast<int>(border.g * 255.0f),
         static_cast<int>(border.b * 255.0f));
-    DwmSetWindowAttribute(m_hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
+    Dx::DwmSetWindowAttribute(m_hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
 }
 
 bool DockFloatWindow::EnsureWindow(HWND owner) {

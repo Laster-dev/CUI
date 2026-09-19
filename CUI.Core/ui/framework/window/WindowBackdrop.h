@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <windows.h>
-#include <dwmapi.h>
+#include "../render/DxLoader.h"
 
 namespace CUI {
 

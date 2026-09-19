@@ -312,8 +312,8 @@ void TerminalRenderer::PaintRow(GraphicsContext& ctx, BufferLine& line, int cols
     FlushBatch(ctx, batch, originY);
 }
 
-bool TerminalRenderer::TryGetSelectionSpan(const SelectionModel& selection, int absRow, int cols,
-                                           int& startCol, int& endCol) {
+bool TerminalRenderer::TryGetSelectionSpan(const SelectionModel& selection, const BufferLine& line,
+                                           int absRow, int cols, int& startCol, int& endCol) {
     startCol = 0;
     endCol = -1;
     if (!selection.HasSelection) {
@@ -342,6 +342,18 @@ bool TerminalRenderer::TryGetSelectionSpan(const SelectionModel& selection, int 
 
     startCol = std::clamp(startCol, 0, (std::max)(0, cols - 1));
     endCol = std::clamp(endCol, 0, (std::max)(0, cols - 1));
+
+    // Snap to wide-char boundaries so a double-width glyph is selected whole
+    // instead of being split into halves at the selection edge.
+    const int len = line.Length();
+    if (startCol > 0 && startCol < len && line[startCol].GetWidth() == 0) {
+        while (startCol > 0 && line[startCol].GetWidth() == 0) {
+            --startCol;
+        }
+    }
+    if (endCol >= 0 && endCol < len && line[endCol].GetWidth() >= 2) {
+        endCol = (std::min)(endCol + line[endCol].GetWidth() - 1, (std::max)(0, cols - 1));
+    }
     return endCol >= startCol;
 }
 
@@ -522,13 +534,13 @@ void TerminalRenderer::PaintSelectionText(GraphicsContext& ctx, Terminal& termin
 
     for (int row = 0; row < rows; ++row) {
         const int absRow = buf.BaseY() - buf.YDisp + row;
+        BufferLine& line = buf.GetViewportLine(row);
         int startCol = 0;
         int endCol = -1;
-        if (!TryGetSelectionSpan(selection, absRow, cols, startCol, endCol)) {
+        if (!TryGetSelectionSpan(selection, line, absRow, cols, startCol, endCol)) {
             continue;
         }
 
-        BufferLine& line = buf.GetViewportLine(row);
         const float rowY = originY + row * m_cellHeight;
         GlyphRunBatch batch;
 
@@ -568,7 +580,8 @@ void TerminalRenderer::PaintOverlay(GraphicsContext& ctx, Terminal& terminal, bo
             const int absRow = buf.BaseY() - buf.YDisp + row;
             int startCol = 0;
             int endCol = -1;
-            if (!TryGetSelectionSpan(selection, absRow, cols, startCol, endCol)) {
+            if (!TryGetSelectionSpan(selection, buf.GetViewportLine(row), absRow, cols,
+                                     startCol, endCol)) {
                 continue;
             }
 

@@ -6,9 +6,6 @@
 #include "terminal/MouseReporter.h"
 #include "terminal/UnicodeWidth.h"
 #include <algorithm>
-#include <cstdarg>
-#include <cstdio>
-#include <set>
 #include <shellapi.h>
 #include <windows.h>
 
@@ -531,11 +528,21 @@ void TerminalControl::QueueRedraw() {
 
 void TerminalControl::RequestWindowRepaint() {
     ::HWND hwnd = m_hwnd;
-    if (hwnd != nullptr) {
-        // Cross-thread InvalidateRect marks an update region but does not
-        // guarantee WaitMessage() will wake immediately, so poke the queue too.
-        InvalidateRect(hwnd, nullptr, FALSE);
-        PostMessage(hwnd, WM_NULL, 0, 0);
+    if (hwnd != nullptr && m_bounds.width > 0.0f && m_bounds.height > 0.0f) {
+        // Invalidate the entire terminal control bounds in physical pixels,
+        // ensuring all active/modified terminal rows are within the paint bounds
+        // and rendered immediately without being culled or delayed by cursor blink.
+        const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
+        const RECT rc{
+            static_cast<LONG>(std::floor(m_bounds.x * scale)),
+            static_cast<LONG>(std::floor(m_bounds.y * scale)),
+            static_cast<LONG>(std::ceil((m_bounds.x + m_bounds.width) * scale)),
+            static_cast<LONG>(std::ceil((m_bounds.y + m_bounds.height) * scale))
+        };
+        InvalidateRect(hwnd, &rc, FALSE);
+        if (::GetWindowThreadProcessId(hwnd, nullptr) != ::GetCurrentThreadId()) {
+            PostMessage(hwnd, WM_NULL, 0, 0);
+        }
     }
 }
 
@@ -559,6 +566,12 @@ bool TerminalControl::OnAnimationTick() {
         return more;
     }
 
+    // Keep registered while there is work, so flush cadence, dirty-row
+    // processing and cursor blink never starve.
+    if (m_outputPending.load() || m_redrawQueued) {
+        RequestAnimationTicks();
+    }
+
     const float dtMs = GetAnimationDeltaSeconds() * 1000.0f;
     const float prevOpacity = m_scrollbarAutoHide.Opacity();
     if (m_scrollbarAutoHide.Tick(GetAnimationDeltaSeconds())) {
@@ -569,15 +582,10 @@ bool TerminalControl::OnAnimationTick() {
     }
 
     if (m_outputPending.load()) {
-        m_flushAccumMs += dtMs;
-        if (m_flushAccumMs >= kFlushIntervalMs) {
-            m_flushAccumMs = 0.0f;
-            const bool remaining = m_terminal->FlushPendingOutput();
-            m_outputPending.store(remaining || m_terminal->HasPendingOutput());
-        }
+        const bool remaining = m_terminal->FlushPendingOutput();
+        m_outputPending.store(remaining || m_terminal->HasPendingOutput());
+        MarkDirtyRows();
         more = true;
-    } else {
-        m_flushAccumMs = kFlushIntervalMs;
     }
 
     const bool blink = m_terminal->Options().CursorBlink && m_terminal->Input().CursorBlink();
@@ -604,48 +612,19 @@ bool TerminalControl::OnAnimationTick() {
     return more;
 }
 
-// ===== TEMP DEBUG: 第二个终端空白诊断（诊断后删除） =====
-static void TermDbg(const char* fmt, ...) {
-    FILE* f = nullptr;
-    char path[MAX_PATH] = {};
-    GetTempPathA(MAX_PATH, path);
-    strncat_s(path, MAX_PATH, "term_dbg.log", _TRUNCATE);
-    if (fopen_s(&f, path, "a") == 0 && f) {
-        va_list args;
-        va_start(args, fmt);
-        vfprintf(f, fmt, args);
-        va_end(args);
-        fputs("\n", f);
-        fclose(f);
-    }
-}
-// ===== END TEMP DEBUG =====
-
 void TerminalControl::OnRender(GraphicsContext& ctx) {
     m_hwnd = ctx.GetHwnd();
+    m_dpiScale = ctx.GetDpiScale();
     m_renderer->SetDpi(ctx.GetDpiScale());
     m_renderer->EnsureMetrics(ctx);
     RecalculateSize(ctx);
 
-    // TEMP DEBUG: 每个实例前 5 帧记录渲染关键状态
-    static std::set<const TerminalControl*> s_dbgLogged;
-    if (s_dbgLogged.size() < 12 && s_dbgLogged.count(this) == 0) {
-        const Rect b = m_bounds;
-        const Rect s = GetSurfaceRect();
-        const Rect pb = ctx.GetPaintBounds();
-        TermDbg("[term] inst=%p bounds=(%.0f,%.0f,%.0fx%.0f) surface=(%.0f,%.0f,%.0fx%.0f)"
-                " metrics=%d outPending=%d vis=%d backend=%p cols=%d rows=%d bufLen=%d pb=(%.0f,%.0f,%.0fx%.0f)",
-                (void*)this, b.x, b.y, b.width, b.height, s.x, s.y, s.width, s.height,
-                m_renderer->HasMetrics() ? 1 : 0,
-                m_outputPending.load() ? 1 : 0,
-                (int)GetVisibility(), (void*)m_backend,
-                m_terminal ? m_terminal->Cols() : -1,
-                m_terminal ? m_terminal->Rows() : -1,
-                m_terminal ? m_terminal->Buffers().Active().Length() : -1,
-                pb.x, pb.y, pb.width, pb.height);
-        if (b.width > 0.0f && b.height > 0.0f) {
-            s_dbgLogged.insert(this);
-        }
+    // Pending output / queued redraws must be drained on the UI thread by
+    // OnAnimationTick. Without registering for ticks nothing ever consumes
+    // m_redrawQueued, dirty-row tracking stalls and stale rows linger on
+    // screen until some unrelated repaint happens.
+    if (m_outputPending.load() || m_redrawQueued) {
+        RequestAnimationTicks();
     }
 
     // Guarantee forward progress even if animation ticks are throttled.
@@ -654,6 +633,11 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
     if (m_outputPending.load()) {
         const bool remaining = m_terminal->FlushPendingOutput();
         m_outputPending.store(remaining || m_terminal->HasPendingOutput());
+        // Convert the rows just changed by the parse into real dirty rects now,
+        // so CommitFrame() invalidates them in this very frame instead of
+        // waiting for the next tick (and so we never repaint all rows for a
+        // one-character echo).
+        MarkDirtyRows();
     }
 
     const float radius = GetCornerRadius();
@@ -700,12 +684,9 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
     }
 
     // Dirty-row painting: skip bands the compositor did not ask us to repaint.
-    int paintedRows = 0;
-    int culledRows = 0;
     for (int row = 0; row < rows; ++row) {
         const Rect rowRect = GetRowRect(row);
         if (!ctx.IntersectsPaintBounds(rowRect)) {
-            ++culledRows;
             continue;
         }
         Term::BufferLine& line = buf.GetViewportLine(row);
@@ -713,22 +694,6 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
         m_renderer->PaintRow(ctx, line, cols, surface.x, rowRect.y);
         line.SetIsDirty(false);
         m_boundLines[static_cast<size_t>(row)] = &line;
-        ++paintedRows;
-    }
-
-    // TEMP DEBUG: 行绘制结果（首次有效帧记录一次）
-    static std::set<const TerminalControl*> s_dbgPainted;
-    if (s_dbgPainted.size() < 12 && s_dbgPainted.count(this) == 0 && rows > 0) {
-        s_dbgPainted.insert(this);
-        std::wstring firstText = buf.GetViewportLine(0).GetTrimmedText();
-        std::string firstUtf8;
-        for (wchar_t wc : firstText) {
-            if (wc < 128) firstUtf8 += (char)wc;
-            else firstUtf8 += '?';
-        }
-        TermDbg("[rows] inst=%p painted=%d culled=%d rows=%d cols=%d line0='%s' len=%d",
-                (void*)this, paintedRows, culledRows, rows, cols,
-                firstUtf8.c_str(), (int)firstText.size());
     }
 
     const bool blink = m_terminal->Options().CursorBlink && m_terminal->Input().CursorBlink();
@@ -778,8 +743,17 @@ void TerminalControl::SendKeySequence(const std::string& seq) {
     if (seq.empty()) {
         return;
     }
+    m_cursorOn = true;
+    m_blinkAccumMs = 0.0f;
     m_terminal->ScrollToBottom();
     m_terminal->SendData(seq);
+    if (m_terminal->HasPendingOutput()) {
+        m_terminal->FlushPendingOutput();
+        m_outputPending.store(m_terminal->HasPendingOutput());
+    }
+    MarkDirtyRows();
+    const int curY = m_terminal->Buffers().Active().CursorY;
+    MarkRenderRectDirty(GetRowRect(curY));
 }
 
 bool TerminalControl::OnKeyDown(int vkCode) {
@@ -1088,6 +1062,9 @@ void TerminalControl::OnFocus() {
     m_cursorOn = true;
     m_blinkAccumMs = 0.0f;
     m_terminal->NotifyFocus(true);
+    // Ticks drive the cursor blink; without registering, the caret would
+    // freeze until the next mouse/scroll activity.
+    RequestAnimationTicks();
     MarkRenderContentDirty();
 }
 
@@ -1129,14 +1106,13 @@ void TerminalControl::DoFind(bool forward) {
 
     bool hit;
     if (forward) {
-        m_findCol += 1;
+        // FindNext returns the cell column just past the hit, so m_findCol is
+        // always the resume position (cell columns, wide-char safe).
         hit = m_terminal->FindNext(query, m_findRow, m_findCol);
         if (!hit) {
             m_findRow = 0;
             m_findCol = 0;
-            hit = m_terminal->FindNext(query, m_findRow, m_findCol);
-        } else {
-            m_findCol += static_cast<int>(query.size());
+            m_terminal->FindNext(query, m_findRow, m_findCol);
         }
     } else {
         hit = m_terminal->FindPrev(query, m_findRow, m_findCol);
