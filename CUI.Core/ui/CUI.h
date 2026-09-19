@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // ============================================================================
 //  CUI.h —— CUI.Core 唯一入口头（Umbrella Header）
@@ -12,6 +12,11 @@
 //  默认把 `CUI` 与 `CUI::DSL` 注入全局命名空间，可直接写 Column() / Text() / Window。
 //  若不想污染全局，在 include 之前定义：
 //      #define CUI_NO_USING_NAMESPACE
+//      #include "CUI.h"
+//
+//  默认启用「控件名即工厂」宏层，可直接写 Button(保存) / PasswordBox(密码) 等。
+//  若只想用 Fluent::Button(...) 显式前缀，在 include 之前定义：
+//      #define CUI_NO_DSL_SHORTCUTS
 //      #include "CUI.h"
 // ============================================================================
 
@@ -30,11 +35,20 @@
 
 // ------------------------------------------------------------ 控件与 DSL（全量）
 #include "framework/core/CUIDsl.h"
+#include "framework/core/Widgets.h"
 
 // -------------------------------------------------------------- 控件基类（显式）
 #include "framework/controls/UIElement.h"
 #include "framework/controls/Control.h"
 #include "framework/controls/Panel.h"
+
+// ------------------------------------------ 其余控件（Widgets.h 未覆盖，显式补齐）
+#include "framework/controls/ContextMenu.h"
+#include "framework/controls/NavigationView.h"
+#include "framework/controls/NavigationViewItem.h"
+#include "framework/controls/TabView.h"
+#include "framework/controls/TerminalControl.h"
+#include "framework/controls/ToastCenter.h"
 
 // -------------------------------------------------------------------- 布局 / 渲染
 #include "framework/layout/Layout.h"
@@ -75,3 +89,12 @@
 using namespace CUI;
 using namespace CUI::DSL;
 #endif
+
+// ------------------------------------------------------ 控件名即工厂（可选宏层）
+// 令 PasswordBox(...)/Button(...) 这类「类名即工厂」写法成立。
+// 宏只影响名字后紧跟左括号的调用，类型名用法（make_shared<PasswordBox>、
+// PasswordBox* 等）完全不受影响。
+// 若不想启用，在 include 之前定义：
+//      #define CUI_NO_DSL_SHORTCUTS
+//      #include "CUI.h"
+#include "framework/core/CUIDslShortcuts.h"

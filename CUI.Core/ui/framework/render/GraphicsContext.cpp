@@ -13,6 +13,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <string>
+#include <unordered_map>
 
 // DirectX（d2d1 / dwrite / d3d11 / dxgi / dcomp）全部经 DxLoader.h 运行时解析，
 // 不再静态链接对应 import library。
@@ -20,6 +22,124 @@
 #pragma comment(lib, "shlwapi.lib")
 
 namespace CUI {
+namespace {
+
+// 文本格式缓存 Key：字体族 + 字号 + 字重/样式/拉伸 + 换行/对齐模式。
+// 对齐与换行被纳入 Key，是因为 IDWriteTextFormat 是可变对象：只有 Key 相同
+// 的使用者才期望相同的属性，因此共享一个已被设置好属性的实例是安全的。
+std::string MakeTextFormatKey(const std::string& fontName,
+                              float fontSize,
+                              DWRITE_FONT_WEIGHT weight,
+                              DWRITE_FONT_STYLE style,
+                              DWRITE_FONT_STRETCH stretch) {
+    std::string key = fontName;
+    key.push_back('|');
+    key.append(std::to_string(fontSize));
+    key.push_back('|');
+    key.append(std::to_string(static_cast<int>(weight)));
+    key.push_back('|');
+    key.append(std::to_string(static_cast<int>(style)));
+    key.push_back('|');
+    key.append(std::to_string(static_cast<int>(stretch)));
+    return key;
+}
+
+// 按 DWrite 工厂分区缓存：IDWriteTextFormat 必须与使用它的布局同属一个工厂。
+// MeasureText / CreateTextLayout 会被 Markdown 排版、列表、表格逐行逐段调用，
+// 每次 CreateTextFormat 都是一次昂贵的字体匹配系统调用，必须复用。
+std::unordered_map<IDWriteFactory*, std::unordered_map<std::string, ComPtr<IDWriteTextFormat>>>& TextFormatCaches() {
+    static std::unordered_map<IDWriteFactory*, std::unordered_map<std::string, ComPtr<IDWriteTextFormat>>> s_caches;
+    return s_caches;
+}
+
+ComPtr<IDWriteTextFormat> GetOrCreateTextFormat(IDWriteFactory* factory,
+                                                const std::string& fontName,
+                                                float fontSize,
+                                                DWRITE_FONT_WEIGHT weight,
+                                                DWRITE_FONT_STYLE style,
+                                                DWRITE_FONT_STRETCH stretch) {
+    if (!factory) return nullptr;
+
+    auto& cache = TextFormatCaches()[factory];
+    const std::string key = MakeTextFormatKey(fontName, fontSize, weight, style, stretch);
+    auto it = cache.find(key);
+    if (it != cache.end()) {
+        return it->second;
+    }
+
+    std::wstring wFont = Utf8ToUtf16(fontName);
+    if (wFont.empty()) {
+        wFont = L"Segoe UI";
+    }
+    ComPtr<IDWriteTextFormat> format;
+    const HRESULT hr = factory->CreateTextFormat(
+        wFont.c_str(),
+        nullptr,
+        weight,
+        style,
+        stretch,
+        fontSize,
+        L"zh-CN",
+        &format);
+    if (FAILED(hr)) {
+        return nullptr;
+    }
+    cache.emplace(key, format);
+    return format;
+}
+
+// 带排版属性的版本：命中缓存时属性已按同一 Key 设置好，可直接使用。
+ComPtr<IDWriteTextFormat> GetOrCreateTextFormat(IDWriteFactory* factory,
+                                                const std::string& fontName,
+                                                float fontSize,
+                                                DWRITE_FONT_WEIGHT weight,
+                                                DWRITE_FONT_STYLE style,
+                                                DWRITE_FONT_STRETCH stretch,
+                                                DWRITE_WORD_WRAPPING wrapping,
+                                                DWRITE_TEXT_ALIGNMENT alignment,
+                                                DWRITE_PARAGRAPH_ALIGNMENT paragraphAlignment) {
+    if (!factory) return nullptr;
+
+    auto& cache = TextFormatCaches()[factory];
+    std::string key = MakeTextFormatKey(fontName, fontSize, weight, style, stretch);
+    key.push_back('#');
+    key.append(std::to_string(static_cast<int>(wrapping)));
+    key.push_back('#');
+    key.append(std::to_string(static_cast<int>(alignment)));
+    key.push_back('#');
+    key.append(std::to_string(static_cast<int>(paragraphAlignment)));
+
+    auto it = cache.find(key);
+    if (it != cache.end()) {
+        return it->second;
+    }
+
+    // 该 Key 与“基础格式”Key 不同（多了属性后缀），因此独立持有一份实例，
+    // 修改属性不会污染只做测量的公共格式实例。
+    std::wstring wFont = Utf8ToUtf16(fontName);
+    if (wFont.empty()) {
+        wFont = L"Segoe UI";
+    }
+    ComPtr<IDWriteTextFormat> styled;
+    if (FAILED(factory->CreateTextFormat(
+            wFont.c_str(),
+            nullptr,
+            weight,
+            style,
+            stretch,
+            fontSize,
+            L"zh-CN",
+            &styled))) {
+        return nullptr;
+    }
+    styled->SetWordWrapping(wrapping);
+    styled->SetTextAlignment(alignment);
+    styled->SetParagraphAlignment(paragraphAlignment);
+    cache.emplace(key, styled);
+    return styled;
+}
+
+} // namespace
 
 GraphicsContext::GraphicsContext() {}
 
@@ -2147,23 +2267,14 @@ Size GraphicsContext::MeasureText(const std::string& text, const std::string& fo
     }
     if (!factory) return Size(text.length() * fontSize * 0.65f, fontSize + 4);
 
-    std::wstring wFont = Utf8ToUtf16(fontName);
-    ComPtr<IDWriteTextFormat> format;
-    HRESULT hr = factory->CreateTextFormat(
-        wFont.c_str(),
-        nullptr,
-        weight,
-        style,
-        stretch,
-        fontSize,
-        L"zh-CN",
-        &format
-    );
-    if (FAILED(hr)) return Size(text.length() * fontSize * 0.65f, fontSize + 4);
+    // 复用缓存的 IDWriteTextFormat（只用于测量，不修改其属性）。
+    ComPtr<IDWriteTextFormat> format =
+        GetOrCreateTextFormat(factory.Get(), fontName, fontSize, weight, style, stretch);
+    if (!format) return Size(text.length() * fontSize * 0.65f, fontSize + 4);
 
     std::wstring wText = Utf8ToUtf16(text);
     ComPtr<IDWriteTextLayout> layout;
-    hr = factory->CreateTextLayout(
+    HRESULT hr = factory->CreateTextLayout(
         wText.c_str(),
         static_cast<UINT32>(wText.length()),
         format.Get(),
@@ -2206,26 +2317,21 @@ ComPtr<IDWriteTextLayout> GraphicsContext::CreateTextLayout(
 
     const std::wstring& targetText = text.empty() ? L" " : text;
 
-    std::wstring wFont = Utf8ToUtf16(fontName);
-    ComPtr<IDWriteTextFormat> format;
-    HRESULT hr = factory->CreateTextFormat(
-        wFont.c_str(),
-        nullptr,
+    // 复用缓存：换行/对齐属性纳入 Key，命中时属性已按同一组合设置完毕。
+    ComPtr<IDWriteTextFormat> format = GetOrCreateTextFormat(
+        factory.Get(),
+        fontName,
+        fontSize,
         weight,
         style,
         stretch,
-        fontSize,
-        L"zh-CN",
-        &format
-    );
-    if (FAILED(hr)) return nullptr;
-
-    format->SetWordWrapping(options.wrapping);
-    format->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-    format->SetParagraphAlignment(options.paragraphAlignment);
+        options.wrapping,
+        DWRITE_TEXT_ALIGNMENT_LEADING,
+        options.paragraphAlignment);
+    if (!format) return nullptr;
 
     ComPtr<IDWriteTextLayout> layout;
-    hr = factory->CreateTextLayout(
+    HRESULT hr = factory->CreateTextLayout(
         targetText.c_str(),
         static_cast<UINT32>(targetText.length()),
         format.Get(),

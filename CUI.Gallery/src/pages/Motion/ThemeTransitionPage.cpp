@@ -1,8 +1,4 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/style/ThemeManager.h"
-#include "framework/window/Window.h"
+#include "Gallery.h"
 #include <format>
 
 using namespace CUI;

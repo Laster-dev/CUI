@@ -40,6 +40,8 @@ private:
     static void SafeClose(HANDLE& handle);
 
     std::wstring m_commandLine;
+    std::wstring m_shellPath;   // 可执行文件全路径（CreateProcess 的 lpApplicationName）
+    std::wstring m_arguments;   // 参数部分（拼接时带引号，避免路径劫持与参数注入）
     HANDLE m_inputRead = nullptr;   // child side; closed after PTY creation
     HANDLE m_inputWrite = nullptr;  // we write pty input here
     HANDLE m_outputRead = nullptr;  // we read pty output here
@@ -61,6 +63,9 @@ private:
     std::mutex m_queueMutex;
     std::condition_variable m_writeCv;
     std::deque<std::string> m_writeQueue;
+    // 已排队但未写出的字节数：子进程卡死时输入会无限堆积，必须有上限（背压）。
+    size_t m_queuedBytes = 0;
+    static constexpr size_t kMaxQueuedBytes = 4u * 1024u * 1024u;
 
     OutputCallback m_onOutput;
 };

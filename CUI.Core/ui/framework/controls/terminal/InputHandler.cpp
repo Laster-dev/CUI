@@ -90,6 +90,29 @@ bool TryParseInt(const std::string& s, int& value) {
     value = result;
     return true;
 }
+
+bool StartsWithIgnoreCase(const std::string& text, const char* prefix) {
+    for (size_t i = 0; prefix[i] != '\0'; ++i) {
+        if (i >= text.size()) {
+            return false;
+        }
+        const char a = text[i];
+        const char lowered = (a >= 'A' && a <= 'Z') ? static_cast<char>(a | 0x20) : a;
+        if (lowered != prefix[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// OSC 8 超链接协议白名单。
+// file://、\\server\share、javascript:、data: 等都能被终端输出用来诱导用户
+// 打开本地资源或执行脚本，终端里的程序不应具备这种能力。
+bool IsAllowedHyperlink(const std::string& uri) {
+    return StartsWithIgnoreCase(uri, "http://")
+        || StartsWithIgnoreCase(uri, "https://")
+        || StartsWithIgnoreCase(uri, "mailto:");
+}
 }
 
 InputHandler::InputHandler(BufferSet& buffers,
@@ -652,8 +675,11 @@ void InputHandler::ParseHyperlink(const std::string& data) {
     const std::string uri = (semi == std::string::npos) ? data : data.substr(semi + 1);
     if (uri.empty()) {
         m_links.End();
-    } else {
+    } else if (IsAllowedHyperlink(uri)) {
         m_links.Begin(uri);
+    } else {
+        // 非法/危险协议：不建立可点击链接，并结束当前链接区域。
+        m_links.End();
     }
 
     Buf().ActiveLinkId = m_links.ActiveId();
@@ -667,6 +693,10 @@ void InputHandler::ParseClipboard(const std::string& data) {
     }
     const std::string pd = data.substr(semi + 1);
     if (pd == "?") {
+        // 读取剪贴板＝把用户数据交给终端内的程序，默认禁止（信息外传）。
+        if (!m_clipboardReadAllowed) {
+            return;
+        }
         std::string clip;
         if (m_getClipboard) {
             m_getClipboard(clip);
@@ -674,6 +704,9 @@ void InputHandler::ParseClipboard(const std::string& data) {
         if (m_sendReply) {
             m_sendReply("\x1b]52;c;" + Base64Encode(clip) + "\x07");
         }
+        return;
+    }
+    if (!m_clipboardWriteAllowed) {
         return;
     }
     std::string text;

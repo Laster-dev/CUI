@@ -41,6 +41,8 @@ private:
     void DcsPassthrough(uint8_t b);
     void DcsIgnore(uint8_t b);
     void SosPmApcString(uint8_t b);
+    void CollectIntermediate(uint8_t b);
+    void AbortStringSequence();
 
     ParserState m_state = ParserState::Ground;
     Params m_params;
@@ -49,6 +51,15 @@ private:
     std::vector<uint8_t> m_dcs;
     int m_utf8Expected = 0;
     int m_utf8CodePoint = 0;
+
+    // UTF-8 合法性校验：第一个续字节的允许范围（拒绝 overlong / 代理区 / > U+10FFFF）。
+    uint8_t m_utf8SecondMin = 0x80;
+    uint8_t m_utf8SecondMax = 0; // 0 表示“无需检查第一个续字节”
+    uint32_t m_utf8UpperBound = 0x10FFFFu;
+
+    // 字符串型序列的长度保护：OSC/DCS 会一直缓冲到终止符，恶意输出可无限吃内存。
+    static constexpr size_t kMaxStringLength = 64u * 1024u;
+    size_t m_stringLength = 0; // 仅用于不保存内容的 SOS/PM/APC 序列计数
 };
 
 } // namespace Term

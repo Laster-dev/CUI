@@ -137,22 +137,34 @@ public:
     BindingMode GetBindingMode() const { return m_mode; }
 
 private:
+    // RAII 形式的“更新中”标记守卫。
+    // 旧实现用裸的 m_updating = true/false，一旦 setter 抛异常或提前返回，
+    // 标记就会永久停留在 true，导致双向绑定静默失效。
+    class UpdateGuard final {
+    public:
+        explicit UpdateGuard(bool& flag) : m_flag(flag) { m_flag = true; }
+        ~UpdateGuard() { m_flag = false; }
+        UpdateGuard(const UpdateGuard&) = delete;
+        UpdateGuard& operator=(const UpdateGuard&) = delete;
+
+    private:
+        bool& m_flag;
+    };
+
     // 监听控件对应的 OnPropertyIdChanged 信号，建立反向同步信道
     void ConnectTarget() {
         m_targetConnection = m_owner.OnPropertyIdChanged().Connect([this](PropertyId changed, const Value&) {
             if (changed == m_propertyId && !m_updating && m_writeBack) {
-                m_updating = true;
+                UpdateGuard guard(m_updating);
                 m_writeBack(m_getter());
-                m_updating = false;
             }
         });
     }
 
     // 更新数据，带有更新锁保护（m_updating），避免双向循环同步导致死锁
     void ApplySourceValue(const T& value) {
-        m_updating = true;
+        UpdateGuard guard(m_updating);
         m_setter(value);
-        m_updating = false;
     }
 
     Object& m_owner;

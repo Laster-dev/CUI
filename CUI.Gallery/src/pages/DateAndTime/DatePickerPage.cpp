@@ -1,13 +1,5 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-
-#include "framework/core/CUIDsl.h"
-#include "framework/core/State.h"
-#include "framework/controls/DatePicker.h"
-
+#include "Gallery.h"
 #include <ctime>
-#include <memory>
-#include <string>
 
 using namespace CUI;
 using namespace CUI::DSL;

@@ -1,11 +1,4 @@
-#include "pages/SamplePage.h"
-
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/Expander.h"
-#include "framework/controls/ScrollViewer.h"
-#include "framework/controls/TextBox.h"
-#include "framework/style/ThemeTokenId.h"
-
+#include "Gallery.h"
 using namespace CUI;
 using namespace CUI::DSL;
 

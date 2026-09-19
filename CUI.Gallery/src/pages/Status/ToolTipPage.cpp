@@ -1,11 +1,5 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/Button.h"
-#include "framework/controls/TextBox.h"
-#include "framework/controls/ToggleButton.h"
+#include "Gallery.h"
 #include <format>
-#include <memory>
 
 using namespace CUI;
 using namespace CUI::DSL;

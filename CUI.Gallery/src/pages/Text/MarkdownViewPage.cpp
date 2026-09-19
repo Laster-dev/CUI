@@ -1,8 +1,4 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-
-#include "framework/controls/MarkdownView.h"
-
+#include "Gallery.h"
 using namespace CUI;
 
 namespace Gallery {
@@ -32,7 +28,6 @@ Element BuildMarkdownViewPage() {
 ## C++
 
 ```cpp
-#include <memory>
 
 constexpr int RetryCount = 3;
 State<std::string> title{ "CUI Gallery" };

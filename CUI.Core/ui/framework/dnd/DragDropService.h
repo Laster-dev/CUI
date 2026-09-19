@@ -10,7 +10,8 @@ class IDropTarget;
 
 class IDragSource {
 public:
-    virtual ~IDragSource() = default;
+    // 析构时自动中止仍在进行中的拖拽，避免 DragDropService 持有已销毁的源对象（悬垂指针）。
+    virtual ~IDragSource();
     virtual DataPackage BeginDrag(Point pt) = 0;
     virtual DragDropEffects AllowedEffects() const {
         return DragDropEffects::Copy | DragDropEffects::Move;
@@ -23,7 +24,8 @@ public:
 
 class IDropTarget {
 public:
-    virtual ~IDropTarget() = default;
+    // 析构时自动中止仍在进行中的拖拽，避免 DragDropService 持有已销毁的放置目标（悬垂指针）。
+    virtual ~IDropTarget();
     virtual DragDropEffects OnDragEnter(Point pt, const DataPackage& data, DragDropEffects allowed) {
         return OnDragOver(pt, data, allowed);
     }
@@ -83,5 +85,18 @@ private:
 
     static DragDropService* s_current;
 };
+
+// 定义在 DragDropService 声明之后：接口析构时解绑自身，杜绝拖拽进行中销毁元素导致的 UAF。
+inline IDragSource::~IDragSource() {
+    if (DragDropService* service = DragDropService::Current()) {
+        service->AbortIfParticipant(this, nullptr);
+    }
+}
+
+inline IDropTarget::~IDropTarget() {
+    if (DragDropService* service = DragDropService::Current()) {
+        service->AbortIfParticipant(nullptr, this);
+    }
+}
 
 } // namespace CUI

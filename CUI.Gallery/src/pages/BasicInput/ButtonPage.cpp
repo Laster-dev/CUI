@@ -1,11 +1,4 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/Button.h"
-#include "framework/style/ThemeManager.h"
-#include <memory>
-#include <string>
+#include "Gallery.h"
 
 using CUI::Color;
 using CUI::Element;

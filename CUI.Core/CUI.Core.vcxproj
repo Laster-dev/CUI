@@ -349,6 +349,7 @@
     <ClInclude Include="ui\framework\core\Binding.h" />
     <ClInclude Include="ui\CUI.h" />
     <ClInclude Include="ui\framework\core\CUIDsl.h" />
+    <ClInclude Include="ui\framework\core\CUIDslShortcuts.h" />
     <ClInclude Include="ui\framework\core\Event.h" />
     <ClInclude Include="ui\framework\core\Object.h" />
     <ClInclude Include="ui\framework\core\Observable.h" />

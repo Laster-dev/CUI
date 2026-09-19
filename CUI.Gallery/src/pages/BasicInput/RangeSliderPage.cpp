@@ -1,9 +1,4 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-
-#include "framework/core/CUIDsl.h"
-#include "framework/core/State.h"
-#include "framework/controls/RangeSlider.h"
+#include "Gallery.h"
 #include <format>
 
 using namespace CUI;

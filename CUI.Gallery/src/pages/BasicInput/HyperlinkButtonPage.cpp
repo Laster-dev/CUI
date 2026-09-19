@@ -1,12 +1,8 @@
+#include "Gallery.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
 
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/HyperlinkButton.h"
-#include "framework/core/Value.h"
 #include <windows.h>
 #include <shellapi.h>
 #include <GalleryHost.h>

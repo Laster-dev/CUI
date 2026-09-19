@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../controls/UIElement.h"
 #include "../controls/Panel.h"
@@ -830,7 +830,8 @@ public:
     ElementBuilder& Columns(int value) {
         if constexpr (requires { m_ptr->SetColumns(value); }) m_ptr->SetColumns(value);
         return *this;
-    }
+    }
+
     ElementBuilder& ColumnHeader(int index, const std::string& header, float width = 120.0f) {
         if constexpr (requires { m_ptr->AddColumn(header, width); }) {
             if (index == static_cast<int>(m_ptr->GetColumns().size())) m_ptr->AddColumn(header, width);
@@ -1084,68 +1085,6 @@ inline ElementBuilder<StackPanel> Row(float gap = 8.0f) { // 快速生成水平�
     return ElementBuilder<StackPanel>().Orientation("Horizontal").Gap(gap);
 }
 
-namespace Fluent {
-
-template<typename T, typename... Args>
-ElementBuilder<T> Control(Args&&... args) {
-    return ElementBuilder<T>(std::make_shared<T>(std::forward<Args>(args)...));
-}
-
-inline ElementBuilder<CUI::Button> Button(const std::string& text = "") {
-    return Control<CUI::Button>(text);
-}
-
-inline ElementBuilder<CUI::TextBlock> TextBlock(const std::string& text = "") {
-    return Control<CUI::TextBlock>(text);
-}
-
-inline ElementBuilder<CUI::TextBox> TextBox(const std::string& text = "") {
-    return Control<CUI::TextBox>(text);
-}
-
-inline ElementBuilder<CUI::StackPanel> StackPanel() {
-    return Control<CUI::StackPanel>();
-}
-
-inline ElementBuilder<CUI::Panel> Panel() {
-    return Control<CUI::Panel>();
-}
-
-inline ElementBuilder<CUI::Grid> Grid() {
-    return Control<CUI::Grid>();
-}
-
-inline ElementBuilder<CUI::ComboBox> ComboBox() {
-    return Control<CUI::ComboBox>();
-}
-
-inline ElementBuilder<CUI::ListBox> ListBox() {
-    return Control<CUI::ListBox>();
-}
-
-inline ElementBuilder<CUI::ListView> ListView() {
-    return Control<CUI::ListView>();
-}
-
-inline ElementBuilder<CUI::CheckBox> CheckBox(const std::string& text = "") {
-    return Control<CUI::CheckBox>(text);
-}
-
-inline ElementBuilder<CUI::Slider> Slider() {
-    return Control<CUI::Slider>();
-}
-inline ElementBuilder<CUI::ToggleButton> ToggleButton(const std::string& text = "") {
-    return Control<CUI::ToggleButton>(text);
-}
-
-inline ElementBuilder<CUI::DropDownButton> DropDownButton(const std::string& text = "") {
-    return Control<CUI::DropDownButton>(text);
-}
-
-inline ElementBuilder<CUI::SplitButton> SplitButton(const std::string& text = "") {
-    return Control<CUI::SplitButton>(text);
-}
-} // namespace Fluent
 
 inline ElementBuilder<StackPanel> Row(float gap, std::initializer_list<ChildArgument> children) {
     auto row = Row(gap);
@@ -1593,6 +1532,168 @@ private:
     BuildContext m_context; // 组件所绑定的宿主上下文信息实例
 };
 
+
+namespace Fluent {
+
+template<typename T, typename... Args>
+ElementBuilder<T> Control(Args&&... args) {
+    return ElementBuilder<T>(std::make_shared<T>(std::forward<Args>(args)...));
+}
+
+inline ElementBuilder<CUI::Button> Button(const std::string& text = "") {
+    return Control<CUI::Button>(text);
+}
+
+inline ElementBuilder<CUI::TextBlock> TextBlock(const std::string& text = "") {
+    return Control<CUI::TextBlock>(text);
+}
+
+inline ElementBuilder<CUI::TextBox> TextBox(const std::string& text = "") {
+    return Control<CUI::TextBox>(text);
+}
+
+inline ElementBuilder<CUI::StackPanel> StackPanel() {
+    return Control<CUI::StackPanel>();
+}
+
+inline ElementBuilder<CUI::Panel> Panel() {
+    return Control<CUI::Panel>();
+}
+
+inline ElementBuilder<CUI::Grid> Grid() {
+    return Control<CUI::Grid>();
+}
+
+inline ElementBuilder<CUI::ComboBox> ComboBox() {
+    return Control<CUI::ComboBox>();
+}
+
+inline ElementBuilder<CUI::ListBox> ListBox() {
+    return Control<CUI::ListBox>();
+}
+
+inline ElementBuilder<CUI::ListView> ListView() {
+    return Control<CUI::ListView>();
+}
+
+inline ElementBuilder<CUI::CheckBox> CheckBox(const std::string& text = "") {
+    return Control<CUI::CheckBox>(text);
+}
+
+inline ElementBuilder<CUI::Slider> Slider() {
+    return Control<CUI::Slider>();
+}
+inline ElementBuilder<CUI::ToggleButton> ToggleButton(const std::string& text = "") {
+    return Control<CUI::ToggleButton>(text);
+}
+
+inline ElementBuilder<CUI::DropDownButton> DropDownButton(const std::string& text = "") {
+    return Control<CUI::DropDownButton>(text);
+}
+
+inline ElementBuilder<CUI::SplitButton> SplitButton(const std::string& text = "") {
+    return Control<CUI::SplitButton>(text);
+}
+
+// ---------------------------------------------------------------------------
+// 以下工厂保持「工厂名 == 控件类名」，统一放在 CUI::DSL::Fluent 子命名空间中，
+// 既不污染 CUI 命名空间，也不会与 CUI::<ClassName> 类型名产生二义性冲突。
+// 写法：Fluent::PasswordBox("请输入密码").Width(240).Build()
+// 若想省略 Fluent:: 前缀，请 #include "CUI.h"（内含可选的同名快捷宏）。
+// ---------------------------------------------------------------------------
+
+inline ElementBuilder<CUI::PasswordBox> PasswordBox(const std::string& placeholder = "请输入密码") {
+    return PasswordBoxWidget(placeholder);
+}
+inline ElementBuilder<CUI::NumberBox> NumberBox(double value = 0.0) {
+    return NumberBoxWidget(value);
+}
+inline ElementBuilder<CUI::RadioButton> RadioButton(const std::string& text = "", const std::string& group = "DefaultGroup") {
+    return RadioButtonTile(text, group);
+}
+inline ElementBuilder<CUI::ToggleSwitch> ToggleSwitch() {
+    return ToggleSwitchWidget();
+}
+inline ElementBuilder<CUI::HyperlinkButton> HyperlinkButton(const std::string& text = "", const std::string& uri = "") {
+    return HyperlinkButtonWidget(text, uri);
+}
+inline ElementBuilder<CUI::SegmentedControl> SegmentedControl(std::initializer_list<const char*> items = {}) {
+    return SegmentedWidget(items);
+}
+inline ElementBuilder<CUI::DatePicker> DatePicker() { return DatePickerWidget(); }
+inline ElementBuilder<CUI::TimePicker> TimePicker() { return TimePickerWidget(); }
+inline ElementBuilder<CUI::ColorPicker> ColorPicker() { return ColorPickerWidget(); }
+inline ElementBuilder<CUI::BreadcrumbBar> BreadcrumbBar() { return BreadcrumbBarWidget(); }
+inline ElementBuilder<CUI::PagingControl> PagingControl(int current = 1, int total = 10) {
+    return PagingControlWidget(current, total);
+}
+inline ElementBuilder<CUI::Splitter> Splitter(CUI::Orientation orientation = CUI::Orientation::Horizontal) {
+    return SplitterWidget(orientation);
+}
+inline ElementBuilder<CUI::Expander> Expander(const std::string& title = "Expander") {
+    return ExpanderWidget(title);
+}
+inline ElementBuilder<CUI::TreeView> TreeView() { return TreeViewWidget(); }
+inline ElementBuilder<CUI::Image> Image() { return ImageWidget(); }
+inline ElementBuilder<CUI::FilePicker> FilePicker(const std::string& path = "") { return FilePickerWidget(path); }
+inline ElementBuilder<CUI::FolderPicker> FolderPicker(const std::string& path = "") { return FolderPickerWidget(path); }
+inline ElementBuilder<CUI::Canvas> Canvas() { return CanvasWidget(); }
+inline ElementBuilder<CUI::WrapPanel> WrapPanel(const std::string& orient = "Horizontal") { return WrapPanelWidget(orient); }
+inline ElementBuilder<CUI::DockPanel> DockPanel() { return DockPanelWidget(); }
+inline ElementBuilder<CUI::UniformGrid> UniformGrid(int rows = 2, int cols = 2) { return UniformGridWidget(rows, cols); }
+inline ElementBuilder<CUI::ScrollViewer> ScrollViewer() { return ScrollViewerWidget(); }
+inline ElementBuilder<CUI::Flyout> Flyout() { return FlyoutWidget(); }
+inline ElementBuilder<CUI::MenuBar> MenuBar() { return MenuBarWidget(); }
+inline ElementBuilder<CUI::CommandBar> CommandBar() { return CommandBarWidget(); }
+inline ElementBuilder<CUI::InfoBar> InfoBar() { return InfoBarWidget(); }
+inline ElementBuilder<CUI::Toast> Toast() { return ToastWidget(); }
+inline ElementBuilder<CUI::LogView> LogView() { return LogViewWidget(); }
+inline ElementBuilder<CUI::MarkdownView> MarkdownView() { return MarkdownViewWidget(); }
+inline ElementBuilder<CUI::LineChart> LineChart() { return LineChartWidget(); }
+inline ElementBuilder<CUI::BarChart> BarChart() { return BarChartWidget(); }
+inline ElementBuilder<CUI::PieChart> PieChart() { return PieChartWidget(); }
+inline ElementBuilder<CUI::TopologyView> TopologyView() { return TopologyWidget(); }
+inline ElementBuilder<CUI::SvgIcon> SvgIcon(const std::string& source = "") { return SvgIconWidget(source); }
+inline ElementBuilder<CUI::CanvasControl> CanvasControl(float width = 300.0f, float height = 200.0f) {
+    return CanvasControlWidget(width, height);
+}
+inline ElementBuilder<CUI::ContentDialog> ContentDialog(const std::string& title = "Dialog", const std::string& message = "") {
+    return ContentDialogWidget(title, message);
+}
+inline ElementBuilder<CUI::StatusBar> StatusBar() { return StatusBarWidget(); }
+inline ElementBuilder<CUI::RatingControl> RatingControl(float value = 3.5f, int maxRating = 5) {
+    return RatingWidget(value, maxRating);
+}
+inline ElementBuilder<CUI::TeachingTip> TeachingTip() { return TeachingTipWidget(); }
+inline ElementBuilder<CUI::AutoSuggestBox> AutoSuggestBox(const std::string& placeholder = "搜索…") {
+    return AutoSuggestBoxWidget(placeholder);
+}
+inline ElementBuilder<CUI::ProgressBar> ProgressBar(float value = 0.0f, bool isIndeterminate = false) {
+    return ProgressBarWidget(value, isIndeterminate);
+}
+inline ElementBuilder<CUI::ProgressRing> ProgressRing(float value = 0.0f, bool isIndeterminate = true) {
+    return ProgressRingWidget(value, isIndeterminate);
+}
+inline ElementBuilder<CUI::RangeSlider> RangeSlider(float lower = 20.0f, float upper = 80.0f,
+                                                    float min = 0.0f, float max = 100.0f) {
+    return RangeSliderWidget(lower, upper, min, max);
+}
+inline ElementBuilder<CUI::DockManager> DockManager() { return DockManagerWidget(); }
+inline ElementBuilder<CUI::WindowTitleBar> WindowTitleBar(const std::string& title = "CUI Application") {
+    return TitleBarWidget(title);
+}
+inline ElementBuilder<CUI::Rectangle> Rectangle(float width = 100.0f, float height = 50.0f) {
+    return RectangleWidget(width, height);
+}
+inline ElementBuilder<CUI::Ellipse> Ellipse(float width = 50.0f, float height = 50.0f) {
+    return EllipseWidget(width, height);
+}
+inline ElementBuilder<CUI::Line> Line(float x1 = 0, float y1 = 0, float x2 = 100, float y2 = 100) {
+    return LineWidget(x1, y1, x2, y2);
+}
+inline ElementBuilder<CUI::Path> Path(const std::string& data = "") { return PathWidget(data); }
+
+} // namespace Fluent
 } // namespace DSL
 } // namespace CUI
 

@@ -1,12 +1,5 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/AutoSuggestBox.h"
-#include "framework/controls/Button.h"
-#include "framework/controls/TextBlock.h"
+#include "Gallery.h"
 #include <format>
-#include <memory>
-#include <string>
 #include <vector>
 
 using namespace CUI;

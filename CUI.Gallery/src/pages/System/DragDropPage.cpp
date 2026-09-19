@@ -1,16 +1,6 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/Control.h"
-#include "framework/controls/ListBox.h"
-#include "framework/controls/TextBox.h"
-#include "framework/controls/TextBlock.h"
-#include "framework/controls/Button.h"
-#include "framework/dnd/DragDropService.h"
-#include "framework/style/ThemeManager.h"
+#include "Gallery.h"
 #include <format>
 #include <functional>
-#include <memory>
 #include <vector>
 
 using namespace CUI;

@@ -354,7 +354,32 @@ std::vector<MdInline> ParseMarkdownInlines(const std::string& source) {
     return ParseInlines(source);
 }
 
+namespace {
+// 引用块（Quote）支持嵌套解析，而嵌套本身是递归的：没有深度上限时，
+// 一段由成千上万个 '>' 组成的输入就能耗尽调用栈（栈溢出 / DoS）。
+constexpr int kMaxBlockNestingDepth = 24;
+
+std::vector<MdBlock> ParseMarkdownImpl(const std::string& source, int depth);
+} // namespace
+
 std::vector<MdBlock> ParseMarkdown(const std::string& source) {
+    return ParseMarkdownImpl(source, 0);
+}
+
+namespace {
+
+std::vector<MdBlock> ParseMarkdownImpl(const std::string& source, int depth) {
+    if (depth > kMaxBlockNestingDepth) {
+        // 超过最大嵌套深度：降级为普通段落文本，不再继续递归。
+        std::vector<MdBlock> blocks;
+        if (!Trim(source).empty()) {
+            MdBlock b;
+            b.kind = MdBlockKind::Paragraph;
+            b.inlines = ParseMarkdownInlines(Trim(source));
+            blocks.push_back(std::move(b));
+        }
+        return blocks;
+    }
     const auto lines = SplitLines(source);
     std::vector<MdBlock> blocks;
     size_t i = 0;
@@ -467,7 +492,7 @@ std::vector<MdBlock> ParseMarkdown(const std::string& source) {
                 inner += rest;
                 ++i;
             }
-            auto nested = ParseMarkdown(inner);
+            auto nested = ParseMarkdownImpl(inner, depth + 1);
             if (nested.empty()) {
                 MdBlock p;
                 p.kind = MdBlockKind::Paragraph;
@@ -533,5 +558,7 @@ std::vector<MdBlock> ParseMarkdown(const std::string& source) {
     flushPara(para);
     return blocks;
 }
+
+} // namespace
 
 } // namespace CUI

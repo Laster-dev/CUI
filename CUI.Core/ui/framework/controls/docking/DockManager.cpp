@@ -1252,6 +1252,12 @@ void DockManager::OnMouseDown(Point pt) {
     const HitResult hr = HitTestChrome(pt.x, pt.y);
     m_hover = hr;
 
+    // pane 索引可能已过期（pane 在布局/动画期间被移除后索引会重排），
+    // 因此必须同时校验上界，不能只判断 >= 0。
+    const auto isValidPane = [this](int idx) {
+        return idx >= 0 && idx < static_cast<int>(m_panes.size());
+    };
+
     if (hr.part == HitPart::Splitter) {
         m_activeSplitter = hr.splitter;
         m_splitStartPt = pt;
@@ -1264,15 +1270,15 @@ void DockManager::OnMouseDown(Point pt) {
         }
         return;
     }
-    if (hr.part == HitPart::Close && hr.paneIndex >= 0) {
+    if (hr.part == HitPart::Close && isValidPane(hr.paneIndex)) {
         ClosePane(hr.paneIndex);
         return;
     }
-    if (hr.part == HitPart::Pin && hr.paneIndex >= 0) {
+    if (hr.part == HitPart::Pin && isValidPane(hr.paneIndex)) {
         SetPaneAutoHide(hr.paneIndex, !m_panes[hr.paneIndex].autoHide);
         return;
     }
-    if (hr.part == HitPart::AutoHide && hr.paneIndex >= 0) {
+    if (hr.part == HitPart::AutoHide && isValidPane(hr.paneIndex)) {
         ShowPeek(hr.paneIndex);
         return;
     }

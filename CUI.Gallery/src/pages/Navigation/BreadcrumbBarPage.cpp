@@ -1,11 +1,5 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/BreadcrumbBar.h"
-#include "framework/controls/Button.h"
+#include "Gallery.h"
 #include <format>
-#include <memory>
-#include <string>
 #include <vector>
 
 using namespace CUI;

@@ -48,8 +48,55 @@ bool ConPtyBackend::IsSupported() {
     return LoadConPtyApis();
 }
 
-ConPtyBackend::ConPtyBackend(const std::wstring& shellPath, const std::wstring& arguments) {
-    m_commandLine = arguments.empty() ? shellPath : shellPath + L" " + arguments;
+namespace {
+
+// 按 Windows 命令行解析规则给参数加引号：只有含空格/制表符/引号的参数需要引号，
+// 且内部的引号与反斜杠必须转义，否则 CreateProcess 会按错误边界切分（参数注入）。
+std::wstring QuoteArgument(const std::wstring& argument) {
+    if (argument.empty()) {
+        return L"\"\"";
+    }
+    const bool needsQuotes =
+        argument.find_first_of(L" \t\n\v\"") != std::wstring::npos;
+    if (!needsQuotes) {
+        return argument;
+    }
+
+    std::wstring out;
+    out.push_back(L'"');
+    size_t backslashCount = 0;
+    for (const wchar_t ch : argument) {
+        if (ch == L'\\') {
+            ++backslashCount;
+            out.push_back(ch);
+            continue;
+        }
+        if (ch == L'"') {
+            // 转义引号前的所有反斜杠，再加上转义引号本身的反斜杠。
+            out.append(backslashCount, L'\\');
+            out.push_back(L'\\');
+            backslashCount = 0;
+        }
+        backslashCount = 0;
+        out.push_back(ch);
+    }
+    // 结尾引号前的反斜杠同样要加倍。
+    out.append(backslashCount, L'\\');
+    out.push_back(L'"');
+    return out;
+}
+
+} // namespace
+
+ConPtyBackend::ConPtyBackend(const std::wstring& shellPath, const std::wstring& arguments)
+    : m_shellPath(shellPath), m_arguments(arguments) {
+    // 可执行文件与参数分开保存：CreateProcess 使用 lpApplicationName 指定可执行文件，
+    // 不再依赖“把整行交给系统按 PATH/空格推断”的行为，杜绝路径劫持。
+    m_commandLine = QuoteArgument(shellPath);
+    if (!arguments.empty()) {
+        m_commandLine += L" ";
+        m_commandLine += arguments;
+    }
 }
 
 ConPtyBackend::~ConPtyBackend() {
@@ -109,7 +156,10 @@ bool ConPtyBackend::Start(int cols, int rows) {
     commandBuffer.push_back(L'\0');
 
     PROCESS_INFORMATION processInfo{};
-    if (!CreateProcessW(nullptr, commandBuffer.data(), nullptr, nullptr, FALSE,
+    // 显式传入 lpApplicationName（可执行文件）：
+    // 传 nullptr 时系统会从命令行字符串里按空格/引号规则重新切分出可执行文件，
+    // 解析差异会导致加载到非预期的程序（路径劫持）。
+    if (!CreateProcessW(m_shellPath.c_str(), commandBuffer.data(), nullptr, nullptr, FALSE,
                         EXTENDED_STARTUPINFO_PRESENT, nullptr, nullptr,
                         &startup.StartupInfo, &processInfo)) {
         Stop();
@@ -136,7 +186,19 @@ void ConPtyBackend::Write(const char* data, size_t length) {
     // writer thread so the UI thread never blocks on a busy child.
     {
         std::lock_guard<std::mutex> lock(m_queueMutex);
+        // 背压：子进程停止消费时输入会无限堆积并吃掉内存。
+        // 超出上限后丢弃最旧的块（保留最新输入），保证内存有界。
+        if (m_queuedBytes + length > kMaxQueuedBytes) {
+            while (!m_writeQueue.empty() && m_queuedBytes + length > kMaxQueuedBytes) {
+                m_queuedBytes -= m_writeQueue.front().size();
+                m_writeQueue.pop_front();
+            }
+        }
+        if (length > kMaxQueuedBytes) {
+            return; // 单块本身就超限，直接丢弃
+        }
         m_writeQueue.emplace_back(data, length);
+        m_queuedBytes += length;
     }
     m_writeCv.notify_one();
 }
@@ -151,6 +213,7 @@ void ConPtyBackend::WriteLoop() {
                 break;
             }
             chunk = std::move(m_writeQueue.front());
+            m_queuedBytes -= chunk.size();
             m_writeQueue.pop_front();
         }
         std::lock_guard<std::mutex> lock(m_writeMutex);
@@ -190,6 +253,11 @@ void ConPtyBackend::Stop() {
 
     // Drain the writer before the input handle goes away.
     m_writeCv.notify_all();
+    {
+        std::lock_guard<std::mutex> lock(m_queueMutex);
+        m_writeQueue.clear();
+        m_queuedBytes = 0;
+    }
     if (m_writeThread.joinable()) {
         if (m_writeThread.get_id() == std::this_thread::get_id()) {
             m_writeThread.detach();
@@ -215,6 +283,15 @@ void ConPtyBackend::Stop() {
         DeleteProcThreadAttributeList(m_attrList);
         HeapFree(GetProcessHeap(), 0, m_attrList);
         m_attrList = nullptr;
+    }
+
+    // 关闭 ConPTY 后子进程一般自行退出；但它可能忽略控制台关闭（例如仍在等待子命令），
+    // 从而变成残留进程占着句柄。这里先给它一个短暂宽限期，超时则强制终止。
+    if (m_process != nullptr) {
+        if (WaitForSingleObject(m_process, 2000) == WAIT_TIMEOUT) {
+            TerminateProcess(m_process, 1);
+            WaitForSingleObject(m_process, 1000);
+        }
     }
 
     SafeClose(m_thread);

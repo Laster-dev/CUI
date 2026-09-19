@@ -1,15 +1,6 @@
+#include "Gallery.h"
 #include "chrome/SettingsPage.h"
-#include "pages/SamplePage.h"
 
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/Button.h"
-#include "framework/controls/CheckBox.h"
-#include "framework/controls/ComboBox.h"
-#include "framework/controls/ScrollViewer.h"
-#include "framework/controls/ToggleSwitch.h"
-#include "framework/style/ThemeTokenId.h"
-#include "framework/window/Window.h"
-#include "framework/window/WindowBackdrop.h"
 
 using namespace CUI;
 using namespace CUI::DSL;

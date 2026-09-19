@@ -1,14 +1,8 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/Image.h"
-#include "framework/controls/FilePicker.h"
+#include "Gallery.h"
 #include <wincodec.h>
 #include <wrl/client.h>
 #include <windows.h>
 #include <format>
-#include <memory>
-#include <string>
 #include <vector>
 
 #pragma comment(lib, "windowscodecs.lib")

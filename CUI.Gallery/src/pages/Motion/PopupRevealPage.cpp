@@ -1,14 +1,4 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/Button.h"
-#include "framework/controls/Flyout.h"
-#include "framework/controls/TeachingTip.h"
-#include "framework/controls/ContextMenu.h"
-#include "framework/controls/MessageBox.h"
-#include "framework/controls/ComboBox.h"
-#include "framework/animation/AnimationService.h"
-#include "framework/window/Window.h"
+#include "Gallery.h"
 #include <format>
 
 using namespace CUI;

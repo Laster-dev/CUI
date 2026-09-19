@@ -1,11 +1,5 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/NavigationView.h"
-#include "framework/controls/NavigationViewItem.h"
+#include "Gallery.h"
 #include <format>
-#include <memory>
-#include <string>
 
 using namespace CUI;
 using namespace CUI::DSL;

@@ -1,4 +1,4 @@
-#ifndef NOMINMAX
+﻿#ifndef NOMINMAX
 #define NOMINMAX
 #endif
 #include "CUI.h"   // 伞形头：一个 include 拿到全部控件、DSL、窗口与渲染能力
@@ -25,7 +25,7 @@ int main() {
         .ForegroundToken(ThemeTokenId::TextSecondary)
         .FontWeight(FontWeight::SemiBold);
 
-    auto clickButton = Fluent::Button("Click Me!")
+    auto clickButton = Button("Click Me!")
         .FontSize(16.0f)
         .Width(160.0f)
         .Height(48.0f)
@@ -35,7 +35,7 @@ int main() {
         ElementBuilder<TextBlock>(counterLabel.Shared()).Text("Click count: " + std::to_string(clickCount));
             });
 
-    auto resetButton = Fluent::Button("Reset")
+    auto resetButton = Button("Reset")
         .FontSize(14.0f)
         .Width(120.0f)
         .Background("#E53935")

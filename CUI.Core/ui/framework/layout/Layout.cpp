@@ -9,6 +9,24 @@
 #include <cmath>
 
 namespace CUI {
+namespace {
+
+// NaN / Inf 会在布局树中静默传播：一旦某个 Width/Height 或动画插值产生非有限值，
+// 后续所有的比较（< 0、max、min）都会失效，最终表现为控件消失或尺寸失控。
+// 这里在布局入口统一把非有限值收敛为 0，阻断传播。
+inline float SanitizeFloat(float v) {
+    return std::isfinite(v) ? v : 0.0f;
+}
+
+inline Size SanitizeSize(const Size& s) {
+    return Size(SanitizeFloat(s.width), SanitizeFloat(s.height));
+}
+
+inline Rect SanitizeRect(const Rect& r) {
+    return Rect(SanitizeFloat(r.x), SanitizeFloat(r.y), SanitizeFloat(r.width), SanitizeFloat(r.height));
+}
+
+} // namespace
 
 GridLength GridLength::Parse(const std::string& str) {
     if (str == "Auto" || str == "auto") {
@@ -25,6 +43,7 @@ GridLength GridLength::Parse(const std::string& str) {
 Size LayoutEngine::MeasureElement(UIElement* element, Size availableSize) {
     if (!element) return Size(0, 0);
 
+    availableSize = SanitizeSize(availableSize);
     Thickness margin = element->GetMargin();
     Thickness padding = element->GetPadding();
 
@@ -58,12 +77,13 @@ Size LayoutEngine::MeasureElement(UIElement* element, Size availableSize) {
     if (element->GetMaxWidth() >= 0.0f) finalW = (std::min)(finalW, element->GetMaxWidth());
     if (element->GetMaxHeight() >= 0.0f) finalH = (std::min)(finalH, element->GetMaxHeight());
 
-    return Size(finalW + margin.left + margin.right, finalH + margin.top + margin.bottom);
+    return SanitizeSize(Size(finalW + margin.left + margin.right, finalH + margin.top + margin.bottom));
 }
 
 void LayoutEngine::ArrangeElement(UIElement* element, Rect finalRect) {
     if (!element) return;
 
+    finalRect = SanitizeRect(finalRect);
     // finalRect is already the element's arranged bounds (Margin applied by UIElement::Arrange).
     // Only inset Padding for child/content layout.
     Thickness padding = element->GetPadding();
@@ -296,6 +316,7 @@ Size LayoutEngine::MeasureGrid(UIElement* panel, Size availableSize) {
     Grid* grid = dynamic_cast<Grid*>(panel);
     if (!grid) return Size(0, 0);
 
+    availableSize = SanitizeSize(availableSize);
     auto& cols = grid->GetColumnDefinitions();
     auto& rows = grid->GetRowDefinitions();
 
@@ -403,13 +424,14 @@ Size LayoutEngine::MeasureGrid(UIElement* panel, Size availableSize) {
     float totalH = 0.0f;
     for (auto& r : localRows) totalH += r.actualHeight;
 
-    return Size(totalW, totalH);
+    return SanitizeSize(Size(totalW, totalH));
 }
 
 void LayoutEngine::ArrangeGrid(UIElement* panel, Rect finalRect) {
     Grid* grid = dynamic_cast<Grid*>(panel);
     if (!grid) return;
 
+    finalRect = SanitizeRect(finalRect);
     auto localCols = grid->GetColumnDefinitions();
     auto localRows = grid->GetRowDefinitions();
 
@@ -426,7 +448,12 @@ void LayoutEngine::ArrangeGrid(UIElement* panel, Rect finalRect) {
         else if (c.width.unitType == GridUnitType::Star) starWidthWeight += c.width.value;
     }
 
-    // Re-measure auto columns from children
+    // Re-measure auto columns from children.
+    // 必须先清零：localCols 是从 Grid 定义拷贝而来，其中的 actualWidth 可能残留上一次
+    // 布局的结果；不清零会让 Auto 列宽度只增不减（子元素变小后列宽粘滞不回缩）。
+    for (auto& c : localCols) {
+        if (c.width.unitType == GridUnitType::Auto) c.actualWidth = 0.0f;
+    }
     for (auto& child : grid->GetChildren()) {
         if (child->GetVisibility() == Visibility::Collapsed) continue;
         int cIdx = (std::min)(child->GetGridColumn(), (int)colCount - 1);
@@ -453,6 +480,10 @@ void LayoutEngine::ArrangeGrid(UIElement* panel, Rect finalRect) {
         else if (r.height.unitType == GridUnitType::Star) starHeightWeight += r.height.value;
     }
 
+    // 与列同理：Auto 行必须先清零，避免沿用上一次布局的 actualHeight 残留。
+    for (auto& r : localRows) {
+        if (r.height.unitType == GridUnitType::Auto) r.actualHeight = 0.0f;
+    }
     for (auto& child : grid->GetChildren()) {
         if (child->GetVisibility() == Visibility::Collapsed) continue;
         int rIdx = (std::min)(child->GetGridRow(), (int)rowCount - 1);

@@ -133,6 +133,10 @@ float AnimationService::Ease(EasingType type, float t) {
 
     case EasingType::Spring: {
         // 欠阻尼弹簧衰减解析模型
+        // 注意：该模型在 t=1 时并不精确等于 1（约 1.002），会导致终值过冲。
+        // 显式收敛端点，保证所有缓动函数满足 f(0)=0、f(1)=1。
+        if (t >= 1.0f) return 1.0f;
+        if (t <= 0.0f) return 0.0f;
         return 1.0f - std::exp(-6.0f * t) * std::cos(10.0f * t);
     }
 
@@ -306,22 +310,44 @@ bool AnimationService::Tick(clock::time_point now) {
         animSnapshot = m_animatingElements;
     }
 
-    std::vector<UIElement*> stillAnimating;
+    // 注意：这里不能再用 “收集仍然动画的元素 → 整体覆盖 m_animatingElements” 的写法。
+    // 那样会把本帧 OnAnimationTick() 中新注册（RequestAnimationTicks）的元素一并丢掉。
+    // 改为只移除本帧已结束的元素，保留期间新增的元素。
+    std::vector<UIElement*> finished;
+    finished.reserve(animSnapshot.size());
 
     for (UIElement* el : animSnapshot) {
         if (!el) continue;
-        // 如果控件已不可视或已销毁，自动停止
+        {
+            // 快照中的裸指针可能在本次遍历期间失效：
+            // 前一个控件的 OnAnimationTick() 可能销毁了后面的控件，
+            // 而析构函数会调用 UnregisterElement() / CancelAnimationTicks() 把它移出列表。
+            // 因此每次访问前都确认它仍在活跃列表中，避免 UAF。
+            std::lock_guard<std::mutex> aliveLock(m_mutex);
+            if (std::find(m_animatingElements.begin(), m_animatingElements.end(), el) == m_animatingElements.end()) {
+                continue;
+            }
+        }
+        // 如果控件已不可视，本帧不驱动（仍保留在列表中，交由可见性变化统一注销）
         if (el->GetVisibility() != Visibility::Visible) {
             continue;
         }
         const bool keepGoing = el->OnAnimationTick();
-        if (keepGoing) {
-            stillAnimating.push_back(el);
+        if (!keepGoing) {
+            finished.push_back(el);
+        }
+    }
+
+    if (!finished.empty()) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (UIElement* el : finished) {
+            m_animatingElements.erase(
+                std::remove(m_animatingElements.begin(), m_animatingElements.end(), el),
+                m_animatingElements.end());
         }
     }
 
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_animatingElements = std::move(stillAnimating);
     return !m_animatingElements.empty();
 }
 

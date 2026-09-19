@@ -1,5 +1,6 @@
 #pragma once
 #include "Control.h"
+#include "../core/FluentBase.h"
 
 namespace CUI {
 
@@ -7,7 +8,7 @@ namespace CUI {
  * @brief 标准按钮控件。
  * 触发用户点击行为，并内置流畅的水波纹（Ripple）点击反馈动画。
  */
-class Button : public Control {
+class Button : public FluentBase<Button, Control> {
 public:
     Button();
     explicit Button(const std::string& text);

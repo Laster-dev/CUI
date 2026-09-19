@@ -7,6 +7,7 @@
 #include "../render/CompositionContext.h"
 #include "../render/RenderLayer.h"
 #include "../style/ThemeManager.h"
+#include "../dnd/DragDropService.h"
 #include "../window/BubbleChrome.h"
 #include "../window/PopupPlacement.h"
 #include <algorithm>

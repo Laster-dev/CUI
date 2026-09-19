@@ -1,9 +1,5 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/topology/TopologyView.h"
+#include "Gallery.h"
 #include <format>
-#include <memory>
 #include <random>
 
 using namespace CUI;

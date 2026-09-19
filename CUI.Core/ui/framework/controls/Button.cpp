@@ -1,4 +1,4 @@
-#ifndef NOMINMAX
+﻿#ifndef NOMINMAX
 #define NOMINMAX
 #endif
 #include "Button.h"
@@ -272,3 +272,13 @@ void Button::OnRender(GraphicsContext& ctx) {
 }
 
 } // namespace CUI
+
+
+
+
+
+
+
+
+
+

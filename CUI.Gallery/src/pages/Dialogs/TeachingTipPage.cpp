@@ -1,12 +1,4 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/Button.h"
-#include "framework/controls/TextBlock.h"
-#include "framework/controls/ToggleSwitch.h"
-#include "framework/controls/TeachingTip.h"
-#include "framework/window/BubbleChrome.h"
-
+#include "Gallery.h"
 using namespace CUI;
 using namespace CUI::DSL;
 

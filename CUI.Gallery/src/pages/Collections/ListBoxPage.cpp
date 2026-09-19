@@ -1,14 +1,4 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-
-#include "framework/core/CUIDsl.h"
-#include "framework/core/State.h"
-#include "framework/controls/ListBox.h"
-#include "framework/controls/TextBox.h"
-
-#include <memory>
-#include <string>
-
+#include "Gallery.h"
 using namespace CUI;
 using namespace CUI::DSL;
 

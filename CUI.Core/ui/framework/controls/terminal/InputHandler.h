@@ -48,6 +48,16 @@ public:
 
     void OnColsChanged(int cols) { ResetTabs(cols); }
 
+    // OSC 52 剪贴板访问策略。
+    // 读（应答 "?"）会把用户剪贴板内容回传给终端里的程序——任何在终端中运行的
+    // 脚本都能借此静默外传剪贴板，因此默认关闭；宿主可按需显式开启。
+    void SetClipboardPolicy(bool allowWrite, bool allowRead) {
+        m_clipboardWriteAllowed = allowWrite;
+        m_clipboardReadAllowed = allowRead;
+    }
+    bool ClipboardWriteAllowed() const { return m_clipboardWriteAllowed; }
+    bool ClipboardReadAllowed() const { return m_clipboardReadAllowed; }
+
 private:
     TerminalBuffer& Buf() { return m_buffers.Active(); }
 
@@ -93,6 +103,8 @@ private:
     bool m_applicationCursor = false;
     bool m_applicationKeypad = false;
     bool m_bracketedPaste = false;
+    bool m_clipboardWriteAllowed = true;  // OSC 52 写入剪贴板（复制）
+    bool m_clipboardReadAllowed = false;  // OSC 52 读取剪贴板（外传），默认禁止
     bool m_cursorVisible = true;
     bool m_cursorBlink = true;
     bool m_insertMode = false;

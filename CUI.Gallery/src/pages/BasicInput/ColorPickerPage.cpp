@@ -1,11 +1,4 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-
-#include "framework/core/CUIDsl.h"
-#include "framework/core/State.h"
-#include "framework/controls/ColorPicker.h"
-#include "framework/controls/TextBlock.h"
-#include "framework/style/ThemeTokenId.h"
+#include "Gallery.h"
 #include <algorithm>
 #include <format>
 

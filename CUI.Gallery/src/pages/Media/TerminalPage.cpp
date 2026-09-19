@@ -1,13 +1,8 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/TerminalControl.h"
+#include "Gallery.h"
 #include <algorithm>
 #include <cctype>
 #include <ctime>
 #include <format>
-#include <memory>
-#include <string>
 
 using namespace CUI;
 using namespace CUI::DSL;

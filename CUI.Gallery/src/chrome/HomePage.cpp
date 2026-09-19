@@ -1,12 +1,8 @@
+#include "Gallery.h"
 #include "chrome/HomePage.h"
 #include "catalog/Catalog.h"
 #include "GalleryHost.h"
-#include "pages/SamplePage.h"
 
-#include "framework/core/CUIDsl.h"
-#include "framework/controls/Panel.h"
-#include "framework/controls/ScrollViewer.h"
-#include "framework/style/ThemeTokenId.h"
 
 using namespace CUI;
 using namespace CUI::DSL;

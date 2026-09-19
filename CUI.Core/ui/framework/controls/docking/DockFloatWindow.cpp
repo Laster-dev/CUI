@@ -20,6 +20,10 @@ namespace CUI {
 namespace {
 constexpr wchar_t kDockFloatClass[] = L"CUI.DockFloatWindow";
 constexpr UINT WM_CUI_FLOAT_REDOCK = WM_APP + 77;
+// 关闭请求：不直接在 WM_CLOSE 里销毁自身，而是投递到下一次消息循环。
+// 关闭回调会同步 delete 本对象，若在窗口过程栈帧内完成销毁，
+// 窗口过程返回后（以及随后的 WM_DESTROY）就会访问已释放的对象（UAF）。
+constexpr UINT WM_CUI_FLOAT_CLOSED = WM_APP + 78;
 constexpr float kCaptionBtnW = 46.0f;
 constexpr float kIconSize = 18.0f;
 constexpr float kResizeBorderDip = 8.0f;
@@ -729,7 +733,11 @@ LRESULT CALLBACK DockFloatWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LP
             }
         }
         break;
-    case WM_CLOSE: {
+    case WM_CLOSE:
+        // 投递到下一次消息循环再真正处理关闭，避免在窗口过程栈帧内 delete 自身。
+        PostMessageW(hwnd, WM_CUI_FLOAT_CLOSED, 0, 0);
+        return 0;
+    case WM_CUI_FLOAT_CLOSED: {
         auto cb = self->m_onClose;
         self->m_onClose = nullptr;
         if (cb) {

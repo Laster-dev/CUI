@@ -1,11 +1,4 @@
-#include "pages/BasicInput/Pages.h"
-#include "pages/SamplePage.h"
-
-#include "framework/core/CUIDsl.h"
-#include "framework/core/State.h"
-#include "framework/controls/CheckBox.h"
-#include <memory>
-#include <string>
+#include "Gallery.h"
 #include <vector>
 
 using namespace CUI;
