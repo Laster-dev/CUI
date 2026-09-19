@@ -68,6 +68,20 @@ int main() {
 
 ---
 
+## 控件参考（逐控件详解）
+
+每篇包含：控件定位 → 类信息与继承链 → 构造函数与出厂默认值 → 全量属性表 → 方法 → 运行时行为（Measure / 渲染 / 输入 / 动画）→ 事件 → 示例 → 主题自定义 → 注意事项。
+
+| 分类 | 控件 |
+|---|---|
+| 按钮 | [Button](controls/Button.html) · [ToggleButton](controls/ToggleButton.html) · [DropDownButton](controls/DropDownButton.html) · [SplitButton](controls/SplitButton.html) · [HyperlinkButton](controls/HyperlinkButton.html) |
+| 选择与开关 | [CheckBox](controls/CheckBox.html) · [RadioButton](controls/RadioButton.html) · [ToggleSwitch](controls/ToggleSwitch.html) |
+| 输入 | [TextBox](controls/TextBox.html) · [PasswordBox](controls/PasswordBox.html) · [NumberBox](controls/NumberBox.html) · [AutoSuggestBox](controls/AutoSuggestBox.html) |
+
+完整索引见 [控件参考总览](controls/index.html)。
+
+---
+
 ## 三条铁律
 
 1. **单位是 DIP**（逻辑像素）。只有 `Resize`、`EndDraw(RECT*)`、`EnsureCompositionSurface` 用物理像素；Win32 鼠标坐标必须先 `ClientPhysicalToLogical()` 转换。
