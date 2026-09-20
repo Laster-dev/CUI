@@ -9,8 +9,8 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildTabViewPage(const ShowcaseContext& ctx) {
     auto tabView = std::make_shared<TabView>();
-    CUI::DSL::Borrow(tabView).Width(520.0f);
-    CUI::DSL::Borrow(tabView).Height(280.0f);
+        tabView->SetWidth(520.0f);
+        tabView->SetHeight(280.0f);
 
     auto page1 = Column(8).Padding(16).Children({
         std::make_shared<TextBlock>("Tab 1 — 首页"),
@@ -28,7 +28,7 @@ ShowcasePage BuildTabViewPage(const ShowcaseContext& ctx) {
     tabView->AddTab("Home", page1, "", true);
     tabView->AddTab("Documents", page2, "", true);
     tabView->AddTab("Settings", page3, "", true);
-    CUI::DSL::Borrow(tabView).SelectedIndex(0);
+        tabView->SetSelectedIndex(0);
 
     return { "TabView 标签页", CreatePage(
         "TabView 多标签页控件",

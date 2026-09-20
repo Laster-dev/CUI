@@ -12,15 +12,14 @@ namespace {}
 
 TabView::TabView() {
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::WindowBackground)
-        .HeaderBackgroundToken(ThemeTokenId::PaneBackground)
-        .ActiveTabBackgroundToken(ThemeTokenId::WindowBackground)
-        .InactiveTabBackgroundToken(ThemeTokenId::CardBackground)
-        .UnderlineColorToken(ThemeTokenId::CardBorder)
-        .ActiveUnderlineColorToken(ThemeTokenId::AccentColor)
-        .Background(tokens.windowBackground)
-        .KeyboardNavigationMode(KeyboardNavigationMode::Cycle);
+    this->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    this->SetHeaderBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetActiveTabBackgroundToken(ThemeTokenId::WindowBackground);
+    this->SetInactiveTabBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetUnderlineColorToken(ThemeTokenId::CardBorder);
+    this->SetActiveUnderlineColorToken(ThemeTokenId::AccentColor);
+    this->SetBackground(tokens.windowBackground);
+    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
     m_headerLayer.SetCacheable(true);
     m_contentLayer.SetCacheable(true);
     OnPropertyIdChanged().Connect([this](PropertyId, const Value&) {
@@ -60,10 +59,10 @@ void TabView::AddTab(const std::string& title, std::shared_ptr<UIElement> conten
     item.isClosable = isClosable;
 
     if (content) {
-        DSL::Borrow(this).AddChild(content);
+        this->AddChild(content);
         int addedIndex = static_cast<int>(m_tabs.size());
         if (addedIndex != m_selectedIndex) {
-            DSL::Borrow(content).Visibility(Visibility::Collapsed);
+            content->SetVisibility(Visibility::Collapsed);
         }
     }
 
@@ -82,7 +81,7 @@ void TabView::RemoveTab(int index) {
     if (index < 0 || index >= static_cast<int>(m_tabs.size())) return;
 
     if (m_tabs[index].content) {
-        DSL::Borrow(this).RemoveChild(m_tabs[index].content);
+        this->RemoveChild(m_tabs[index].content);
     }
 
     m_tabs.erase(m_tabs.begin() + index);
@@ -124,11 +123,11 @@ void TabView::SetSelectedIndex(int index) {
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         if (m_tabs[i].content) {
             if (static_cast<int>(i) == m_selectedIndex) {
-                DSL::Borrow(m_tabs[i].content).Visibility(Visibility::Visible);
+                m_tabs[i].content->SetVisibility(Visibility::Visible);
                 m_tabs[i].content->Measure(contentAvail);
                 m_tabs[i].content->Arrange(contentRect);
             } else {
-                DSL::Borrow(m_tabs[i].content).Visibility(Visibility::Collapsed);
+                m_tabs[i].content->SetVisibility(Visibility::Collapsed);
             }
         }
     }

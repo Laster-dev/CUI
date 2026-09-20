@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 #include <vector>
 
@@ -17,12 +21,12 @@ Element BuildScrollViewerPage() {
     // ==========================================
     // 示例 1: 经典长列表平滑滚动容器
     // ==========================================
-    auto scrollViewer1 = ScrollViewerWidget()
+    auto scrollViewer1 = Widgets::ScrollViewer()
         .Height(280.0f)
         .Background(D2D1::ColorF(0x141416, 0.4f))
         .Border(D2D1::ColorF(0x3F3F46, 0.5f), 1.0f)
         .CornerRadius(8.0f)
-        .Build();
+        .Shared();
 
     // 构造 15 张长图文卡片
     auto listContent = Column(8);
@@ -70,35 +74,35 @@ Element BuildScrollViewerPage() {
         .Border(D2D1::ColorF(0x333338, 0.4f), 1.0f)
         .CornerRadius(6.0f);
 
-        CUI::DSL::Borrow(listContent).AddChild(itemCard.Build());
+                listContent->AddChild(itemCard.Build());
     }
 
-    CUI::DSL::Borrow(scrollViewer1).AddChild(listContent.Build());
+        scrollViewer1->AddChild(listContent.Build());
 
     // 控制按钮：滚动至顶部 / 中间 / 底部
     auto btnScrollTop = Button("⬆️ 滚至顶部 (Top)")
         .OnClick([scrollViewer1, statusLabel](UIElement*) {
-            DSL::Borrow(scrollViewer1).ScrollOffsetY(0.0f);
-            CUI::DSL::Borrow(statusLabel).Text("已平滑滚动至容器【最顶部】。");
+                        scrollViewer1->SetScrollOffsetY(0.0f);
+                        statusLabel->SetText("已平滑滚动至容器【最顶部】。");
         });
 
     auto btnScrollMid = Button("↕️ 滚至中间 (50%)")
         .OnClick([scrollViewer1, statusLabel](UIElement*) {
-            DSL::Borrow(scrollViewer1).ScrollOffsetY(400.0f);
-            CUI::DSL::Borrow(statusLabel).Text("已平滑滚动至内容【中间位置】(Offset: 400px)。");
+                        scrollViewer1->SetScrollOffsetY(400.0f);
+                        statusLabel->SetText("已平滑滚动至内容【中间位置】(Offset: 400px)。");
         });
 
     auto btnScrollBottom = Button("⬇️ 滚至底部 (Bottom)")
         .OnClick([scrollViewer1, statusLabel](UIElement*) {
-            DSL::Borrow(scrollViewer1).ScrollOffsetY(2000.0f);
-            CUI::DSL::Borrow(statusLabel).Text("已平滑滚动至容器【最底部】。");
+                        scrollViewer1->SetScrollOffsetY(2000.0f);
+                        statusLabel->SetText("已平滑滚动至容器【最底部】。");
         });
 
-    auto toggleOverlay = ToggleButtonWidget("浮层滚动条模式 (Overlay Scrollbar)");
+    auto toggleOverlay = Widgets::ToggleButton("浮层滚动条模式 (Overlay Scrollbar)").Shared();
     toggleOverlay->OnClick.Connect([scrollViewer1, statusLabel](UIElement* sender) {
         auto btn = dynamic_cast<ToggleButton*>(sender);
         bool isOverlay = btn && btn->IsChecked();
-        DSL::Borrow(scrollViewer1).OverlayScrollbar(isOverlay);
+                scrollViewer1->SetOverlayScrollbar(isOverlay);
         statusLabel->Text = isOverlay
             ? "浮层滚动条模式已【开启】：滚动条浮在内容上方，不挤占排版宽度。"
             : "浮层滚动条模式已【关闭】：滚动条保留专属轨道空间。";
@@ -120,22 +124,22 @@ Element BuildScrollViewerPage() {
     };
 
     spec.source = R"cpp(// 1. 创建滚动视图并设定视口高度
-auto scrollViewer = ScrollViewerWidget()
+auto scrollViewer = Widgets::ScrollViewer()
     .Height(280.0f)
-    .Build();
+    .Shared();
 
 // 2. 构造任意长图文、列表或代码内容
 auto content = Column(8);
 for (int i = 0; i < 20; ++i) {
-    CUI::DSL::Borrow(content).AddChild(CreateItemCard(i));
+        content->AddChild(CreateItemCard(i));
 }
 
 // 3. 将超长内容放入滚动容器中
-CUI::DSL::Borrow(scrollViewer).AddChild(content.Build());
+scrollViewer->AddChild(content.Build());
 
 // 4. 代码控制滚动位置
-DSL::Borrow(scrollViewer).ScrollOffsetY(0.0f);      // 滚至顶部
-DSL::Borrow(scrollViewer).OverlayScrollbar(true);    // 浮层滚动条模式
+scrollViewer->SetScrollOffsetY(0.0f);      // 滚至顶部
+scrollViewer->SetOverlayScrollbar(true);    // 浮层滚动条模式
 )cpp";
 
     return BuildSamplePage(spec);

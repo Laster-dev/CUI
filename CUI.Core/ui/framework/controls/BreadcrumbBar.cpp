@@ -18,20 +18,18 @@ constexpr const char* kEllipsis = "...";
 
 BreadcrumbBar::BreadcrumbBar() {
     m_pathNodes = { "Home", "Controls", "BreadcrumbBar" };
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::PaneBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .ForegroundToken(ThemeTokenId::TextSecondary)
-        .ActiveColorToken(ThemeTokenId::TextPrimary)
-        .Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground))
-        .BorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder))
-        .BorderThickness(1.0f)
-        .Foreground(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary))
-        .CornerRadius(0.0f)
-        .FontFamily("微软雅黑")
-        .FontSize(12.0f)
-        .Width(-1.0f)
-        .Height(34.0f);
+        this->SetBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetActiveColorToken(ThemeTokenId::TextPrimary);
+    this->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+    this->SetBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
+    this->SetBorderThickness(1.0f);
+    this->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
+    this->SetCornerRadius(0.0f);
+    this->SetFontFamily("微软雅黑");
+    this->SetFontSize(12.0f);
+    this->SetWidth(-1.0f);
+    this->SetHeight(34.0f);
 }
 
 Size BreadcrumbBar::Measure(Size availableSize) {
@@ -246,7 +244,7 @@ void BreadcrumbBar::ShowOverflowMenu(const VisualSlot& ellipsisSlot) {
     }
 
     if (!m_overflowMenu) {
-        m_overflowMenu = DSL::Fluent::Control<ContextMenu>().Build();
+        m_overflowMenu = Widgets::ContextMenu().Build();
     }
     m_overflowMenu->ClearItems();
 
@@ -255,7 +253,7 @@ void BreadcrumbBar::ShowOverflowMenu(const VisualSlot& ellipsisSlot) {
             continue;
         }
         const std::string label = m_pathNodes[static_cast<size_t>(index)];
-        DSL::Borrow(m_overflowMenu).AddItem(label, [this, index, label]() {
+        m_overflowMenu->AddItem(label, [this, index, label]() {
             m_onItemClickedEvent.Invoke(this, index, label);
         });
     }

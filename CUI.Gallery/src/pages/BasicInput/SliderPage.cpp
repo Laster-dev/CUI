@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -7,11 +11,11 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildSliderPage() {
-    auto volume = SliderWidget();
-    CUI::DSL::Borrow(volume).Minimum(0.0f);
-    CUI::DSL::Borrow(volume).Maximum(100.0f);
-    CUI::DSL::Borrow(volume).Step(1.0f);
-    CUI::DSL::Borrow(volume).Width(280.0f);
+    auto volume = Widgets::Slider().Shared();
+        volume->SetMinimum(0.0f);
+        volume->SetMaximum(100.0f);
+        volume->SetStep(1.0f);
+        volume->SetWidth(280.0f);
 
     State<float> volumeValue{ 40.0f };
     volume->ValueProperty.Bind(volumeValue);
@@ -23,12 +27,12 @@ Element BuildSliderPage() {
     auto volumeStatus = MakeStatus("");
     volumeStatus->Text.Bind(volumeStatusValue, BindingMode::OneWay);
 
-    auto vertical = SliderWidget()
-        .Orientation(Orientation::Vertical);
-    CUI::DSL::Borrow(vertical).Minimum(0.0f);
-    CUI::DSL::Borrow(vertical).Maximum(100.0f);
-    CUI::DSL::Borrow(vertical).Width(32.0f);
-    CUI::DSL::Borrow(vertical).Height(160.0f);
+    auto vertical = Widgets::Slider()
+        .Orientation(Orientation::Vertical).Shared();
+        vertical->SetMinimum(0.0f);
+        vertical->SetMaximum(100.0f);
+        vertical->SetWidth(32.0f);
+        vertical->SetHeight(160.0f);
 
     State<float> verticalValue{ 70.0f };
     vertical->ValueProperty.Bind(verticalValue);

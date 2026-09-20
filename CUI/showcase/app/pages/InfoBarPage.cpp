@@ -12,38 +12,38 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildInfoBarPage(const ShowcaseContext& ctx) {
     auto bar = std::make_shared<InfoBar>();
-    DSL::Borrow(bar).Title("已连接到远程主机");
-    DSL::Borrow(bar).Message("会话已建立。可以继续同步文件，或在断开后从历史记录恢复。");
-    DSL::Borrow(bar).ActionText("查看详情");
-    DSL::Borrow(bar).Severity(InfoBarSeverity::Informational);
-    CUI::DSL::Borrow(bar).IsOpen(true);
-    DSL::Borrow(bar).IsClosable(true);
+        bar->SetTitle("已连接到远程主机");
+        bar->SetMessage("会话已建立。可以继续同步文件，或在断开后从历史记录恢复。");
+        bar->SetActionText("查看详情");
+        bar->SetSeverity(InfoBarSeverity::Informational);
+        bar->SetIsOpen(true);
+        bar->SetIsClosable(true);
 
     auto log = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("操作日志：就绪", 12.0f, "#B5CEA8", false, "Consolas"));
 
     auto details = std::make_shared<Command>([window = ctx.windowRef, log]() {
-        CUI::DSL::Borrow(log).Text("[InfoBar] Command 执行");
+                log->SetText("[InfoBar] Command 执行");
         if (window) {
             Toast::Show(window->GetRootElement().get(), "InfoBar", "操作按钮",
                         ToastType::Info, ToastCorner::BottomRight, 1600);
         }
     });
-    DSL::Borrow(details).Label("查看详情");
-    DSL::Borrow(bar).ActionCommand(details);
+        details->SetLabel("查看详情");
+        bar->SetActionCommand(details);
 
     bar->OnClosed().Connect([log]() {
-        CUI::DSL::Borrow(log).Text("[InfoBar] 已关闭");
+                log->SetText("[InfoBar] 已关闭");
     });
 
     auto show = [bar, log](InfoBarSeverity sev, const char* title, const char* msg, const char* action) {
         return [bar, log, sev, title, msg, action](UIElement*) {
-            DSL::Borrow(bar).Severity(sev);
-            DSL::Borrow(bar).Title(title);
-            DSL::Borrow(bar).Message(msg);
-            DSL::Borrow(bar).ActionText(action);
-            CUI::DSL::Borrow(bar).IsOpen(true);
-            CUI::DSL::Borrow(log).Text(std::string("[InfoBar] 打开 ") + title);
+                        bar->SetSeverity(sev);
+                        bar->SetTitle(title);
+                        bar->SetMessage(msg);
+                        bar->SetActionText(action);
+                        bar->SetIsOpen(true);
+                        log->SetText(std::string("[InfoBar] 打开 ") + title);
         };
     };
 
@@ -73,22 +73,22 @@ ShowcasePage BuildInfoBarPage(const ShowcaseContext& ctx) {
         "重试"));
 
     auto btnClose = std::make_shared<Button>("关闭");
-    btnClose->OnClick().Connect([bar](UIElement*) { DSL::Borrow(bar).IsOpen(false); });
+    btnClose->OnClick().Connect([bar](UIElement*) {     bar->SetIsOpen(false); });
     auto btnOpen = std::make_shared<Button>("打开");
-    btnOpen->OnClick().Connect([bar](UIElement*) { DSL::Borrow(bar).IsOpen(true); });
+    btnOpen->OnClick().Connect([bar](UIElement*) {     bar->SetIsOpen(true); });
     auto btnNoClose = std::make_shared<Button>("禁止关闭");
     btnNoClose->OnClick().Connect([bar, log](UIElement*) {
-        DSL::Borrow(bar).IsClosable(!bar->GetIsClosable());
-        CUI::DSL::Borrow(log).Text(bar->GetIsClosable() ? "[InfoBar] 可关闭" : "[InfoBar] 不可关闭");
+                bar->SetIsClosable(!bar->GetIsClosable());
+                log->SetText(bar->GetIsClosable() ? "[InfoBar] 可关闭" : "[InfoBar] 不可关闭");
     });
     auto btnNoAction = std::make_shared<Button>("无操作按钮");
     btnNoAction->OnClick().Connect([bar, log](UIElement*) {
         if (bar->GetActionText().empty()) {
-            DSL::Borrow(bar).ActionText("查看详情");
-            CUI::DSL::Borrow(log).Text("[InfoBar] 显示操作按钮");
+                        bar->SetActionText("查看详情");
+                        log->SetText("[InfoBar] 显示操作按钮");
         } else {
-            DSL::Borrow(bar).ActionText("");
-            CUI::DSL::Borrow(log).Text("[InfoBar] 隐藏操作按钮");
+                        bar->SetActionText("");
+                        log->SetText("[InfoBar] 隐藏操作按钮");
         }
     });
 

@@ -41,7 +41,7 @@ Element BuildContextMenuPage() {
     auto itemDetailList = viewSubMenu->AddItem("详细列表", [statusLabel]() {
         statusLabel->Text = "视图模式已切换为：【详细信息列表 (Details)】";
     });
-    DSL::Borrow(itemDetailList).Checked(true);
+        itemDetailList->SetChecked(true);
 
     workspaceMenu->AddSeparator();
 
@@ -88,7 +88,7 @@ Element BuildContextMenuPage() {
         .CornerRadius(8.0f)
         .Padding(16.0f);
 
-    DSL::Borrow(workspaceArea).ContextMenu(workspaceMenu);
+        workspaceArea->SetContextMenu(workspaceMenu);
 
     // ==========================================
     // 示例 2: 代码编辑器专属右键菜单
@@ -122,9 +122,9 @@ Element BuildContextMenuPage() {
               "    return app->Run();\n"
               "}")
         .Height(110.0f);
-    CUI::DSL::Borrow(codeEditorArea).AcceptsReturn(true);
-    CUI::DSL::Borrow(codeEditorArea).TextWrapping(true);
-    DSL::Borrow(codeEditorArea).ContextMenu(codeMenu);
+        codeEditorArea->SetAcceptsReturn(true);
+        codeEditorArea->SetTextWrapping(true);
+        codeEditorArea->SetContextMenu(codeMenu);
 
     SamplePageSpec spec;
     spec.title = "ContextMenu (上下文右键菜单)";
@@ -160,7 +160,7 @@ menu->AddItem("剪切", "Ctrl+X", []() { /* .. */ });
 menu->AddItem("复制", "Ctrl+C", []() { /* .. */ });
 
 // 3. 将右键菜单挂载至任意目标控件
-DSL::Borrow(targetElement).ContextMenu(menu);
+targetElement->SetContextMenu(menu);
 )cpp";
 
     return BuildSamplePage(spec);

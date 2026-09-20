@@ -1,14 +1,30 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 CUI::Widgets:: 句柄同名冲突
+#endif
 #include "PageRegistry.h"
+#include "framework/core/Widgets.h"
 #include "../ShowcaseHelpers.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/ProgressBarDiag.h"
+
+using namespace CUI;
 
 using namespace CUI::DSL;
 
 ShowcasePage BuildProgressBarPage(const ShowcaseContext& ctx) {
     CUI::ProgressBarDiag::Log("[PB] BuildProgressBarPage enter");
-    auto target = ProgressBarWidget(65.0f, false).Width(280).Height(3).Build();
-    auto indeterminate = ProgressBarWidget(0.0f, true).Width(280).Height(3).Build();
+    auto target = CUI::Widgets::ProgressBar().Width(280).Height(3).Shared();
+    target->SetValue(65.0f);
+    target->SetIsIndeterminate(false);
+    auto indeterminate = CUI::Widgets::ProgressBar().Width(280).Height(3).Shared();
+    indeterminate->SetValue(0.0f);
+    indeterminate->SetIsIndeterminate(true);
+    auto ringIndeterminate = CUI::Widgets::ProgressRing().Width(40).Height(40).Shared();
+    ringIndeterminate->SetValue(0.0f);
+    ringIndeterminate->SetIsIndeterminate(true);
+    auto ringDeterminate = CUI::Widgets::ProgressRing().Width(40).Height(40).Shared();
+    ringDeterminate->SetValue(65.0f);
+    ringDeterminate->SetIsIndeterminate(false);
     CUI::ProgressBarDiag::Log(
         "[PB] BuildProgressBarPage done target=%p indeterminate=%p indFlag=%d",
         (void*)target.get(),
@@ -23,8 +39,8 @@ ShowcasePage BuildProgressBarPage(const ShowcaseContext& ctx) {
             CreateShowcaseText("2. 不确定加载动画模式 (IsIndeterminate):", 12.0f, "#AAAAAA"),
             indeterminate,
             CreateShowcaseText("3. ProgressRing WinUI 风格环形加载 (IsIndeterminate):", 12.0f, "#AAAAAA"),
-            ProgressRingWidget(0.0f, true).Width(40).Height(40).Build(),
+            ringIndeterminate,
             CreateShowcaseText("4. ProgressRing 确定进度 (Value = 65%):", 12.0f, "#AAAAAA"),
-            ProgressRingWidget(65.0f, false).Width(40).Height(40).Build()
+            ringDeterminate
         })) };
 }

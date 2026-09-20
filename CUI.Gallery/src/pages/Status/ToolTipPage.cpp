@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -55,8 +59,8 @@ Element BuildToolTipPage() {
     // ==========================================
     // 3. 多种控件的通用 ToolTip 挂载
     // ==========================================
-    auto toggleAutoSave = ToggleButtonWidget("自动同步 (Auto Sync)");
-    CUI::DSL::Borrow(toggleAutoSave).ToolTip("开启后，每当文档内容发生更改时将自动写入本地缓存文件");
+    auto toggleAutoSave = Widgets::ToggleButton("自动同步 (Auto Sync)").Shared();
+        toggleAutoSave->SetToolTip("开启后，每当文档内容发生更改时将自动写入本地缓存文件");
 
     auto txtSample = TextField()
         .Text("鼠标悬停在输入框查看提示")
@@ -96,7 +100,7 @@ auto btn = Button("保存")
     .OnClick([](UIElement*) { /* .. */ });
 
 // 2. 在任意 UIElement 实例上动态设置
-CUI::DSL::Borrow(element).ToolTip("多行提示说明：\n- 第一点\n- 第二点");
+element->SetToolTip("多行提示说明：\n- 第一点\n- 第二点");
 )cpp";
 
     return BuildSamplePage(spec);

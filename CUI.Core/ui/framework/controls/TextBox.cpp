@@ -70,24 +70,23 @@ std::wstring BuildDisplayText(const std::wstring& wtext, int cursorPos, const st
 } // namespace
 
 TextBox::TextBox() {
-    DSL::Borrow(this)
-        .Text("")
-        .Placeholder("")
-        .Background(D2D1::ColorF(0, 0, 0, 0))
-        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
-        .BorderBrush(D2D1::ColorF(0, 0, 0, 0))
-        .BorderThickness(0.0f)
-        .UnderlineColorToken(ThemeTokenId::InputBorder)
-        .ActiveUnderlineColorToken(ThemeTokenId::AccentColor)
-        .CaretColorToken(ThemeTokenId::AccentColor)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .PlaceholderColorToken(ThemeTokenId::TextMuted)
-        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
-        .FontFamily("微软雅黑")
-        .FontSize(12.0f)
-        .Padding(8.0f, 6.0f, 8.0f, 6.0f)
-        .KeyboardNavigationMode(KeyboardNavigationMode::Contained)
-        .MinHeight(32.0f);
+    this->SetText("");
+    this->SetPlaceholder("");
+    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
+    this->SetBorderThickness(0.0f);
+    this->SetUnderlineColorToken(ThemeTokenId::InputBorder);
+    this->SetActiveUnderlineColorToken(ThemeTokenId::AccentColor);
+    this->SetCaretColorToken(ThemeTokenId::AccentColor);
+    this->SetColorToken(ThemeTokenId::TextPrimary);
+    this->SetPlaceholderColorToken(ThemeTokenId::TextMuted);
+    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->SetFontFamily("微软雅黑");
+    this->SetFontSize(12.0f);
+    this->SetPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
+    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->SetMinHeight(32.0f);
 }
 
 TextBox::TextBox(const std::string& placeholder) : TextBox() {

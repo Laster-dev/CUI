@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -10,7 +14,7 @@ namespace {
 
 std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string& body) {
     auto check = CheckboxTile("启用示例功能").Build();
-    CUI::DSL::Borrow(check).State(CheckState::Checked);
+        check->SetState(CheckState::Checked);
     auto toggle = ToggleSwitchTile("快速设置开关", true).Build();
     return Column(12, {
         Text(title).FontSize(18.0f).FontWeight(FontWeight::SemiBold),
@@ -30,43 +34,43 @@ std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string&
 Element BuildNavigationViewPage() {
     // ---------- 1. 左侧导航（完整功能） ----------
     auto nav = std::make_shared<NavigationView>();
-    DSL::Borrow(nav).PaneTitle("CUI 工作台");
-    DSL::Borrow(nav).Header("首页");
-    DSL::Borrow(nav).AlwaysShowHeader(true);
-    DSL::Borrow(nav).PaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
-    DSL::Borrow(nav).IsSettingsVisible(true);
-    DSL::Borrow(nav).IsBackButtonVisible(NavigationViewBackButtonVisible::Visible);
-    DSL::Borrow(nav).IsBackEnabled(true);
+        nav->SetPaneTitle("CUI 工作台");
+        nav->SetHeader("首页");
+        nav->SetAlwaysShowHeader(true);
+        nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
+        nav->SetIsSettingsVisible(true);
+        nav->SetIsBackButtonVisible(NavigationViewBackButtonVisible::Visible);
+        nav->SetIsBackEnabled(true);
     // 让 Auto 模式在本演示宽度下呈现展开态
-    DSL::Borrow(nav).ExpandedModeThresholdWidth(600.0f);
-    DSL::Borrow(nav).CompactModeThresholdWidth(480.0f);
-    CUI::DSL::Borrow(nav).Width(820.0f);
-    CUI::DSL::Borrow(nav).Height(430.0f);
+        nav->SetExpandedModeThresholdWidth(600.0f);
+        nav->SetCompactModeThresholdWidth(480.0f);
+        nav->SetWidth(820.0f);
+        nav->SetHeight(430.0f);
 
     auto pageHome = MakePage("首页", "WinUI 3 NavigationView：PaneDisplayMode / DisplayMode / IsPaneOpen 三者分离。");
     auto pageApps = MakePage("应用", "MenuItems + FooterMenuItems + SettingsItem 共用单一选中模型。");
     auto pageDocs = MakePage("文档", "支持 Header / Separator / 单层层级 MenuItems，父节点展开子项。");
     auto pageMusic = MakePage("音乐", "LeftCompact / LeftMinimal 下 IsPaneOpen 控制 overlay / inline 行为。");
     auto pageSettings = MakePage("设置", "内置 SettingsItem，点击底部的齿轮即可进入。");
-    CUI::DSL::Borrow(nav).Content(pageHome);
+        nav->SetContent(pageHome);
 
     auto home = std::make_shared<NavigationViewItem>("首页", "🏠");
-    DSL::Borrow(home).Tag("home");
+        home->SetTag("home");
     nav->AddMenuItem(home);
 
     nav->AddMenuItem(std::make_shared<NavigationViewItemHeader>("资料库"));
 
     auto apps = std::make_shared<NavigationViewItem>("应用", "⚡");
-    DSL::Borrow(apps).Tag("apps");
+        apps->SetTag("apps");
     nav->AddMenuItem(apps);
 
     auto docs = std::make_shared<NavigationViewItem>("文档", "📄");
-    DSL::Borrow(docs).Tag("docs");
-    DSL::Borrow(docs).SelectsOnInvoked(false); // 父节点只展开子项，不选中
+        docs->SetTag("docs");
+        docs->SetSelectsOnInvoked(false); // 父节点只展开子项，不选中
     auto docsAll = std::make_shared<NavigationViewItem>("全部文件", "📁");
-    DSL::Borrow(docsAll).Tag("docs-all");
+        docsAll->SetTag("docs-all");
     auto docsRecent = std::make_shared<NavigationViewItem>("最近使用", "🕒");
-    DSL::Borrow(docsRecent).Tag("docs-recent");
+        docsRecent->SetTag("docs-recent");
     docs->AddMenuItem(docsAll);
     docs->AddMenuItem(docsRecent);
     nav->AddMenuItem(docs);
@@ -74,19 +78,19 @@ Element BuildNavigationViewPage() {
     nav->AddMenuItem(std::make_shared<NavigationViewItemSeparator>());
 
     auto music = std::make_shared<NavigationViewItem>("音乐", "🎵");
-    DSL::Borrow(music).Tag("music");
+        music->SetTag("music");
     nav->AddMenuItem(music);
 
     auto account = std::make_shared<NavigationViewItem>("账户", "👤");
-    DSL::Borrow(account).Tag("account");
+        account->SetTag("account");
     nav->AddFooterMenuItem(account);
 
     auto search = std::make_shared<TextBox>();
-    CUI::DSL::Borrow(search).Placeholder("搜索…");
-    CUI::DSL::Borrow(search).Height(32.0f);
-    DSL::Borrow(nav).AutoSuggestBox(search);
+        search->SetPlaceholder("搜索…");
+        search->SetHeight(32.0f);
+        nav->SetAutoSuggestBox(search);
 
-    CUI::DSL::Borrow(nav).SelectedItem(home.get());
+        nav->SetSelectedItem(home.get());
 
     auto status1 = MakeStatus("已选择 [首页]，当前显示模式: Expanded");
     nav->OnDisplayModeChanged().Connect([status1](NavigationView*, const NavigationViewDisplayModeChangedEventArgs& args) {
@@ -97,20 +101,20 @@ Element BuildNavigationViewPage() {
 
     auto applyTag = [nav, pageHome, pageApps, pageDocs, pageMusic, status1](const std::string& tag) {
         if (tag == "home") {
-            DSL::Borrow(nav).Header("首页");
-            CUI::DSL::Borrow(nav).Content(pageHome);
+                        nav->SetHeader("首页");
+                        nav->SetContent(pageHome);
         } else if (tag == "apps") {
-            DSL::Borrow(nav).Header("应用");
-            CUI::DSL::Borrow(nav).Content(pageApps);
+                        nav->SetHeader("应用");
+                        nav->SetContent(pageApps);
         } else if (tag == "docs" || tag == "docs-all" || tag == "docs-recent") {
-            DSL::Borrow(nav).Header("文档");
-            CUI::DSL::Borrow(nav).Content(pageDocs);
+                        nav->SetHeader("文档");
+                        nav->SetContent(pageDocs);
         } else if (tag == "music") {
-            DSL::Borrow(nav).Header("音乐");
-            CUI::DSL::Borrow(nav).Content(pageMusic);
+                        nav->SetHeader("音乐");
+                        nav->SetContent(pageMusic);
         } else if (tag == "account") {
-            DSL::Borrow(nav).Header("账户");
-            CUI::DSL::Borrow(nav).Content(MakePage("账户", "FooterMenuItems 与 MenuItems 共享同一选中模型。"));
+                        nav->SetHeader("账户");
+                        nav->SetContent(MakePage("账户", "FooterMenuItems 与 MenuItems 共享同一选中模型。"));
         }
         status1->Text = std::format("已导航到 [{}]，导航历史深度 {}",
                                     tag.empty() ? "设置" : tag,
@@ -120,8 +124,8 @@ Element BuildNavigationViewPage() {
     nav->OnItemInvoked().Connect([nav, pageSettings, applyTag](NavigationView*, const NavigationViewItemInvokedEventArgs& args) {
         if (!args.InvokedItem) return;
         if (args.IsSettingsInvoked) {
-            DSL::Borrow(nav).Header("设置");
-            CUI::DSL::Borrow(nav).Content(pageSettings);
+                        nav->SetHeader("设置");
+                        nav->SetContent(pageSettings);
             return;
         }
         applyTag(args.InvokedItem->GetTag());
@@ -141,15 +145,15 @@ Element BuildNavigationViewPage() {
         }
     });
 
-    auto modeBox = ComboBoxWidget().Build();
+    auto modeBox = Widgets::ComboBox().Shared();
     modeBox->AddItem("Auto（自适应）");
     modeBox->AddItem("Left（固定左侧）");
     modeBox->AddItem("LeftCompact（紧凑图标栏）");
     modeBox->AddItem("LeftMinimal（极简汉堡）");
     modeBox->AddItem("Top（顶部导航）");
-    CUI::DSL::Borrow(modeBox).SelectedIndex(0);
-    CUI::DSL::Borrow(modeBox).Width(260.0f);
-    CUI::DSL::Borrow(modeBox).Height(32.0f);
+        modeBox->SetSelectedIndex(0);
+        modeBox->SetWidth(260.0f);
+        modeBox->SetHeight(32.0f);
     modeBox->OnSelectionChanged().Connect([nav](ComboBox*, int index, const std::string&) {
         static const NavigationViewPaneDisplayMode kModes[] = {
             NavigationViewPaneDisplayMode::Auto,
@@ -159,43 +163,43 @@ Element BuildNavigationViewPage() {
             NavigationViewPaneDisplayMode::Top,
         };
         if (index >= 0 && index < 5) {
-            DSL::Borrow(nav).PaneDisplayMode(kModes[index]);
+                        nav->SetPaneDisplayMode(kModes[index]);
         }
     });
 
     auto btnToggle = ElevatedButton("Toggle Pane", [nav](UIElement*) { nav->TogglePane(); }).Build();
     auto chkHeader = CheckboxTile("始终显示标题").Build();
-    CUI::DSL::Borrow(chkHeader).State(CheckState::Checked);
+        chkHeader->SetState(CheckState::Checked);
     chkHeader->OnCheckStateChanged().Connect([nav](CheckBox*, CheckState st) {
-        DSL::Borrow(nav).AlwaysShowHeader(st == CheckState::Checked);
+                nav->SetAlwaysShowHeader(st == CheckState::Checked);
     });
     auto btnNavHome = ElevatedButton("程序化导航 → 首页", [navigateTo](UIElement*) { navigateTo("home"); }).Build();
     auto btnNavApps = ElevatedButton("程序化导航 → 应用", [navigateTo](UIElement*) { navigateTo("apps"); }).Build();
 
     // ---------- 2. 顶部导航模式 ----------
     auto topNav = std::make_shared<NavigationView>();
-    DSL::Borrow(topNav).PaneTitle("顶部导航");
-    DSL::Borrow(topNav).Header("概览");
-    DSL::Borrow(topNav).AlwaysShowHeader(true);
-    DSL::Borrow(topNav).PaneDisplayMode(NavigationViewPaneDisplayMode::Top);
-    CUI::DSL::Borrow(topNav).Width(820.0f);
-    CUI::DSL::Borrow(topNav).Height(300.0f);
+        topNav->SetPaneTitle("顶部导航");
+        topNav->SetHeader("概览");
+        topNav->SetAlwaysShowHeader(true);
+        topNav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Top);
+        topNav->SetWidth(820.0f);
+        topNav->SetHeight(300.0f);
 
     auto pageOverview = MakePage("概览", "顶部导航模式下，菜单项平铺在标题栏下方的一行中。");
     auto pageMonitor = MakePage("监控", "适合扁平化、少量顶级入口的场景。");
     auto pageReports = MakePage("报表", "切换内容时同样带有选中指示动画。");
-    CUI::DSL::Borrow(topNav).Content(pageOverview);
+        topNav->SetContent(pageOverview);
 
     auto ov = std::make_shared<NavigationViewItem>("概览", "📊");
-    DSL::Borrow(ov).Tag("overview");
+        ov->SetTag("overview");
     topNav->AddMenuItem(ov);
     auto mon = std::make_shared<NavigationViewItem>("监控", "🖥️");
-    DSL::Borrow(mon).Tag("monitor");
+        mon->SetTag("monitor");
     topNav->AddMenuItem(mon);
     auto rep = std::make_shared<NavigationViewItem>("报表", "📈");
-    DSL::Borrow(rep).Tag("reports");
+        rep->SetTag("reports");
     topNav->AddMenuItem(rep);
-    CUI::DSL::Borrow(topNav).SelectedItem(ov.get());
+        topNav->SetSelectedItem(ov.get());
 
     auto status2 = MakeStatus("顶部导航模式：菜单平铺，选中指示条滑动切换。");
     topNav->OnItemInvoked().Connect([topNav, pageOverview, pageMonitor, pageReports, status2](
@@ -203,14 +207,14 @@ Element BuildNavigationViewPage() {
         if (!args.InvokedItem) return;
         const std::string& tag = args.InvokedItem->GetTag();
         if (tag == "overview") {
-            DSL::Borrow(topNav).Header("概览");
-            CUI::DSL::Borrow(topNav).Content(pageOverview);
+                        topNav->SetHeader("概览");
+                        topNav->SetContent(pageOverview);
         } else if (tag == "monitor") {
-            DSL::Borrow(topNav).Header("监控");
-            CUI::DSL::Borrow(topNav).Content(pageMonitor);
+                        topNav->SetHeader("监控");
+                        topNav->SetContent(pageMonitor);
         } else if (tag == "reports") {
-            DSL::Borrow(topNav).Header("报表");
-            CUI::DSL::Borrow(topNav).Content(pageReports);
+                        topNav->SetHeader("报表");
+                        topNav->SetContent(pageReports);
         }
         status2->Text = std::format("已切换到 [{}]", tag);
     });
@@ -244,18 +248,18 @@ Element BuildNavigationViewPage() {
     spec.source = R"(
 // 1) 创建导航视图
 auto nav = std::make_shared<NavigationView>();
-DSL::Borrow(nav).PaneTitle("工作台");
-DSL::Borrow(nav).Header("首页");
-DSL::Borrow(nav).PaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
+nav->SetPaneTitle("工作台");
+nav->SetHeader("首页");
+nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
 
 // 2) 添加菜单项（含层级与分组）
 auto home = std::make_shared<NavigationViewItem>("首页", "🏠");
-DSL::Borrow(home).Tag("home");
+home->SetTag("home");
 nav->AddMenuItem(home);
 nav->AddMenuItem(std::make_shared<NavigationViewItemHeader>("资料库"));
 
 auto docs = std::make_shared<NavigationViewItem>("文档", "📄");
-DSL::Borrow(docs).Tag("docs");
+docs->SetTag("docs");
 docs->AddMenuItem(std::make_shared<NavigationViewItem>("全部文件", "📁"));
 nav->AddMenuItem(docs);
 

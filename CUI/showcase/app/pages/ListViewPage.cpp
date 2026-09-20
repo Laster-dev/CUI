@@ -17,13 +17,13 @@ public:
 ShowcasePage BuildListViewPage(const ShowcaseContext& ctx) {
     static VirtualListViewSource ds;
     auto target = std::make_shared<CUI::ListView>();
-    CUI::DSL::Borrow(target).Width(500.0f);
-    CUI::DSL::Borrow(target).Height(280.0f);
+        target->SetWidth(500.0f);
+        target->SetHeight(280.0f);
     target->AddColumn("ID", 60.0f);
     target->AddColumn("名称", 220.0f);
     target->AddColumn("状态", 120.0f);
     target->AddColumn("进度", 100.0f);
-    CUI::DSL::Borrow(target).VirtualMode(100000, &ds);
+        target->SetVirtualMode(100000, &ds);
     return { "ListView (100k)", CreatePage(
         "ListView 100k 多列虚拟化表单全属性控制台",
         "ListView 可滚动列表。",

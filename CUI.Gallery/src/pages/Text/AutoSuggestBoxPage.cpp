@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 #include <vector>
 
@@ -11,11 +15,12 @@ Element BuildAutoSuggestBoxPage() {
     // ==========================================
     // 1. 静态数据目录与模糊匹配
     // ==========================================
-    auto suggestA = AutoSuggestBoxWidget("输入城市名称 (如 Beijing, Shanghai, Tokyo..)")
+    auto suggestA = Widgets::AutoSuggestBox()
         .Width(360.0f)
-        .Height(32.0f);
+        .Height(32.0f).Shared();
+    suggestA->SetPlaceholder("输入城市名称 (如 Beijing, Shanghai, Tokyo...)");
 
-    DSL::Borrow(suggestA).SuggestionItems({
+        suggestA->SetSuggestionItems({
         "Beijing (北京)",
         "Shanghai (上海)",
         "Shenzhen (深圳)",
@@ -50,18 +55,19 @@ Element BuildAutoSuggestBoxPage() {
         .Width(80.0f)
         .Height(32.0f)
         .OnClick([suggestA, statusA](UIElement*) {
-            CUI::DSL::Borrow(suggestA).Text("");
+                        suggestA->SetText("");
             statusA->Text = "已清空输入框内容。";
         });
 
     // ==========================================
     // 2. 动态语法与智能补全提供器 (Custom Provider)
     // ==========================================
-    auto suggestB = AutoSuggestBoxWidget("输入 C++ 关键词 (如 std::、int、auto 或计算公式)..")
+    auto suggestB = Widgets::AutoSuggestBox()
         .Width(420.0f)
-        .Height(32.0f);
+        .Height(32.0f).Shared();
+    suggestB->SetPlaceholder("输入 C++ 关键词 (如 std::、int、auto 或计算公式...)");
 
-    DSL::Borrow(suggestB).SuggestionProvider([](const std::string& query) -> std::vector<std::string> {
+        suggestB->SetSuggestionProvider([](const std::string& query) -> std::vector<std::string> {
         if (query.empty()) {
             return {
                 "std::vector<T>",
@@ -98,11 +104,12 @@ Element BuildAutoSuggestBoxPage() {
     // ==========================================
     // 3. 最大展示条数与键盘导航
     // ==========================================
-    auto suggestC = AutoSuggestBoxWidget("支持 ↑/↓ 方向键选择、Enter 确认、Esc 关闭..")
+    auto suggestC = Widgets::AutoSuggestBox()
         .Width(360.0f)
-        .Height(32.0f);
-    DSL::Borrow(suggestC).MaxVisibleSuggestions(4);
-    DSL::Borrow(suggestC).SuggestionItems({
+        .Height(32.0f).Shared();
+    suggestC->SetPlaceholder("支持 ↑/↓ 方向键选择、Enter 确认、Esc 关闭...");
+        suggestC->SetMaxVisibleSuggestions(4);
+        suggestC->SetSuggestionItems({
         "01. Windows App SDK",
         "02. WinUI 3 现代控件",
         "03. Direct2D 硬件加速渲染",
@@ -144,14 +151,14 @@ Element BuildAutoSuggestBoxPage() {
     };
 
     spec.source = R"cpp(// 1. 静态数据集模式
-auto box = AutoSuggestBoxWidget("搜索城市..");
-DSL::Borrow(box).SuggestionItems({ "Beijing", "Shanghai", "Tokyo", "London" });
+auto box = Widgets::AutoSuggestBox("搜索城市...").Shared();
+box->SetSuggestionItems({ "Beijing", "Shanghai", "Tokyo", "London" });
 box->OnSuggestionChosen().Connect([](AutoSuggestBox*, const std::string& item) {
     // 处理选中逻辑
 });
 
 // 2. 动态 Provider 模式
-DSL::Borrow(box).SuggestionProvider([](const std::string& query) -> std::vector<std::string> {
+box->SetSuggestionProvider([](const std::string& query) -> std::vector<std::string> {
     return QueryDatabaseOrCalculate(query);
 });
 )cpp";

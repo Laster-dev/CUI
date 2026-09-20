@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -7,9 +11,9 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildRatingControlPage() {
-    auto rating = RatingWidget();
-    DSL::Borrow(rating).MaxRating(5);
-    CUI::DSL::Borrow(rating).Step(0.5f);
+    auto rating = Widgets::RatingControl().Shared();
+        rating->SetMaxRating(5);
+        rating->SetStep(0.5f);
 
     State<float> ratingValue{ 3.5f };
     rating->ValueProperty.Bind(ratingValue);
@@ -21,10 +25,10 @@ Element BuildRatingControlPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto readOnly = RatingWidget();
-    DSL::Borrow(readOnly).MaxRating(5);
-    CUI::DSL::Borrow(readOnly).IsReadOnly(true);
-    CUI::DSL::Borrow(readOnly).Value(4.0f);
+    auto readOnly = Widgets::RatingControl().Shared();
+        readOnly->SetMaxRating(5);
+        readOnly->SetIsReadOnly(true);
+        readOnly->SetValue(4.0f);
 
     SamplePageSpec spec;
     spec.title = "RatingControl(评分)";

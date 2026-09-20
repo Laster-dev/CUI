@@ -19,19 +19,17 @@ constexpr float kProgressMinW = 56.0f;
 } // namespace
 
 StatusBar::StatusBar() {
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::PaneBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .ForegroundToken(ThemeTokenId::TextSecondary)
-        .Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground))
-        .BorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder))
-        .BorderThickness(1.0f)
-        .Foreground(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary))
-        .FontFamily("Segoe UI")
-        .FontSize(11.0f)
-        .Height(kBarH)
-        .Width(-1.0f)
-        .CornerRadius(0.0f);
+        this->SetBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+    this->SetBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
+    this->SetBorderThickness(1.0f);
+    this->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
+    this->SetFontFamily("Segoe UI");
+    this->SetFontSize(11.0f);
+    this->SetHeight(kBarH);
+    this->SetWidth(-1.0f);
+    this->SetCornerRadius(0.0f);
 }
 
 Size StatusBar::Measure(Size availableSize) {

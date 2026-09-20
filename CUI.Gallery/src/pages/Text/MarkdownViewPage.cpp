@@ -47,7 +47,7 @@ if (RetryCount > 0) {
 }
 ```
 )markdown");
-    CUI::DSL::Borrow(markdown).Height(560.0f);
+        markdown->SetHeight(560.0f);
 
     SamplePageSpec spec;
     spec.title = "MarkdownView(Markdown 视图)";

@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 CUI::Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
@@ -10,12 +14,12 @@ Element BuildContentDialogPage() {
     // ── 1. 信息确认对话框 ────────────────────────────────────────────────
     auto btnInfo = Button("打开信息提示框")
         .OnClick([status](UIElement* src) {
-            auto dlg = ContentDialogWidget();
-            dlg.Title("操作提示");
-            dlg.Message("您确定要继续执行此操作吗？此操作不可撤销，请谨慎确认。");
-            dlg.PrimaryButtonText("确定");
-            dlg.CloseButtonText("取消");
-            CUI::DSL::Borrow(src).AddChild(dlg);
+            auto dlg = CUI::Widgets::ContentDialog().Shared();
+            dlg->SetTitle("操作提示");
+            dlg->SetMessage("您确定要继续执行此操作吗？此操作不可撤销，请谨慎确认。");
+            dlg->SetPrimaryButtonText("确定");
+            dlg->SetCloseButtonText("取消");
+                        src->AddChild(dlg);
             dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
             status->Text = "结果：已点击【确定】，操作继续执行。";
@@ -26,18 +30,18 @@ Element BuildContentDialogPage() {
 
     // ── 2. 三按钮对话框 ─────────────────────────────────────────────────
     auto btnThree = Button("三个按钮的对话框");
-    CUI::DSL::Borrow(btnThree).BackgroundToken(ThemeTokenId::CardBackground);
-    CUI::DSL::Borrow(btnThree).ForegroundToken(ThemeTokenId::TextPrimary);
-    CUI::DSL::Borrow(btnThree).BorderToken(ThemeTokenId::CardBorder);
-    CUI::DSL::Borrow(btnThree).BorderThickness(1.0f);
+        btnThree->SetBackgroundToken(ThemeTokenId::CardBackground);
+    
+        btnThree->SetBorderToken(ThemeTokenId::CardBorder);
+        btnThree->SetBorderThickness(1.0f);
     btnThree->OnClick().Connect([status](UIElement* src) {
-        auto dlg = ContentDialogWidget();
-        dlg.Title("保存更改");
-        dlg.Message("您有未保存的更改。是否要在关闭前保存？");
-        dlg.PrimaryButtonText("保存");
-        dlg.SecondaryButtonText("不保存");
-        dlg.CloseButtonText("取消");
-        CUI::DSL::Borrow(src).AddChild(dlg);
+        auto dlg = CUI::Widgets::ContentDialog().Shared();
+        dlg->SetTitle("保存更改");
+        dlg->SetMessage("您有未保存的更改。是否要在关闭前保存？");
+        dlg->SetPrimaryButtonText("保存");
+        dlg->SetSecondaryButtonText("不保存");
+        dlg->SetCloseButtonText("取消");
+                src->AddChild(dlg);
         dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
                 status->Text = "结果：已选择【保存】，文件已写入磁盘。";
@@ -50,19 +54,19 @@ Element BuildContentDialogPage() {
 
     // ── 3. 输入对话框 ───────────────────────────────────────────────────
     auto btnInput = Button("带文本输入的对话框");
-    CUI::DSL::Borrow(btnInput).BackgroundToken(ThemeTokenId::CardBackground);
-    CUI::DSL::Borrow(btnInput).ForegroundToken(ThemeTokenId::TextPrimary);
-    CUI::DSL::Borrow(btnInput).BorderToken(ThemeTokenId::CardBorder);
-    CUI::DSL::Borrow(btnInput).BorderThickness(1.0f);
+        btnInput->SetBackgroundToken(ThemeTokenId::CardBackground);
+    
+        btnInput->SetBorderToken(ThemeTokenId::CardBorder);
+        btnInput->SetBorderThickness(1.0f);
     btnInput->OnClick().Connect([status](UIElement* src) {
-        auto dlg = ContentDialogWidget();
-        dlg.Title("新建文件夹");
-        dlg.Message("请输入新文件夹的名称：");
-        dlg.PrimaryButtonText("创建");
-        dlg.CloseButtonText("取消");
-        dlg.InputEnabled(true);
-        dlg.InputText("新建文件夹");
-        CUI::DSL::Borrow(src).AddChild(dlg);
+        auto dlg = CUI::Widgets::ContentDialog().Shared();
+        dlg->SetTitle("新建文件夹");
+        dlg->SetMessage("请输入新文件夹的名称：");
+        dlg->SetPrimaryButtonText("创建");
+        dlg->SetCloseButtonText("取消");
+        dlg->SetInputEnabled(true);
+        dlg->SetInputText("新建文件夹");
+                src->AddChild(dlg);
         dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary) {
                 std::string name = dlg->GetInputText();
@@ -80,12 +84,12 @@ Element BuildContentDialogPage() {
         .PressedBackground(Color::Hex("#8E0000"))
         .Foreground(Color::White)
         .OnClick([status](UIElement* src) {
-            auto dlg = ContentDialogWidget();
-            dlg.Title("永久删除");
-            dlg.Message("此操作将永久删除所选的 3 个文件，总计 128 MB。\n\n已删除的内容无法从回收站恢复，请确认操作。");
-            dlg.PrimaryButtonText("永久删除");
-            dlg.CloseButtonText("取消");
-            CUI::DSL::Borrow(src).AddChild(dlg);
+            auto dlg = CUI::Widgets::ContentDialog().Shared();
+            dlg->SetTitle("永久删除");
+            dlg->SetMessage("此操作将永久删除所选的 3 个文件，总计 128 MB。\n\n已删除的内容无法从回收站恢复，请确认操作。");
+            dlg->SetPrimaryButtonText("永久删除");
+            dlg->SetCloseButtonText("取消");
+                        src->AddChild(dlg);
             dlg->Show([status, dlg](DialogResult r) {
             if (r == DialogResult::Primary)
             status->Text = "结果：已执行永久删除，文件已清除。";
@@ -120,7 +124,7 @@ Element BuildContentDialogPage() {
         },
     };
     spec.source =
-        "auto dlg = ContentDialogWidget();\n"
+        "auto dlg = CUI::Widgets::ContentDialog().Shared();\n"
         "dlg.Title(\"标题\");\n"
         "dlg.Message(\"消息内容。\");\n"
         "dlg.PrimaryButtonText(\"确定\");\n"

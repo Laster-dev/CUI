@@ -36,15 +36,14 @@ void StarPoints(Point center, float radius, Point out[10]) {
 
 RatingControl::RatingControl() : MaxRating(this), Step(this), Value(this) {
     ValueProperty.Initialize(*this);
-    DSL::Borrow(this)
-        .FillColorToken(ThemeTokenId::AccentColor)
-        .TrackColorToken(ThemeTokenId::CardBorder)
-        .ForegroundToken(ThemeTokenId::TextSecondary)
-        .Background(D2D1::ColorF(0, 0, 0, 0))
-        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
-        .PressedBackground(D2D1::ColorF(0, 0, 0, 0))
-        .Width(-1.0f)
-        .Height(32.0f);
+    this->SetFillColorToken(ThemeTokenId::AccentColor);
+    this->SetTrackColorToken(ThemeTokenId::CardBorder);
+    this->SetColorToken(ThemeTokenId::TextSecondary);
+    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->SetWidth(-1.0f);
+    this->SetHeight(32.0f);
     m_displayValueAnim.Reset(m_value);
 }
 

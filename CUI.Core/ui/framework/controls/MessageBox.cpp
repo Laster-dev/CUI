@@ -10,7 +10,7 @@ ContentDialog::ContentDialog() {
         .BackgroundToken(ThemeTokenId::CardBackground)
         .BorderToken(ThemeTokenId::CardBorder);
 
-    m_txtTitle = DSL::Fluent::TextBlock(m_titleText)
+    m_txtTitle = Widgets::TextBlock(m_titleText)
         .FontSize(18.0f)
         .FontWeight(CUI::FontWeight::Bold)
         .FontFamily("微软雅黑")
@@ -18,21 +18,21 @@ ContentDialog::ContentDialog() {
         .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
         .Build();
 
-    m_txtMessage = DSL::Fluent::TextBlock(m_messageText)
+    m_txtMessage = Widgets::TextBlock(m_messageText)
         .FontSize(14.0f)
         .FontFamily("微软雅黑")
         .ForegroundToken(ThemeTokenId::TextSecondary)
         .Foreground(ThemeManager::Instance().GetColor("textSecondary"))
         .Build();
 
-    m_inputBox = DSL::Fluent::TextBox()
+    m_inputBox = Widgets::TextBox()
         .FontFamily("微软雅黑")
         .FontSize(16.0f)
         .Height(32.0f)
         .Visibility(Visibility::Collapsed)
         .Build();
 
-    m_btnPrimary = DSL::Fluent::Button(m_primaryText)
+    m_btnPrimary = Widgets::Button(m_primaryText)
         .BackgroundToken(ThemeTokenId::AccentColor)
         .HoverBackgroundToken(ThemeTokenId::AccentColor)
         .PressedBackgroundToken(ThemeTokenId::AccentColor)
@@ -42,10 +42,10 @@ ContentDialog::ContentDialog() {
         .FontFamily("微软雅黑")
         .Padding(16.0f, 6.0f, 16.0f, 6.0f)
         .OnClick([this](UIElement*) {
-        DialogResult res = DialogResult::Primary;
-        Hide();
-        if (m_callback) m_callback(res);
-    });
+            DialogResult res = DialogResult::Primary;
+            Hide();
+            if (m_callback) m_callback(res);
+        }).Shared();
 
     auto styleSecondaryButton = [](const std::shared_ptr<Button>& btn) {
         DSL::ElementBuilder<Button>(btn)
@@ -61,7 +61,7 @@ ContentDialog::ContentDialog() {
             .Padding(16.0f, 6.0f, 16.0f, 6.0f);
     };
 
-    m_btnSecondary = DSL::Fluent::Button(m_secondaryText).Build();
+    m_btnSecondary = Widgets::Button(m_secondaryText).Build();
     styleSecondaryButton(m_btnSecondary);
     DSL::ElementBuilder<Button>(m_btnSecondary).OnClick([this](UIElement*) {
         DialogResult res = DialogResult::Secondary;
@@ -69,7 +69,7 @@ ContentDialog::ContentDialog() {
         if (m_callback) m_callback(res);
     });
 
-    m_btnClose = DSL::Fluent::Button(m_closeText).Build();
+    m_btnClose = Widgets::Button(m_closeText).Build();
     styleSecondaryButton(m_btnClose);
     DSL::ElementBuilder<Button>(m_btnClose).OnClick([this](UIElement*) {
         DialogResult res = DialogResult::Cancel;
@@ -77,12 +77,12 @@ ContentDialog::ContentDialog() {
         if (m_callback) m_callback(res);
     });
 
-    DSL::Borrow(this).AddChild(m_txtTitle);
-    DSL::Borrow(this).AddChild(m_txtMessage);
-    DSL::Borrow(this).AddChild(m_inputBox);
-    DSL::Borrow(this).AddChild(m_btnPrimary);
-    DSL::Borrow(this).AddChild(m_btnSecondary);
-    DSL::Borrow(this).AddChild(m_btnClose);
+    this->AddChild(m_txtTitle);
+    this->AddChild(m_txtMessage);
+    this->AddChild(m_inputBox);
+    this->AddChild(m_btnPrimary);
+    this->AddChild(m_btnSecondary);
+    this->AddChild(m_btnClose);
 }
 
 void ContentDialog::SetTitle(const std::string& title) {
@@ -478,12 +478,12 @@ void ContentDialog::ShowMessageBox(UIElement* root, const std::string& title, co
                                    std::function<void(DialogResult)> callback) {
     if (!root) return;
 
-    auto dlg = DSL::Fluent::Control<ContentDialog>()
+    auto dlg = Widgets::ContentDialog()
         .Title(title)
         .Message(message)
         .PrimaryButtonText("确定")
         .CloseButtonText("取消")
-        .Build();
+        .Shared();
     dlg->Show(callback);
 
     root->AddChildQuiet(dlg);
@@ -503,14 +503,14 @@ void ContentDialog::ShowInputBox(
     std::function<void(DialogResult, const std::string&)> callback) {
     if (!root) return;
 
-    auto dlg = DSL::Fluent::Control<ContentDialog>()
+    auto dlg = Widgets::ContentDialog()
         .Title(title)
         .Message(message)
         .InputEnabled(true, multiline)
         .InputText(initialText)
         .PrimaryButtonText("确定")
         .CloseButtonText("取消")
-        .Build();
+        .Shared();
     dlg->Show([dlg, callback](DialogResult r) {
         if (callback) {
             callback(r, dlg->GetInputText());

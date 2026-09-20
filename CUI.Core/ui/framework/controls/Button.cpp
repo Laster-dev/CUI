@@ -18,28 +18,26 @@ float FrameBlend(float factorAt60Hz) {
 }
 
 Button::Button() {
-    DSL::Borrow(this)
-        .Text("Button")
-        .BackgroundToken(ThemeTokenId::AccentColor)
-        .HoverBackgroundToken(ThemeTokenId::AccentColor)
-        .PressedBackgroundToken(ThemeTokenId::AccentColor)
-        .BorderToken(ThemeTokenId::AccentColor)
-        .FocusedBorderToken(ThemeTokenId::FocusedBorder)
-        .ForegroundToken(ThemeTokenId::AccentForeground)
-        .Background(ThemeManager::Instance().GetColor("accentColor"))
-        .HoverBackground(ThemeManager::Instance().GetColor("accentColor"))
-        .PressedBackground(ThemeManager::Instance().GetColor("accentColor"))
-        .BorderBrush(ThemeManager::Instance().GetColor("accentColor"))
-        .Foreground(ThemeManager::Instance().GetColor("accentForeground"))
-        .FontSize(12.0f)
-        .FontFamily("微软雅黑")
-        .Padding(8.0f, 4.0f, 8.0f, 4.0f)
-        .CornerRadius(4.0f)
-        .BorderThickness(0.0f);
+        this->SetText("Button");
+    this->SetBackgroundToken(ThemeTokenId::AccentColor);
+    this->SetHoverBackgroundToken(ThemeTokenId::AccentColor);
+    this->SetPressedBackgroundToken(ThemeTokenId::AccentColor);
+    this->SetBorderToken(ThemeTokenId::AccentColor);
+    this->SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    this->SetBackground(ThemeManager::Instance().GetColor("accentColor"));
+    this->SetHoverBackground(ThemeManager::Instance().GetColor("accentColor"));
+    this->SetPressedBackground(ThemeManager::Instance().GetColor("accentColor"));
+    this->SetBorderBrush(ThemeManager::Instance().GetColor("accentColor"));
+    this->SetColor(ThemeManager::Instance().GetColor("accentForeground"));
+    this->SetFontSize(12.0f);
+    this->SetFontFamily("微软雅黑");
+    this->SetPadding(Thickness(8.0f, 4.0f, 8.0f, 4.0f));
+    this->SetCornerRadius(4.0f);
+    this->SetBorderThickness(0.0f);
 }
 
 Button::Button(const std::string& text) : Button() {
-    DSL::Borrow(this).Text(text);
+    this->SetText(text);
 }
 
 Size Button::Measure(Size availableSize) {
@@ -272,6 +270,16 @@ void Button::OnRender(GraphicsContext& ctx) {
 }
 
 } // namespace CUI
+
+
+
+
+
+
+
+
+
+
 
 
 

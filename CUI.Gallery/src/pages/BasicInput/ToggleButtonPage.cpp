@@ -1,20 +1,24 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleButtonPage() {
-    auto bold = ToggleButtonWidget("粗体")
-        .FontWeight(FontWeight::Bold);
+    auto bold = Widgets::ToggleButton("粗体")
+        .FontWeight(FontWeight::Bold).Shared();
     
-    auto italic = ToggleButtonWidget("斜体");
-    CUI::DSL::Borrow(italic).FontStyle(FontStyle::Italic);
+    auto italic = Widgets::ToggleButton("斜体").Shared();
+        italic->SetFontStyle(FontStyle::Italic);
     
-    auto underline = ToggleButtonWidget("下划线");
+    auto underline = Widgets::ToggleButton("下划线").Shared();
     underline->Underline = true;
     
-    auto strikethrough = ToggleButtonWidget("删除线");
+    auto strikethrough = Widgets::ToggleButton("删除线").Shared();
     strikethrough->Strikethrough = true;
 
     State<bool> boldChecked{ false };
@@ -49,9 +53,9 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
     status->Underline.Bind(underlineChecked, BindingMode::OneWay);
     status->Strikethrough.Bind(strikethroughChecked, BindingMode::OneWay);
 
-    auto locked = ToggleButtonWidget("已锁定");
-    DSL::Borrow(locked).IsChecked(true);
-    CUI::DSL::Borrow(locked).IsEnabled(false);
+    auto locked = Widgets::ToggleButton("已锁定").Shared();
+        locked->SetIsChecked(true);
+        locked->SetIsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ToggleButton(切换按钮)";

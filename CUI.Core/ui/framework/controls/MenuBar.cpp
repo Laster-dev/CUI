@@ -13,15 +13,12 @@ constexpr AnimationSpec kMenuBarHoverSpec{ 0.22f, 0.01f, 0.16f };
 } // namespace
 
 MenuBar::MenuBar() {
-    DSL::Borrow(this)
-        .Height(30.0f)
-    // Hosted on the title bar: do not fill an opaque pane. Control::OnRender would
+    this->SetHeight(30.0f);// Hosted on the title bar: do not fill an opaque pane. Control::OnRender would
     // cover the parent's 1px bottom hairline (drawn before children).
-        .BackgroundToken(ThemeTokenId::Unset)
-        .HoverBackgroundToken(ThemeTokenId::Unset)
-        .PressedBackgroundToken(ThemeTokenId::Unset)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .KeyboardNavigationMode(KeyboardNavigationMode::Cycle);
+        this->SetBackgroundToken(ThemeTokenId::Unset);
+        this->SetHoverBackgroundToken(ThemeTokenId::Unset);
+        this->SetPressedBackgroundToken(ThemeTokenId::Unset);
+        this->SetKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
 }
 
 std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {

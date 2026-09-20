@@ -73,23 +73,21 @@ bool IsOverHScrollbar(const Rect& bounds, Point pt, bool canScrollH, bool canScr
 } // namespace
 
 ListView::ListView() {
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::CardBackground)
-        .HeaderBackgroundToken(ThemeTokenId::PaneBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .GridLineBrushToken(ThemeTokenId::InputBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .SelectedBackgroundToken(ThemeTokenId::SelectedBackground)
-        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-        .BorderThickness(1.0f)
-        .FontSize(12.0f)
-        .FontFamily("微软雅黑")
-        .FontWeight(CUI::FontWeight::Normal)
-        .KeyboardNavigationMode(KeyboardNavigationMode::Contained)
-        .CornerRadius(4.0f)
-        .Width(-1.0f)
-        .Height(-1.0f)
-        .RowHeight(30.0f);
+        this->SetBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetHeaderBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetGridLineBrushToken(ThemeTokenId::InputBorder);
+    this->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->SetBorderThickness(1.0f);
+    this->SetFontSize(12.0f);
+    this->SetFontFamily("微软雅黑");
+    this->SetFontWeight(CUI::FontWeight::Normal);
+    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->SetCornerRadius(4.0f);
+    this->SetWidth(-1.0f);
+    this->SetHeight(-1.0f);
+    this->SetRowHeight(30.0f);
     SelectedIndex.Initialize(*this);
     m_rowsLayer.SetCacheable(true);
 }

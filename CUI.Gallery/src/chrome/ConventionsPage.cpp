@@ -194,12 +194,12 @@ Element BuildConventionsPage() {
 
     // 左侧章节选择列表
     auto listBox = std::make_shared<ListBox>();
-    CUI::DSL::Borrow(listBox).Width(200.0f);
-    CUI::DSL::Borrow(listBox).Height(-1.0f);
-    CUI::DSL::Borrow(listBox).Align(Alignment::Stretch);
-    CUI::DSL::Borrow(listBox).BackgroundToken(ThemeTokenId::PaneBackground);
-    CUI::DSL::Borrow(listBox).BorderToken(ThemeTokenId::CardBorder);
-    CUI::DSL::Borrow(listBox).BorderThickness(1.0f);
+        listBox->SetWidth(200.0f);
+        listBox->SetHeight(-1.0f);
+        listBox->SetAlign(Alignment::Stretch);
+        listBox->SetBackgroundToken(ThemeTokenId::PaneBackground);
+        listBox->SetBorderToken(ThemeTokenId::CardBorder);
+        listBox->SetBorderThickness(1.0f);
 
     for (const auto& ch : chapters) {
         listBox->AddItem(ch);
@@ -207,29 +207,29 @@ Element BuildConventionsPage() {
 
     // 右侧 Markdown 文档视图
     auto docView = std::make_shared<MarkdownView>(documents[0]);
-    CUI::DSL::Borrow(docView).Height(-1.0f);
-    CUI::DSL::Borrow(docView).FlexGrow(1.0f);
-    CUI::DSL::Borrow(docView).Align(Alignment::Stretch);
+        docView->SetHeight(-1.0f);
+        docView->SetFlexGrow(1.0f);
+        docView->SetAlign(Alignment::Stretch);
 
     // 连接选中修改事件，点击菜单项时动态切换右侧展示的 Markdown 内容
     listBox->OnSelectionChanged().Connect([docView, documents](ListBox*, int index, const std::string&) {
         if (index >= 0 && index < static_cast<int>(documents.size())) {
-            DSL::Borrow(docView).Markdown(documents[index]);
+                        docView->SetMarkdown(documents[index]);
         }
     });
 
     // 默认选中第一章
-    CUI::DSL::Borrow(listBox).SelectedIndex(0);
+        listBox->SetSelectedIndex(0);
 
     // 水平线性布局组装
     auto page = std::make_shared<StackPanel>(Orientation::Horizontal);
-    CUI::DSL::Borrow(page).Gap(16.0f);
-    CUI::DSL::Borrow(page).Padding(Thickness(24.0f));
-    CUI::DSL::Borrow(page).FlexGrow(1.0f);
-    CUI::DSL::Borrow(page).Align(Alignment::Stretch);
-    CUI::DSL::Borrow(page).BackgroundToken(ThemeTokenId::WindowBackground);
-    CUI::DSL::Borrow(page).AddChild(listBox);
-    CUI::DSL::Borrow(page).AddChild(docView);
+        page->SetGap(16.0f);
+        page->SetPadding(Thickness(24.0f));
+        page->SetFlexGrow(1.0f);
+        page->SetAlign(Alignment::Stretch);
+        page->SetBackgroundToken(ThemeTokenId::WindowBackground);
+        page->AddChild(listBox);
+        page->AddChild(docView);
 
     return page;
 }

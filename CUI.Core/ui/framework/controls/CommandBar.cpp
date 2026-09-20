@@ -42,17 +42,15 @@ D2D1_COLOR_F Mix(D2D1_COLOR_F a, D2D1_COLOR_F b, float t) {
 } // namespace
 
 CommandBar::CommandBar() {
-    DSL::Borrow(this)
-        .Width(-1.0f)
-        .Height(kBarH)
-        .Align(Alignment::Stretch)
-        .ClipToBounds(true)
-        .CornerRadius(6.0f)
-        .BorderThickness(1.0f)
-        .BackgroundToken(ThemeTokenId::CardBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .KeyboardNavigationMode(KeyboardNavigationMode::Cycle);
+        this->SetWidth(-1.0f);
+    this->SetHeight(kBarH);
+    this->SetAlign(Alignment::Stretch);
+    this->SetClipToBounds(true);
+    this->SetCornerRadius(6.0f);
+    this->SetBorderThickness(1.0f);
+    this->SetBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
     EnsureOverflowChrome();
 }
 
@@ -85,7 +83,7 @@ void CommandBar::SetProperty(PropertyId id, const Value& val) {
 
 void CommandBar::EnsureOverflowChrome() {
     if (!m_overflowBtn) {
-        m_overflowBtn = DSL::Fluent::Button("")
+        m_overflowBtn = Widgets::Button("")
             .Icon(kSvgMore)
             .ToolTip("更多")
             .Width(kIconBtn)
@@ -101,8 +99,8 @@ void CommandBar::EnsureOverflowChrome() {
             .ForegroundToken(ThemeTokenId::TextPrimary)
             .OnClick([this](UIElement*) {
             SetOverflowOpen(!IsOverflowOpen());
-        });
-        DSL::Borrow(this).AddChild(m_overflowBtn);
+        }).Shared();
+        this->AddChild(m_overflowBtn);
     }
     if (!m_overflowMenu) {
         m_overflowMenu = std::make_shared<ContextMenu>();
@@ -118,31 +116,25 @@ void CommandBar::EnsureOverflowChrome() {
 }
 
 void CommandBar::StyleItemButton(Button& btn, const Item& item, bool checked) const {
-    DSL::Borrow(&btn)
-        .Height(kBtnH)
-        .FontSize(12.0f)
-        .CornerRadius(4.0f)
-        .Padding(
-            m_labelPosition == CommandBarLabelPosition::Right && !item.label.empty() ? 8.0f : 6.0f,
-            4.0f,
-            m_labelPosition == CommandBarLabelPosition::Right && !item.label.empty() ? 10.0f : 6.0f,
-            4.0f);
+    btn.SetHeight(kBtnH);
+    btn.SetFontSize(12.0f);
+    btn.SetCornerRadius(4.0f);
+    btn.SetPadding(Thickness(
+            m_labelPosition == CommandBarLabelPosition::Right && !item.label.empty() ? 8.0f : 6.0f, 4.0f, m_labelPosition == CommandBarLabelPosition::Right && !item.label.empty() ? 10.0f : 6.0f, 4.0f));
     if (checked) {
-        DSL::Borrow(&btn)
-            .BackgroundToken(ThemeTokenId::AccentColor)
-            .HoverBackgroundToken(ThemeTokenId::AccentColor)
-            .PressedBackgroundToken(ThemeTokenId::AccentColor)
-            .ForegroundToken(ThemeTokenId::AccentForeground)
-            .Background(ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor))
-            .BorderThickness(0.0f);
+        btn.SetBackgroundToken(ThemeTokenId::AccentColor);
+        btn.SetHoverBackgroundToken(ThemeTokenId::AccentColor);
+        btn.SetPressedBackgroundToken(ThemeTokenId::AccentColor);
+        btn.SetColorToken(ThemeTokenId::AccentForeground);
+        btn.SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor));
+        btn.SetBorderThickness(0.0f);
     } else {
-        DSL::Borrow(&btn)
-            .BackgroundToken(ThemeTokenId::Unset)
-            .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-            .PressedBackgroundToken(ThemeTokenId::PressedBackground)
-            .ForegroundToken(ThemeTokenId::TextPrimary)
-            .Background(D2D1::ColorF(0, 0, 0, 0))
-            .BorderThickness(0.0f);
+        btn.SetBackgroundToken(ThemeTokenId::Unset);
+        btn.SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+        btn.SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+        btn.SetColorToken(ThemeTokenId::TextPrimary);
+        btn.SetBackground(D2D1::ColorF(0, 0, 0, 0));
+        btn.SetBorderThickness(0.0f);
     }
 }
 
@@ -151,11 +143,10 @@ void CommandBar::ApplyLabelChrome(Item& item) {
         return;
     }
     const bool showLabel = m_labelPosition == CommandBarLabelPosition::Right && !item.label.empty();
-    DSL::Borrow(item.button)
-        .Icon(item.icon)
-        .Text(showLabel ? item.label : std::string())
-        .ToolTip(item.label)
-        .Width(showLabel ? -1.0f : kIconBtn);
+    item.button->SetIcon(item.icon);
+    item.button->SetText(showLabel ? item.label : std::string());
+    item.button->SetToolTip(item.label);
+    item.button->SetWidth(showLabel ? -1.0f : kIconBtn);
     bool checked = false;
     if (auto* toggle = dynamic_cast<ToggleButton*>(item.button.get())) {
         checked = toggle->IsChecked();
@@ -172,7 +163,7 @@ std::shared_ptr<Button> CommandBar::AddButton(
     item.kind = ItemKind::Button;
     item.label = label;
     item.icon = icon;
-    item.button = DSL::Fluent::Button("").Build();
+    item.button = Widgets::Button("").Build();
     if (command) {
         if (command->GetLabel().empty()) {
             command->SetLabel(label);
@@ -180,7 +171,7 @@ std::shared_ptr<Button> CommandBar::AddButton(
         item.button->SetCommand(std::move(command));
     }
     ApplyLabelChrome(item);
-    DSL::Borrow(this).AddChild(item.button);
+    this->AddChild(item.button);
     auto btn = item.button;
     m_items.push_back(std::move(item));
     InvalidateMeasure();
@@ -197,7 +188,7 @@ std::shared_ptr<ToggleButton> CommandBar::AddToggle(
     item.kind = ItemKind::Toggle;
     item.label = label;
     item.icon = icon;
-    auto toggle = DSL::Fluent::Control<ToggleButton>("").Build();
+    auto toggle = Widgets::ToggleButton("").Shared();
     item.button = toggle;
     if (command) {
         if (command->GetLabel().empty()) {
@@ -205,7 +196,7 @@ std::shared_ptr<ToggleButton> CommandBar::AddToggle(
         }
         toggle->SetCommand(std::move(command));
     }
-    DSL::Borrow(toggle).OnToggled([this, raw = toggle.get()](ToggleButton*, bool) {
+    toggle->OnToggled().Connect([this, raw = toggle.get()](ToggleButton*, bool) {
         for (auto& it : m_items) {
             if (it.button.get() == raw) {
                 ApplyLabelChrome(it);
@@ -217,7 +208,7 @@ std::shared_ptr<ToggleButton> CommandBar::AddToggle(
         MarkRenderRectDirty(m_bounds);
     });
     ApplyLabelChrome(item);
-    DSL::Borrow(this).AddChild(item.button);
+    this->AddChild(item.button);
     m_items.push_back(std::move(item));
     InvalidateMeasure();
     MarkRenderRectDirty(m_bounds);
@@ -242,7 +233,7 @@ std::shared_ptr<Button> CommandBar::AddSecondary(
     item.secondary = true;
     item.label = label;
     item.icon = icon;
-    item.button = DSL::Fluent::Button("").Build();
+    item.button = Widgets::Button("").Build();
     if (command) {
         if (command->GetLabel().empty()) {
             command->SetLabel(label);
@@ -250,8 +241,8 @@ std::shared_ptr<Button> CommandBar::AddSecondary(
         item.button->SetCommand(std::move(command));
     }
     ApplyLabelChrome(item);
-    DSL::Borrow(item.button).Visibility(Visibility::Collapsed);
-    DSL::Borrow(this).AddChild(item.button);
+    item.button->SetVisibility(Visibility::Collapsed);
+    this->AddChild(item.button);
     auto btn = item.button;
     m_items.push_back(std::move(item));
     m_overflowKeys.clear();
@@ -274,7 +265,7 @@ void CommandBar::Clear() {
     SetOverflowOpen(false);
     for (auto& item : m_items) {
         if (item.button) {
-            DSL::Borrow(this).RemoveChild(item.button);
+            this->RemoveChild(item.button);
         }
     }
     m_items.clear();
@@ -431,7 +422,7 @@ void CommandBar::LayoutChrome() {
         if (item.secondary || item.overflowed) {
             item.slot = Rect();
             if (item.button) {
-                DSL::Borrow(item.button).Visibility(Visibility::Collapsed);
+                item.button->SetVisibility(Visibility::Collapsed);
                 item.button->Arrange(Rect(m_bounds.x, m_bounds.y, 0, 0));
             }
             ++m_overflowCount;
@@ -440,18 +431,18 @@ void CommandBar::LayoutChrome() {
         const float w = item.kind == ItemKind::Separator ? kSepW : widths[i];
         item.slot = Rect(x, y, w, kBtnH);
         if (item.button) {
-            DSL::Borrow(item.button).Visibility(Visibility::Visible);
+            item.button->SetVisibility(Visibility::Visible);
             item.button->Arrange(item.slot);
         }
         x += w + kGap;
     }
 
     if (needOverflow && m_overflowBtn) {
-        DSL::Borrow(m_overflowBtn).Visibility(Visibility::Visible);
+        m_overflowBtn->SetVisibility(Visibility::Visible);
         const float ox = m_bounds.x + m_bounds.width - kPad - overflowW;
         m_overflowBtn->Arrange(Rect(ox, y, overflowW, kBtnH));
     } else if (m_overflowBtn) {
-        DSL::Borrow(m_overflowBtn).Visibility(Visibility::Collapsed);
+        m_overflowBtn->SetVisibility(Visibility::Collapsed);
         m_overflowBtn->Arrange(Rect(m_bounds.x, m_bounds.y, 0, 0));
         SetOverflowOpen(false);
     }
@@ -505,7 +496,7 @@ void CommandBar::RebuildOverflowMenu() {
         if (toggle) {
             auto btn = item.button;
             menuItem = m_overflowMenu->AddItem(item.label, [toggle, btn]() {
-                DSL::Borrow(toggle).IsChecked(!toggle->IsChecked());
+                toggle->SetIsChecked(!toggle->IsChecked());
                 if (btn) {
                     btn->ExecuteBoundCommand();
                 }
@@ -521,10 +512,10 @@ void CommandBar::RebuildOverflowMenu() {
             menuItem = m_overflowMenu->AddItem(item.label);
         }
         if (toggle && menuItem) {
-            DSL::Borrow(menuItem).Checked(toggle->IsChecked());
+            menuItem->SetChecked(toggle->IsChecked());
         }
         if (menuItem && !item.icon.empty()) {
-            DSL::Borrow(menuItem).Icon(item.icon);
+            menuItem->SetIcon(item.icon);
         }
     }
 }

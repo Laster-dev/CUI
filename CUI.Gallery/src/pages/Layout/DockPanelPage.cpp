@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -14,11 +18,11 @@ std::shared_ptr<CUI::Button> MakeDockBar(
     Dock dock,
     float mainSize = 0.0f) {
     auto bar = ElevatedButton(text).Background(color).Build();
-    CUI::DSL::Borrow(bar).Dock(dock);
+        bar->SetDock(dock);
     if (dock == Dock::Left || dock == Dock::Right) {
-        CUI::DSL::Borrow(bar).Width(mainSize > 0.0f ? mainSize : 90.0f);
+                bar->SetWidth(mainSize > 0.0f ? mainSize : 90.0f);
     } else {
-        CUI::DSL::Borrow(bar).Height(mainSize > 0.0f ? mainSize : 32.0f);
+                bar->SetHeight(mainSize > 0.0f ? mainSize : 32.0f);
     }
     return bar;
 }
@@ -27,7 +31,7 @@ std::shared_ptr<CUI::Button> MakeDockBar(
 
 std::shared_ptr<UIElement> BuildDockPanelPage() {
     // —— 常规用法：四边停靠 + 中央填充 ——
-    auto classic = DockPanelWidget().Width(520).Height(240).Build();
+    auto classic = Widgets::DockPanel().Width(520).Height(240).Shared();
     classic->AddChild(MakeDockBar("Top 顶栏", Rgb(0x007ACC), Dock::Top, 36));
     classic->AddChild(MakeDockBar("Left 侧栏", Rgb(0x845EF7), Dock::Left, 110));
     classic->AddChild(MakeDockBar("Right 侧栏", Rgb(0xF59F00), Dock::Right, 90));
@@ -35,23 +39,23 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
     classic->AddChild(MakeDockBar("Center 填充", Rgb(0xD13438), Dock::Left));
 
     // —— 停靠顺序对结果的影响 ——
-    auto orderA = DockPanelWidget().Width(252).Height(200).Build();
+    auto orderA = Widgets::DockPanel().Width(252).Height(200).Shared();
     orderA->AddChild(MakeDockBar("Left 先", Rgb(0x845EF7), Dock::Left, 110));
     orderA->AddChild(MakeDockBar("Top", Rgb(0x007ACC), Dock::Top, 32));
     orderA->AddChild(MakeDockBar("剩余填充", Rgb(0xD13438), Dock::Left));
 
-    auto orderB = DockPanelWidget().Width(252).Height(200).Build();
+    auto orderB = Widgets::DockPanel().Width(252).Height(200).Shared();
     orderB->AddChild(MakeDockBar("Top 先", Rgb(0x007ACC), Dock::Top, 32));
     orderB->AddChild(MakeDockBar("Left", Rgb(0x845EF7), Dock::Left, 110));
     orderB->AddChild(MakeDockBar("剩余填充", Rgb(0xD13438), Dock::Left));
 
     // —— LastChildFill 实时开关 ——
-    auto fillDock = DockPanelWidget().Width(420).Height(180).Build();
+    auto fillDock = Widgets::DockPanel().Width(420).Height(180).Shared();
     fillDock->AddChild(MakeDockBar("Left 侧栏", Rgb(0x845EF7), Dock::Left, 100));
     fillDock->AddChild(MakeDockBar("Right 侧栏", Rgb(0xF59F00), Dock::Right, 80));
     fillDock->AddChild(MakeDockBar("最后一项 · Bottom 36px", Rgb(0xD13438), Dock::Bottom, 36));
 
-    auto fillToggle = ToggleSwitchWidget().Build();
+    auto fillToggle = Widgets::ToggleSwitch().Shared();
     State<bool> fillState{ true };
     fillToggle->IsOn.Bind(fillState);
     fillDock->LastChildFill.Bind(fillState, BindingMode::OneWay);
@@ -64,17 +68,17 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
     }, fillState), BindingMode::OneWay);
 
     // —— 运行时动态切换停靠方位 ——
-    auto liveDock = DockPanelWidget().Width(420).Height(200).Build();
+    auto liveDock = Widgets::DockPanel().Width(420).Height(200).Shared();
     auto hero = MakeDockBar("主角元素", Rgb(0x007ACC), Dock::Left, 100);
     liveDock->AddChild(hero);
     liveDock->AddChild(MakeDockBar("剩余填充区", Rgb(0x2F3A46), Dock::Left));
 
-    auto dockCombo = ComboBoxWidget();
+    auto dockCombo = Widgets::ComboBox().Shared();
     dockCombo->AddItem("Left（贴左，宽 100px）");
     dockCombo->AddItem("Top（贴顶，高 44px）");
     dockCombo->AddItem("Right（贴右，宽 100px）");
     dockCombo->AddItem("Bottom（贴底，高 44px）");
-    CUI::DSL::Borrow(dockCombo).SelectedIndex(0);
+        dockCombo->SetSelectedIndex(0);
 
     State<int> dockIndex{ 0 };
     dockCombo->SelectedIndex.Bind(dockIndex);
@@ -83,14 +87,14 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
     auto applyDock = [hero](int index) {
         const Dock docks[] = { Dock::Left, Dock::Top, Dock::Right, Dock::Bottom };
         const D2D1_COLOR_F colors[] = { Rgb(0x007ACC), Rgb(0x10B981), Rgb(0xF59F00), Rgb(0x845EF7) };
-        CUI::DSL::Borrow(hero).Dock(docks[index]);
-        CUI::DSL::Borrow(hero).Background(colors[index]);
+                hero->SetDock(docks[index]);
+                hero->SetBackground(colors[index]);
         if (docks[index] == Dock::Left || docks[index] == Dock::Right) {
-            CUI::DSL::Borrow(hero).Width(100.0f);
-            CUI::DSL::Borrow(hero).Height(-1.0f);
+                        hero->SetWidth(100.0f);
+                        hero->SetHeight(-1.0f);
         } else {
-            CUI::DSL::Borrow(hero).Height(44.0f);
-            CUI::DSL::Borrow(hero).Width(-1.0f);
+                        hero->SetHeight(44.0f);
+                        hero->SetWidth(-1.0f);
         }
     };
     dockCombo->OnSelectionChanged().Connect([applyDock](ComboBox*, int index, const std::string&) {
@@ -132,7 +136,7 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
             "SetLastChildFill(false) 后，最后一项不再填满剩余区域，而是按自己的 Dock 方位正常停靠。",
             Column(12, {
                 fillDock,
-                WrapPanelWidget("Horizontal").Gap(16).Children({ fillToggle, fillStatus }).Build(),
+                Widgets::WrapPanel().Gap(16).Children( fillToggle, fillStatus ).Shared(),
             }),
         },
         {
@@ -140,12 +144,12 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
             "通过 SetDock 在运行时把同一个元素停靠到任意一边，布局立即重新切割；状态文字由 SelectedIndex 状态派生。",
             Column(12, {
                 liveDock,
-                WrapPanelWidget("Horizontal").Gap(16).Children({ dockCombo, dockStatus }).Build(),
+                Widgets::WrapPanel().Gap(16).Children( dockCombo, dockStatus ).Shared(),
             }),
         },
     };
     spec.source =
-        "auto dock = DockPanelWidget().Width(520).Height(240).Build();\n"
+        "auto dock = Widgets::DockPanel().Width(520).Height(240).Shared();\n"
         "auto top = ElevatedButton(\"顶栏\").Build();\n"
         "top.Dock(Dock::Top);      // 停靠到顶部\n"
         "dock->AddChild(top);\n"

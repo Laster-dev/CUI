@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 CUI::Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
@@ -7,24 +11,25 @@ namespace Gallery {
 Element BuildTokensPage() {
     ThemeManager& tm = ThemeManager::Instance();
 
-    auto grid = WrapPanelWidget("Horizontal");
-    grid.Gap(16.0f);
+    auto grid = CUI::Widgets::WrapPanel().Shared();
+    grid->SetOrientation(Orientation::Horizontal);
+    grid->SetGap(16.0f);
 
     for (const auto& name : tm.GetTokenNames()) {
         const D2D1_COLOR_F color = tm.GetFlatColor(name);
 
         auto chip = Container().Size(56.0f, 56.0f).CornerRadius(8.0f);
-        CUI::DSL::Borrow(chip).Background(color);
-        CUI::DSL::Borrow(chip).BorderToken(ThemeTokenId::CardBorder);
-        CUI::DSL::Borrow(chip).BorderThickness(1.0f);
+                chip->SetBackground(color);
+                chip->SetBorderToken(ThemeTokenId::CardBorder);
+                chip->SetBorderThickness(1.0f);
 
         auto item = Column(8, {
             chip,
             MakeLabel(name, 12.0f, ThemeTokenId::TextPrimary, false),
             MakeLabel(tm.GetColorHex(name), 11.0f, ThemeTokenId::TextMuted, false),
         });
-        CUI::DSL::Borrow(item).Width(128.0f);
-        CUI::DSL::Borrow(grid).AddChild(item);
+                item->SetWidth(128.0f);
+                grid->AddChild(item);
     }
 
     SamplePageSpec spec;

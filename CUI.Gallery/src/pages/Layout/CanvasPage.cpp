@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 CUI::Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <cmath>
 #include <format>
 #include <random>
@@ -11,13 +15,13 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<Canvas> MakeStage(float minHeight) {
-    auto stage = CanvasWidget()
-        .MinHeight(minHeight);
-    CUI::DSL::Borrow(stage).ClipToBounds(true);
-    CUI::DSL::Borrow(stage).CornerRadius(4.0f);
-    CUI::DSL::Borrow(stage).Background(D2D1::ColorF(0.97f, 0.97f, 0.99f, 0.5f));
-    CUI::DSL::Borrow(stage).BorderBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.08f));
-    CUI::DSL::Borrow(stage).BorderThickness(1.0f);
+    auto stage = CUI::Widgets::Canvas()
+        .MinHeight(minHeight).Shared();
+        stage->SetClipToBounds(true);
+        stage->SetCornerRadius(4.0f);
+        stage->SetBackground(D2D1::ColorF(0.97f, 0.97f, 0.99f, 0.5f));
+        stage->SetBorderBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.08f));
+        stage->SetBorderThickness(1.0f);
     return stage;
 }
 
@@ -197,12 +201,12 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
     std::shared_ptr<PhysicsWorld> world,
     std::shared_ptr<AimState> aim,
     State<int> ballCount) {
-    auto canvas = CanvasControlWidget();
-    CUI::DSL::Borrow(canvas).MinHeight(340.0f);
-    CUI::DSL::Borrow(canvas).ClipToBounds(true);
+    auto canvas = CUI::Widgets::CanvasControl().Shared();
+        canvas->SetMinHeight(340.0f);
+        canvas->SetClipToBounds(true);
 
-    DSL::Borrow(canvas).OnDraw([world, aim](GraphicsContext& ctx, Size size) {
-        DSL::Borrow(world).Viewport(size.width, size.height);
+        canvas->OnDraw().Connect([world, aim](GraphicsContext& ctx, Size size) {
+        world->SetViewport(size.width, size.height);
         // 深色舞台背景 + 边框
         ctx.FillRoundedRect(Rect(0, 0, size.width, size.height), 6.0f, Rgb(0x16161E));
         ctx.DrawRoundedRect(Rect(0.5f, 0.5f, size.width - 1.0f, size.height - 1.0f), 6.0f, Rgb(0x3A3A4A), 1.0f);
@@ -238,21 +242,21 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
     // 回调闭包存储于 canvas 自身，捕获裸指针避免 shared_ptr 循环引用
     CanvasControl* canvasRaw = canvas.get();
 
-    DSL::Borrow(canvas).OnCanvasMouseDown([aim, canvasRaw](Point pt) {
+        canvas->OnCanvasMouseDown().Connect([aim, canvasRaw](Point pt) {
         aim->dragging = true;
         aim->start = pt;
         aim->current = pt;
         canvasRaw->RequestAnimationTicks(); // 拖拽期间也需要逐帧刷新
     });
 
-    DSL::Borrow(canvas).OnCanvasMouseMove([aim, canvasRaw](Point pt) {
+        canvas->OnCanvasMouseMove().Connect([aim, canvasRaw](Point pt) {
         if (aim->dragging) {
             aim->current = pt;
             canvasRaw->MarkRenderRectDirty(canvasRaw->GetBounds());
         }
     });
 
-    DSL::Borrow(canvas).OnCanvasMouseUp([aim, canvasRaw, world, ballCount](Point pt) {
+        canvas->OnCanvasMouseUp().Connect([aim, canvasRaw, world, ballCount](Point pt) {
         if (!aim->dragging) {
             return;
         }
@@ -271,7 +275,7 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
     });
 
     // 每帧物理步进：全部静止且未在拖拽时返回 false 自动停止 Tick
-    DSL::Borrow(canvas).OnTick([world, aim, canvasRaw](float dt) {
+        canvas->OnTick().Connect([world, aim, canvasRaw](float dt) {
         world->Step(dt);
         canvasRaw->MarkRenderRectDirty(canvasRaw->GetBounds());
         return aim->dragging || world->AnyMoving();
@@ -292,24 +296,24 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     stage->AddChild(button);
 
     auto label = Text("Canvas.Left / Canvas.Top 自由摆放").FontSize(13).Build();
-    CUI::DSL::Borrow(label).ForegroundToken(ThemeTokenId::TextSecondary);
+    
     label->CanvasLeft = 24.0f;
     label->CanvasTop = 84.0f;
     stage->AddChild(label);
 
-    auto box = RectangleWidget(120, 44).Build();
-    DSL::Borrow(box).Fill(Rgb(0x007ACC, 0.35f));
-    CUI::DSL::Borrow(box).CornerRadius(6.0f);
+    auto box = CUI::Widgets::Rectangle().Width(120).Height(44).Shared();
+        box->SetFill(Rgb(0x007ACC, 0.35f));
+        box->SetCornerRadius(6.0f);
     box->CanvasLeft = 190.0f;
     box->CanvasTop = 70.0f;
     stage->AddChild(box);
 
     State<float> circleX{ 220.0f };
     State<float> circleY{ 32.0f };
-    auto circle = EllipseWidget(72, 72).Build();
-    DSL::Borrow(circle).Fill(Rgb(0x2BAD8E, 0.85f));
-    DSL::Borrow(circle).Stroke(Rgb(0x1B7A63));
-    DSL::Borrow(circle).StrokeThickness(2.0f);
+    auto circle = CUI::Widgets::Ellipse().Width(72).Height(72).Shared();
+        circle->SetFill(Rgb(0x2BAD8E, 0.85f));
+        circle->SetStroke(Rgb(0x1B7A63));
+        circle->SetStrokeThickness(2.0f);
     circle->CanvasLeft = circleX;
     circle->CanvasTop = circleY;
     stage->AddChild(circle);
@@ -342,53 +346,53 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     // —— 叠加与层级 ——
     auto layerStage = MakeStage(190);
 
-    auto backRect = RectangleWidget(200, 110).Build();
-    DSL::Borrow(backRect).Fill(Rgb(0x4A90D9, 0.9f));
-    CUI::DSL::Borrow(backRect).CornerRadius(4.0f);
+    auto backRect = CUI::Widgets::Rectangle().Width(200).Height(110).Shared();
+        backRect->SetFill(Rgb(0x4A90D9, 0.9f));
+        backRect->SetCornerRadius(4.0f);
     backRect->CanvasLeft = 16.0f;
     backRect->CanvasTop = 16.0f;
     backRect->ZIndex = 0;
     layerStage->AddChild(backRect);
 
-    auto frontEllipse = EllipseWidget(150, 90).Build();
-    DSL::Borrow(frontEllipse).Fill(Rgb(0xE8833A, 0.9f));
+    auto frontEllipse = CUI::Widgets::Ellipse().Width(150).Height(90).Shared();
+        frontEllipse->SetFill(Rgb(0xE8833A, 0.9f));
     frontEllipse->CanvasLeft = 120.0f;
-    DSL::Borrow(frontEllipse).Stroke(Rgb(0xC86A24));
-    DSL::Borrow(frontEllipse).StrokeThickness(2.0f);
+        frontEllipse->SetStroke(Rgb(0xC86A24));
+        frontEllipse->SetStrokeThickness(2.0f);
     frontEllipse->CanvasTop = 70.0f;
     frontEllipse->ZIndex = 1;
     layerStage->AddChild(frontEllipse);
 
-    auto slash = LineWidget(16, 16, 300, 150).Width(320).Height(160).Build();
-    DSL::Borrow(slash).Stroke(Rgb(0xE5484D));
-    DSL::Borrow(slash).StrokeThickness(3.0f);
+    auto slash = CUI::Widgets::Line().X1(16.0f).Y1(16.0f).X2(300.0f).Y2(150.0f).Width(320).Height(160).Shared();
+        slash->SetStroke(Rgb(0xE5484D));
+        slash->SetStrokeThickness(3.0f);
     slash->ZIndex = 2;
     layerStage->AddChild(slash);
 
     // —— 与流式布局对比 ——
     auto canvasSide = MakeStage(150);
-    auto sideRect = RectangleWidget(110, 46).Build();
-    DSL::Borrow(sideRect).Fill(Rgb(0x007ACC, 0.45f));
-    CUI::DSL::Borrow(sideRect).CornerRadius(4.0f);
+    auto sideRect = CUI::Widgets::Rectangle().Width(110).Height(46).Shared();
+        sideRect->SetFill(Rgb(0x007ACC, 0.45f));
+        sideRect->SetCornerRadius(4.0f);
     sideRect->CanvasLeft = 20.0f;
     sideRect->CanvasTop = 24.0f;
     canvasSide->AddChild(sideRect);
 
-    auto sideCircle = EllipseWidget(52, 52).Build();
-    DSL::Borrow(sideCircle).Fill(Rgb(0x2BAD8E, 0.9f));
+    auto sideCircle = CUI::Widgets::Ellipse().Width(52).Height(52).Shared();
+        sideCircle->SetFill(Rgb(0x2BAD8E, 0.9f));
     sideCircle->CanvasLeft = 48.0f;
     sideCircle->CanvasTop = 92.0f;
     canvasSide->AddChild(sideCircle);
 
     auto flowColumn = Column(8).Padding(12)
         .MinHeight(150.0f);
-    CUI::DSL::Borrow(flowColumn).BackgroundToken(ThemeTokenId::CardBackground);
-    auto flowRect = RectangleWidget(110, 46).Build();
-    DSL::Borrow(flowRect).Fill(Rgb(0x007ACC, 0.45f));
-    CUI::DSL::Borrow(flowRect).CornerRadius(4.0f);
+        flowColumn->SetBackgroundToken(ThemeTokenId::CardBackground);
+    auto flowRect = CUI::Widgets::Rectangle().Width(110).Height(46).Shared();
+        flowRect->SetFill(Rgb(0x007ACC, 0.45f));
+        flowRect->SetCornerRadius(4.0f);
     flowColumn->AddChild(flowRect);
-    auto flowCircle = EllipseWidget(52, 52).Build();
-    DSL::Borrow(flowCircle).Fill(Rgb(0x2BAD8E, 0.9f));
+    auto flowCircle = CUI::Widgets::Ellipse().Width(52).Height(52).Shared();
+        flowCircle->SetFill(Rgb(0x2BAD8E, 0.9f));
     flowColumn->AddChild(flowCircle);
 
     // —— 高性能：重力引擎 + 发射小球 ——
@@ -455,12 +459,12 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
             "在画布上按住并拖拽瞄准，松开即以弹弓方式发射小球；支持上百个小球实时重力、反弹与互撞。",
             Column(12, {
                 physicsCanvas,
-                WrapPanelWidget("Horizontal").Gap(12).Children({ burstButton, clearButton, physicsStatus }).Build(),
+                CUI::Widgets::WrapPanel().Gap(12).Children( burstButton, clearButton, physicsStatus ).Shared(),
             }),
         },
     };
     spec.source =
-        "auto stage = CanvasWidget();\n"
+        "auto stage = CUI::Widgets::Canvas().Shared();\n"
         "stage->MinHeight = 180.0f;  // 宽度跟随父容器\n"
         "stage->ClipToBounds = true;\n"
         "\n"
@@ -470,24 +474,24 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
         "stage->AddChild(button);\n"
         "\n"
         "// ---- 高性能：CanvasControl 即时绘制 + 物理 Tick ----\n"
-        "auto canvas = CanvasControlWidget();\n"
+        "auto canvas = CUI::Widgets::CanvasControl().Shared();\n"
         "canvas->MinHeight = 340.0f; // 宽度跟随父容器\n"
         "canvas->ClipToBounds = true;\n"
         "\n"
-        "DSL::Borrow(canvas).OnDraw([](GraphicsContext& ctx, Size size) {\n"
+        "        canvas->OnDraw().Connect([](GraphicsContext& ctx, Size size) {\n"
         "    for (const auto& b : world.balls) {\n"
         "        ctx.DrawSmoothArc(Point(b.x, b.y), b.radius * 0.5f,\n"
         "                          0, 6.283f, b.color, b.radius);\n"
         "    }\n"
         "});\n"
         "\n"
-        "DSL::Borrow(canvas).OnCanvasMouseDown([](Point pt) { aim.dragging = true; });\n"
-        "DSL::Borrow(canvas).OnCanvasMouseUp([](Point pt) {\n"
+        "        canvas->OnCanvasMouseDown().Connect([](Point pt) { aim.dragging = true; });\n"
+        "        canvas->OnCanvasMouseUp().Connect([](Point pt) {\n"
         "    world.SpawnBall(aim.start.x, aim.start.y, -dx, -dy);\n"
         "});\n"
         "\n"
         "// 每帧物理步进；全部静止后返回 false 自动停止 Tick\n"
-        "DSL::Borrow(canvas).OnTick([](float dt) {\n"
+        "        canvas->OnTick().Connect([](float dt) {\n"
         "    world.Step(dt);\n"
         "    canvas->MarkRenderRectDirty(canvas->GetBounds());\n"
         "    return aim.dragging || world.AnyMoving();\n"

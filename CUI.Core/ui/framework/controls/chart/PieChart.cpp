@@ -33,7 +33,7 @@ void FillSlice(GraphicsContext& ctx, Point center, float radius, float start, fl
 } // namespace
 
 PieChart::PieChart() {
-    DSL::Borrow(this).Text("饼图");
+    this->SetText("饼图");
 }
 
 void PieChart::CollectSlices(std::vector<Slice>& slices, float& total) const {

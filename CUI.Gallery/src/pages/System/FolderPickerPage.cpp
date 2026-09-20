@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -16,12 +20,13 @@ Element BuildFolderPickerPage() {
     // ==========================================
     // 1. 基础文件夹目录选择器
     // ==========================================
-    auto folderPicker = FolderPickerWidget("E:\\C++project\\CUI\\CUI.Gallery")
-        .Build();
-    DSL::Borrow(folderPicker).DialogTitle("选择工程根目录");
+    auto folderPicker = Widgets::FolderPicker()
+        .Shared();
+    folderPicker->SetPath("E:\\C++project\\CUI\\CUI.Gallery");
+        folderPicker->SetDialogTitle("选择工程根目录");
 
     folderPicker->OnPathChanged().Connect([statusLabel](FolderPicker*, const std::string& path) {
-        CUI::DSL::Borrow(statusLabel).Text(std::format("已选择目标文件夹路径：【{}】", path));
+                statusLabel->SetText(std::format("已选择目标文件夹路径：【{}】", path));
     });
 
     // ==========================================
@@ -29,20 +34,20 @@ Element BuildFolderPickerPage() {
     // ==========================================
     auto btnCoreDir = Button("选择 CUI.Core 框架源码目录")
         .OnClick([folderPicker, statusLabel](UIElement*) {
-            DSL::Borrow(folderPicker).Path("E:\\C++project\\CUI\\CUI.Core\\ui\\framework");
-            CUI::DSL::Borrow(statusLabel).Text("已重定向目标目录至：【CUI.Core 框架源码】");
+                        folderPicker->SetPath("E:\\C++project\\CUI\\CUI.Core\\ui\\framework");
+                        statusLabel->SetText("已重定向目标目录至：【CUI.Core 框架源码】");
         });
 
     auto btnBuildDir = Button("选择构建输出目录 (Build Artifacts)")
         .OnClick([folderPicker, statusLabel](UIElement*) {
-            DSL::Borrow(folderPicker).Path("E:\\C++project\\CUI\\x64\\Debug");
-            CUI::DSL::Borrow(statusLabel).Text("已重定向目标目录至：【构建输出目录 (x64\\Debug)】");
+                        folderPicker->SetPath("E:\\C++project\\CUI\\x64\\Debug");
+                        statusLabel->SetText("已重定向目标目录至：【构建输出目录 (x64\\Debug)】");
         });
 
     auto btnAssetsDir = Button("选择素材资源目录 (Assets)")
         .OnClick([folderPicker, statusLabel](UIElement*) {
-            DSL::Borrow(folderPicker).Path("E:\\C++project\\CUI\\CUI.Gallery\\assets");
-            CUI::DSL::Borrow(statusLabel).Text("已重定向目标目录至：【素材资源目录 (assets)】");
+                        folderPicker->SetPath("E:\\C++project\\CUI\\CUI.Gallery\\assets");
+                        statusLabel->SetText("已重定向目标目录至：【素材资源目录 (assets)】");
         });
 
     SamplePageSpec spec;
@@ -67,11 +72,11 @@ Element BuildFolderPickerPage() {
     };
 
     spec.source = R"cpp(// 1. 创建 FolderPicker 实例并设定初始目录
-auto folderPicker = FolderPickerWidget("C:\\Projects\\Workspace")
-    .Build();
+auto folderPicker = Widgets::FolderPicker("C:\\Projects\\Workspace")
+    .Shared();
 
 // 2. 设置弹窗标题
-DSL::Borrow(folderPicker).DialogTitle("选择安装目标目录");
+folderPicker->SetDialogTitle("选择安装目标目录");
 
 // 3. 监听目录路径更改事件
 folderPicker->OnPathChanged().Connect([](FolderPicker*, const std::string& path) {

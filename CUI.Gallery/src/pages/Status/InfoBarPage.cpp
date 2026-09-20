@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
@@ -7,12 +11,12 @@ namespace Gallery {
 namespace {
 
 Element MakeStaticInfoBar(const std::string& title, const std::string& message, InfoBarSeverity severity) {
-    auto bar = InfoBarWidget();
-    CUI::DSL::Borrow(bar).Title(title);
-    CUI::DSL::Borrow(bar).Message(message);
-    CUI::DSL::Borrow(bar).Severity(severity);
-    CUI::DSL::Borrow(bar).IsClosable(false);
-    CUI::DSL::Borrow(bar).IsOpen(true);
+    auto bar = Widgets::InfoBar().Shared();
+        bar->SetTitle(title);
+        bar->SetMessage(message);
+        bar->SetSeverity(severity);
+        bar->SetIsClosable(false);
+        bar->SetIsOpen(true);
     return bar;
 }
 
@@ -20,12 +24,12 @@ Element MakeStaticInfoBar(const std::string& title, const std::string& message, 
 
 Element BuildInfoBarPage() {
     // 可交互示例：可切换严重级别、可关闭、带操作按钮。
-    auto demo = InfoBarWidget();
-    CUI::DSL::Borrow(demo).Title("文件已保存");
-    CUI::DSL::Borrow(demo).Message("你的更改已写入磁盘。撤销操作将在 30 秒后失效。");
-    CUI::DSL::Borrow(demo).ActionText("撤销");
-    CUI::DSL::Borrow(demo).IsClosable(true);
-    CUI::DSL::Borrow(demo).IsOpen(true);
+    auto demo = Widgets::InfoBar().Shared();
+        demo->SetTitle("文件已保存");
+        demo->SetMessage("你的更改已写入磁盘。撤销操作将在 30 秒后失效。");
+        demo->SetActionText("撤销");
+        demo->SetIsClosable(true);
+        demo->SetIsOpen(true);
 
     auto actionStatus = MakeStatus("");
     demo->OnAction().Connect([actionStatus]() {
@@ -35,24 +39,28 @@ Element BuildInfoBarPage() {
         actionStatus->Text = "InfoBar 已关闭，可点击「显示」重新打开。";
     });
 
-    auto severity = SegmentedWidget({ "信息", "成功", "警告", "错误" });
-    CUI::DSL::Borrow(severity).SelectedIndex(0);
+    auto severity = CUI::Widgets::SegmentedControl().Shared();
+    severity->AddItem("信息");
+    severity->AddItem("成功");
+    severity->AddItem("警告");
+    severity->AddItem("错误");
+        severity->SetSelectedIndex(0);
     severity->OnSelectionChanged().Connect([demo](SegmentedControl*, int index, const std::string&) {
         switch (index) {
-        case 1: CUI::DSL::Borrow(demo).Severity(InfoBarSeverity::Success); break;
-        case 2: CUI::DSL::Borrow(demo).Severity(InfoBarSeverity::Warning); break;
-        case 3: CUI::DSL::Borrow(demo).Severity(InfoBarSeverity::Error); break;
-        default: CUI::DSL::Borrow(demo).Severity(InfoBarSeverity::Informational); break;
+        case 1:         demo->SetSeverity(InfoBarSeverity::Success); break;
+        case 2:         demo->SetSeverity(InfoBarSeverity::Warning); break;
+        case 3:         demo->SetSeverity(InfoBarSeverity::Error); break;
+        default:         demo->SetSeverity(InfoBarSeverity::Informational); break;
         }
     });
 
     auto closable = ToggleSwitchTile("可关闭（右上角 X）", true);
     closable->OnToggled().Connect([demo](ToggleSwitch*, bool on) {
-        CUI::DSL::Borrow(demo).IsClosable(on);
+                demo->SetIsClosable(on);
     });
 
-    auto showBtn = ElevatedButton("显示", [demo](UIElement*) { CUI::DSL::Borrow(demo).IsOpen(true); });
-    auto hideBtn = ElevatedButton("隐藏", [demo](UIElement*) { CUI::DSL::Borrow(demo).IsOpen(false); });
+    auto showBtn = ElevatedButton("显示", [demo](UIElement*) {     demo->SetIsOpen(true); });
+    auto hideBtn = ElevatedButton("隐藏", [demo](UIElement*) {     demo->SetIsOpen(false); });
 
     SamplePageSpec spec;
     spec.title = "InfoBar(消息条)";
@@ -80,7 +88,7 @@ Element BuildInfoBarPage() {
         },
     };
     spec.source =
-        "auto infoBar = InfoBarWidget();\n"
+        "auto infoBar = Widgets::InfoBar().Shared();\n"
         "infoBar.Title(\"文件已保存\");\n"
         "infoBar.Message(\"你的更改已写入磁盘。\");\n"
         "infoBar.Severity(InfoBarSeverity::Success);\n"

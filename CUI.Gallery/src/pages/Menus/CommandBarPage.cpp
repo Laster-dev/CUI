@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -17,7 +21,7 @@ Element BuildCommandBarPage() {
     // ==========================================
     // 示例 1: 经典富文本文档编辑命令栏
     // ==========================================
-    auto docCmdBar = CommandBarWidget().Build();
+    auto docCmdBar = Widgets::CommandBar().Shared();
 
     // 1. 主要操作按钮 (Primary Action Buttons)
     auto btnNew = docCmdBar->AddButton("新建", "📄");
@@ -95,13 +99,13 @@ Element BuildCommandBarPage() {
               "它能够智能感知可用宽度，当空间不足时自动将次要操作以及溢出的主要操作收纳进右侧的【更多 (…)】下拉菜单中。\n"
               "支持普通动作按钮、状态开关按钮、水平分隔线以及次要功能项。")
         .Height(100.0f);
-    CUI::DSL::Borrow(mockEditor).AcceptsReturn(true);
-    CUI::DSL::Borrow(mockEditor).TextWrapping(true);
+        mockEditor->SetAcceptsReturn(true);
+        mockEditor->SetTextWrapping(true);
 
     // ==========================================
     // 示例 2: 标签显示模式切换 (Label Position)
     // ==========================================
-    auto mediaCmdBar = CommandBarWidget().Build();
+    auto mediaCmdBar = Widgets::CommandBar().Shared();
 
     auto btnPlay = mediaCmdBar->AddButton("播放", "▶️");
     btnPlay->OnClick.Connect([statusLabel](UIElement*) {
@@ -123,11 +127,11 @@ Element BuildCommandBarPage() {
     mediaCmdBar->AddSecondary("均衡器配置", "🎚️");
     mediaCmdBar->AddSecondary("音轨选择", "🎵");
 
-    auto btnToggleMode = ToggleButtonWidget("切换为仅图标模式 (Collapsed)");
+    auto btnToggleMode = Widgets::ToggleButton("切换为仅图标模式 (Collapsed)").Shared();
     btnToggleMode->OnClick.Connect([mediaCmdBar, statusLabel](UIElement* sender) {
         auto btn = dynamic_cast<ToggleButton*>(sender);
         bool iconOnly = btn && btn->IsChecked();
-        DSL::Borrow(mediaCmdBar).LabelPosition(iconOnly ? CommandBarLabelPosition::Collapsed : CommandBarLabelPosition::Right);
+                mediaCmdBar->SetLabelPosition(iconOnly ? CommandBarLabelPosition::Collapsed : CommandBarLabelPosition::Right);
         statusLabel->Text = iconOnly ? "当前命令栏显示模式：仅图标紧凑模式 (Collapsed)" : "当前命令栏显示模式：文字与图标并排模式 (Right)";
     });
 
@@ -155,7 +159,7 @@ Element BuildCommandBarPage() {
     };
 
     spec.source = R"cpp(// 1. 创建命令栏并添加操作
-auto cmdBar = CommandBarWidget().Build();
+auto cmdBar = Widgets::CommandBar().Shared();
 
 auto btnNew = cmdBar->AddButton("新建", "📄");
 btnNew->OnClick.Connect([](UIElement*) { /* .. */ });

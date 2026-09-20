@@ -17,23 +17,21 @@ constexpr float kDefaultH = 32.0f;
 } // namespace
 
 FolderPicker::FolderPicker() {
-    DSL::Borrow(this)
-        .Placeholder("未选择文件夹...")
-        .BackgroundToken(ThemeTokenId::InputBackground)
-        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
-        .BorderToken(ThemeTokenId::InputBorder)
-        .FocusedBorderToken(ThemeTokenId::FocusedBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .Background(ThemeManager::Instance().GetColor("inputBackground"))
-        .BorderBrush(ThemeManager::Instance().GetColor("inputBorder"))
-        .BorderThickness(1.0f)
-        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
-        .FontFamily("Segoe UI")
-        .FontSize(12.0f)
-        .Padding(8.0f, 4.0f, 4.0f, 4.0f)
-        .CornerRadius(4.0f)
-        .Height(kDefaultH);
+        this->SetPlaceholder("未选择文件夹...");
+    this->SetBackgroundToken(ThemeTokenId::InputBackground);
+    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    this->SetBorderToken(ThemeTokenId::InputBorder);
+    this->SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->SetBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
+    this->SetBorderThickness(1.0f);
+    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->SetFontFamily("Segoe UI");
+    this->SetFontSize(12.0f);
+    this->SetPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
+    this->SetCornerRadius(4.0f);
+    this->SetHeight(kDefaultH);
 
     m_breadcrumbHost.AttachTo(this);
     m_treeHost.AttachTo(this);

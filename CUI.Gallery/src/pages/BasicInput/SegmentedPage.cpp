@@ -1,12 +1,16 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
 namespace Gallery {
 
 Element BuildSegmentedControlPage() {
-    auto range = SegmentedWidget();
-    CUI::DSL::Borrow(range).Width(280.0f);
+    auto range = Widgets::SegmentedControl().Shared();
+        range->SetWidth(280.0f);
     range->AddItem("日");
     range->AddItem("周");
     range->AddItem("月");

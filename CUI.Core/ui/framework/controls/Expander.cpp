@@ -28,19 +28,17 @@ D2D1_COLOR_F MixColor(D2D1_COLOR_F a, D2D1_COLOR_F b, float t) {
 }
 
 Expander::Expander() {
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::CardBackground)
-        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .CornerRadius(kCornerRadius)
-        .BorderThickness(1.0f)
-        .Padding(0.0f)
-        .FontFamily("Segoe UI")
-        .FontSize(12.0f)
-        .Align(Alignment::Stretch)
-        .ClipToBounds(false);
+        this->SetBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetCornerRadius(kCornerRadius);
+    this->SetBorderThickness(1.0f);
+    this->SetPadding(0.0f);
+    this->SetFontFamily("Segoe UI");
+    this->SetFontSize(12.0f);
+    this->SetAlign(Alignment::Stretch);
+    this->SetClipToBounds(false);
     m_expandAnim.Reset(0.0f);
 }
 
@@ -149,11 +147,11 @@ void Expander::SetContent(std::shared_ptr<UIElement> content) {
     }
 
     if (m_content) {
-        DSL::Borrow(this).RemoveChild(m_content);
+        this->RemoveChild(m_content);
     }
     m_content = std::move(content);
     if (m_content) {
-        DSL::Borrow(this).AddChild(m_content);
+        this->AddChild(m_content);
     }
 
     UpdateContentVisibility();
@@ -285,7 +283,7 @@ void Expander::UpdateContentVisibility() {
         ProgressBarDiag::Log("[EXP] UpdateContentVisibility this=%p header=%s keepVisible=%d target=%.3f current=%.3f",
             (void*)this, m_header.c_str(), keepVisible ? 1 : 0, m_expandAnim.Target(), m_expandAnim.Current());
     }
-    DSL::Borrow(m_content).Visibility(next);
+    m_content->SetVisibility(next);
 }
 
 void Expander::InvalidateExpanderLayout() {

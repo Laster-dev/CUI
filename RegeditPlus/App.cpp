@@ -1,8 +1,12 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "App.h"
 #include "RegIcons.h"
 #include "BinaryValueDialog.h"
 
 #include "framework/core/CUIDsl.h"
+#include "framework/core/Widgets.h"
 #include "framework/window/WindowBackdrop.h"
 #include "framework/controls/WindowTitleBar.h"
 #include "framework/controls/BreadcrumbBar.h"
@@ -307,45 +311,45 @@ int RegeditPlusApp::Run() {
 }
 std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
     auto root = Column(0).BackgroundToken(ThemeTokenId::WindowBackground).Build();
-    CUI::DSL::Borrow(root).ForegroundToken(ThemeTokenId::TextPrimary);
+        root->SetColorToken(ThemeTokenId::TextPrimary);
 
     m_titleBar = std::make_shared<WindowTitleBar>();
     m_titleBar->SetTitle("注册表编辑器 (RegeditPlus)");
     BuildMenus();
 
     m_breadcrumb = std::make_shared<BreadcrumbBar>();
-    CUI::DSL::Borrow(m_breadcrumb).Width(-1.0f);
-    CUI::DSL::Borrow(m_breadcrumb).Height(34.0f);
-    CUI::DSL::Borrow(m_breadcrumb).FontFamily("微软雅黑");
-    CUI::DSL::Borrow(m_breadcrumb).FontSize(16.0f);
-    CUI::DSL::Borrow(m_breadcrumb).BackgroundToken(ThemeTokenId::PaneBackground);
-    CUI::DSL::Borrow(m_breadcrumb).Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+        m_breadcrumb->SetWidth(-1.0f);
+        m_breadcrumb->SetHeight(34.0f);
+        m_breadcrumb->SetFontFamily("微软雅黑");
+        m_breadcrumb->SetFontSize(16.0f);
+        m_breadcrumb->SetBackgroundToken(ThemeTokenId::PaneBackground);
+        m_breadcrumb->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
     m_breadcrumb->SetPath({ "计算机" });
     m_breadcrumb->OnItemClicked().Connect([this](BreadcrumbBar*, int index, const std::string&) {
         OnBreadcrumbClicked(index);
     });
 
     auto body = Row(0).Build();
-    CUI::DSL::Borrow(body).FlexGrow(1.0f);
-    CUI::DSL::Borrow(body).Gap(0.0f);
+        body->SetFlexGrow(1.0f);
+        body->SetGap(0.0f);
 
     // Left: tree pane
     auto treePane = Column(0).Build();
-    CUI::DSL::Borrow(treePane).Width(320.0f);
-    CUI::DSL::Borrow(treePane).BackgroundToken(ThemeTokenId::PaneBackground);
-    CUI::DSL::Borrow(treePane).Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+        treePane->SetWidth(320.0f);
+        treePane->SetBackgroundToken(ThemeTokenId::PaneBackground);
+        treePane->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
 
     m_tree = std::make_shared<TreeView>();
-    CUI::DSL::Borrow(m_tree).Width(-1.0f);
-    CUI::DSL::Borrow(m_tree).Height(-1.0f);
-    CUI::DSL::Borrow(m_tree).FlexGrow(1.0f);
-    CUI::DSL::Borrow(m_tree).BackgroundToken(ThemeTokenId::PaneBackground);
-    CUI::DSL::Borrow(m_tree).Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+        m_tree->SetWidth(-1.0f);
+        m_tree->SetHeight(-1.0f);
+        m_tree->SetFlexGrow(1.0f);
+        m_tree->SetBackgroundToken(ThemeTokenId::PaneBackground);
+        m_tree->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
     m_tree->SetIndentWidth(18.0f);
-    CUI::DSL::Borrow(m_tree).FontFamily("微软雅黑");
-    CUI::DSL::Borrow(m_tree).FontSize(16.0f);
-    CUI::DSL::Borrow(m_tree).FontWeight(FontWeight::Normal);
-    CUI::DSL::Borrow(m_tree).ItemHeight(28.0f);
+        m_tree->SetFontFamily("微软雅黑");
+        m_tree->SetFontSize(16.0f);
+        m_tree->SetFontWeight(FontWeight::Normal);
+        m_tree->SetItemHeight(28.0f);
     m_tree->OnSelectionChanged().Connect([this](TreeView* tree, std::shared_ptr<TreeViewItem> item) {
         OnTreeSelectionChanged(tree, item);
     });
@@ -353,28 +357,28 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
         OnTreeNodeToggled(tree, item);
     });
     m_tree->SetContextMenu(BuildTreeContextMenu());
-    CUI::DSL::Borrow(treePane).AddChild(m_tree);
+        treePane->AddChild(m_tree);
 
-    auto splitter = SplitterWidget(Orientation::Vertical).Build();
+    auto splitter = Widgets::Splitter().Orientation(CUI::Orientation::Vertical).Width(10.0f).Height(-1.0f).Align(CUI::Alignment::Stretch).Shared();
 
     // Right: list pane
     auto listPane = Column(0).Build();
-    CUI::DSL::Borrow(listPane).FlexGrow(1.0f);
-    CUI::DSL::Borrow(listPane).BackgroundToken(ThemeTokenId::WindowBackground);
-    CUI::DSL::Borrow(listPane).Background(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
+        listPane->SetFlexGrow(1.0f);
+        listPane->SetBackgroundToken(ThemeTokenId::WindowBackground);
+        listPane->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
 
     m_list = std::make_shared<ListView>();
-    CUI::DSL::Borrow(m_list).Width(-1.0f);
-    CUI::DSL::Borrow(m_list).Height(-1.0f);
+        m_list->SetWidth(-1.0f);
+        m_list->SetHeight(-1.0f);
     m_list->AddColumn("名称", 240.0f);
     m_list->AddColumn("类型", 160.0f);
     m_list->AddColumn("数据", 480.0f);
     m_list->SetRowHeight(30.0f);
-    CUI::DSL::Borrow(m_list).FontFamily("微软雅黑");
-    CUI::DSL::Borrow(m_list).FontSize(16.0f);
-    CUI::DSL::Borrow(m_list).FontWeight(FontWeight::Normal);
-    CUI::DSL::Borrow(m_list).FlexGrow(1.0f);
-    CUI::DSL::Borrow(m_list).Background(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
+        m_list->SetFontFamily("微软雅黑");
+        m_list->SetFontSize(16.0f);
+        m_list->SetFontWeight(FontWeight::Normal);
+        m_list->SetFlexGrow(1.0f);
+        m_list->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
     m_list->OnSelectionChanged().Connect([this](ListView*, int row) {
         m_selectedRow = row;
     });
@@ -383,38 +387,38 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
         ModifySelectedValue();
     });
     m_list->SetContextMenu(BuildListContextMenu());
-    CUI::DSL::Borrow(listPane).AddChild(m_list);
+        listPane->AddChild(m_list);
 
-    CUI::DSL::Borrow(body).AddChild(treePane);
-    CUI::DSL::Borrow(body).AddChild(splitter);
-    CUI::DSL::Borrow(body).AddChild(listPane);
+        body->AddChild(treePane);
+        body->AddChild(splitter);
+        body->AddChild(listPane);
 
     // Status bar
     auto statusBar = Column(0).Build();
-    CUI::DSL::Borrow(statusBar).Height(28.0f);
-    CUI::DSL::Borrow(statusBar).BackgroundToken(ThemeTokenId::PaneBackground);
-    CUI::DSL::Borrow(statusBar).Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
-    CUI::DSL::Borrow(statusBar).BorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
-    CUI::DSL::Borrow(statusBar).BorderThickness(0.0f);
+        statusBar->SetHeight(28.0f);
+        statusBar->SetBackgroundToken(ThemeTokenId::PaneBackground);
+        statusBar->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+        statusBar->SetBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
+        statusBar->SetBorderThickness(0.0f);
     m_statusBar = statusBar;
 
     auto statusRow = Row(0).Build();
-    CUI::DSL::Borrow(statusRow).Padding(Thickness(12, 0, 12, 0));
-    CUI::DSL::Borrow(statusRow).FlexGrow(1.0f);
+        statusRow->SetPadding(Thickness(12, 0, 12, 0));
+        statusRow->SetFlexGrow(1.0f);
 
     m_statusPath = Text("就绪").FontSize(16.0f).FontFamily("微软雅黑").FontWeight(FontWeight::Normal).Build();
-    CUI::DSL::Borrow(m_statusPath).ForegroundToken(ThemeTokenId::TextSecondary);
-    CUI::DSL::Borrow(m_statusPath).Foreground(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
-    CUI::DSL::Borrow(m_statusPath).TextAlign(TextAlignment::Left);
-    CUI::DSL::Borrow(m_statusPath).FlexGrow(1.0f);
-    CUI::DSL::Borrow(statusRow).AddChild(m_statusPath);
+        m_statusPath->SetColorToken(ThemeTokenId::TextSecondary);
+        m_statusPath->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
+        m_statusPath->SetTextAlign(TextAlignment::Left);
+        m_statusPath->SetFlexGrow(1.0f);
+        statusRow->AddChild(m_statusPath);
 
-    CUI::DSL::Borrow(statusBar).AddChild(statusRow);
+        statusBar->AddChild(statusRow);
 
-    CUI::DSL::Borrow(root).AddChild(m_titleBar);
-    CUI::DSL::Borrow(root).AddChild(m_breadcrumb);
-    CUI::DSL::Borrow(root).AddChild(body);
-    CUI::DSL::Borrow(root).AddChild(statusBar);
+        root->AddChild(m_titleBar);
+        root->AddChild(m_breadcrumb);
+        root->AddChild(body);
+        root->AddChild(statusBar);
 
     BuildInitialTree();
     return root;
@@ -779,7 +783,8 @@ void RegeditPlusApp::LoadValues(const std::wstring& path) {
         rows.push_back({ name, TypeName(e.type), DataText(e) });
         icons.push_back(m_icons.ForValueType(e.type));
     }
-    CUI::DSL::Borrow(m_list).Rows(rows);
+        m_list->Rows = rows;
+    m_list->SetRows(rows);
     m_list->SetRowIcons(icons);
     m_list->ClearSelection();
     m_selectedRow = -1;
@@ -787,7 +792,7 @@ void RegeditPlusApp::LoadValues(const std::wstring& path) {
 
 void RegeditPlusApp::ReloadCurrent() {
     if (!m_statusPath) return;
-    CUI::DSL::Borrow(m_statusPath).Text(m_selectedPath.empty() ? std::string("就绪") : WideToUtf8(m_selectedPath));
+        m_statusPath->SetText(m_selectedPath.empty() ? std::string("就绪") : WideToUtf8(m_selectedPath));
     UpdateBreadcrumb();
     LoadValues(m_selectedPath);
 }
@@ -1298,7 +1303,7 @@ void RegeditPlusApp::ToggleStatusBar() {
     const Visibility vis = (m_statusBar->GetVisibility() == Visibility::Visible)
                                ? Visibility::Collapsed
                                : Visibility::Visible;
-    CUI::DSL::Borrow(m_statusBar).Visibility(vis);
+        m_statusBar->SetVisibility(vis);
 }
 
 void RegeditPlusApp::ToggleTheme() {
@@ -1312,35 +1317,35 @@ void RegeditPlusApp::ToggleTheme() {
 void RegeditPlusApp::ApplyChromeColors() {
     auto& tm = ThemeManager::Instance();
     if (m_root) {
-        CUI::DSL::Borrow(m_root).BackgroundToken(ThemeTokenId::WindowBackground);
-        CUI::DSL::Borrow(m_root).Background(tm.GetColor(ThemeTokenId::WindowBackground));
+                m_root->SetBackgroundToken(ThemeTokenId::WindowBackground);
+                m_root->SetBackground(tm.GetColor(ThemeTokenId::WindowBackground));
     }
     if (m_tree) {
-        CUI::DSL::Borrow(m_tree).BackgroundToken(ThemeTokenId::PaneBackground);
-        CUI::DSL::Borrow(m_tree).Background(tm.GetColor(ThemeTokenId::PaneBackground));
+                m_tree->SetBackgroundToken(ThemeTokenId::PaneBackground);
+                m_tree->SetBackground(tm.GetColor(ThemeTokenId::PaneBackground));
         m_tree->MarkRenderContentDirty();
     }
     if (m_list) {
-        CUI::DSL::Borrow(m_list).Background(tm.GetColor(ThemeTokenId::WindowBackground));
+                m_list->SetBackground(tm.GetColor(ThemeTokenId::WindowBackground));
         m_list->OnThemeChanged();
     }
     if (m_statusBar) {
-        CUI::DSL::Borrow(m_statusBar).BackgroundToken(ThemeTokenId::PaneBackground);
-        CUI::DSL::Borrow(m_statusBar).Background(tm.GetColor(ThemeTokenId::PaneBackground));
-        CUI::DSL::Borrow(m_statusBar).BorderBrush(tm.GetColor(ThemeTokenId::CardBorder));
+                m_statusBar->SetBackgroundToken(ThemeTokenId::PaneBackground);
+                m_statusBar->SetBackground(tm.GetColor(ThemeTokenId::PaneBackground));
+                m_statusBar->SetBorderBrush(tm.GetColor(ThemeTokenId::CardBorder));
     }
     if (m_statusPath) {
-        CUI::DSL::Borrow(m_statusPath).ForegroundToken(ThemeTokenId::TextSecondary);
-        CUI::DSL::Borrow(m_statusPath).Foreground(tm.GetColor(ThemeTokenId::TextSecondary));
+                m_statusPath->SetColorToken(ThemeTokenId::TextSecondary);
+                m_statusPath->SetColor(tm.GetColor(ThemeTokenId::TextSecondary));
     }
     if (m_titleBar) {
         m_titleBar->MarkRenderContentDirty();
     }
     if (m_breadcrumb) {
-        CUI::DSL::Borrow(m_breadcrumb).BackgroundToken(ThemeTokenId::PaneBackground);
-        CUI::DSL::Borrow(m_breadcrumb).Background(tm.GetColor(ThemeTokenId::PaneBackground));
-        CUI::DSL::Borrow(m_breadcrumb).BorderBrush(tm.GetColor(ThemeTokenId::CardBorder));
-        CUI::DSL::Borrow(m_breadcrumb).Foreground(tm.GetColor(ThemeTokenId::TextSecondary));
+                m_breadcrumb->SetBackgroundToken(ThemeTokenId::PaneBackground);
+                m_breadcrumb->SetBackground(tm.GetColor(ThemeTokenId::PaneBackground));
+                m_breadcrumb->SetBorderBrush(tm.GetColor(ThemeTokenId::CardBorder));
+                m_breadcrumb->SetColor(tm.GetColor(ThemeTokenId::TextSecondary));
         m_breadcrumb->MarkRenderContentDirty();
     }
 }

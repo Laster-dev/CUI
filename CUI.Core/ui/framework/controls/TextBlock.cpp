@@ -28,17 +28,16 @@ void TextBlock::SetProperty(PropertyId id, const Value& val) {
 }
 
 TextBlock::TextBlock() {
-    DSL::Borrow(this)
-        .Text("")
-        .ForegroundToken(ThemeTokenId::TextSecondary)
-        .Foreground(ThemeManager::Instance().GetColor("textSecondary"))
-        .FontFamily("微软雅黑")
-        .FontSize(12.0f)
-        .FontWeight(CUI::FontWeight::Normal);
+    this->SetText("");
+    this->SetColorToken(ThemeTokenId::TextSecondary);
+    this->SetColor(ThemeManager::Instance().GetColor("textSecondary"));
+    this->SetFontFamily("微软雅黑");
+    this->SetFontSize(12.0f);
+    this->SetFontWeight(CUI::FontWeight::Normal);
 }
 
 TextBlock::TextBlock(const std::string& text) : TextBlock() {
-    DSL::Borrow(this).Text(text);
+    this->SetText(text);
 }
 
 Size TextBlock::Measure(Size availableSize) {

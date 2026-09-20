@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
@@ -49,7 +53,7 @@ Color TextColorForIndex(int index) {
 } // namespace
 
 std::shared_ptr<UIElement> BuildDropDownButtonPage() {
-    auto file = DropDownButtonWidget("文件");
+    auto file = Widgets::DropDownButton("文件").Shared();
     file->AddItem("新建");
     file->AddItem("打开");
     file->AddSeparator();
@@ -64,11 +68,11 @@ std::shared_ptr<UIElement> BuildDropDownButtonPage() {
     auto fileStatus = MakeStatus("");
     fileStatus->Text->Bind(fileStatusValue, BindingMode::OneWay);
 
-    auto disabled = DropDownButtonWidget("不可用");
+    auto disabled = Widgets::DropDownButton("不可用").Shared();
     disabled->AddItem("一项");
-    CUI::DSL::Borrow(disabled).IsEnabled(false);
+        disabled->SetIsEnabled(false);
 
-    auto color = DropDownButtonWidget("背景颜色展示");
+    auto color = Widgets::DropDownButton("背景颜色展示").Shared();
     color->AddItem("红色");
     color->AddItem("绿色");
     color->AddItem("蓝色");

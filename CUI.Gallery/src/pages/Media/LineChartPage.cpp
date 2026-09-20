@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <cmath>
 #include <chrono>
 #include <deque>
@@ -35,24 +39,24 @@ std::string FormatHover(ChartBase* chart, int index, int series) {
 
 void ApplySales(ChartBase& chart, bool quarterly) {
     if (quarterly) {
-        DSL::Borrow(chart).Categories({ "Q1", "Q2", "Q3", "Q4" });
+                chart.SetCategories({ "Q1", "Q2", "Q3", "Q4" });
         ChartSeries a;
         a.name = "华北";
         a.values = { 82.0f, 91.0f, 76.0f, 104.0f };
         ChartSeries b;
         b.name = "华东";
         b.values = { 64.0f, 70.0f, 88.0f, 95.0f };
-        DSL::Borrow(chart).Series({ std::move(a), std::move(b) });
+                chart.SetSeries({ std::move(a), std::move(b) });
         return;
     }
-    DSL::Borrow(chart).Categories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
+        chart.SetCategories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
     ChartSeries a;
     a.name = "华北";
     a.values = { 12.0f, 18.0f, 15.0f, 22.0f, 28.0f, 24.0f, 31.0f };
     ChartSeries b;
     b.name = "华东";
     b.values = { 9.0f, 14.0f, 19.0f, 16.0f, 21.0f, 27.0f, 25.0f };
-    DSL::Borrow(chart).Series({ std::move(a), std::move(b) });
+        chart.SetSeries({ std::move(a), std::move(b) });
 }
 
 // ---------- 实时数据泵：正弦波 + 噪声，250ms 一帧 ----------
@@ -113,10 +117,10 @@ private:
         ChartSeries s2;
         s2.name = "余弦 cos";
         s2.values.assign(m_cos.begin(), m_cos.end());
-        DSL::Borrow(m_chart).LiveData(std::move(cats), { std::move(s1), std::move(s2) }, false);
+                m_chart->SetLiveData(std::move(cats), { std::move(s1), std::move(s2) }, false);
 
         if (m_status) {
-            CUI::DSL::Borrow(m_status).Text(std::format("实时流运行中 · 窗口 {} 个采样点 · 最新: sin {:.1f} / cos {:.1f}",
+                        m_status->SetText(std::format("实时流运行中 · 窗口 {} 个采样点 · 最新: sin {:.1f} / cos {:.1f}",
                                           m_sin.size(), m_sin.back(), m_cos.back()));
         }
     }
@@ -134,13 +138,13 @@ private:
 Element BuildLineChartPage() {
     // ---------- 1. 常规用法 ----------
     auto line = std::make_shared<LineChart>();
-    CUI::DSL::Borrow(line).Text("折线图 · 月度销量趋势");
-    CUI::DSL::Borrow(line).Height(320.0f);
+        line->SetText("折线图 · 月度销量趋势");
+        line->SetHeight(320.0f);
     ApplySales(*line, false);
 
     auto status1 = MakeStatus("悬停图线或按 ← → 方向键读值");
     line->OnHoverChanged().Connect([status1](ChartBase* sender, int index, int series) {
-        CUI::DSL::Borrow(status1).Text(FormatHover(sender, index, series));
+                status1->SetText(FormatHover(sender, index, series));
     });
 
     auto btnMonth = ElevatedButton("月度数据", [line](UIElement*) { ApplySales(*line, false); }).Build();
@@ -149,42 +153,42 @@ Element BuildLineChartPage() {
 
     // ---------- 2. 实时数据流 ----------
     auto live = std::make_shared<LineChart>();
-    CUI::DSL::Borrow(live).Text("实时数据流 · 正弦/余弦采样 (250ms/帧)");
-    CUI::DSL::Borrow(live).Height(260.0f);
+        live->SetText("实时数据流 · 正弦/余弦采样 (250ms/帧)");
+        live->SetHeight(260.0f);
 
     auto liveStatus = MakeStatus("等待数据泵启动...");
     auto pump = std::make_shared<SineStreamPump>(live, liveStatus);
-    auto btnRun = ToggleButtonWidget("⏸ 暂停实时流").Build();
+    auto btnRun = Widgets::ToggleButton("⏸ 暂停实时流").Shared();
     btnRun->OnClick().Connect([pump, btnRun](UIElement*) {
         const bool on = !pump->IsRunning();
-        DSL::Borrow(pump).Running(on);
-        CUI::DSL::Borrow(btnRun).Text(on ? "⏸ 暂停实时流" : "▶ 启动实时流");
+                pump->SetRunning(on);
+                btnRun->SetText(on ? "⏸ 暂停实时流" : "▶ 启动实时流");
     });
 
     // ---------- 3. 显示选项 ----------
     auto optChart = std::make_shared<LineChart>();
-    CUI::DSL::Borrow(optChart).Text("显示选项 · 网格 / 图例 / 悬停提示");
-    CUI::DSL::Borrow(optChart).Height(260.0f);
+        optChart->SetText("显示选项 · 网格 / 图例 / 悬停提示");
+        optChart->SetHeight(260.0f);
     ApplySales(*optChart, true);
 
     auto status3 = MakeStatus("网格、图例、悬停提示均可独立开关。");
 
     auto chkGrid = CheckboxTile("显示网格").Build();
-    CUI::DSL::Borrow(chkGrid).State(CheckState::Checked);
+        chkGrid->SetState(CheckState::Checked);
     chkGrid->OnCheckStateChanged().Connect([optChart, status3](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
-        DSL::Borrow(optChart).ShowGrid(on);
+                optChart->SetShowGrid(on);
         status3->Text = on ? "网格已显示。" : "网格已隐藏。";
     });
     auto chkLegend = CheckboxTile("显示图例").Build();
-    CUI::DSL::Borrow(chkLegend).State(CheckState::Checked);
+        chkLegend->SetState(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([optChart](CheckBox*, CheckState st) {
-        DSL::Borrow(optChart).ShowLegend(st == CheckState::Checked);
+                optChart->SetShowLegend(st == CheckState::Checked);
     });
     auto chkTip = CheckboxTile("悬停提示卡片").Build();
-    CUI::DSL::Borrow(chkTip).State(CheckState::Checked);
+        chkTip->SetState(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([optChart](CheckBox*, CheckState st) {
-        DSL::Borrow(optChart).ShowTooltip(st == CheckState::Checked);
+                optChart->SetShowTooltip(st == CheckState::Checked);
     });
     auto btnReveal3 = ElevatedButton("重放入场动画", [optChart](UIElement*) { optChart->PlayReveal(); }).Build();
 
@@ -230,16 +234,16 @@ Element BuildLineChartPage() {
     spec.source = R"(
 // 1) 构建图表并填充数据
 auto chart = std::make_shared<LineChart>();
-CUI::DSL::Borrow(chart).Text("月度销量");
-CUI::DSL::Borrow(chart).Height(320.0f);
-DSL::Borrow(chart).Categories({ "1月", "2月", "3月", "4月" });
+chart->SetText("月度销量");
+chart->SetHeight(320.0f);
+chart->SetCategories({ "1月", "2月", "3月", "4月" });
 ChartSeries s;
 s.name = "华北";
 s.values = { 12.0f, 18.0f, 15.0f, 22.0f };
-DSL::Borrow(chart).Series({ std::move(s) });
+chart->SetSeries({ std::move(s) });
 
 // 2) 实时增量更新（屏蔽入场动画）
-DSL::Borrow(chart).LiveData(categories, series);
+chart->SetLiveData(categories, series);
 
 // 3) 悬停读值
 chart->OnHoverChanged().Connect([](ChartBase* c, int idx, int ser) {
@@ -247,8 +251,8 @@ chart->OnHoverChanged().Connect([](ChartBase* c, int idx, int ser) {
 });
 
 // 4) 显示开关与动画
-DSL::Borrow(chart).ShowGrid(false);
-DSL::Borrow(chart).ShowTooltip(true);
+chart->SetShowGrid(false);
+chart->SetShowTooltip(true);
 chart->PlayReveal();   // 重放入场描线动画
 )";
 

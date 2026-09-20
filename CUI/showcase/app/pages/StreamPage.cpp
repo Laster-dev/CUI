@@ -12,11 +12,11 @@ ShowcasePage BuildStreamPage(const ShowcaseContext& ctx) {
     auto stopBtn = ElevatedButton("暂停推流").Background(Rgb(0x5A5A5A)).Padding(12, 6, 12, 6).Build();
     startBtn->OnClick().Connect([window = ctx.windowRef, image = ctx.streamImage, status](UIElement*) {
         StartStreamingThread(window, image);
-        CUI::DSL::Borrow(status).Text("状态: 推流中 (手动启动)。");
+                status->SetText("状态: 推流中 (手动启动)。");
     });
     stopBtn->OnClick().Connect([status](UIElement*) {
         StopStreamingThread();
-        CUI::DSL::Borrow(status).Text("状态: 已暂停。");
+                status->SetText("状态: 已暂停。");
     });
 
     return { "1000+ FPS 动态推流", CreatePage(

@@ -14,15 +14,14 @@ constexpr float kHitPad = 5.0f;
 }
 
 Splitter::Splitter() {
-    DSL::Borrow(this)
-        .Orientation(Orientation::Vertical)
-        .BackgroundToken(ThemeTokenId::CardBorder)
-        .HoverBackgroundToken(ThemeTokenId::AccentColor)
-        .Background(ThemeManager::Instance().GetColor("cardBorder"))
-        .HoverBackground(ThemeManager::Instance().GetColor("accentColor"))
-        .Width(kDefaultThickness)
-        .Height(-1.0f)
-        .Align(Alignment::Stretch);
+    this->SetOrientation(Orientation::Vertical);
+    this->SetBackgroundToken(ThemeTokenId::CardBorder);
+    this->SetHoverBackgroundToken(ThemeTokenId::AccentColor);
+    this->SetBackground(ThemeManager::Instance().GetColor("cardBorder"));
+    this->SetHoverBackground(ThemeManager::Instance().GetColor("accentColor"));
+    this->SetWidth(kDefaultThickness);
+    this->SetHeight(-1.0f);
+    this->SetAlign(Alignment::Stretch);
 }
 
 HCURSOR Splitter::GetCursor() const {

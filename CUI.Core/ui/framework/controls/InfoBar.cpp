@@ -57,18 +57,17 @@ D2D1_COLOR_F WarningColor() {
 } // namespace
 
 InfoBar::InfoBar() {
-    DSL::Borrow(this)
-        .Width(-1.0f)
-        .Height(-1.0f)
-        .Align(Alignment::Stretch)
-        .ClipToBounds(true)
-        .CornerRadius(kRadius)
-        .BorderThickness(1.0f)
-        .BackgroundToken(ThemeTokenId::CardBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .TitleColorToken(ThemeTokenId::TextPrimary)
-        .MessageColorToken(ThemeTokenId::TextSecondary)
-        .AccentColorToken(ThemeTokenId::AccentColor);
+        this->SetWidth(-1.0f);
+    this->SetHeight(-1.0f);
+    this->SetAlign(Alignment::Stretch);
+    this->SetClipToBounds(true);
+    this->SetCornerRadius(kRadius);
+    this->SetBorderThickness(1.0f);
+    this->SetBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetTitleColorToken(ThemeTokenId::TextPrimary);
+    this->SetMessageColorToken(ThemeTokenId::TextSecondary);
+    this->SetAccentColorToken(ThemeTokenId::AccentColor);
     EnsureChrome();
     SyncChrome();
     m_openAnim.Reset(1.0f);
@@ -144,7 +143,7 @@ void InfoBar::SetProperty(PropertyId id, const Value& val) {
 
 void InfoBar::EnsureChrome() {
     if (!m_actionBtn) {
-        m_actionBtn = DSL::Fluent::Button()
+        m_actionBtn = Widgets::Button()
             .Height(kActionH)
             .CornerRadius(4.0f)
             .BorderThickness(0.0f)
@@ -152,10 +151,10 @@ void InfoBar::EnsureChrome() {
             .FontSize(12.0f)
             .OnClick([this](UIElement*) { InvokeAction(); })
             .Build();
-        DSL::Borrow(this).AddChild(m_actionBtn);
+        this->AddChild(m_actionBtn);
     }
     if (!m_closeBtn) {
-        m_closeBtn = DSL::Fluent::Button()
+        m_closeBtn = Widgets::Button()
             .Icon(kSvgClose)
             .ToolTip("关闭")
             .Width(kClose)
@@ -170,7 +169,7 @@ void InfoBar::EnsureChrome() {
             .ForegroundToken(ThemeTokenId::TextSecondary)
             .OnClick([this](UIElement*) { CloseFromUser(); })
             .Build();
-        DSL::Borrow(this).AddChild(m_closeBtn);
+        this->AddChild(m_closeBtn);
     }
 }
 
@@ -178,24 +177,22 @@ void InfoBar::SyncChrome() {
     EnsureChrome();
     const bool showAction = m_isOpen && !m_actionText.empty();
     const bool showClose = m_isOpen && m_isClosable;
-    DSL::Borrow(m_actionBtn)
-        .Text(m_actionText)
-        .Visibility(showAction ? Visibility::Visible : Visibility::Collapsed);
+    m_actionBtn->SetText(m_actionText);
+    m_actionBtn->SetVisibility(showAction ? Visibility::Visible : Visibility::Collapsed);
     if (m_actionCommand) {
-        DSL::Borrow(m_actionBtn).Command(m_actionCommand);
+        m_actionBtn->SetCommand(m_actionCommand);
     }
-    DSL::Borrow(m_closeBtn).Visibility(showClose ? Visibility::Visible : Visibility::Collapsed);
+    m_closeBtn->SetVisibility(showClose ? Visibility::Visible : Visibility::Collapsed);
 
     const Palette pal = Colors();
-    DSL::Borrow(m_actionBtn)
-        .BackgroundToken(ThemeTokenId::Unset)
-        .HoverBackgroundToken(ThemeTokenId::Unset)
-        .PressedBackgroundToken(ThemeTokenId::Unset)
-        .Background(pal.accent)
-        .HoverBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::White), 0.12f))
-        .PressedBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::Black), 0.12f))
-        .ForegroundToken(ThemeTokenId::AccentForeground)
-        .Foreground(ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground));
+    m_actionBtn->SetBackgroundToken(ThemeTokenId::Unset);
+    m_actionBtn->SetHoverBackgroundToken(ThemeTokenId::Unset);
+    m_actionBtn->SetPressedBackgroundToken(ThemeTokenId::Unset);
+    m_actionBtn->SetBackground(pal.accent);
+    m_actionBtn->SetHoverBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::White), 0.12f));
+    m_actionBtn->SetPressedBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::Black), 0.12f));
+    m_actionBtn->SetColorToken(ThemeTokenId::AccentForeground);
+    m_actionBtn->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground));
 }
 
 void InfoBar::SetTitle(const std::string& title) {

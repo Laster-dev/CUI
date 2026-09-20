@@ -42,7 +42,9 @@ DetailStripView::~DetailStripView() = default;
 std::shared_ptr<UIElement> DetailStripView::Build() {
     // 1. 32x32 Icon Container
     m_iconElement = std::make_shared<HIconElement>();
-    DSL::Borrow(m_iconElement).Width(36.0f).Height(36.0f).Margin(Thickness(2, 4, 12, 4));
+        m_iconElement->SetWidth(36.0f);
+    m_iconElement->SetHeight(36.0f);
+    m_iconElement->SetMargin(Thickness(2, 4, 12, 4));
 
     // 2. Left Main Section (Title, Description, Command/Path, Status Reason)
     m_titleName = Text("").FontSize(13.0f).FontWeight(FontWeight::SemiBold).ForegroundToken(ThemeTokenId::TextPrimary).Build();
@@ -100,13 +102,13 @@ void DetailStripView::Update() {
 
     const auto* entry = m_viewModel->GetSelectedEntry();
     if (!entry) {
-        DSL::Borrow(m_root).Height(0.0f);
-        DSL::Borrow(m_root).Visibility(Visibility::Collapsed);
+                m_root->SetHeight(0.0f);
+                m_root->SetVisibility(Visibility::Collapsed);
         return;
     }
 
-    DSL::Borrow(m_root).Height(90.0f);
-    DSL::Borrow(m_root).Visibility(Visibility::Visible);
+        m_root->SetHeight(90.0f);
+        m_root->SetVisibility(Visibility::Visible);
 
     // 1. Update 32x32 Native Icon
     std::string iconPath = entry->executablePath.empty() ? entry->command : entry->executablePath;
@@ -120,7 +122,7 @@ void DetailStripView::Update() {
     m_iconElement->SetIcon(hLargeIcon);
 
     // 2. Title & Badges
-    ElementBuilder<TextBlock>(m_titleName).Text(entry->name.empty() ? "(未命名条目)" : entry->name);
+        m_titleName->SetText(entry->name.empty() ? "(未命名条目)" : entry->name);
 
     std::string statusStr;
     Color statusColor = Color::Hex("#D8A000");
@@ -137,7 +139,8 @@ void DetailStripView::Update() {
         statusStr = "[系统保护]";
         statusColor = Color::Hex("#107C41");
     }
-    ElementBuilder<TextBlock>(m_statusBadge).Text(statusStr).Foreground(statusColor);
+        m_statusBadge->SetText(statusStr);
+    m_statusBadge->SetColor(statusColor);
 
     std::string locBadge = LocationName(entry->location);
     if (!entry->scope.empty()) {
@@ -146,35 +149,35 @@ void DetailStripView::Update() {
     if (!entry->triggerInfo.empty()) {
         locBadge += " [触发: " + entry->triggerInfo + "]";
     }
-    ElementBuilder<TextBlock>(m_locationBadge).Text(locBadge);
+        m_locationBadge->SetText(locBadge);
 
     // 3. Description & Command
     std::string desc = entry->description.empty() ? "(无文件描述)" : entry->description;
-    ElementBuilder<TextBlock>(m_descriptionText).Text("描述: " + desc);
+        m_descriptionText->SetText("描述: " + desc);
 
     std::string cmd = entry->command.empty() ? entry->executablePath : entry->command;
     if (!entry->fileExists && !entry->command.empty()) {
         cmd = "[File not found] " + cmd;
-        ElementBuilder<TextBlock>(m_commandText).Text("命令: " + cmd).Foreground(Color::Hex("#E81123"));
+                m_commandText->SetText("命令: " + cmd);
+        m_commandText->SetColor(Color::Hex("#E81123"));
     } else if (cmd.empty()) {
-        ElementBuilder<TextBlock>(m_commandText).Text("命令: (系统内部指令/组件触发)").ForegroundToken(ThemeTokenId::TextMuted);
+                m_commandText->SetText("命令: (系统内部指令/组件触发)");
+        m_commandText->SetColorToken(ThemeTokenId::TextMuted);
     } else {
-        ElementBuilder<TextBlock>(m_commandText).Text("命令: " + cmd).ForegroundToken(ThemeTokenId::TextSecondary);
+                m_commandText->SetText("命令: " + cmd);
+        m_commandText->SetColorToken(ThemeTokenId::TextSecondary);
     }
 
     // 4. Status Reason Diagnostic
     if (!entry->fileExists && !entry->command.empty()) {
-        ElementBuilder<TextBlock>(m_reasonText)
-            .Text("⚠ 诊断原因: 注册表或配置中存在自启动指向，但目标可执行文件/DLL在磁盘上已不存在（卸载残留或路径无效）。")
-            .Foreground(Color::Hex("#E81123"));
+                m_reasonText->SetText("⚠ 诊断原因: 注册表或配置中存在自启动指向，但目标可执行文件/DLL在磁盘上已不存在（卸载残留或路径无效）。");
+        m_reasonText->SetColor(Color::Hex("#E81123"));
     } else if (entry->status == StartupStatus::Disabled) {
-        ElementBuilder<TextBlock>(m_reasonText)
-            .Text("ℹ 状态原因: 该自启动条目已由系统注册表 StartupApproved 机制或服务/任务策略设为禁用。")
-            .Foreground(Color::Hex("#D8A000"));
+                m_reasonText->SetText("ℹ 状态原因: 该自启动条目已由系统注册表 StartupApproved 机制或服务/任务策略设为禁用。");
+        m_reasonText->SetColor(Color::Hex("#D8A000"));
     } else {
-        ElementBuilder<TextBlock>(m_reasonText)
-            .Text("✔ 状态原因: 启动项配置有效，开机/登录时由 Windows 正常加载执行。")
-            .Foreground(Color::Hex("#107C41"));
+                m_reasonText->SetText("✔ 状态原因: 启动项配置有效，开机/登录时由 Windows 正常加载执行。");
+        m_reasonText->SetColor(Color::Hex("#107C41"));
     }
 
     // 5. Publisher / Signature
@@ -185,22 +188,23 @@ void DetailStripView::Update() {
     } else if (pub.find("Revoked") != std::string::npos || pub.find("无效") != std::string::npos) {
         pubColor = Color::Hex("#E81123");
     }
-    ElementBuilder<TextBlock>(m_publisherText).Text("签名/出版商: " + pub).Foreground(pubColor);
+        m_publisherText->SetText("签名/出版商: " + pub);
+    m_publisherText->SetColor(pubColor);
 
     // 6. Version & Size
     std::string ver = entry->fileVersion.empty() ? "--" : entry->fileVersion;
     std::string sz = entry->fileSizeStr.empty() ? "--" : entry->fileSizeStr;
-    ElementBuilder<TextBlock>(m_versionSizeText).Text("版本: " + ver + "  |  大小: " + sz);
+        m_versionSizeText->SetText("版本: " + ver + "  |  大小: " + sz);
 
     // 7. Time & Source
     std::string tm = entry->fileTimestamp.empty() ? "--" : entry->fileTimestamp;
-    ElementBuilder<TextBlock>(m_timeText).Text("时间: " + tm);
+        m_timeText->SetText("时间: " + tm);
 
     std::string src = entry->source.empty() ? "--" : entry->source;
     if (src.size() > 50) {
         src = "..." + src.substr(src.size() - 47);
     }
-    ElementBuilder<TextBlock>(m_sourceText).Text("来源: " + src);
+        m_sourceText->SetText("来源: " + src);
 }
 
 } // namespace AutoGuard

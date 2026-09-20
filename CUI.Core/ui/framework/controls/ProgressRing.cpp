@@ -58,14 +58,13 @@ float NormalizeAngle(float radians) {
 } // namespace
 
 ProgressRing::ProgressRing() {
-    DSL::Borrow(this)
-        .FillColorToken(ThemeTokenId::AccentColor)
-        .TrackColorToken(ThemeTokenId::CardBorder)
-        .Width(32.0f)
-        .Height(32.0f)
-        .HoverBackgroundToken(ThemeTokenId::Unset)
-        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
-        .Background(D2D1::ColorF(0, 0, 0, 0));
+    this->SetFillColorToken(ThemeTokenId::AccentColor);
+    this->SetTrackColorToken(ThemeTokenId::CardBorder);
+    this->SetWidth(32.0f);
+    this->SetHeight(32.0f);
+    this->SetHoverBackgroundToken(ThemeTokenId::Unset);
+    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
     m_displayValue = GetValue();
 }
 

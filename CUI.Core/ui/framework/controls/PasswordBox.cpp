@@ -4,15 +4,13 @@
 namespace CUI {
 
 PasswordBox::PasswordBox() : TextBox("请输入密码"), Password(this) {
-    DSL::Borrow(this)
-        .IsPasswordMode(true)
-        .ShowRevealButton(true);
+    this->SetIsPasswordMode(true);
+    this->SetShowRevealButton(true);
 }
 
 PasswordBox::PasswordBox(const std::string& placeholder) : TextBox(placeholder), Password(this) {
-    DSL::Borrow(this)
-        .IsPasswordMode(true)
-        .ShowRevealButton(true);
+    this->SetIsPasswordMode(true);
+    this->SetShowRevealButton(true);
 }
 
 Value PasswordBox::GetProperty(PropertyId id) const {

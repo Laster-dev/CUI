@@ -1,11 +1,15 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
 namespace Gallery {
 
 Element BuildTimePickerPage() {
-    auto picker = TimePickerWidget();
+    auto picker = Widgets::TimePicker().Shared();
     State<std::string> selectedTime{ picker->GetFormattedTime() };
     picker->SelectedTime->Bind(selectedTime);
 
@@ -28,11 +32,11 @@ Element BuildTimePickerPage() {
         .Width(200.0f)
         .OnClick([selectedTime](UIElement*) { selectedTime = "06:15"; });
 
-    auto disabled = TimePickerWidget();
-    DSL::Borrow(disabled).Time(9, 0);
-    CUI::DSL::Borrow(disabled).IsEnabled(false);
+    auto disabled = Widgets::TimePicker().Shared();
+        disabled->SetTime(9, 0);
+        disabled->SetIsEnabled(false);
 
-    auto second = TimePickerWidget();
+    auto second = Widgets::TimePicker().Shared();
     State<std::string> reminderTime{ "21:00" };
     second->SelectedTime->Bind(reminderTime);
     auto reminderStatusValue = MakeComputed<std::string>([](const std::string& time) {
@@ -68,7 +72,7 @@ Element BuildTimePickerPage() {
         },
     };
     spec.source =
-        "auto picker = TimePickerWidget();\n"
+        "auto picker = Widgets::TimePicker().Shared();\n"
         "State<std::string> selectedTime{ \"14:30\" };\n"
         "picker->SelectedTime->Bind(selectedTime);\n"
         "selectedTime = \"06:15\"; // UI 自动刷新\n";

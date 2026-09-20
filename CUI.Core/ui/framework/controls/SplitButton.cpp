@@ -9,11 +9,11 @@
 namespace CUI {
 
 SplitButton::SplitButton() {
-    DSL::Borrow(this).Text("Split");
+    this->SetText("Split");
 }
 
 SplitButton::SplitButton(const std::string& text) : SplitButton() {
-    DSL::Borrow(this).Text(text);
+    this->SetText(text);
 }
 
 Rect SplitButton::PrimaryRect() const {

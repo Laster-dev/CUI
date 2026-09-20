@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -16,10 +20,10 @@ Element BuildLogViewPage() {
     // ==========================================
     // 1. 初始化 LogView 实例
     // ==========================================
-    auto logView = LogViewWidget()
+    auto logView = Widgets::LogView()
         .Height(300.0f)
         .CornerRadius(6.0f)
-        .Build();
+        .Shared();
 
     // 预填初始日志条目
     logView->Append(LogLevel::Info, "System", "CUI 现代桌面 UI 框架引擎初始化完成。");
@@ -96,9 +100,9 @@ Element BuildLogViewPage() {
     };
 
     spec.source = R"cpp(// 1. 创建 LogView 实例
-auto logView = LogViewWidget()
+auto logView = Widgets::LogView()
     .Height(300.0f)
-    .Build();
+    .Shared();
 
 // 2. 追加各级别分类日志条目
 logView->Append(LogLevel::Info, "System", "引擎初始化完成");
@@ -106,8 +110,8 @@ logView->Append(LogLevel::Warn, "Memory", "内存碎片预警");
 logView->Append(LogLevel::Error, "Net", "连接重置");
 
 // 3. 过滤与控制
-DSL::Borrow(logView).FilterText("Error"); // 关键字筛选
-DSL::Borrow(logView).FollowTail(true);    // 始终锁定滚底跟随
+logView->SetFilterText("Error"); // 关键字筛选
+logView->SetFollowTail(true);    // 始终锁定滚底跟随
 logView->Clear();                // 清空记录
 )cpp";
 

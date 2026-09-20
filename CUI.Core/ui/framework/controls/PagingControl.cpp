@@ -26,16 +26,15 @@ D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float alpha) {
 } // namespace
 
 PagingControl::PagingControl() {
-    DSL::Borrow(this)
-        .ForegroundToken(ThemeTokenId::TextMuted)
-        .BackgroundToken(ThemeTokenId::Unset)
-        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
-        .Foreground(ThemeManager::Instance().GetColor("textMuted"))
-        .FontFamily("Segoe UI")
-        .FontSize(12.0f)
-        .Height(kHeight)
-        .Width(-1.0f);
+    this->SetColorToken(ThemeTokenId::TextMuted);
+    this->SetBackgroundToken(ThemeTokenId::Unset);
+    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    this->SetColor(ThemeManager::Instance().GetColor("textMuted"));
+    this->SetFontFamily("Segoe UI");
+    this->SetFontSize(12.0f);
+    this->SetHeight(kHeight);
+    this->SetWidth(-1.0f);
     RebuildPageList();
 }
 

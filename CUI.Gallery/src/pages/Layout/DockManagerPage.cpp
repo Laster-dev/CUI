@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -16,16 +20,16 @@ Element BuildDockManagerPage() {
     // ==========================================
     // 1. 初始化 DockManager 实例
     // ==========================================
-    auto dock = DockManagerWidget()
+    auto dock = Widgets::DockManager()
         .Height(480.0f)
         .Border(D2D1::ColorF(0x3F3F46, 0.6f), 1.0f)
         .CornerRadius(6.0f)
-        .Build();
+        .Shared();
 
     // 默认分栏初始物理尺寸
-    DSL::Borrow(dock).SideSize(DockSide::Left, 190.0f);
-    DSL::Borrow(dock).SideSize(DockSide::Right, 190.0f);
-    DSL::Borrow(dock).SideSize(DockSide::Bottom, 120.0f);
+        dock->SetSideSize(DockSide::Left, 190.0f);
+        dock->SetSideSize(DockSide::Right, 190.0f);
+        dock->SetSideSize(DockSide::Bottom, 120.0f);
 
     // ==========================================
     // 2. 构造左侧工具栏面板 (Left Panes)
@@ -68,8 +72,8 @@ Element BuildDockManagerPage() {
               "    return 0;\n"
               "}")
         .Height(200.0f);
-    CUI::DSL::Borrow(codeEditor).AcceptsReturn(true);
-    CUI::DSL::Borrow(codeEditor).TextWrapping(true);
+        codeEditor->SetAcceptsReturn(true);
+        codeEditor->SetTextWrapping(true);
 
     // 3.2 架构说明文档
     auto archDoc = TextField()
@@ -81,8 +85,8 @@ Element BuildDockManagerPage() {
               "   - 九宫格吸附罗盘 (Compass Guides)；\n"
               "   - 边缘窄条折叠抽屉 (AutoHide Strips)。")
         .Height(200.0f);
-    CUI::DSL::Borrow(archDoc).AcceptsReturn(true);
-    CUI::DSL::Borrow(archDoc).TextWrapping(true);
+        archDoc->SetAcceptsReturn(true);
+        archDoc->SetTextWrapping(true);
 
     dock->AddDocument("Main.cpp", codeEditor.Build());
     dock->AddDocument("Architecture.md", archDoc.Build());
@@ -149,8 +153,8 @@ Element BuildDockManagerPage() {
             auto docBox = TextField()
                 .Text(std::format("// 这是动态新建的文档：{}\n// 支持在中央文档区成组并排或拖出为悬浮窗口。", title))
                 .Height(160.0f);
-            CUI::DSL::Borrow(docBox).AcceptsReturn(true);
-            CUI::DSL::Borrow(docBox).TextWrapping(true);
+                        docBox->SetAcceptsReturn(true);
+                        docBox->SetTextWrapping(true);
 
             dock->AddDocument(title, docBox.Build());
             statusLabel->Text = std::format("已向中央文档区添加新标签页：【{}】", title);
@@ -160,7 +164,7 @@ Element BuildDockManagerPage() {
         .OnClick([dock, paneSolution, statusLabel](UIElement*) {
             static bool autoHidden = false;
             autoHidden = !autoHidden;
-            DSL::Borrow(dock).PaneAutoHide(paneSolution, autoHidden);
+                        dock->SetPaneAutoHide(paneSolution, autoHidden);
             statusLabel->Text = autoHidden
                 ? "已将【解决方案资源管理器】收拢折叠至左侧窄条，鼠标悬停窄条即可抽屉式滑出展示。"
                 : "已恢复【解决方案资源管理器】的常驻固定停靠状态。";
@@ -188,9 +192,9 @@ Element BuildDockManagerPage() {
     };
 
     spec.source = R"cpp(// 1. 创建 DockManager 实例
-auto dock = DockManagerWidget()
+auto dock = Widgets::DockManager()
     .Height(480.0f)
-    .Build();
+    .Shared();
 
 // 2. 注入各方位工具面板与中央文档
 dock->AddToolPane("解决方案资源管理器", solutionContent, DockSide::Left);
@@ -200,7 +204,7 @@ dock->AddToolPane("属性检查器", propsContent, DockSide::Right);
 dock->AddToolPane("输出控制台", outputContent, DockSide::Bottom);
 
 // 3. 动态控制 AutoHide 折叠或独立悬浮
-DSL::Borrow(dock).PaneAutoHide(paneIndex, true); // 折叠为边缘窄条
+dock->SetPaneAutoHide(paneIndex, true); // 折叠为边缘窄条
 dock->FloatPane(paneIndex);             // 剥离为原生独立悬浮子窗口
 )cpp";
 

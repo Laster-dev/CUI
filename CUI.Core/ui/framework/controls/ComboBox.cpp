@@ -43,27 +43,25 @@ bool ComboBox::HasProperty(PropertyId id) const {
 
 ComboBox::ComboBox() {
     SelectedIndex.Initialize(*this);
-    DSL::Borrow(this)
-        .Placeholder("Select option...")
-        .BackgroundToken(ThemeTokenId::InputBackground)
-        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-        .BorderToken(ThemeTokenId::InputBorder)
-        .FocusedBorderToken(ThemeTokenId::FocusedBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .DropdownBackgroundToken(ThemeTokenId::CardBackground)
-        .SelectedItemBackgroundToken(ThemeTokenId::SelectedBackground)
-        .Background(ThemeManager::Instance().GetColor("inputBackground"))
-        .HoverBackground(ThemeManager::Instance().GetColor("hoverBackground"))
-        .BorderBrush(ThemeManager::Instance().GetColor("inputBorder"))
-        .BorderThickness(1.0f)
-        .KeyboardNavigationMode(KeyboardNavigationMode::Contained)
-        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
-        .FontSize(12.0f)
-        .FontFamily("微软雅黑")
-        .Padding(10.0f, 6.0f, 10.0f, 6.0f)
-        .CornerRadius(3.0f)
-        .Width(200.0f)
-        .Height(32.0f);
+        this->SetPlaceholder("Select option...");
+    this->SetBackgroundToken(ThemeTokenId::InputBackground);
+    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->SetBorderToken(ThemeTokenId::InputBorder);
+    this->SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    this->SetDropdownBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetSelectedItemBackgroundToken(ThemeTokenId::SelectedBackground);
+    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
+    this->SetBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
+    this->SetBorderThickness(1.0f);
+    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->SetFontSize(12.0f);
+    this->SetFontFamily("微软雅黑");
+    this->SetPadding(Thickness(10.0f, 6.0f, 10.0f, 6.0f));
+    this->SetCornerRadius(3.0f);
+    this->SetWidth(200.0f);
+    this->SetHeight(32.0f);
 }
 
 void ComboBox::SetProperty(PropertyId id, const Value& val) {

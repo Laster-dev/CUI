@@ -64,10 +64,9 @@ void RenderVisibleSubtree(UIElement* element, GraphicsContext& ctx, const Rect& 
 }
 
 ScrollViewer::ScrollViewer() {
-    DSL::Borrow(this)
-        .TrackColorToken(ThemeTokenId::CardBorder)
-        .ThumbColorToken(ThemeTokenId::TextMuted)
-        .Background(D2D1::ColorF(0, 0, 0, 0));
+    this->SetTrackColorToken(ThemeTokenId::CardBorder);
+    this->SetThumbColorToken(ThemeTokenId::TextMuted);
+    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
     QueryPerformanceFrequency(&m_qpcFreq);
     m_scrollAnimator.Reset(0.0f);
     GetRenderNode().GetLayer().SetCacheable(true);

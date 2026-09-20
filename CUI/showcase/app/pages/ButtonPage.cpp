@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "PageRegistry.h"
+#include "framework/core/Widgets.h"
 #include "../ShowcaseHelpers.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/Toast.h"
@@ -20,38 +24,34 @@ std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::
     }
     ThemeTokenId id = ThemeTokenIdFromName(tokenName);
     if (tokenProp == "theme.backgroundToken") {
-        CUI::DSL::Borrow(element).BackgroundToken(id);
-        CUI::DSL::Borrow(element).Background(ThemeManager::Instance().GetColor(tokenName));
+                element->SetBackgroundToken(id);
+                element->SetBackground(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.borderToken") {
-        CUI::DSL::Borrow(element).BorderToken(id);
-        CUI::DSL::Borrow(element).BorderBrush(ThemeManager::Instance().GetColor(tokenName));
+                element->SetBorderToken(id);
+                element->SetBorderBrush(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.hoverBackgroundToken") {
-        ElementBuilder<T>(element).HoverBackgroundToken(id);
+        element->SetHoverBackgroundToken(id);
     } else if (tokenProp == "theme.pressedBackgroundToken") {
-        ElementBuilder<T>(element).PressedBackgroundToken(id);
+        element->SetPressedBackgroundToken(id);
     } else if (tokenProp == "theme.colorToken") {
-        ElementBuilder<T>(element).ForegroundToken(id);
+        element->SetColorToken(id);
     } else if (tokenProp == "theme.focusedBorderToken") {
-        ElementBuilder<T>(element).FocusedBorderToken(id);
+        element->SetFocusedBorderToken(id);
     }
     return element;
 }
 
 template<typename T>
-void WireFlyout(ElementBuilder<T>& btn, Window* window, const std::shared_ptr<UIElement>& log, const char* kind) {
-    btn.AddItem("新建", [window, log, kind]() {
-        ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text(std::string("[") + kind + "] 菜单：新建");
-        Toast::Show(window->GetRootElement().get(), kind, "新建", ToastCorner::BottomRight, 1800);
-    });
-    btn.AddItem("打开", [window, log, kind]() {
-        ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text(std::string("[") + kind + "] 菜单：打开");
-        Toast::Show(window->GetRootElement().get(), kind, "打开", ToastCorner::BottomRight, 1800);
-    });
-    btn.AddSeparator();
-    btn.AddItem("删除", [window, log, kind]() {
-        ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text(std::string("[") + kind + "] 菜单：删除");
-        Toast::Show(window->GetRootElement().get(), kind, "删除", ToastCorner::BottomRight, 1800);
-    });
+void WireFlyout(T& ctrl, Window* window, const std::shared_ptr<UIElement>& log, const char* kind) {
+    ctrl.AddItem("新建");
+    ctrl.AddItem("打开");
+    ctrl.AddItem("删除");
+    if constexpr (requires { ctrl.OnItemChosen(); }) {
+        ctrl.OnItemChosen().Connect([window, log, kind](auto*, int, const std::string& text) {
+            std::static_pointer_cast<TextBlock>(log)->SetText(std::string("[") + kind + "] 菜单：" + text);
+            Toast::Show(window->GetRootElement().get(), kind, text.c_str(), ToastCorner::BottomRight, 1800);
+        });
+    }
 }
 } // namespace
 
@@ -66,36 +66,35 @@ ShowcasePage BuildButtonPage(const ShowcaseContext& ctx) {
         .CornerRadius(4)
         .ToolTip("框架 SetToolTip：任意页可复用，支持换行与延迟显示/隐藏。")
         .OnClick([window = ctx.windowRef, log](UIElement*) {
-            ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text("[事件] OnClick 已触发，按钮交互链路正常。");
+            std::static_pointer_cast<TextBlock>(log)->SetText("[事件] OnClick 已触发，按钮交互链路正常。");
             Toast::Show(window->GetRootElement().get(), "Button", "按钮点击触发 OnClick 事件！", ToastCorner::BottomRight, 2200);
         })
         .Build();
 
     auto toggleState = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("未选中", 12.0f, "textSecondary", false));
-    auto toggle = Fluent::ToggleButton("Bold")
+    auto toggle = Widgets::ToggleButton("Bold")
         .Icon("B")
-        .OnToggled([toggleState, log](ToggleButton*, bool on) {
-            ElementBuilder<TextBlock>(toggleState).Text(on ? "已选中" : "未选中");
-            ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text(on ? "[ToggleButton] 锁定选中" : "[ToggleButton] 取消选中");
-        })
-        .Build();
+        .Shared();
+    toggle->OnToggled().Connect([toggleState, log](ToggleButton*, bool on) {
+        toggleState->SetText(on ? "已选中" : "未选中");
+        std::static_pointer_cast<TextBlock>(log)->SetText(on ? "[ToggleButton] 锁定选中" : "[ToggleButton] 取消选中");
+    });
 
-    auto splitBuilder = Fluent::SplitButton("保存")
-        .OnClick([window = ctx.windowRef, log](UIElement*) {
-            ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text("[SplitButton] 主区 Click = 保存");
-            Toast::Show(window->GetRootElement().get(), "SplitButton", "主区：保存", ToastCorner::BottomRight, 1800);
-        });
-    WireFlyout(splitBuilder, ctx.windowRef, log, "SplitButton");
-    auto split = splitBuilder.Build();
+    auto splitBuilder = Widgets::SplitButton("保存");
+    splitBuilder.OnClick([window = ctx.windowRef, log](UIElement*) {
+        std::static_pointer_cast<TextBlock>(log)->SetText("[SplitButton] 主区 Click = 保存");
+        Toast::Show(window->GetRootElement().get(), "SplitButton", "主区：保存", ToastCorner::BottomRight, 1800);
+    });
+    auto split = splitBuilder.Shared();
+    WireFlyout(*split, ctx.windowRef, log, "SplitButton");
 
-    auto dropBuilder = Fluent::DropDownButton("更多");
-    WireFlyout(dropBuilder, ctx.windowRef, log, "DropDownButton");
-    auto drop = dropBuilder
-        .OnItemChosen([log](DropDownButton*, int, const std::string& text) {
-            ElementBuilder<TextBlock>(std::static_pointer_cast<TextBlock>(log)).Text("[DropDownButton] 选中 " + text);
-        })
-        .Build();
+    auto dropBuilder = Widgets::DropDownButton("更多");
+    auto drop = dropBuilder.Shared();
+    WireFlyout(*drop, ctx.windowRef, log, "DropDownButton");
+    drop->OnItemChosen().Connect([log](DropDownButton*, int, const std::string& text) {
+        std::static_pointer_cast<TextBlock>(log)->SetText("[DropDownButton] 选中 " + text);
+    });
 
     auto family = Row(16).Children({
         Column(8).Children({

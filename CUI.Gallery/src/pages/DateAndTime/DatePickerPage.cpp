@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <ctime>
 
 using namespace CUI;
@@ -19,7 +23,7 @@ std::string TodayString() {
 } // namespace
 
 Element BuildDatePickerPage() {
-    auto picker = DatePickerWidget();
+    auto picker = Widgets::DatePicker().Shared();
     State<std::string> selectedDate{ picker->GetFormattedDate() };
     picker->SelectedDate->Bind(selectedDate);
 
@@ -38,9 +42,9 @@ Element BuildDatePickerPage() {
     auto birthday = Button("生日示例")
         .OnClick([selectedDate](UIElement*) { selectedDate = "1990-06-15"; });
 
-    auto disabled = DatePickerWidget();
-    DSL::Borrow(disabled).Date(2026, 12, 31);
-    CUI::DSL::Borrow(disabled).IsEnabled(false);
+    auto disabled = Widgets::DatePicker().Shared();
+        disabled->SetDate(2026, 12, 31);
+        disabled->SetIsEnabled(false);
 
     auto programmatic = Button("程序设置 2030-05-20")
         .OnClick([selectedDate](UIElement*) { selectedDate = "2030-05-20"; });
@@ -65,7 +69,7 @@ Element BuildDatePickerPage() {
         },
     };
     spec.source =
-        "auto picker = DatePickerWidget();\n"
+        "auto picker = Widgets::DatePicker().Shared();\n"
         "State<std::string> selectedDate{ picker->GetFormattedDate() };\n"
         "picker->SelectedDate->Bind(selectedDate);\n"
         "selectedDate = \"2030-05-20\"; // UI 自动刷新\n";

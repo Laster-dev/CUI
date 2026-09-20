@@ -1,3 +1,6 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "MainView.h"
 #include "../core/PeSecurity.h"
 #include "../core/IconReplacer.h"
@@ -5,6 +8,7 @@
 #include "framework/controls/Panel.h"
 #include "framework/controls/Button.h"
 #include "framework/controls/TextBlock.h"
+#include "framework/core/Widgets.h"
 #include "framework/style/ThemeTokenId.h"
 
 #include <shellapi.h>
@@ -68,7 +72,7 @@ std::shared_ptr<UIElement> MainView::Build() {
     auto actionsArea = BuildActionsArea();
 
     // 日志框初始化：默认展开，直接贴底放，统一使用常驻边框色
-    m_logView = LogViewWidget().Build();
+    m_logView = Widgets::LogView().Shared();
     m_logView->SetExpanded(true);
     m_logView->SetCornerRadius(0.0f);
     m_logView->SetAlign(Alignment::Stretch);
@@ -115,32 +119,33 @@ std::shared_ptr<UIElement> MainView::Build() {
 }
 
 std::shared_ptr<UIElement> MainView::BuildHeader() {
-    auto titleBar = ElementBuilder<WindowTitleBar>()
+    auto titleBar = Widgets::WindowTitleBar()
         .Title("PE Patch 工具")
-        .Height(32.0f);
+        .Height(32.0f)
+        .Shared();
 
-    return titleBar.Build();
+    return titleBar;
 }
 
 std::shared_ptr<UIElement> MainView::BuildFilesArea() {
     // 1. 白名单目标文件：占满除左边文本外的整行
-    m_fpWhite = FilePickerWidget()
+    m_fpWhite = Widgets::FilePicker()
         .DialogTitle("选择白名单目标文件")
         .Filter("可执行文件 (*.exe;*.dll)", "*.exe;*.dll")
         .FlexGrow(1.0f)
         .Height(28.0f)
         .Placeholder("选择白文件路径 (.exe / .dll)")
-        .Build();
+        .Shared();
     m_fpWhite->AddFilter("所有文件 (*.*)", "*.*");
 
     // 2. 注入载荷文件：占满除左边文本外的整行
-    m_fpPayload = FilePickerWidget()
+    m_fpPayload = Widgets::FilePicker()
         .DialogTitle("选择注入载荷文件")
         .Filter("载荷文件 (*.exe;*.dll;*.text;*.bin)", "*.exe;*.dll;*.text;*.bin")
         .FlexGrow(1.0f)
         .Height(28.0f)
         .Placeholder("选择载荷文件路径 (.exe / .dll / .text / .bin)")
-        .Build();
+        .Shared();
     m_fpPayload->AddFilter("所有文件 (*.*)", "*.*");
 
     m_fpWhite->OnPathChanged().Connect([this](FilePicker*, const std::string&) {
@@ -177,46 +182,46 @@ std::shared_ptr<UIElement> MainView::BuildFilesArea() {
 
 std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
     // 0. 目标类型: 自动识别 / 强制 EXE / 强制 DLL（默认自动，按白文件 PE 特征识别）
-    m_segTargetType = ElementBuilder<SegmentedControl>()
-        .AddItem("自动")
-        .AddItem("EXE")
-        .AddItem("DLL")
+    m_segTargetType = Widgets::SegmentedControl()
         .Height(26.0f)
         .Width(280.0f)
-        .Build();
+        .Shared();
+    m_segTargetType->AddItem("自动");
+    m_segTargetType->AddItem("EXE");
+    m_segTargetType->AddItem("DLL");
     m_segTargetType->SetSelectedIndex(0);
 
     // 1. Patch 模式（EXE / DLL 目标通用，不支持的按可用性变灰）
-    m_segPatchMode = ElementBuilder<SegmentedControl>()
-        .AddItem(".text覆盖")
-        .AddItem("OEP覆盖")
-        .AddItem("末节扩容")
-        .AddItem("新增节区")
-        .AddItem("TLS回调")
-        .AddItem("导入表注入")
+    m_segPatchMode = Widgets::SegmentedControl()
         .Height(26.0f)
         .Width(480.0f)
-        .Build();
+        .Shared();
+    m_segPatchMode->AddItem(".text覆盖");
+    m_segPatchMode->AddItem("OEP覆盖");
+    m_segPatchMode->AddItem("末节扩容");
+    m_segPatchMode->AddItem("新增节区");
+    m_segPatchMode->AddItem("TLS回调");
+    m_segPatchMode->AddItem("导入表注入");
     m_segPatchMode->SetSelectedIndex(0);
 
     // 2. 子系统类型
-    m_segSubsystem = ElementBuilder<SegmentedControl>()
-        .AddItem("KEEP")
-        .AddItem("GUI")
-        .AddItem("CUI")
+    m_segSubsystem = Widgets::SegmentedControl()
         .Height(26.0f)
         .Width(280.0f)
-        .Build();
+        .Shared();
+    m_segSubsystem->AddItem("KEEP");
+    m_segSubsystem->AddItem("GUI");
+    m_segSubsystem->AddItem("CUI");
     m_segSubsystem->SetSelectedIndex(0);
 
     // 3. UAC 权限清单
-    m_segUac = ElementBuilder<SegmentedControl>()
-        .AddItem("KEEP")
-        .AddItem("USER")
-        .AddItem("ADMIN")
+    m_segUac = Widgets::SegmentedControl()
         .Height(26.0f)
         .Width(280.0f)
-        .Build();
+        .Shared();
+    m_segUac->AddItem("KEEP");
+    m_segUac->AddItem("USER");
+    m_segUac->AddItem("ADMIN");
     m_segUac->SetSelectedIndex(0);
 
     // 4. 开关
@@ -225,10 +230,11 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
     m_swDisableCfg = ToggleSwitchTile("禁用CFG", true).Build();
 
     // 5. 覆盖函数输入框: 与目标类型合并在同一行右侧，仅 DLL 目标时显示（自动识别或手动选择 DLL）
-    m_asbDllFunc = AutoSuggestBoxWidget("要覆盖的导出函数 (默认 DLLMain)")
+    m_asbDllFunc = Widgets::AutoSuggestBox()
+        .Placeholder("要覆盖的导出函数 (默认 DLLMain)")
         .Width(280.0f)
         .Height(24.0f)
-        .Build();
+        .Shared();
     m_asbDllFunc->SetText("DLLMain");
     m_asbDllFunc->SetSuggestionItems({ "DLLMain" });
     m_asbDllFunc->SetMaxVisibleSuggestions(12);
@@ -297,7 +303,7 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
 
 std::shared_ptr<UIElement> MainView::BuildActionsArea() {
     // 圆形纯图标按钮（36x36，圆角 18，内部居中绘制 SVG 图标，无文字）
-    auto btnRun = Fluent::Button("")
+    auto btnRun = Widgets::Button("")
         .Icon(kSvgPlay)
         .ToolTip("开始执行")
         .BackgroundToken(ThemeTokenId::AccentColor)
@@ -307,9 +313,9 @@ std::shared_ptr<UIElement> MainView::BuildActionsArea() {
         .CornerRadius(18.0f)
         .Padding(0.0f)
         .FontSize(18.0f)
-        .OnClick([this](UIElement*) { RunPatch(); });
+        .OnClick([this](UIElement*) { RunPatch(); }).Shared();
 
-    auto btnOpenDir = Fluent::Button("")
+    auto btnOpenDir = Widgets::Button("")
         .Icon(kSvgFolderOpen)
         .ToolTip("打开输出目录")
         .Height(36.0f)
@@ -317,9 +323,9 @@ std::shared_ptr<UIElement> MainView::BuildActionsArea() {
         .CornerRadius(18.0f)
         .Padding(0.0f)
         .FontSize(18.0f)
-        .OnClick([this](UIElement*) { OpenOutputDir(); });
+        .OnClick([this](UIElement*) { OpenOutputDir(); }).Shared();
 
-    auto btnReset = Fluent::Button("")
+    auto btnReset = Widgets::Button("")
         .Icon(kSvgReset)
         .ToolTip("重置")
         .Height(36.0f)
@@ -327,7 +333,7 @@ std::shared_ptr<UIElement> MainView::BuildActionsArea() {
         .CornerRadius(18.0f)
         .Padding(0.0f)
         .FontSize(18.0f)
-        .OnClick([this](UIElement*) { ResetAll(); });
+        .OnClick([this](UIElement*) { ResetAll(); }).Shared();
 
     auto actions = Row(10.0f, {
         btnRun,

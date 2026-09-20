@@ -7,9 +7,9 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildScrollViewerPage(const ShowcaseContext&) {
     auto target = std::make_shared<ScrollViewer>();
-    CUI::DSL::Borrow(target).Width(380.0f);
-    CUI::DSL::Borrow(target).Height(240.0f);
-    CUI::DSL::Borrow(target).AddChild(Column(8).Padding(10).Children({
+        target->SetWidth(380.0f);
+        target->SetHeight(240.0f);
+        target->AddChild(Column(8).Padding(10).Children({
         ElevatedButton("可滚动列表项 #1").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),
         ElevatedButton("可滚动列表项 #2").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),
         ElevatedButton("可滚动列表项 #3").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),

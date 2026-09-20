@@ -1,3 +1,6 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "TreeCategoryView.h"
 #include "IconHelper.h"
 #include "../manager/StartupManager.h"
@@ -7,6 +10,7 @@
 #include "framework/controls/Panel.h"
 #include "framework/controls/ScrollViewer.h"
 #include "framework/controls/ContextMenu.h"
+#include "framework/core/Widgets.h"
 #include "framework/style/ThemeTokenId.h"
 
 #include <vector>
@@ -386,19 +390,14 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
     } else if (groups.size() == 1) {
         // Single group: no Expander needed! Render full-page table directly!
         const auto& grp = groups[0];
-        auto listView = ElementBuilder<ListView>()
-            .Columns(6)
-            .ColumnHeader(0, "自动运行条目", 190.0f)
-            .ColumnHeader(1, "状态", 65.0f)
-            .ColumnHeader(2, "描述", 160.0f)
-            .ColumnHeader(3, "出版商 / 签名", 140.0f)
-            .ColumnHeader(4, "镜像路径 / 启动命令", 200.0f)
-            .ColumnHeader(5, "时间戳", 95.0f)
-            .RowHeight(24.0f)
-            .Align(Alignment::Stretch)
-            .FlexGrow(1.0f)
-            .SelectionMode(ListViewSelectionMode::Single)
-            .Build();
+        auto listView = Widgets::ListView().Columns(6).RowHeight(24.0f).Align(Alignment::Stretch).FlexGrow(1.0f).Shared();
+        listView->SetSelectionMode(ListViewSelectionMode::Single);
+        listView->AddColumn("自动运行条目", 190.0f);
+        listView->AddColumn("状态", 65.0f);
+        listView->AddColumn("描述", 160.0f);
+        listView->AddColumn("出版商 / 签名", 140.0f);
+        listView->AddColumn("镜像路径 / 启动命令", 200.0f);
+        listView->AddColumn("时间戳", 95.0f);
 
         std::vector<std::vector<ListViewCellData>> tableRows;
         std::vector<HICON> rowIcons;
@@ -495,33 +494,27 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
         // Multiple groups: Use collapsible Expander cards!
         auto groupListColumn = std::make_shared<StackPanel>();
         groupListColumn->Orientation = Orientation::Vertical;
-        DSL::Borrow(groupListColumn).Gap(8.0f);
-        DSL::Borrow(groupListColumn).Align(Alignment::Stretch);
+                groupListColumn->SetGap(8.0f);
+                groupListColumn->SetAlign(Alignment::Stretch);
 
         for (const auto& grp : groups) {
             auto expander = std::make_shared<Expander>(grp.icon + "  " + grp.title);
-            DSL::Borrow(expander).Subtitle(std::to_string(grp.items.size()) + " 个自启动项");
-            DSL::Borrow(expander).IsExpanded(true);
-            DSL::Borrow(expander).Align(Alignment::Stretch);
+                        expander->SetSubtitle(std::to_string(grp.items.size()) + " 个自启动项");
+                        expander->SetIsExpanded(true);
+                        expander->SetAlign(Alignment::Stretch);
 
             // Clamped height inside Expander so it does not grow indefinitely
             float itemHeight = 36.0f + static_cast<float>(grp.items.size()) * 24.0f;
             float listHeight = (std::min)(340.0f, (std::max)(60.0f, itemHeight));
 
-            auto listView = ElementBuilder<ListView>()
-                .Columns(6)
-                .ColumnHeader(0, "自动运行条目", 190.0f)
-                .ColumnHeader(1, "状态", 65.0f)
-                .ColumnHeader(2, "描述", 160.0f)
-                .ColumnHeader(3, "出版商 / 签名", 140.0f)
-                .ColumnHeader(4, "镜像路径 / 启动命令", 200.0f)
-                .ColumnHeader(5, "时间戳", 95.0f)
-                .RowHeight(24.0f)
-                .Height(listHeight)
-                .Align(Alignment::Stretch)
-                .SelectionMode(ListViewSelectionMode::Single)
-                .ShowScrollBars(true)
-                .Build();
+            auto listView = Widgets::ListView().Columns(6).RowHeight(24.0f).Height(listHeight).Align(Alignment::Stretch).ShowScrollBars(true).Shared();
+            listView->SetSelectionMode(ListViewSelectionMode::Single);
+            listView->AddColumn("自动运行条目", 190.0f);
+            listView->AddColumn("状态", 65.0f);
+            listView->AddColumn("描述", 160.0f);
+            listView->AddColumn("出版商 / 签名", 140.0f);
+            listView->AddColumn("镜像路径 / 启动命令", 200.0f);
+            listView->AddColumn("时间戳", 95.0f);
 
             std::vector<std::vector<ListViewCellData>> tableRows;
             std::vector<HICON> rowIcons;
@@ -614,7 +607,7 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
 
             listView->SetContextMenu(BuildSpecializedContextMenu(grp.location, viewModel, window, onShowToast, onRefresh));
 
-            DSL::Borrow(expander).Content(listView);
+                        expander->SetContent(listView);
             groupListColumn->AddChild(expander);
         }
         contentArea = groupListColumn;
@@ -641,9 +634,9 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
     }
 
     auto scroll = std::make_shared<ScrollViewer>();
-    DSL::Borrow(scroll).Align(Alignment::Stretch);
-    DSL::Borrow(scroll).FlexGrow(1.0f);
-    DSL::Borrow(scroll).AddChild(pageLayout);
+        scroll->SetAlign(Alignment::Stretch);
+        scroll->SetFlexGrow(1.0f);
+        scroll->AddChild(pageLayout);
 
     return scroll;
 }

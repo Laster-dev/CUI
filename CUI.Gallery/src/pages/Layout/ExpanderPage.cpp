@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -16,9 +20,9 @@ Element BuildExpanderPage() {
         }),
     });
 
-    auto basicExpander = ExpanderWidget("账号设置");
-    CUI::DSL::Borrow(basicExpander).Subtitle("点击头部展开或折叠内容");
-    CUI::DSL::Borrow(basicExpander).Content(formContent);
+    auto basicExpander = Widgets::Expander("账号设置").Shared();
+        basicExpander->SetSubtitle("点击头部展开或折叠内容");
+        basicExpander->SetContent(formContent);
 
     // —— 默认展开 + 状态事件 ——
     State<bool> expandedState{ true };
@@ -32,10 +36,10 @@ Element BuildExpanderPage() {
             12.0f, ThemeTokenId::TextMuted, false),
     });
 
-    auto eventExpander = ExpanderWidget("使用条款");
-    CUI::DSL::Borrow(eventExpander).Subtitle("默认处于展开状态");
-    CUI::DSL::Borrow(eventExpander).IsExpanded(true);
-    CUI::DSL::Borrow(eventExpander).Content(termsContent);
+    auto eventExpander = Widgets::Expander("使用条款").Shared();
+        eventExpander->SetSubtitle("默认处于展开状态");
+        eventExpander->SetIsExpanded(true);
+        eventExpander->SetContent(termsContent);
     eventExpander->OnExpandedChanged().Connect([expandedState](Expander*, bool expanded) {
         expandedState = expanded;
     });
@@ -47,16 +51,16 @@ Element BuildExpanderPage() {
     stateStatus->Text->Bind(stateValue, BindingMode::OneWay);
 
     // —— 向上展开 + 嵌套 ——
-    auto nestedInner = ExpanderWidget("内层折叠面板");
-    CUI::DSL::Borrow(nestedInner).Subtitle("Expander 内可以继续嵌套 Expander");
-    CUI::DSL::Borrow(nestedInner).Content(Column(8, {
+    auto nestedInner = Widgets::Expander("内层折叠面板").Shared();
+        nestedInner->SetSubtitle("Expander 内可以继续嵌套 Expander");
+        nestedInner->SetContent(Column(8, {
         MakeLabel("这是嵌套在最里层的内容。", 12.0f, ThemeTokenId::TextMuted, false),
     }));
 
-    auto upExpander = ExpanderWidget("向上展开（嵌套示例）");
-    CUI::DSL::Borrow(upExpander).Subtitle("SetExpandDirection(Up) 后从底部向上展开");
-    CUI::DSL::Borrow(upExpander).ExpandDirection(ExpandDirection::Up);
-    CUI::DSL::Borrow(upExpander).Content(nestedInner);
+    auto upExpander = Widgets::Expander("向上展开（嵌套示例）").Shared();
+        upExpander->SetSubtitle("SetExpandDirection(Up) 后从底部向上展开");
+        upExpander->SetExpandDirection(ExpandDirection::Up);
+        upExpander->SetContent(nestedInner);
 
     SamplePageSpec spec;
     spec.title = "Expander(折叠控件)";
@@ -88,8 +92,8 @@ Element BuildExpanderPage() {
         },
     };
     spec.source =
-        "auto expander = ExpanderWidget(\"账号设置\");\n"
-        "DSL::Borrow(expander).Subtitle(\"点击头部展开或折叠内容\");\n"
+        "auto expander = Widgets::Expander(\"账号设置\");\n"
+        "        expander->SetSubtitle(\"点击头部展开或折叠内容\");\n"
         "expander.Content(formContent);\n"
         "\n"
         "// 默认展开 + 事件监听\n"

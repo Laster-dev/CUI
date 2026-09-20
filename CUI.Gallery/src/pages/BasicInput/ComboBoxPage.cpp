@@ -1,12 +1,16 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
 namespace Gallery {
 
 Element BuildComboBoxPage() {
-    auto combo = ComboBoxWidget()
-        .Width(220.0f);
+    auto combo = Widgets::ComboBox()
+        .Width(220.0f).Shared();
     combo->AddItem("苹果");
     combo->AddItem("香蕉");
     combo->AddItem("樱桃");
@@ -28,11 +32,11 @@ Element BuildComboBoxPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto disabled = ComboBoxWidget()
-        .Width(220.0f);
+    auto disabled = Widgets::ComboBox()
+        .Width(220.0f).Shared();
     disabled->AddItem("不可用");
-    CUI::DSL::Borrow(disabled).SelectedIndex(0);
-    CUI::DSL::Borrow(disabled).IsEnabled(false);
+        disabled->SetSelectedIndex(0);
+        disabled->SetIsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ComboBox(组合框)";

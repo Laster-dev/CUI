@@ -34,13 +34,11 @@ void StyleChromeButton(const std::shared_ptr<Button>& btn) {
 }
 
 NavigationView::NavigationView() {
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::WindowBackground)
-        .PaneBackgroundToken(ThemeTokenId::PaneBackground)
-        .IndicatorColorToken(ThemeTokenId::AccentColor)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .SecondaryColorToken(ThemeTokenId::TextSecondary);
+        this->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    this->SetPaneBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetIndicatorColorToken(ThemeTokenId::AccentColor);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetSecondaryColorToken(ThemeTokenId::TextSecondary);
 
     BuildChrome();
     EnsureSettingsItem();
@@ -83,10 +81,10 @@ void NavigationView::SetProperty(PropertyId id, const Value& val) {
 }
 
 void NavigationView::BuildChrome() {
-    m_btnBack = DSL::Fluent::Button("").Icon(kBackIcon).Build();
+    m_btnBack = Widgets::Button("").Icon(kBackIcon).Build();
     StyleChromeButton(m_btnBack);
     DSL::ElementBuilder<Button>(m_btnBack).CornerRadius(20.0f);
-    DSL::Borrow(this).AddChild(m_btnBack);
+    this->AddChild(m_btnBack);
     DSL::ElementBuilder<Button>(m_btnBack).IsEnabled(false);
     DSL::ElementBuilder<Button>(m_btnBack).OnClick([this](UIElement*) {
         if (m_backEnabled && !GoBack()) {
@@ -94,9 +92,9 @@ void NavigationView::BuildChrome() {
         }
     });
 
-    m_btnToggle = DSL::Fluent::Button("☰").Build();
+    m_btnToggle = Widgets::Button("☰").Build();
     StyleChromeButton(m_btnToggle);
-    DSL::Borrow(this).AddChild(m_btnToggle);
+    this->AddChild(m_btnToggle);
     DSL::ElementBuilder<Button>(m_btnToggle).OnClick([this](UIElement*) {
         TogglePane();
     });
@@ -109,20 +107,20 @@ void NavigationView::EnsureMenuScroll() {
         return;
     }
 
-    m_menuHost = DSL::Fluent::StackPanel()
+    m_menuHost = Widgets::StackPanel()
         .Orientation(Orientation::Vertical)
         .Gap(2.0f)
         .Align(Alignment::Stretch)
         .Build();
 
-    m_menuScroll = DSL::Fluent::Control<ScrollViewer>()
+    m_menuScroll = Widgets::ScrollViewer()
         .Background(D2D1::ColorF(0, 0, 0, 0))
         .Build();
     // Overlay thumb so expanding a folder never shrinks item width / chevron inset.
     DSL::ElementBuilder<ScrollViewer>(m_menuScroll).OverlayScrollbar(true);
     DSL::ElementBuilder<ScrollViewer>(m_menuScroll).ClipToBounds(true);
     DSL::ElementBuilder<ScrollViewer>(m_menuScroll).AddChild(m_menuHost);
-    DSL::Borrow(this).AddChild(m_menuScroll);
+    this->AddChild(m_menuScroll);
 }
 
 void NavigationView::EnsureAnimationsScheduled() {
@@ -180,8 +178,8 @@ void NavigationView::EnsureContentZOrder() {
         if (node.get() == m_content.get() || node.get() == m_contentNext.get()) continue;
         if (!seen.insert(node.get()).second) continue;
 
-        DSL::Borrow(this).RemoveChild(node);
-        DSL::Borrow(this).AddChild(node);
+        this->RemoveChild(node);
+        this->AddChild(node);
     }
 }
 
@@ -189,8 +187,8 @@ void NavigationView::EnsureSettingsItem() {
     if (m_settingsItem) {
         return;
     }
-    m_settingsItem = DSL::Fluent::Control<NavigationViewItem>("Settings", "⚙").Tag("settings").Build();
-    DSL::Borrow(m_settingsItem).Tag("settings");
+    m_settingsItem = Widgets::NavigationViewItem("Settings", "⚙").Shared();
+    m_settingsItem->SetTag("settings");
     WireItem(m_settingsItem, false);
 }
 
@@ -198,7 +196,7 @@ void NavigationView::WireItem(const std::shared_ptr<NavigationViewItemBase>& ite
     if (!item) {
         return;
     }
-    DSL::Borrow(item).Owner(this);
+    item->SetOwner(this);
     EnsureMenuScroll();
 
     auto isChildOf = [](UIElement* parent, UIElement* child) -> bool {
@@ -212,25 +210,25 @@ void NavigationView::WireItem(const std::shared_ptr<NavigationViewItemBase>& ite
     if (intoMenuScroll) {
         if (m_menuHost && !isChildOf(m_menuHost.get(), item.get())) {
             // Detach from NavigationView if previously attached.
-            DSL::Borrow(this).RemoveChild(item);
-            DSL::Borrow(m_menuHost).AddChild(item);
+            this->RemoveChild(item);
+            m_menuHost->AddChild(item);
         }
     } else {
         if (!isChildOf(this, item.get())) {
             if (m_menuHost) {
                 m_menuHost->RemoveChild(item);
             }
-            DSL::Borrow(this).AddChild(item);
+            this->AddChild(item);
         }
     }
 
     if (auto* nvi = dynamic_cast<NavigationViewItem*>(item.get())) {
         nvi->OnInvoked().Clear();
-        DSL::Borrow(nvi).OnInvoked([this](NavigationViewItem* invoked) {
+        nvi->OnInvoked().Connect([this](NavigationViewItem* invoked) {
             NotifyItemInvoked(invoked);
         });
         nvi->OnExpandChanged().Clear();
-        DSL::Borrow(nvi).OnExpandChanged([this](NavigationViewItem* folder) {
+        nvi->OnExpandChanged().Connect([this](NavigationViewItem* folder) {
             OnItemExpandChanged(folder);
         });
         for (auto& child : nvi->MenuItems()) {
@@ -258,7 +256,7 @@ void NavigationView::ClearMenuItems() {
             if (m_menuHost) {
                 m_menuHost->RemoveChild(node);
             }
-            DSL::Borrow(this).RemoveChild(node);
+            this->RemoveChild(node);
             if (auto* nvi = dynamic_cast<NavigationViewItem*>(node.get())) {
                 for (auto& child : nvi->MenuItems()) {
                     self(self, child);
@@ -284,11 +282,11 @@ void NavigationView::AddFooterMenuItem(const std::shared_ptr<NavigationViewItemB
 
 void NavigationView::ClearFooterMenuItems() {
     for (auto& item : m_footerItems) {
-        DSL::Borrow(this).RemoveChild(item);
+        this->RemoveChild(item);
         auto removeDeep = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> void {
             if (auto* nvi = dynamic_cast<NavigationViewItem*>(node.get())) {
                 for (auto& child : nvi->MenuItems()) {
-                    DSL::Borrow(this).RemoveChild(child);
+                    this->RemoveChild(child);
                     self(self, child);
                 }
             }
@@ -321,7 +319,7 @@ void NavigationView::SyncMenuHostChildren() {
     auto walkAll = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> void {
         if (!node) return;
         const bool show = visibleSet.count(node.get()) > 0;
-        DSL::Borrow(node).Visibility(show ? Visibility::Visible : Visibility::Collapsed);
+        node->SetVisibility(show ? Visibility::Visible : Visibility::Collapsed);
         if (auto* nvi = dynamic_cast<NavigationViewItem*>(node.get())) {
             for (auto& child : nvi->MenuItems()) {
                 self(self, child);
@@ -361,8 +359,8 @@ void NavigationView::SyncMenuHostChildren() {
     if (needsRebuild) {
         m_menuHost->ClearChildren();
         for (auto& node : flat) {
-            DSL::Borrow(this).RemoveChild(node);
-            DSL::Borrow(m_menuHost).AddChild(node);
+            this->RemoveChild(node);
+            m_menuHost->AddChild(node);
         }
     }
 }
@@ -370,7 +368,7 @@ void NavigationView::SyncMenuHostChildren() {
 void NavigationView::SetIsSettingsVisible(bool visible) {
     m_settingsVisible = visible;
     if (m_settingsItem) {
-        DSL::Borrow(m_settingsItem).Visibility(visible ? Visibility::Visible : Visibility::Collapsed);
+        m_settingsItem->SetVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
     }
     RelayoutChildren();
 }
@@ -440,7 +438,7 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
     const auto* effective = m_hasPendingContent ? m_pendingContent.get() : m_content.get();
     if (effective == content.get()) {
         if (m_content == content && m_content) {
-            DSL::Borrow(m_content).Opacity(1.0f);
+            m_content->SetOpacity(1.0f);
         }
         return;
     }
@@ -509,22 +507,22 @@ void NavigationView::ApplyPendingContent() {
 
     if (m_content == content) {
         if (m_content) {
-            DSL::Borrow(m_content).Opacity(1.0f);
+            m_content->SetOpacity(1.0f);
         }
         return;
     }
 
     if (m_content) {
         m_content->OnNavigatedFrom();
-        DSL::Borrow(m_content).Visibility(Visibility::Collapsed);
-        DSL::Borrow(this).RemoveChild(m_content);
+        m_content->SetVisibility(Visibility::Collapsed);
+        this->RemoveChild(m_content);
     }
     m_content = content;
     m_contentNext.reset();
     m_contentAnimating = false;
     m_contentFadeAnim.Reset(1.0f);
-    DSL::Borrow(m_content).Opacity(1.0f);
-    DSL::Borrow(m_content).ClipToBounds(true);
+    m_content->SetOpacity(1.0f);
+    m_content->SetClipToBounds(true);
 
     bool alreadyChild = false;
     for (const auto& child : GetChildren()) {
@@ -540,7 +538,7 @@ void NavigationView::ApplyPendingContent() {
     // Content swap must NOT RelayoutChildren() — that re-measures the whole pane
     // menu tree on every navigation and freezes NavigationViewItem ripple mid-flight.
     const Rect contentRect = GetContentAreaRect();
-    DSL::Borrow(m_content).Visibility(Visibility::Visible);
+    m_content->SetVisibility(Visibility::Visible);
     m_content->Measure(Size(contentRect.width, contentRect.height));
     m_content->Arrange(contentRect);
     EnsureContentZOrder();
@@ -589,11 +587,11 @@ void NavigationView::SetPaneFooter(const std::shared_ptr<UIElement>& footer) {
         return;
     }
     if (m_paneFooter) {
-        DSL::Borrow(this).RemoveChild(m_paneFooter);
+        this->RemoveChild(m_paneFooter);
     }
     m_paneFooter = footer;
     if (m_paneFooter) {
-        DSL::Borrow(this).AddChild(m_paneFooter);
+        this->AddChild(m_paneFooter);
     }
     RelayoutChildren();
 }
@@ -603,11 +601,11 @@ void NavigationView::SetAutoSuggestBox(const std::shared_ptr<UIElement>& box) {
         return;
     }
     if (m_autoSuggestBox) {
-        DSL::Borrow(this).RemoveChild(m_autoSuggestBox);
+        this->RemoveChild(m_autoSuggestBox);
     }
     m_autoSuggestBox = box;
     if (m_autoSuggestBox) {
-        DSL::Borrow(this).AddChild(m_autoSuggestBox);
+        this->AddChild(m_autoSuggestBox);
     }
     RelayoutChildren();
 }
@@ -620,7 +618,7 @@ void NavigationView::SetIsBackButtonVisible(NavigationViewBackButtonVisible visi
 void NavigationView::SetIsBackEnabled(bool enabled) {
     m_backEnabled = enabled;
     if (m_btnBack) {
-        DSL::Borrow(m_btnBack).IsEnabled(enabled);
+        m_btnBack->SetIsEnabled(enabled);
     }
 }
 
@@ -687,7 +685,7 @@ void NavigationView::ExpandAncestorsOf(NavigationViewItem* item) {
             if (self(self, child)) {
                 if (!nvi->IsExpanded()) {
                     // Expand without OnExpandChanged → Relayout storm on the click frame.
-                    DSL::Borrow(nvi).IsExpandedSilent(true);
+                    nvi->SetIsExpandedSilent(true);
                     expandedAny = true;
                 }
                 return true;
@@ -1024,8 +1022,8 @@ void NavigationView::UpdateChildCompactFlags() {
 
     auto apply = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> void {
         if (auto* item = dynamic_cast<NavigationViewItem*>(node.get())) {
-            DSL::Borrow(item).Compact(compact);
-            DSL::Borrow(item).TopMode(top);
+            item->SetCompact(compact);
+            item->SetTopMode(top);
             for (auto& child : item->MenuItems()) {
                 self(self, child);
             }
@@ -1034,8 +1032,8 @@ void NavigationView::UpdateChildCompactFlags() {
     for (auto& item : m_menuItems) apply(apply, item);
     for (auto& item : m_footerItems) apply(apply, item);
     if (m_settingsItem) {
-        DSL::Borrow(m_settingsItem).Compact(compact);
-        DSL::Borrow(m_settingsItem).TopMode(top);
+        m_settingsItem->SetCompact(compact);
+        m_settingsItem->SetTopMode(top);
     }
 }
 
@@ -1051,8 +1049,8 @@ void NavigationView::UpdateSelectionVisuals() {
                 }
             }
             const bool selected = (item == m_selectedItem);
-            DSL::Borrow(item).IsSelected(selected);
-            DSL::Borrow(item).IsChildSelected(childSelected && !selected);
+            item->SetIsSelected(selected);
+            item->SetIsChildSelected(childSelected && !selected);
             ancestorSelected = selected || childSelected;
             return ancestorSelected;
         }
@@ -1068,8 +1066,8 @@ void NavigationView::UpdateSelectionVisuals() {
         walk(walk, item, dummy);
     }
     if (m_settingsItem) {
-        DSL::Borrow(m_settingsItem).IsSelected(m_settingsItem.get() == m_selectedItem);
-        DSL::Borrow(m_settingsItem).IsChildSelected(false);
+        m_settingsItem->SetIsSelected(m_settingsItem.get() == m_selectedItem);
+        m_settingsItem->SetIsChildSelected(false);
     }
 }
 
@@ -1169,12 +1167,12 @@ void NavigationView::RelayoutChildren(bool measureContent) {
     const bool compactList = IsCompactList();
 
     if (m_btnBack) {
-        DSL::Borrow(m_btnBack).Visibility(showBack ? Visibility::Visible : Visibility::Collapsed);
+        m_btnBack->SetVisibility(showBack ? Visibility::Visible : Visibility::Collapsed);
     }
     if (m_btnToggle) {
         // Toggle hidden in Top mode and Forced Left-Expanded (optional: still show).
         const bool showToggle = !top && m_paneDisplayMode != NavigationViewPaneDisplayMode::Left;
-        DSL::Borrow(m_btnToggle).Visibility(showToggle ? Visibility::Visible : Visibility::Collapsed);
+        m_btnToggle->SetVisibility(showToggle ? Visibility::Visible : Visibility::Collapsed);
     }
 
     if (top) {
@@ -1190,7 +1188,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
             m_btnToggle->Arrange(Rect(0, 0, 0, 0));
         }
         if (m_menuScroll) {
-            DSL::Borrow(m_menuScroll).Visibility(Visibility::Collapsed);
+            m_menuScroll->SetVisibility(Visibility::Collapsed);
         }
 
         // Ensure menu items are direct children for Top hit-test (outside collapsed ScrollViewer).
@@ -1199,7 +1197,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
             auto childrenCopy = m_menuHost->GetChildren();
             for (auto& child : childrenCopy) {
                 m_menuHost->RemoveChild(child);
-                DSL::Borrow(this).AddChild(child);
+                this->AddChild(child);
             }
         }
 
@@ -1219,17 +1217,17 @@ void NavigationView::RelayoutChildren(bool measureContent) {
                 dynamic_cast<NavigationViewItem*>(base)
                     ? dynamic_cast<NavigationViewItem*>(base)->GetContent().size() * 8.0f
                     : 40));
-            DSL::Borrow(base).Visibility(Visibility::Visible);
+            base->SetVisibility(Visibility::Visible);
             base->Measure(Size(itemW, kTopNavHeight - 8.0f));
             base->Arrange(Rect(x, yRow, itemW, kTopNavHeight - 8.0f));
             x += itemW + 4.0f;
         }
 
         if (m_autoSuggestBox) {
-            DSL::Borrow(m_autoSuggestBox).Visibility(Visibility::Collapsed);
+            m_autoSuggestBox->SetVisibility(Visibility::Collapsed);
         }
         if (m_paneFooter) {
-            DSL::Borrow(m_paneFooter).Visibility(Visibility::Collapsed);
+            m_paneFooter->SetVisibility(Visibility::Collapsed);
         }
     } else {
         EnsureMenuScroll();
@@ -1263,7 +1261,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
         }
 
         if (m_autoSuggestBox && !compactList && pane.width > 80.0f) {
-            DSL::Borrow(m_autoSuggestBox).Visibility(Visibility::Visible);
+            m_autoSuggestBox->SetVisibility(Visibility::Visible);
             constexpr float kSuggestInset = 16.0f;
             const float availW = (std::max)(40.0f, pane.width - kSuggestInset * 2.0f);
             m_autoSuggestBox->Measure(Size(availW, 80.0f));
@@ -1271,7 +1269,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
             m_autoSuggestBox->Arrange(Rect(pane.x + kSuggestInset, y, availW, boxH));
             y += boxH + 8.0f;
         } else if (m_autoSuggestBox) {
-            DSL::Borrow(m_autoSuggestBox).Visibility(Visibility::Collapsed);
+            m_autoSuggestBox->SetVisibility(Visibility::Collapsed);
         }
 
         const float itemW = (std::max)(36.0f, pane.width - 8.0f);
@@ -1279,24 +1277,24 @@ void NavigationView::RelayoutChildren(bool measureContent) {
         // Footer + settings pinned to bottom (outside scroll viewport).
         float footerY = pane.y + pane.height - 4.0f;
         if (m_paneFooter && !compactList && pane.width > 80.0f) {
-            DSL::Borrow(m_paneFooter).Visibility(Visibility::Visible);
+            m_paneFooter->SetVisibility(Visibility::Visible);
             m_paneFooter->Measure(Size(pane.width - 16.0f, 40.0f));
             const float fh = m_paneFooter->GetDesiredSize().height;
             footerY -= fh;
             m_paneFooter->Arrange(Rect(pane.x + 8.0f, footerY, pane.width - 16.0f, fh));
             footerY -= 4.0f;
         } else if (m_paneFooter) {
-            DSL::Borrow(m_paneFooter).Visibility(Visibility::Collapsed);
+            m_paneFooter->SetVisibility(Visibility::Collapsed);
         }
 
         if (m_settingsVisible && m_settingsItem) {
-            DSL::Borrow(m_settingsItem).Visibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
+            m_settingsItem->SetVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
             m_settingsItem->Measure(Size(itemW, 40.0f));
             footerY -= m_settingsItem->GetDesiredSize().height;
             m_settingsItem->Arrange(Rect(pane.x + 4.0f, footerY, itemW, m_settingsItem->GetDesiredSize().height));
             footerY -= 2.0f;
         } else if (m_settingsItem) {
-            DSL::Borrow(m_settingsItem).Visibility(Visibility::Collapsed);
+            m_settingsItem->SetVisibility(Visibility::Collapsed);
         }
 
         std::vector<NavigationViewItemBase*> footerVisible;
@@ -1305,7 +1303,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
         }
         for (int i = static_cast<int>(footerVisible.size()) - 1; i >= 0; --i) {
             auto* base = footerVisible[static_cast<size_t>(i)];
-            DSL::Borrow(base).Visibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
+            base->SetVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
             base->Measure(Size(itemW, 40.0f));
             footerY -= base->GetDesiredSize().height;
             base->Arrange(Rect(pane.x + 4.0f, footerY, itemW, base->GetDesiredSize().height));
@@ -1318,7 +1316,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
         const float menuBottomY = (std::max)(menuTopY, footerY - 4.0f);
         const float menuH = (std::max)(0.0f, menuBottomY - menuTopY);
         if (m_menuScroll) {
-            DSL::Borrow(m_menuScroll).Visibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
+            m_menuScroll->SetVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
             // Use full pane width so the overlay scrollbar sits on the right edge.
             m_menuScroll->Measure(Size(pane.width, menuH));
             m_menuScroll->Arrange(Rect(pane.x, menuTopY, pane.width, menuH));
@@ -1334,14 +1332,14 @@ void NavigationView::RelayoutChildren(bool measureContent) {
             const float inv = 1.0f - t;
             const float ease = 1.0f - inv * inv * inv;
             if (m_contentNext) {
-                DSL::Borrow(m_contentNext).Opacity(ease);
-                DSL::Borrow(m_contentNext).Visibility(Visibility::Visible);
+                m_contentNext->SetOpacity(ease);
+                m_contentNext->SetVisibility(Visibility::Visible);
                 m_contentNext->Measure(Size(contentRect.width, contentRect.height));
                 m_contentNext->Arrange(contentRect);
             }
         } else if (m_content) {
-            DSL::Borrow(m_content).Opacity(1.0f);
-            DSL::Borrow(m_content).Visibility(Visibility::Visible);
+            m_content->SetOpacity(1.0f);
+            m_content->SetVisibility(Visibility::Visible);
             m_content->Measure(Size(contentRect.width, contentRect.height));
             m_content->Arrange(contentRect);
         }
@@ -1353,10 +1351,10 @@ void NavigationView::RelayoutChildren(bool measureContent) {
 void NavigationView::ArrangeContentHost() {
     const Rect contentRect = GetContentAreaRect();
     if (m_contentAnimating && m_contentNext) {
-        DSL::Borrow(m_contentNext).Visibility(Visibility::Visible);
+        m_contentNext->SetVisibility(Visibility::Visible);
         m_contentNext->Arrange(contentRect);
     } else if (m_content) {
-        DSL::Borrow(m_content).Visibility(Visibility::Visible);
+        m_content->SetVisibility(Visibility::Visible);
         m_content->Arrange(contentRect);
     }
 }
@@ -1545,7 +1543,7 @@ bool NavigationView::OnAnimationTick() {
         const float ease = 1.0f - inv * inv * inv;
         if (m_contentNext) {
             m_contentNext->PromoteLayer(true);
-            DSL::Borrow(m_contentNext).ComposeOpacity(ease);
+            m_contentNext->SetComposeOpacity(ease);
             // Keep layout origin stable; opacity-only entrance avoids text snap jitter.
             m_contentNext->Arrange(contentRect);
         }
@@ -1557,7 +1555,7 @@ bool NavigationView::OnAnimationTick() {
         m_contentAnimating = false;
         m_contentFadeAnim.Reset(1.0f);
         if (m_content) {
-            DSL::Borrow(m_content).Opacity(1.0f);
+            m_content->SetOpacity(1.0f);
         }
         RelayoutChildren();
         EnsureContentZOrder();

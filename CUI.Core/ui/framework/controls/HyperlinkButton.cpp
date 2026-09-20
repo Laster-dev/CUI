@@ -5,17 +5,17 @@
 namespace CUI {
 
 HyperlinkButton::HyperlinkButton() {
-    DSL::Borrow(this)
-        .Text("HyperlinkButton")
-        .ForegroundToken(ThemeTokenId::AccentColor)
-        .Foreground(ThemeManager::Instance().GetColor("accentColor"))
-        .FontSize(12.0f)
-        .FontFamily("微软雅黑")
-        .Padding(2.0f, 2.0f, 2.0f, 2.0f);
+    this->SetText("HyperlinkButton");
+    this->SetColorToken(ThemeTokenId::AccentColor);
+    this->SetColor(ThemeManager::Instance().GetColor("accentColor"));
+    this->SetFontSize(12.0f);
+    this->SetFontFamily("微软雅黑");
+    this->SetPadding(Thickness(2.0f, 2.0f, 2.0f, 2.0f));
 }
 
 HyperlinkButton::HyperlinkButton(const std::string& text, const std::string& uri) : HyperlinkButton() {
-    DSL::Borrow(this).Text(text).NavigateUri(uri);
+    this->SetText(text);
+    this->SetNavigateUri(uri);
 }
 
 Value HyperlinkButton::GetProperty(PropertyId id) const {

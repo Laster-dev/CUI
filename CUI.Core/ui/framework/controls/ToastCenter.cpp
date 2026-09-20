@@ -8,7 +8,7 @@
 namespace CUI {
 
 ToastCenter::ToastCenter() {
-    DSL::Borrow(this).Visibility(Visibility::Visible);
+    this->SetVisibility(Visibility::Visible);
 }
 
 Size ToastCenter::Measure(Size availableSize) {
@@ -134,13 +134,13 @@ ToastType AutoDetectTypeFromTitle(const std::string& title, ToastType defaultTyp
 }
 
 std::shared_ptr<Toast> ToastCenter::ShowToast(const std::string& title, const std::string& message, ToastType type, ToastCorner corner, int durationMs) {
-    auto toast = DSL::Fluent::Control<Toast>()
+    auto toast = Widgets::Toast()
         .Title(title)
         .Message(message)
-        .ToastTypeValue(AutoDetectTypeFromTitle(title, type))
         .Corner(corner)
         .DurationMs(durationMs)
-        .Build();
+        .Shared();
+    toast->SetType(AutoDetectTypeFromTitle(title, type));
     return AddToast(toast);
 }
 
@@ -151,12 +151,12 @@ std::shared_ptr<Toast> ToastCenter::ShowToast(const std::string& title, const st
 std::shared_ptr<Toast> ToastCenter::ShowFromTemplate(const UIElement* toastTemplate,
     const std::string& titleOverride,
     const std::string& messageOverride) {
-    auto toast = DSL::Fluent::Control<Toast>().Build();
+    auto toast = Widgets::Toast().Shared();
     if (toastTemplate) {
         toast->ApplyFrom(toastTemplate);
     }
-    if (!titleOverride.empty()) DSL::Borrow(toast).Title(titleOverride);
-    if (!messageOverride.empty()) DSL::Borrow(toast).Message(messageOverride);
+    if (!titleOverride.empty()) toast->SetTitle(titleOverride);
+    if (!messageOverride.empty()) toast->SetMessage(messageOverride);
     return AddToast(toast);
 }
 
@@ -189,7 +189,7 @@ std::shared_ptr<ToastCenter> ToastCenter::Ensure(UIElement* root) {
 
     auto center = std::make_shared<ToastCenter>();
     center->SetId("toastCenter");
-    DSL::Borrow(root).AddChild(center);
+    root->AddChild(center);
     return center;
 }
 

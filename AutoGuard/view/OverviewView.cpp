@@ -73,8 +73,8 @@ std::shared_ptr<UIElement> OverviewView::Build() {
     };
 
     auto entranceWrap = std::make_shared<WrapPanel>(Orientation::Horizontal);
-    DSL::Borrow(entranceWrap).Gap(8.0f);
-    DSL::Borrow(entranceWrap).Align(Alignment::Stretch);
+        entranceWrap->SetGap(8.0f);
+        entranceWrap->SetAlign(Alignment::Stretch);
 
     entranceWrap->AddChild(makeEntrance("👤", "登录自启动 (Run)", "logon"));
     entranceWrap->AddChild(makeEntrance("📁", "资源管理器 & COM", "explorer"));
@@ -96,9 +96,9 @@ std::shared_ptr<UIElement> OverviewView::Build() {
     .Build();
 
     auto scroll = std::make_shared<ScrollViewer>();
-    DSL::Borrow(scroll).Align(Alignment::Stretch);
-    DSL::Borrow(scroll).FlexGrow(1.0f);
-    DSL::Borrow(scroll).AddChild(content);
+        scroll->SetAlign(Alignment::Stretch);
+        scroll->SetFlexGrow(1.0f);
+        scroll->AddChild(content);
     return scroll;
 }
 

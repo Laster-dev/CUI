@@ -454,7 +454,7 @@ void FileBrowserSession::RenderFilterDropdown(
 }
 
 FileBrowserBreadcrumbHost::FileBrowserBreadcrumbHost() {
-    m_bar = DSL::Fluent::Control<BreadcrumbBar>()
+    m_bar = Widgets::BreadcrumbBar()
         .FontFamily("Segoe UI")
         .FontSize(12.0f)
         .Height(FileBrowserSession::kHeaderH - 1.0f)
@@ -464,7 +464,8 @@ FileBrowserBreadcrumbHost::FileBrowserBreadcrumbHost() {
         .BorderToken(ThemeTokenId::Unset)
         .ForegroundToken(ThemeTokenId::TextSecondary)
         .ActiveColorToken(ThemeTokenId::TextPrimary)
-        .OnBreadcrumbItemClicked([this](BreadcrumbBar*, int index, const std::string&) {
+        .Shared();
+    m_bar->OnItemClicked().Connect([this](BreadcrumbBar*, int index, const std::string&) {
         if (!m_onNavigate) {
             return;
         }
@@ -476,7 +477,7 @@ void FileBrowserBreadcrumbHost::AttachTo(UIElement* owner) {
     if (!owner || !m_bar) {
         return;
     }
-    DSL::Borrow(m_bar).OverlayComposed(true);
+    m_bar->SetOverlayComposed(true);
     owner->AddChildQuiet(m_bar);
 }
 
@@ -485,7 +486,7 @@ void FileBrowserBreadcrumbHost::SetNavigateHandler(NavigateCallback handler) {
 }
 
 void FileBrowserBreadcrumbHost::Sync(const std::string& currentPath) {
-    DSL::Borrow(m_bar).PathNodes(BuildFileBrowserBreadcrumb(currentPath));
+    m_bar->SetPath(BuildFileBrowserBreadcrumb(currentPath));
 }
 
 void FileBrowserBreadcrumbHost::Layout(const FileBrowserSession& session, const Rect& pop) {
@@ -519,7 +520,7 @@ Rect FileBrowserBreadcrumbHost::GetOverflowMenuClientBounds() const {
 }
 
 FileBrowserTreeHost::FileBrowserTreeHost() {
-    m_tree = DSL::Fluent::Control<TreeView>()
+    m_tree = Widgets::TreeView()
         .FontFamily("Segoe UI")
         .FontSize(12.0f)
         .CornerRadius(0.0f)
@@ -532,7 +533,7 @@ FileBrowserTreeHost::FileBrowserTreeHost() {
         .IndentWidth(16.0f)
         .Build();
 
-    DSL::Borrow(m_tree).OnSelectionChanged([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
+    m_tree->OnSelectionChanged().Connect([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
         if (!item || item->tag.empty() || IsPlaceholderChild(item)) {
             return;
         }
@@ -547,7 +548,7 @@ FileBrowserTreeHost::FileBrowserTreeHost() {
         }
     });
 
-    DSL::Borrow(m_tree).OnItemToggled([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
+    m_tree->OnItemToggled().Connect([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
         if (!item || m_loadingGuard) {
             return;
         }
@@ -556,7 +557,7 @@ FileBrowserTreeHost::FileBrowserTreeHost() {
         }
     });
 
-    DSL::Borrow(m_tree).OnItemDoubleClicked([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
+    m_tree->OnItemDoubleClicked().Connect([this](TreeView*, std::shared_ptr<TreeViewItem> item) {
         if (!item || item->tag.empty() || IsPlaceholderChild(item)) {
             return;
         }
@@ -577,7 +578,7 @@ void FileBrowserTreeHost::AttachTo(UIElement* owner) {
     if (!owner || !m_tree) {
         return;
     }
-    DSL::Borrow(m_tree).OverlayComposed(true);
+    m_tree->SetOverlayComposed(true);
     owner->AddChildQuiet(m_tree);
 }
 
@@ -740,14 +741,14 @@ void FileBrowserTreeHost::RebuildRoots(const FileBrowserSession& session) {
     for (auto& child : computer->children) {
         child->parent = computer.get();
     }
-    DSL::Borrow(m_tree).AddTreeItem(computer);
+    m_tree->AddItem(computer);
 }
 
 void FileBrowserTreeHost::ExpandToPath(const std::string& path, const FileBrowserSession& session) {
     if (path.empty()) {
         auto roots = m_tree->GetItems();
         if (!roots.empty()) {
-            DSL::Borrow(m_tree).SelectedTreeItem(roots[0]);
+            m_tree->SetSelectedItem(roots[0]);
         }
         return;
     }
@@ -801,7 +802,7 @@ void FileBrowserTreeHost::ExpandToPath(const std::string& path, const FileBrowse
         current->isExpanded = true;
         current->expandAnim.Reset(1.0f);
         m_tree->InvalidateVisibleItems();
-        DSL::Borrow(m_tree).SelectedTreeItem(current);
+        m_tree->SetSelectedItem(current);
     }
 }
 
@@ -854,7 +855,8 @@ void FileBrowserTreeHost::GoUp(const FileBrowserSession& session) {
 
 void FileBrowserTreeHost::Layout(const Rect& listRect) {
     m_tree->SetBounds(listRect);
-    DSL::Borrow(m_tree).Width(listRect.width).Height(listRect.height);
+    m_tree->SetWidth(listRect.width);
+    m_tree->SetHeight(listRect.height);
 }
 
 void FileBrowserTreeHost::Render(GraphicsContext& ctx) {

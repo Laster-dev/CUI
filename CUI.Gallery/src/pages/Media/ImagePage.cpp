@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <wincodec.h>
 #include <wrl/client.h>
 #include <windows.h>
@@ -120,13 +124,13 @@ std::string EnsureCheckerPng() {
 }
 
 std::shared_ptr<Image> MakePreview(float w, float h, Stretch stretch) {
-    auto img = Fluent::Control<Image>().Build();
-    ElementBuilder<Image>(img).Width(w);
-    ElementBuilder<Image>(img).Height(h);
-    ElementBuilder<Image>(img).StretchMode(stretch);
-    ElementBuilder<Image>(img).CornerRadius(6.0f);
-    ElementBuilder<Image>(img).BorderThickness(1.0f);
-    ElementBuilder<Image>(img).BorderToken(ThemeTokenId::CardBorder);
+    auto img = Widgets::Image().Shared();
+    img->SetWidth(w);
+    img->SetHeight(h);
+    img->SetStretch(stretch);
+    img->SetCornerRadius(6.0f);
+    img->SetBorderThickness(1.0f);
+    img->SetBorderToken(ThemeTokenId::CardBorder);
     return img;
 }
 
@@ -158,25 +162,24 @@ Element BuildImagePage() {
 
     // ---------- 1. 文件图像加载 ----------
     auto preview = MakePreview(300.0f, 170.0f, Stretch::Uniform);
-    CUI::DSL::Borrow(preview).Source(wallpaper ? wallpaper : gradient);
+        preview->SetSource(wallpaper ? wallpaper : gradient);
 
     auto status = MakeStatus("就绪。点击按钮或选择本地图片文件加载预览。");
 
     auto applySource = [preview, status](const std::string& path) {
-        if (DSL::Borrow(preview).Source(path)) {
-            status->Text = std::format("[Image] {}  {}x{}px",
-                                       path, preview->GetPixelWidth(), preview->GetPixelHeight());
+        if (preview->SetSource(path)) {
+            status->Text = std::format("[Image] 已加载: {}", path);
         } else {
             status->Text = std::format("[Image] 加载失败: {}  ({})", preview->GetLoadError(), path);
         }
     };
 
-    auto picker = Fluent::Control<FilePicker>().Build();
-    ElementBuilder<FilePicker>(picker).Width(320.0f);
-    ElementBuilder<FilePicker>(picker).Height(32.0f);
-    ElementBuilder<FilePicker>(picker).Filter("图片", "*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.ico");
-    ElementBuilder<FilePicker>(picker).DialogTitle("选择图片");
-    ElementBuilder<FilePicker>(picker).OnPathChanged([applySource](FilePicker*, const std::string& path) {
+    auto picker = Widgets::FilePicker().Shared();
+    picker->SetWidth(320.0f);
+    picker->SetHeight(32.0f);
+    picker->SetFilter("图片", "*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.ico");
+    picker->SetDialogTitle("选择图片");
+    picker->OnPathChanged().Connect([applySource](FilePicker*, const std::string& path) {
         applySource(path);
     });
 
@@ -190,68 +193,68 @@ Element BuildImagePage() {
     auto stretchLabel = MakeStatus("当前拉伸: Uniform（等比缩放，完整显示）");
 
     auto btnU = ElevatedButton("Uniform", [preview, stretchLabel](UIElement*) {
-        ElementBuilder<Image>(preview).StretchMode(Stretch::Uniform);
+        preview->SetStretch(Stretch::Uniform);
         stretchLabel->Text = "当前拉伸: Uniform — 等比缩放，完整显示（两侧留白）";
     }).Build();
     auto btnF = ElevatedButton("Fill", [preview, stretchLabel](UIElement*) {
-        ElementBuilder<Image>(preview).StretchMode(Stretch::Fill);
+        preview->SetStretch(Stretch::Fill);
         stretchLabel->Text = "当前拉伸: Fill — 强行拉伸充满，可能变形";
     }).Build();
     auto btnN = ElevatedButton("None", [preview, stretchLabel](UIElement*) {
-        ElementBuilder<Image>(preview).StretchMode(Stretch::None);
+        preview->SetStretch(Stretch::None);
         stretchLabel->Text = "当前拉伸: None — 保持原始像素大小";
     }).Build();
     auto btnC = ElevatedButton("UniformToFill", [preview, stretchLabel](UIElement*) {
-        ElementBuilder<Image>(preview).StretchMode(Stretch::UniformToFill);
+        preview->SetStretch(Stretch::UniformToFill);
         stretchLabel->Text = "当前拉伸: UniformToFill — 等比放大填满，多余裁剪";
     }).Build();
 
     // ---------- 2. 四种拉伸模式对比 ----------
     auto uniform = MakePreview(160.0f, 100.0f, Stretch::Uniform);
-    ElementBuilder<Image>(uniform).Source(gradient);
+    uniform->SetSource(gradient);
     auto fill = MakePreview(160.0f, 100.0f, Stretch::Fill);
-    ElementBuilder<Image>(fill).Source(gradient);
+    fill->SetSource(gradient);
     auto none = MakePreview(160.0f, 100.0f, Stretch::None);
-    ElementBuilder<Image>(none).Source(checker);
+    none->SetSource(checker);
     auto cover = MakePreview(160.0f, 100.0f, Stretch::UniformToFill);
-    ElementBuilder<Image>(cover).Source(checker);
+    cover->SetSource(checker);
 
     // ---------- 3. 占位绘制模式（无需文件） ----------
-    auto avatar1 = Fluent::Control<Image>(ImageType::Avatar, "CUI", Rgb(0x007ACC)).Build();
-    ElementBuilder<Image>(avatar1).Width(56.0f);
-    ElementBuilder<Image>(avatar1).Height(56.0f);
-    auto avatar2 = Fluent::Control<Image>(ImageType::Avatar, "BU", Rgb(0x13A10E)).Build();
-    ElementBuilder<Image>(avatar2).Width(56.0f);
-    ElementBuilder<Image>(avatar2).Height(56.0f);
-    auto avatar3 = Fluent::Control<Image>(ImageType::Avatar, "FF", Rgb(0xD83B01)).Build();
-    ElementBuilder<Image>(avatar3).Width(56.0f);
-    ElementBuilder<Image>(avatar3).Height(56.0f);
+    auto avatar1 = Widgets::Image(ImageType::Avatar, "CUI", Rgb(0x007ACC)).Shared();
+    avatar1->SetWidth(56.0f);
+    avatar1->SetHeight(56.0f);
+    auto avatar2 = Widgets::Image(ImageType::Avatar, "BU", Rgb(0x13A10E)).Shared();
+    avatar2->SetWidth(56.0f);
+    avatar2->SetHeight(56.0f);
+    auto avatar3 = Widgets::Image(ImageType::Avatar, "FF", Rgb(0xD83B01)).Shared();
+    avatar3->SetWidth(56.0f);
+    avatar3->SetHeight(56.0f);
 
-    auto iconPng = Fluent::Control<Image>(ImageType::FileIcon, "PNG").Build();
-    ElementBuilder<Image>(iconPng).Width(52.0f);
-    ElementBuilder<Image>(iconPng).Height(52.0f);
-    auto iconDoc = Fluent::Control<Image>(ImageType::FileIcon, "DOC").Build();
-    ElementBuilder<Image>(iconDoc).Width(52.0f);
-    ElementBuilder<Image>(iconDoc).Height(52.0f);
-    auto iconXls = Fluent::Control<Image>(ImageType::FileIcon, "XLS").Build();
-    ElementBuilder<Image>(iconXls).Width(52.0f);
-    ElementBuilder<Image>(iconXls).Height(52.0f);
+    auto iconPng = Widgets::Image(ImageType::FileIcon, "PNG").Shared();
+    iconPng->SetWidth(52.0f);
+    iconPng->SetHeight(52.0f);
+    auto iconDoc = Widgets::Image(ImageType::FileIcon, "DOC").Shared();
+    iconDoc->SetWidth(52.0f);
+    iconDoc->SetHeight(52.0f);
+    auto iconXls = Widgets::Image(ImageType::FileIcon, "XLS").Shared();
+    iconXls->SetWidth(52.0f);
+    iconXls->SetHeight(52.0f);
 
-    auto badgeOnline = Fluent::Control<Image>(ImageType::StatusBadge, "").Build();
-    ElementBuilder<Image>(badgeOnline).Width(18.0f);
-    ElementBuilder<Image>(badgeOnline).Height(18.0f);
-    ElementBuilder<Image>(badgeOnline).BadgeColor(Rgb(0x13A10E));
-    ElementBuilder<Image>(badgeOnline).BadgeText("●");
-    auto badgeWarn = Fluent::Control<Image>(ImageType::StatusBadge, "").Build();
-    ElementBuilder<Image>(badgeWarn).Width(18.0f);
-    ElementBuilder<Image>(badgeWarn).Height(18.0f);
-    ElementBuilder<Image>(badgeWarn).BadgeColor(Rgb(0xFFB900));
-    ElementBuilder<Image>(badgeWarn).BadgeText("!");
-    auto badgeErr = Fluent::Control<Image>(ImageType::StatusBadge, "").Build();
-    ElementBuilder<Image>(badgeErr).Width(18.0f);
-    ElementBuilder<Image>(badgeErr).Height(18.0f);
-    ElementBuilder<Image>(badgeErr).BadgeColor(Rgb(0xE74856));
-    ElementBuilder<Image>(badgeErr).BadgeText("✕");
+    auto badgeOnline = Widgets::Image(ImageType::StatusBadge, "").Shared();
+    badgeOnline->SetWidth(18.0f);
+    badgeOnline->SetHeight(18.0f);
+    badgeOnline->SetBadgeColor(Rgb(0x13A10E));
+    badgeOnline->SetBadgeText("●");
+    auto badgeWarn = Widgets::Image(ImageType::StatusBadge, "").Shared();
+    badgeWarn->SetWidth(18.0f);
+    badgeWarn->SetHeight(18.0f);
+    badgeWarn->SetBadgeColor(Rgb(0xFFB900));
+    badgeWarn->SetBadgeText("!");
+    auto badgeErr = Widgets::Image(ImageType::StatusBadge, "").Shared();
+    badgeErr->SetWidth(18.0f);
+    badgeErr->SetHeight(18.0f);
+    badgeErr->SetBadgeColor(Rgb(0xE74856));
+    badgeErr->SetBadgeText("✕");
 
     SamplePageSpec spec;
     spec.title = "Image (图像)";
@@ -296,16 +299,16 @@ Element BuildImagePage() {
 
     spec.source = R"(
 // 1) 加载磁盘图片文件（WIC 异步解码）
-auto image = Fluent::Control<Image>()\n    .Width(300.0f)\n    .Height(170.0f)\n    .StretchMode(Stretch::Uniform)\n    .Source("C:\\path\\to\\photo.png")\n    .Build();
+auto image = Widgets::Image()\n    .Width(300.0f)\n    .Height(170.0f)\n    .StretchMode(Stretch::Uniform)\n    .Source("C:\\path\\to\\photo.png")\n    .Shared();
 // Source 已在 Fluent Builder 中配置。
 
 // 2) 内建占位绘制（无需文件）
-auto avatar = Fluent::Control<Image>(ImageType::Avatar, "CUI", Rgb(0x007ACC)).Build();
-auto icon   = Fluent::Control<Image>(ImageType::FileIcon, "PNG").Build();
-auto badge  = Fluent::Control<Image>(ImageType::StatusBadge, "").Build();
+auto avatar = Widgets::Image(ImageType::Avatar, "CUI", Rgb(0x007ACC)).Shared();
+auto icon   = Widgets::Image(ImageType::FileIcon, "PNG").Shared();
+auto badge  = Widgets::Image(ImageType::StatusBadge, "").Shared();
 
 // 3) 拉伸规则
-ElementBuilder<Image>(image).StretchMode(Stretch::Fill); // None / Fill / Uniform / UniformToFill
+image->SetStretch(Stretch::Fill); // None / Fill / Uniform / UniformToFill
 
 // 4) 像素信息与错误查询
 int w = image->GetPixelWidth();

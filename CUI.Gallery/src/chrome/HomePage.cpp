@@ -26,20 +26,21 @@ Element BuildHomePage() {
             continue;
         }
 
-        auto wrap = std::make_shared<WrapPanel>(Orientation::Horizontal);
-        CUI::DSL::Borrow(wrap).Gap(12.0f);
-        CUI::DSL::Borrow(wrap).JustifyLines(true);
-        CUI::DSL::Borrow(wrap).FillLastLine(true);
-        CUI::DSL::Borrow(wrap).Align(Alignment::Stretch);
+        auto wrap = std::make_shared<WrapPanel>();
+        wrap->SetOrientation(Orientation::Horizontal);
+                wrap->SetGap(12.0f);
+                wrap->SetJustifyLines(true);
+                wrap->SetFillLastLine(true);
+                wrap->SetAlign(Alignment::Stretch);
 
         for (const Entry* entry : items) {
             auto card = Column(6, {
                 MakeLabel(entry->title, 15.0f, ThemeTokenId::TextPrimary, true),
                 MakeLabel(entry->subtitle, 12.0f, ThemeTokenId::TextMuted, false),
             }).MinWidth(180).Padding(16).CornerRadius(6).Build();
-            CUI::DSL::Borrow(card).BackgroundToken(ThemeTokenId::CardBackground);
-            CUI::DSL::Borrow(card).BorderToken(ThemeTokenId::CardBorder);
-            CUI::DSL::Borrow(card).BorderThickness(1.0f);
+                        card->SetBackgroundToken(ThemeTokenId::CardBackground);
+                        card->SetBorderToken(ThemeTokenId::CardBorder);
+                        card->SetBorderThickness(1.0f);
             const std::string tag = entry->tag;
             auto go = [tag](UIElement*) {
                 Host::Instance().Navigate(tag);
@@ -50,7 +51,7 @@ Element BuildHomePage() {
                     child->OnClick().Connect(go);
                 }
             }
-            CUI::DSL::Borrow(wrap).AddChild(card);
+                        wrap->AddChild(card);
         }
 
         body.AddChild(Column(10, {
@@ -60,13 +61,13 @@ Element BuildHomePage() {
     }
 
     auto column = body.Build();
-    CUI::DSL::Borrow(column).BackgroundToken(ThemeTokenId::WindowBackground);
+        column->SetBackgroundToken(ThemeTokenId::WindowBackground);
 
     auto scroll = std::make_shared<ScrollViewer>();
-    CUI::DSL::Borrow(scroll).Align(Alignment::Stretch);
-    CUI::DSL::Borrow(scroll).FlexGrow(1.0f);
-    CUI::DSL::Borrow(scroll).BackgroundToken(ThemeTokenId::WindowBackground);
-    CUI::DSL::Borrow(scroll).AddChild(column);
+        scroll->SetAlign(Alignment::Stretch);
+        scroll->SetFlexGrow(1.0f);
+        scroll->SetBackgroundToken(ThemeTokenId::WindowBackground);
+        scroll->AddChild(column);
     return scroll;
 }
 

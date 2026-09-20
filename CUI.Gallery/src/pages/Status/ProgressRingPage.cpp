@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -9,9 +13,11 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<ProgressRing> MakeRing(float size, float value, bool indeterminate) {
-    auto ring = ProgressRingWidget(value, indeterminate);
-    CUI::DSL::Borrow(ring).Width(size);
-    CUI::DSL::Borrow(ring).Height(size);
+    auto ring = Widgets::ProgressRing().Shared();
+    ring->SetValue(value);
+    ring->SetIsIndeterminate(indeterminate);
+        ring->SetWidth(size);
+        ring->SetHeight(size);
     return ring;
 }
 
@@ -19,19 +25,24 @@ std::shared_ptr<ProgressRing> MakeRing(float size, float value, bool indetermina
 
 Element BuildProgressRingPage() {
     // 确定进度：滑块驱动弧线增长。
-    auto determinate = ProgressRingWidget(60.0f, false);
-    CUI::DSL::Borrow(determinate).Width(96.0f);
-    CUI::DSL::Borrow(determinate).Height(96.0f);
+    auto determinate = Widgets::ProgressRing().Shared();
+    determinate->SetValue(60.0f);
+    determinate->SetIsIndeterminate(false);
+        determinate->SetWidth(96.0f);
+        determinate->SetHeight(96.0f);
 
     State<float> value{ 60.0f };
-    auto slider = SliderWidget(60.0f, 0.0f, 100.0f);
-    CUI::DSL::Borrow(slider).Step(1.0f);
-    CUI::DSL::Borrow(slider).Width(280.0f);
+    auto slider = Widgets::Slider().Shared();
+    slider->SetMinimum(0.0f);
+    slider->SetMaximum(100.0f);
+    slider->SetValue(60.0f);
+        slider->SetStep(1.0f);
+        slider->SetWidth(280.0f);
     slider->ValueProperty.Bind(value);
 
     auto ring = determinate;
     value.OnChanged().Connect([ring](const float& v) {
-        CUI::DSL::Borrow(ring).Value(v);
+                ring->SetValue(v);
     });
 
     auto statusValue = MakeComputed<std::string>([](float v) {
@@ -42,7 +53,7 @@ Element BuildProgressRingPage() {
 
     auto indeterminate = ToggleSwitchTile("不确定模式", false);
     indeterminate->OnToggled().Connect([ring](ToggleSwitch*, bool on) {
-        CUI::DSL::Borrow(ring).IsIndeterminate(on);
+                ring->SetIsIndeterminate(on);
     });
 
     SamplePageSpec spec;
@@ -69,7 +80,7 @@ Element BuildProgressRingPage() {
         },
     };
     spec.source =
-        "auto ring = ProgressRingWidget(60.0f, false);\n"
+        "auto ring = Widgets::ProgressRing(60.0f, false).Shared();\n"
         "ring.Width(96.0f);\n"
         "ring.Height(96.0f);\n"
         "ring.Value(75.0f);          // 确定进度\n"

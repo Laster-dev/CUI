@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 CUI::Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
@@ -10,10 +14,10 @@ Element BuildTeachingTipPage() {
     // ── 1. 基础气泡 ─────────────────────────────────────────────────────
     auto btnBasic = Button("显示基础 TeachingTip")
         .OnClick([status](UIElement* src) {
-            auto tip = TeachingTipWidget();
-            tip.Title("欢迎使用 CUI 框架");
-            tip.Message("这是一个 TeachingTip 气泡指引示例。它会自动停靠在目标控件旁边，并带有小三角箭头指示来源。");
-            tip.ActionText("我知道了");
+            auto tip = CUI::Widgets::TeachingTip().Shared();
+            tip->SetTitle("欢迎使用 CUI 框架");
+            tip->SetMessage("这是一个 TeachingTip 气泡指引示例。它会自动停靠在目标控件旁边，并带有小三角箭头指示来源。");
+            tip->SetActionText("我知道了");
             tip->OnAction().Connect([status, tip]() {
             status->Text = "已点击【我知道了】，气泡已关闭。";
             tip->Close();
@@ -21,25 +25,25 @@ Element BuildTeachingTipPage() {
             tip->OnClosed().Connect([status]() {
             status->Text = "气泡已关闭。";
             });
-            CUI::DSL::Borrow(src).AddChild(tip);
+                        src->AddChild(tip);
             tip->ShowAround(src);
             });
 
     // ── 2. 无操作按钮、仅关闭叉 ────────────────────────────────────────
     auto btnCloseOnly = Button("仅关闭按钮");
-    CUI::DSL::Borrow(btnCloseOnly).BackgroundToken(ThemeTokenId::CardBackground);
-    CUI::DSL::Borrow(btnCloseOnly).ForegroundToken(ThemeTokenId::TextPrimary);
-    CUI::DSL::Borrow(btnCloseOnly).BorderToken(ThemeTokenId::CardBorder);
-    CUI::DSL::Borrow(btnCloseOnly).BorderThickness(1.0f);
+        btnCloseOnly->SetBackgroundToken(ThemeTokenId::CardBackground);
+    
+        btnCloseOnly->SetBorderToken(ThemeTokenId::CardBorder);
+        btnCloseOnly->SetBorderThickness(1.0f);
     btnCloseOnly->OnClick().Connect([status](UIElement* src) {
-        auto tip = TeachingTipWidget();
-        tip.Title("提示");
-        tip.Message("此提示没有操作按钮，只有右上角的关闭叉可以消退。");
-        tip.IsCloseVisible(true);
+        auto tip = CUI::Widgets::TeachingTip().Shared();
+        tip->SetTitle("提示");
+        tip->SetMessage("此提示没有操作按钮，只有右上角的关闭叉可以消退。");
+        tip->SetIsCloseVisible(true);
         tip->OnClosed().Connect([status]() {
             status->Text = "已通过关闭按钮消退气泡。";
         });
-        CUI::DSL::Borrow(src).AddChild(tip);
+                src->AddChild(tip);
         tip->ShowAround(src);
     });
 
@@ -49,19 +53,19 @@ Element BuildTeachingTipPage() {
     auto btnPlacementLeft   = Button("← Left");
     auto btnPlacementRight  = Button("→ Right");
 
-    CUI::DSL::Borrow(btnPlacementTop).Width(90.0f);
-    CUI::DSL::Borrow(btnPlacementBottom).Width(90.0f);
-    CUI::DSL::Borrow(btnPlacementLeft).Width(90.0f);
-    CUI::DSL::Borrow(btnPlacementRight).Width(90.0f);
+        btnPlacementTop->SetWidth(90.0f);
+        btnPlacementBottom->SetWidth(90.0f);
+        btnPlacementLeft->SetWidth(90.0f);
+        btnPlacementRight->SetWidth(90.0f);
 
     auto makeDirectionTip = [](UIElement* src, BubblePlacement p, const std::string& label) {
-        auto tip = TeachingTipWidget();
-        CUI::DSL::Borrow(tip).Title(label);
-        tip.Message("气泡将优先显示在此方向，边界受限时自动回退。");
-        tip.ActionText("关闭");
-        tip.PreferredPlacement(p);
+        auto tip = CUI::Widgets::TeachingTip().Shared();
+                tip->SetTitle(label);
+        tip->SetMessage("气泡将优先显示在此方向，边界受限时自动回退。");
+        tip->SetActionText("关闭");
+        tip->SetPreferredPlacement(p);
         tip->OnAction().Connect([tip]() { tip->Close(); });
-        CUI::DSL::Borrow(src).AddChild(tip);
+                src->AddChild(tip);
         tip->ShowAround(src);
     };
 
@@ -85,12 +89,12 @@ Element BuildTeachingTipPage() {
         .PressedBackground(Color::Hex("#082C6E"))
         .Foreground(Color::White)
         .OnClick([status](UIElement* src) {
-            auto tip = TeachingTipWidget();
-            tip.Title("新功能介绍：智能搜索");
-            tip.Message("使用顶部搜索栏可快速定位任意控件或页面。\n支持拼音首字母检索，按 Ctrl+K 随时唤出。");
-            tip.ActionText("立即体验");
-            tip.IsModal(true);
-            tip.PreferredPlacement(BubblePlacement::Auto);
+            auto tip = CUI::Widgets::TeachingTip().Shared();
+            tip->SetTitle("新功能介绍：智能搜索");
+            tip->SetMessage("使用顶部搜索栏可快速定位任意控件或页面。\n支持拼音首字母检索，按 Ctrl+K 随时唤出。");
+            tip->SetActionText("立即体验");
+            tip->SetIsModal(true);
+            tip->SetPreferredPlacement(BubblePlacement::Auto);
             tip->OnAction().Connect([status, tip]() {
             status->Text = "已点击【立即体验】，功能引导完成。";
             tip->Close();
@@ -98,27 +102,27 @@ Element BuildTeachingTipPage() {
             tip->OnClosed().Connect([status]() {
             status->Text = "模态气泡已关闭。";
             });
-            CUI::DSL::Borrow(src).AddChild(tip);
+                        src->AddChild(tip);
             tip->ShowAround(src);
             });
 
     // ── 5. 自动停靠（Auto） ─────────────────────────────────────────────
     auto btnAuto = Button("自动停靠（Auto）");
-    CUI::DSL::Borrow(btnAuto).BackgroundToken(ThemeTokenId::CardBackground);
-    CUI::DSL::Borrow(btnAuto).ForegroundToken(ThemeTokenId::TextPrimary);
-    CUI::DSL::Borrow(btnAuto).BorderToken(ThemeTokenId::CardBorder);
-    CUI::DSL::Borrow(btnAuto).BorderThickness(1.0f);
+        btnAuto->SetBackgroundToken(ThemeTokenId::CardBackground);
+    
+        btnAuto->SetBorderToken(ThemeTokenId::CardBorder);
+        btnAuto->SetBorderThickness(1.0f);
     btnAuto->OnClick().Connect([status](UIElement* src) {
-        auto tip = TeachingTipWidget();
-        tip.Title("自动方位（Auto）");
-        tip.Message("当 PreferredPlacement 设置为 Auto 时，框架根据目标控件的位置和视口空间自动选择最优停靠方向，确保气泡始终可见。");
-        tip.ActionText("明白了");
-        tip.PreferredPlacement(BubblePlacement::Auto);
+        auto tip = CUI::Widgets::TeachingTip().Shared();
+        tip->SetTitle("自动方位（Auto）");
+        tip->SetMessage("当 PreferredPlacement 设置为 Auto 时，框架根据目标控件的位置和视口空间自动选择最优停靠方向，确保气泡始终可见。");
+        tip->SetActionText("明白了");
+        tip->SetPreferredPlacement(BubblePlacement::Auto);
         tip->OnAction().Connect([status, tip]() {
             status->Text = "Auto 停靠示例完成。";
             tip->Close();
         });
-        CUI::DSL::Borrow(src).AddChild(tip);
+                src->AddChild(tip);
         tip->ShowAround(src);
     });
 
@@ -149,7 +153,7 @@ Element BuildTeachingTipPage() {
         },
     };
     spec.source =
-        "auto tip = TeachingTipWidget();\n"
+        "auto tip = CUI::Widgets::TeachingTip().Shared();\n"
         "tip.Title(\"标题\");\n"
         "tip.Message(\"详细说明文字。\");\n"
         "tip.ActionText(\"我知道了\");\n"

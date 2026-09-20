@@ -40,18 +40,16 @@ float EaseOutCubic(float t) {
 } // namespace
 
 ChartBase::ChartBase() {
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::CardBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .BorderThickness(1.0f)
-        .CornerRadius(6.0f)
-        .ForegroundToken(ThemeTokenId::TextSecondary)
-        .TitleColorToken(ThemeTokenId::TextPrimary)
-        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
-        .PressedBackground(D2D1::ColorF(0, 0, 0, 0))
-        .Width(-1.0f)
-        .Height(260.0f)
-        .ClipToBounds(true);
+        this->SetBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetBorderThickness(1.0f);
+    this->SetCornerRadius(6.0f);
+    this->SetTitleColorToken(ThemeTokenId::TextPrimary);
+    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->SetWidth(-1.0f);
+    this->SetHeight(260.0f);
+    this->SetClipToBounds(true);
     m_reveal.Reset(0.0f);
     m_reveal.SetTarget(1.0f);
 }

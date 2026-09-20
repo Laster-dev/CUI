@@ -13,24 +13,22 @@
 namespace CUI {
 
 ListBox::ListBox() {
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::CardBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .SelectedBackgroundToken(ThemeTokenId::SelectedBackground)
-        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-        .Background(ThemeManager::Instance().GetColor("cardBackground"))
-        .BorderBrush(ThemeManager::Instance().GetColor("cardBorder"))
-        .BorderThickness(1.0f)
-        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
-        .HoverBackground(ThemeManager::Instance().GetColor("hoverBackground"))
-        .FontSize(12.0f)
-        .FontFamily("微软雅黑")
-        .KeyboardNavigationMode(KeyboardNavigationMode::Contained)
-        .ItemHeight(28.0f)
-        .CornerRadius(4.0f)
-        .Width(240.0f)
-        .Height(300.0f);
+        this->SetBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    this->SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
+    this->SetBorderThickness(1.0f);
+    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
+    this->SetFontSize(12.0f);
+    this->SetFontFamily("微软雅黑");
+    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->SetItemHeight(28.0f);
+    this->SetCornerRadius(4.0f);
+    this->SetWidth(240.0f);
+    this->SetHeight(300.0f);
     SelectedIndex.Initialize(*this);
     m_itemsLayer.SetCacheable(true);
 }
@@ -77,7 +75,7 @@ void ListBox::AddItem(const std::string& item) {
 void ListBox::AddItem(std::shared_ptr<UIElement> customElement) {
     if (customElement) {
         m_itemDatas.push_back({ "", customElement });
-        DSL::Borrow(this).AddChild(customElement);
+        this->AddChild(customElement);
         InvalidateItemsLayer();
     }
 }
@@ -108,7 +106,7 @@ void ListBox::RemoveItem(int index) {
         return;
     }
     if (m_itemDatas[static_cast<size_t>(index)].customElement) {
-        DSL::Borrow(this).RemoveChild(m_itemDatas[static_cast<size_t>(index)].customElement);
+        this->RemoveChild(m_itemDatas[static_cast<size_t>(index)].customElement);
     }
     m_itemDatas.erase(m_itemDatas.begin() + index);
     if (m_selectedIndex == index) {

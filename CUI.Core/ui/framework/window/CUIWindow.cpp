@@ -9,21 +9,20 @@ namespace CUI {
 
 CUIWindow::CUIWindow(const std::string& title, int width, int height) {
     auto& theme = ThemeManager::Instance();
-    m_rootContainer = DSL::Fluent::StackPanel()
+    m_rootContainer = Widgets::StackPanel()
         .Orientation(Orientation::Vertical)
         .BackgroundToken(ThemeTokenId::WindowBackground)
         .Background(theme.GetColor("windowBackground"))
-        .Build();
+        .Shared();
 
     SetupHeader(title);
 
-    m_contentContainer = DSL::Fluent::Panel()
+    m_contentContainer = Widgets::Panel()
         .FlexGrow(1.0f)
         .Align(Alignment::Stretch)
-        .Build();
-    DSL::ElementBuilder<StackPanel>(m_rootContainer)
-        .AddChild(m_headerBar)
-        .AddChild(m_contentContainer);
+        .Shared();
+    m_rootContainer->AddChild(m_headerBar);
+    m_rootContainer->AddChild(m_contentContainer);
 
     m_window.Fluent()
         .Title(title)
@@ -34,26 +33,26 @@ CUIWindow::CUIWindow(const std::string& title, int width, int height) {
 
 void CUIWindow::SetupHeader(const std::string& title) {
     auto& theme = ThemeManager::Instance();
-    m_headerBar = DSL::Fluent::Panel()
+    m_headerBar = Widgets::Panel()
         .Height(32.0f)
         .BackgroundToken(ThemeTokenId::PaneBackground)
         .Background(theme.GetColor("paneBackground"))
-        .Build();
+        .Shared();
 
-    auto txtTitle = DSL::Fluent::TextBlock(title)
+    auto txtTitle = Widgets::TextBlock(title)
         .FontSize(12.0f)
         .ForegroundToken(ThemeTokenId::TextPrimary)
         .Foreground(theme.GetColor("textPrimary"))
         .Margin(12.0f, 8.0f, 0.0f, 0.0f)
-        .Build();
-    DSL::ElementBuilder<Panel>(m_headerBar).AddChild(txtTitle);
+        .Shared();
+    m_headerBar->AddChild(txtTitle);
 }
 
 CUIWindow& CUIWindow::Content(std::shared_ptr<UIElement> rootContent) {
     if (m_contentContainer) {
-        DSL::ElementBuilder<Panel>(m_contentContainer).ClearChildren();
+        m_contentContainer->ClearChildren();
         if (rootContent) {
-            DSL::ElementBuilder<Panel>(m_contentContainer).AddChild(rootContent);
+            m_contentContainer->AddChild(rootContent);
         }
     }
     return *this;
@@ -70,6 +69,3 @@ CUIWindow& CUIWindow::Run() {
 }
 
 } // namespace CUI
-
-
-

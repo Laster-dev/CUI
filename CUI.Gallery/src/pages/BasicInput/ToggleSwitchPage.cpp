@@ -1,12 +1,16 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleSwitchPage() {
-    auto notify = ToggleSwitchWidget();
-    DSL::Borrow(notify).Header("通知");
+    auto notify = Widgets::ToggleSwitch().Shared();
+        notify->SetHeader("通知");
     
     State<bool> notifyOn{ false };
     notify->IsOn.Bind(notifyOn);
@@ -18,13 +22,13 @@ std::shared_ptr<UIElement> BuildToggleSwitchPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto wifi = ToggleSwitchWidget();
-    DSL::Borrow(wifi).Header("Wi-Fi");
-    DSL::Borrow(wifi).IsOn(true);
+    auto wifi = Widgets::ToggleSwitch().Shared();
+        wifi->SetHeader("Wi-Fi");
+        wifi->SetIsOn(true);
 
-    auto locked = ToggleSwitchWidget();
-    DSL::Borrow(locked).Header("飞行模式");
-    CUI::DSL::Borrow(locked).IsEnabled(false);
+    auto locked = Widgets::ToggleSwitch().Shared();
+        locked->SetHeader("飞行模式");
+        locked->SetIsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ToggleSwitch(开关)";

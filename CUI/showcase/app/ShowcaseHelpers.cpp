@@ -12,18 +12,18 @@ template <typename T>
 std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::string& tokenProp, const std::string& tokenName) {
     if (element) {
         ThemeTokenId id = ThemeTokenIdFromName(tokenName);
-        if (tokenProp == "theme.backgroundToken") CUI::DSL::Borrow(element).BackgroundToken(id);
-        else if (tokenProp == "theme.hoverBackgroundToken") CUI::DSL::Borrow(element).HoverBackgroundToken(id);
-        else if (tokenProp == "theme.pressedBackgroundToken") CUI::DSL::Borrow(element).PressedBackgroundToken(id);
-        else if (tokenProp == "theme.borderToken") CUI::DSL::Borrow(element).BorderToken(id);
-        else if (tokenProp == "theme.focusedBorderToken") CUI::DSL::Borrow(element).FocusedBorderToken(id);
-        else if (tokenProp == "theme.colorToken") CUI::DSL::Borrow(element).ForegroundToken(id);
-        else if (tokenProp == "theme.placeholderColorToken") CUI::DSL::Borrow(element).PlaceholderColorToken(id);
-        else if (tokenProp == "theme.dropdownBackgroundToken") CUI::DSL::Borrow(element).DropdownBackgroundToken(id);
-        else if (tokenProp == "theme.selectedItemBackgroundToken") CUI::DSL::Borrow(element).SelectedItemBackgroundToken(id);
-        else if (tokenProp == "theme.underlineColorToken") CUI::DSL::Borrow(element).UnderlineColorToken(id);
-        else if (tokenProp == "theme.activeUnderlineColorToken") CUI::DSL::Borrow(element).ActiveUnderlineColorToken(id);
-        else if (tokenProp == "theme.caretColorToken") CUI::DSL::Borrow(element).CaretColorToken(id);
+        if (tokenProp == "theme.backgroundToken")         element->SetBackgroundToken(id);
+        else if (tokenProp == "theme.hoverBackgroundToken")         element->SetHoverBackgroundToken(id);
+        else if (tokenProp == "theme.pressedBackgroundToken")         element->SetPressedBackgroundToken(id);
+        else if (tokenProp == "theme.borderToken")         element->SetBorderToken(id);
+        else if (tokenProp == "theme.focusedBorderToken")         element->SetFocusedBorderToken(id);
+        else if (tokenProp == "theme.colorToken")         element->SetColorToken(id);
+        else if (tokenProp == "theme.placeholderColorToken")         element->SetPlaceholderColorToken(id);
+        else if (tokenProp == "theme.dropdownBackgroundToken")         element->SetDropdownBackgroundToken(id);
+        else if (tokenProp == "theme.selectedItemBackgroundToken")         element->SetSelectedItemBackgroundToken(id);
+        else if (tokenProp == "theme.underlineColorToken")         element->SetUnderlineColorToken(id);
+        else if (tokenProp == "theme.activeUnderlineColorToken")         element->SetActiveUnderlineColorToken(id);
+        else if (tokenProp == "theme.caretColorToken")         element->SetCaretColorToken(id);
     }
     return element;
 }
@@ -58,8 +58,8 @@ std::shared_ptr<UIElement> CreateShowcaseText(
     } else {
         BindThemeToken(text, "theme.colorToken", "textPrimary");
     }
-    if (bold) CUI::DSL::Borrow(text).FontWeight(FontWeight::Bold);
-    if (!fontFamily.empty()) CUI::DSL::Borrow(text).FontFamily(fontFamily);
+    if (bold)     text->SetFontWeight(FontWeight::Bold);
+    if (!fontFamily.empty())     text->SetFontFamily(fontFamily);
     return text;
 }
 
@@ -94,10 +94,10 @@ std::shared_ptr<UIElement> CreatePage(
     BindThemeToken(mainColumn, "theme.backgroundToken", "windowBackground");
 
     auto mainScroll = std::make_shared<ScrollViewer>();
-    CUI::DSL::Borrow(mainScroll).FlexGrow(1.0f);
-    CUI::DSL::Borrow(mainScroll).MinWidth(240.0f);
-    CUI::DSL::Borrow(mainScroll).Align(Alignment::Stretch);
+        mainScroll->SetFlexGrow(1.0f);
+        mainScroll->SetMinWidth(240.0f);
+        mainScroll->SetAlign(Alignment::Stretch);
     BindThemeToken(mainScroll, "theme.backgroundToken", "windowBackground");
-    CUI::DSL::Borrow(mainScroll).AddChild(mainColumn);
+        mainScroll->AddChild(mainColumn);
     return mainScroll;
 }

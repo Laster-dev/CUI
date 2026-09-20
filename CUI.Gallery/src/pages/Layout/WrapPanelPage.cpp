@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -20,18 +24,19 @@ std::shared_ptr<CUI::Button> MakeChip(const std::string& text, float width) {
 
 std::shared_ptr<UIElement> BuildWrapPanelPage() {
     // —— 水平换行 ——
-    auto horizontal = WrapPanelWidget("Horizontal")
-        .Gap(10.0f);
+    auto horizontal = Widgets::WrapPanel().Gap(10.0f).Shared();
+    horizontal->SetOrientation(Orientation::Horizontal);
     const float widths[] = { 64, 96, 120, 76, 140, 88, 104, 128, 72, 92, 116, 84 };
     for (int i = 0; i < 12; ++i) {
-        CUI::DSL::Borrow(horizontal).AddChild(MakeChip(std::format("项目 {}", i + 1), widths[i]));
+                horizontal->AddChild(MakeChip(std::format("项目 {}", i + 1), widths[i]));
     }
 
     // —— 垂直换列（统一规格）——
-    auto vertical = WrapPanelWidget("Vertical").Build();
-    CUI::DSL::Borrow(vertical).ItemWidth(88.0f);
-    CUI::DSL::Borrow(vertical).ItemHeight(34.0f);
-    CUI::DSL::Borrow(vertical).Gap(8.0f);
+    auto vertical = Widgets::WrapPanel().Shared();
+    vertical->SetOrientation(Orientation::Vertical);
+        vertical->SetItemWidth(88.0f);
+        vertical->SetItemHeight(34.0f);
+        vertical->SetGap(8.0f);
     const D2D1_COLOR_F colors[] = {
         Rgb(0x007ACC), Rgb(0x0E639C), Rgb(0x10B981), Rgb(0xD13438),
         Rgb(0x845EF7), Rgb(0xF783AC), Rgb(0x22B8CF), Rgb(0xF59F00),
@@ -42,24 +47,25 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
             .Width(88.0f)
             .Height(34.0f)
             .Build();
-        CUI::DSL::Borrow(vertical).AddChild(c);
+                vertical->AddChild(c);
     }
 
     // —— 宽度变化实时重排 ——
-    auto liveWrap = WrapPanelWidget("Horizontal")
-        .Gap(10.0f);
+    auto liveWrap = Widgets::WrapPanel().Gap(10.0f).Shared();
+    liveWrap->SetOrientation(Orientation::Horizontal);
     for (int i = 0; i < 10; ++i) {
-        CUI::DSL::Borrow(liveWrap).AddChild(MakeChip(std::format("标签 {}", i + 1), widths[i % 12]));
+                liveWrap->AddChild(MakeChip(std::format("标签 {}", i + 1), widths[i % 12]));
     }
 
-    auto justified = WrapPanelWidget("Horizontal").Gap(10).Justified().FillLastLine().Build();
+    auto justified = Widgets::WrapPanel().Gap(10).Justified().FillLastLine(true).Shared();
+    justified->SetOrientation(Orientation::Horizontal);
     const char* labels[] = { "Auto", "布局", "最小 72", "最大 180", "FlexGrow", "自动回流", "填满整行", "约束" };
     for (int i = 0; i < 8; ++i) {
         auto chip = ElevatedButton(labels[i]).Background(colors[i % 8]).Padding(14, 8, 14, 8)
             .MinWidth(72.0f)
             .MaxWidth(180.0f);
-        CUI::DSL::Borrow(chip).FlexGrow(i % 3 == 0 ? 2.0f : 1.0f);
-        CUI::DSL::Borrow(justified).AddChild(chip);
+                chip->SetFlexGrow(i % 3 == 0 ? 2.0f : 1.0f);
+                justified->AddChild(chip);
     }
 
     auto widthStatus = MakeStatus("宽度由卡片可用空间决定；缩放窗口可观察自动换行。");
@@ -70,7 +76,7 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
     spec.sections = {
         {
             "水平换行",
-            "WrapPanelWidget(\"Horizontal\")：子元素宽度不一，放不下一行时自动折行。",
+            "Widgets::WrapPanel(\"Horizontal\")：子元素宽度不一，放不下一行时自动折行。",
             Column(12, {
                 horizontal,
                 MakeStatus("宽度跟随卡片可用空间；缩放窗口时 12 个不同宽度的按钮自动重新换行。"),
@@ -102,18 +108,18 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
         },
     };
     spec.source =
-        "auto panel = WrapPanelWidget(\"Horizontal\").Build();\n"
+        "auto panel = Widgets::WrapPanel(\"Horizontal\").Shared();\n"
         "// 宽度由父容器的可用空间决定。\n"
         "panel->Gap = 10.0f;\n"
-        "panel->AddChild(ElevatedButton(\"项目 1\").Width(64).Height(32).Build());\n"
+        "panel->AddChild(ElevatedButton(\"项目 1\").Width(64).Height(32).Shared());\n"
         "\n"
         "// 垂直换列 + 统一规格\n"
-        "auto v = WrapPanelWidget(\"Vertical\").Build();\n"
+        "auto v = Widgets::WrapPanel(\"Vertical\").Shared();\n"
         "// 受限高度下，Vertical 模式会自动换列。\n"
         "v->ItemWidth = 88.0f;\n"
         "v->ItemHeight = 34.0f;\n"
         "\n"
-        "auto justified = WrapPanelWidget(\"Horizontal\").Justified().Build();\n"
+        "auto justified = Widgets::WrapPanel(\"Horizontal\").Justified().Shared();\n"
         "item.MinWidth = 72.0f;\n"
         "item.MaxWidth = 180.0f;\n"
         "item.FlexGrow = 1.0f;\n";

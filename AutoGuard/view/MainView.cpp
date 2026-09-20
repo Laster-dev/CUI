@@ -26,15 +26,15 @@ MainView::MainView(std::shared_ptr<MainViewModel> viewModel, Window* window)
 
 std::shared_ptr<UIElement> MainView::Build() {
     auto titleBar = std::make_shared<WindowTitleBar>();
-    DSL::Borrow(titleBar).Title("AutoGuard - Windows 启动项安全管理专家");
-    DSL::Borrow(titleBar).Height(36.0f);
+        titleBar->SetTitle("AutoGuard - Windows 启动项安全管理专家");
+        titleBar->SetHeight(36.0f);
 
     m_navView = BuildNavigationView();
     auto detailElement = m_detailStripView->Build();
     auto statusBar = BuildStatusBar();
 
     m_toastCenter = std::make_shared<ToastCenter>();
-    DSL::Borrow(m_toastCenter).Id("toastCenter");
+        m_toastCenter->SetId("toastCenter");
 
     auto root = Column(0.0f, {
         titleBar,
@@ -55,12 +55,12 @@ std::shared_ptr<UIElement> MainView::Build() {
 
 std::shared_ptr<NavigationView> MainView::BuildNavigationView() {
     auto nav = std::make_shared<NavigationView>();
-    DSL::Borrow(nav).PaneDisplayMode(NavigationViewPaneDisplayMode::Left);
-    DSL::Borrow(nav).OpenPaneLength(200.0f);
-    DSL::Borrow(nav).CompactPaneLength(44.0f);
-    DSL::Borrow(nav).IsSettingsVisible(false);
-    DSL::Borrow(nav).Align(Alignment::Stretch);
-    DSL::Borrow(nav).FlexGrow(1.0f);
+        nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Left);
+        nav->SetOpenPaneLength(200.0f);
+        nav->SetCompactPaneLength(44.0f);
+        nav->SetIsSettingsVisible(false);
+        nav->SetAlign(Alignment::Stretch);
+        nav->SetFlexGrow(1.0f);
 
     auto addNavItem = [nav](const std::string& title, const std::string& icon, const std::string& tag) {
         auto item = std::make_shared<NavigationViewItem>(title, icon);

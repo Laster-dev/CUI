@@ -28,22 +28,20 @@ D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
 
 SegmentedControl::SegmentedControl() {
     SelectedIndex.Initialize(*this);
-    DSL::Borrow(this)
-        .Height(32.0f)
-        .Width(280.0f)
-        .CornerRadius(6.0f)
-        .BorderThickness(1.5f)
-        .FontSize(12.0f)
-        .FontFamily("微软雅黑")
-        .Padding(0.0f)
-        .BackgroundToken(ThemeTokenId::InputBackground)
-        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
-        .BorderToken(ThemeTokenId::AccentColor)
-        .FocusedBorderToken(ThemeTokenId::FocusedBorder)
-        .ForegroundToken(ThemeTokenId::AccentColor)
-        .SelectedBackgroundToken(ThemeTokenId::AccentColor)
-        .KeyboardNavigationMode(KeyboardNavigationMode::Contained);
+        this->SetHeight(32.0f);
+    this->SetWidth(280.0f);
+    this->SetCornerRadius(6.0f);
+    this->SetBorderThickness(1.5f);
+    this->SetFontSize(12.0f);
+    this->SetFontFamily("微软雅黑");
+    this->SetPadding(0.0f);
+    this->SetBackgroundToken(ThemeTokenId::InputBackground);
+    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    this->SetBorderToken(ThemeTokenId::AccentColor);
+    this->SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    this->SetSelectedBackgroundToken(ThemeTokenId::AccentColor);
+    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
 namespace {

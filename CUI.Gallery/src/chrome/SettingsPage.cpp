@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include "chrome/SettingsPage.h"
 
 
@@ -37,21 +41,21 @@ BackdropType BackdropFromIndex(int index) {
 Element BuildSettingsPage() {
     Window* window = Window::Current();
 
-    auto btnDark = CUI::DSL::Fluent::Button("深色");
-    auto btnLight = CUI::DSL::Fluent::Button("浅色");
+    auto btnDark = CUI::Widgets::Button("深色").Shared();
+    auto btnLight = CUI::Widgets::Button("浅色").Shared();
     btnDark->OnClick().Connect([window](UIElement*) {
         if (window) {
-            DSL::Borrow(window).ThemeMode(ThemeMode::Dark);
+                        window->SetThemeMode(ThemeMode::Dark);
         }
     });
     btnLight->OnClick().Connect([window](UIElement*) {
         if (window) {
-            DSL::Borrow(window).ThemeMode(ThemeMode::Light);
+                        window->SetThemeMode(ThemeMode::Light);
         }
     });
 
     auto backdrop = std::make_shared<ComboBox>();
-    CUI::DSL::Borrow(backdrop).Width(200.0f);
+        backdrop->SetWidth(200.0f);
     backdrop->AddItem("关闭");
     backdrop->AddItem("自动材质");
     backdrop->AddItem("纯色");
@@ -60,28 +64,28 @@ Element BuildSettingsPage() {
     backdrop->AddItem("亚克力");
     backdrop->AddItem("兼容模糊");
     if (window) {
-        CUI::DSL::Borrow(backdrop).SelectedIndex(IndexForBackdrop(window->GetBackdropType()));
+                backdrop->SetSelectedIndex(IndexForBackdrop(window->GetBackdropType()));
     }
     backdrop->OnSelectionChanged().Connect([window](ComboBox*, int index, const std::string&) {
         if (window) {
-            DSL::Borrow(window).BackdropType(BackdropFromIndex(index));
+                        window->SetBackdropType(BackdropFromIndex(index));
         }
     });
 
     auto anim = std::make_shared<ToggleSwitch>();
-    CUI::DSL::Borrow(anim).Header("动效");
-    CUI::DSL::Borrow(anim).IsOn(UIElement::AreAnimationsEnabled());
+        anim->SetHeader("动效");
+        anim->SetIsOn(UIElement::AreAnimationsEnabled());
     anim->OnToggled().Connect([](ToggleSwitch*, bool on) {
         UIElement::SetAnimationsEnabled(on);
     });
 
     auto stats = std::make_shared<CheckBox>("显示渲染统计叠加层");
     if (window && window->IsRenderStatsOverlayVisible()) {
-        CUI::DSL::Borrow(stats).State(CheckState::Checked);
+                stats->SetState(CheckState::Checked);
     }
     stats->OnCheckStateChanged().Connect([window](CheckBox*, CheckState state) {
         if (window) {
-            DSL::Borrow(window).RenderStatsOverlayVisible(state == CheckState::Checked);
+                        window->SetRenderStatsOverlayVisible(state == CheckState::Checked);
         }
     });
 
@@ -105,13 +109,13 @@ Element BuildSettingsPage() {
             stats,
         }, 12.0f),
     }).Build();
-    CUI::DSL::Borrow(body).BackgroundToken(ThemeTokenId::WindowBackground);
+        body->SetBackgroundToken(ThemeTokenId::WindowBackground);
 
     auto scroll = std::make_shared<ScrollViewer>();
-    CUI::DSL::Borrow(scroll).Align(Alignment::Stretch);
-    CUI::DSL::Borrow(scroll).FlexGrow(1.0f);
-    CUI::DSL::Borrow(scroll).BackgroundToken(ThemeTokenId::WindowBackground);
-    CUI::DSL::Borrow(scroll).AddChild(body);
+        scroll->SetAlign(Alignment::Stretch);
+        scroll->SetFlexGrow(1.0f);
+        scroll->SetBackgroundToken(ThemeTokenId::WindowBackground);
+        scroll->AddChild(body);
     return scroll;
 }
 

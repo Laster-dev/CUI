@@ -36,11 +36,11 @@ void Burst(LogView& log, int count) {
 
 ShowcasePage BuildLogViewPage(const ShowcaseContext& ctx) {
     auto log = std::make_shared<LogView>();
-    CUI::DSL::Borrow(log).Width(-1.0f);
-    CUI::DSL::Borrow(log).Height(280.0f);
-    DSL::Borrow(log).MaxEntries(16384);
-    DSL::Borrow(log).Expanded(true);
-    CUI::DSL::Borrow(log).ToolTip("折叠后单行最新；展开后级别芯片 + 搜索 + 虚拟化列表。Ctrl+C 复制，Ctrl+A 全选，Ctrl+F 搜索。");
+        log->SetWidth(-1.0f);
+        log->SetHeight(280.0f);
+        log->SetMaxEntries(16384);
+        log->SetExpanded(true);
+        log->SetToolTip("折叠后单行最新；展开后级别芯片 + 搜索 + 虚拟化列表。Ctrl+C 复制，Ctrl+A 全选，Ctrl+F 搜索。");
 
     auto hint = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("", 12.0f, "textSecondary", false));
@@ -50,15 +50,15 @@ ShowcasePage BuildLogViewPage(const ShowcaseContext& ctx) {
         s += log->GetFollowTail() ? " · 跟随尾部" : " · 已停跟随";
         s += log->GetPersistEnabled() ? " · 已落盘 " + log->GetPersistPath() : " · 未持久化";
         s += " · " + std::to_string(log->GetCount()) + " 条";
-        CUI::DSL::Borrow(hint).Text(s);
+                hint->SetText(s);
     });
     log->OnExpandedChanged().Connect([btnToggle](LogView* lv) {
-        CUI::DSL::Borrow(btnToggle).Text(lv->IsExpanded() ? "折叠" : "展开");
+                btnToggle->SetText(lv->IsExpanded() ? "折叠" : "展开");
     });
     SeedSample(*log);
 
     btnToggle->OnClick().Connect([log](UIElement*) {
-        DSL::Borrow(log).Expanded(!log->IsExpanded());
+                log->SetExpanded(!log->IsExpanded());
     });
     auto btnOne = std::make_shared<Button>("追加 1");
     btnOne->OnClick().Connect([log](UIElement*) {
@@ -78,7 +78,7 @@ ShowcasePage BuildLogViewPage(const ShowcaseContext& ctx) {
     });
     auto chkPersist = std::make_shared<CheckBox>("持久化到临时文件");
     chkPersist->OnCheckStateChanged().Connect([log](CheckBox*, CheckState st) {
-        DSL::Borrow(log).PersistEnabled(st == CheckState::Checked);
+                log->SetPersistEnabled(st == CheckState::Checked);
     });
 
     auto demo = Column(12).Children({

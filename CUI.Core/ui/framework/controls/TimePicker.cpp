@@ -50,17 +50,15 @@ TimePicker::TimePicker() : FormattedTime(this) {
     m_hour = tmVal.tm_hour;
     m_minute = tmVal.tm_min;
 
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::InputBackground)
-        .BorderToken(ThemeTokenId::InputBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .Background(tokens.inputBackground)
-        .BorderBrush(tokens.inputBorder)
-        .BorderThickness(1.0f)
-        .Foreground(tokens.textPrimary)
-        .CornerRadius(4.0f)
-        .Width(140.0f)
-        .Height(30.0f);
+        this->SetBackgroundToken(ThemeTokenId::InputBackground);
+    this->SetBorderToken(ThemeTokenId::InputBorder);
+    this->SetBackground(tokens.inputBackground);
+    this->SetBorderBrush(tokens.inputBorder);
+    this->SetBorderThickness(1.0f);
+    this->SetColor(tokens.textPrimary);
+    this->SetCornerRadius(4.0f);
+    this->SetWidth(140.0f);
+    this->SetHeight(30.0f);
 
     m_hourPosition = static_cast<float>(m_hour);
     m_minutePosition = static_cast<float>(m_minute);

@@ -1,6 +1,8 @@
 ﻿#ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#include "framework/core/Widgets.h"
 #include "CUI.h"   // 伞形头：一个 include 拿到全部控件、DSL、窗口与渲染能力
 #include <iostream>
 
@@ -10,7 +12,7 @@ using namespace CUI::DSL;
 int main() {
     CUI::Window window;
     int clickCount = 0;
-    auto titleBar = ElementBuilder<WindowTitleBar>().Title("demo");
+    auto titleBar = Widgets::WindowTitleBar().Title("demo").Shared();
     constexpr const char* kSvgStar = R"svg(
 <svg t="1787033108092" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1334">
   <path d="M0 0m0 0l1024 0q0 0 0 0l0 1024q0 0 0 0l-1024 0q0 0 0 0l0-1024q0 0 0 0Z" fill="#E5E5E5" fill-opacity="0" p-id="1335"></path>
@@ -18,46 +20,47 @@ int main() {
 </svg>
 )svg";
 
-    titleBar.IconText(kSvgStar);
+    titleBar->SetIconText(kSvgStar);
     auto counterLabel = Text("Click count: 0")
         .FontSize(24.0f)
         .AlignHorizontal(Alignment::Center)
         .ForegroundToken(ThemeTokenId::TextSecondary)
         .FontWeight(FontWeight::SemiBold);
 
-    auto clickButton = Button("Click Me!")
+    auto clickButton = Widgets::Button("Click Me!")
         .FontSize(16.0f)
         .Width(160.0f)
         .Height(48.0f)
         .AlignHorizontal(Alignment::Center)
         .OnClick([counterLabel, &clickCount](UIElement*) {
         clickCount++;
-        ElementBuilder<TextBlock>(counterLabel.Shared()).Text("Click count: " + std::to_string(clickCount));
-            });
+        counterLabel.Shared()->SetText("Click count: " + std::to_string(clickCount));
+            }).Shared();
 
-    auto resetButton = Button("Reset")
+    auto resetButton = Widgets::Button("Reset")
         .FontSize(14.0f)
         .Width(120.0f)
-        .Background("#E53935")
-        .HoverBackground("#D32F2F")
-        .PressedBackground("#B71C1C")
+        .Background(Value::ParseColor("#E53935"))
+        .HoverBackground(Value::ParseColor("#D32F2F"))
+        .PressedBackground(Value::ParseColor("#B71C1C"))
         .Foreground(Color::White)
         .AlignHorizontal(Alignment::Center)
         .OnClick([counterLabel, &clickCount](UIElement*) {
         clickCount = 0;
-        ElementBuilder<TextBlock>(counterLabel.Shared()).Text("Click count: 0");
-            });
-    auto ThemeModeRange = ElementBuilder<SegmentedControl>()
+        counterLabel.Shared()->SetText("Click count: 0");
+            }).Shared();
+    auto ThemeModeRange = Widgets::SegmentedControl()
         .Width(120.0f)
         .Margin(2, 2, 10, 2)
-        .AddItem("Dark")
-        .AddItem("Light")
-        .OnSelectionChanged([](SegmentedControl*, int, const std::string& item) {
-            if (auto* window = Window::Current()) {
-                window->SetThemeMode(item == "Dark" ? ThemeMode::Dark : ThemeMode::Light);
-            }
-        })
-        .AlignHorizontal(Alignment::Center);
+        .AlignHorizontal(Alignment::Center)
+        .Shared();
+    ThemeModeRange->AddItem("Dark");
+    ThemeModeRange->AddItem("Light");
+    ThemeModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
+        if (auto* window = Window::Current()) {
+            window->SetThemeMode(item == "Dark" ? ThemeMode::Dark : ThemeMode::Light);
+        }
+    });
     // Layout
     auto root = Column(20, {
         titleBar,
@@ -67,7 +70,7 @@ int main() {
         ThemeModeRange
         })
         .Align(Alignment::Center)
-        .Build();
+        .Shared();
     window.Fluent()
         .Title("CUI Counter Demo")
         .Size(400, 300)

@@ -1,31 +1,37 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "PageRegistry.h"
+#include "framework/core/Widgets.h"
 #include "../ShowcaseHelpers.h"
 #include "framework/core/CUIDsl.h"
+
+using namespace CUI;
 
 using namespace CUI::DSL;
 
 ShowcasePage BuildCollapsePage(const ShowcaseContext& ctx) {
-    auto panel1 = ExpanderWidget("1. 基础视图配置 (Basic Settings)")
+    auto panel1 = Widgets::Expander("1. 基础视图配置 (Basic Settings)")
         .Subtitle("包含常规同步策略与状态栏消息提醒管理")
-        .Build();
-    CUI::DSL::Borrow(panel1).Content(Column(8).Children({
+        .Shared();
+        panel1->SetContent(Column(8).Children({
         CheckboxTile("启用自动同步云端配置文件").Build(),
         CheckboxTile("显示系统底栏状态通知").Build(),
         ElevatedButton("应用当前基础配置").Width(160).Height(28).Build()
     }).Build());
 
-    auto panel2 = ExpanderWidget("2. 高级硬件加速选项 (Advanced Options)")
+    auto panel2 = Widgets::Expander("2. 高级硬件加速选项 (Advanced Options)")
         .Subtitle("调整 Direct2D 独立多线程硬件渲染与缓冲池配置")
-        .Build();
-    CUI::DSL::Borrow(panel2).Content(Column(8).Children({
+        .Shared();
+        panel2->SetContent(Column(8).Children({
         ToggleSwitchTile("开启 Direct2D 独立多线程硬件渲染", true).Build(),
-        SliderWidget(75.0f).Width(280).Height(24).Build()
+        Widgets::Slider().Width(280).Height(24).Shared()
     }).Build());
 
-    auto panel3 = ExpanderWidget("3. 开发者调试与日志 (Developer Logs)")
+    auto panel3 = Widgets::Expander("3. 开发者调试与日志 (Developer Logs)")
         .Subtitle("开启实时渲染帧率 overlay 与事件流调试日志")
-        .Build();
-    CUI::DSL::Borrow(panel3).Content(Column(8).Children({
+        .Shared();
+        panel3->SetContent(Column(8).Children({
         CheckboxTile("开启 FPS 帧率渲染叠加层 (Overlay)").Build(),
         CheckboxTile("记录详细 DirectWrite 文本度量与排版 Debug 日志").Build(),
         ElevatedButton("导出调试报告 (Export Diagnostics)").Width(200).Height(28).Build()

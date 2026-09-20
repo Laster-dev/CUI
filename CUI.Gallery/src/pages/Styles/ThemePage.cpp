@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
@@ -30,9 +34,9 @@ std::string DescribeTheme(ThemeManager& tm, ThemeSource source) {
 
 Element MakeSwatch(const std::string& name, ThemeTokenId token) {
     auto chip = Container().Size(44.0f, 44.0f).CornerRadius(8.0f);
-    CUI::DSL::Borrow(chip).BackgroundToken(token);
-    CUI::DSL::Borrow(chip).BorderToken(ThemeTokenId::CardBorder);
-    CUI::DSL::Borrow(chip).BorderThickness(1.0f);
+        chip->SetBackgroundToken(token);
+        chip->SetBorderToken(ThemeTokenId::CardBorder);
+        chip->SetBorderThickness(1.0f);
     return Column(4, { chip, MakeLabel(name, 11.0f, ThemeTokenId::TextMuted, false) });
 }
 
@@ -44,8 +48,11 @@ Element BuildThemePage() {
 
     auto status = MakeStatus(DescribeTheme(tm, tm.GetThemeSource()));
 
-    auto mode = SegmentedWidget({ "跟随系统", "浅色", "深色" });
-    CUI::DSL::Borrow(mode).SelectedIndex(IndexForThemeSource(tm.GetThemeSource()));
+    auto mode = CUI::Widgets::SegmentedControl().Shared();
+    mode->AddItem("跟随系统");
+    mode->AddItem("浅色");
+    mode->AddItem("深色");
+        mode->SetSelectedIndex(IndexForThemeSource(tm.GetThemeSource()));
     mode->OnSelectionChanged().Connect([window, &tm, status](SegmentedControl*, int index, const std::string&) {
         const ThemeSource source = ThemeSourceFromIndex(index);
         if (source == ThemeSource::System) {
@@ -53,20 +60,20 @@ Element BuildThemePage() {
         } else if (window) {
             window->Fluent().Theme(source == ThemeSource::Dark ? ThemeMode::Dark : ThemeMode::Light).Apply();
         }
-        CUI::DSL::Borrow(status).Text(DescribeTheme(tm, source));
+                status->SetText(DescribeTheme(tm, source));
     });
 
     // 预览：全部通过 ThemeTokenId 取色，切换主题后随广播自动重绘。
     auto secondaryBtn = ElevatedButton("次要操作");
-    CUI::DSL::Borrow(secondaryBtn).BackgroundToken(ThemeTokenId::CardBackground);
-    CUI::DSL::Borrow(secondaryBtn).HoverBackgroundToken(ThemeTokenId::HoverBackground);
-    CUI::DSL::Borrow(secondaryBtn).PressedBackgroundToken(ThemeTokenId::PressedBackground);
-    CUI::DSL::Borrow(secondaryBtn).BorderToken(ThemeTokenId::CardBorder);
-    CUI::DSL::Borrow(secondaryBtn).BorderThickness(1.0f);
-    CUI::DSL::Borrow(secondaryBtn).ForegroundToken(ThemeTokenId::TextPrimary);
+        secondaryBtn->SetBackgroundToken(ThemeTokenId::CardBackground);
+        secondaryBtn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+        secondaryBtn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+        secondaryBtn->SetBorderToken(ThemeTokenId::CardBorder);
+        secondaryBtn->SetBorderThickness(1.0f);
+    
 
     auto input = TextField("输入内容");
-    CUI::DSL::Borrow(input).Width(240.0f);
+        input->SetWidth(240.0f);
 
     auto preview = Column(14, {
         MakeLabel("主题预览", 18.0f, ThemeTokenId::TextPrimary, true),

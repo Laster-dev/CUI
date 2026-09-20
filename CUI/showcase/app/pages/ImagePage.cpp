@@ -134,10 +134,10 @@ const char* FirstExisting(std::initializer_list<const char*> paths) {
 
 std::shared_ptr<Image> MakePreview(float w, float h, Stretch stretch) {
     auto img = std::make_shared<Image>();
-    CUI::DSL::Borrow(img).Width(w);
-    CUI::DSL::Borrow(img).Height(h);
-    CUI::DSL::Borrow(img).Stretch(stretch);
-    CUI::DSL::Borrow(img).CornerRadius(6.0f);
+        img->SetWidth(w);
+        img->SetHeight(h);
+        img->SetStretch(stretch);
+        img->SetCornerRadius(6.0f);
     return img;
 }
 
@@ -153,45 +153,43 @@ ShowcasePage BuildImagePage(const ShowcaseContext& ctx) {
     });
 
     auto preview = MakePreview(280.0f, 160.0f, Stretch::Uniform);
-    CUI::DSL::Borrow(preview).Source(wallpaper ? wallpaper : gradient);
+        preview->SetSource(wallpaper ? wallpaper : gradient);
 
     auto uniform = MakePreview(160.0f, 100.0f, Stretch::Uniform);
-    CUI::DSL::Borrow(uniform).Source(gradient);
+        uniform->SetSource(gradient);
     auto fill = MakePreview(160.0f, 100.0f, Stretch::Fill);
-    CUI::DSL::Borrow(fill).Source(gradient);
+        fill->SetSource(gradient);
     auto none = MakePreview(160.0f, 100.0f, Stretch::None);
-    CUI::DSL::Borrow(none).Source(checker);
+        none->SetSource(checker);
     auto cover = MakePreview(160.0f, 100.0f, Stretch::UniformToFill);
-    CUI::DSL::Borrow(cover).Source(checker);
+        cover->SetSource(checker);
 
     auto avatar = std::make_shared<Image>(ImageType::Avatar, "CUI");
-    CUI::DSL::Borrow(avatar).Width(48.0f);
-    CUI::DSL::Borrow(avatar).Height(48.0f);
+        avatar->SetWidth(48.0f);
+        avatar->SetHeight(48.0f);
     auto fileIcon = std::make_shared<Image>(ImageType::FileIcon, "PNG");
-    CUI::DSL::Borrow(fileIcon).Width(48.0f);
-    CUI::DSL::Borrow(fileIcon).Height(48.0f);
+        fileIcon->SetWidth(48.0f);
+        fileIcon->SetHeight(48.0f);
     auto badge = std::make_shared<Image>(ImageType::StatusBadge, "");
-    CUI::DSL::Borrow(badge).Width(18.0f);
-    CUI::DSL::Borrow(badge).Height(18.0f);
+        badge->SetWidth(18.0f);
+        badge->SetHeight(18.0f);
 
     auto status = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("就绪", 12.0f, "#B5CEA8", false, "Consolas"));
 
     auto applySource = [preview, status](const std::string& path) {
-        if (DSL::Borrow(preview).Source(path)) {
-            CUI::DSL::Borrow(status).Text("[Image] " + path + "  "
-                + std::to_string(preview->GetPixelWidth()) + "x"
-                + std::to_string(preview->GetPixelHeight()));
+        if (preview->SetSource(path)) {
+            status->SetText("[Image] 已加载: " + path);
         } else {
-            CUI::DSL::Borrow(status).Text("[Image] 加载失败: " + preview->GetLoadError() + "  " + path);
+            status->SetText("[Image] 加载失败: " + preview->GetLoadError() + "  " + path);
         }
     };
 
     auto picker = std::make_shared<FilePicker>();
-    CUI::DSL::Borrow(picker).Width(320.0f);
-    CUI::DSL::Borrow(picker).Height(32.0f);
-    DSL::Borrow(picker).Filter("图片", "*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.ico");
-    DSL::Borrow(picker).DialogTitle("选择图片");
+        picker->SetWidth(320.0f);
+        picker->SetHeight(32.0f);
+        picker->SetFilter("图片", "*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.ico");
+        picker->SetDialogTitle("选择图片");
     picker->OnPathChanged().Connect([applySource](FilePicker*, const std::string& path) {
         applySource(path);
     });
@@ -201,7 +199,7 @@ ShowcasePage BuildImagePage(const ShowcaseContext& ctx) {
     auto btnCheck = std::make_shared<Button>("棋盘 PNG");
     btnCheck->OnClick().Connect([applySource, checker](UIElement*) { applySource(checker); });
     auto btnWall = std::make_shared<Button>("系统壁纸");
-    CUI::DSL::Borrow(btnWall).IsEnabled(wallpaper != nullptr);
+        btnWall->SetIsEnabled(wallpaper != nullptr);
     btnWall->OnClick().Connect([applySource, wallpaper](UIElement*) {
         if (wallpaper) {
             applySource(wallpaper);
@@ -210,23 +208,23 @@ ShowcasePage BuildImagePage(const ShowcaseContext& ctx) {
 
     auto btnU = std::make_shared<Button>("Uniform");
     btnU->OnClick().Connect([preview, status](UIElement*) {
-        CUI::DSL::Borrow(preview).Stretch(Stretch::Uniform);
-        CUI::DSL::Borrow(status).Text("[Image] Stretch = Uniform");
+                preview->SetStretch(Stretch::Uniform);
+                status->SetText("[Image] Stretch = Uniform");
     });
     auto btnF = std::make_shared<Button>("Fill");
     btnF->OnClick().Connect([preview, status](UIElement*) {
-        CUI::DSL::Borrow(preview).Stretch(Stretch::Fill);
-        CUI::DSL::Borrow(status).Text("[Image] Stretch = Fill");
+                preview->SetStretch(Stretch::Fill);
+                status->SetText("[Image] Stretch = Fill");
     });
     auto btnN = std::make_shared<Button>("None");
     btnN->OnClick().Connect([preview, status](UIElement*) {
-        CUI::DSL::Borrow(preview).Stretch(Stretch::None);
-        CUI::DSL::Borrow(status).Text("[Image] Stretch = None");
+                preview->SetStretch(Stretch::None);
+                status->SetText("[Image] Stretch = None");
     });
     auto btnC = std::make_shared<Button>("UniformToFill");
     btnC->OnClick().Connect([preview, status](UIElement*) {
-        CUI::DSL::Borrow(preview).Stretch(Stretch::UniformToFill);
-        CUI::DSL::Borrow(status).Text("[Image] Stretch = UniformToFill");
+                preview->SetStretch(Stretch::UniformToFill);
+                status->SetText("[Image] Stretch = UniformToFill");
     });
 
     auto demo = Column(12).Children({

@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "PageRegistry.h"
+#include "framework/core/Widgets.h"
 #include "../ShowcaseHelpers.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/style/ThemeManager.h"
@@ -15,21 +19,23 @@ std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::
     }
     ThemeTokenId id = ThemeTokenIdFromName(tokenName);
     if (tokenProp == "theme.backgroundToken") {
-        CUI::DSL::Borrow(element).BackgroundToken(id);
-        CUI::DSL::Borrow(element).Background(ThemeManager::Instance().GetColor(tokenName));
+                element->SetBackgroundToken(id);
+                element->SetBackground(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.borderToken") {
-        CUI::DSL::Borrow(element).BorderToken(id);
-        CUI::DSL::Borrow(element).BorderBrush(ThemeManager::Instance().GetColor(tokenName));
+                element->SetBorderToken(id);
+                element->SetBorderBrush(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.colorToken") {
-        CUI::DSL::Borrow(element).ForegroundToken(id);
+        
     }
     return element;
 }
 }
 
 ShowcasePage BuildSplitterPage(const ShowcaseContext& ctx) {
-    auto splitterLR = SplitterWidget(Orientation::Vertical).Build();
-    auto splitterTB = SplitterWidget(Orientation::Horizontal).Build();
+    auto splitterLR = Widgets::Splitter().Shared();
+    splitterLR->SetOrientation(Orientation::Vertical);
+    auto splitterTB = Widgets::Splitter().Shared();
+    splitterTB->SetOrientation(Orientation::Horizontal);
 
     auto leftPane = Column(6).Width(140).MinWidth(72).Padding(10).Children({
         CreateShowcaseText("导航", 12.0f, "", true),

@@ -30,7 +30,8 @@ TopologyView::TopologyView()
     , FlowParticles(this)
     , ReadOnly(this)
 {
-    DSL::Borrow(this).Width(-1.0f).Height(560.0f);
+    this->SetWidth(-1.0f);
+    this->SetHeight(560.0f);
     m_zoomAnimator.Reset(1.0f);
     m_panXAnimator.Reset(60.0f);
     m_panYAnimator.Reset(60.0f);

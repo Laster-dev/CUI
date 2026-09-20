@@ -20,17 +20,15 @@ DatePicker::DatePicker() : FormattedDate(this) {
     m_month = tmVal.tm_mon + 1;
     m_day = tmVal.tm_mday;
 
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::InputBackground)
-        .BorderToken(ThemeTokenId::InputBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .Background(tokens.inputBackground)
-        .BorderBrush(tokens.inputBorder)
-        .BorderThickness(1.0f)
-        .Foreground(tokens.textPrimary)
-        .CornerRadius(4.0f)
-        .Width(160.0f)
-        .Height(30.0f);
+        this->SetBackgroundToken(ThemeTokenId::InputBackground);
+    this->SetBorderToken(ThemeTokenId::InputBorder);
+    this->SetBackground(tokens.inputBackground);
+    this->SetBorderBrush(tokens.inputBorder);
+    this->SetBorderThickness(1.0f);
+    this->SetColor(tokens.textPrimary);
+    this->SetCornerRadius(4.0f);
+    this->SetWidth(160.0f);
+    this->SetHeight(30.0f);
 }
 
 Value DatePicker::GetProperty(PropertyId id) const {
@@ -300,7 +298,7 @@ void DatePicker::OnMouseWheel(float delta) {
         const int idxLast = firstWday + daysInMonth - 1;
         const int rows = (idxLast / 7) + 1; // up to 6
         constexpr float kCellH = 26.0f;
-        contentH = 20.0f + static_cast<float>(rows) * kCellH; // bodyY->week header/grid gap + grid rows
+        contentH = 20.0f + static_cast<float>(rows) * kCellH; // bodyY.week header/grid gap + grid rows
     } else {
         const float cellH = (kPopHDesign - 44.0f) / 4.0f;
         contentH = 4.0f * cellH;

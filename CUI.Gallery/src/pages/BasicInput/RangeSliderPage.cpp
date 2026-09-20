@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -7,11 +11,11 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildRangeSliderPage() {
-    auto price = RangeSliderWidget();
-    CUI::DSL::Borrow(price).Minimum(0.0f);
-    CUI::DSL::Borrow(price).Maximum(1000.0f);
-    CUI::DSL::Borrow(price).Step(10.0f);
-    CUI::DSL::Borrow(price).Width(320.0f);
+    auto price = Widgets::RangeSlider().Shared();
+        price->SetMinimum(0.0f);
+        price->SetMaximum(1000.0f);
+        price->SetStep(10.0f);
+        price->SetWidth(320.0f);
 
     State<float> lowerValue{ 200.0f };
     State<float> upperValue{ 800.0f };

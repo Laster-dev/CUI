@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <cmath>
 #include <format>
 
@@ -22,34 +26,40 @@ std::shared_ptr<CUI::Button> MakeCell(const std::string& text, int index) {
 
 std::shared_ptr<UIElement> BuildUniformGridPage() {
     // —— 固定行列 ——
-    auto fixed = UniformGridWidget(2, 3).Width(520).Height(180).Build();
+    auto fixed = Widgets::UniformGrid(2, 3).Width(520).Height(180).Shared();
     for (int i = 0; i < 6; ++i) {
-        CUI::DSL::Borrow(fixed).AddChild(MakeCell(std::format("格 {}", i + 1), i));
+                fixed->AddChild(MakeCell(std::format("格 {}", i + 1), i));
     }
 
     // —— 自动计算行列 ——
-    auto autoGrid = UniformGridWidget(0, 0).Width(520).Height(180).Build();
+    auto autoGrid = Widgets::UniformGrid(0, 0).Width(520).Height(180).Shared();
     for (int i = 0; i < 7; ++i) {
-        CUI::DSL::Borrow(autoGrid).AddChild(MakeCell(std::format("自动 {}", i + 1), i));
+                autoGrid->AddChild(MakeCell(std::format("自动 {}", i + 1), i));
     }
 
     // —— 只指定列数 ——
-    auto colsOnly = UniformGridWidget(0, 4).Width(520).Height(150).Build();
+    auto colsOnly = Widgets::UniformGrid(0, 4).Width(520).Height(150).Shared();
     for (int i = 0; i < 8; ++i) {
-        CUI::DSL::Borrow(colsOnly).AddChild(MakeCell(std::format("项 {}", i + 1), i));
+                colsOnly->AddChild(MakeCell(std::format("项 {}", i + 1), i));
     }
 
     // —— 运行时调整行列 ——
-    auto liveGrid = UniformGridWidget(2, 3).Width(520).Height(220).Build();
-    CUI::DSL::Borrow(liveGrid).ClipToBounds(true);
+    auto liveGrid = Widgets::UniformGrid(2, 3).Width(520).Height(220).Shared();
+        liveGrid->SetClipToBounds(true);
     for (int i = 0; i < 8; ++i) {
-        CUI::DSL::Borrow(liveGrid).AddChild(MakeCell(std::format("格 {}", i + 1), i));
+                liveGrid->AddChild(MakeCell(std::format("格 {}", i + 1), i));
     }
 
-    auto rowsSlider = SliderWidget(2.0f, 1.0f, 4.0f).Build();
-    CUI::DSL::Borrow(rowsSlider).FlexGrow(1.0f);
-    auto colsSlider = SliderWidget(3.0f, 1.0f, 5.0f).Build();
-    CUI::DSL::Borrow(colsSlider).FlexGrow(1.0f);
+    auto rowsSlider = Widgets::Slider().Shared();
+    rowsSlider->SetMinimum(1.0f);
+    rowsSlider->SetMaximum(4.0f);
+    rowsSlider->SetValue(2.0f);
+        rowsSlider->SetFlexGrow(1.0f);
+    auto colsSlider = Widgets::Slider().Shared();
+    colsSlider->SetMinimum(1.0f);
+    colsSlider->SetMaximum(5.0f);
+    colsSlider->SetValue(3.0f);
+        colsSlider->SetFlexGrow(1.0f);
 
     State<float> rowsValue{ 2.0f };
     State<float> colsValue{ 3.0f };
@@ -76,7 +86,7 @@ std::shared_ptr<UIElement> BuildUniformGridPage() {
     spec.sections = {
         {
             "固定行列",
-            "UniformGridWidget(rows, cols) 显式指定行列数，每个单元格严格等宽等高。",
+            "Widgets::UniformGrid(rows, cols) 显式指定行列数，每个单元格严格等宽等高。",
             Column(12, {
                 fixed,
                 MakeStatus("2 行 × 3 列，6 个格子均分 520×180 的可用区域。"),
@@ -103,24 +113,24 @@ std::shared_ptr<UIElement> BuildUniformGridPage() {
             "通过 Rows / Columns 属性在运行时改变行列数，网格立即重新等分；格子数不足时多余子元素被裁剪。",
             Column(12, {
                 liveGrid,
-                WrapPanelWidget("Horizontal").Gap(16).Children({
+                Widgets::WrapPanel().Gap(16).Children(
                     rowsSlider,
                     colsSlider,
-                    gridStatus,
-                }).Build(),
+                    gridStatus
+                ).Shared(),
             }),
         },
     };
     spec.source =
-        "auto grid = UniformGridWidget(2, 3).Width(520).Height(180).Build();\n"
+        "auto grid = Widgets::UniformGrid(2, 3).Width(520).Height(180).Shared();\n"
         "grid->AddChild(ElevatedButton(\"格 1\").Build());\n"
         "// .. 共 6 个子元素，均分 2 行 × 3 列\n"
         "\n"
         "// 行列传 0 时自动推导：√n 行、按需补列\n"
-        "auto autoGrid = UniformGridWidget(0, 0).Build();\n"
+        "auto autoGrid = Widgets::UniformGrid(0, 0).Shared();\n"
         "\n"
         "// 只指定列数，行数自动计算\n"
-        "auto colsOnly = UniformGridWidget(0, 4).Build();\n"
+        "auto colsOnly = Widgets::UniformGrid(0, 4).Shared();\n"
         "\n"
         "// 运行时调整行列：状态经转换器驱动整数属性\n"
         "State<float> rowsState{ 2.0f };\n"

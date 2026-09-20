@@ -197,7 +197,7 @@ UIElement::~UIElement() {
     if (AnimationManager* mgr = AnimationManager::Current()) {
         mgr->CancelWake(this);
     }
-    // Detach children so surviving shared_ptrs do not keep a dangling m_parent.
+    // Detach children so surviving shared_ptrs do not keep a dangling m_parent->
     // Avoid ClearChildren() — it also marks render dirty during teardown.
     for (auto& child : m_children) {
         if (child && child->GetParent() == this) {

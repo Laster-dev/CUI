@@ -5,7 +5,7 @@
 namespace CUI {
 
 Panel::Panel() {
-    DSL::Borrow(this).Background(D2D1::ColorF(0, 0, 0, 0));
+    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
 }
 
 Size Panel::MeasureOverride(Size availableSize) {
@@ -17,11 +17,12 @@ void Panel::ArrangeOverride(Rect finalRect) {
 }
 
 StackPanel::StackPanel() {
-    DSL::Borrow(this).Orientation(Orientation::Vertical).Gap(0.0f);
+    this->SetOrientation(Orientation::Vertical);
+    this->SetGap(0.0f);
 }
 
 StackPanel::StackPanel(CUI::Orientation orientation) : StackPanel() {
-    DSL::Borrow(this).Orientation(orientation);
+    this->SetOrientation(orientation);
 }
 
 Size StackPanel::MeasureOverride(Size availableSize) {
@@ -82,13 +83,13 @@ void Grid::ArrangeOverride(Rect finalRect) {
 }
 
 WrapPanel::WrapPanel() {
-    DSL::Borrow(this).Orientation(Orientation::Horizontal);
+    this->SetOrientation(Orientation::Horizontal);
     SetItemWidth(-1.0f);
     SetItemHeight(-1.0f);
 }
 
 WrapPanel::WrapPanel(CUI::Orientation orientation) : WrapPanel() {
-    DSL::Borrow(this).Orientation(orientation);
+    this->SetOrientation(orientation);
 }
 
 Size WrapPanel::MeasureOverride(Size availableSize) {
@@ -100,7 +101,7 @@ void WrapPanel::ArrangeOverride(Rect finalRect) {
 }
 
 DockPanel::DockPanel() {
-    DSL::Borrow(this).LastChildFill(true);
+    this->SetLastChildFill(true);
 }
 
 Size DockPanel::MeasureOverride(Size availableSize) {
@@ -113,12 +114,12 @@ void DockPanel::ArrangeOverride(Rect finalRect) {
 
 UniformGrid::UniformGrid() {
     SetRows(0);
-    DSL::Borrow(this).Columns(0);
+    this->SetColumns(0);
 }
 
 UniformGrid::UniformGrid(int rows, int cols) : UniformGrid() {
     SetRows(rows);
-    DSL::Borrow(this).Columns(cols);
+    this->SetColumns(cols);
 }
 
 Size UniformGrid::MeasureOverride(Size availableSize) {

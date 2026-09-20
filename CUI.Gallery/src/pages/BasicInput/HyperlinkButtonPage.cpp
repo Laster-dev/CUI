@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -13,8 +17,8 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
-    auto docs = HyperlinkButtonWidget("打开文档", "https://learn.microsoft.com/windows/apps/design/controls/hyperlink-button");
-    auto inApp = HyperlinkButtonWidget("打开设置页面");
+    auto docs = Widgets::HyperlinkButton("打开文档", "https://learn.microsoft.com/windows/apps/design/controls/hyperlink-button").Shared();
+    auto inApp = Widgets::HyperlinkButton("打开设置页面").Shared();
     auto status = MakeStatus("链接看起来像文本，行为像按钮。");
     
     docs->OnClick().Connect([docs](UIElement*) {
@@ -29,8 +33,8 @@ std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
         Gallery::Host::Instance().Navigate("settings");
     });
 
-    auto disabled = HyperlinkButtonWidget("不可用链接");
-    CUI::DSL::Borrow(disabled).IsEnabled(false);
+    auto disabled = Widgets::HyperlinkButton("不可用链接").Shared();
+        disabled->SetIsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "HyperlinkButton(超链接按钮)";
@@ -46,7 +50,7 @@ std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
         },
     };
     spec.source =
-        "auto docs = HyperlinkButtonWidget(\"打开文档\", \"https://learn.microsoft.com..\");\n"
+        "auto docs = Widgets::HyperlinkButton(\"打开文档\", \"https://learn.microsoft.com..\");\n"
         "docs->OnClick().Connect([](UIElement*) { /* open link */ });\n";
     return BuildSamplePage(spec);
 }

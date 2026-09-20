@@ -12,15 +12,14 @@ namespace {}
 
 Slider::Slider() {
     ValueProperty.Initialize(*this);
-    DSL::Borrow(this)
-        .Orientation(Orientation::Horizontal)
-        .TrackColorToken(ThemeTokenId::InputBorder)
-        .ActiveTrackColorToken(ThemeTokenId::AccentColor)
-        .ThumbColorToken(ThemeTokenId::AccentColor)
-        .Width(200.0f)
-        .Height(24.0f);
+    this->SetOrientation(Orientation::Horizontal);
+    this->SetTrackColorToken(ThemeTokenId::InputBorder);
+    this->SetActiveTrackColorToken(ThemeTokenId::AccentColor);
+    this->SetThumbColorToken(ThemeTokenId::AccentColor);
+    this->SetWidth(200.0f);
+    this->SetHeight(24.0f);
     m_displayValueAnim.Reset(GetValue());
-    DSL::Borrow(this).KeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
 Value Slider::GetProperty(PropertyId id) const {

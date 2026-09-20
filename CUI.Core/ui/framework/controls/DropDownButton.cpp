@@ -12,13 +12,12 @@ namespace CUI {
 
 DropDownButton::DropDownButton() {
     SelectedIndex.Initialize(*this);
-    DSL::Borrow(this)
-        .Text("DropDown")
-        .Padding(Thickness(10.0f, 4.0f, 4.0f, 4.0f));
+    this->SetText("DropDown");
+    this->SetPadding(Thickness(10.0f, 4.0f, 4.0f, 4.0f));
 }
 
 DropDownButton::DropDownButton(const std::string& text) : DropDownButton() {
-    DSL::Borrow(this).Text(text);
+    this->SetText(text);
 }
 
 Value DropDownButton::GetProperty(PropertyId id) const {

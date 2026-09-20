@@ -30,25 +30,23 @@ constexpr float kTreeSelectPillRadius = 4.0f;
 } // namespace
 
 TreeView::TreeView() {
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::CardBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .SelectedBackgroundToken(ThemeTokenId::SelectedBackground)
-        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-        .Background(ThemeManager::Instance().GetColor("cardBackground"))
-        .BorderBrush(ThemeManager::Instance().GetColor("cardBorder"))
-        .BorderThickness(1.0f)
-        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
-        .HoverBackground(ThemeManager::Instance().GetColor("hoverBackground"))
-        .FontSize(12.0f)
-        .FontFamily("微软雅黑")
-        .KeyboardNavigationMode(KeyboardNavigationMode::Contained)
-        .FontWeight(CUI::FontWeight::Normal)
-        .ItemHeight(28.0f)
-        .CornerRadius(4.0f)
-        .Width(-1.0f)
-        .Height(-1.0f);
+        this->SetBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    this->SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
+    this->SetBorderThickness(1.0f);
+    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
+    this->SetFontSize(12.0f);
+    this->SetFontFamily("微软雅黑");
+    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->SetFontWeight(CUI::FontWeight::Normal);
+    this->SetItemHeight(28.0f);
+    this->SetCornerRadius(4.0f);
+    this->SetWidth(-1.0f);
+    this->SetHeight(-1.0f);
     m_scrollAnimator.Reset(0.0f);
 }
 
@@ -648,7 +646,7 @@ void TreeView::OnMouseDown(Point pt) {
     int idx = GetVisibleIndexFromY(pt.y);
     if (idx >= 0 && idx < static_cast<int>(m_visibleItems.size())) {
         // Copy before SetSelectedItem/ClampScroll rebuilds m_visibleItems
-        // (a reference into the vector would dangle and crash on item->).
+        // (a reference into the vector would dangle and crash on item.).
         const VisibleItem visItem = m_visibleItems[idx];
         std::shared_ptr<TreeViewItem> item = visItem.item;
         if (!item) {

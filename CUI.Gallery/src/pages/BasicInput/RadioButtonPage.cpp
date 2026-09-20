@@ -8,9 +8,9 @@ Element BuildRadioButtonPage() {
     auto light = RadioButtonTile("浅色");
     auto dark = RadioButtonTile("深色");
     auto system = RadioButtonTile("跟随系统");
-    DSL::Borrow(light).GroupName("theme");
-    DSL::Borrow(dark).GroupName("theme");
-    DSL::Borrow(system).GroupName("theme");
+        light->SetGroupName("theme");
+        dark->SetGroupName("theme");
+        system->SetGroupName("theme");
 
     State<bool> lightChecked{ true };
     State<bool> darkChecked{ false };
@@ -34,9 +34,9 @@ Element BuildRadioButtonPage() {
     auto sizeS = RadioButtonTile("小");
     auto sizeM = RadioButtonTile("中");
     auto sizeL = RadioButtonTile("大");
-    DSL::Borrow(sizeS).GroupName("size");
-    DSL::Borrow(sizeM).GroupName("size");
-    DSL::Borrow(sizeL).GroupName("size");
+        sizeS->SetGroupName("size");
+        sizeM->SetGroupName("size");
+        sizeL->SetGroupName("size");
 
     State<bool> sizeSChecked{ false };
     State<bool> sizeMChecked{ true };

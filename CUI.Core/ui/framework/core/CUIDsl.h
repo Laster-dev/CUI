@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Widgets.h"
 #include "../controls/UIElement.h"
 #include "../controls/Panel.h"
 #include "../controls/Button.h"
@@ -1040,30 +1041,7 @@ public:
 
 };
 
-template<typename T>
-ElementBuilder<T>& Borrow(ElementBuilder<T>& builder) {
-    return builder;
-}
 
-template<typename T>
-ElementBuilder<T> Borrow(const ElementBuilder<T>& builder) {
-    return builder;
-}
-
-template<typename T>
-ElementBuilder<T> Borrow(const std::shared_ptr<T>& element) {
-    return ElementBuilder<T>(element);
-}
-
-template<typename T>
-ElementBuilder<T> Borrow(T* element) {
-    return ElementBuilder<T>(std::shared_ptr<T>(element, [](T*) {}));
-}
-
-template<typename T, typename = std::enable_if_t<!IsSharedPtr<T>::value>>
-ElementBuilder<T> Borrow(T& element) {
-    return ElementBuilder<T>(std::shared_ptr<T>(&element, [](T*) {}));
-}
 
 
 struct ChildArgument {
@@ -1073,6 +1051,9 @@ struct ChildArgument {
     template<typename T> ChildArgument(std::shared_ptr<T> value) : element(std::move(value)) {}
     template<typename T> ChildArgument(const ElementRef<T>& ref) : element(ref.Shared()) {}
     template<typename T> ChildArgument(const ElementBuilder<T>& builder) : element(builder.Shared()) {}
+    /// 新句柄层（Widgets::Xxx）右值：自动 Build 交出所有权，可直接写进 Row/Column 的初始化列表
+    template<typename H> requires requires(H& h) { h.Build(); }
+    ChildArgument(H&& h) : element(Element(h.Build())) {}
 };
 
 // Flutter-Style Widget Aliases (快速构建语法别名)
@@ -1260,29 +1241,14 @@ inline ElementBuilder<TeachingTip> TeachingTipWidget() { // 快速生成新手�
     return ElementBuilder<TeachingTip>();
 }
 
-inline ElementBuilder<LineChart> LineChartWidget() { // 快速生成折线统计图表
-    return ElementBuilder<LineChart>();
-}
 
-inline ElementBuilder<BarChart> BarChartWidget() { // 快速生成柱状统计图表
-    return ElementBuilder<BarChart>();
-}
 
-inline ElementBuilder<PieChart> PieChartWidget() { // 快速生成饼图百分比统计图表
-    return ElementBuilder<PieChart>();
-}
 
-inline ElementBuilder<MarkdownView> MarkdownViewWidget() { // 快速生成自适应 Markdown 排版富文本视图
-    return ElementBuilder<MarkdownView>();
-}
 
 inline ElementBuilder<LogView> LogViewWidget() { // 快速生成带分级着色和搜索的高频滚动日志监视窗
     return ElementBuilder<LogView>();
 }
 
-inline ElementBuilder<Toast> ToastWidget() { // 快速生成全局应用内通知浮层
-    return ElementBuilder<Toast>();
-}
 
 inline ElementBuilder<InfoBar> InfoBarWidget() { // 快速生成用于头部提示消息的各种状态通知条
     return ElementBuilder<InfoBar>();
@@ -1306,9 +1272,6 @@ inline ElementBuilder<WindowTitleBar> TitleBarWidget(const std::string& title = 
     return t;
 }
 
-inline ElementBuilder<Image> ImageWidget() { // 快速生成图片加载盒
-    return ElementBuilder<Image>();
-}
 
 inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") { // 快速生成文件路径拾取器
     auto f = ElementBuilder<FilePicker>();
@@ -1374,9 +1337,6 @@ inline ElementBuilder<ColorPicker> ColorPickerWidget() { // 快速生成 HSV 环
     return ElementBuilder<ColorPicker>();
 }
 
-inline ElementBuilder<BreadcrumbBar> BreadcrumbBarWidget() { // 快速生成树形面包屑路标导航条
-    return ElementBuilder<BreadcrumbBar>();
-}
 
 inline ElementBuilder<PagingControl> PagingControlWidget(int current = 1, int total = 10) { // 快速生成列表分页翻页控制器
     auto p = ElementBuilder<PagingControl>();
@@ -1406,9 +1366,6 @@ inline ElementBuilder<Expander> ExpanderWidget(const std::string& title = "Expan
     return c;
 }
 
-inline ElementBuilder<Expander> CollapsePanelWidget(const std::string& title = "Expander") { // 兼容性老命名：折叠面板组件
-    return ExpanderWidget(title);
-}
 
 inline ElementBuilder<ListView> ListViewWidget() { // 快速生成纵向数据项目展示列表
     return ElementBuilder<ListView>();
@@ -1623,7 +1580,6 @@ inline ElementBuilder<CUI::SegmentedControl> SegmentedControl(std::initializer_l
 inline ElementBuilder<CUI::DatePicker> DatePicker() { return DatePickerWidget(); }
 inline ElementBuilder<CUI::TimePicker> TimePicker() { return TimePickerWidget(); }
 inline ElementBuilder<CUI::ColorPicker> ColorPicker() { return ColorPickerWidget(); }
-inline ElementBuilder<CUI::BreadcrumbBar> BreadcrumbBar() { return BreadcrumbBarWidget(); }
 inline ElementBuilder<CUI::PagingControl> PagingControl(int current = 1, int total = 10) {
     return PagingControlWidget(current, total);
 }
@@ -1634,7 +1590,6 @@ inline ElementBuilder<CUI::Expander> Expander(const std::string& title = "Expand
     return ExpanderWidget(title);
 }
 inline ElementBuilder<CUI::TreeView> TreeView() { return TreeViewWidget(); }
-inline ElementBuilder<CUI::Image> Image() { return ImageWidget(); }
 inline ElementBuilder<CUI::FilePicker> FilePicker(const std::string& path = "") { return FilePickerWidget(path); }
 inline ElementBuilder<CUI::FolderPicker> FolderPicker(const std::string& path = "") { return FolderPickerWidget(path); }
 inline ElementBuilder<CUI::Canvas> Canvas() { return CanvasWidget(); }
@@ -1646,12 +1601,7 @@ inline ElementBuilder<CUI::Flyout> Flyout() { return FlyoutWidget(); }
 inline ElementBuilder<CUI::MenuBar> MenuBar() { return MenuBarWidget(); }
 inline ElementBuilder<CUI::CommandBar> CommandBar() { return CommandBarWidget(); }
 inline ElementBuilder<CUI::InfoBar> InfoBar() { return InfoBarWidget(); }
-inline ElementBuilder<CUI::Toast> Toast() { return ToastWidget(); }
 inline ElementBuilder<CUI::LogView> LogView() { return LogViewWidget(); }
-inline ElementBuilder<CUI::MarkdownView> MarkdownView() { return MarkdownViewWidget(); }
-inline ElementBuilder<CUI::LineChart> LineChart() { return LineChartWidget(); }
-inline ElementBuilder<CUI::BarChart> BarChart() { return BarChartWidget(); }
-inline ElementBuilder<CUI::PieChart> PieChart() { return PieChartWidget(); }
 inline ElementBuilder<CUI::TopologyView> TopologyView() { return TopologyWidget(); }
 inline ElementBuilder<CUI::SvgIcon> SvgIcon(const std::string& source = "") { return SvgIconWidget(source); }
 inline ElementBuilder<CUI::CanvasControl> CanvasControl(float width = 300.0f, float height = 200.0f) {

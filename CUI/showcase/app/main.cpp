@@ -25,14 +25,14 @@ using namespace CUI::DSL;
 
 static std::shared_ptr<Toast> BuildToastTemplate() {
     auto toast = std::make_shared<Toast>();
-    DSL::Borrow(toast).Title("XML Toast");
-    DSL::Borrow(toast).Message("这是从旧展示模板回填的声明式通知");
-    DSL::Borrow(toast).Corner(ToastCorner::BottomRight);
-    DSL::Borrow(toast).DurationMs(2800);
-    DSL::Borrow(toast).AutoClose(true);
-    DSL::Borrow(toast).Closeable(true);
-    CUI::DSL::Borrow(toast).Width(320.0f);
-    DSL::Borrow(toast).Spacing(8.0f);
+        toast->SetTitle("XML Toast");
+        toast->SetMessage("这是从旧展示模板回填的声明式通知");
+        toast->SetCorner(ToastCorner::BottomRight);
+        toast->SetDurationMs(2800);
+        toast->SetAutoClose(true);
+        toast->SetCloseable(true);
+        toast->SetWidth(320.0f);
+        toast->SetSpacing(8.0f);
     return toast;
 }
 
@@ -123,10 +123,10 @@ public:
             auto btnDark = std::make_shared<Button>("Dark Theme");
             auto btnLight = std::make_shared<Button>("Light Theme");
             btnDark->OnClick().Connect([win](UIElement*) {
-                DSL::Borrow(win).ThemeMode(ThemeMode::Dark);
+                                win->SetThemeMode(ThemeMode::Dark);
             });
             btnLight->OnClick().Connect([win](UIElement*) {
-                DSL::Borrow(win).ThemeMode(ThemeMode::Light);
+                                win->SetThemeMode(ThemeMode::Light);
             });
 
             auto demo = Column(12).Children({
@@ -139,26 +139,26 @@ public:
         }
 
         auto nav = std::make_shared<NavigationView>();
-        DSL::Borrow(nav).Header(std::string());
-        DSL::Borrow(nav).PaneTitle("CUI Control Gallery");
-        DSL::Borrow(nav).PaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
-        DSL::Borrow(nav).IsBackButtonVisible(NavigationViewBackButtonVisible::Collapsed);
-        DSL::Borrow(nav).IsSettingsVisible(true);
-        DSL::Borrow(nav).IsPaneOpen(true);
+                nav->SetHeader(std::string());
+                nav->SetPaneTitle("CUI Control Gallery");
+                nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
+                nav->SetIsBackButtonVisible(NavigationViewBackButtonVisible::Collapsed);
+                nav->SetIsSettingsVisible(true);
+                nav->SetIsPaneOpen(true);
 
         // Sidebar control search (AutoSuggestBox slot on NavigationView).
         auto search = std::make_shared<AutoSuggestBox>();
-        CUI::DSL::Borrow(search).Placeholder("搜索控件…");
-        DSL::Borrow(search).MaxVisibleSuggestions(10);
+                search->SetPlaceholder("搜索控件…");
+                search->SetMaxVisibleSuggestions(10);
         {
             std::vector<std::string> labels;
             labels.reserve(samples.size());
             for (const auto& s : samples) {
                 labels.push_back(s.label);
             }
-            DSL::Borrow(search).SuggestionItems(labels);
+                        search->SetSuggestionItems(labels);
             // Match label / tag / category (case-insensitive substring).
-            DSL::Borrow(search).SuggestionProvider([samples](const std::string& query) {
+                        search->SetSuggestionProvider([samples](const std::string& query) {
                 auto lower = [](std::string s) {
                     for (char& c : s) {
                         if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
@@ -180,7 +180,7 @@ public:
                 return out;
             });
         }
-        DSL::Borrow(nav).AutoSuggestBox(search);
+                nav->SetAutoSuggestBox(search);
 
         struct PageCache {
             std::unordered_map<std::string, std::shared_ptr<UIElement>> content;
@@ -276,11 +276,11 @@ public:
             if (it->second.items.empty()) continue;
 
             auto catItem = std::make_shared<NavigationViewItem>(catName);
-            DSL::Borrow(catItem).SelectsOnInvoked(false);
+                        catItem->SetSelectsOnInvoked(false);
 
             for (const auto* s : it->second.items) {
                 auto child = std::make_shared<NavigationViewItem>(s->label);
-                DSL::Borrow(child).Tag(s->tag);
+                                child->SetTag(s->tag);
                 catItem->AddMenuItem(child);
 
                 if (!firstItem && !initialTag.empty() && s->tag == initialTag) {
@@ -311,12 +311,12 @@ public:
 
         if (!initialTag.empty()) {
             if (auto content = pageCache->Resolve(initialTag)) {
-                DSL::Borrow(nav).Content(content);
+                                nav->SetContent(content);
             }
         } else if (!samples.empty()) {
             initialTag = samples.front().tag;
             if (auto content = pageCache->Resolve(initialTag)) {
-                DSL::Borrow(nav).Content(content);
+                                nav->SetContent(content);
             }
         }
 
@@ -324,7 +324,7 @@ public:
         if (!firstItem && !initialTag.empty()) {
             nav->SelectByTag(initialTag);
         } else if (firstItem) {
-            DSL::Borrow(nav).SelectedItem(firstItem.get());
+                        nav->SetSelectedItem(firstItem.get());
         }
 
         // Navigate to a sample by tag (shared by sidebar click + search).
@@ -337,10 +337,10 @@ public:
                 tag.c_str(), pageCache->Contains(tag) ? 1 : 0);
             if (pageCache->Contains(tag)) {
                 if (auto content = pageCache->Resolve(tag)) {
-                    DSL::Borrow(nav).Content(content);
+                                        nav->SetContent(content);
                 }
             } else {
-                DSL::Borrow(nav).ContentFactory([pageCache, tag]() {
+                                nav->SetContentFactory([pageCache, tag]() {
                     CUI::ProgressBarDiag::Log("[PB] gallery factory Resolve(%s)", tag.c_str());
                     return pageCache->Resolve(tag);
                 });
@@ -362,7 +362,7 @@ public:
                 return;
             }
             navigateToTag(it->second);
-            CUI::DSL::Borrow(search).Text("");
+                        search->SetText("");
         };
 
         search->OnSuggestionChosen().Connect(
@@ -400,7 +400,7 @@ public:
                                          NavigationView*, const NavigationViewItemInvokedEventArgs& args) mutable {
             if (args.IsSettingsInvoked) {
                 if (win) StopStreamingThread();
-                DSL::Borrow(nav).Content(settingsContent);
+                                nav->SetContent(settingsContent);
                 return;
             }
             if (!args.InvokedItem) return;
@@ -421,10 +421,10 @@ public:
 
     std::shared_ptr<UIElement> build(BuildContext& context) override {
         auto titleBar = std::make_shared<TitleBar>();
-        DSL::Borrow(titleBar).Title("CUI Control Gallery | Flutter 风格 C++ 声明式 Widget Showcase");
+                titleBar->SetTitle("CUI Control Gallery | Flutter 风格 C++ 声明式 Widget Showcase");
 
         auto toastCenter = std::make_shared<ToastCenter>();
-        DSL::Borrow(toastCenter).Id("toastCenter");
+                toastCenter->SetId("toastCenter");
 
         auto effectiveContext = m_ctx;
         if (context.window) {
@@ -433,10 +433,10 @@ public:
 
         if (effectiveContext.windowRef) {
             titleBar->OnToggleLowPerformance().Connect([win = effectiveContext.windowRef](TitleBar*) {
-                DSL::Borrow(win).LowPerformanceMode(!win->IsLowPerformanceMode());
+                                win->SetLowPerformanceMode(!win->IsLowPerformanceMode());
             });
             titleBar->OnToggleTheme().Connect([win = effectiveContext.windowRef](TitleBar*) {
-                DSL::Borrow(win).ThemeMode(win->GetThemeMode() == ThemeMode::Dark ? ThemeMode::Light : ThemeMode::Dark);
+                                win->SetThemeMode(win->GetThemeMode() == ThemeMode::Dark ? ThemeMode::Light : ThemeMode::Dark);
             });
         }
 

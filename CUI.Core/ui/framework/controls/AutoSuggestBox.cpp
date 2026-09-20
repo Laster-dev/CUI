@@ -70,25 +70,23 @@ bool ContainsInsensitive(const std::string& hay, const std::string& needle) {
 } // namespace
 
 AutoSuggestBox::AutoSuggestBox() {
-    DSL::Borrow(this)
-        .Placeholder("搜索…")
-        .BackgroundToken(ThemeTokenId::Unset)
-        .HoverBackgroundToken(ThemeTokenId::Unset)
-        .BorderToken(ThemeTokenId::Unset)
-        .FocusedBorderToken(ThemeTokenId::Unset)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .PlaceholderColorToken(ThemeTokenId::TextMuted)
-        .Background(D2D1::ColorF(0, 0, 0, 0))
-        .HoverBackground(D2D1::ColorF(0, 0, 0, 0))
-        .BorderBrush(D2D1::ColorF(0, 0, 0, 0))
-        .BorderThickness(0.0f)
-        .Foreground(ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary))
-        .FontFamily("微软雅黑")
-        .FontSize(12.0f)
-        .Padding(0.0f)
-        .CornerRadius(0.0f)
-        .Width(280.0f)
-        .Height(32.0f);
+        this->SetPlaceholder("搜索…");
+    this->SetBackgroundToken(ThemeTokenId::Unset);
+    this->SetHoverBackgroundToken(ThemeTokenId::Unset);
+    this->SetBorderToken(ThemeTokenId::Unset);
+    this->SetFocusedBorderToken(ThemeTokenId::Unset);
+    this->SetPlaceholderColorToken(ThemeTokenId::TextMuted);
+    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
+    this->SetBorderThickness(0.0f);
+    this->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary));
+    this->SetFontFamily("微软雅黑");
+    this->SetFontSize(12.0f);
+    this->SetPadding(0.0f);
+    this->SetCornerRadius(0.0f);
+    this->SetWidth(280.0f);
+    this->SetHeight(32.0f);
     UIElement::SetText("");
 
     auto field = std::make_shared<AutoSuggestField>();
@@ -101,22 +99,21 @@ AutoSuggestBox::AutoSuggestBox() {
         }
         SetTextInternal(text, true, true);
     });
-    DSL::Borrow(this).AddChild(m_field);
+    this->AddChild(m_field);
 }
 
 void AutoSuggestBox::StyleField() {
     if (!m_field) {
         return;
     }
-    DSL::Borrow(m_field)
-        .Placeholder(GetPlaceholder())
-        .FontFamily(GetFontFamily())
-        .FontSize(GetFontSize())
-        .ForegroundToken(GetColorToken())
-        .PlaceholderColorToken(GetPlaceholderColorToken())
-        .Width(GetWidth() >= 0.0f ? GetWidth() : 280.0f)
-        .Height(GetHeight() >= 0.0f ? GetHeight() : 32.0f)
-        .Padding(8.0f, 6.0f, 8.0f, 6.0f);
+    m_field->SetPlaceholder(GetPlaceholder());
+    m_field->SetFontFamily(GetFontFamily());
+    m_field->SetFontSize(GetFontSize());
+    m_field->SetColorToken(GetColorToken());
+    m_field->SetPlaceholderColorToken(GetPlaceholderColorToken());
+    m_field->SetWidth(GetWidth() >= 0.0f ? GetWidth() : 280.0f);
+    m_field->SetHeight(GetHeight() >= 0.0f ? GetHeight() : 32.0f);
+    m_field->SetPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
 }
 
 HCURSOR AutoSuggestBox::GetCursor() const {
@@ -126,7 +123,7 @@ HCURSOR AutoSuggestBox::GetCursor() const {
 void AutoSuggestBox::SetPlaceholder(const std::string& text) {
     UIElement::SetPlaceholder(text);
     if (m_field) {
-        DSL::Borrow(m_field).Placeholder(text);
+        m_field->SetPlaceholder(text);
     }
     MarkRenderContentDirty();
 }
@@ -145,7 +142,7 @@ void AutoSuggestBox::SetTextInternal(const std::string& text, bool fireChanged, 
     UIElement::SetText(text);
     if (m_field && m_field->GetText() != text) {
         m_syncingField = true;
-        DSL::Borrow(m_field).Text(text);
+        m_field->SetText(text);
         m_syncingField = false;
     }
     MarkRenderContentDirty();
@@ -204,10 +201,10 @@ void AutoSuggestBox::LayoutField() {
         return;
     }
     if (m_field->GetFontSize() != GetFontSize()) {
-        DSL::Borrow(m_field).FontSize(GetFontSize());
+        m_field->SetFontSize(GetFontSize());
     }
     if (m_field->GetFontFamily() != GetFontFamily()) {
-        DSL::Borrow(m_field).FontFamily(GetFontFamily());
+        m_field->SetFontFamily(GetFontFamily());
     }
     const Rect r = m_bounds;
     m_field->Measure(Size(r.width, r.height));

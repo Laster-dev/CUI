@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 #include <vector>
 
@@ -15,7 +19,9 @@ namespace {
 class CommandConsoleControl : public Control {
 public:
     CommandConsoleControl() {
-        Borrow(this).Height(120.0f).CornerRadius(8.0f).ToolTip("点击此处聚焦后，按下键盘快捷键 (如 Ctrl+N, Ctrl+S, F5, Ctrl+F, Ctrl+R) 即可实时触发命令");
+                this->SetHeight(120.0f);
+        this->SetCornerRadius(8.0f);
+        this->SetToolTip("点击此处聚焦后，按下键盘快捷键 (如 Ctrl+N, Ctrl+S, F5, Ctrl+F, Ctrl+R) 即可实时触发命令");
 
         InitCommands();
     }
@@ -33,31 +39,31 @@ public:
         m_cmdNew = std::make_shared<Command>(
             [this]() { LogAction("📄 [File.New] 触发【新建文档】命令 (Ctrl + N)"); }
         );
-        DSL::Borrow(m_cmdNew).Id("File.New");
-        DSL::Borrow(m_cmdNew).Label("新建文档");
-        DSL::Borrow(m_cmdNew).Gesture("Ctrl+N");
+                m_cmdNew->SetId("File.New");
+                m_cmdNew->SetLabel("新建文档");
+                m_cmdNew->SetGesture("Ctrl+N");
 
         m_cmdSave = std::make_shared<Command>(
             [this]() { LogAction("💾 [File.Save] 触发【保存文件】命令 (Ctrl + S)"); },
             [this]() { return m_canSave; }
         );
-        DSL::Borrow(m_cmdSave).Id("File.Save");
-        DSL::Borrow(m_cmdSave).Label("保存文件");
-        DSL::Borrow(m_cmdSave).Gesture("Ctrl+S");
+                m_cmdSave->SetId("File.Save");
+                m_cmdSave->SetLabel("保存文件");
+                m_cmdSave->SetGesture("Ctrl+S");
 
         m_cmdBuild = std::make_shared<Command>(
             [this]() { LogAction("⚡ [Build.Run] 触发【一键构建调试】命令 (F5)"); }
         );
-        DSL::Borrow(m_cmdBuild).Id("Build.Run");
-        DSL::Borrow(m_cmdBuild).Label("启动调试");
-        DSL::Borrow(m_cmdBuild).Gesture("F5");
+                m_cmdBuild->SetId("Build.Run");
+                m_cmdBuild->SetLabel("启动调试");
+                m_cmdBuild->SetGesture("F5");
 
         m_cmdFind = std::make_shared<Command>(
             [this]() { LogAction("🔍 [Edit.Find] 触发【全局搜索查找】命令 (Ctrl + F)"); }
         );
-        DSL::Borrow(m_cmdFind).Id("Edit.Find");
-        DSL::Borrow(m_cmdFind).Label("查找替换");
-        DSL::Borrow(m_cmdFind).Gesture("Ctrl+F");
+                m_cmdFind->SetId("Edit.Find");
+                m_cmdFind->SetLabel("查找替换");
+                m_cmdFind->SetGesture("Ctrl+F");
 
         m_manager.Register(m_cmdNew);
         m_manager.Register(m_cmdSave);
@@ -198,8 +204,8 @@ Element BuildCommandsPage() {
     auto statusLabel = MakeStatus("提示：按下键盘快捷键 (Ctrl+N, Ctrl+S, F5, Ctrl+F) 或点击下方按钮均可触发命令。");
 
     auto console = std::make_shared<CommandConsoleControl>();
-    DSL::Borrow(console).StatusHandler([statusLabel](const std::string& msg) {
-        CUI::DSL::Borrow(statusLabel).Text(msg);
+        console->SetStatusHandler([statusLabel](const std::string& msg) {
+        statusLabel->Text = msg;
     });
 
     // ==========================================
@@ -230,12 +236,12 @@ Element BuildCommandsPage() {
             console->GetCmdFind()->Execute();
         });
 
-    auto toggleCanSave = ToggleButtonWidget("允许保存 (CanExecute = true)");
-    DSL::Borrow(toggleCanSave).IsChecked(true);
+    auto toggleCanSave = Widgets::ToggleButton("允许保存 (CanExecute = true)").Shared();
+        toggleCanSave->SetIsChecked(true);
     toggleCanSave->OnClick.Connect([console, statusLabel](UIElement* sender) {
         auto btn = dynamic_cast<ToggleButton*>(sender);
         bool canSave = btn && btn->IsChecked();
-        DSL::Borrow(console).CanSave(canSave);
+                console->SetCanSave(canSave);
         statusLabel->Text = canSave
             ? "已【启用】保存命令 (Ctrl+S 可正常触发)"
             : "已【禁用】保存命令 (Ctrl+S 将被拦截阻断)";
@@ -268,8 +274,8 @@ auto cmdSave = std::make_shared<Command>(
     []() { /* 保存文件逻辑 */ },
     []() { return isModified(); } // CanExecute 判定
 );
-DSL::Borrow(cmdSave).Id("File.Save");
-DSL::Borrow(cmdSave).Gesture("Ctrl+S");
+cmdSave->SetId("File.Save");
+cmdSave->SetGesture("Ctrl+S");
 
 // 2. 注册到 Window 全局命令管理器
 Window::Current()->GetCommands().Register(cmdSave);

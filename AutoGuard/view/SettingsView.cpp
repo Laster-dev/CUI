@@ -36,15 +36,19 @@ std::shared_ptr<UIElement> SettingsView::Build() {
     };
 
     auto btnDark = std::make_shared<Button>("🌙 深色模式");
-    DSL::Borrow(btnDark).Height(28.0f);
+        btnDark->SetHeight(28.0f);
     btnDark->OnClick().Connect([window](UIElement*) {
-        if (window) DSL::Borrow(window).ThemeMode(ThemeMode::Dark);
+        if (window) {
+            window->SetThemeMode(ThemeMode::Dark);
+        }
     });
 
     auto btnLight = std::make_shared<Button>("☀ 浅色模式");
-    DSL::Borrow(btnLight).Height(28.0f);
+        btnLight->SetHeight(28.0f);
     btnLight->OnClick().Connect([window](UIElement*) {
-        if (window) DSL::Borrow(window).ThemeMode(ThemeMode::Light);
+        if (window) {
+            window->SetThemeMode(ThemeMode::Light);
+        }
     });
 
     auto themeRow = Row(6.0f, { btnDark, btnLight }).Build();
@@ -54,7 +58,7 @@ std::shared_ptr<UIElement> SettingsView::Build() {
     if (window) lowPerfSwitch->SetIsOn(window->IsLowPerformanceMode());
     lowPerfSwitch->OnToggled().Connect([window, onShowToast](ToggleSwitch*, bool on) {
         if (window) {
-            DSL::Borrow(window).LowPerformanceMode(on);
+                        window->SetLowPerformanceMode(on);
             if (onShowToast) onShowToast(on ? "已开启低功耗渲染模式。" : "已关闭低功耗模式。");
         }
     });
@@ -80,9 +84,9 @@ std::shared_ptr<UIElement> SettingsView::Build() {
     .Build();
 
     auto scroll = std::make_shared<ScrollViewer>();
-    DSL::Borrow(scroll).Align(Alignment::Stretch);
-    DSL::Borrow(scroll).FlexGrow(1.0f);
-    DSL::Borrow(scroll).AddChild(content);
+        scroll->SetAlign(Alignment::Stretch);
+        scroll->SetFlexGrow(1.0f);
+        scroll->AddChild(content);
     return scroll;
 }
 

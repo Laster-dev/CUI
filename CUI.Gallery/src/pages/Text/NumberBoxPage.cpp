@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -7,8 +11,9 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildNumberBoxPage() {
-    auto basic = NumberBoxWidget(12.5).Width(150).Height(28).Build();
-    CUI::DSL::Borrow(basic).Step(0.5f);
+    auto basic = Widgets::NumberBox().Width(150).Height(28).Shared();
+    basic->SetValue(12.5);
+        basic->SetStep(0.5f);
     basic->ToolTip = "支持 ▲/▼、滚轮、上下键；可输入表达式如 1+2*3";
 
     State<float> basicValue{ 12.5f };
@@ -19,16 +24,17 @@ std::shared_ptr<UIElement> BuildNumberBoxPage() {
     auto basicStatus = MakeStatus("");
     basicStatus->Text.Bind(basicStatusValue, BindingMode::OneWay);
 
-    auto disabled = NumberBoxWidget(42).Width(150).Height(28).Build();
-    CUI::DSL::Borrow(disabled).IsEnabled(false);
+    auto disabled = Widgets::NumberBox().Width(150).Height(28).Shared();
+    disabled->SetValue(42);
+        disabled->SetIsEnabled(false);
 
-    auto ranged = NumberBoxWidget();
-    CUI::DSL::Borrow(ranged).Width(150.0f);
-    CUI::DSL::Borrow(ranged).Height(28.0f);
-    CUI::DSL::Borrow(ranged).Minimum(0.0f);
-    CUI::DSL::Borrow(ranged).Maximum(100.0f);
-    CUI::DSL::Borrow(ranged).Step(5.0f);
-    CUI::DSL::Borrow(ranged).Value(60.0f);
+    auto ranged = Widgets::NumberBox().Shared();
+        ranged->SetWidth(150.0f);
+        ranged->SetHeight(28.0f);
+        ranged->SetMinimum(0.0f);
+        ranged->SetMaximum(100.0f);
+        ranged->SetStep(5.0f);
+        ranged->SetValue(60.0f);
 
     State<float> rangedValue{ 60.0f };
     ranged->ValueProperty.Bind(rangedValue, BindingMode::TwoWay);
@@ -61,7 +67,7 @@ std::shared_ptr<UIElement> BuildNumberBoxPage() {
         },
     };
     spec.source =
-        "auto box = NumberBoxWidget(12.5).Width(150).Build();\n"
+        "auto box = Widgets::NumberBox(12.5).Width(150).Shared();\n"
         "box.Step(0.5f);\n"
         "box.Minimum(0.0f);\n"
         "box.Maximum(100.0f);\n"

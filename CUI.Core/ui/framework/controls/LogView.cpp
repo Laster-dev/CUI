@@ -120,19 +120,17 @@ D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
 
 LogView::LogView() {
     m_buf.resize(m_cap);
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::CardBackground)
-        .BorderToken(ThemeTokenId::FocusedBorder)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .BorderThickness(1.0f)
-        .CornerRadius(6.0f)
-        .Align(Alignment::Stretch)
-        .ClipToBounds(true);
+        this->SetBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetBorderToken(ThemeTokenId::FocusedBorder);
+    this->SetBorderThickness(1.0f);
+    this->SetCornerRadius(6.0f);
+    this->SetAlign(Alignment::Stretch);
+    this->SetClipToBounds(true);
     m_expandedHeight = 280.0f;
     BuildChrome();
     SyncChipAnimTargets(true);
     m_expandAnim.Reset(m_expanded ? 1.0f : 0.0f);
-    DSL::Borrow(this).Height(ExpandHeight());
+    this->SetHeight(ExpandHeight());
 }
 
 LogView::~LogView() {
@@ -140,33 +138,31 @@ LogView::~LogView() {
 }
 
 void LogView::StyleIconButton(Button& btn, const char* svg, const char* tooltip, ThemeTokenId color) {
-    DSL::Borrow(&btn)
-        .Text("")
-        .Icon(svg)
-        .ToolTip(tooltip)
-        .Width(kIconBtn)
-        .Height(kIconBtn)
-        .FontSize(16.0f)
-        .Padding(5.0f)
-        .CornerRadius(4.0f)
-        .BorderThickness(0.0f)
-        .BackgroundToken(ThemeTokenId::Unset)
-        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
-        .Background(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f))
-        .ForegroundToken(color);
+    btn.SetText("");
+    btn.SetIcon(svg);
+    btn.SetToolTip(tooltip);
+    btn.SetWidth(kIconBtn);
+    btn.SetHeight(kIconBtn);
+    btn.SetFontSize(16.0f);
+    btn.SetPadding(5.0f);
+    btn.SetCornerRadius(4.0f);
+    btn.SetBorderThickness(0.0f);
+    btn.SetBackgroundToken(ThemeTokenId::Unset);
+    btn.SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    btn.SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    btn.SetBackground(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+    btn.SetColorToken(color);
 }
 
 void LogView::BuildChrome() {
     m_search = std::make_shared<TextBox>();
-    DSL::Borrow(m_search)
-        .Placeholder("搜索 消息 / 分类")
-        .Height(26.0f)
-        .FontSize(12.0f)
-        .Padding(8.0f, 2.0f, 8.0f, 2.0f)
-        .CornerRadius(4.0f)
-        .BackgroundToken(ThemeTokenId::InputBackground)
-        .OnTextChanged([this](TextBox*, const std::string& text) {
+    m_search->SetPlaceholder("搜索 消息 / 分类");
+    m_search->SetHeight(26.0f);
+    m_search->SetFontSize(12.0f);
+    m_search->SetPadding(Thickness(8.0f, 2.0f, 8.0f, 2.0f));
+    m_search->SetCornerRadius(4.0f);
+    m_search->SetBackgroundToken(ThemeTokenId::InputBackground);
+    m_search->OnTextChanged().Connect([this](TextBox*, const std::string& text) {
             if (!m_syncingUi) {
                 SetFilterText(text);
             }
@@ -174,20 +170,20 @@ void LogView::BuildChrome() {
 
     m_btnCopy = std::make_shared<Button>();
     StyleIconButton(*m_btnCopy, kSvgCopy, "复制", ThemeTokenId::AccentColor);
-    DSL::Borrow(m_btnCopy).OnClick([this](UIElement*) { CopySelection(); });
+        m_btnCopy->OnClick().Connect([this](UIElement*) { CopySelection(); });
 
     m_btnClear = std::make_shared<Button>();
     StyleIconButton(*m_btnClear, kSvgClear, "清空", ThemeTokenId::AccentColor);
-    DSL::Borrow(m_btnClear).OnClick([this](UIElement*) { Clear(); });
+        m_btnClear->OnClick().Connect([this](UIElement*) { Clear(); });
 
     m_btnFollow = std::make_shared<Button>();
     StyleIconButton(*m_btnFollow, kSvgFollow, "跟随", ThemeTokenId::TextPrimary);
-    DSL::Borrow(m_btnFollow).OnClick([this](UIElement*) { SetFollowTail(!m_follow); });
+        m_btnFollow->OnClick().Connect([this](UIElement*) { SetFollowTail(!m_follow); });
 
-    DSL::Borrow(this).AddChild(m_search);
-    DSL::Borrow(this).AddChild(m_btnCopy);
-    DSL::Borrow(this).AddChild(m_btnClear);
-    DSL::Borrow(this).AddChild(m_btnFollow);
+    this->AddChild(m_search);
+    this->AddChild(m_btnCopy);
+    this->AddChild(m_btnClear);
+    this->AddChild(m_btnFollow);
     ApplyChromeVisibility();
     SyncActionButtons();
 }
@@ -196,7 +192,7 @@ void LogView::ApplyChromeVisibility() {
     const Visibility vis = (ExpandProgress() > 0.08f) ? Visibility::Visible : Visibility::Collapsed;
     auto apply = [vis](const std::shared_ptr<UIElement>& el) {
         if (el && el->GetVisibility() != vis) {
-            DSL::Borrow(el).Visibility(vis);
+            el->SetVisibility(vis);
         }
     };
     apply(m_search);
@@ -209,9 +205,8 @@ void LogView::SyncActionButtons() {
     if (!m_btnFollow) {
         return;
     }
-    DSL::Borrow(m_btnFollow)
-        .ForegroundToken(m_follow ? ThemeTokenId::AccentColor : ThemeTokenId::TextPrimary)
-        .ToolTip(m_follow ? "跟随中" : "跟随");
+    m_btnFollow->SetColorToken(m_follow ? ThemeTokenId::AccentColor : ThemeTokenId::TextPrimary);
+    m_btnFollow->SetToolTip(m_follow ? "跟随中" : "跟随");
 }
 
 float LogView::ExpandProgress() const {
@@ -228,7 +223,7 @@ bool LogView::BodyInteractive() const {
 }
 
 void LogView::ApplyExpandLayout() {
-    DSL::Borrow(this).Height(ExpandHeight());
+    this->SetHeight(ExpandHeight());
     ApplyChromeVisibility();
     InvalidateMeasure();
     for (UIElement* walk = GetParent(); walk; walk = walk->GetParent()) {
@@ -427,7 +422,7 @@ void LogView::SetFilterText(const std::string& text) {
     FoldAsciiInPlace(m_filterFold);
     if (m_search && m_search->GetText() != text) {
         m_syncingUi = true;
-        DSL::Borrow(m_search).Text(text);
+        m_search->SetText(text);
         m_syncingUi = false;
     }
     RebuildVisible();

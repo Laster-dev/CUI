@@ -7,7 +7,7 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildCheckBoxPage(const ShowcaseContext& ctx) {
     auto target = CheckboxTile("交互功能开关").Build();
-    CUI::DSL::Borrow(target).State(CheckState::Checked);
+        target->SetState(CheckState::Checked);
 
     return { "CheckBox 复选框", CreatePage(
         "CheckBox 复选框全属性控制台",

@@ -11,7 +11,7 @@
 namespace CUI {
 
 LineChart::LineChart() {
-    DSL::Borrow(this).Text("折线图");
+    this->SetText("折线图");
 }
 
 void LineChart::BindHoverMotion(const Rect& plot) {

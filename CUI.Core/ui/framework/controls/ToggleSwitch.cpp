@@ -22,17 +22,15 @@ float FluentEaseOut(float t) {
 ToggleSwitch::ToggleSwitch() {
     IsOn.Initialize(*this);
     auto& theme = ThemeManager::Instance();
-    DSL::Borrow(this)
-        .OnColorToken(ThemeTokenId::AccentColor)
-        .OffColorToken(ThemeTokenId::InputBorder)
-        .KnobColorToken(ThemeTokenId::AccentForeground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .ForegroundToken(ThemeTokenId::TextSecondary)
-        .BorderBrush(theme.GetColor("cardBorder"))
-        .Foreground(theme.GetColor("textSecondary"))
-        .BorderThickness(0.0f)
-        .Width(170.0f)
-        .Height(28.0f);
+    this->SetOnColorToken(ThemeTokenId::AccentColor);
+    this->SetOffColorToken(ThemeTokenId::InputBorder);
+    this->SetKnobColorToken(ThemeTokenId::AccentForeground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetBorderBrush(theme.GetColor("cardBorder"));
+    this->SetColor(theme.GetColor("textSecondary"));
+    this->SetBorderThickness(0.0f);
+    this->SetWidth(170.0f);
+    this->SetHeight(28.0f);
     m_knobPosAnim.Reset(0.0f);
 }
 

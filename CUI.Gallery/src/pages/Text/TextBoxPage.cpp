@@ -31,33 +31,33 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
         .Placeholder("多行文本：支持 Enter 换行与自动折行")
         .Width(340.0f)
         .Height(120.0f);
-    CUI::DSL::Borrow(multiline).AcceptsReturn(true);
-    CUI::DSL::Borrow(multiline).TextWrapping(true);
+        multiline->SetAcceptsReturn(true);
+        multiline->SetTextWrapping(true);
 
     auto readOnly = TextField()
         .Text("只读文本：.IsReadOnly(true)")
         .Width(300.0f)
         .Height(32.0f);
-    CUI::DSL::Borrow(readOnly).IsReadOnly(true);
+        readOnly->SetIsReadOnly(true);
 
     auto passwordMode = TextField()
         .Placeholder("密码模式（带明文切换眼睛）")
         .Width(300.0f)
         .Height(32.0f);
-    CUI::DSL::Borrow(passwordMode).IsPasswordMode(true);
-    CUI::DSL::Borrow(passwordMode).ShowRevealButton(true);
+        passwordMode->SetIsPasswordMode(true);
+        passwordMode->SetShowRevealButton(true);
 
     auto disabled = TextField()
         .Placeholder("不可用")
         .Width(300.0f)
         .Height(32.0f);
-    CUI::DSL::Borrow(disabled).IsEnabled(false);
+        disabled->SetIsEnabled(false);
 
     State<std::string> boundText{ "绑定数据源：点击右侧按钮更新文本。" };
     auto bound = TextField()
         .Width(300.0f)
         .Height(32.0f);
-    CUI::DSL::Borrow(bound).IsReadOnly(true);
+        bound->SetIsReadOnly(true);
     bound->Text.Bind(boundText, BindingMode::OneWay);
 
     auto update = Button("更新绑定")
@@ -71,7 +71,7 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
         .Placeholder("支持拖放：拖入文本或文件路径")
         .Width(300.0f)
         .Height(32.0f);
-    CUI::DSL::Borrow(drop).AllowDrop(true);
+        drop->SetAllowDrop(true);
     drop->ToolTip = "允许从外部拖入文本或文件路径";
 
     SamplePageSpec spec;

@@ -11,9 +11,9 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildAutoSuggestPage(const ShowcaseContext& ctx) {
     auto box = std::make_shared<AutoSuggestBox>();
-    CUI::DSL::Borrow(box).Width(320.0f);
-    CUI::DSL::Borrow(box).Placeholder("搜索水果…");
-    DSL::Borrow(box).SuggestionItems({
+        box->SetWidth(320.0f);
+        box->SetPlaceholder("搜索水果…");
+        box->SetSuggestionItems({
         "苹果 Apple",
         "香蕉 Banana",
         "樱桃 Cherry",
@@ -35,15 +35,15 @@ ShowcasePage BuildAutoSuggestPage(const ShowcaseContext& ctx) {
         CreateShowcaseText("输入关键字过滤建议；↑↓ 选择，Enter 确认，Esc 关闭。", 12.0f, "textSecondary", false));
 
     box->OnTextChanged().Connect([status](AutoSuggestBox*, const std::string& text) {
-        CUI::DSL::Borrow(status).Text(text.empty() ? "输入关键字过滤建议；↑↓ 选择，Enter 确认，Esc 关闭。"
+                status->SetText(text.empty() ? "输入关键字过滤建议；↑↓ 选择，Enter 确认，Esc 关闭。"
                                                : ("正在输入: " + text));
     });
     box->OnSuggestionChosen().Connect([window = ctx.windowRef, status](AutoSuggestBox*, const std::string& item) {
-        CUI::DSL::Borrow(status).Text("已选择: " + item);
+                status->SetText("已选择: " + item);
         Toast::Show(window->GetRootElement().get(), "AutoSuggestBox", "选择了 " + item, ToastCorner::BottomRight, 1600);
     });
     box->OnQuerySubmitted().Connect([window = ctx.windowRef, status](AutoSuggestBox*, const std::string& q) {
-        CUI::DSL::Borrow(status).Text("提交查询: " + q);
+                status->SetText("提交查询: " + q);
         Toast::Show(window->GetRootElement().get(), "AutoSuggestBox", "提交: " + (q.empty() ? "(空)" : q), ToastCorner::BottomRight, 1600);
     });
 

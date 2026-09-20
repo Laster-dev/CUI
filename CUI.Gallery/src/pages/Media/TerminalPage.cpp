@@ -267,7 +267,7 @@ Element BuildTerminalPage() {
     static std::shared_ptr<DemoShellBackend> s_demoBackend = std::make_shared<DemoShellBackend>();
 
     auto demoTerm = std::make_shared<TerminalControl>();
-    CUI::DSL::Borrow(demoTerm).Height(400.0f);
+        demoTerm->SetHeight(400.0f);
     demoTerm->AttachBackend(s_demoBackend.get());
 
     auto status1 = MakeStatus("点击终端聚焦后可直接输入；或使用下方按钮注入演示命令。输入 help 查看全部命令。");
@@ -288,7 +288,7 @@ Element BuildTerminalPage() {
 
     // ---------- 第 2 节：真实 ConPty 对接（真实 Shell） ----------
     auto realTerm = std::make_shared<TerminalControl>("cmd.exe");
-    CUI::DSL::Borrow(realTerm).Height(320.0f);
+        realTerm->SetHeight(320.0f);
     realTerm->AttachBackend(nullptr); // 阻止自动拉起，由按钮显式启动
 
     auto status2 = MakeStatus("点击按钮拉起真实的 Windows 伪控制台 (ConPty) 子进程，可直接在终端内交互。");
@@ -314,7 +314,7 @@ Element BuildTerminalPage() {
     static std::shared_ptr<PaletteBackend> s_paletteBackend = std::make_shared<PaletteBackend>();
 
     auto paletteTerm = std::make_shared<TerminalControl>();
-    CUI::DSL::Borrow(paletteTerm).Height(280.0f);
+        paletteTerm->SetHeight(280.0f);
     paletteTerm->AttachBackend(s_paletteBackend.get());
 
     auto status3 = MakeStatus("切换主题观察终端配色；Ctrl+滚轮或下方按钮可缩放字体。");

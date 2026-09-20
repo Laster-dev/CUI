@@ -19,7 +19,7 @@ Element TypeScaleItem(const std::string& style, float size, CUI::FontWeight weig
 
 Element BuildTypographyPage() {
     auto spaced = Text("行距 1.8 的段落示例\n第二行文字\n第三行文字").FontSize(14.0f).FontFamily("微软雅黑").Build();
-    DSL::Borrow(spaced).LineSpacing(1.8f);
+        spaced->SetLineSpacing(1.8f);
 
     auto italic = Text("Italic 斜体示例").FontStyle(CUI::FontStyle::Italic).FontSize(14.0f).FontFamily("微软雅黑").Build();
     auto underline = Text("下划线示例").Underline().FontSize(14.0f).FontFamily("微软雅黑").Build();
@@ -79,7 +79,7 @@ Element BuildTypographyPage() {
         "    .FontWeight(CUI::FontWeight::SemiBold)\n"
         "    .FontFamily(\"微软雅黑\")\n"
         "    .Build();\n"
-        "DSL::Borrow(text).LineSpacing(1.6f);\n";
+        "        text->SetLineSpacing(1.6f);\n";
     return BuildSamplePage(spec);
 }
 

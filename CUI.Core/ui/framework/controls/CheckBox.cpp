@@ -29,21 +29,20 @@ Point LerpPoint(const Point& a, const Point& b, float t) {
 CheckBox::CheckBox() {
     Checked.Initialize(*this);
     State.Initialize(*this);
-    DSL::Borrow(this)
-        .Text("CheckBox")
-        .BackgroundToken(ThemeTokenId::InputBackground)
-        .CheckedBackgroundToken(ThemeTokenId::AccentColor)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .Background(ThemeManager::Instance().GetColor("inputBackground"))
-        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
-        .FontSize(12.0f)
-        .FontFamily("微软雅黑")
-        .Padding(4.0f)
-        .CornerRadius(3.0f);
+    this->SetText("CheckBox");
+    this->SetBackgroundToken(ThemeTokenId::InputBackground);
+    this->SetCheckedBackgroundToken(ThemeTokenId::AccentColor);
+    this->SetColorToken(ThemeTokenId::TextPrimary);
+    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->SetFontSize(12.0f);
+    this->SetFontFamily("微软雅黑");
+    this->SetPadding(4.0f);
+    this->SetCornerRadius(3.0f);
 }
 
 CheckBox::CheckBox(const std::string& text) : CheckBox() {
-    DSL::Borrow(this).Text(text);
+    this->SetText(text);
 }
 
 CheckBox::~CheckBox() {

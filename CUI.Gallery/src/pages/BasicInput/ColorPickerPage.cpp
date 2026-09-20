@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <algorithm>
 #include <format>
 
@@ -20,13 +24,13 @@ std::string ColorHex(Color c) {
 } // namespace
 
 Element BuildColorPickerPage() {
-    auto picker = ColorPickerWidget();
+    auto picker = Widgets::ColorPicker().Shared();
     auto chip = Text()
         .Width(48.0f)
         .Height(24.0f)
         .CornerRadius(4.0f)
         .BorderThickness(1.0f);
-    CUI::DSL::Borrow(chip).BorderToken(ThemeTokenId::CardBorder);
+        chip->SetBorderToken(ThemeTokenId::CardBorder);
 
     State<Color> selectedColor{ Color(0, 0, 0, 1) };
     picker->SelectedColor.Bind(selectedColor);

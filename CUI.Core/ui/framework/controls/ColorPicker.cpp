@@ -13,7 +13,8 @@ ColorPicker::ColorPicker() {
     SelectedColor.Initialize(*this);
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     m_selectedColor = tokens.accentColor;
-    DSL::Borrow(this).Width(220.0f).Height(32.0f);
+    this->SetWidth(220.0f);
+    this->SetHeight(32.0f);
 
     m_swatches = {
         tokens.accentColor,

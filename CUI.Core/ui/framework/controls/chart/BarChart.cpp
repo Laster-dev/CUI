@@ -9,7 +9,7 @@
 namespace CUI {
 
 BarChart::BarChart() {
-    DSL::Borrow(this).Text("柱状图");
+    this->SetText("柱状图");
 }
 
 bool BarChart::BarRect(const Rect& plot, int category, int series, Rect& out) const {

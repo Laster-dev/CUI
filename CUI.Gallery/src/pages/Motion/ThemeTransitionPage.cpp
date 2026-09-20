@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -11,9 +15,9 @@ namespace {
 
 Element MakeColorChip(const std::string& name, ThemeTokenId token) {
     auto chip = Container().Size(48.0f, 48.0f).CornerRadius(8.0f);
-    CUI::DSL::Borrow(chip).BackgroundToken(token);
-    CUI::DSL::Borrow(chip).BorderToken(ThemeTokenId::CardBorder);
-    CUI::DSL::Borrow(chip).BorderThickness(1.0f);
+        chip->SetBackgroundToken(token);
+        chip->SetBorderToken(ThemeTokenId::CardBorder);
+        chip->SetBorderThickness(1.0f);
     return Column(4, {
         chip,
         MakeLabel(name, 11.0f, ThemeTokenId::TextMuted, false)
@@ -33,7 +37,7 @@ Element BuildThemeTransitionPage() {
             const ThemeMode nextMode = (ThemeManager::Instance().GetThemeMode() == ThemeMode::Dark)
                 ? ThemeMode::Light
                 : ThemeMode::Dark;
-            DSL::Borrow(win).ThemeModeWithRipple(nextMode, origin);
+                        win->SetThemeModeWithRipple(nextMode, origin);
             statusTheme->Text = std::string("当前系统主题：")
                 + (nextMode == ThemeMode::Dark ? "深色模式 (Dark)" : "浅色模式 (Light)")
                 + " [波纹扩散已完成]";
@@ -107,21 +111,26 @@ Element BuildThemeTransitionPage() {
         .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f);
-    auto sampleSlider = SliderWidget(65.0f, 0.0f, 100.0f);
-    CUI::DSL::Borrow(sampleSlider).Width(180.0f);
+    auto sampleSlider = Widgets::Slider().Shared();
+    sampleSlider->SetMinimum(0.0f);
+    sampleSlider->SetMaximum(100.0f);
+    sampleSlider->SetValue(65.0f);
+        sampleSlider->SetWidth(180.0f);
     auto sampleToggle = ToggleSwitchTile("开关状态", true);
     auto sampleCheck = CheckboxTile("记住配置 (Remember)");
     auto sampleInput = TextField("输入测试文本..");
-    CUI::DSL::Borrow(sampleInput).Width(200.0f);
-    auto sampleBar = ProgressBarWidget(60.0f, false);
-    CUI::DSL::Borrow(sampleBar).Height(6.0f);
-    CUI::DSL::Borrow(sampleBar).Align(Alignment::Stretch);
+        sampleInput->SetWidth(200.0f);
+    auto sampleBar = Widgets::ProgressBar().Shared();
+    sampleBar->SetValue(60.0f);
+    sampleBar->SetIsIndeterminate(false);
+        sampleBar->SetHeight(6.0f);
+        sampleBar->SetAlign(Alignment::Stretch);
 
     auto sandboxCard = Container().Padding(16.0f).CornerRadius(12.0f);
-    CUI::DSL::Borrow(sandboxCard).BackgroundToken(ThemeTokenId::CardBackground);
-    CUI::DSL::Borrow(sandboxCard).BorderToken(ThemeTokenId::CardBorder);
-    CUI::DSL::Borrow(sandboxCard).BorderThickness(1.0f);
-    CUI::DSL::Borrow(sandboxCard).AddChild(Column(14, {
+        sandboxCard->SetBackgroundToken(ThemeTokenId::CardBackground);
+        sandboxCard->SetBorderToken(ThemeTokenId::CardBorder);
+        sandboxCard->SetBorderThickness(1.0f);
+        sandboxCard->AddChild(Column(14, {
         MakeLabel("主题响应沙盒 (Theme Live Sandbox)", 16.0f, ThemeTokenId::TextPrimary, true),
         MakeLabel("波纹扫过时，所有 Token 配色将随 Direct2D 裁剪圆圈平滑刷新，无闪烁无重叠。", 12.0f, ThemeTokenId::TextSecondary, false),
         Row(12, { sampleBtn, sampleSecondary, sampleToggle, sampleCheck }),

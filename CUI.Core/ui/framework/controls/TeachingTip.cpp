@@ -47,17 +47,16 @@ Size MeasureWrapped(const std::string& text, float fontSize, float maxWidth, DWR
 } // namespace
 
 TeachingTip::TeachingTip() {
-    DSL::Borrow(this)
-        .Visibility(Visibility::Visible)
-        .ClipToBounds(false)
-        .BackgroundToken(ThemeTokenId::CardBackground)
-        .BorderToken(ThemeTokenId::CardBorder)
-        .TitleColorToken(ThemeTokenId::TextPrimary)
-        .MessageColorToken(ThemeTokenId::TextSecondary)
-        .AccentColorToken(ThemeTokenId::AccentColor);
+        this->SetVisibility(Visibility::Visible);
+    this->SetClipToBounds(false);
+    this->SetBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetBorderToken(ThemeTokenId::CardBorder);
+    this->SetTitleColorToken(ThemeTokenId::TextPrimary);
+    this->SetMessageColorToken(ThemeTokenId::TextSecondary);
+    this->SetAccentColorToken(ThemeTokenId::AccentColor);
 
     // 气泡外壳自绘；内部标题/正文/按钮全部复用现有控件。
-    m_titleText = DSL::Fluent::TextBlock()
+    m_titleText = Widgets::TextBlock()
         .FontFamily("微软雅黑")
         .FontSize(14.0f)
         .FontWeight(CUI::FontWeight::SemiBold)
@@ -65,51 +64,49 @@ TeachingTip::TeachingTip() {
         .ForegroundToken(GetTitleColorToken())
         .Build();
 
-    m_messageText = DSL::Fluent::TextBlock()
+    m_messageText = Widgets::TextBlock()
         .FontFamily("微软雅黑")
         .FontSize(12.0f)
         .ForegroundToken(GetMessageColorToken())
         .LineSpacing(1.25f)
         .Build();
 
-    m_actionButton = DSL::Fluent::Button()
+    m_actionButton = Widgets::Button()
         .FontFamily("微软雅黑")
         .FontSize(12.0f)
         .FontWeight(CUI::FontWeight::SemiBold)
         .CornerRadius(4.0f)
         .BorderThickness(0.0f)
         .OnClick([this](UIElement*) {
-        m_onAction.Invoke();
-        Close();
-    });
+            m_onAction.Invoke();
+            Close();
+        }).Shared();
 
     m_closeButton = std::make_shared<Button>();
-    DSL::Borrow(m_closeButton)
-        .Text("×")
-        .FontFamily("微软雅黑")
-        .FontSize(14.0f)
-        .BackgroundToken(ThemeTokenId::Unset)
-        .HoverBackgroundToken(ThemeTokenId::HoverBackground)
-        .PressedBackgroundToken(ThemeTokenId::PressedBackground)
-        .BorderToken(ThemeTokenId::Unset)
-        .Background(D2D1::ColorF(0, 0, 0, 0))
-        .BorderBrush(D2D1::ColorF(0, 0, 0, 0))
-        .ForegroundToken(ThemeTokenId::TextSecondary)
-        .BorderThickness(0.0f)
-        .CornerRadius(4.0f)
-        .Padding(0.0f)
-        .OnClick([this](UIElement*) { Close(); });
+        m_closeButton->SetText("×");
+    m_closeButton->SetFontFamily("微软雅黑");
+    m_closeButton->SetFontSize(14.0f);
+    m_closeButton->SetBackgroundToken(ThemeTokenId::Unset);
+    m_closeButton->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    m_closeButton->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    m_closeButton->SetBorderToken(ThemeTokenId::Unset);
+    m_closeButton->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    m_closeButton->SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
+    m_closeButton->SetBorderThickness(0.0f);
+    m_closeButton->SetCornerRadius(4.0f);
+    m_closeButton->SetPadding(0.0f);
+    m_closeButton->OnClick().Connect([this](UIElement*) { Close(); });
 
     // 挂到自身子树上（经 ShowAround 的 SetAnimationHost 链可进入活树），
     // 并标记为 overlay 合成，避免主树渲染时重复绘制。
-    DSL::Borrow(m_titleText).OverlayComposed(true);
-    DSL::Borrow(this).AddChild(m_titleText);
-    DSL::Borrow(m_messageText).OverlayComposed(true);
-    DSL::Borrow(this).AddChild(m_messageText);
-    DSL::Borrow(m_actionButton).OverlayComposed(true);
-    DSL::Borrow(this).AddChild(m_actionButton);
-    DSL::Borrow(m_closeButton).OverlayComposed(true);
-    DSL::Borrow(this).AddChild(m_closeButton);
+    m_titleText->SetOverlayComposed(true);
+    this->AddChild(m_titleText);
+    m_messageText->SetOverlayComposed(true);
+    this->AddChild(m_messageText);
+    m_actionButton->SetOverlayComposed(true);
+    this->AddChild(m_actionButton);
+    m_closeButton->SetOverlayComposed(true);
+    this->AddChild(m_closeButton);
 }
 
 Value TeachingTip::GetProperty(PropertyId id) const {
@@ -169,7 +166,7 @@ void TeachingTip::SetTitle(const std::string& title) {
     }
     m_title = title;
     if (m_titleText) {
-        DSL::Borrow(m_titleText).Text(title);
+        m_titleText->SetText(title);
     }
     if (m_isOpen) {
         Relayout();
@@ -183,7 +180,7 @@ void TeachingTip::SetMessage(const std::string& message) {
     }
     m_message = message;
     if (m_messageText) {
-        DSL::Borrow(m_messageText).Text(message);
+        m_messageText->SetText(message);
     }
     if (m_isOpen) {
         Relayout();
@@ -197,9 +194,8 @@ void TeachingTip::SetActionText(const std::string& text) {
     }
     m_actionText = text;
     if (m_actionButton) {
-        DSL::Borrow(m_actionButton)
-            .Text(text)
-            .Visibility(text.empty() ? Visibility::Collapsed : Visibility::Visible);
+        m_actionButton->SetText(text);
+        m_actionButton->SetVisibility(text.empty() ? Visibility::Collapsed : Visibility::Visible);
     }
     if (m_isOpen) {
         Relayout();
@@ -213,7 +209,7 @@ void TeachingTip::SetIsCloseVisible(bool visible) {
     }
     m_closeVisible = visible;
     if (m_closeButton) {
-        DSL::Borrow(m_closeButton).Visibility(visible ? Visibility::Visible : Visibility::Collapsed);
+        m_closeButton->SetVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
     }
     if (m_isOpen) {
         Relayout();
@@ -351,11 +347,11 @@ void TeachingTip::Relayout() {
     // 气泡外壳自绘；内部标题/正文/按钮均为真实子控件，这里只摆放边界。
     if (m_titleText) {
         m_titleText->SetBounds(m_titleRect);
-        DSL::Borrow(m_titleText).Visibility(m_titleRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
+        m_titleText->SetVisibility(m_titleRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
     }
     if (m_messageText) {
         m_messageText->SetBounds(m_bodyRect);
-        DSL::Borrow(m_messageText).Visibility(m_bodyRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
+        m_messageText->SetVisibility(m_bodyRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
     }
     if (m_actionButton) {
         m_actionButton->SetBounds(m_actionRect);

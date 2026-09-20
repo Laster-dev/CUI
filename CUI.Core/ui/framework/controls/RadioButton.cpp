@@ -18,19 +18,17 @@ float EaseLine(float t) {
 }
 
 RadioButton::RadioButton() : CheckBox("RadioButton") {
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::InputBackground)
-        .AccentColorToken(ThemeTokenId::AccentColor)
-        .ForegroundToken(ThemeTokenId::TextSecondary)
-        .Background(ThemeManager::Instance().GetColor("inputBackground"));
+    this->SetBackgroundToken(ThemeTokenId::InputBackground);
+    this->SetAccentColorToken(ThemeTokenId::AccentColor);
+    this->SetColorToken(ThemeTokenId::TextSecondary);
+    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
 }
 
 RadioButton::RadioButton(const std::string& text) : CheckBox(text) {
-    DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::InputBackground)
-        .AccentColorToken(ThemeTokenId::AccentColor)
-        .ForegroundToken(ThemeTokenId::TextSecondary)
-        .Background(ThemeManager::Instance().GetColor("inputBackground"));
+    this->SetBackgroundToken(ThemeTokenId::InputBackground);
+    this->SetAccentColorToken(ThemeTokenId::AccentColor);
+    this->SetColorToken(ThemeTokenId::TextSecondary);
+    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
 }
 
 Value RadioButton::GetProperty(PropertyId id) const {

@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "PageRegistry.h"
+#include "framework/core/Widgets.h"
 #include "../ShowcaseHelpers.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/Toast.h"
@@ -8,17 +12,24 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildSegmentedPage(const ShowcaseContext& ctx) {
-    auto target = SegmentedWidget({ "规则", "全局", "直连" }).Width(280).Height(32).Build();
+    auto target = CUI::Widgets::SegmentedControl().Width(280).Height(32).Shared();
+    target->AddItem("规则");
+    target->AddItem("全局");
+    target->AddItem("直连");
 
     auto status = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("当前：规则", 12.0f, "textSecondary", false));
     target->OnSelectionChanged().Connect([window = ctx.windowRef, status](SegmentedControl*, int, const std::string& item) {
-        CUI::DSL::Borrow(status).Text("当前：" + item);
+                status->SetText("当前：" + item);
         Toast::Show(window->GetRootElement().get(), "SegmentedControl", item, ToastCorner::BottomRight, 1400);
     });
 
-    auto compact = SegmentedWidget({ "日", "周", "月", "年" }).Width(240).Height(28).Build();
-    CUI::DSL::Borrow(compact).SelectedIndex(1);
+    auto compact = CUI::Widgets::SegmentedControl().Width(240).Height(28).Shared();
+    compact->AddItem("日");
+    compact->AddItem("周");
+    compact->AddItem("月");
+    compact->AddItem("年");
+        compact->SetSelectedIndex(1);
 
     auto demo = Column(12).Children({
         CreateDemoSurface({

@@ -21,50 +21,50 @@ std::string FormatRating(float value, int maxRating) {
 
 ShowcasePage BuildRatingPage(const ShowcaseContext& ctx) {
     auto interactive = std::make_shared<RatingControl>();
-    CUI::DSL::Borrow(interactive).Value(3.5f);
-    DSL::Borrow(interactive).MaxRating(5);
-    DSL::Borrow(interactive).Step(0.5f);
-    DSL::Borrow(interactive).IsClearEnabled(true);
-    CUI::DSL::Borrow(interactive).ToolTip("拖动或点击星星评分，支持半星；同一星再点或左侧 × 清除。");
+        interactive->SetValue(3.5f);
+        interactive->SetMaxRating(5);
+        interactive->SetStep(0.5f);
+        interactive->SetIsClearEnabled(true);
+        interactive->SetToolTip("拖动或点击星星评分，支持半星；同一星再点或左侧 × 清除。");
 
     auto valueLabel = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText(FormatRating(interactive->GetValue(), interactive->GetMaxRating()), 13.0f, "textPrimary", true));
     interactive->OnValueChanged().Connect([valueLabel, interactive](RatingControl*, float v) {
-        CUI::DSL::Borrow(valueLabel).Text(FormatRating(v, interactive->GetMaxRating()));
+                valueLabel->SetText(FormatRating(v, interactive->GetMaxRating()));
     });
 
     auto btn0 = std::make_shared<Button>("清除 0");
-    btn0->OnClick().Connect([interactive](UIElement*) { DSL::Borrow(interactive).Value(0.0f); });
+    btn0->OnClick().Connect([interactive](UIElement*) {     interactive->SetValue(0.0f); });
     auto btnHalf = std::make_shared<Button>("2.5");
-    btnHalf->OnClick().Connect([interactive](UIElement*) { DSL::Borrow(interactive).Value(2.5f); });
+    btnHalf->OnClick().Connect([interactive](UIElement*) {     interactive->SetValue(2.5f); });
     auto btnFull = std::make_shared<Button>("满分 5");
-    btnFull->OnClick().Connect([interactive](UIElement*) { DSL::Borrow(interactive).Value(5.0f); });
+    btnFull->OnClick().Connect([interactive](UIElement*) {     interactive->SetValue(5.0f); });
 
     auto chkReadOnly = std::make_shared<CheckBox>("只读");
     chkReadOnly->OnCheckStateChanged().Connect([interactive](CheckBox*, CheckState st) {
-        CUI::DSL::Borrow(interactive).IsReadOnly(st == CheckState::Checked);
+                interactive->SetIsReadOnly(st == CheckState::Checked);
     });
     auto chkClear = std::make_shared<CheckBox>("允许清除");
-    CUI::DSL::Borrow(chkClear).State(CheckState::Checked);
+        chkClear->SetState(CheckState::Checked);
     chkClear->OnCheckStateChanged().Connect([interactive](CheckBox*, CheckState st) {
-        DSL::Borrow(interactive).IsClearEnabled(st == CheckState::Checked);
+                interactive->SetIsClearEnabled(st == CheckState::Checked);
     });
 
     auto readonly = std::make_shared<RatingControl>();
-    CUI::DSL::Borrow(readonly).Value(4.5f);
-    CUI::DSL::Borrow(readonly).IsReadOnly(true);
-    DSL::Borrow(readonly).IsClearEnabled(false);
+        readonly->SetValue(4.5f);
+        readonly->SetIsReadOnly(true);
+        readonly->SetIsClearEnabled(false);
 
     auto ten = std::make_shared<RatingControl>();
-    DSL::Borrow(ten).MaxRating(10);
-    DSL::Borrow(ten).Step(1.0f);
-    CUI::DSL::Borrow(ten).Value(7.0f);
-    DSL::Borrow(ten).IsClearEnabled(true);
+        ten->SetMaxRating(10);
+        ten->SetStep(1.0f);
+        ten->SetValue(7.0f);
+        ten->SetIsClearEnabled(true);
 
     auto tenLabel = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText(FormatRating(ten->GetValue(), ten->GetMaxRating()), 12.0f, "textSecondary", false));
     ten->OnValueChanged().Connect([tenLabel, ten](RatingControl*, float v) {
-        CUI::DSL::Borrow(tenLabel).Text(FormatRating(v, ten->GetMaxRating()));
+                tenLabel->SetText(FormatRating(v, ten->GetMaxRating()));
     });
 
     auto demo = Column(12).Children({

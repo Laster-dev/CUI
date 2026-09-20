@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "VSCodeControls.h"
+#include "framework/core/Widgets.h"
 #include "../PerfMetrics.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/window/Window.h"
@@ -11,24 +15,24 @@
 #include <cstdio>
 #include <cmath>
 
+using namespace CUI;
+
 namespace CUI {
 
 // ==========================================
 // 1. TitleBar Implementation
 // ==========================================
 TitleBar::TitleBar() {
-    CUI::DSL::Borrow(this)
-        .Height(34.0f)
-        .BackgroundToken(ThemeTokenId::PaneBackground)
-        .HoverBackgroundToken(ThemeTokenId::PaneBackground)
-        .PressedBackgroundToken(ThemeTokenId::PaneBackground)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .Background(ThemeManager::Instance().GetColor("paneBackground"))
-        .HoverBackground(ThemeManager::Instance().GetColor("paneBackground"))
-        .PressedBackground(ThemeManager::Instance().GetColor("paneBackground"))
-        .Title("CUI - Visual Studio Code [Direct2D UI Engine]");
-    m_menuBar = CUI::DSL::Fluent::Control<MenuBar>().Build();
-    CUI::DSL::Borrow(this).AddChild(m_menuBar);
+        this->SetHeight(34.0f);
+    this->SetBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetHoverBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetBackground(ThemeManager::Instance().GetColor("paneBackground"));
+    this->SetHoverBackground(ThemeManager::Instance().GetColor("paneBackground"));
+    this->SetPressedBackground(ThemeManager::Instance().GetColor("paneBackground"));
+    this->SetTitle("CUI - Visual Studio Code [Direct2D UI Engine]");
+    m_menuBar = CUI::Widgets::MenuBar().Shared();
+        this->AddChild(m_menuBar);
 
     auto toast = [](const std::string& msg) {
         if (auto* win = Window::Current()) {
@@ -40,9 +44,9 @@ TitleBar::TitleBar() {
 
     auto bind = [toast](const std::string& id, const std::string& label, const std::string& shortcut) {
         auto cmd = std::make_shared<Command>([toast, label] { toast(label + "（Gallery 演示）"); });
-        DSL::Borrow(cmd).Id(id);
-        DSL::Borrow(cmd).Label(label);
-        DSL::Borrow(cmd).Gesture(shortcut);
+                cmd->SetId(id);
+                cmd->SetLabel(label);
+                cmd->SetGesture(shortcut);
         return cmd;
     };
 
@@ -64,9 +68,9 @@ TitleBar::TitleBar() {
             }
         }
     });
-    DSL::Borrow(exitCmd).Id("file.exit");
-    DSL::Borrow(exitCmd).Label("Exit");
-    DSL::Borrow(exitCmd).Gesture("Alt+F4");
+        exitCmd->SetId("file.exit");
+        exitCmd->SetLabel("Exit");
+        exitCmd->SetGesture("Alt+F4");
     fileMenu->AddItem("Exit", exitCmd);
 
     auto editMenu = m_menuBar->AddMenu("Edit");
@@ -438,10 +442,9 @@ bool TitleBar::ConsumeChromeDirty() {
 // 2. ActivityBar Implementation
 // ==========================================
 ActivityBar::ActivityBar() {
-    CUI::DSL::Borrow(this)
-        .Width(48.0f)
-        .BackgroundToken(ThemeTokenId::PaneBackground)
-        .Background(ThemeManager::Instance().GetTokens().paneBackground);
+        this->SetWidth(48.0f);
+    this->SetBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetBackground(ThemeManager::Instance().GetTokens().paneBackground);
 
     m_items = {
         { "[E]", "Explorer" },
@@ -496,11 +499,10 @@ void ActivityBar::OnMouseDown(Point pt) {
 // 3. SideBar Implementation
 // ==========================================
 SideBar::SideBar() {
-    CUI::DSL::Borrow(this)
-        .Width(240.0f)
-        .BackgroundToken(ThemeTokenId::PaneBackground)
-        .Background(ThemeManager::Instance().GetColor("paneBackground"))
-        .Title("EXPLORER: CUI PROJECT");
+        this->SetWidth(240.0f);
+    this->SetBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetBackground(ThemeManager::Instance().GetColor("paneBackground"));
+    this->SetTitle("EXPLORER: CUI PROJECT");
 
     m_fileTree = {
         { ">", "CUI", 0, true, true },
@@ -583,10 +585,9 @@ void SideBar::OnMouseDown(Point pt) {
 // 4. TabBar Implementation
 // ==========================================
 TabBar::TabBar() {
-    CUI::DSL::Borrow(this)
-        .Height(35.0f)
-        .BackgroundToken(ThemeTokenId::PaneBackground)
-        .Background(ThemeManager::Instance().GetColor("paneBackground"));
+        this->SetHeight(35.0f);
+    this->SetBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetBackground(ThemeManager::Instance().GetColor("paneBackground"));
 
     m_tabs = {
         { "c", "GraphicsContext.cpp", true },
@@ -662,9 +663,8 @@ void TabBar::OnMouseDown(Point pt) {
 // 5. EditorView Implementation
 // ==========================================
 EditorView::EditorView() {
-    CUI::DSL::Borrow(this)
-        .BackgroundToken(ThemeTokenId::WindowBackground)
-        .Background(ThemeManager::Instance().GetColor("windowBackground"));
+        this->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    this->SetBackground(ThemeManager::Instance().GetColor("windowBackground"));
 
     m_lines = {
         "// Direct2D High-Performance Render Loop",
@@ -676,8 +676,8 @@ EditorView::EditorView() {
         "void GraphicsContext::BeginDraw() {",
         "    if (m_d2dContext) {",
         "        m_d2dContext->BeginDraw();",
-        "        DSL::Borrow(m_d2dContext).AntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);",
-        "        DSL::Borrow(m_d2dContext).TextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);",
+        "                m_d2dContext->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);",
+        "                m_d2dContext->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);",
         "    }",
         "}",
         "",
@@ -762,12 +762,10 @@ void EditorView::OnMouseDown(Point pt) {
 // 6. VSCodeStatusBar Implementation (chrome mock)
 // ==========================================
 VSCodeStatusBar::VSCodeStatusBar() {
-    CUI::DSL::Borrow(this)
-        .Height(22.0f)
-        .BackgroundToken(ThemeTokenId::AccentColor)
-        .ForegroundToken(ThemeTokenId::AccentForeground)
-        .Background(ThemeManager::Instance().GetColor("accentColor"))
-        .Foreground(ThemeManager::Instance().GetTokens().accentForeground);
+        this->SetHeight(22.0f);
+    this->SetBackgroundToken(ThemeTokenId::AccentColor);
+    this->SetBackground(ThemeManager::Instance().GetColor("accentColor"));
+    this->SetColor(ThemeManager::Instance().GetTokens().accentForeground);
 }
 
 void VSCodeStatusBar::OnRender(GraphicsContext& ctx) {
@@ -799,7 +797,8 @@ void VSCodeStatusBar::OnRender(GraphicsContext& ctx) {
 // 7. GalleryPerfStatusBar — live Mem/CPU/GPU/FPS/DPI
 // ==========================================
 GalleryPerfStatusBar::GalleryPerfStatusBar() {
-    CUI::DSL::Borrow(this).Height(24.0f).Width(-1.0f);
+        this->SetHeight(24.0f);
+    this->SetWidth(-1.0f);
     EnsureItems();
 }
 

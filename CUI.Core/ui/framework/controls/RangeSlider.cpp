@@ -28,14 +28,13 @@ std::string FormatRangeValue(float v) {
 RangeSlider::RangeSlider() : Minimum(this), Maximum(this), Step(this) {
     LowerValue.Initialize(*this);
     UpperValue.Initialize(*this);
-    DSL::Borrow(this)
-        .Orientation(Orientation::Horizontal)
-        .TrackColorToken(ThemeTokenId::InputBorder)
-        .ActiveTrackColorToken(ThemeTokenId::AccentColor)
-        .ThumbColorToken(ThemeTokenId::AccentColor)
-        .Width(280.0f)
-        .Height(48.0f)
-        .KeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->SetOrientation(Orientation::Horizontal);
+    this->SetTrackColorToken(ThemeTokenId::InputBorder);
+    this->SetActiveTrackColorToken(ThemeTokenId::AccentColor);
+    this->SetThumbColorToken(ThemeTokenId::AccentColor);
+    this->SetWidth(280.0f);
+    this->SetHeight(48.0f);
+    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     m_lowerAnim.Reset(m_lower);
     m_upperAnim.Reset(m_upper);
 }

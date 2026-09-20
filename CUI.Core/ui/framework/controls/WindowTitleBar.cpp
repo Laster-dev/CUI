@@ -44,15 +44,14 @@ std::string DefaultIconTextFromTitle(const std::string& title) {
 } // namespace
 
 WindowTitleBar::WindowTitleBar() : RightContent(this), MenuBar(this) {
-    DSL::Borrow(this)
-        .Height(36.0f)
-        .BackgroundToken(ThemeTokenId::PaneBackground)
-        .HoverBackgroundToken(ThemeTokenId::PaneBackground)
-        .PressedBackgroundToken(ThemeTokenId::PaneBackground)
-        .ForegroundToken(ThemeTokenId::TextPrimary)
-        .Title("CUI Application");
-    m_menuBar = DSL::Fluent::Control<CUI::MenuBar>().Build();
-    DSL::Borrow(this).AddChild(m_menuBar);
+    this->SetHeight(36.0f);
+    this->SetBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetHoverBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
+    this->SetColorToken(ThemeTokenId::TextPrimary);
+    this->SetTitle("CUI Application");
+    m_menuBar = std::make_shared<CUI::MenuBar>();
+    this->AddChild(m_menuBar);
 }
 
 WindowTitleBar::~WindowTitleBar() {
@@ -199,11 +198,11 @@ void WindowTitleBar::SetRightContent(const std::shared_ptr<UIElement>& content) 
         return;
     }
     if (m_rightContent) {
-        DSL::Borrow(this).RemoveChild(m_rightContent);
+        this->RemoveChild(m_rightContent);
     }
     m_rightContent = content;
     if (m_rightContent) {
-        DSL::Borrow(this).AddChild(m_rightContent);
+        this->AddChild(m_rightContent);
     }
 }
 

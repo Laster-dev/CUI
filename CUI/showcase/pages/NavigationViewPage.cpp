@@ -12,9 +12,9 @@ using namespace CUI::DSL;
 
 std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) {
     auto title = std::make_shared<TextBlock>("NavigationView & Theme 导航与主题系统");
-    CUI::DSL::Borrow(title).FontWeight(CUI::FontWeight::Bold);
-    CUI::DSL::Borrow(title).ForegroundToken(ThemeTokenId::TextPrimary);
-    CUI::DSL::Borrow(title).Foreground(ThemeManager::Instance().GetColor("textPrimary"));
+        title->SetFontWeight(CUI::FontWeight::Bold);
+    
+        title->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
 
     auto nav = std::make_shared<NavigationView>();
     nav->SetHeader("CUI WinUI 3 Navigation");
@@ -34,9 +34,9 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
         std::make_shared<TextBlock>("此页配置明暗主题 (Theme)。")
     }).Build();
 
-    CUI::DSL::Borrow(nav).AddMenuItem(CUI::DSL::Fluent::Control<CUI::NavigationViewItem>("首页 (Home)").Icon("🏠").Content(pageHome).Build());
-    CUI::DSL::Borrow(nav).AddMenuItem(CUI::DSL::Fluent::Control<CUI::NavigationViewItem>("应用 (Apps)").Icon("⚡").Content(pageApp).Build());
-    CUI::DSL::Borrow(nav).AddMenuItem(CUI::DSL::Fluent::Control<CUI::NavigationViewItem>("设置 (Settings)").Icon("⚙️").Content(pageSettings).Build());
+        nav->AddMenuItem(CUI::DSL::Fluent::Control<CUI::NavigationViewItem>("首页 (Home)").Icon("🏠").Content(pageHome).Build());
+        nav->AddMenuItem(CUI::DSL::Fluent::Control<CUI::NavigationViewItem>("应用 (Apps)").Icon("⚡").Content(pageApp).Build());
+        nav->AddMenuItem(CUI::DSL::Fluent::Control<CUI::NavigationViewItem>("设置 (Settings)").Icon("⚙️").Content(pageSettings).Build());
 
     // Mode Switcher Buttons
     auto btnLeft = std::make_shared<Button>("Left 侧边模式");
@@ -74,8 +74,8 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
         }).Build()
     }).Build();
 
-    CUI::DSL::Borrow(nav).Width(800.0f);
-    CUI::DSL::Borrow(nav).Height(340.0f);
+        nav->SetWidth(800.0f);
+        nav->SetHeight(340.0f);
 
     return Column(16.0f).Children({
         title,

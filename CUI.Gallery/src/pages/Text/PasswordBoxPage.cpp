@@ -1,11 +1,15 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 using namespace CUI;
 using namespace CUI::DSL;
 
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildPasswordBoxPage() {
-    auto basic = PasswordBoxWidget("请输入您的安全密码").Width(280).Height(28).Build();
+    auto basic = Widgets::PasswordBox("请输入您的安全密码").Width(280).Height(28).Shared();
     basic->ToolTip = "点击右侧眼睛图标可切换明文 / 密文";
 
     State<std::string> passwordState{ "" };
@@ -19,17 +23,17 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto noReveal = PasswordBoxWidget("隐藏明文切换按钮").Width(280).Height(28).Build();
-    CUI::DSL::Borrow(noReveal).ShowRevealButton(false);
+    auto noReveal = Widgets::PasswordBox("隐藏明文切换按钮").Width(280).Height(28).Shared();
+        noReveal->SetShowRevealButton(false);
 
-    auto prefilled = PasswordBoxWidget();
+    auto prefilled = Widgets::PasswordBox().Shared();
     prefilled->Placeholder = "密码框";
-    CUI::DSL::Borrow(prefilled).Width(280.0f);
-    CUI::DSL::Borrow(prefilled).Height(28.0f);
-    DSL::Borrow(prefilled).Password("P@ssw0rd!123");
+        prefilled->SetWidth(280.0f);
+        prefilled->SetHeight(28.0f);
+        prefilled->SetPassword("P@ssw0rd!123");
 
-    auto disabled = PasswordBoxWidget("不可用").Width(280).Height(28).Build();
-    CUI::DSL::Borrow(disabled).IsEnabled(false);
+    auto disabled = Widgets::PasswordBox("不可用").Width(280).Height(28).Shared();
+        disabled->SetIsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "PasswordBox(密码框)";
@@ -54,7 +58,7 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
         },
     };
     spec.source =
-        "auto pwd = PasswordBoxWidget(\"请输入密码\").Build();\n"
+        "auto pwd = Widgets::PasswordBox(\"请输入密码\").Shared();\n"
         "pwd.ShowRevealButton(true);\n"
         "State<std::string> password{ \"\" };\n"
         "pwd->Text.Bind(password, BindingMode::TwoWay);\n"

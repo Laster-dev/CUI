@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 #include <random>
 
@@ -116,13 +120,13 @@ Element BuildTopologyPage() {
     auto [nodes, edges] = BuildCloudArchitectureData();
 
     // 创建拓扑图核心控件 (宽度自适应撑满容器，高度设为 560px)
-    auto topoPtr = TopologyWidget()
+    auto topoPtr = Widgets::TopologyView()
         .Height(860.0f)
         .Nodes(nodes)
         .Edges(edges)
         .FlowParticles(true)
         .LayoutType(TopologyLayoutType::HierarchicalLeftRight)
-        .Build();
+        .Shared();
 
     // 状态与属性提示面板
     auto statusLabel = MakeStatus("点击或悬停节点查看链路拓扑；点击节点右下角 [+] / [-] 体验平滑折叠动画。");
@@ -173,40 +177,40 @@ Element BuildTopologyPage() {
             topoPtr->ResetView(true);
         });
 
-    auto btnParticles = ToggleButtonWidget("流向粒子")
+    auto btnParticles = Widgets::ToggleButton("流向粒子")
         .OnClick([topoPtr](UIElement*) {
-            DSL::Borrow(topoPtr).FlowParticlesEnabled(!topoPtr->IsFlowParticlesEnabled());
-        });
+                        topoPtr->SetFlowParticlesEnabled(!topoPtr->IsFlowParticlesEnabled());
+        }).Shared();
 
     // --- 2. 排版算法切换 ---
     auto btnLeftRight = Button("水平分层(子树隔离)")
         .OnClick([topoPtr](UIElement*) {
-            DSL::Borrow(topoPtr).LayoutType(TopologyLayoutType::HierarchicalLeftRight);
+                        topoPtr->SetLayoutType(TopologyLayoutType::HierarchicalLeftRight);
         });
 
     auto btnTopDown = Button("垂直树状")
         .OnClick([topoPtr](UIElement*) {
-            DSL::Borrow(topoPtr).LayoutType(TopologyLayoutType::HierarchicalTopDown);
+                        topoPtr->SetLayoutType(TopologyLayoutType::HierarchicalTopDown);
         });
 
     auto btnRadial = Button("径向同心圆")
         .OnClick([topoPtr](UIElement*) {
-            DSL::Borrow(topoPtr).LayoutType(TopologyLayoutType::Radial);
+                        topoPtr->SetLayoutType(TopologyLayoutType::Radial);
         });
 
     auto btnForce = Button("弹性力导向")
         .OnClick([topoPtr](UIElement*) {
-            DSL::Borrow(topoPtr).LayoutType(TopologyLayoutType::ForceDirected);
+                        topoPtr->SetLayoutType(TopologyLayoutType::ForceDirected);
         });
 
     // --- 3. 编辑能力 vs 只读功能切换展示 ---
     static int s_dynamicNodeCounter = 1;
-    auto btnReadOnlyToggle = ToggleButtonWidget("只读模式 (Read-Only)")
+    auto btnReadOnlyToggle = Widgets::ToggleButton("只读模式 (Read-Only)")
         .OnClick([topoPtr, statusLabel](UIElement* sender) {
             bool isReadOnly = !topoPtr->IsReadOnly();
-            CUI::DSL::Borrow(topoPtr).IsReadOnly(isReadOnly);
+                        topoPtr->SetIsReadOnly(isReadOnly);
             statusLabel->Text = isReadOnly ? "当前模式：只读预览模式 (已锁定节点拖拽与编辑删除能力)" : "当前模式：可编辑模式 (支持自由拖拽排布、增删节点与连线)";
-        });
+        }).Shared();
 
     auto btnAddNode = Button("新增动态服务")
         .OnClick([topoPtr, statusLabel](UIElement*) {
@@ -292,13 +296,13 @@ Element BuildTopologyPage() {
     };
 
     spec.source = R"(// 构造全宽自适应拓扑图
-auto topology = TopologyWidget()
+auto topology = Widgets::TopologyView()
     .Height(560.0f)
     .Nodes(nodes)
     .Edges(edges)
     .FlowParticles(true)
     .LayoutType(TopologyLayoutType::HierarchicalLeftRight)
-    .Build();
+    .Shared();
 )";
 
     return BuildSamplePage(spec);

@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 #include <vector>
 
@@ -109,7 +113,7 @@ private:
 class SpringBallControl : public UIElement {
 public:
     SpringBallControl() {
-        Borrow(this).Height(100.0f);
+                this->SetHeight(100.0f);
         m_currentX = 20.0f;
         m_targetX = 20.0f;
         m_velocity = 0.0f;
@@ -170,7 +174,7 @@ class RaceTrackIndicator : public UIElement {
 public:
     RaceTrackIndicator(EasingType type, ThemeTokenId token)
         : m_type(type), m_token(token) {
-        Borrow(this).Height(28.0f);
+                this->SetHeight(28.0f);
     }
 
     void StartRace(float durationSec) {
@@ -276,13 +280,13 @@ Element BuildAnimationPage() {
     int colorIdx = 0;
     for (const auto& item : easings) {
         auto ind = std::make_shared<RaceTrackIndicator>(item.second, tokens[colorIdx % 9]);
-        CUI::DSL::Borrow(ind).Width(460.0f);
+                ind->SetWidth(460.0f);
         tracks.push_back(ind);
 
         auto lbl = MakeLabel(item.first, 12.0f, ThemeTokenId::TextPrimary, false);
-        CUI::DSL::Borrow(lbl).Width(170.0f);
+                lbl->SetWidth(170.0f);
 
-        CUI::DSL::Borrow(tracksColumn).AddChild(Row(8, { lbl, ind }).Build());
+                tracksColumn->AddChild(Row(8, { lbl, ind }).Build());
         colorIdx++;
     }
 
@@ -313,7 +317,7 @@ Element BuildAnimationPage() {
 
     // 4. 物理弹簧振荡器
     auto springBall = std::make_shared<SpringBallControl>();
-    CUI::DSL::Borrow(springBall).Width(460.0f);
+        springBall->SetWidth(460.0f);
 
     auto btnSpringLeft = Button("移至左侧 (20px)")
         .BackgroundToken(ThemeTokenId::CardBackground)
@@ -332,22 +336,28 @@ Element BuildAnimationPage() {
         .BorderThickness(1.0f)
         .OnClick([springBall](UIElement*) { springBall->TriggerImpulse(420.0f); });
 
-    auto sliderStiffness = SliderWidget(180.0f, 40.0f, 400.0f);
-    CUI::DSL::Borrow(sliderStiffness).Width(180.0f);
+    auto sliderStiffness = Widgets::Slider().Shared();
+    sliderStiffness->SetMinimum(40.0f);
+    sliderStiffness->SetMaximum(400.0f);
+    sliderStiffness->SetValue(180.0f);
+        sliderStiffness->SetWidth(180.0f);
 
-    auto sliderDamping = SliderWidget(18.0f, 4.0f, 50.0f);
-    CUI::DSL::Borrow(sliderDamping).Width(180.0f);
+    auto sliderDamping = Widgets::Slider().Shared();
+    sliderDamping->SetMinimum(4.0f);
+    sliderDamping->SetMaximum(50.0f);
+    sliderDamping->SetValue(18.0f);
+        sliderDamping->SetWidth(180.0f);
 
     auto statusStiffness = MakeStatus(std::format("刚度 (Stiffness): {:.0f}", 180.0f));
     auto statusDamping = MakeStatus(std::format("阻尼 (Damping): {:.1f}", 18.0f));
 
     sliderStiffness->OnValueChanged().Connect([springBall, statusStiffness](Slider*, float k) {
-        DSL::Borrow(springBall).Stiffness(k);
+                springBall->SetStiffness(k);
         statusStiffness->Text = std::format("刚度 (Stiffness): {:.0f}", k);
     });
 
     sliderDamping->OnValueChanged().Connect([springBall, statusDamping](Slider*, float d) {
-        DSL::Borrow(springBall).Damping(d);
+                springBall->SetDamping(d);
         statusDamping->Text = std::format("阻尼 (Damping): {:.1f}", d);
     });
 

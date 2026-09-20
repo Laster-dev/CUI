@@ -45,17 +45,23 @@ const char* FileNameOf(const std::string& path) {
 
 Image::Image() {
     m_badgeColor = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
-    DSL::Borrow(this).Width(24.0f).Height(24.0f).ClipToBounds(true);
+    this->SetWidth(24.0f);
+    this->SetHeight(24.0f);
+    this->SetClipToBounds(true);
 }
 
 Image::Image(ImageType type, const std::string& text)
     : m_imageType(type), m_badgeText(text), m_badgeColor(ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor)) {
-    DSL::Borrow(this).Width(24.0f).Height(24.0f).ClipToBounds(true);
+    this->SetWidth(24.0f);
+    this->SetHeight(24.0f);
+    this->SetClipToBounds(true);
 }
 
 Image::Image(ImageType type, const std::string& text, D2D1_COLOR_F color)
     : m_imageType(type), m_badgeText(text), m_badgeColor(color) {
-    DSL::Borrow(this).Width(24.0f).Height(24.0f).ClipToBounds(true);
+    this->SetWidth(24.0f);
+    this->SetHeight(24.0f);
+    this->SetClipToBounds(true);
 }
 
 namespace {

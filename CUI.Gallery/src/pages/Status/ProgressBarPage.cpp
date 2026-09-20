@@ -1,4 +1,8 @@
+#ifndef CUI_NO_DSL_SHORTCUTS
+#define CUI_NO_DSL_SHORTCUTS   // 关闭「控件名即工厂」宏层，避免与 Widgets:: 句柄同名冲突
+#endif
 #include "Gallery.h"
+#include "framework/core/Widgets.h"
 #include <format>
 
 using namespace CUI;
@@ -9,9 +13,11 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<ProgressBar> MakeStretchBar(float height) {
-    auto bar = ProgressBarWidget(0.0f, true);
-    CUI::DSL::Borrow(bar).Align(Alignment::Stretch);
-    CUI::DSL::Borrow(bar).Height(height);
+    auto bar = Widgets::ProgressBar().Shared();
+    bar->SetValue(0.0f);
+    bar->SetIsIndeterminate(true);
+        bar->SetAlign(Alignment::Stretch);
+        bar->SetHeight(height);
     return bar;
 }
 
@@ -19,19 +25,24 @@ std::shared_ptr<ProgressBar> MakeStretchBar(float height) {
 
 Element BuildProgressBarPage() {
     // 确定进度：滑块驱动填充值。
-    auto determinate = ProgressBarWidget(40.0f, false);
-    CUI::DSL::Borrow(determinate).Align(Alignment::Stretch);
-    CUI::DSL::Borrow(determinate).Height(6.0f);
+    auto determinate = Widgets::ProgressBar().Shared();
+    determinate->SetValue(40.0f);
+    determinate->SetIsIndeterminate(false);
+        determinate->SetAlign(Alignment::Stretch);
+        determinate->SetHeight(6.0f);
 
     State<float> value{ 40.0f };
-    auto slider = SliderWidget(40.0f, 0.0f, 100.0f);
-    CUI::DSL::Borrow(slider).Step(1.0f);
-    CUI::DSL::Borrow(slider).Width(280.0f);
+    auto slider = Widgets::Slider().Shared();
+    slider->SetMinimum(0.0f);
+    slider->SetMaximum(100.0f);
+    slider->SetValue(40.0f);
+        slider->SetStep(1.0f);
+        slider->SetWidth(280.0f);
     slider->ValueProperty.Bind(value);
 
     auto bar = determinate;
     value.OnChanged().Connect([bar](const float& v) {
-        CUI::DSL::Borrow(bar).Value(v);
+                bar->SetValue(v);
     });
 
     auto statusValue = MakeComputed<std::string>([](float v) {
@@ -42,7 +53,7 @@ Element BuildProgressBarPage() {
 
     auto indeterminate = ToggleSwitchTile("不确定模式", false);
     indeterminate->OnToggled().Connect([bar](ToggleSwitch*, bool on) {
-        CUI::DSL::Borrow(bar).IsIndeterminate(on);
+                bar->SetIsIndeterminate(on);
     });
 
     SamplePageSpec spec;
@@ -69,7 +80,7 @@ Element BuildProgressBarPage() {
         },
     };
     spec.source =
-        "auto bar = ProgressBarWidget(40.0f, false);\n"
+        "auto bar = Widgets::ProgressBar(40.0f, false).Shared();\n"
         "bar.Value(65.0f);          // 确定进度\n"
         "bar.IsIndeterminate(true); // 不确定模式\n";
     return BuildSamplePage(spec);

@@ -86,7 +86,7 @@ void Toast::SetType(ToastType type) {
         break;
     }
     m_accent = ThemeHex(accentToken);
-    DSL::Borrow(this).AccentColorToken(ThemeTokenIdFromName(accentToken));
+    this->SetAccentColorToken(ThemeTokenIdFromName(accentToken));
 }
 
 Toast::Toast() {
@@ -94,31 +94,30 @@ Toast::Toast() {
     m_accent = ThemeHex("accentColor");
     m_titleColor = ThemeHex("textPrimary");
     m_messageColor = ThemeHex("textSecondary");
-    DSL::Borrow(this)
-        .Visibility(Visibility::Visible)
-        .Opacity(1.0f)
-        .Width(m_width)
-        .BackgroundToken(ThemeTokenId::CardBackground)
-        .AccentColorToken(ThemeTokenId::AccentColor)
-        .TitleColorToken(ThemeTokenId::TextPrimary)
-        .MessageColorToken(ThemeTokenId::TextSecondary)
-        .Background(m_background);
+    this->SetVisibility(Visibility::Visible);
+    this->SetOpacity(1.0f);
+    this->SetWidth(m_width);
+    this->SetBackgroundToken(ThemeTokenId::CardBackground);
+    this->SetAccentColorToken(ThemeTokenId::AccentColor);
+    this->SetTitleColorToken(ThemeTokenId::TextPrimary);
+    this->SetMessageColorToken(ThemeTokenId::TextSecondary);
+    this->SetBackground(m_background);
 
-    m_txtTitle = DSL::Fluent::TextBlock(m_titleText)
+    m_txtTitle = Widgets::TextBlock(m_titleText)
         .FontSize(15.0f)
         .FontWeight(CUI::FontWeight::Bold)
         .ForegroundToken(ThemeTokenId::TextPrimary)
         .Foreground(Value::ParseColor(m_titleColor))
         .Build();
 
-    m_txtMessage = DSL::Fluent::TextBlock(m_messageText)
+    m_txtMessage = Widgets::TextBlock(m_messageText)
         .FontSize(12.5f)
         .ForegroundToken(ThemeTokenId::TextSecondary)
         .Foreground(Value::ParseColor(m_messageColor))
         .Build();
 
-    DSL::Borrow(this).AddChild(m_txtTitle);
-    DSL::Borrow(this).AddChild(m_txtMessage);
+    this->AddChild(m_txtTitle);
+    this->AddChild(m_txtMessage);
 }
 
 Toast::~Toast() {
@@ -209,10 +208,12 @@ void Toast::SyncMembersFromProperties() {
 void Toast::UpdateTextElements() {
     SyncMembersFromProperties();
     if (m_txtTitle) {
-        DSL::Borrow(m_txtTitle).Text(m_titleText).Foreground(Value::ParseColor(m_titleColor));
+        m_txtTitle->SetText(m_titleText);
+        m_txtTitle->SetColor(Value::ParseColor(m_titleColor));
     }
     if (m_txtMessage) {
-        DSL::Borrow(m_txtMessage).Text(m_messageText).Foreground(Value::ParseColor(m_messageColor));
+        m_txtMessage->SetText(m_messageText);
+        m_txtMessage->SetColor(Value::ParseColor(m_messageColor));
     }
 }
 
@@ -393,12 +394,14 @@ void Toast::RenderContent(GraphicsContext& ctx, const Rect& bounds, float opacit
     float innerW = renderRect.width - (m_closeable ? 44.0f : 28.0f);
 
     if (m_txtTitle) {
-        DSL::Borrow(m_txtTitle).Text(m_titleText).Foreground(titleClr);
+        m_txtTitle->SetText(m_titleText);
+        m_txtTitle->SetColor(titleClr);
         m_txtTitle->Arrange(Rect(innerX, innerY, innerW, 22.0f));
         m_txtTitle->Render(ctx);
     }
     if (m_txtMessage) {
-        DSL::Borrow(m_txtMessage).Text(m_messageText).Foreground(messageClr);
+        m_txtMessage->SetText(m_messageText);
+        m_txtMessage->SetColor(messageClr);
         m_txtMessage->Arrange(Rect(innerX, innerY + 26.0f, innerW, 40.0f));
         m_txtMessage->Render(ctx);
     }

@@ -25,32 +25,32 @@ std::shared_ptr<UIElement> MakeTabPage(const std::string& title, const std::stri
 Element BuildTabViewPage() {
     // ---------- 1. 常规用法 ----------
     auto tabView = std::make_shared<TabView>();
-    CUI::DSL::Borrow(tabView).Width(560.0f);
-    CUI::DSL::Borrow(tabView).Height(300.0f);
+        tabView->SetWidth(560.0f);
+        tabView->SetHeight(300.0f);
     tabView->AddTab("首页", MakeTabPage("首页", "TabView 支持多标签页切换、关闭与横向滚动。"), "🏠", true);
     tabView->AddTab("文档", MakeTabPage("文档", "每个标签可绑定独立内容树，切换时保留各自状态。"), "📄", true);
     tabView->AddTab("设置", MakeTabPage("设置", "点击标签右侧的 × 即可关闭标签。"), "⚙️", true);
     tabView->AddTab("关于", MakeTabPage("关于", "标签过多时头部可横向滚动。"), "ℹ️", true);
-    CUI::DSL::Borrow(tabView).SelectedIndex(0);
+        tabView->SetSelectedIndex(0);
 
     auto status1 = MakeStatus("当前选中: [首页] (索引 0)");
     tabView->OnSelectionChanged().Connect([status1](TabView*, int index) {
-        CUI::DSL::Borrow(status1).Text(std::format("选中已切换 → 索引 {}", index));
+                status1->SetText(std::format("选中已切换 → 索引 {}", index));
     });
     tabView->OnTabClosed().Connect([status1](TabView*, int index) {
-        CUI::DSL::Borrow(status1).Text(std::format("标签已关闭（索引 {}）", index));
+                status1->SetText(std::format("标签已关闭（索引 {}）", index));
     });
 
     // ---------- 2. 动态管理 ----------
     auto dynTabs = std::make_shared<TabView>();
-    CUI::DSL::Borrow(dynTabs).Width(560.0f);
-    CUI::DSL::Borrow(dynTabs).Height(280.0f);
+        dynTabs->SetWidth(560.0f);
+        dynTabs->SetHeight(280.0f);
     dynTabs->AddTab("初始页", MakeTabPage("初始页", "通过右侧按钮动态添加 / 关闭 / 跳转标签。"), "📌", true);
-    CUI::DSL::Borrow(dynTabs).SelectedIndex(0);
+        dynTabs->SetSelectedIndex(0);
 
     auto status2 = MakeStatus("动态添加、关闭与程序化切换标签。");
     dynTabs->OnTabClosed().Connect([status2](TabView*, int) {
-        CUI::DSL::Borrow(status2).Text("已关闭一个标签。");
+                status2->SetText("已关闭一个标签。");
     });
 
     auto tabCounter = std::make_shared<int>(1);
@@ -59,41 +59,41 @@ Element BuildTabViewPage() {
         dynTabs->AddTab(std::format("新标签 {}", n),
                         MakeTabPage(std::format("新标签 {}", n), "这是动态添加的标签页内容。"),
                         "✨", true);
-        CUI::DSL::Borrow(dynTabs).SelectedIndex(dynTabs->GetSelectedIndex() + 1);
-        CUI::DSL::Borrow(status2).Text(std::format("已添加并选中 [新标签 {}]", n));
+                dynTabs->SetSelectedIndex(dynTabs->GetSelectedIndex() + 1);
+                status2->SetText(std::format("已添加并选中 [新标签 {}]", n));
     }).Build();
     auto btnCloseSel = ElevatedButton("关闭选中", [dynTabs, status2](UIElement*) {
         const int idx = dynTabs->GetSelectedIndex();
         if (idx >= 0) {
             dynTabs->RemoveTab(idx);
-            CUI::DSL::Borrow(status2).Text(std::format("已关闭选中标签（索引 {}）", idx));
+                        status2->SetText(std::format("已关闭选中标签（索引 {}）", idx));
         }
     }).Build();
     auto btnGoFirst = ElevatedButton("跳转到第 1 个", [dynTabs, status2](UIElement*) {
         if (dynTabs->GetSelectedIndex() != 0) {
-            CUI::DSL::Borrow(dynTabs).SelectedIndex(0);
-            CUI::DSL::Borrow(status2).Text("已程序化切换到第 1 个标签。");
+                        dynTabs->SetSelectedIndex(0);
+                        status2->SetText("已程序化切换到第 1 个标签。");
         }
     }).Build();
     auto btnWider = ElevatedButton("加宽标签 (Max 300)", [dynTabs](UIElement*) {
-        DSL::Borrow(dynTabs).MaxTabWidth(300.0f);
+                dynTabs->SetMaxTabWidth(300.0f);
     }).Build();
     auto btnNarrow = ElevatedButton("收窄标签 (Min 60)", [dynTabs](UIElement*) {
-        DSL::Borrow(dynTabs).MinTabWidth(60.0f);
+                dynTabs->SetMinTabWidth(60.0f);
     }).Build();
 
     // ---------- 3. 固定标签（不可关闭） ----------
     auto pinned = std::make_shared<TabView>();
-    CUI::DSL::Borrow(pinned).Width(560.0f);
-    CUI::DSL::Borrow(pinned).Height(260.0f);
+        pinned->SetWidth(560.0f);
+        pinned->SetHeight(260.0f);
     pinned->AddTab("固定页 (不可关闭)", MakeTabPage("固定页", "isClosable = false：标签右侧不显示 ×，无法关闭。"), "🔒", false);
     pinned->AddTab("普通页", MakeTabPage("普通页", "isClosable = true：可正常关闭。"), "📄", true);
     pinned->AddTab("工作区", MakeTabPage("工作区", "混合固定 / 可关闭标签，适合常驻面板。"), "🖥️", true);
-    CUI::DSL::Borrow(pinned).SelectedIndex(0);
+        pinned->SetSelectedIndex(0);
 
     auto status3 = MakeStatus("固定标签不渲染关闭按钮，也无法被 RemoveTab 关闭。");
     pinned->OnTabClosed().Connect([status3](TabView*, int index) {
-        CUI::DSL::Borrow(status3).Text(std::format("可关闭标签被关闭（索引 {}）", index));
+                status3->SetText(std::format("可关闭标签被关闭（索引 {}）", index));
     });
 
     SamplePageSpec spec;
@@ -144,7 +144,7 @@ tabs->OnTabClosed().Connect([](TabView*, int index) { });
 // 3) 动态操作
 tabs->AddTab("新标签", content);
 tabs->RemoveTab(0);
-CUI::DSL::Borrow(tabs).SelectedIndex(1);
+tabs->SetSelectedIndex(1);
 )";
 
     return BuildSamplePage(spec);
