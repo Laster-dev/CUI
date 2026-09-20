@@ -26,12 +26,12 @@ Element BuildHomePage() {
             continue;
         }
 
-        auto wrap = std::make_shared<WrapPanel>();
-        wrap->SetOrientation(Orientation::Horizontal);
-                wrap->SetGap(12.0f);
-                wrap->SetJustifyLines(true);
-                wrap->SetFillLastLine(true);
-                wrap->SetAlign(Alignment::Stretch);
+        CUI::Widgets::Ref wrap = CUI::Widgets::WrapPanel().Shared();
+        wrap.Orientation(Orientation::Horizontal);
+                wrap.Gap(12.0f);
+                wrap.JustifyLines(true);
+                wrap.FillLastLine(true);
+                wrap.Align(Alignment::Stretch);
 
         for (const Entry* entry : items) {
             auto card = Column(6, {
@@ -63,10 +63,10 @@ Element BuildHomePage() {
     auto column = body.Build();
         column->SetBackgroundToken(ThemeTokenId::WindowBackground);
 
-    auto scroll = std::make_shared<ScrollViewer>();
-        scroll->SetAlign(Alignment::Stretch);
-        scroll->SetFlexGrow(1.0f);
-        scroll->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    CUI::Widgets::Ref scroll = CUI::Widgets::ScrollViewer().Shared();
+        scroll.Align(Alignment::Stretch);
+        scroll.FlexGrow(1.0f);
+        scroll.BackgroundToken(ThemeTokenId::WindowBackground);
         scroll->AddChild(column);
     return scroll;
 }

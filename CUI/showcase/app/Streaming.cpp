@@ -12,27 +12,27 @@ namespace {
 std::atomic<bool> g_isStreaming{ false };
 std::thread g_streamThread;
 Window* g_activeWindow = nullptr;
-std::shared_ptr<Image> g_streamImage = nullptr;
+CUI::Widgets::Ref<::CUI::Image> g_streamImage;
 }
 
 std::shared_ptr<Image> CreateStreamImage() {
-    auto image = std::make_shared<Image>();
-        image->SetWidth(420.0f);
-        image->SetHeight(240.0f);
-        image->SetStretch(Stretch::Fill);
-        image->SetImageType(ImageType::DynamicBitmap);
-        image->SetClipToBounds(true);
+    CUI::Widgets::Ref image = CUI::Widgets::Image().Shared();
+        image.Width(420.0f);
+        image.Height(240.0f);
+        image.Stretch(Stretch::Fill);
+        image.ImageType(ImageType::DynamicBitmap);
+        image.ClipToBounds(true);
     return image;
 }
 
-void StartStreamingThread(Window* window, const std::shared_ptr<Image>& image) {
+void StartStreamingThread(Window* window, const CUI::Widgets::Ref<Image>& image) {
     if (g_isStreaming) return;
     if (!window || !image) return;
 
     g_activeWindow = window;
     g_streamImage = image;
-        image->SetStretch(Stretch::Fill);
-        image->SetImageType(ImageType::DynamicBitmap);
+        image.Stretch(Stretch::Fill);
+        image.ImageType(ImageType::DynamicBitmap);
     image->RequestAnimationTicks();
     g_isStreaming = true;
     g_streamThread = std::thread([]() {

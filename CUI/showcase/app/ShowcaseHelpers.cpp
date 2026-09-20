@@ -93,11 +93,11 @@ std::shared_ptr<UIElement> CreatePage(
     auto mainColumn = mainColumnBuilder.Build();
     BindThemeToken(mainColumn, "theme.backgroundToken", "windowBackground");
 
-    auto mainScroll = std::make_shared<ScrollViewer>();
-        mainScroll->SetFlexGrow(1.0f);
-        mainScroll->SetMinWidth(240.0f);
-        mainScroll->SetAlign(Alignment::Stretch);
-    BindThemeToken(mainScroll, "theme.backgroundToken", "windowBackground");
+    CUI::Widgets::Ref mainScroll = CUI::Widgets::ScrollViewer().Shared();
+        mainScroll.FlexGrow(1.0f);
+        mainScroll.MinWidth(240.0f);
+        mainScroll.Align(Alignment::Stretch);
+    BindThemeToken(mainScroll.Ptr(), "theme.backgroundToken", "windowBackground");
         mainScroll->AddChild(mainColumn);
     return mainScroll;
 }

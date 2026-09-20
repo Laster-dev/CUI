@@ -54,8 +54,8 @@ Element BuildSettingsPage() {
         }
     });
 
-    auto backdrop = std::make_shared<ComboBox>();
-        backdrop->SetWidth(200.0f);
+    CUI::Widgets::Ref backdrop = CUI::Widgets::ComboBox().Shared();
+        backdrop.Width(200.0f);
     backdrop->AddItem("关闭");
     backdrop->AddItem("自动材质");
     backdrop->AddItem("纯色");
@@ -64,7 +64,7 @@ Element BuildSettingsPage() {
     backdrop->AddItem("亚克力");
     backdrop->AddItem("兼容模糊");
     if (window) {
-                backdrop->SetSelectedIndex(IndexForBackdrop(window->GetBackdropType()));
+                backdrop.SelectedIndex(IndexForBackdrop(window->GetBackdropType()));
     }
     backdrop->OnSelectionChanged().Connect([window](ComboBox*, int index, const std::string&) {
         if (window) {
@@ -72,16 +72,16 @@ Element BuildSettingsPage() {
         }
     });
 
-    auto anim = std::make_shared<ToggleSwitch>();
-        anim->SetHeader("动效");
-        anim->SetIsOn(UIElement::AreAnimationsEnabled());
+    CUI::Widgets::Ref anim = CUI::Widgets::ToggleSwitch().Shared();
+        anim.Header("动效");
+        anim.IsOn(UIElement::AreAnimationsEnabled());
     anim->OnToggled().Connect([](ToggleSwitch*, bool on) {
         UIElement::SetAnimationsEnabled(on);
     });
 
-    auto stats = std::make_shared<CheckBox>("显示渲染统计叠加层");
+    CUI::Widgets::Ref stats = CUI::Widgets::CheckBox("显示渲染统计叠加层").Shared();
     if (window && window->IsRenderStatsOverlayVisible()) {
-                stats->SetState(CheckState::Checked);
+                stats.State(CheckState::Checked);
     }
     stats->OnCheckStateChanged().Connect([window](CheckBox*, CheckState state) {
         if (window) {
@@ -111,10 +111,10 @@ Element BuildSettingsPage() {
     }).Build();
         body->SetBackgroundToken(ThemeTokenId::WindowBackground);
 
-    auto scroll = std::make_shared<ScrollViewer>();
-        scroll->SetAlign(Alignment::Stretch);
-        scroll->SetFlexGrow(1.0f);
-        scroll->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    CUI::Widgets::Ref scroll = CUI::Widgets::ScrollViewer().Shared();
+        scroll.Align(Alignment::Stretch);
+        scroll.FlexGrow(1.0f);
+        scroll.BackgroundToken(ThemeTokenId::WindowBackground);
         scroll->AddChild(body);
     return scroll;
 }

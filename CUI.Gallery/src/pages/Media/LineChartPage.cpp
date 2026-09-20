@@ -137,9 +137,9 @@ private:
 
 Element BuildLineChartPage() {
     // ---------- 1. 常规用法 ----------
-    auto line = std::make_shared<LineChart>();
-        line->SetText("折线图 · 月度销量趋势");
-        line->SetHeight(320.0f);
+    CUI::Widgets::Ref line = CUI::Widgets::LineChart().Shared();
+        line.Text("折线图 · 月度销量趋势");
+        line.Height(320.0f);
     ApplySales(*line, false);
 
     auto status1 = MakeStatus("悬停图线或按 ← → 方向键读值");
@@ -152,9 +152,9 @@ Element BuildLineChartPage() {
     auto btnReveal = ElevatedButton("重放入场动画", [line](UIElement*) { line->PlayReveal(); }).Build();
 
     // ---------- 2. 实时数据流 ----------
-    auto live = std::make_shared<LineChart>();
-        live->SetText("实时数据流 · 正弦/余弦采样 (250ms/帧)");
-        live->SetHeight(260.0f);
+    CUI::Widgets::Ref live = CUI::Widgets::LineChart().Shared();
+        live.Text("实时数据流 · 正弦/余弦采样 (250ms/帧)");
+        live.Height(260.0f);
 
     auto liveStatus = MakeStatus("等待数据泵启动...");
     auto pump = std::make_shared<SineStreamPump>(live, liveStatus);
@@ -166,9 +166,9 @@ Element BuildLineChartPage() {
     });
 
     // ---------- 3. 显示选项 ----------
-    auto optChart = std::make_shared<LineChart>();
-        optChart->SetText("显示选项 · 网格 / 图例 / 悬停提示");
-        optChart->SetHeight(260.0f);
+    CUI::Widgets::Ref optChart = CUI::Widgets::LineChart().Shared();
+        optChart.Text("显示选项 · 网格 / 图例 / 悬停提示");
+        optChart.Height(260.0f);
     ApplySales(*optChart, true);
 
     auto status3 = MakeStatus("网格、图例、悬停提示均可独立开关。");
@@ -177,18 +177,18 @@ Element BuildLineChartPage() {
         chkGrid.State(CheckState::Checked);
     chkGrid->OnCheckStateChanged().Connect([optChart, status3](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
-                optChart->SetShowGrid(on);
+                optChart.ShowGrid(on);
         status3->Text = on ? "网格已显示。" : "网格已隐藏。";
     });
     CUI::Widgets::Ref chkLegend = Widgets::CheckBox("显示图例").Shared();
         chkLegend.State(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([optChart](CheckBox*, CheckState st) {
-                optChart->SetShowLegend(st == CheckState::Checked);
+                optChart.ShowLegend(st == CheckState::Checked);
     });
     CUI::Widgets::Ref chkTip = Widgets::CheckBox("悬停提示卡片").Shared();
         chkTip.State(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([optChart](CheckBox*, CheckState st) {
-                optChart->SetShowTooltip(st == CheckState::Checked);
+                optChart.ShowTooltip(st == CheckState::Checked);
     });
     auto btnReveal3 = ElevatedButton("重放入场动画", [optChart](UIElement*) { optChart->PlayReveal(); }).Build();
 
@@ -233,17 +233,17 @@ Element BuildLineChartPage() {
 
     spec.source = R"(
 // 1) 构建图表并填充数据
-auto chart = std::make_shared<LineChart>();
-chart->SetText("月度销量");
-chart->SetHeight(320.0f);
-chart->SetCategories({ "1月", "2月", "3月", "4月" });
+CUI::Widgets::Ref chart = CUI::Widgets::LineChart().Shared();
+chart.Text("月度销量");
+chart.Height(320.0f);
+chart.Categories({ "1月", "2月", "3月", "4月" });
 ChartSeries s;
 s.name = "华北";
 s.values = { 12.0f, 18.0f, 15.0f, 22.0f };
-chart->SetSeries({ std::move(s) });
+chart.Series({ std::move(s) });
 
 // 2) 实时增量更新（屏蔽入场动画）
-chart->SetLiveData(categories, series);
+chart.LiveData(categories, series);
 
 // 3) 悬停读值
 chart->OnHoverChanged().Connect([](ChartBase* c, int idx, int ser) {
@@ -251,8 +251,8 @@ chart->OnHoverChanged().Connect([](ChartBase* c, int idx, int ser) {
 });
 
 // 4) 显示开关与动画
-chart->SetShowGrid(false);
-chart->SetShowTooltip(true);
+chart.ShowGrid(false);
+chart.ShowTooltip(true);
 chart->PlayReveal();   // 重放入场描线动画
 )";
 

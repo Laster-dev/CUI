@@ -11,10 +11,10 @@ namespace CUI {
 using namespace CUI::DSL;
 
 std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) {
-    auto title = std::make_shared<TextBlock>("NavigationView & Theme 导航与主题系统");
-        title->SetFontWeight(CUI::FontWeight::Bold);
+    CUI::Widgets::Ref title = CUI::Widgets::TextBlock("NavigationView & Theme 导航与主题系统").Shared();
+        title.FontWeight(CUI::FontWeight::Bold);
     
-        title->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
+        title.Color(ThemeManager::Instance().GetColor("textPrimary"));
 
     auto nav = std::make_shared<NavigationView>();
     nav->SetHeader("CUI WinUI 3 Navigation");
@@ -39,9 +39,9 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
         nav->AddMenuItem(CUI::DSL::Fluent::Control<CUI::NavigationViewItem>("设置 (Settings)").Icon("⚙️").Content(pageSettings).Build());
 
     // Mode Switcher Buttons
-    auto btnLeft = std::make_shared<Button>("Left 侧边模式");
-    auto btnLeftCompact = std::make_shared<Button>("LeftCompact 紧凑模式");
-    auto btnTop = std::make_shared<Button>("Top 顶部模式");
+    CUI::Widgets::Ref btnLeft = CUI::Widgets::Button("Left 侧边模式").Shared();
+    CUI::Widgets::Ref btnLeftCompact = CUI::Widgets::Button("LeftCompact 紧凑模式").Shared();
+    CUI::Widgets::Ref btnTop = CUI::Widgets::Button("Top 顶部模式").Shared();
 
     btnLeft->OnClick().Connect([nav](UIElement*) { nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Left); });
     btnLeftCompact->OnClick().Connect([nav](UIElement*) { nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::LeftCompact); });
@@ -50,8 +50,8 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
     Window* win = ctx.windowRef;
 
     // Theme Switcher Buttons (Dark / Light)
-    auto btnDark = std::make_shared<Button>("🌙 暗色主题 (Dark)");
-    auto btnLight = std::make_shared<Button>("☀️ 亮色主题 (Light)");
+    CUI::Widgets::Ref btnDark = CUI::Widgets::Button("🌙 暗色主题 (Dark)").Shared();
+    CUI::Widgets::Ref btnLight = CUI::Widgets::Button("☀️ 亮色主题 (Light)").Shared();
 
     btnDark->OnClick().Connect([win](UIElement*) {
         if (win) win->SetThemeMode(ThemeMode::Dark);

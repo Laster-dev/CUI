@@ -75,9 +75,9 @@ void ApplyRandom(ChartBase& chart) {
 
 Element BuildBarChartPage() {
     // ---------- 1. 常规用法（多系列分组柱状图） ----------
-    auto bar = std::make_shared<BarChart>();
-        bar->SetText("柱状图 · 月度销量对比");
-        bar->SetHeight(320.0f);
+    CUI::Widgets::Ref bar = CUI::Widgets::BarChart().Shared();
+        bar.Text("柱状图 · 月度销量对比");
+        bar.Height(320.0f);
     ApplySales(*bar, false);
 
     auto status1 = MakeStatus("悬停柱体或按 ← → 方向键读值");
@@ -90,10 +90,10 @@ Element BuildBarChartPage() {
     auto btnReveal = ElevatedButton("重放入场动画", [bar](UIElement*) { bar->PlayReveal(); }).Build();
 
     // ---------- 2. 自定义颜色系列 ----------
-    auto colorChart = std::make_shared<BarChart>();
-        colorChart->SetText("自定义系列颜色 · 三个渠道");
-        colorChart->SetHeight(280.0f);
-        colorChart->SetCategories({ "1月", "2月", "3月", "4月" });
+    CUI::Widgets::Ref colorChart = CUI::Widgets::BarChart().Shared();
+        colorChart.Text("自定义系列颜色 · 三个渠道");
+        colorChart.Height(280.0f);
+        colorChart.Categories({ "1月", "2月", "3月", "4月" });
 
     ChartSeries web;
     web.name = "线上商城";
@@ -110,14 +110,14 @@ Element BuildBarChartPage() {
     agent.color = D2D1::ColorF(D2D1::ColorF::MediumSeaGreen, 0.95f);
     agent.hasColor = true;
     agent.values = { 12.0f, 15.0f, 19.0f, 22.0f };
-        colorChart->SetSeries({ std::move(web), std::move(store), std::move(agent) });
+        colorChart.Series({ std::move(web), std::move(store), std::move(agent) });
 
     auto status2 = MakeStatus("每个系列通过 ChartSeries.color + hasColor 指定专属颜色。");
 
     // ---------- 3. 动态更新 + 显示选项 ----------
-    auto dyn = std::make_shared<BarChart>();
-        dyn->SetText("动态数据 · 三资源负载（随机）");
-        dyn->SetHeight(280.0f);
+    CUI::Widgets::Ref dyn = CUI::Widgets::BarChart().Shared();
+        dyn.Text("动态数据 · 三资源负载（随机）");
+        dyn.Height(280.0f);
     ApplyRandom(*dyn);
 
     auto status3 = MakeStatus("点击“随机重掷”生成新数据并重放入场生长动画。");
@@ -130,17 +130,17 @@ Element BuildBarChartPage() {
     CUI::Widgets::Ref chkGrid = Widgets::CheckBox("显示网格").Shared();
         chkGrid.State(CheckState::Checked);
     chkGrid->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
-                dyn->SetShowGrid(st == CheckState::Checked);
+                dyn.ShowGrid(st == CheckState::Checked);
     });
     CUI::Widgets::Ref chkLegend = Widgets::CheckBox("显示图例").Shared();
         chkLegend.State(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
-                dyn->SetShowLegend(st == CheckState::Checked);
+                dyn.ShowLegend(st == CheckState::Checked);
     });
     CUI::Widgets::Ref chkTip = Widgets::CheckBox("悬停提示卡片").Shared();
         chkTip.State(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
-                dyn->SetShowTooltip(st == CheckState::Checked);
+                dyn.ShowTooltip(st == CheckState::Checked);
     });
 
     SamplePageSpec spec;
@@ -180,10 +180,10 @@ Element BuildBarChartPage() {
 
     spec.source = R"(
 // 1) 构建柱状图
-auto chart = std::make_shared<BarChart>();
-chart->SetText("销量对比");
-chart->SetHeight(320.0f);
-chart->SetCategories({ "1月", "2月", "3月" });
+CUI::Widgets::Ref chart = CUI::Widgets::BarChart().Shared();
+chart.Text("销量对比");
+chart.Height(320.0f);
+chart.Categories({ "1月", "2月", "3月" });
 
 // 2) 指定系列颜色（可选，默认自动取色）
 ChartSeries s;
@@ -191,12 +191,12 @@ s.name = "线上商城";
 s.values = { 26.0f, 32.0f, 29.0f };
 s.color = D2D1::ColorF(D2D1::ColorF::DodgerBlue, 0.95f);
 s.hasColor = true;
-chart->SetSeries({ std::move(s) });
+chart.Series({ std::move(s) });
 
 // 3) 更新数据 / 动画 / 显示
-chart->SetSeries(newSeries);   // 自动重放入场生长动画
+chart.Series(newSeries);   // 自动重放入场生长动画
 chart->PlayReveal();
-chart->SetShowGrid(false);
+chart.ShowGrid(false);
 )";
 
     return BuildSamplePage(spec);

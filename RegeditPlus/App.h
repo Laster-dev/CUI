@@ -1,6 +1,9 @@
 #pragma once
 
+#include "framework/core/Widget.h"
+
 #include "framework/window/Window.h"
+#include "framework/controls/Panel.h"
 #include "RegIcons.h"
 
 #include <windows.h>
@@ -98,13 +101,13 @@ private:
 private:
     CUI::Window m_window;
     std::shared_ptr<CUI::UIElement> m_root;
-    std::shared_ptr<CUI::WindowTitleBar> m_titleBar;
-    std::shared_ptr<CUI::BreadcrumbBar> m_breadcrumb;
+    CUI::Widgets::Ref<::CUI::WindowTitleBar> m_titleBar;
+    CUI::Widgets::Ref<::CUI::BreadcrumbBar> m_breadcrumb;
 
-    std::shared_ptr<CUI::TreeView> m_tree;
-    std::shared_ptr<CUI::ListView> m_list;
-    std::shared_ptr<CUI::TextBlock> m_statusPath;
-    std::shared_ptr<CUI::UIElement> m_statusBar;
+    CUI::Widgets::Ref<::CUI::TreeView> m_tree;
+    CUI::Widgets::Ref<::CUI::ListView> m_list;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_statusPath;
+    CUI::Widgets::Ref<::CUI::StackPanel> m_statusBar;
 
     std::unordered_map<const CUI::TreeViewItem*, std::wstring> m_nodePaths;
     std::unordered_map<const CUI::TreeViewItem*, bool> m_nodeLoaded;

@@ -93,28 +93,28 @@ ShowcasePage BuildCommandBarPage(const ShowcaseContext& ctx) {
         }
     };
 
-    auto full = std::make_shared<CommandBar>();
-        full->SetLabelPosition(CommandBarLabelPosition::Right);
+    CUI::Widgets::Ref full = CUI::Widgets::CommandBar().Shared();
+        full.LabelPosition(CommandBarLabelPosition::Right);
     FillBar(*full, logFn);
 
-    auto compact = std::make_shared<CommandBar>();
-        compact->SetLabelPosition(CommandBarLabelPosition::Collapsed);
+    CUI::Widgets::Ref compact = CUI::Widgets::CommandBar().Shared();
+        compact.LabelPosition(CommandBarLabelPosition::Collapsed);
     FillBar(*compact, logFn);
 
-    auto narrow = std::make_shared<CommandBar>();
-        narrow->SetWidth(280.0f);
-        narrow->SetAlign(Alignment::Start);
-        narrow->SetLabelPosition(CommandBarLabelPosition::Right);
+    CUI::Widgets::Ref narrow = CUI::Widgets::CommandBar().Shared();
+        narrow.Width(280.0f);
+        narrow.Align(Alignment::Start);
+        narrow.LabelPosition(CommandBarLabelPosition::Right);
     FillBar(*narrow, logFn);
     narrow->OnOverflowOpened().Connect([overflowHint, narrow]() {
                 overflowHint->SetText("窄栏溢出：已打开，共 "
             + std::to_string(narrow->GetOverflowCount()) + " 项进菜单");
     });
 
-    auto btnLabels = std::make_shared<Button>("切换文字");
+    CUI::Widgets::Ref btnLabels = CUI::Widgets::Button("切换文字").Shared();
     btnLabels->OnClick().Connect([full, log](UIElement*) {
         const bool show = full->GetLabelPosition() != CommandBarLabelPosition::Right;
-                full->SetLabelPosition(show ? CommandBarLabelPosition::Right : CommandBarLabelPosition::Collapsed);
+                full.LabelPosition(show ? CommandBarLabelPosition::Right : CommandBarLabelPosition::Collapsed);
                 log->SetText(show ? "[CommandBar] 显示文字" : "[CommandBar] 仅图标");
     });
 

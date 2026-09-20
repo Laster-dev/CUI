@@ -35,16 +35,16 @@ std::shared_ptr<UIElement> SettingsView::Build() {
         .Build();
     };
 
-    auto btnDark = std::make_shared<Button>("🌙 深色模式");
-        btnDark->SetHeight(28.0f);
+    CUI::Widgets::Ref btnDark = CUI::Widgets::Button("🌙 深色模式").Shared();
+        btnDark.Height(28.0f);
     btnDark->OnClick().Connect([window](UIElement*) {
         if (window) {
             window->SetThemeMode(ThemeMode::Dark);
         }
     });
 
-    auto btnLight = std::make_shared<Button>("☀ 浅色模式");
-        btnLight->SetHeight(28.0f);
+    CUI::Widgets::Ref btnLight = CUI::Widgets::Button("☀ 浅色模式").Shared();
+        btnLight.Height(28.0f);
     btnLight->OnClick().Connect([window](UIElement*) {
         if (window) {
             window->SetThemeMode(ThemeMode::Light);
@@ -54,8 +54,8 @@ std::shared_ptr<UIElement> SettingsView::Build() {
     auto themeRow = Row(6.0f, { btnDark, btnLight }).Build();
     auto themeCard = makeSettingCard("界面外观", "切换深色 / 浅色模式", themeRow);
 
-    auto lowPerfSwitch = std::make_shared<ToggleSwitch>();
-    if (window) lowPerfSwitch->SetIsOn(window->IsLowPerformanceMode());
+    CUI::Widgets::Ref lowPerfSwitch = CUI::Widgets::ToggleSwitch().Shared();
+    if (window) lowPerfSwitch.IsOn(window->IsLowPerformanceMode());
     lowPerfSwitch->OnToggled().Connect([window, onShowToast](ToggleSwitch*, bool on) {
         if (window) {
                         window->SetLowPerformanceMode(on);
@@ -83,9 +83,9 @@ std::shared_ptr<UIElement> SettingsView::Build() {
     .BackgroundToken(ThemeTokenId::WindowBackground)
     .Build();
 
-    auto scroll = std::make_shared<ScrollViewer>();
-        scroll->SetAlign(Alignment::Stretch);
-        scroll->SetFlexGrow(1.0f);
+    CUI::Widgets::Ref scroll = CUI::Widgets::ScrollViewer().Shared();
+        scroll.Align(Alignment::Stretch);
+        scroll.FlexGrow(1.0f);
         scroll->AddChild(content);
     return scroll;
 }

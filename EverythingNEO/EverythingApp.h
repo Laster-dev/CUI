@@ -1,8 +1,11 @@
 #pragma once
 
+#include "framework/core/Widget.h"
+
 #include "EverythingEngine.h"
 #include "SearchTypes.h"
 #include "framework/window/Window.h"
+#include "framework/controls/Panel.h"
 #include "framework/controls/ListView.h"
 #include <memory>
 #include <vector>
@@ -136,13 +139,13 @@ private:
 
     CUI::Window m_window;
     std::shared_ptr<CUI::UIElement> m_root;
-    std::shared_ptr<CUI::WindowTitleBar> m_titleBar;
-    std::shared_ptr<CUI::TextBox> m_searchBox;
-    std::shared_ptr<CUI::ComboBox> m_typeFilter;
-    std::shared_ptr<CUI::ListView> m_resultsList;
-    std::shared_ptr<CUI::TextBlock> m_statusLeft;
-    std::shared_ptr<CUI::TextBlock> m_statusRight;
-    std::shared_ptr<CUI::UIElement> m_statusBar;
+    CUI::Widgets::Ref<::CUI::WindowTitleBar> m_titleBar;
+    CUI::Widgets::Ref<::CUI::TextBox> m_searchBox;
+    CUI::Widgets::Ref<::CUI::ComboBox> m_typeFilter;
+    CUI::Widgets::Ref<::CUI::ListView> m_resultsList;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_statusLeft;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_statusRight;
+    CUI::Widgets::Ref<::CUI::StackPanel> m_statusBar;
 
     EverythingEngine m_engine;
     SearchOptions m_searchOptions;
@@ -162,7 +165,7 @@ private:
     std::shared_ptr<CUI::MenuItem> m_menuWholeWord;
     std::shared_ptr<CUI::MenuItem> m_menuMatchCase;
     std::shared_ptr<CUI::MenuItem> m_menuStatusBar;
-    std::shared_ptr<CUI::ContextMenu> m_fileContextMenu;
+    CUI::Widgets::Ref<::CUI::ContextMenu> m_fileContextMenu;
 };
 
 } // namespace EverythingNEO

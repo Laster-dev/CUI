@@ -6,11 +6,11 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildGridPage(const ShowcaseContext&) {
-    auto target = std::make_shared<Grid>();
-        target->SetWidth(460.0f);
-        target->SetHeight(240.0f);
-        target->SetColumnDefinitions("1*,2*,100");
-    target->SetRowDefinitions("40,1*,1*");
+    CUI::Widgets::Ref target = CUI::Widgets::Grid().Shared();
+        target.Width(460.0f);
+        target.Height(240.0f);
+        target.ColumnDefinitions("1*,2*,100");
+    target.RowDefinitions("40,1*,1*");
     target->AddChild(ElevatedButton("Cell(0,0)").Background(Rgb(0x007ACC)).GridRow(0).GridColumn(0).Build());
     target->AddChild(ElevatedButton("Cell(0,1) 2*").Background(Rgb(0x0E639C)).GridRow(0).GridColumn(1).Build());
     target->AddChild(ElevatedButton("100px").Background(Rgb(0x10B981)).GridRow(0).GridColumn(2).Build());

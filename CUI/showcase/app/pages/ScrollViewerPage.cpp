@@ -6,9 +6,9 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildScrollViewerPage(const ShowcaseContext&) {
-    auto target = std::make_shared<ScrollViewer>();
-        target->SetWidth(380.0f);
-        target->SetHeight(240.0f);
+    CUI::Widgets::Ref target = CUI::Widgets::ScrollViewer().Shared();
+        target.Width(380.0f);
+        target.Height(240.0f);
         target->AddChild(Column(8).Padding(10).Children({
         ElevatedButton("可滚动列表项 #1").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),
         ElevatedButton("可滚动列表项 #2").Background(Rgb(0x007ACC)).Padding(12, 6, 12, 6).Build(),

@@ -43,6 +43,9 @@ public:
     /// 无参构造：真实控件在堆上创建（构造即托管，无需用户 new）
     WidgetBase() requires kOwning : impl_(std::make_unique<Impl>()) {}
 
+    /// 引用模式的空句柄：先声明、稍后接管控件（Ref 作为类成员时的常规形态）
+    WidgetBase() requires (!kOwning) = default;
+
     /// 接管一个已存在的堆上控件
     explicit WidgetBase(Ptr impl) : impl_(std::move(impl)) {}
 
@@ -231,7 +234,12 @@ public:
     Derived& PaneAutoHide(int index, bool value) const { if constexpr (requires { impl_->SetPaneAutoHide(index, value); }) impl_->SetPaneAutoHide(index, value); return self(); }
     Derived& PaneTitle(const std::string& value) const { if constexpr (requires { impl_->SetPaneTitle(value); }) impl_->SetPaneTitle(value); return self(); }
     Derived& Password(const std::string& value) const { if constexpr (requires { impl_->SetPassword(value); }) impl_->SetPassword(value); return self(); }
-    Derived& Path(const std::string& value) const { if constexpr (requires { impl_->SetPath(value); }) impl_->SetPath(value); return self(); }
+    template<class... A> Derived& Path(A&&... a) const { if constexpr (requires { impl_->SetPath(std::forward<A>(a)...); }) impl_->SetPath(std::forward<A>(a)...); return self(); }
+    /// 路径分段可直接写花括号：.Path({ "计算机", "HKEY_LOCAL_MACHINE" })
+    template<class T> Derived& Path(std::initializer_list<T> v) const {
+        if constexpr (requires { impl_->SetPath(std::vector<T>(v)); }) impl_->SetPath(std::vector<T>(v));
+        return self();
+    }
     Derived& PersistEnabled(bool value) const { if constexpr (requires { impl_->SetPersistEnabled(value); }) impl_->SetPersistEnabled(value); return self(); }
     Derived& PrimaryButtonText(const std::string& value) const { if constexpr (requires { impl_->SetPrimaryButtonText(value); }) impl_->SetPrimaryButtonText(value); return self(); }
     Derived& Range(float lower, float upper) const { if constexpr (requires { impl_->SetRange(lower, upper); }) impl_->SetRange(lower, upper); return self(); }
@@ -307,6 +315,29 @@ public:
     template<class... A> Derived& AutoSuggestBox(A&&... a) const { if constexpr (requires { impl_->SetAutoSuggestBox(std::forward<A>(a)...); }) impl_->SetAutoSuggestBox(std::forward<A>(a)...); return self(); }
     template<class... A> Derived& RowIcons(A&&... a) const { if constexpr (requires { impl_->SetRowIcons(std::forward<A>(a)...); }) impl_->SetRowIcons(std::forward<A>(a)...); return self(); }
     template<class... A> Derived& RowTags(A&&... a) const { if constexpr (requires { impl_->SetRowTags(std::forward<A>(a)...); }) impl_->SetRowTags(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& ActionCommand(A&&... a) const { if constexpr (requires { impl_->SetActionCommand(std::forward<A>(a)...); }) impl_->SetActionCommand(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& Categories(A&&... a) const { if constexpr (requires { impl_->SetCategories(std::forward<A>(a)...); }) impl_->SetCategories(std::forward<A>(a)...); return self(); }
+    /// 分类轴可直接写花括号：.Categories({ "1月", "2月" })
+    template<class T> Derived& Categories(std::initializer_list<T> v) const {
+        if constexpr (requires { impl_->SetCategories(std::vector<T>(v)); }) impl_->SetCategories(std::vector<T>(v));
+        return self();
+    }
+    template<class... A> Derived& Corner(A&&... a) const { if constexpr (requires { impl_->SetCorner(std::forward<A>(a)...); }) impl_->SetCorner(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& MaxEntries(A&&... a) const { if constexpr (requires { impl_->SetMaxEntries(std::forward<A>(a)...); }) impl_->SetMaxEntries(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& RightContent(A&&... a) const { if constexpr (requires { impl_->SetRightContent(std::forward<A>(a)...); }) impl_->SetRightContent(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& Series(A&&... a) const { if constexpr (requires { impl_->SetSeries(std::forward<A>(a)...); }) impl_->SetSeries(std::forward<A>(a)...); return self(); }
+    /// 系列可直接写花括号：.Series({ s1, s2 })
+    template<class T> Derived& Series(std::initializer_list<T> v) const {
+        if constexpr (requires { impl_->SetSeries(std::vector<T>(v)); }) impl_->SetSeries(std::vector<T>(v));
+        return self();
+    }
+    template<class... A> Derived& ImageType(A&&... a) const { if constexpr (requires { impl_->SetImageType(std::forward<A>(a)...); }) impl_->SetImageType(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& TextAlign(A&&... a) const { if constexpr (requires { impl_->SetTextAlign(std::forward<A>(a)...); }) impl_->SetTextAlign(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& VerticalAlign(A&&... a) const { if constexpr (requires { impl_->SetVerticalAlign(std::forward<A>(a)...); }) impl_->SetVerticalAlign(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& ShellContextMenuHandler(A&&... a) const { if constexpr (requires { impl_->SetShellContextMenuHandler(std::forward<A>(a)...); }) impl_->SetShellContextMenuHandler(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& VirtualRowCount(A&&... a) const { if constexpr (requires { impl_->SetVirtualRowCount(std::forward<A>(a)...); }) impl_->SetVirtualRowCount(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& ItemEnabled(A&&... a) const { if constexpr (requires { impl_->SetItemEnabled(std::forward<A>(a)...); }) impl_->SetItemEnabled(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& NativeIcon(A&&... a) const { if constexpr (requires { impl_->SetNativeIcon(std::forward<A>(a)...); }) impl_->SetNativeIcon(std::forward<A>(a)...); return self(); }
     Derived& Spacing(float value) const { if constexpr (requires { impl_->SetSpacing(value); }) impl_->SetSpacing(value); return self(); }
     Derived& Step(float s) const { if constexpr (requires { impl_->SetStep(s); }) impl_->SetStep(s); return self(); }
     Derived& Stiffness(float value) const { if constexpr (requires { impl_->SetStiffness(value); }) impl_->SetStiffness(value); return self(); }

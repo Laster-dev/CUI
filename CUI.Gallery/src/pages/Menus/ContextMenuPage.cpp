@@ -16,7 +16,7 @@ Element BuildContextMenuPage() {
     // ==========================================
     // 示例 1: 文件工作区右键菜单
     // ==========================================
-    auto workspaceMenu = std::make_shared<ContextMenu>();
+    CUI::Widgets::Ref workspaceMenu = CUI::Widgets::ContextMenu().Shared();
 
     // 1. 新建子菜单 (SubMenu)
     auto newSubMenu = workspaceMenu->AddSubMenu("新建 (New)");
@@ -93,7 +93,7 @@ Element BuildContextMenuPage() {
     // ==========================================
     // 示例 2: 代码编辑器专属右键菜单
     // ==========================================
-    auto codeMenu = std::make_shared<ContextMenu>();
+    CUI::Widgets::Ref codeMenu = CUI::Widgets::ContextMenu().Shared();
     codeMenu->AddItem("格式化文档", "Shift+Alt+F", [statusLabel]() {
         statusLabel->Text = "编辑器：【代码格式化完成】(符合 Clang-Format 标准)";
     });
@@ -149,7 +149,7 @@ Element BuildContextMenuPage() {
     };
 
     spec.source = R"cpp(// 1. 创建右键菜单并添加操作项与快捷键
-auto menu = std::make_shared<ContextMenu>();
+CUI::Widgets::Ref menu = CUI::Widgets::ContextMenu().Shared();
 
 // 2. 添加多级级联子菜单
 auto subMenu = menu->AddSubMenu("新建 (New)");

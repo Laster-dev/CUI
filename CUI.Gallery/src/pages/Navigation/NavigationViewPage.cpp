@@ -85,9 +85,9 @@ Element BuildNavigationViewPage() {
         account->SetTag("account");
     nav->AddFooterMenuItem(account);
 
-    auto search = std::make_shared<TextBox>();
-        search->SetPlaceholder("搜索…");
-        search->SetHeight(32.0f);
+    CUI::Widgets::Ref search = CUI::Widgets::TextBox().Shared();
+        search.Placeholder("搜索…");
+        search.Height(32.0f);
         nav->SetAutoSuggestBox(search);
 
         nav->SetSelectedItem(home.get());

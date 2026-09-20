@@ -43,24 +43,24 @@ Element MakeSourceExpander(const std::string& source) {
         return nullptr;
     }
 
-    auto code = std::make_shared<TextBox>();
-        code->SetAlign(Alignment::Stretch);
-        code->SetHeight(180.0f);
+    CUI::Widgets::Ref code = CUI::Widgets::TextBox().Shared();
+        code.Align(Alignment::Stretch);
+        code.Height(180.0f);
     code->FontFamily = "Consolas";
-        code->SetFontSize(12.0f);
-        code->SetAcceptsReturn(true);
-        code->SetTextWrapping(false);
-        code->SetIsReadOnly(true);
-        code->SetCornerRadius(4.0f);
-        code->SetBorderThickness(1.0f);
-        code->SetPadding(Thickness(10, 8, 10, 8));
-        code->SetBackgroundToken(ThemeTokenId::InputBackground);
-        code->SetBorderToken(ThemeTokenId::CardBorder);
-        code->SetText(source);
+        code.FontSize(12.0f);
+        code.AcceptsReturn(true);
+        code.TextWrapping(false);
+        code.IsReadOnly(true);
+        code.CornerRadius(4.0f);
+        code.BorderThickness(1.0f);
+        code.Padding(Thickness(10, 8, 10, 8));
+        code.BackgroundToken(ThemeTokenId::InputBackground);
+        code.BorderToken(ThemeTokenId::CardBorder);
+        code.Text(source);
 
-    auto expander = std::make_shared<Expander>("源代码");
-        expander->SetIsExpanded(false);
-        expander->SetContent(code);
+    CUI::Widgets::Ref expander = CUI::Widgets::Expander("源代码").Shared();
+        expander.IsExpanded(false);
+        expander.Content(code);
     return expander;
 }
 
@@ -101,10 +101,10 @@ Element BuildSamplePage(const SamplePageSpec& spec) {
         column->SetBackgroundToken(ThemeTokenId::WindowBackground);
         column->SetAlignHorizontal(Alignment::Stretch);
 
-    auto scroll = std::make_shared<ScrollViewer>();
-        scroll->SetFlexGrow(1.0f);
-        scroll->SetAlign(Alignment::Stretch);
-        scroll->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    CUI::Widgets::Ref scroll = CUI::Widgets::ScrollViewer().Shared();
+        scroll.FlexGrow(1.0f);
+        scroll.Align(Alignment::Stretch);
+        scroll.BackgroundToken(ThemeTokenId::WindowBackground);
     scroll->AddChild(column);
     return scroll;
 }

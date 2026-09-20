@@ -9,10 +9,10 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildFlyoutPage(const ShowcaseContext& ctx) {
-    auto btnTrigger = std::make_shared<Button>("打开 Flyout");
-        btnTrigger->SetWidth(160.0f);
-        btnTrigger->SetHeight(36.0f);
-        btnTrigger->SetCornerRadius(4.0f);
+    CUI::Widgets::Ref btnTrigger = CUI::Widgets::Button("打开 Flyout").Shared();
+        btnTrigger.Width(160.0f);
+        btnTrigger.Height(36.0f);
+        btnTrigger.CornerRadius(4.0f);
 
     auto flyoutContent = Column(10).Children({
         CreateShowcaseText("Flyout 内容", 14.0f, "textPrimary", true),
@@ -20,8 +20,8 @@ ShowcasePage BuildFlyoutPage(const ShowcaseContext& ctx) {
         ElevatedButton("操作按钮").Padding(12, 6, 12, 6).Build()
     }).Build();
 
-    auto flyout = std::make_shared<Flyout>(flyoutContent);
-        flyout->SetPlacement(FlyoutPlacement::Bottom);
+    CUI::Widgets::Ref flyout = CUI::Widgets::Flyout(flyoutContent).Shared();
+        flyout.Placement(FlyoutPlacement::Bottom);
 
     btnTrigger->OnClick().Connect([flyout, btnTrigger](UIElement*) {
         if (flyout->IsOpen()) {

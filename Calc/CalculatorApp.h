@@ -1,5 +1,7 @@
 #pragma once
 
+#include "framework/core/Widget.h"
+
 #include "framework/window/Window.h"
 #include "framework/controls/TextBlock.h"
 #include "framework/style/ThemeTokenId.h"
@@ -42,8 +44,8 @@ private:
     static std::string FormatNumber(double value);
 
     CUI::Window m_window;
-    std::shared_ptr<CUI::TextBlock> m_historyText;
-    std::shared_ptr<CUI::TextBlock> m_displayText;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_historyText;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_displayText;
     std::string m_input = "0";
     std::string m_history;
     std::string m_pendingOperator;

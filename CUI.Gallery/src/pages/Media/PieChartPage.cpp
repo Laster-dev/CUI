@@ -65,9 +65,9 @@ void ApplyCustom(ChartBase& chart) {
 
 Element BuildPieChartPage() {
     // ---------- 1. 常规用法 ----------
-    auto pie = std::make_shared<PieChart>();
-        pie->SetText("饼图 · 华北月度销量占比");
-        pie->SetHeight(320.0f);
+    CUI::Widgets::Ref pie = CUI::Widgets::PieChart().Shared();
+        pie.Text("饼图 · 华北月度销量占比");
+        pie.Height(320.0f);
     ApplyMonthly(*pie);
 
     auto status1 = MakeStatus("悬停扇区读值，扇区平滑向外凸出高亮");
@@ -81,9 +81,9 @@ Element BuildPieChartPage() {
     auto btnReveal = ElevatedButton("重放入场动画", [pie](UIElement*) { pie->PlayReveal(); }).Build();
 
     // ---------- 2. 显示选项 ----------
-    auto optPie = std::make_shared<PieChart>();
-        optPie->SetText("显示选项 · 图例 / 悬停提示");
-        optPie->SetHeight(280.0f);
+    CUI::Widgets::Ref optPie = CUI::Widgets::PieChart().Shared();
+        optPie.Text("显示选项 · 图例 / 悬停提示");
+        optPie.Height(280.0f);
     ApplyCustom(*optPie);
 
     auto status2 = MakeStatus("图例与悬停提示可独立开关；饼图图例按百分比扇区自绘。");
@@ -91,13 +91,13 @@ Element BuildPieChartPage() {
         chkLegend.State(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([optPie, status2](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
-                optPie->SetShowLegend(on);
+                optPie.ShowLegend(on);
         status2->Text = on ? "图例已显示。" : "图例已隐藏。";
     });
     CUI::Widgets::Ref chkTip = Widgets::CheckBox("悬停提示卡片").Shared();
         chkTip.State(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([optPie](CheckBox*, CheckState st) {
-                optPie->SetShowTooltip(st == CheckState::Checked);
+                optPie.ShowTooltip(st == CheckState::Checked);
     });
     auto btnReveal2 = ElevatedButton("重放入场动画", [optPie](UIElement*) { optPie->PlayReveal(); }).Build();
 
@@ -129,14 +129,14 @@ Element BuildPieChartPage() {
 
     spec.source = R"(
 // 1) 构建饼图（单系列多分类 → 每分类一个扇区）
-auto pie = std::make_shared<PieChart>();
-pie->SetText("资源占比");
-pie->SetHeight(320.0f);
-pie->SetCategories({ "操作系统", "数据库", "中间件" });
+CUI::Widgets::Ref pie = CUI::Widgets::PieChart().Shared();
+pie.Text("资源占比");
+pie.Height(320.0f);
+pie.Categories({ "操作系统", "数据库", "中间件" });
 ChartSeries s;
 s.name = "占比";
 s.values = { 34.0f, 22.0f, 15.0f };
-pie->SetSeries({ std::move(s) });
+pie.Series({ std::move(s) });
 
 // 2) 悬停读值（提示卡片自动含百分比）
 pie->OnHoverChanged().Connect([](ChartBase* c, int idx, int) {
@@ -144,8 +144,8 @@ pie->OnHoverChanged().Connect([](ChartBase* c, int idx, int) {
 });
 
 // 3) 显示控制
-pie->SetShowLegend(true);
-pie->SetShowTooltip(true);
+pie.ShowLegend(true);
+pie.ShowTooltip(true);
 pie->PlayReveal();
 )";
 

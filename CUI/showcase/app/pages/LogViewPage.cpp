@@ -35,16 +35,16 @@ void Burst(LogView& log, int count) {
 } // namespace
 
 ShowcasePage BuildLogViewPage(const ShowcaseContext& ctx) {
-    auto log = std::make_shared<LogView>();
-        log->SetWidth(-1.0f);
-        log->SetHeight(280.0f);
-        log->SetMaxEntries(16384);
-        log->SetExpanded(true);
-        log->SetToolTip("折叠后单行最新；展开后级别芯片 + 搜索 + 虚拟化列表。Ctrl+C 复制，Ctrl+A 全选，Ctrl+F 搜索。");
+    CUI::Widgets::Ref log = CUI::Widgets::LogView().Shared();
+        log.Width(-1.0f);
+        log.Height(280.0f);
+        log.MaxEntries(16384);
+        log.Expanded(true);
+        log.ToolTip("折叠后单行最新；展开后级别芯片 + 搜索 + 虚拟化列表。Ctrl+C 复制，Ctrl+A 全选，Ctrl+F 搜索。");
 
     auto hint = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("", 12.0f, "textSecondary", false));
-    auto btnToggle = std::make_shared<Button>("折叠");
+    CUI::Widgets::Ref btnToggle = CUI::Widgets::Button("折叠").Shared();
     log->OnChanged().Connect([hint, log](LogView*) {
         std::string s = log->IsExpanded() ? "展开" : "折叠";
         s += log->GetFollowTail() ? " · 跟随尾部" : " · 已停跟随";
@@ -53,32 +53,32 @@ ShowcasePage BuildLogViewPage(const ShowcaseContext& ctx) {
                 hint->SetText(s);
     });
     log->OnExpandedChanged().Connect([btnToggle](LogView* lv) {
-                btnToggle->SetText(lv->IsExpanded() ? "折叠" : "展开");
+                btnToggle.Text(lv->IsExpanded() ? "折叠" : "展开");
     });
     SeedSample(*log);
 
     btnToggle->OnClick().Connect([log](UIElement*) {
-                log->SetExpanded(!log->IsExpanded());
+                log.Expanded(!log->IsExpanded());
     });
-    auto btnOne = std::make_shared<Button>("追加 1");
+    CUI::Widgets::Ref btnOne = CUI::Widgets::Button("追加 1").Shared();
     btnOne->OnClick().Connect([log](UIElement*) {
         log->Append(LogLevel::Info, "ui", "手动追加一条");
     });
-    auto btn100 = std::make_shared<Button>("追加 100");
+    CUI::Widgets::Ref btn100 = CUI::Widgets::Button("追加 100").Shared();
     btn100->OnClick().Connect([log](UIElement*) {
         Burst(*log, 100);
     });
-    auto btn1k = std::make_shared<Button>("追加 1000");
+    CUI::Widgets::Ref btn1k = CUI::Widgets::Button("追加 1000").Shared();
     btn1k->OnClick().Connect([log](UIElement*) {
         Burst(*log, 1000);
     });
-    auto btnErr = std::make_shared<Button>("打一条 Error");
+    CUI::Widgets::Ref btnErr = CUI::Widgets::Button("打一条 Error").Shared();
     btnErr->OnClick().Connect([log](UIElement*) {
         log->Append(LogLevel::Error, "diag", "复现：空指针检查失败 at FrameScheduler::Tick");
     });
-    auto chkPersist = std::make_shared<CheckBox>("持久化到临时文件");
+    CUI::Widgets::Ref chkPersist = CUI::Widgets::CheckBox("持久化到临时文件").Shared();
     chkPersist->OnCheckStateChanged().Connect([log](CheckBox*, CheckState st) {
-                log->SetPersistEnabled(st == CheckState::Checked);
+                log.PersistEnabled(st == CheckState::Checked);
     });
 
     auto demo = Column(12).Children({

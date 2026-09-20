@@ -37,7 +37,7 @@ std::shared_ptr<ContextMenu> BuildSpecializedContextMenu(
     std::function<void(const std::string&)> onShowToast,
     std::function<void()> onRefresh) {
 
-    auto menu = std::make_shared<ContextMenu>();
+    CUI::Widgets::Ref menu = CUI::Widgets::ContextMenu().Shared();
 
     // 1. Scheduled Tasks
     if (loc == StartupLocation::ScheduledTask) {
@@ -492,16 +492,16 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
         contentArea = listView;
     } else {
         // Multiple groups: Use collapsible Expander cards!
-        auto groupListColumn = std::make_shared<StackPanel>();
+        CUI::Widgets::Ref groupListColumn = CUI::Widgets::StackPanel().Shared();
         groupListColumn->Orientation = Orientation::Vertical;
-                groupListColumn->SetGap(8.0f);
-                groupListColumn->SetAlign(Alignment::Stretch);
+                groupListColumn.Gap(8.0f);
+                groupListColumn.Align(Alignment::Stretch);
 
         for (const auto& grp : groups) {
-            auto expander = std::make_shared<Expander>(grp.icon + "  " + grp.title);
-                        expander->SetSubtitle(std::to_string(grp.items.size()) + " 个自启动项");
-                        expander->SetIsExpanded(true);
-                        expander->SetAlign(Alignment::Stretch);
+            CUI::Widgets::Ref expander = CUI::Widgets::Expander(grp.icon + "  " + grp.title).Shared();
+                        expander.Subtitle(std::to_string(grp.items.size()) + " 个自启动项");
+                        expander.IsExpanded(true);
+                        expander.Align(Alignment::Stretch);
 
             // Clamped height inside Expander so it does not grow indefinitely
             float itemHeight = 36.0f + static_cast<float>(grp.items.size()) * 24.0f;
@@ -607,7 +607,7 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
 
             listView.ContextMenu(BuildSpecializedContextMenu(grp.location, viewModel, window, onShowToast, onRefresh));
 
-                        expander->SetContent(listView);
+                        expander.Content(listView);
             groupListColumn->AddChild(expander);
         }
         contentArea = groupListColumn;
@@ -633,9 +633,9 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
         return pageLayout;
     }
 
-    auto scroll = std::make_shared<ScrollViewer>();
-        scroll->SetAlign(Alignment::Stretch);
-        scroll->SetFlexGrow(1.0f);
+    CUI::Widgets::Ref scroll = CUI::Widgets::ScrollViewer().Shared();
+        scroll.Align(Alignment::Stretch);
+        scroll.FlexGrow(1.0f);
         scroll->AddChild(pageLayout);
 
     return scroll;

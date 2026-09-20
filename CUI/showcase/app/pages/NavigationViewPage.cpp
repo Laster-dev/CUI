@@ -36,17 +36,17 @@ std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string&
     combo->AddItem("Accent");
     combo.SelectedIndex(variant % 3);
 
-    auto list = std::make_shared<ListBox>();
-    list->SetHeight(120.0f);
-        list->SetItemHeight(28.0f);
-        list->SetSelectionMode(ListBoxSelectionMode::Single);
+    CUI::Widgets::Ref list = CUI::Widgets::ListBox().Shared();
+    list.Height(120.0f);
+        list.ItemHeight(28.0f);
+        list.SelectionMode(ListBoxSelectionMode::Single);
     list->AddItem(variant % 2 == 0 ? "One" : "Alpha");
     list->AddItem(variant % 2 == 0 ? "Two" : "Beta");
     list->AddItem(variant % 2 == 0 ? "Three" : "Gamma");
-    list->SetSelectedIndex(0);
+    list.SelectedIndex(0);
 
-    auto input = std::make_shared<TextBox>("Type something...");
-    input->SetWidth(360.0f);
+    CUI::Widgets::Ref input = CUI::Widgets::TextBox("Type something...").Shared();
+    input.Width(360.0f);
 
     return Column(12).Children({
         CUI::Widgets::TextBlock(title).Shared(),

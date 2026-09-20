@@ -193,41 +193,41 @@ Element BuildConventionsPage() {
     };
 
     // 左侧章节选择列表
-    auto listBox = std::make_shared<ListBox>();
-        listBox->SetWidth(200.0f);
-        listBox->SetHeight(-1.0f);
-        listBox->SetAlign(Alignment::Stretch);
-        listBox->SetBackgroundToken(ThemeTokenId::PaneBackground);
-        listBox->SetBorderToken(ThemeTokenId::CardBorder);
-        listBox->SetBorderThickness(1.0f);
+    CUI::Widgets::Ref listBox = CUI::Widgets::ListBox().Shared();
+        listBox.Width(200.0f);
+        listBox.Height(-1.0f);
+        listBox.Align(Alignment::Stretch);
+        listBox.BackgroundToken(ThemeTokenId::PaneBackground);
+        listBox.BorderToken(ThemeTokenId::CardBorder);
+        listBox.BorderThickness(1.0f);
 
     for (const auto& ch : chapters) {
         listBox->AddItem(ch);
     }
 
     // 右侧 Markdown 文档视图
-    auto docView = std::make_shared<MarkdownView>(documents[0]);
-        docView->SetHeight(-1.0f);
-        docView->SetFlexGrow(1.0f);
-        docView->SetAlign(Alignment::Stretch);
+    CUI::Widgets::Ref docView = CUI::Widgets::MarkdownView(documents[0]).Shared();
+        docView.Height(-1.0f);
+        docView.FlexGrow(1.0f);
+        docView.Align(Alignment::Stretch);
 
     // 连接选中修改事件，点击菜单项时动态切换右侧展示的 Markdown 内容
     listBox->OnSelectionChanged().Connect([docView, documents](ListBox*, int index, const std::string&) {
         if (index >= 0 && index < static_cast<int>(documents.size())) {
-                        docView->SetMarkdown(documents[index]);
+                        docView.Markdown(documents[index]);
         }
     });
 
     // 默认选中第一章
-        listBox->SetSelectedIndex(0);
+        listBox.SelectedIndex(0);
 
     // 水平线性布局组装
-    auto page = std::make_shared<StackPanel>(Orientation::Horizontal);
-        page->SetGap(16.0f);
-        page->SetPadding(Thickness(24.0f));
-        page->SetFlexGrow(1.0f);
-        page->SetAlign(Alignment::Stretch);
-        page->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    CUI::Widgets::Ref page = CUI::Widgets::StackPanel(Orientation::Horizontal).Shared();
+        page.Gap(16.0f);
+        page.Padding(Thickness(24.0f));
+        page.FlexGrow(1.0f);
+        page.Align(Alignment::Stretch);
+        page.BackgroundToken(ThemeTokenId::WindowBackground);
         page->AddChild(listBox);
         page->AddChild(docView);
 

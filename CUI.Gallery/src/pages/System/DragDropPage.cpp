@@ -223,17 +223,17 @@ Element BuildDragDropPage() {
     // ==========================================
     // 1. 列表间拖拽互换 (ListBox 跨列表拖拽)
     // ==========================================
-    auto listA = std::make_shared<ListBox>();
-        listA->SetHeight(180.0f);
-        listA->SetAllowDrag(true);
-        listA->SetAllowDrop(true);
-        listA->SetItems({ "📄 MainWindow.cpp", "📄 AppStyles.xaml", "📄 CMakeLists.txt", "📄 README.md" });
+    CUI::Widgets::Ref listA = CUI::Widgets::ListBox().Shared();
+        listA.Height(180.0f);
+        listA.AllowDrag(true);
+        listA.AllowDrop(true);
+        listA.Items({ "📄 MainWindow.cpp", "📄 AppStyles.xaml", "📄 CMakeLists.txt", "📄 README.md" });
 
-    auto listB = std::make_shared<ListBox>();
-        listB->SetHeight(180.0f);
-        listB->SetAllowDrag(true);
-        listB->SetAllowDrop(true);
-        listB->SetItems({ "📦 CUI.Core.lib", "📦 Direct2D.dll", "📦 Assets.zip" });
+    CUI::Widgets::Ref listB = CUI::Widgets::ListBox().Shared();
+        listB.Height(180.0f);
+        listB.AllowDrag(true);
+        listB.AllowDrop(true);
+        listB.Items({ "📦 CUI.Core.lib", "📦 Direct2D.dll", "📦 Assets.zip" });
 
     listA->OnSelectionChanged().Connect([statusLabel](ListBox*, int idx, const std::string& text) {
         if (idx >= 0) {

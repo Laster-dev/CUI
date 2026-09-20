@@ -11,13 +11,13 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildInfoBarPage(const ShowcaseContext& ctx) {
-    auto bar = std::make_shared<InfoBar>();
-        bar->SetTitle("已连接到远程主机");
-        bar->SetMessage("会话已建立。可以继续同步文件，或在断开后从历史记录恢复。");
-        bar->SetActionText("查看详情");
-        bar->SetSeverity(InfoBarSeverity::Informational);
-        bar->SetIsOpen(true);
-        bar->SetIsClosable(true);
+    CUI::Widgets::Ref bar = CUI::Widgets::InfoBar().Shared();
+        bar.Title("已连接到远程主机");
+        bar.Message("会话已建立。可以继续同步文件，或在断开后从历史记录恢复。");
+        bar.ActionText("查看详情");
+        bar.Severity(InfoBarSeverity::Informational);
+        bar.IsOpen(true);
+        bar.IsClosable(true);
 
     auto log = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("操作日志：就绪", 12.0f, "#B5CEA8", false, "Consolas"));
@@ -30,7 +30,7 @@ ShowcasePage BuildInfoBarPage(const ShowcaseContext& ctx) {
         }
     });
         details->SetLabel("查看详情");
-        bar->SetActionCommand(details);
+        bar.ActionCommand(details);
 
     bar->OnClosed().Connect([log]() {
                 log->SetText("[InfoBar] 已关闭");
@@ -38,56 +38,56 @@ ShowcasePage BuildInfoBarPage(const ShowcaseContext& ctx) {
 
     auto show = [bar, log](InfoBarSeverity sev, const char* title, const char* msg, const char* action) {
         return [bar, log, sev, title, msg, action](UIElement*) {
-                        bar->SetSeverity(sev);
-                        bar->SetTitle(title);
-                        bar->SetMessage(msg);
-                        bar->SetActionText(action);
-                        bar->SetIsOpen(true);
+                        bar.Severity(sev);
+                        bar.Title(title);
+                        bar.Message(msg);
+                        bar.ActionText(action);
+                        bar.IsOpen(true);
                         log->SetText(std::string("[InfoBar] 打开 ") + title);
         };
     };
 
-    auto btnInfo = std::make_shared<Button>("信息");
+    CUI::Widgets::Ref btnInfo = CUI::Widgets::Button("信息").Shared();
     btnInfo->OnClick().Connect(show(
         InfoBarSeverity::Informational,
         "已连接到远程主机",
         "会话已建立。可以继续同步文件，或在断开后从历史记录恢复。",
         "查看详情"));
-    auto btnOk = std::make_shared<Button>("成功");
+    CUI::Widgets::Ref btnOk = CUI::Widgets::Button("成功").Shared();
     btnOk->OnClick().Connect(show(
         InfoBarSeverity::Success,
         "项目已保存",
         "所有更改已写入磁盘。",
         "打开文件夹"));
-    auto btnWarn = std::make_shared<Button>("警告");
+    CUI::Widgets::Ref btnWarn = CUI::Widgets::Button("警告").Shared();
     btnWarn->OnClick().Connect(show(
         InfoBarSeverity::Warning,
         "磁盘空间不足",
         "剩余空间低于 2 GB，构建缓存可能会失败。",
         "清理"));
-    auto btnErr = std::make_shared<Button>("错误");
+    CUI::Widgets::Ref btnErr = CUI::Widgets::Button("错误").Shared();
     btnErr->OnClick().Connect(show(
         InfoBarSeverity::Error,
         "无法推送到远端",
         "身份验证失败。请检查凭据后重试。",
         "重试"));
 
-    auto btnClose = std::make_shared<Button>("关闭");
-    btnClose->OnClick().Connect([bar](UIElement*) {     bar->SetIsOpen(false); });
-    auto btnOpen = std::make_shared<Button>("打开");
-    btnOpen->OnClick().Connect([bar](UIElement*) {     bar->SetIsOpen(true); });
-    auto btnNoClose = std::make_shared<Button>("禁止关闭");
+    CUI::Widgets::Ref btnClose = CUI::Widgets::Button("关闭").Shared();
+    btnClose->OnClick().Connect([bar](UIElement*) {     bar.IsOpen(false); });
+    CUI::Widgets::Ref btnOpen = CUI::Widgets::Button("打开").Shared();
+    btnOpen->OnClick().Connect([bar](UIElement*) {     bar.IsOpen(true); });
+    CUI::Widgets::Ref btnNoClose = CUI::Widgets::Button("禁止关闭").Shared();
     btnNoClose->OnClick().Connect([bar, log](UIElement*) {
-                bar->SetIsClosable(!bar->GetIsClosable());
+                bar.IsClosable(!bar->GetIsClosable());
                 log->SetText(bar->GetIsClosable() ? "[InfoBar] 可关闭" : "[InfoBar] 不可关闭");
     });
-    auto btnNoAction = std::make_shared<Button>("无操作按钮");
+    CUI::Widgets::Ref btnNoAction = CUI::Widgets::Button("无操作按钮").Shared();
     btnNoAction->OnClick().Connect([bar, log](UIElement*) {
         if (bar->GetActionText().empty()) {
-                        bar->SetActionText("查看详情");
+                        bar.ActionText("查看详情");
                         log->SetText("[InfoBar] 显示操作按钮");
         } else {
-                        bar->SetActionText("");
+                        bar.ActionText("");
                         log->SetText("[InfoBar] 隐藏操作按钮");
         }
     });

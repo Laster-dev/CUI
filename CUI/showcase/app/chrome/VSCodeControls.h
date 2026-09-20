@@ -1,4 +1,6 @@
 #pragma once
+
+#include "framework/core/Widget.h"
 #include "framework/controls/UIElement.h"
 #include "framework/controls/Control.h"
 #include "framework/controls/MenuBar.h"
@@ -51,7 +53,7 @@ public:
 
 private:
     Rect LayoutMenuBar(GraphicsContext& ctx);
-    std::shared_ptr<MenuBar> m_menuBar;
+    CUI::Widgets::Ref<::CUI::MenuBar> m_menuBar;
     std::string m_title;
     bool m_menuChromeDirty = false;
     int m_hoverRegion = -1;

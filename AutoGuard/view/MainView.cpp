@@ -25,9 +25,9 @@ MainView::MainView(std::shared_ptr<MainViewModel> viewModel, Window* window)
 }
 
 std::shared_ptr<UIElement> MainView::Build() {
-    auto titleBar = std::make_shared<WindowTitleBar>();
-        titleBar->SetTitle("AutoGuard - Windows 启动项安全管理专家");
-        titleBar->SetHeight(36.0f);
+    CUI::Widgets::Ref titleBar = CUI::Widgets::WindowTitleBar().Shared();
+        titleBar.Title("AutoGuard - Windows 启动项安全管理专家");
+        titleBar.Height(36.0f);
 
     m_navView = BuildNavigationView();
     auto detailElement = m_detailStripView->Build();
@@ -194,9 +194,9 @@ std::shared_ptr<UIElement> MainView::BuildStatusBar() {
 
 void MainView::UpdateStatusBar() {
     if (!m_statusBar) return;
-    m_statusBar->SetItemText(m_statusLeftId, m_viewModel->GetStatusLeftText());
-    m_statusBar->SetItemText(m_statusCountId, m_viewModel->GetStatusCountText());
-    m_statusBar->SetItemText(m_statusSelectionId, m_viewModel->GetStatusSelectionText());
+    m_statusBar.ItemText(m_statusLeftId, m_viewModel->GetStatusLeftText());
+    m_statusBar.ItemText(m_statusCountId, m_viewModel->GetStatusCountText());
+    m_statusBar.ItemText(m_statusSelectionId, m_viewModel->GetStatusSelectionText());
 }
 
 void MainView::UpdateDetailPanel() {

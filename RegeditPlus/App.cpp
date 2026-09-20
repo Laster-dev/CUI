@@ -314,17 +314,17 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
         root->SetColorToken(ThemeTokenId::TextPrimary);
 
     m_titleBar = std::make_shared<WindowTitleBar>();
-    m_titleBar->SetTitle("注册表编辑器 (RegeditPlus)");
+    m_titleBar.Title("注册表编辑器 (RegeditPlus)");
     BuildMenus();
 
     m_breadcrumb = std::make_shared<BreadcrumbBar>();
-        m_breadcrumb->SetWidth(-1.0f);
-        m_breadcrumb->SetHeight(34.0f);
-        m_breadcrumb->SetFontFamily("微软雅黑");
-        m_breadcrumb->SetFontSize(16.0f);
-        m_breadcrumb->SetBackgroundToken(ThemeTokenId::PaneBackground);
-        m_breadcrumb->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
-    m_breadcrumb->SetPath({ "计算机" });
+        m_breadcrumb.Width(-1.0f);
+        m_breadcrumb.Height(34.0f);
+        m_breadcrumb.FontFamily("微软雅黑");
+        m_breadcrumb.FontSize(16.0f);
+        m_breadcrumb.BackgroundToken(ThemeTokenId::PaneBackground);
+        m_breadcrumb.Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+    m_breadcrumb.Path({ "计算机" });
     m_breadcrumb->OnItemClicked().Connect([this](BreadcrumbBar*, int index, const std::string&) {
         OnBreadcrumbClicked(index);
     });
@@ -340,23 +340,23 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
         treePane->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
 
     m_tree = std::make_shared<TreeView>();
-        m_tree->SetWidth(-1.0f);
-        m_tree->SetHeight(-1.0f);
-        m_tree->SetFlexGrow(1.0f);
-        m_tree->SetBackgroundToken(ThemeTokenId::PaneBackground);
-        m_tree->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
-    m_tree->SetIndentWidth(18.0f);
-        m_tree->SetFontFamily("微软雅黑");
-        m_tree->SetFontSize(16.0f);
-        m_tree->SetFontWeight(FontWeight::Normal);
-        m_tree->SetItemHeight(28.0f);
+        m_tree.Width(-1.0f);
+        m_tree.Height(-1.0f);
+        m_tree.FlexGrow(1.0f);
+        m_tree.BackgroundToken(ThemeTokenId::PaneBackground);
+        m_tree.Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+    m_tree.IndentWidth(18.0f);
+        m_tree.FontFamily("微软雅黑");
+        m_tree.FontSize(16.0f);
+        m_tree.FontWeight(FontWeight::Normal);
+        m_tree.ItemHeight(28.0f);
     m_tree->OnSelectionChanged().Connect([this](TreeView* tree, std::shared_ptr<TreeViewItem> item) {
         OnTreeSelectionChanged(tree, item);
     });
     m_tree->OnItemToggled().Connect([this](TreeView* tree, std::shared_ptr<TreeViewItem> item) {
         OnTreeNodeToggled(tree, item);
     });
-    m_tree->SetContextMenu(BuildTreeContextMenu());
+    m_tree.ContextMenu(BuildTreeContextMenu());
         treePane->AddChild(m_tree);
 
     CUI::Widgets::Ref splitter = Widgets::Splitter().Orientation(CUI::Orientation::Vertical).Width(10.0f).Height(-1.0f).Align(CUI::Alignment::Stretch).Shared();
@@ -368,17 +368,17 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
         listPane->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
 
     m_list = std::make_shared<ListView>();
-        m_list->SetWidth(-1.0f);
-        m_list->SetHeight(-1.0f);
+        m_list.Width(-1.0f);
+        m_list.Height(-1.0f);
     m_list->AddColumn("名称", 240.0f);
     m_list->AddColumn("类型", 160.0f);
     m_list->AddColumn("数据", 480.0f);
-    m_list->SetRowHeight(30.0f);
-        m_list->SetFontFamily("微软雅黑");
-        m_list->SetFontSize(16.0f);
-        m_list->SetFontWeight(FontWeight::Normal);
-        m_list->SetFlexGrow(1.0f);
-        m_list->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
+    m_list.RowHeight(30.0f);
+        m_list.FontFamily("微软雅黑");
+        m_list.FontSize(16.0f);
+        m_list.FontWeight(FontWeight::Normal);
+        m_list.FlexGrow(1.0f);
+        m_list.Background(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
     m_list->OnSelectionChanged().Connect([this](ListView*, int row) {
         m_selectedRow = row;
     });
@@ -386,7 +386,7 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
         m_selectedRow = row;
         ModifySelectedValue();
     });
-    m_list->SetContextMenu(BuildListContextMenu());
+    m_list.ContextMenu(BuildListContextMenu());
         listPane->AddChild(m_list);
 
         body->AddChild(treePane);
@@ -394,12 +394,12 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
         body->AddChild(listPane);
 
     // Status bar
-    auto statusBar = Column(0).Build();
-        statusBar->SetHeight(28.0f);
-        statusBar->SetBackgroundToken(ThemeTokenId::PaneBackground);
-        statusBar->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
-        statusBar->SetBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
-        statusBar->SetBorderThickness(0.0f);
+    CUI::Widgets::Ref statusBar = Column(0).Build();
+        statusBar.Height(28.0f);
+        statusBar.BackgroundToken(ThemeTokenId::PaneBackground);
+        statusBar.Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+        statusBar.BorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
+        statusBar.BorderThickness(0.0f);
     m_statusBar = statusBar;
 
     auto statusRow = Row(0).Build();
@@ -407,10 +407,10 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
         statusRow->SetFlexGrow(1.0f);
 
     m_statusPath = Text("就绪").FontSize(16.0f).FontFamily("微软雅黑").FontWeight(FontWeight::Normal).Build();
-        m_statusPath->SetColorToken(ThemeTokenId::TextSecondary);
-        m_statusPath->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
-        m_statusPath->SetTextAlign(TextAlignment::Left);
-        m_statusPath->SetFlexGrow(1.0f);
+        m_statusPath.ColorToken(ThemeTokenId::TextSecondary);
+        m_statusPath.Color(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
+        m_statusPath.TextAlign(TextAlignment::Left);
+        m_statusPath.FlexGrow(1.0f);
         statusRow->AddChild(m_statusPath);
 
         statusBar->AddChild(statusRow);
@@ -582,15 +582,15 @@ void RegeditPlusApp::BuildInitialTree() {
         computer->children.push_back(hive);
     }
 
-    m_tree->SetItems({ computer });
+    m_tree.Items({ computer });
 
     m_selectedPath = L"HKEY_CURRENT_USER";
     if (hkcu) {
         PopulateSubkeys(hkcu);
         EnsureExpanded(hkcu);
-        m_tree->SetSelectedItem(hkcu);
+        m_tree.SelectedItem(hkcu);
     } else {
-        m_tree->SetSelectedItem(computer);
+        m_tree.SelectedItem(computer);
     }
     ReloadCurrent();
 }
@@ -680,7 +680,7 @@ void RegeditPlusApp::RevealPath(const std::wstring& fullPath) {
 
     if (target) {
         m_selectedPath = fullPath;
-        m_tree->SetSelectedItem(target);
+        m_tree.SelectedItem(target);
         ReloadCurrent();
     }
     RefreshTreeVisual();
@@ -784,15 +784,15 @@ void RegeditPlusApp::LoadValues(const std::wstring& path) {
         icons.push_back(m_icons.ForValueType(e.type));
     }
         m_list->Rows = rows;
-    m_list->SetRows(rows);
-    m_list->SetRowIcons(icons);
+    m_list.Rows(rows);
+    m_list.RowIcons(icons);
     m_list->ClearSelection();
     m_selectedRow = -1;
 }
 
 void RegeditPlusApp::ReloadCurrent() {
     if (!m_statusPath) return;
-        m_statusPath->SetText(m_selectedPath.empty() ? std::string("就绪") : WideToUtf8(m_selectedPath));
+        m_statusPath.Text(m_selectedPath.empty() ? std::string("就绪") : WideToUtf8(m_selectedPath));
     UpdateBreadcrumb();
     LoadValues(m_selectedPath);
 }
@@ -806,7 +806,7 @@ void RegeditPlusApp::UpdateBreadcrumb() {
             if (!part.empty()) nodes.push_back(WideToUtf8(part));
         }
     }
-    m_breadcrumb->SetPath(nodes);
+    m_breadcrumb.Path(nodes);
 }
 
 void RegeditPlusApp::OnBreadcrumbClicked(int index) {
@@ -814,7 +814,7 @@ void RegeditPlusApp::OnBreadcrumbClicked(int index) {
     if (index == 0) {
         m_selectedPath.clear();
         if (m_tree && !m_tree->GetItems().empty()) {
-            m_tree->SetSelectedItem(m_tree->GetItems().front());
+            m_tree.SelectedItem(m_tree->GetItems().front());
         }
         ReloadCurrent();
         return;
@@ -859,7 +859,7 @@ int RegeditPlusApp::SelectedValueRow() const {
 // Context menus
 // ---------------------------------------------------------------------------
 std::shared_ptr<ContextMenu> RegeditPlusApp::BuildTreeContextMenu() {
-    auto menu = std::make_shared<ContextMenu>();
+    CUI::Widgets::Ref menu = CUI::Widgets::ContextMenu().Shared();
     auto newSub = menu->AddSubMenu("新建");
     newSub->AddItem("子项(K)", [this]() { CreateNewKey(); });
     newSub->AddItem("字符串值(S)", [this]() { CreateNewValue(REG_SZ, "新建字符串值"); });
@@ -877,7 +877,7 @@ std::shared_ptr<ContextMenu> RegeditPlusApp::BuildTreeContextMenu() {
 }
 
 std::shared_ptr<ContextMenu> RegeditPlusApp::BuildListContextMenu() {
-    auto menu = std::make_shared<ContextMenu>();
+    CUI::Widgets::Ref menu = CUI::Widgets::ContextMenu().Shared();
     auto newSub = menu->AddSubMenu("新建");
     newSub->AddItem("子项(K)", [this]() { CreateNewKey(); });
     newSub->AddItem("字符串值(S)", [this]() { CreateNewValue(REG_SZ, "新建字符串值"); });
@@ -985,7 +985,7 @@ void RegeditPlusApp::CreateNewValue(DWORD type, const char* defaultName) {
         for (size_t i = 0; i < m_entries.size(); ++i) {
             if (m_entries[i].name == name) {
                 m_selectedRow = static_cast<int>(i);
-                m_list->SetRowSelected(static_cast<int>(i), true);
+                m_list.RowSelected(static_cast<int>(i), true);
                 break;
             }
         }
@@ -1234,7 +1234,7 @@ void RegeditPlusApp::WriteValueAt(int row, DWORD type, const std::vector<BYTE>& 
     for (size_t i = 0; i < m_entries.size(); ++i) {
         if (m_entries[i].name == name) {
             m_selectedRow = static_cast<int>(i);
-            m_list->SetRowSelected(static_cast<int>(i), true);
+            m_list.RowSelected(static_cast<int>(i), true);
             break;
         }
     }
@@ -1303,7 +1303,7 @@ void RegeditPlusApp::ToggleStatusBar() {
     const Visibility vis = (m_statusBar->GetVisibility() == Visibility::Visible)
                                ? Visibility::Collapsed
                                : Visibility::Visible;
-        m_statusBar->SetVisibility(vis);
+        m_statusBar.Visibility(vis);
 }
 
 void RegeditPlusApp::ToggleTheme() {
@@ -1321,31 +1321,31 @@ void RegeditPlusApp::ApplyChromeColors() {
                 m_root->SetBackground(tm.GetColor(ThemeTokenId::WindowBackground));
     }
     if (m_tree) {
-                m_tree->SetBackgroundToken(ThemeTokenId::PaneBackground);
-                m_tree->SetBackground(tm.GetColor(ThemeTokenId::PaneBackground));
+                m_tree.BackgroundToken(ThemeTokenId::PaneBackground);
+                m_tree.Background(tm.GetColor(ThemeTokenId::PaneBackground));
         m_tree->MarkRenderContentDirty();
     }
     if (m_list) {
-                m_list->SetBackground(tm.GetColor(ThemeTokenId::WindowBackground));
+                m_list.Background(tm.GetColor(ThemeTokenId::WindowBackground));
         m_list->OnThemeChanged();
     }
     if (m_statusBar) {
-                m_statusBar->SetBackgroundToken(ThemeTokenId::PaneBackground);
-                m_statusBar->SetBackground(tm.GetColor(ThemeTokenId::PaneBackground));
-                m_statusBar->SetBorderBrush(tm.GetColor(ThemeTokenId::CardBorder));
+                m_statusBar.BackgroundToken(ThemeTokenId::PaneBackground);
+                m_statusBar.Background(tm.GetColor(ThemeTokenId::PaneBackground));
+                m_statusBar.BorderBrush(tm.GetColor(ThemeTokenId::CardBorder));
     }
     if (m_statusPath) {
-                m_statusPath->SetColorToken(ThemeTokenId::TextSecondary);
-                m_statusPath->SetColor(tm.GetColor(ThemeTokenId::TextSecondary));
+                m_statusPath.ColorToken(ThemeTokenId::TextSecondary);
+                m_statusPath.Color(tm.GetColor(ThemeTokenId::TextSecondary));
     }
     if (m_titleBar) {
         m_titleBar->MarkRenderContentDirty();
     }
     if (m_breadcrumb) {
-                m_breadcrumb->SetBackgroundToken(ThemeTokenId::PaneBackground);
-                m_breadcrumb->SetBackground(tm.GetColor(ThemeTokenId::PaneBackground));
-                m_breadcrumb->SetBorderBrush(tm.GetColor(ThemeTokenId::CardBorder));
-                m_breadcrumb->SetColor(tm.GetColor(ThemeTokenId::TextSecondary));
+                m_breadcrumb.BackgroundToken(ThemeTokenId::PaneBackground);
+                m_breadcrumb.Background(tm.GetColor(ThemeTokenId::PaneBackground));
+                m_breadcrumb.BorderBrush(tm.GetColor(ThemeTokenId::CardBorder));
+                m_breadcrumb.Color(tm.GetColor(ThemeTokenId::TextSecondary));
         m_breadcrumb->MarkRenderContentDirty();
     }
 }
@@ -1384,7 +1384,7 @@ void RegeditPlusApp::ApplyNativeRegeditIcon() {
         titleIcon = CopyIcon(largeIcon);
     }
     if (m_titleBar && titleIcon) {
-        m_titleBar->SetNativeIcon(titleIcon, true);
+        m_titleBar.NativeIcon(titleIcon, true);
     }
 
     // ExtractIconEx icons are owned by us unless assigned to the window.

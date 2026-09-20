@@ -6,9 +6,9 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildCanvasPage(const ShowcaseContext&) {
-    auto target = std::make_shared<Canvas>();
-        target->SetWidth(460.0f);
-        target->SetHeight(240.0f);
+    CUI::Widgets::Ref target = CUI::Widgets::Canvas().Shared();
+        target.Width(460.0f);
+        target.Height(240.0f);
     auto button = ElevatedButton("绝对坐标定位元素").Background(Rgb(0x007ACC)).Padding(14, 8, 14, 8).Build();
         button->SetCanvasLeft(40.0f);
         button->SetCanvasTop(50.0f);

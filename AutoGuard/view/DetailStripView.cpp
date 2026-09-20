@@ -122,7 +122,7 @@ void DetailStripView::Update() {
     m_iconElement->SetIcon(hLargeIcon);
 
     // 2. Title & Badges
-        m_titleName->SetText(entry->name.empty() ? "(未命名条目)" : entry->name);
+        m_titleName.Text(entry->name.empty() ? "(未命名条目)" : entry->name);
 
     std::string statusStr;
     Color statusColor = Color::Hex("#D8A000");
@@ -139,8 +139,8 @@ void DetailStripView::Update() {
         statusStr = "[系统保护]";
         statusColor = Color::Hex("#107C41");
     }
-        m_statusBadge->SetText(statusStr);
-    m_statusBadge->SetColor(statusColor);
+        m_statusBadge.Text(statusStr);
+    m_statusBadge.Color(statusColor);
 
     std::string locBadge = LocationName(entry->location);
     if (!entry->scope.empty()) {
@@ -149,35 +149,35 @@ void DetailStripView::Update() {
     if (!entry->triggerInfo.empty()) {
         locBadge += " [触发: " + entry->triggerInfo + "]";
     }
-        m_locationBadge->SetText(locBadge);
+        m_locationBadge.Text(locBadge);
 
     // 3. Description & Command
     std::string desc = entry->description.empty() ? "(无文件描述)" : entry->description;
-        m_descriptionText->SetText("描述: " + desc);
+        m_descriptionText.Text("描述: " + desc);
 
     std::string cmd = entry->command.empty() ? entry->executablePath : entry->command;
     if (!entry->fileExists && !entry->command.empty()) {
         cmd = "[File not found] " + cmd;
-                m_commandText->SetText("命令: " + cmd);
-        m_commandText->SetColor(Color::Hex("#E81123"));
+                m_commandText.Text("命令: " + cmd);
+        m_commandText.Color(Color::Hex("#E81123"));
     } else if (cmd.empty()) {
-                m_commandText->SetText("命令: (系统内部指令/组件触发)");
-        m_commandText->SetColorToken(ThemeTokenId::TextMuted);
+                m_commandText.Text("命令: (系统内部指令/组件触发)");
+        m_commandText.ColorToken(ThemeTokenId::TextMuted);
     } else {
-                m_commandText->SetText("命令: " + cmd);
-        m_commandText->SetColorToken(ThemeTokenId::TextSecondary);
+                m_commandText.Text("命令: " + cmd);
+        m_commandText.ColorToken(ThemeTokenId::TextSecondary);
     }
 
     // 4. Status Reason Diagnostic
     if (!entry->fileExists && !entry->command.empty()) {
-                m_reasonText->SetText("⚠ 诊断原因: 注册表或配置中存在自启动指向，但目标可执行文件/DLL在磁盘上已不存在（卸载残留或路径无效）。");
-        m_reasonText->SetColor(Color::Hex("#E81123"));
+                m_reasonText.Text("⚠ 诊断原因: 注册表或配置中存在自启动指向，但目标可执行文件/DLL在磁盘上已不存在（卸载残留或路径无效）。");
+        m_reasonText.Color(Color::Hex("#E81123"));
     } else if (entry->status == StartupStatus::Disabled) {
-                m_reasonText->SetText("ℹ 状态原因: 该自启动条目已由系统注册表 StartupApproved 机制或服务/任务策略设为禁用。");
-        m_reasonText->SetColor(Color::Hex("#D8A000"));
+                m_reasonText.Text("ℹ 状态原因: 该自启动条目已由系统注册表 StartupApproved 机制或服务/任务策略设为禁用。");
+        m_reasonText.Color(Color::Hex("#D8A000"));
     } else {
-                m_reasonText->SetText("✔ 状态原因: 启动项配置有效，开机/登录时由 Windows 正常加载执行。");
-        m_reasonText->SetColor(Color::Hex("#107C41"));
+                m_reasonText.Text("✔ 状态原因: 启动项配置有效，开机/登录时由 Windows 正常加载执行。");
+        m_reasonText.Color(Color::Hex("#107C41"));
     }
 
     // 5. Publisher / Signature
@@ -188,23 +188,23 @@ void DetailStripView::Update() {
     } else if (pub.find("Revoked") != std::string::npos || pub.find("无效") != std::string::npos) {
         pubColor = Color::Hex("#E81123");
     }
-        m_publisherText->SetText("签名/出版商: " + pub);
-    m_publisherText->SetColor(pubColor);
+        m_publisherText.Text("签名/出版商: " + pub);
+    m_publisherText.Color(pubColor);
 
     // 6. Version & Size
     std::string ver = entry->fileVersion.empty() ? "--" : entry->fileVersion;
     std::string sz = entry->fileSizeStr.empty() ? "--" : entry->fileSizeStr;
-        m_versionSizeText->SetText("版本: " + ver + "  |  大小: " + sz);
+        m_versionSizeText.Text("版本: " + ver + "  |  大小: " + sz);
 
     // 7. Time & Source
     std::string tm = entry->fileTimestamp.empty() ? "--" : entry->fileTimestamp;
-        m_timeText->SetText("时间: " + tm);
+        m_timeText.Text("时间: " + tm);
 
     std::string src = entry->source.empty() ? "--" : entry->source;
     if (src.size() > 50) {
         src = "..." + src.substr(src.size() - 47);
     }
-        m_sourceText->SetText("来源: " + src);
+        m_sourceText.Text("来源: " + src);
 }
 
 } // namespace AutoGuard

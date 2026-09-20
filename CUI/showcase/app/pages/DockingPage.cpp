@@ -14,33 +14,33 @@ using namespace CUI::DSL;
 namespace {
 
 std::shared_ptr<UIElement> MakePaneBody(const std::string& text) {
-    auto body = std::make_shared<TextBlock>();
-        body->SetText(text);
-        body->SetFontSize(13.0f);
+    CUI::Widgets::Ref body = CUI::Widgets::TextBlock().Shared();
+        body.Text(text);
+        body.FontSize(13.0f);
     
-        body->SetPadding(Thickness(12.0f));
-        body->SetBackgroundToken(ThemeTokenId::WindowBackground);
-        body->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
+        body.Padding(Thickness(12.0f));
+        body.BackgroundToken(ThemeTokenId::WindowBackground);
+        body.Background(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
     return body;
 }
 
 } // namespace
 
 ShowcasePage BuildDockingPage(const ShowcaseContext& ctx) {
-    auto dock = std::make_shared<DockManager>();
-        dock->SetOwnerWindow(ctx.windowRef);
-        dock->SetFlexGrow(1.0f);
-        dock->SetAlign(Alignment::Stretch);
-        dock->SetMinHeight(520.0f);
-        dock->SetBackgroundToken(ThemeTokenId::WindowBackground);
-        dock->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
+    CUI::Widgets::Ref dock = CUI::Widgets::DockManager().Shared();
+        dock.OwnerWindow(ctx.windowRef);
+        dock.FlexGrow(1.0f);
+        dock.Align(Alignment::Stretch);
+        dock.MinHeight(520.0f);
+        dock.BackgroundToken(ThemeTokenId::WindowBackground);
+        dock.Background(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
 
-        dock->SetSideSize(DockSide::Left, 220.0f);
-        dock->SetSideSize(DockSide::Right, 240.0f);
-        dock->SetSideSize(DockSide::Top, 130.0f);
-        dock->SetSideSize(DockSide::Bottom, 140.0f);
+        dock.SideSize(DockSide::Left, 220.0f);
+        dock.SideSize(DockSide::Right, 240.0f);
+        dock.SideSize(DockSide::Top, 130.0f);
+        dock.SideSize(DockSide::Bottom, 140.0f);
 
-    auto tree = std::make_shared<TreeView>();
+    CUI::Widgets::Ref tree = CUI::Widgets::TreeView().Shared();
     auto solution = tree->AddItem("Solution 'CUI'", true);
     auto core = std::make_shared<TreeViewItem>();
     core->header = "CUI.Core";
@@ -63,9 +63,9 @@ ShowcasePage BuildDockingPage(const ShowcaseContext& ctx) {
     dock->AddDocument("DockManager.h", MakePaneBody("#pragma once\nclass DockManager;"));
     dock->AddDocument("README.md", MakePaneBody("# Docking\nDrag tab headers to float or redock."));
 
-    auto floatBtn = std::make_shared<Button>("Float Properties");
-        floatBtn->SetWidth(140.0f);
-        floatBtn->SetHeight(28.0f);
+    CUI::Widgets::Ref floatBtn = CUI::Widgets::Button("Float Properties").Shared();
+        floatBtn.Width(140.0f);
+        floatBtn.Height(28.0f);
     floatBtn->OnClick().Connect([dock](UIElement*) {
         const int idx = dock->FindPaneIndexByTitle("Properties");
         if (idx >= 0) {
@@ -73,29 +73,29 @@ ShowcasePage BuildDockingPage(const ShowcaseContext& ctx) {
         }
     });
 
-    auto saveBtn = std::make_shared<Button>("Save Layout");
-        saveBtn->SetWidth(110.0f);
-        saveBtn->SetHeight(28.0f);
+    CUI::Widgets::Ref saveBtn = CUI::Widgets::Button("Save Layout").Shared();
+        saveBtn.Width(110.0f);
+        saveBtn.Height(28.0f);
     saveBtn->OnClick().Connect([dock](UIElement*) {
         dock->SaveLayout(L"cui-dock-layout.json");
     });
 
-    auto loadBtn = std::make_shared<Button>("Load Layout");
-        loadBtn->SetWidth(110.0f);
-        loadBtn->SetHeight(28.0f);
+    CUI::Widgets::Ref loadBtn = CUI::Widgets::Button("Load Layout").Shared();
+        loadBtn.Width(110.0f);
+        loadBtn.Height(28.0f);
     loadBtn->OnClick().Connect([dock](UIElement*) {
         dock->LoadLayout(L"cui-dock-layout.json");
     });
 
-    auto title = std::make_shared<TextBlock>();
-        title->SetText("Visual Studio 式停靠布局");
-        title->SetFontSize(20.0f);
-        title->SetFontWeight(FontWeight::SemiBold);
+    CUI::Widgets::Ref title = CUI::Widgets::TextBlock().Shared();
+        title.Text("Visual Studio 式停靠布局");
+        title.FontSize(20.0f);
+        title.FontWeight(FontWeight::SemiBold);
     
 
-    auto subtitle = std::make_shared<TextBlock>();
-        subtitle->SetText("拖标签停靠 · 撕出为 CUI 窗口 · 标题栏拖回引导区还原");
-        subtitle->SetFontSize(12.0f);
+    CUI::Widgets::Ref subtitle = CUI::Widgets::TextBlock().Shared();
+        subtitle.Text("拖标签停靠 · 撕出为 CUI 窗口 · 标题栏拖回引导区还原");
+        subtitle.FontSize(12.0f);
     
 
     auto toolbar = Row(8).Height(36).Children({ floatBtn, saveBtn, loadBtn }).Build();

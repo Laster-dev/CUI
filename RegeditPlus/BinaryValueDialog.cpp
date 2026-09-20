@@ -31,26 +31,26 @@ BinaryValueDialog::BinaryValueDialog() {
     this->SetBorderToken(ThemeTokenId::CardBorder);
 
     m_title = std::make_shared<TextBlock>("编辑二进制数值");
-        m_title->SetFontSize(16.0f);
-    m_title->SetFontWeight(CUI::FontWeight::Bold);
-    m_title->SetFontFamily("微软雅黑");
-    m_title->SetColorToken(ThemeTokenId::TextPrimary);
+        m_title.FontSize(16.0f);
+    m_title.FontWeight(CUI::FontWeight::Bold);
+    m_title.FontFamily("微软雅黑");
+    m_title.ColorToken(ThemeTokenId::TextPrimary);
 
     m_nameLabel = std::make_shared<TextBlock>("数值名称(N):");
-        m_nameLabel->SetFontSize(13.0f);
-    m_nameLabel->SetFontFamily("微软雅黑");
-    m_nameLabel->SetColorToken(ThemeTokenId::TextPrimary);
+        m_nameLabel.FontSize(13.0f);
+    m_nameLabel.FontFamily("微软雅黑");
+    m_nameLabel.ColorToken(ThemeTokenId::TextPrimary);
 
     m_nameBox = std::make_shared<TextBox>();
-        m_nameBox->SetFontFamily("微软雅黑");
-    m_nameBox->SetFontSize(13.0f);
-    m_nameBox->SetHeight(28.0f);
-    m_nameBox->SetIsReadOnly(true);
+        m_nameBox.FontFamily("微软雅黑");
+    m_nameBox.FontSize(13.0f);
+    m_nameBox.Height(28.0f);
+    m_nameBox.IsReadOnly(true);
 
     m_dataLabel = std::make_shared<TextBlock>("数值数据(V):");
-        m_dataLabel->SetFontSize(13.0f);
-    m_dataLabel->SetFontFamily("微软雅黑");
-    m_dataLabel->SetColorToken(ThemeTokenId::TextPrimary);
+        m_dataLabel.FontSize(13.0f);
+    m_dataLabel.FontFamily("微软雅黑");
+    m_dataLabel.ColorToken(ThemeTokenId::TextPrimary);
 
     m_hex = std::make_shared<HexEditor>();
         m_hex->SetBytesPerRow(8);
@@ -67,12 +67,12 @@ BinaryValueDialog::BinaryValueDialog() {
     };
 
     m_ok = std::make_shared<Button>("确定");
-    m_ok->SetBackgroundToken(ThemeTokenId::AccentColor);
-    m_ok->SetHoverBackgroundToken(ThemeTokenId::AccentColor);
-    m_ok->SetPressedBackgroundToken(ThemeTokenId::AccentColor);
-    m_ok->SetColorToken(ThemeTokenId::AccentForeground);
-    m_ok->SetFontFamily("微软雅黑");
-    m_ok->SetPadding(Thickness(16.0f, 6.0f, 16.0f, 6.0f));
+    m_ok.BackgroundToken(ThemeTokenId::AccentColor);
+    m_ok.HoverBackgroundToken(ThemeTokenId::AccentColor);
+    m_ok.PressedBackgroundToken(ThemeTokenId::AccentColor);
+    m_ok.ColorToken(ThemeTokenId::AccentForeground);
+    m_ok.FontFamily("微软雅黑");
+    m_ok.Padding(Thickness(16.0f, 6.0f, 16.0f, 6.0f));
     m_ok->OnClick().Connect([this](UIElement*) {
         auto data = m_hex ? m_hex->GetBytes() : std::vector<BYTE>{};
         auto cb = m_callback;
@@ -108,7 +108,7 @@ void BinaryValueDialog::Show(UIElement* root, const std::wstring& valueName,
     if (!root) return;
     m_callback = std::move(callback);
     if (m_nameBox) {
-        m_nameBox->SetText(WideToUtf8(valueName));
+        m_nameBox.Text(WideToUtf8(valueName));
     }
     if (m_hex) m_hex->SetBytes(std::move(data));
 

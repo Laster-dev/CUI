@@ -73,9 +73,9 @@ std::shared_ptr<UIElement> MainView::Build() {
 
     // 日志框初始化：默认展开，直接贴底放，统一使用常驻边框色
     m_logView = Widgets::LogView().Shared();
-    m_logView->SetExpanded(true);
-    m_logView->SetCornerRadius(0.0f);
-    m_logView->SetAlign(Alignment::Stretch);
+    m_logView.Expanded(true);
+    m_logView.CornerRadius(0.0f);
+    m_logView.Align(Alignment::Stretch);
 
 
     // 连接核心日志引擎
@@ -189,7 +189,7 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
     m_segTargetType->AddItem("自动");
     m_segTargetType->AddItem("EXE");
     m_segTargetType->AddItem("DLL");
-    m_segTargetType->SetSelectedIndex(0);
+    m_segTargetType.SelectedIndex(0);
 
     // 1. Patch 模式（EXE / DLL 目标通用，不支持的按可用性变灰）
     m_segPatchMode = Widgets::SegmentedControl()
@@ -202,7 +202,7 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
     m_segPatchMode->AddItem("新增节区");
     m_segPatchMode->AddItem("TLS回调");
     m_segPatchMode->AddItem("导入表注入");
-    m_segPatchMode->SetSelectedIndex(0);
+    m_segPatchMode.SelectedIndex(0);
 
     // 2. 子系统类型
     m_segSubsystem = Widgets::SegmentedControl()
@@ -212,7 +212,7 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
     m_segSubsystem->AddItem("KEEP");
     m_segSubsystem->AddItem("GUI");
     m_segSubsystem->AddItem("CUI");
-    m_segSubsystem->SetSelectedIndex(0);
+    m_segSubsystem.SelectedIndex(0);
 
     // 3. UAC 权限清单
     m_segUac = Widgets::SegmentedControl()
@@ -222,7 +222,7 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
     m_segUac->AddItem("KEEP");
     m_segUac->AddItem("USER");
     m_segUac->AddItem("ADMIN");
-    m_segUac->SetSelectedIndex(0);
+    m_segUac.SelectedIndex(0);
 
     // 4. 开关
     m_swRemoveSig = CUI::Widgets::ToggleSwitch().Header("剥离数字签名").IsOn(true).Shared();
@@ -235,9 +235,9 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
         .Width(280.0f)
         .Height(24.0f)
         .Shared();
-    m_asbDllFunc->SetText("DLLMain");
-    m_asbDllFunc->SetSuggestionItems({ "DLLMain" });
-    m_asbDllFunc->SetMaxVisibleSuggestions(12);
+    m_asbDllFunc.Text("DLLMain");
+    m_asbDllFunc.SuggestionItems({ "DLLMain" });
+    m_asbDllFunc.MaxVisibleSuggestions(12);
 
     auto makeOptionRow = [](const std::string& title, std::shared_ptr<UIElement> ctrl) {
         return Row(6.0f, {
@@ -347,21 +347,21 @@ std::shared_ptr<UIElement> MainView::BuildActionsArea() {
 }
 
 void MainView::ResetAll() {
-    if (m_fpWhite) m_fpWhite->SetPath("");
-    if (m_fpPayload) m_fpPayload->SetPath("");
+    if (m_fpWhite) m_fpWhite.Path("");
+    if (m_fpPayload) m_fpPayload.Path("");
     m_lastOutputPath.clear();
-    if (m_segTargetType) m_segTargetType->SetSelectedIndex(0); // 目标类型回“自动”
+    if (m_segTargetType) m_segTargetType.SelectedIndex(0); // 目标类型回“自动”
     if (m_segPatchMode) {
         for (int i = 0; i < 6; ++i) {
-            m_segPatchMode->SetItemEnabled(i, true);
+            m_segPatchMode.ItemEnabled(i, true);
         }
     }
     if (m_asbDllFunc) {
-        m_asbDllFunc->SetText("DLLMain");
-        m_asbDllFunc->SetSuggestionItems({ "DLLMain" });
+        m_asbDllFunc.Text("DLLMain");
+        m_asbDllFunc.SuggestionItems({ "DLLMain" });
     }
     if (m_swDisableCfg) {
-        m_swDisableCfg->SetIsOn(true);
+        m_swDisableCfg.IsOn(true);
     }
     m_lastTargetDll = false;
     if (m_logView) m_logView->Clear();
@@ -393,10 +393,10 @@ void MainView::UpdateModeAvailability() {
 
     // DLL 目标: .text覆盖 / OEP覆盖 不适用（DLL 的代码 patch 通过“覆盖指定函数”完成），始终变灰
     if (whiteStr.empty() || payloadStr.empty()) {
-        m_segPatchMode->SetItemEnabled(0, !dllTarget);
-        m_segPatchMode->SetItemEnabled(1, !dllTarget);
+        m_segPatchMode.ItemEnabled(0, !dllTarget);
+        m_segPatchMode.ItemEnabled(1, !dllTarget);
         for (int i = 2; i < 6; ++i) {
-            m_segPatchMode->SetItemEnabled(i, true);
+            m_segPatchMode.ItemEnabled(i, true);
         }
         return;
     }
@@ -414,12 +414,12 @@ void MainView::UpdateModeAvailability() {
     }
 
     // 0: .text覆盖  1: OEP覆盖  2: 末节扩容  3: 新增节区  4: TLS回调  5: 导入表注入
-    m_segPatchMode->SetItemEnabled(0, !dllTarget && avail.canReplaceText);
-    m_segPatchMode->SetItemEnabled(1, !dllTarget && avail.canInjectOep);
-    m_segPatchMode->SetItemEnabled(2, avail.canEnlargeLastSection);
-    m_segPatchMode->SetItemEnabled(3, avail.canAddNewSection);
-    m_segPatchMode->SetItemEnabled(4, avail.canTlsCallback);
-    m_segPatchMode->SetItemEnabled(5, avail.canImportInjection);
+    m_segPatchMode.ItemEnabled(0, !dllTarget && avail.canReplaceText);
+    m_segPatchMode.ItemEnabled(1, !dllTarget && avail.canInjectOep);
+    m_segPatchMode.ItemEnabled(2, avail.canEnlargeLastSection);
+    m_segPatchMode.ItemEnabled(3, avail.canAddNewSection);
+    m_segPatchMode.ItemEnabled(4, avail.canTlsCallback);
+    m_segPatchMode.ItemEnabled(5, avail.canImportInjection);
 
     // 在日志栏给出明确的容量评估提示
     std::string infoMsg = "载荷大小: " + std::to_string(avail.payloadSize) + " 字节 (";
@@ -464,7 +464,7 @@ void MainView::RefreshDllFunctionSuggestions() {
             }
         }
     }
-    m_asbDllFunc->SetSuggestionItems(suggestions);
+    m_asbDllFunc.SuggestionItems(suggestions);
 }
 
 // 判断当前生效的目标类型: 手动 EXE/DLL 强制；自动模式按白文件 PE 特征识别（退化按扩展名）

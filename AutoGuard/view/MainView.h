@@ -1,5 +1,7 @@
 #pragma once
 
+#include "framework/core/Widget.h"
+
 #include "../viewmodel/MainViewModel.h"
 #include "DetailStripView.h"
 #include "framework/window/Window.h"
@@ -33,7 +35,7 @@ private:
 
     std::shared_ptr<CUI::NavigationView> m_navView;
     std::shared_ptr<DetailStripView> m_detailStripView;
-    std::shared_ptr<CUI::StatusBar> m_statusBar;
+    CUI::Widgets::Ref<::CUI::StatusBar> m_statusBar;
     std::shared_ptr<CUI::ToastCenter> m_toastCenter;
 
     std::string m_currentNavTag = "overview";

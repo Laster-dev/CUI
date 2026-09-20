@@ -16,10 +16,10 @@ using namespace CUI::DSL;
 
 namespace {
 std::shared_ptr<Button> MakeBtn(const std::string& text) {
-    auto btn = std::make_shared<Button>(text);
-        btn->SetWidth(88.0f);
-        btn->SetHeight(32.0f);
-        btn->SetCornerRadius(4.0f);
+    CUI::Widgets::Ref btn = CUI::Widgets::Button(text).Shared();
+        btn.Width(88.0f);
+        btn.Height(32.0f);
+        btn.CornerRadius(4.0f);
     return btn;
 }
 
@@ -187,17 +187,17 @@ private:
 } // namespace
 
 ShowcasePage BuildChartPage(const ShowcaseContext& ctx) {
-    auto line = std::make_shared<LineChart>();
-    auto bar = std::make_shared<BarChart>();
-    auto pie = std::make_shared<PieChart>();
+    CUI::Widgets::Ref line = CUI::Widgets::LineChart().Shared();
+    CUI::Widgets::Ref bar = CUI::Widgets::BarChart().Shared();
+    CUI::Widgets::Ref pie = CUI::Widgets::PieChart().Shared();
     ApplySales(*line, false);
     ApplySales(*bar, false);
     ApplySales(*pie, false);
-        line->SetText("折线 · 月度销量");
-        bar->SetText("柱状 · 月度销量");
-        pie->SetText("饼图 · 华北月度占比");
-        bar->SetVisibility(Visibility::Collapsed);
-        pie->SetVisibility(Visibility::Collapsed);
+        line.Text("折线 · 月度销量");
+        bar.Text("柱状 · 月度销量");
+        pie.Text("饼图 · 华北月度占比");
+        bar.Visibility(Visibility::Collapsed);
+        pie.Visibility(Visibility::Collapsed);
 
     auto hover = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("悬停或 ← → 读值", 12.0f, "textSecondary", false));
@@ -212,9 +212,9 @@ ShowcasePage BuildChartPage(const ShowcaseContext& ctx) {
     bindHover(pie.get());
 
     auto show = [line, bar, pie](int which) {
-                line->SetVisibility(which == 0 ? Visibility::Visible : Visibility::Collapsed);
-                bar->SetVisibility(which == 1 ? Visibility::Visible : Visibility::Collapsed);
-                pie->SetVisibility(which == 2 ? Visibility::Visible : Visibility::Collapsed);
+                line.Visibility(which == 0 ? Visibility::Visible : Visibility::Collapsed);
+                bar.Visibility(which == 1 ? Visibility::Visible : Visibility::Collapsed);
+                pie.Visibility(which == 2 ? Visibility::Visible : Visibility::Collapsed);
     };
 
     auto btnLine = MakeBtn("折线");
@@ -229,42 +229,42 @@ ShowcasePage BuildChartPage(const ShowcaseContext& ctx) {
         ApplySales(*line, false);
         ApplySales(*bar, false);
         ApplySales(*pie, false);
-                line->SetText("折线 · 月度销量");
-                bar->SetText("柱状 · 月度销量");
-                pie->SetText("饼图 · 华北月度占比");
+                line.Text("折线 · 月度销量");
+                bar.Text("柱状 · 月度销量");
+                pie.Text("饼图 · 华北月度占比");
     });
     auto btnQuarter = MakeBtn("季度");
     btnQuarter->OnClick().Connect([line, bar, pie](UIElement*) {
         ApplySales(*line, true);
         ApplySales(*bar, true);
         ApplySales(*pie, true);
-                line->SetText("折线 · 季度销量");
-                bar->SetText("柱状 · 季度销量");
-                pie->SetText("饼图 · 华北季度占比");
+                line.Text("折线 · 季度销量");
+                bar.Text("柱状 · 季度销量");
+                pie.Text("饼图 · 华北季度占比");
     });
 
-    auto chkGrid = std::make_shared<CheckBox>("网格");
-        chkGrid->SetState(CheckState::Checked);
+    CUI::Widgets::Ref chkGrid = CUI::Widgets::CheckBox("网格").Shared();
+        chkGrid.State(CheckState::Checked);
     chkGrid->OnCheckStateChanged().Connect([line, bar](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
-                line->SetShowGrid(on);
-                bar->SetShowGrid(on);
+                line.ShowGrid(on);
+                bar.ShowGrid(on);
     });
-    auto chkLegend = std::make_shared<CheckBox>("图例");
-        chkLegend->SetState(CheckState::Checked);
+    CUI::Widgets::Ref chkLegend = CUI::Widgets::CheckBox("图例").Shared();
+        chkLegend.State(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([line, bar, pie](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
-                line->SetShowLegend(on);
-                bar->SetShowLegend(on);
-                pie->SetShowLegend(on);
+                line.ShowLegend(on);
+                bar.ShowLegend(on);
+                pie.ShowLegend(on);
     });
 
-    auto memChart = std::make_shared<LineChart>();
-        memChart->SetText("进程内存 (MB)");
-        memChart->SetHeight(200.0f);
-    auto loadChart = std::make_shared<LineChart>();
-        loadChart->SetText("CPU / GPU / FPS");
-        loadChart->SetHeight(200.0f);
+    CUI::Widgets::Ref memChart = CUI::Widgets::LineChart().Shared();
+        memChart.Text("进程内存 (MB)");
+        memChart.Height(200.0f);
+    CUI::Widgets::Ref loadChart = CUI::Widgets::LineChart().Shared();
+        loadChart.Text("CPU / GPU / FPS");
+        loadChart.Height(200.0f);
     auto perfReadout = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("对接底栏同一采样…", 12.0f, "textPrimary", true));
     auto pump = std::make_shared<PerfChartPump>(memChart, loadChart, perfReadout);

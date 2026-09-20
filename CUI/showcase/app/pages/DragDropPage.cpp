@@ -199,12 +199,12 @@ private:
 };
 
 std::shared_ptr<ListBox> MakeDemoList(const std::vector<std::string>& items, float width) {
-    auto list = std::make_shared<ListBox>();
-        list->SetWidth(width);
-        list->SetHeight(220.0f);
-        list->SetAllowDrag(true);
-        list->SetAllowDrop(true);
-        list->SetItems(items);
+    CUI::Widgets::Ref list = CUI::Widgets::ListBox().Shared();
+        list.Width(width);
+        list.Height(220.0f);
+        list.AllowDrag(true);
+        list.AllowDrop(true);
+        list.Items(items);
     return list;
 }
 
@@ -237,12 +237,12 @@ ShowcasePage BuildDragDropPage(const ShowcaseContext& ctx) {
     auto chipA = std::make_shared<DragChip>("任务：评审 PR");
     auto chipB = std::make_shared<DragChip>("标签：紧急");
 
-    auto inbox = std::make_shared<TextBox>("拖放到此输入框（文本或文件路径）");
-        inbox->SetAllowDrop(true);
-        inbox->SetAcceptsReturn(true);
-        inbox->SetTextWrapping(true);
-        inbox->SetWidth(-1.0f);
-        inbox->SetHeight(72.0f);
+    CUI::Widgets::Ref inbox = CUI::Widgets::TextBox("拖放到此输入框（文本或文件路径）").Shared();
+        inbox.AllowDrop(true);
+        inbox.AcceptsReturn(true);
+        inbox.TextWrapping(true);
+        inbox.Width(-1.0f);
+        inbox.Height(72.0f);
     inbox->OnTextChanged().Connect([appendLog](TextBox*, const std::string& text) {
         appendLog("[输入框] " + text);
     });

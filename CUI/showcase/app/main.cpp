@@ -24,15 +24,15 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 static std::shared_ptr<Toast> BuildToastTemplate() {
-    auto toast = std::make_shared<Toast>();
-        toast->SetTitle("XML Toast");
-        toast->SetMessage("这是从旧展示模板回填的声明式通知");
-        toast->SetCorner(ToastCorner::BottomRight);
-        toast->SetDurationMs(2800);
-        toast->SetAutoClose(true);
-        toast->SetCloseable(true);
-        toast->SetWidth(320.0f);
-        toast->SetSpacing(8.0f);
+    CUI::Widgets::Ref toast = CUI::Widgets::Toast().Shared();
+        toast.Title("XML Toast");
+        toast.Message("这是从旧展示模板回填的声明式通知");
+        toast.Corner(ToastCorner::BottomRight);
+        toast.DurationMs(2800);
+        toast.AutoClose(true);
+        toast.Closeable(true);
+        toast.Width(320.0f);
+        toast.Spacing(8.0f);
     return toast;
 }
 
@@ -120,8 +120,8 @@ public:
         if (win) {
             auto title = CreateShowcaseHeader("Settings", "Theme 配置");
 
-            auto btnDark = std::make_shared<Button>("Dark Theme");
-            auto btnLight = std::make_shared<Button>("Light Theme");
+            CUI::Widgets::Ref btnDark = CUI::Widgets::Button("Dark Theme").Shared();
+            CUI::Widgets::Ref btnLight = CUI::Widgets::Button("Light Theme").Shared();
             btnDark->OnClick().Connect([win](UIElement*) {
                                 win->SetThemeMode(ThemeMode::Dark);
             });
@@ -147,18 +147,18 @@ public:
                 nav->SetIsPaneOpen(true);
 
         // Sidebar control search (AutoSuggestBox slot on NavigationView).
-        auto search = std::make_shared<AutoSuggestBox>();
-                search->SetPlaceholder("搜索控件…");
-                search->SetMaxVisibleSuggestions(10);
+        CUI::Widgets::Ref search = CUI::Widgets::AutoSuggestBox().Shared();
+                search.Placeholder("搜索控件…");
+                search.MaxVisibleSuggestions(10);
         {
             std::vector<std::string> labels;
             labels.reserve(samples.size());
             for (const auto& s : samples) {
                 labels.push_back(s.label);
             }
-                        search->SetSuggestionItems(labels);
+                        search.SuggestionItems(labels);
             // Match label / tag / category (case-insensitive substring).
-                        search->SetSuggestionProvider([samples](const std::string& query) {
+                        search.SuggestionProvider([samples](const std::string& query) {
                 auto lower = [](std::string s) {
                     for (char& c : s) {
                         if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
@@ -362,7 +362,7 @@ public:
                 return;
             }
             navigateToTag(it->second);
-                        search->SetText("");
+                        search.Text("");
         };
 
         search->OnSuggestionChosen().Connect(

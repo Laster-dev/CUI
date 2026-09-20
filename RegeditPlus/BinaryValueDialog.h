@@ -1,5 +1,7 @@
 #pragma once
 
+#include "framework/core/Widget.h"
+
 #include "framework/controls/UIElement.h"
 #include "framework/controls/Button.h"
 #include "framework/controls/TextBlock.h"
@@ -47,13 +49,13 @@ private:
     bool m_isOpen = false;
     std::function<void(bool, std::vector<BYTE>)> m_callback;
 
-    std::shared_ptr<CUI::TextBlock> m_title;
-    std::shared_ptr<CUI::TextBlock> m_nameLabel;
-    std::shared_ptr<CUI::TextBox> m_nameBox;
-    std::shared_ptr<CUI::TextBlock> m_dataLabel;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_title;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_nameLabel;
+    CUI::Widgets::Ref<::CUI::TextBox> m_nameBox;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_dataLabel;
     std::shared_ptr<HexEditor> m_hex;
-    std::shared_ptr<CUI::Button> m_ok;
-    std::shared_ptr<CUI::Button> m_cancel;
+    CUI::Widgets::Ref<::CUI::Button> m_ok;
+    CUI::Widgets::Ref<::CUI::Button> m_cancel;
 
     CUI::Rect m_dialogBounds;
     CUI::RenderLayer m_cardLayer;

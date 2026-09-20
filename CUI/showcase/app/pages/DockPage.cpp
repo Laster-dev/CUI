@@ -6,9 +6,9 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildDockPage(const ShowcaseContext&) {
-    auto target = std::make_shared<DockPanel>();
-        target->SetWidth(420.0f);
-        target->SetHeight(240.0f);
+    CUI::Widgets::Ref target = CUI::Widgets::DockPanel().Shared();
+        target.Width(420.0f);
+        target.Height(240.0f);
     auto top = ElevatedButton("Top 顶部").Background(Rgb(0x007ACC)).Height(36).Build();     top->SetDock(Dock::Top);
     auto bottom = ElevatedButton("Bottom 底部").Background(Rgb(0x10B981)).Height(32).Build();     bottom->SetDock(Dock::Bottom);
     auto left = ElevatedButton("Left 左侧").Background(Rgb(0x8E44AD)).Width(100).Build();     left->SetDock(Dock::Left);

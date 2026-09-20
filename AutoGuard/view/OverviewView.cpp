@@ -72,9 +72,9 @@ std::shared_ptr<UIElement> OverviewView::Build() {
         return btn;
     };
 
-    auto entranceWrap = std::make_shared<WrapPanel>(Orientation::Horizontal);
-        entranceWrap->SetGap(8.0f);
-        entranceWrap->SetAlign(Alignment::Stretch);
+    CUI::Widgets::Ref entranceWrap = CUI::Widgets::WrapPanel(Orientation::Horizontal).Shared();
+        entranceWrap.Gap(8.0f);
+        entranceWrap.Align(Alignment::Stretch);
 
     entranceWrap->AddChild(makeEntrance("👤", "登录自启动 (Run)", "logon"));
     entranceWrap->AddChild(makeEntrance("📁", "资源管理器 & COM", "explorer"));
@@ -95,9 +95,9 @@ std::shared_ptr<UIElement> OverviewView::Build() {
     .BackgroundToken(ThemeTokenId::WindowBackground)
     .Build();
 
-    auto scroll = std::make_shared<ScrollViewer>();
-        scroll->SetAlign(Alignment::Stretch);
-        scroll->SetFlexGrow(1.0f);
+    CUI::Widgets::Ref scroll = CUI::Widgets::ScrollViewer().Shared();
+        scroll.Align(Alignment::Stretch);
+        scroll.FlexGrow(1.0f);
         scroll->AddChild(content);
     return scroll;
 }

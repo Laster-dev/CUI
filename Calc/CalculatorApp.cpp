@@ -119,16 +119,16 @@ std::shared_ptr<UIElement> CalculatorApp::BuildDisplayPanel() {
         .FontSize(14.0f)
         .ForegroundToken(ThemeTokenId::TextMuted)
         .Build();
-    m_historyText->SetTextAlign(TextAlignment::Right);
-    m_historyText->SetHeight(24.0f);
+    m_historyText.TextAlign(TextAlignment::Right);
+    m_historyText.Height(24.0f);
 
     m_displayText = Text("0")
         .FontSize(40.0f)
         .ForegroundToken(ThemeTokenId::TextPrimary)
         .Build();
-    m_displayText->SetTextAlign(TextAlignment::Right);
-    m_displayText->SetVerticalAlign(TextVerticalAlignment::Center);
-    m_displayText->SetMinHeight(72.0f);
+    m_displayText.TextAlign(TextAlignment::Right);
+    m_displayText.VerticalAlign(TextVerticalAlignment::Center);
+    m_displayText.MinHeight(72.0f);
 
     column->AddChild(m_historyText);
     column->AddChild(m_displayText);
@@ -322,10 +322,10 @@ void CalculatorApp::SetError(const std::string& message) {
 
 void CalculatorApp::UpdateDisplay() {
     if (m_historyText) {
-        m_historyText->SetText(m_history);
+        m_historyText.Text(m_history);
     }
     if (m_displayText) {
-        m_displayText->SetText(m_input);
+        m_displayText.Text(m_input);
     }
 }
 

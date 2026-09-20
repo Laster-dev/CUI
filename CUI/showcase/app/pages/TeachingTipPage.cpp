@@ -11,10 +11,10 @@ using namespace CUI::DSL;
 
 namespace {
 std::shared_ptr<Button> MakeTipButton(const std::string& text) {
-    auto btn = std::make_shared<Button>(text);
-        btn->SetWidth(132.0f);
-        btn->SetHeight(34.0f);
-        btn->SetCornerRadius(4.0f);
+    CUI::Widgets::Ref btn = CUI::Widgets::Button(text).Shared();
+        btn.Width(132.0f);
+        btn.Height(34.0f);
+        btn.CornerRadius(4.0f);
     return btn;
 }
 } // namespace
@@ -36,11 +36,11 @@ ShowcasePage BuildTeachingTipPage(const ShowcaseContext& ctx) {
         anchor->SetWidth(160.0f);
         anchor->SetToolTip("TeachingTip 会指向这个锚点。");
 
-    auto tip = std::make_shared<TeachingTip>();
-        tip->SetTitle("欢迎使用 TeachingTip");
-        tip->SetMessage("自绘气泡 + 三角指向锚点。标题、正文、关闭与操作都是热区，不是 Button 子控件。");
-        tip->SetActionText("知道了");
-        tip->SetPreferredPlacement(BubblePlacement::Bottom);
+    CUI::Widgets::Ref tip = CUI::Widgets::TeachingTip().Shared();
+        tip.Title("欢迎使用 TeachingTip");
+        tip.Message("自绘气泡 + 三角指向锚点。标题、正文、关闭与操作都是热区，不是 Button 子控件。");
+        tip.ActionText("知道了");
+        tip.PreferredPlacement(BubblePlacement::Bottom);
 
     auto log = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("操作日志：就绪", 12.0f, "#B5CEA8", false, "Consolas"));
@@ -57,16 +57,16 @@ ShowcasePage BuildTeachingTipPage(const ShowcaseContext& ctx) {
 
     auto openAt = [tip, anchor](BubblePlacement placement, bool modal) {
         return [tip, anchor, placement, modal](UIElement*) {
-                        tip->SetIsModal(modal);
-                        tip->SetPreferredPlacement(placement);
+                        tip.IsModal(modal);
+                        tip.PreferredPlacement(placement);
             if (modal) {
-                                tip->SetTitle("模态引导");
-                                tip->SetMessage("遮罩打开期间点击空白处、关闭或 Esc 均可关掉。场景在开关动画期间冻结。");
-                                tip->SetActionText("完成");
+                                tip.Title("模态引导");
+                                tip.Message("遮罩打开期间点击空白处、关闭或 Esc 均可关掉。场景在开关动画期间冻结。");
+                                tip.ActionText("完成");
             } else {
-                                tip->SetTitle("欢迎使用 TeachingTip");
-                                tip->SetMessage("自绘气泡 + 三角指向锚点。标题、正文、关闭与操作都是热区，不是 Button 子控件。");
-                                tip->SetActionText("知道了");
+                                tip.Title("欢迎使用 TeachingTip");
+                                tip.Message("自绘气泡 + 三角指向锚点。标题、正文、关闭与操作都是热区，不是 Button 子控件。");
+                                tip.ActionText("知道了");
             }
             tip->ShowAround(anchor.get());
         };

@@ -116,7 +116,7 @@ Element BuildPopupRevealPage() {
         });
 
     // 3. ContextMenu 级联菜单呼出（支持左键点击或右键点击）
-    auto menu = std::make_shared<ContextMenu>();
+    CUI::Widgets::Ref menu = CUI::Widgets::ContextMenu().Shared();
     auto newSub = menu->AddSubMenu("新建 (New)");
     newSub->AddItem("文本文档 (.txt)", [status]() { status->Text = "已创建：文本文档.txt"; });
     newSub->AddItem("C++ 源代码 (.cpp)", [status]() { status->Text = "已创建：main.cpp"; });

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "framework/core/Widget.h"
+
 #include "../viewmodel/MainViewModel.h"
 #include "framework/core/CUIDsl.h"
 #include "framework/controls/TextBlock.h"
@@ -24,17 +26,17 @@ private:
     std::shared_ptr<CUI::UIElement> m_root;
     std::shared_ptr<HIconElement> m_iconElement;
 
-    std::shared_ptr<CUI::TextBlock> m_titleName;
-    std::shared_ptr<CUI::TextBlock> m_statusBadge;
-    std::shared_ptr<CUI::TextBlock> m_locationBadge;
-    std::shared_ptr<CUI::TextBlock> m_descriptionText;
-    std::shared_ptr<CUI::TextBlock> m_commandText;
-    std::shared_ptr<CUI::TextBlock> m_reasonText;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_titleName;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_statusBadge;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_locationBadge;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_descriptionText;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_commandText;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_reasonText;
 
-    std::shared_ptr<CUI::TextBlock> m_publisherText;
-    std::shared_ptr<CUI::TextBlock> m_versionSizeText;
-    std::shared_ptr<CUI::TextBlock> m_timeText;
-    std::shared_ptr<CUI::TextBlock> m_sourceText;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_publisherText;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_versionSizeText;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_timeText;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_sourceText;
 };
 
 } // namespace AutoGuard

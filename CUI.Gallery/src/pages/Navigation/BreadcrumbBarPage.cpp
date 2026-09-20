@@ -15,10 +15,10 @@ Element BuildBreadcrumbBarPage() {
     // ==========================================
     // 1. 常规用法 — 路径预设与交互式跳转
     // ==========================================
-    auto bread1 = std::make_shared<BreadcrumbBar>();
+    CUI::Widgets::Ref bread1 = CUI::Widgets::BreadcrumbBar().Shared();
     auto path1 = std::make_shared<std::vector<std::string>>(
         std::vector<std::string>{ "CUI", "Gallery", "src", "pages", "Media", "ImagePage.cpp" });
-        bread1->SetPath(*path1);
+        bread1.Path(*path1);
 
     auto status1 = MakeStatus("点击路径中任意祖先节点，路径将自动截断并跳转至该层级。");
 
@@ -26,7 +26,7 @@ Element BuildBreadcrumbBarPage() {
     bread1->OnItemClicked().Connect([bread1, path1, status1](BreadcrumbBar*, int index, const std::string& node) {
         if (index >= 0 && index < static_cast<int>(path1->size())) {
             path1->resize(static_cast<size_t>(index + 1));
-                        bread1->SetPath(*path1);
+                        bread1.Path(*path1);
             status1->Text = std::format("已成功跳转并截断至第 {} 级节点: [{}]", index + 1, node);
         }
     });
@@ -34,39 +34,39 @@ Element BuildBreadcrumbBarPage() {
     auto btnShort = Button("项目源码路径")
         .OnClick([bread1, path1, status1](UIElement*) {
             *path1 = { "CUI", "Gallery", "src", "pages", "Media", "ImagePage.cpp" };
-                        bread1->SetPath(*path1);
+                        bread1.Path(*path1);
             status1->Text = "已重载路径: 项目源码路径 (6 级)";
         });
 
     auto btnSys = Button("系统文件路径")
         .OnClick([bread1, path1, status1](UIElement*) {
             *path1 = { "C:", "Windows", "System32", "drivers", "etc", "hosts" };
-                        bread1->SetPath(*path1);
+                        bread1.Path(*path1);
             status1->Text = "已重载路径: 系统文件路径 (6 级)";
         });
 
     auto btnWeb = Button("网站导航路径")
         .OnClick([bread1, path1, status1](UIElement*) {
             *path1 = { "首页", "产品中心", "云服务", "容器实例", "控制台" };
-                        bread1->SetPath(*path1);
+                        bread1.Path(*path1);
             status1->Text = "已重载路径: 网站导航路径 (5 级)";
         });
 
     // ==========================================
     // 2. 溢出折叠 — 超长深层路径与下拉菜单跳转
     // ==========================================
-    auto bread2 = std::make_shared<BreadcrumbBar>();
+    CUI::Widgets::Ref bread2 = CUI::Widgets::BreadcrumbBar().Shared();
     auto path2 = std::make_shared<std::vector<std::string>>(
         std::vector<std::string>{ "项目", "平台", "微服务", "订单域", "结算", "网关", "v3", "develop",
                                   "deploy", "k8s", "production", "helm", "values.yaml" });
-        bread2->SetPath(*path2);
+        bread2.Path(*path2);
 
     auto status2 = MakeStatus("超长路径在窄屏下前方自动折叠为【…】；点击【…】可在弹出菜单中选取祖先节点直接跳转。");
 
     bread2->OnItemClicked().Connect([bread2, path2, status2](BreadcrumbBar*, int index, const std::string& node) {
         if (index >= 0 && index < static_cast<int>(path2->size())) {
             path2->resize(static_cast<size_t>(index + 1));
-                        bread2->SetPath(*path2);
+                        bread2.Path(*path2);
             status2->Text = std::format("已从折叠菜单/导航条跳转至第 {} 级: [{}]", index + 1, node);
         }
     });
@@ -74,24 +74,24 @@ Element BuildBreadcrumbBarPage() {
     auto btnLong = Button("加载 15 级极深路径")
         .OnClick([bread2, path2, status2](UIElement*) {
             *path2 = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O" };
-                        bread2->SetPath(*path2);
+                        bread2.Path(*path2);
             status2->Text = "已加载 15 级深层路径，前方已自动折叠为 […]。";
         });
 
     // ==========================================
     // 3. 动态前进与后退 (Push / Pop)
     // ==========================================
-    auto bread3 = std::make_shared<BreadcrumbBar>();
+    CUI::Widgets::Ref bread3 = CUI::Widgets::BreadcrumbBar().Shared();
     auto path3 = std::make_shared<std::vector<std::string>>(
         std::vector<std::string>{ "根目录", "工作区" });
-        bread3->SetPath(*path3);
+        bread3.Path(*path3);
 
     auto status3 = MakeStatus("通过 PushNode 进入子级目录，或 PopNode 返回上级目录。");
 
     bread3->OnItemClicked().Connect([bread3, path3, status3](BreadcrumbBar*, int index, const std::string& node) {
         if (index >= 0 && index < static_cast<int>(path3->size())) {
             path3->resize(static_cast<size_t>(index + 1));
-                        bread3->SetPath(*path3);
+                        bread3.Path(*path3);
             status3->Text = std::format("直接点击跳转至: [{}] (深度: {})", node, path3->size());
         }
     });
@@ -100,7 +100,7 @@ Element BuildBreadcrumbBarPage() {
         .OnClick([bread3, path3, status3](UIElement*) {
             static int s_seq = 1;
             path3->push_back(std::format("子目录_{}", s_seq++));
-                        bread3->SetPath(*path3);
+                        bread3.Path(*path3);
             status3->Text = std::format("已深入至 [{}]，当前路径深度: {}", path3->back(), path3->size());
         });
 
@@ -111,14 +111,14 @@ Element BuildBreadcrumbBarPage() {
                 return;
             }
             path3->pop_back();
-                        bread3->SetPath(*path3);
+                        bread3.Path(*path3);
             status3->Text = std::format("已回退至 [{}]，当前路径深度: {}", path3->back(), path3->size());
         });
 
     auto btnReset = Button("🔄 重置路径")
         .OnClick([bread3, path3, status3](UIElement*) {
             *path3 = { "根目录", "工作区" };
-                        bread3->SetPath(*path3);
+                        bread3.Path(*path3);
             status3->Text = "已重置为初始两级路径。";
         });
 
@@ -159,21 +159,21 @@ Element BuildBreadcrumbBarPage() {
     };
 
     spec.source = R"cpp(// 1. 初始化路径并挂载
-auto bread = std::make_shared<BreadcrumbBar>();
+CUI::Widgets::Ref bread = CUI::Widgets::BreadcrumbBar().Shared();
 std::vector<std::string> path = { "CUI", "Gallery", "src", "pages" };
-bread->SetPath(path);
+bread.Path(path);
 
 // 2. 节点点击交互：截断路径并实现真实跳转
 bread->OnItemClicked().Connect([bread, &path](BreadcrumbBar*, int index, const std::string& node) {
     if (index >= 0 && index < path.size()) {
         path.resize(index + 1);
-                bread->SetPath(path); // 路径同步更新
+                bread.Path(path); // 路径同步更新
     }
 });
 
 // 3. 动态前进与后退
 path.push_back("SubDir");
-bread->SetPath(path);
+bread.Path(path);
 )cpp";
 
     return BuildSamplePage(spec);

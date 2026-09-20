@@ -10,10 +10,10 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildAutoSuggestPage(const ShowcaseContext& ctx) {
-    auto box = std::make_shared<AutoSuggestBox>();
-        box->SetWidth(320.0f);
-        box->SetPlaceholder("搜索水果…");
-        box->SetSuggestionItems({
+    CUI::Widgets::Ref box = CUI::Widgets::AutoSuggestBox().Shared();
+        box.Width(320.0f);
+        box.Placeholder("搜索水果…");
+        box.SuggestionItems({
         "苹果 Apple",
         "香蕉 Banana",
         "樱桃 Cherry",

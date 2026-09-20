@@ -8,12 +8,12 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildComboBoxPage(const ShowcaseContext& ctx) {
-    auto target = std::make_shared<ComboBox>();
+    CUI::Widgets::Ref target = CUI::Widgets::ComboBox().Shared();
     target->AddItem("VS Code Dark+");
     target->AddItem("WinUI 3 Light");
     target->AddItem("Monokai Pro");
-        target->SetSelectedIndex(0);
-        target->SetWidth(240.0f);
+        target.SelectedIndex(0);
+        target.Width(240.0f);
 
     CUI::Widgets::Ref input = CUI::Widgets::TextBox().Text("自定义新主题").Width(280).Height(48).Shared();
     

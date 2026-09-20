@@ -113,16 +113,16 @@ namespace Gallery {
                 nav->AddMenuItem(folder);
             }
 
-            auto search = std::make_shared<AutoSuggestBox>();
+            CUI::Widgets::Ref search = CUI::Widgets::AutoSuggestBox().Shared();
             search->Placeholder = "搜索控件";
-                        search->SetMaxVisibleSuggestions(10);
+                        search.MaxVisibleSuggestions(10);
             {
                 std::vector<std::string> titles;
                 for (const auto& e : Entries()) {
                     titles.push_back(e.title);
                 }
-                                search->SetSuggestionItems(titles);
-                                search->SetSuggestionProvider([](const std::string& query) {
+                                search.SuggestionItems(titles);
+                                search.SuggestionProvider([](const std::string& query) {
                     return SearchTitles(query);
                     });
             }
@@ -213,17 +213,17 @@ namespace Gallery {
     } // namespace
 
     Element BuildGalleryRoot() {
-        auto titleBar = std::make_shared<WindowTitleBar>();
-                titleBar->SetTitle("CUI Gallery");
+        CUI::Widgets::Ref titleBar = CUI::Widgets::WindowTitleBar().Shared();
+                titleBar.Title("CUI Gallery");
         constexpr const char* kSvgStar =
             "<svg viewBox=\"0 0 1024 1024\" xmlns=\"http://www.w3.org/2000/svg\">"
             "<path d=\"M512 64l138.88 281.387 310.4 45.12-224.64 218.987 53.035 309.173L512 772.693 234.325 918.667l53.035-309.173L62.72 390.507l310.4-45.12z\"/>"
             "</svg>";
         titleBar->Icon = kSvgStar;
 		//构建主题切换控件
-        auto ThemeModeRange = std::make_shared<SegmentedControl>();
-                ThemeModeRange->SetWidth(120.0f);
-				ThemeModeRange->SetMargin(Thickness(2, 2, 10, 2));
+        CUI::Widgets::Ref ThemeModeRange = CUI::Widgets::SegmentedControl().Shared();
+                ThemeModeRange.Width(120.0f);
+				ThemeModeRange.Margin(Thickness(2, 2, 10, 2));
         ThemeModeRange->AddItem("Dark");
         ThemeModeRange->AddItem("Light");
         ThemeModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
@@ -232,9 +232,9 @@ namespace Gallery {
             }
         });
 		//构建动画|低性能模式切换控件
-		auto AnimationModeRange = std::make_shared<SegmentedControl>();
-				AnimationModeRange->SetWidth(120.0f);
-				AnimationModeRange->SetMargin(Thickness(2, 2, 10, 2));
+		CUI::Widgets::Ref AnimationModeRange = CUI::Widgets::SegmentedControl().Shared();
+				AnimationModeRange.Width(120.0f);
+				AnimationModeRange.Margin(Thickness(2, 2, 10, 2));
 		AnimationModeRange->AddItem("动画");
 		AnimationModeRange->AddItem("低性能");
         AnimationModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
@@ -242,12 +242,12 @@ namespace Gallery {
 		});
 
 		//把两个控件合并为一个水平布局，然后添加
-		auto rightContent = std::make_shared<StackPanel>();
+		CUI::Widgets::Ref rightContent = CUI::Widgets::StackPanel().Shared();
 		rightContent->Orientation = Orientation::Horizontal;
 		rightContent->AddChild(ThemeModeRange);
 		rightContent->AddChild(AnimationModeRange);
 		//设置右侧内容
-				titleBar->SetRightContent(rightContent);
+				titleBar.RightContent(rightContent);
 
 
        

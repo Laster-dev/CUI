@@ -9,12 +9,12 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildStatusBarPage(const ShowcaseContext& ctx) {
-    auto bar = std::make_shared<StatusBar>();
-        bar->SetWidth(-1.0f);
-        bar->SetHeight(26.0f);
+    CUI::Widgets::Ref bar = CUI::Widgets::StatusBar().Shared();
+        bar.Width(-1.0f);
+        bar.Height(26.0f);
 
     const int msgId = bar->AddTextItem("就绪", StatusBarItemAlignment::Left);
-        bar->SetItemIcon(msgId, "●");
+        bar.ItemIcon(msgId, "●");
     bar->AddTextItem("CUI Control Gallery", StatusBarItemAlignment::Fill);
     bar->AddSeparator(StatusBarItemAlignment::Right);
     const int dpiId = bar->AddTextItem("DPI 100%", StatusBarItemAlignment::Right);
@@ -22,28 +22,28 @@ ShowcasePage BuildStatusBarPage(const ShowcaseContext& ctx) {
     const int zoomId = bar->AddTextItem("缩放 100%", StatusBarItemAlignment::Right);
     bar->AddSeparator(StatusBarItemAlignment::Right);
     const int progId = bar->AddProgressItem("索引", StatusBarItemAlignment::Right, 140.0f);
-        bar->SetItemProgress(progId, 0.35f);
+        bar.ItemProgress(progId, 0.35f);
 
     auto hint = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("底栏：左消息 + 中间弹性标题 + 右侧 DPI / 缩放 / 进度（纯自绘，无 TextBlock 子控件）。", 12.0f, "textSecondary", false));
 
-    auto btnBusy = std::make_shared<Button>("模拟忙碌");
+    CUI::Widgets::Ref btnBusy = CUI::Widgets::Button("模拟忙碌").Shared();
     btnBusy->OnClick().Connect([bar, msgId, progId](UIElement*) {
-                bar->SetItemText(msgId, "正在处理…");
-                bar->SetItemProgress(progId, 0.72f);
+                bar.ItemText(msgId, "正在处理…");
+                bar.ItemProgress(progId, 0.72f);
     });
-    auto btnReady = std::make_shared<Button>("恢复就绪");
+    CUI::Widgets::Ref btnReady = CUI::Widgets::Button("恢复就绪").Shared();
     btnReady->OnClick().Connect([bar, msgId, progId, dpiId, zoomId](UIElement*) {
-                bar->SetItemText(msgId, "就绪");
-                bar->SetItemProgress(progId, 0.35f);
-                bar->SetItemText(dpiId, "DPI 100%");
-                bar->SetItemText(zoomId, "缩放 100%");
+                bar.ItemText(msgId, "就绪");
+                bar.ItemProgress(progId, 0.35f);
+                bar.ItemText(dpiId, "DPI 100%");
+                bar.ItemText(zoomId, "缩放 100%");
     });
-    auto btnDpi = std::make_shared<Button>("切换 DPI 文案");
+    CUI::Widgets::Ref btnDpi = CUI::Widgets::Button("切换 DPI 文案").Shared();
     btnDpi->OnClick().Connect([bar, dpiId](UIElement*) {
         static bool hi = false;
         hi = !hi;
-                bar->SetItemText(dpiId, hi ? "DPI 150%" : "DPI 100%");
+                bar.ItemText(dpiId, hi ? "DPI 150%" : "DPI 100%");
     });
 
     auto demo = Column(12).Children({
