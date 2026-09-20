@@ -53,7 +53,7 @@ private:
     CUI::Widgets::Ref<::CUI::TextBlock> m_nameLabel;
     CUI::Widgets::Ref<::CUI::TextBox> m_nameBox;
     CUI::Widgets::Ref<::CUI::TextBlock> m_dataLabel;
-    std::shared_ptr<HexEditor> m_hex;
+    CUI::Widgets::Ref<HexEditor> m_hex;
     CUI::Widgets::Ref<::CUI::Button> m_ok;
     CUI::Widgets::Ref<::CUI::Button> m_cancel;
 

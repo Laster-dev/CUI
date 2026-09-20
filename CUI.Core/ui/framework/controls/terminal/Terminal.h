@@ -87,7 +87,7 @@ public:
 
     void ScrollLines(int delta);
     void ScrollToBottom();
-    void SetScrollDisp(int yDisp);
+    void ApplyScrollDisp(int yDisp);
 
     std::string GetSelectionText();
     std::wstring GetSelectionTextW();

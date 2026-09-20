@@ -12,14 +12,14 @@ namespace {}
 
 Slider::Slider() {
     ValueProperty.Initialize(*this);
-    this->SetOrientation(Orientation::Horizontal);
-    this->SetTrackColorToken(ThemeTokenId::InputBorder);
-    this->SetActiveTrackColorToken(ThemeTokenId::AccentColor);
-    this->SetThumbColorToken(ThemeTokenId::AccentColor);
-    this->SetWidth(200.0f);
-    this->SetHeight(24.0f);
+    this->ApplyOrientation(Orientation::Horizontal);
+    this->ApplyTrackColorToken(ThemeTokenId::InputBorder);
+    this->ApplyActiveTrackColorToken(ThemeTokenId::AccentColor);
+    this->ApplyThumbColorToken(ThemeTokenId::AccentColor);
+    this->ApplyWidth(200.0f);
+    this->ApplyHeight(24.0f);
     m_displayValueAnim.Reset(GetValue());
-    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
 Value Slider::GetProperty(PropertyId id) const {
@@ -44,13 +44,13 @@ bool Slider::HasProperty(PropertyId id) const {
     }
 }
 
-void Slider::SetProperty(PropertyId id, const Value& val) {
+void Slider::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
-    case PropertyId::Minimum: SetMinimum(val.AsFloat()); return;
-    case PropertyId::Maximum: SetMaximum(val.AsFloat()); return;
-    case PropertyId::Step: SetStep(val.AsFloat()); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::ControlValue: ApplyValue(val.AsFloat()); return;
+    case PropertyId::Minimum: ApplyMinimum(val.AsFloat()); return;
+    case PropertyId::Maximum: ApplyMaximum(val.AsFloat()); return;
+    case PropertyId::Step: ApplyStep(val.AsFloat()); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
@@ -126,7 +126,7 @@ void Slider::MarkSliderVisualDirty(const Rect& previousThumb, float previousDisp
     MarkRenderRectDirty(dirty);
 }
 
-void Slider::SetValue(float val) {
+void Slider::ApplyValue(float val) {
     float minVal = GetMinimum();
     float maxVal = GetMaximum();
     float step = GetStep();
@@ -165,7 +165,7 @@ void Slider::UpdateValueFromPoint(Point pt) {
         }
     }
     ratio = std::clamp(ratio, 0.0f, 1.0f);
-    SetValue(minVal + ratio * (maxVal - minVal));
+    ApplyValue(minVal + ratio * (maxVal - minVal));
 }
 
 void Slider::OnMouseDown(Point pt) {
@@ -200,7 +200,7 @@ bool Slider::OnAnimationTick() {
     }
 
     float target = GetValue();
-    m_displayValueAnim.SetTarget(target);
+    m_displayValueAnim.ApplyTarget(target);
     if (!m_displayValueAnim.IsAnimating(0.01f)) {
         m_displayValueAnim.Reset(target);
         return base;
@@ -222,11 +222,11 @@ bool Slider::HasSelfAnimation() const {
 bool Slider::OnKeyDown(int vkCode) {
     float step = GetStep();
     if (vkCode == VK_LEFT || vkCode == VK_DOWN) {
-        SetValue(GetValue() - step);
+        ApplyValue(GetValue() - step);
         return true;
     }
     if (vkCode == VK_RIGHT || vkCode == VK_UP) {
-        SetValue(GetValue() + step);
+        ApplyValue(GetValue() + step);
         return true;
     }
     return Control::OnKeyDown(vkCode);

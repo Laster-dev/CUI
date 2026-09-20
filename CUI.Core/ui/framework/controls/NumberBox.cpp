@@ -240,36 +240,36 @@ void NumberBox::Field::OnBlur() {
 
 NumberBox::NumberBox() {
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
-        this->SetWidth(120.0f);
-    this->SetHeight(28.0f);
-    this->SetPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
-    this->SetCornerRadius(3.0f);
-    this->SetFontSize(12.0f);
-    this->SetFontFamily("Segoe UI");
-    this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->SetBorderToken(ThemeTokenId::InputBorder);
-    this->SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    this->SetBackground(tokens.inputBackground);
-    this->SetBorderBrush(tokens.inputBorder);
-    this->SetColor(tokens.textPrimary);
-    this->SetBorderThickness(1.0f);
+        this->ApplyWidth(120.0f);
+    this->ApplyHeight(28.0f);
+    this->ApplyPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
+    this->ApplyCornerRadius(3.0f);
+    this->ApplyFontSize(12.0f);
+    this->ApplyFontFamily("Segoe UI");
+    this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->ApplyBorderToken(ThemeTokenId::InputBorder);
+    this->ApplyFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    this->ApplyBackground(tokens.inputBackground);
+    this->ApplyBorderBrush(tokens.inputBorder);
+    this->ApplyColor(tokens.textPrimary);
+    this->ApplyBorderThickness(1.0f);
 
     ValueProperty.Initialize(*this);
     m_field = std::make_shared<Field>();
     m_field->host = this;
-    m_field->SetFontFamily(GetFontFamily());
-    m_field->SetFontSize(GetFontSize());
-    m_field->SetPadding(Thickness(2.0f, 0.0f, 2.0f, 0.0f));
-    m_field->SetBorderThickness(0.0f);
-    m_field->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    m_field->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    m_field->SetBackgroundToken(ThemeTokenId::Unset);
-    m_field->SetHoverBackgroundToken(ThemeTokenId::Unset);
-    m_field->SetUnderlineColorToken(ThemeTokenId::Unset);
-    m_field->SetActiveUnderlineColorToken(ThemeTokenId::Unset);
-    m_field->SetColorToken(ThemeTokenId::TextPrimary);
-    m_field->SetAcceptsReturn(false);
+    m_field->ApplyFontFamily(GetFontFamily());
+    m_field->ApplyFontSize(GetFontSize());
+    m_field->ApplyPadding(Thickness(2.0f, 0.0f, 2.0f, 0.0f));
+    m_field->ApplyBorderThickness(0.0f);
+    m_field->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
+    m_field->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    m_field->ApplyBackgroundToken(ThemeTokenId::Unset);
+    m_field->ApplyHoverBackgroundToken(ThemeTokenId::Unset);
+    m_field->ApplyUnderlineColorToken(ThemeTokenId::Unset);
+    m_field->ApplyActiveUnderlineColorToken(ThemeTokenId::Unset);
+    m_field->ApplyColorToken(ThemeTokenId::TextPrimary);
+    m_field->ApplyAcceptsReturn(false);
     m_field->OnTextChanged().Connect([this](TextBox*, const std::string&) {
         OnFieldTextChanged();
     });
@@ -299,29 +299,29 @@ bool NumberBox::HasProperty(PropertyId id) const {
     }
 }
 
-void NumberBox::SetProperty(PropertyId id, const CUI::Value& val) {
+void NumberBox::ApplyProperty(PropertyId id, const CUI::Value& val) {
     switch (id) {
-    case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
-    case PropertyId::Minimum: SetMinimum(val.AsFloat()); return;
-    case PropertyId::Maximum: SetMaximum(val.AsFloat()); return;
-    case PropertyId::Step: SetStep(val.AsFloat()); return;
+    case PropertyId::ControlValue: ApplyValue(val.AsFloat()); return;
+    case PropertyId::Minimum: ApplyMinimum(val.AsFloat()); return;
+    case PropertyId::Maximum: ApplyMaximum(val.AsFloat()); return;
+    case PropertyId::Step: ApplyStep(val.AsFloat()); return;
     case PropertyId::Color:
-        UIElement::SetProperty(id, val);
-        if (m_field) m_field->SetProperty(id, val);
+        UIElement::ApplyProperty(id, val);
+        if (m_field) m_field->ApplyProperty(id, val);
         return;
     case PropertyId::FontFamily:
-        UIElement::SetProperty(id, val);
-        if (m_field) m_field->SetProperty(id, val);
+        UIElement::ApplyProperty(id, val);
+        if (m_field) m_field->ApplyProperty(id, val);
         return;
     case PropertyId::FontSize:
-        UIElement::SetProperty(id, val);
-        if (m_field) m_field->SetProperty(id, val);
+        UIElement::ApplyProperty(id, val);
+        if (m_field) m_field->ApplyProperty(id, val);
         return;
     case PropertyId::FontWeight:
-        UIElement::SetProperty(id, val);
-        if (m_field) m_field->SetProperty(id, val);
+        UIElement::ApplyProperty(id, val);
+        if (m_field) m_field->ApplyProperty(id, val);
         return;
-    default: UIElement::SetProperty(id, val); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
@@ -424,11 +424,11 @@ void NumberBox::SyncTextFromValue() {
         return;
     }
     m_syncingText = true;
-    m_field->SetText(FormatValue(m_value));
+    m_field->ApplyText(FormatValue(m_value));
     m_syncingText = false;
 }
 
-void NumberBox::SetValue(float val) {
+void NumberBox::ApplyValue(float val) {
     const float clamped = std::clamp(val, m_minimum, m_maximum);
     if (std::abs(clamped - m_value) <= 0.0001f) {
         SyncTextFromValue();
@@ -467,12 +467,12 @@ void NumberBox::CommitEdit() {
     if (!TryEvalExpression(text, parsed) && !TryParsePlainNumber(text, parsed)) {
         parsed = m_value;
     }
-    SetValue(parsed);
+    ApplyValue(parsed);
 }
 
 void NumberBox::StepBy(float dir) {
     CommitEdit();
-    SetValue(m_value + dir * m_step);
+    ApplyValue(m_value + dir * m_step);
 }
 
 bool NumberBox::HandleFieldKey(int vkCode) {
@@ -580,16 +580,16 @@ void NumberBox::OnMouseMove(Point pt) {
         m_hover = next;
         MarkRenderContentDirty();
     }
-    m_hotUp.SetTarget(m_hover == HitPart::Up ? 1.0f : 0.0f);
-    m_hotDown.SetTarget(m_hover == HitPart::Down ? 1.0f : 0.0f);
+    m_hotUp.ApplyTarget(m_hover == HitPart::Up ? 1.0f : 0.0f);
+    m_hotDown.ApplyTarget(m_hover == HitPart::Down ? 1.0f : 0.0f);
     RequestAnimationTicks();
 }
 
 void NumberBox::OnMouseLeave() {
     Control::OnMouseLeave();
     m_hover = HitPart::None;
-    m_hotUp.SetTarget(0.0f);
-    m_hotDown.SetTarget(0.0f);
+    m_hotUp.ApplyTarget(0.0f);
+    m_hotDown.ApplyTarget(0.0f);
     RequestAnimationTicks();
     MarkRenderContentDirty();
 }

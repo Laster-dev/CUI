@@ -69,7 +69,7 @@ class DemoShellBackend : public Term::ITerminalBackend {
 public:
     using Out = ITerminalBackend::OutputCallback;
 
-    void SetOutputCallback(Out callback) override { m_out = std::move(callback); }
+    void ApplyOutputCallback(Out callback) override { m_out = std::move(callback); }
 
     bool Start(int, int) override {
         m_line.clear();
@@ -240,7 +240,7 @@ class PaletteBackend : public Term::ITerminalBackend {
 public:
     using Out = ITerminalBackend::OutputCallback;
 
-    void SetOutputCallback(Out callback) override { m_out = std::move(callback); }
+    void ApplyOutputCallback(Out callback) override { m_out = std::move(callback); }
 
     bool Start(int, int) override {
         if (m_out) {
@@ -266,8 +266,8 @@ Element BuildTerminalPage() {
     // 后端实例生命周期与进程一致，终端析构时可安全 Detach。
     static std::shared_ptr<DemoShellBackend> s_demoBackend = std::make_shared<DemoShellBackend>();
 
-    auto demoTerm = std::make_shared<TerminalControl>();
-        demoTerm->SetHeight(400.0f);
+    CUI::Widgets::Ref demoTerm =std::make_shared<TerminalControl>();
+        demoTerm.Height(400.0f);
     demoTerm->AttachBackend(s_demoBackend.get());
 
     auto status1 = MakeStatus("点击终端聚焦后可直接输入；或使用下方按钮注入演示命令。输入 help 查看全部命令。");
@@ -287,8 +287,8 @@ Element BuildTerminalPage() {
     }).Build();
 
     // ---------- 第 2 节：真实 ConPty 对接（真实 Shell） ----------
-    auto realTerm = std::make_shared<TerminalControl>("cmd.exe");
-        realTerm->SetHeight(320.0f);
+    CUI::Widgets::Ref realTerm =std::make_shared<TerminalControl>("cmd.exe");
+        realTerm.Height(320.0f);
     realTerm->AttachBackend(nullptr); // 阻止自动拉起，由按钮显式启动
 
     auto status2 = MakeStatus("点击按钮拉起真实的 Windows 伪控制台 (ConPty) 子进程，可直接在终端内交互。");
@@ -313,8 +313,8 @@ Element BuildTerminalPage() {
     // ---------- 第 3 节：主题与外观 ----------
     static std::shared_ptr<PaletteBackend> s_paletteBackend = std::make_shared<PaletteBackend>();
 
-    auto paletteTerm = std::make_shared<TerminalControl>();
-        paletteTerm->SetHeight(280.0f);
+    CUI::Widgets::Ref paletteTerm =std::make_shared<TerminalControl>();
+        paletteTerm.Height(280.0f);
     paletteTerm->AttachBackend(s_paletteBackend.get());
 
     auto status3 = MakeStatus("切换主题观察终端配色；Ctrl+滚轮或下方按钮可缩放字体。");

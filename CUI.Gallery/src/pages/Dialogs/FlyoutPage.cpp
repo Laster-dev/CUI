@@ -27,15 +27,15 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
             });
 
     // ── 2. 多方向放置 ────────────────────────────────────────────────────
-    auto btnTop    = Button("↑ Top");
-    auto btnBottom = Button("↓ Bottom");
-    auto btnLeft   = Button("← Left");
-    auto btnRight  = Button("→ Right");
+    auto btnTop =Button("↑ Top");
+    auto btnBottom =Button("↓ Bottom");
+    auto btnLeft =Button("← Left");
+    auto btnRight =Button("→ Right");
 
-        btnTop->SetWidth(90.0f);
-        btnBottom->SetWidth(90.0f);
-        btnLeft->SetWidth(90.0f);
-        btnRight->SetWidth(90.0f);
+        btnTop.Width(90.0f);
+        btnBottom.Width(90.0f);
+        btnLeft.Width(90.0f);
+        btnRight.Width(90.0f);
 
     auto makePlacementFlyout = [](UIElement* src, FlyoutPlacement p, const std::string& label) {
         CUI::Widgets::Ref flyout = CUI::Widgets::Flyout().Shared();
@@ -63,11 +63,11 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
     });
 
     // ── 3. 带操作按钮的浮出层 ───────────────────────────────────────────
-    auto btnAction = Button("带操作的浮出层");
-        btnAction->SetBackgroundToken(ThemeTokenId::CardBackground);
+    auto btnAction =Button("带操作的浮出层");
+        btnAction.BackgroundToken(ThemeTokenId::CardBackground);
     
-        btnAction->SetBorderToken(ThemeTokenId::CardBorder);
-        btnAction->SetBorderThickness(1.0f);
+        btnAction.BorderToken(ThemeTokenId::CardBorder);
+        btnAction.BorderThickness(1.0f);
     btnAction->OnClick().Connect([status](UIElement* src) {
         CUI::Widgets::Ref flyout = CUI::Widgets::Flyout().Shared();
         flyout.Placement(FlyoutPlacement::Bottom);
@@ -78,12 +78,12 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
             .Foreground(Color::White)
             .Width(72.0f);
 
-        auto cancelBtn = Button("取消");
-                cancelBtn->SetBackgroundToken(ThemeTokenId::CardBackground);
+        auto cancelBtn =Button("取消");
+                cancelBtn.BackgroundToken(ThemeTokenId::CardBackground);
         
-                cancelBtn->SetBorderToken(ThemeTokenId::CardBorder);
-                cancelBtn->SetBorderThickness(1.0f);
-                cancelBtn->SetWidth(72.0f);
+                cancelBtn.BorderToken(ThemeTokenId::CardBorder);
+                cancelBtn.BorderThickness(1.0f);
+                cancelBtn.Width(72.0f);
 
         auto content = Column(12, {
             MakeLabel("确认删除？", 13.0f, ThemeTokenId::TextPrimary, true),
@@ -106,11 +106,11 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
     });
 
     // ── 4. 包含输入框的浮出层 ───────────────────────────────────────────
-    auto btnInputFlyout = Button("输入浮出层");
-        btnInputFlyout->SetBackgroundToken(ThemeTokenId::CardBackground);
+    auto btnInputFlyout =Button("输入浮出层");
+        btnInputFlyout.BackgroundToken(ThemeTokenId::CardBackground);
     
-        btnInputFlyout->SetBorderToken(ThemeTokenId::CardBorder);
-        btnInputFlyout->SetBorderThickness(1.0f);
+        btnInputFlyout.BorderToken(ThemeTokenId::CardBorder);
+        btnInputFlyout.BorderThickness(1.0f);
     btnInputFlyout->OnClick().Connect([status](UIElement* src) {
         CUI::Widgets::Ref flyout = CUI::Widgets::Flyout().Shared();
         flyout.Placement(FlyoutPlacement::Bottom);

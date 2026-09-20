@@ -38,10 +38,10 @@ Element BuildContextMenuPage() {
     viewSubMenu->AddItem("大图标", [statusLabel]() {
         statusLabel->Text = "视图模式已切换为：【大图标 (Large Icons)】";
     });
-    auto itemDetailList = viewSubMenu->AddItem("详细列表", [statusLabel]() {
+    CUI::Widgets::Ref itemDetailList =viewSubMenu->AddItem("详细列表", [statusLabel]() {
         statusLabel->Text = "视图模式已切换为：【详细信息列表 (Details)】";
     });
-        itemDetailList->SetChecked(true);
+        itemDetailList.Checked(true);
 
     workspaceMenu->AddSeparator();
 
@@ -81,14 +81,14 @@ Element BuildContextMenuPage() {
         .FontSize(12.0f)
         .Foreground(D2D1::ColorF(0x94A3B8, 1.0f));
 
-    auto workspaceArea = Column(6, { wsTitle, wsHint })
+    auto workspaceArea =Column(6, { wsTitle, wsHint })
         .Height(120.0f)
         .Background(D2D1::ColorF(0x202024, 0.4f))
         .Border(D2D1::ColorF(0x3B82F6, 0.4f), 1.5f)
         .CornerRadius(8.0f)
         .Padding(16.0f);
 
-        workspaceArea->SetContextMenu(workspaceMenu);
+        workspaceArea.ContextMenu(workspaceMenu);
 
     // ==========================================
     // 示例 2: 代码编辑器专属右键菜单
@@ -161,7 +161,7 @@ menu->AddItem("剪切", "Ctrl+X", []() { /* .. */ });
 menu->AddItem("复制", "Ctrl+C", []() { /* .. */ });
 
 // 3. 将右键菜单挂载至任意目标控件
-targetElement->SetContextMenu(menu);
+targetElement->ContextMenu(menu);
 )cpp";
 
     return BuildSamplePage(spec);

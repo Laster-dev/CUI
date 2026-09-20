@@ -25,12 +25,12 @@ std::string ColorHex(Color c) {
 
 Element BuildColorPickerPage() {
     CUI::Widgets::Ref picker = Widgets::ColorPicker().Shared();
-    auto chip = Text()
+    auto chip =Text()
         .Width(48.0f)
         .Height(24.0f)
         .CornerRadius(4.0f)
         .BorderThickness(1.0f);
-        chip->SetBorderToken(ThemeTokenId::CardBorder);
+        chip.BorderToken(ThemeTokenId::CardBorder);
 
     State<Color> selectedColor{ Color(0, 0, 0, 1) };
     picker->SelectedColor.Bind(selectedColor);

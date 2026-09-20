@@ -24,14 +24,14 @@ constexpr float kMaxChunkFrac = 0.12f + 0.38f;
 } // namespace
 
 ProgressBar::ProgressBar() {
-    this->SetFillColorToken(ThemeTokenId::AccentColor);
-    this->SetTrackColorToken(ThemeTokenId::CardBorder);
-    this->SetWidth(200.0f);
-    this->SetHeight(3.0f);
-    this->SetCornerRadius(1.5f);
-    this->SetHoverBackgroundToken(ThemeTokenId::Unset);
-    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyFillColorToken(ThemeTokenId::AccentColor);
+    this->ApplyTrackColorToken(ThemeTokenId::CardBorder);
+    this->ApplyWidth(200.0f);
+    this->ApplyHeight(3.0f);
+    this->ApplyCornerRadius(1.5f);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::Unset);
+    this->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
     ProgressBarDiag::Log("[PB] ctor this=%p", (void*)this);
 }
 
@@ -44,7 +44,7 @@ ProgressBar::~ProgressBar() {
     m_overlayAttached = false;
 }
 
-void ProgressBar::SetIsIndeterminate(bool ind) {
+void ProgressBar::ApplyIsIndeterminate(bool ind) {
     if (m_isIndeterminate == ind) {
         return;
     }
@@ -112,13 +112,13 @@ bool ProgressBar::HasProperty(PropertyId id) const {
     }
 }
 
-void ProgressBar::SetProperty(PropertyId id, const Value& val) {
+void ProgressBar::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
-    case PropertyId::Minimum: SetMinimum(val.AsFloat()); return;
-    case PropertyId::Maximum: SetMaximum(val.AsFloat()); return;
-    case PropertyId::IsIndeterminate: SetIsIndeterminate(val.AsBool()); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::ControlValue: ApplyValue(val.AsFloat()); return;
+    case PropertyId::Minimum: ApplyMinimum(val.AsFloat()); return;
+    case PropertyId::Maximum: ApplyMaximum(val.AsFloat()); return;
+    case PropertyId::IsIndeterminate: ApplyIsIndeterminate(val.AsBool()); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 

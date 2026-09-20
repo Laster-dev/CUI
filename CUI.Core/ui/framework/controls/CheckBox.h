@@ -42,7 +42,7 @@ public:
     virtual const char* GetClassName() const override { return "CheckBox"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; }
 
     virtual Size Measure(Size availableSize) override;
@@ -57,16 +57,16 @@ public:
     PropertyRef<CheckState, PropertyId::CheckState> State;  ///< 三态选中绑定属性 (支持 CheckState)
 
     CheckState GetState() const { return m_state; }
-    void SetState(CheckState state);
+    void ApplyState(CheckState state);
     bool GetIsChecked() const { return m_state == CheckState::Checked; }
-    void SetIsChecked(bool c) { SetState(c ? CheckState::Checked : CheckState::Unchecked); }
+    void ApplyIsChecked(bool c) { ApplyState(c ? CheckState::Checked : CheckState::Unchecked); }
 
     /**
      * @brief 复选框选中状态布尔值属性代理。
      */
     struct CheckBoxIsCheckedProperty {
         CheckBox* owner;
-        CheckBoxIsCheckedProperty& operator=(bool c) { owner->SetIsChecked(c); return *this; }
+        CheckBoxIsCheckedProperty& operator=(bool c) { owner->ApplyIsChecked(c); return *this; }
         operator bool() const { return owner->GetIsChecked(); }
         bool Get() const { return owner->GetIsChecked(); }
         bool operator()() const { return owner->GetIsChecked(); }
@@ -81,7 +81,7 @@ public:
     bool IsUpdatingFromBinding() const { return Checked.IsUpdating() || State.IsUpdating(); }
 
     bool GetIsThreeState() const { return m_isThreeState; }
-    void SetIsThreeState(bool threeState) {
+    void ApplyIsThreeState(bool threeState) {
         m_isThreeState = threeState;
         NotifyFieldChanged(PropertyId::IsThreeState, Value(threeState));
     }
@@ -91,7 +91,7 @@ public:
      */
     struct CheckBoxIsThreeStateProperty {
         CheckBox* owner;
-        CheckBoxIsThreeStateProperty& operator=(bool t) { owner->SetIsThreeState(t); return *this; }
+        CheckBoxIsThreeStateProperty& operator=(bool t) { owner->ApplyIsThreeState(t); return *this; }
         operator bool() const { return owner->GetIsThreeState(); }
         bool Get() const { return owner->GetIsThreeState(); }
         bool operator()() const { return owner->GetIsThreeState(); }

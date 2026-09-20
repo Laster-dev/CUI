@@ -11,8 +11,8 @@ ShowcasePage BuildWrapPage(const ShowcaseContext&) {
         target.Height(240.0f);
         target.Orientation(Orientation::Horizontal);
     for (int i = 1; i <= 6; ++i) {
-        auto chip = ElevatedButton("Tag #" + std::to_string(i)).Background(Rgb(0x007ACC)).Padding(14, 6, 14, 6).Build();
-                chip->SetMargin(Thickness(4));
+        CUI::Widgets::Ref chip =ElevatedButton("Tag #" + std::to_string(i)).Background(Rgb(0x007ACC)).Padding(14, 6, 14, 6).Build();
+                chip.Margin(Thickness(4));
                 target->AddChild(chip);
     }
     CUI::Widgets::Ref combo = CUI::Widgets::ComboBox().Shared();

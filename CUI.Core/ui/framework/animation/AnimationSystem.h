@@ -43,7 +43,7 @@ public:
         m_from = value;
     }
 
-    void SetTarget(float value) {
+    void ApplyTarget(float value) {
         if (std::abs(value - m_target) > 0.0001f) {
             m_from = m_current;
             m_elapsed = 0.0f;

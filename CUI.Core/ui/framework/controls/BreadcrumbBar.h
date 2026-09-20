@@ -19,7 +19,7 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
 
-    void SetPath(const std::vector<std::string>& pathNodes);
+    void ApplyPath(const std::vector<std::string>& pathNodes);
     void PushNode(const std::string& node);
     void PopNode();
     const std::vector<std::string>& GetPath() const { return m_pathNodes; }

@@ -14,14 +14,14 @@ public:
     using clock = std::chrono::steady_clock;
 
     static AnimationManager* Current();
-    static void SetCurrent(AnimationManager* manager);
+    static void ApplyCurrent(AnimationManager* manager);
 
     void BeginFrame(clock::time_point now, bool animationActiveBeforeTick);
 
     float GetDeltaSeconds() const { return m_deltaSeconds; }
     float GetTargetFrameSeconds() const { return m_targetFrameSeconds; }
 
-    void SetTargetFrameSeconds(float seconds);
+    void ApplyTargetFrameSeconds(float seconds);
 
     void RequestFrame() { m_frameRequested = true; }
     bool HasFrameRequest() const { return m_frameRequested; }
@@ -52,7 +52,7 @@ public:
     // pump. Reachability = layout parent chain, OR AnimationHost chain (see
     // UIElement::SetAnimationHost) for popup/overlay-hosted controls that are
     // painted without being AddChild'd into the layout tree.
-    void SetLiveRoot(UIElement* root);
+    void ApplyLiveRoot(UIElement* root);
     UIElement* GetLiveRoot() const { return m_liveRoot; }
     // True if element walks to m_liveRoot via GetParent() and/or GetAnimationHost().
     bool IsInLiveTree(const UIElement* element) const;

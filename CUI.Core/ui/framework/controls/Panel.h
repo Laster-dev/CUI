@@ -70,7 +70,7 @@ public:
 
     struct GridColumnsProperty {
         Grid* owner;
-        GridColumnsProperty& operator=(const std::string& colDefsStr) { owner->SetColumnDefinitions(colDefsStr); return *this; }
+        GridColumnsProperty& operator=(const std::string& colDefsStr) { owner->ApplyColumnDefinitions(colDefsStr); return *this; }
         GridColumnsProperty& operator=(std::initializer_list<GridLength> lengths) {
             owner->m_columns.clear();
             for (const auto& len : lengths) {
@@ -92,7 +92,7 @@ public:
 
     struct GridRowsProperty {
         Grid* owner;
-        GridRowsProperty& operator=(const std::string& rowDefsStr) { owner->SetRowDefinitions(rowDefsStr); return *this; }
+        GridRowsProperty& operator=(const std::string& rowDefsStr) { owner->ApplyRowDefinitions(rowDefsStr); return *this; }
         GridRowsProperty& operator=(std::initializer_list<GridLength> lengths) {
             owner->m_rows.clear();
             for (const auto& len : lengths) {
@@ -118,8 +118,8 @@ public:
     const std::vector<RowDefinition>& GetRowDefinitions() const { return m_rows; } // 获取网格行定义明细集合
     std::vector<RowDefinition>& GetRowDefinitions() { return m_rows; }
 
-    void SetColumnDefinitions(const std::string& colDefsStr); // 传入 CSV/比例字符串快速初始化并设定网格列规则
-    void SetRowDefinitions(const std::string& rowDefsStr); // 传入 CSV/比例字符串快速初始化并设定网格行规则
+    void ApplyColumnDefinitions(const std::string& colDefsStr); // 传入 CSV/比例字符串快速初始化并设定网格列规则
+    void ApplyRowDefinitions(const std::string& rowDefsStr); // 传入 CSV/比例字符串快速初始化并设定网格行规则
 
 private:
     std::vector<ColumnDefinition> m_columns; // 注册的所有网格列限制定义

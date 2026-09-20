@@ -23,26 +23,27 @@ std::shared_ptr<Button> MakeBtn(const std::string& text) {
     return btn;
 }
 
-void ApplySales(ChartBase& chart, bool quarterly) {
+template<class T>
+void ApplySales(const CUI::Widgets::Ref<T>& chart, bool quarterly) {
     if (quarterly) {
-                chart.SetCategories({ "Q1", "Q2", "Q3", "Q4" });
+                chart.Categories({ "Q1", "Q2", "Q3", "Q4" });
         ChartSeries a;
         a.name = "华北";
         a.values = { 82.0f, 91.0f, 76.0f, 104.0f };
         ChartSeries b;
         b.name = "华东";
         b.values = { 64.0f, 70.0f, 88.0f, 95.0f };
-                chart.SetSeries({ std::move(a), std::move(b) });
+                chart.Series({ std::move(a), std::move(b) });
         return;
     }
-        chart.SetCategories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
+        chart.Categories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
     ChartSeries a;
     a.name = "华北";
     a.values = { 12.0f, 18.0f, 15.0f, 22.0f, 28.0f, 24.0f, 31.0f };
     ChartSeries b;
     b.name = "华东";
     b.values = { 9.0f, 14.0f, 19.0f, 16.0f, 21.0f, 27.0f, 25.0f };
-        chart.SetSeries({ std::move(a), std::move(b) });
+        chart.Series({ std::move(a), std::move(b) });
 }
 
 std::string FormatHover(ChartBase* chart, int index, int series) {
@@ -113,7 +114,7 @@ public:
         return m_desiredSize;
     }
     virtual void Arrange(Rect finalRect) override {
-        SetBounds(Rect(finalRect.x, finalRect.y, 0.0f, 0.0f));
+        ApplyBounds(Rect(finalRect.x, finalRect.y, 0.0f, 0.0f));
     }
     virtual void OnRender(GraphicsContext& ctx) override {
         (void)ctx;
@@ -139,7 +140,7 @@ private:
             m_hist.pop_front();
         }
         if (m_readout) {
-                        m_readout->SetText(FormatPerfReadout(snap));
+                        m_readout.Text(FormatPerfReadout(snap));
         }
 
         const int n = static_cast<int>(m_hist.size());
@@ -170,16 +171,16 @@ private:
         const bool first = m_first;
         m_first = false;
         if (m_mem) {
-                        m_mem->SetLiveData(cats, { priv, full }, first);
+                        m_mem->ApplyLiveData(cats, { priv, full }, first);
         }
         if (m_load) {
-                        m_load->SetLiveData(std::move(cats), { std::move(cpu), std::move(gpu), std::move(fps) }, first);
+                        m_load->ApplyLiveData(std::move(cats), { std::move(cpu), std::move(gpu), std::move(fps) }, first);
         }
     }
 
-    std::shared_ptr<LineChart> m_mem;
-    std::shared_ptr<LineChart> m_load;
-    std::shared_ptr<TextBlock> m_readout;
+    CUI::Widgets::Ref<::CUI::LineChart> m_mem;
+    CUI::Widgets::Ref<::CUI::LineChart> m_load;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_readout;
     std::deque<PerfSnapshot> m_hist;
     bool m_started = false;
     bool m_first = true;
@@ -190,21 +191,21 @@ ShowcasePage BuildChartPage(const ShowcaseContext& ctx) {
     CUI::Widgets::Ref line = CUI::Widgets::LineChart().Shared();
     CUI::Widgets::Ref bar = CUI::Widgets::BarChart().Shared();
     CUI::Widgets::Ref pie = CUI::Widgets::PieChart().Shared();
-    ApplySales(*line, false);
-    ApplySales(*bar, false);
-    ApplySales(*pie, false);
+    ApplySales(line, false);
+    ApplySales(bar, false);
+    ApplySales(pie, false);
         line.Text("折线 · 月度销量");
         bar.Text("柱状 · 月度销量");
         pie.Text("饼图 · 华北月度占比");
         bar.Visibility(Visibility::Collapsed);
         pie.Visibility(Visibility::Collapsed);
 
-    auto hover = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref hover =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("悬停或 ← → 读值", 12.0f, "textSecondary", false));
 
     auto bindHover = [hover](ChartBase* chart) {
         chart->OnHoverChanged().Connect([hover](ChartBase* sender, int index, int series) {
-                        hover->SetText(FormatHover(sender, index, series));
+                        hover.Text(FormatHover(sender, index, series));
         });
     };
     bindHover(line.get());
@@ -226,18 +227,18 @@ ShowcasePage BuildChartPage(const ShowcaseContext& ctx) {
 
     auto btnMonth = MakeBtn("月度");
     btnMonth->OnClick().Connect([line, bar, pie](UIElement*) {
-        ApplySales(*line, false);
-        ApplySales(*bar, false);
-        ApplySales(*pie, false);
+        ApplySales(line, false);
+        ApplySales(bar, false);
+        ApplySales(pie, false);
                 line.Text("折线 · 月度销量");
                 bar.Text("柱状 · 月度销量");
                 pie.Text("饼图 · 华北月度占比");
     });
     auto btnQuarter = MakeBtn("季度");
     btnQuarter->OnClick().Connect([line, bar, pie](UIElement*) {
-        ApplySales(*line, true);
-        ApplySales(*bar, true);
-        ApplySales(*pie, true);
+        ApplySales(line, true);
+        ApplySales(bar, true);
+        ApplySales(pie, true);
                 line.Text("折线 · 季度销量");
                 bar.Text("柱状 · 季度销量");
                 pie.Text("饼图 · 华北季度占比");

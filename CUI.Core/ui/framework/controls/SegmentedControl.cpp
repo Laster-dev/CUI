@@ -28,20 +28,20 @@ D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
 
 SegmentedControl::SegmentedControl() {
     SelectedIndex.Initialize(*this);
-        this->SetHeight(32.0f);
-    this->SetWidth(280.0f);
-    this->SetCornerRadius(6.0f);
-    this->SetBorderThickness(1.5f);
-    this->SetFontSize(12.0f);
-    this->SetFontFamily("微软雅黑");
-    this->SetPadding(0.0f);
-    this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    this->SetBorderToken(ThemeTokenId::AccentColor);
-    this->SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    this->SetSelectedBackgroundToken(ThemeTokenId::AccentColor);
-    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+        this->ApplyHeight(32.0f);
+    this->ApplyWidth(280.0f);
+    this->ApplyCornerRadius(6.0f);
+    this->ApplyBorderThickness(1.5f);
+    this->ApplyFontSize(12.0f);
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyPadding(0.0f);
+    this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    this->ApplyBorderToken(ThemeTokenId::AccentColor);
+    this->ApplyFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    this->ApplySelectedBackgroundToken(ThemeTokenId::AccentColor);
+    this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Contained);
 }
 
 namespace {
@@ -67,23 +67,23 @@ bool SegmentedControl::HasProperty(PropertyId id) const {
     return id == PropertyId::Items || id == PropertyId::SelectedIndex || Control::HasProperty(id);
 }
 
-void SegmentedControl::SetProperty(PropertyId id, const Value& val) {
+void SegmentedControl::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::Items) {
-        SetItems(val.AsString(""));
+        ApplyItems(val.AsString(""));
         return;
     }
     if (id == PropertyId::SelectedIndex) {
-        SetSelectedIndex(static_cast<int>(val.AsFloat(0.0f)));
+        ApplySelectedIndex(static_cast<int>(val.AsFloat(0.0f)));
         return;
     }
-    Control::SetProperty(id, val);
+    Control::ApplyProperty(id, val);
 }
 
 void SegmentedControl::AddItem(const std::string& item) {
     m_items.push_back(item);
     m_itemEnabled.push_back(true);
     if (m_selectedIndex < 0) {
-        SetSelectedIndex(0);
+        ApplySelectedIndex(0);
     }
     InvalidateMeasure();
     MarkRenderContentDirty();
@@ -99,7 +99,7 @@ void SegmentedControl::ClearItems() {
     MarkRenderContentDirty();
 }
 
-void SegmentedControl::SetItems(const std::string& itemsCsv) {
+void SegmentedControl::ApplyItems(const std::string& itemsCsv) {
     ClearItems();
     std::stringstream ss(itemsCsv);
     std::string item;
@@ -110,7 +110,7 @@ void SegmentedControl::SetItems(const std::string& itemsCsv) {
     }
 }
 
-void SegmentedControl::SetItemEnabled(int index, bool enabled) {
+void SegmentedControl::ApplyItemEnabled(int index, bool enabled) {
     if (index < 0 || index >= static_cast<int>(m_itemEnabled.size())) {
         return;
     }
@@ -126,7 +126,7 @@ void SegmentedControl::SetItemEnabled(int index, bool enabled) {
                 break;
             }
         }
-        SetSelectedIndex(firstEnabled);
+        ApplySelectedIndex(firstEnabled);
     }
     MarkRenderContentDirty();
 }
@@ -138,7 +138,7 @@ bool SegmentedControl::IsItemEnabled(int index) const {
     return m_itemEnabled[static_cast<size_t>(index)];
 }
 
-void SegmentedControl::SetSelectedIndex(int index) {
+void SegmentedControl::ApplySelectedIndex(int index) {
     if (m_items.empty()) {
         m_selectedIndex = -1;
         return;
@@ -232,8 +232,8 @@ void SegmentedControl::SyncPill(bool snap) {
         m_pillX.Reset(targetRelX);
         m_pillW.Reset(targetW);
     } else {
-        m_pillX.SetTarget(targetRelX);
-        m_pillW.SetTarget(targetW);
+        m_pillX.ApplyTarget(targetRelX);
+        m_pillW.ApplyTarget(targetW);
     }
 }
 
@@ -345,7 +345,7 @@ void SegmentedControl::OnMouseUp(Point pt) {
     }
     const int hit = HitTestIndex(pt);
     if (hit >= 0 && hit == m_pressedIndex && IsItemEnabled(hit)) {
-        SetSelectedIndex(hit);
+        ApplySelectedIndex(hit);
     }
     m_pressedIndex = -1;
 }
@@ -377,7 +377,7 @@ bool SegmentedControl::OnKeyDown(int vkCode) {
         for (int step = 1; step <= n; ++step) {
             int candidate = (target - step + n) % n;
             if (IsItemEnabled(candidate)) {
-                SetSelectedIndex(candidate);
+                ApplySelectedIndex(candidate);
                 return true;
             }
         }
@@ -387,7 +387,7 @@ bool SegmentedControl::OnKeyDown(int vkCode) {
         for (int step = 1; step <= n; ++step) {
             int candidate = (target + step) % n;
             if (IsItemEnabled(candidate)) {
-                SetSelectedIndex(candidate);
+                ApplySelectedIndex(candidate);
                 return true;
             }
         }

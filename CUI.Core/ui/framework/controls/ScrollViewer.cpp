@@ -64,20 +64,20 @@ void RenderVisibleSubtree(UIElement* element, GraphicsContext& ctx, const Rect& 
 }
 
 ScrollViewer::ScrollViewer() {
-    this->SetTrackColorToken(ThemeTokenId::CardBorder);
-    this->SetThumbColorToken(ThemeTokenId::TextMuted);
-    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyTrackColorToken(ThemeTokenId::CardBorder);
+    this->ApplyThumbColorToken(ThemeTokenId::TextMuted);
+    this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
     QueryPerformanceFrequency(&m_qpcFreq);
     m_scrollAnimator.Reset(0.0f);
-    GetRenderNode().GetLayer().SetCacheable(true);
-    m_contentLayer.SetCacheable(true);
+    GetRenderNode().GetLayer().ApplyCacheable(true);
+    m_contentLayer.ApplyCacheable(true);
     // Do NOT hook OnPropertyIdChanged → MarkContentLayerDirty here.
     // UIElement already MarkRenderContentDirties on NotifyFieldChanged; a second
     // StructureDirty path forced FULL_RERASTER of the whole menu/PropertyGrid
     // bitmap on every token/opacity write (identical hitch to the old scroll bug).
 }
 
-void ScrollViewer::SetScrollOffsetY(float offset) {
+void ScrollViewer::ApplyScrollOffsetY(float offset) {
     float previousOffset = m_offsetY;
     StopSmoothScroll();
     m_offsetY = offset;
@@ -316,8 +316,8 @@ void ScrollViewer::MarkContentLayerRectDirty(const Rect& rect) {
 void ScrollViewer::UpdateContentLayerState() {
     Rect contentViewport = GetContentViewportRect();
     m_contentViewportRect = contentViewport;
-    m_contentLayer.SetBounds(contentViewport);
-    m_contentLayer.SetTranslation(0.0f, -m_offsetY);
+    m_contentLayer.ApplyBounds(contentViewport);
+    m_contentLayer.ApplyTranslation(0.0f, -m_offsetY);
     m_contentLayerOffsetY = m_offsetY;
 }
 
@@ -423,7 +423,7 @@ Size ScrollViewer::Measure(Size availableSize) {
 }
 
 void ScrollViewer::Arrange(Rect finalRect) {
-    SetBounds(finalRect);
+    ApplyBounds(finalRect);
     Thickness padding = GetPadding();
     float reserve = GetScrollbarReserve();
     float contentWidth = std::max(
@@ -510,7 +510,7 @@ void ScrollViewer::RenderContentImmediate(GraphicsContext& ctx) {
     m_pendingViewportScrollPatch = false;
     m_pendingViewportPatchDeltaY = 0.0f;
     m_contentLayerOffsetY = m_offsetY;
-    m_contentLayer.SetTranslation(0.0f, -m_offsetY);
+    m_contentLayer.ApplyTranslation(0.0f, -m_offsetY);
 }
 
 void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
@@ -733,7 +733,7 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
     }
 
     m_contentLayerOffsetY = m_offsetY;
-    m_contentLayer.SetTranslation(0.0f, -m_offsetY);
+    m_contentLayer.ApplyTranslation(0.0f, -m_offsetY);
 }
 
 void ScrollViewer::RenderScrollChrome(GraphicsContext& ctx) {
@@ -924,7 +924,7 @@ void ScrollViewer::OnMouseDown(Point pt) {
     if (thumb.Contains(pt.x, pt.y)) {
         StopSmoothScroll();
         m_isDraggingThumb = true;
-        m_scrollbarAutoHide.SetDragging(true, this);
+        m_scrollbarAutoHide.ApplyDragging(true, this);
         m_dragStartY = pt.y;
         m_dragStartOffsetY = m_offsetY;
         return;
@@ -964,7 +964,7 @@ void ScrollViewer::OnMouseMove(Point pt) {
 
     bool wasHovered = m_scrollbarHovered;
     m_scrollbarHovered = (m_contentHeight > m_bounds.height) && GetScrollbarTrackRect().Contains(pt.x, pt.y);
-    m_scrollbarAutoHide.SetPointerOver(m_scrollbarHovered, this);
+    m_scrollbarAutoHide.ApplyPointerOver(m_scrollbarHovered, this);
     if (wasHovered != m_scrollbarHovered) {
         UIElement::MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
         RequestAnimationTicks();
@@ -994,7 +994,7 @@ void ScrollViewer::OnMouseUp(Point pt) {
         RequestAnimationTicks();
     }
     m_isDraggingThumb = false;
-    m_scrollbarAutoHide.SetDragging(false, this);
+    m_scrollbarAutoHide.ApplyDragging(false, this);
 }
 
 void ScrollViewer::OnMouseLeave() {
@@ -1003,7 +1003,7 @@ void ScrollViewer::OnMouseLeave() {
         m_scrollbarHovered = false;
         UIElement::MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
     }
-    m_scrollbarAutoHide.SetPointerOver(false, this);
+    m_scrollbarAutoHide.ApplyPointerOver(false, this);
     RequestAnimationTicks();
 }
 

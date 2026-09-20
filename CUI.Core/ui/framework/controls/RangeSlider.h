@@ -15,7 +15,7 @@ public:
     virtual const char* GetClassName() const override { return "RangeSlider"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取悬浮交互鼠标样式
     bool AcceptsTabFocus() const override { return true; } // 支持键盘 Tab 导航聚焦
 
@@ -33,7 +33,7 @@ public:
         RangeSlider* owner = nullptr;
         RangeSliderMinimumProperty() = default;
         explicit RangeSliderMinimumProperty(RangeSlider* o) : owner(o) {}
-        RangeSliderMinimumProperty& operator=(float v) { if (owner) owner->SetMinimum(v); return *this; }
+        RangeSliderMinimumProperty& operator=(float v) { if (owner) owner->ApplyMinimum(v); return *this; }
         operator float() const { return owner ? owner->GetMinimum() : 0.0f; }
         float Get() const { return owner ? owner->GetMinimum() : 0.0f; }
     } Minimum;
@@ -42,7 +42,7 @@ public:
         RangeSlider* owner = nullptr;
         RangeSliderMaximumProperty() = default;
         explicit RangeSliderMaximumProperty(RangeSlider* o) : owner(o) {}
-        RangeSliderMaximumProperty& operator=(float v) { if (owner) owner->SetMaximum(v); return *this; }
+        RangeSliderMaximumProperty& operator=(float v) { if (owner) owner->ApplyMaximum(v); return *this; }
         operator float() const { return owner ? owner->GetMaximum() : 100.0f; }
         float Get() const { return owner ? owner->GetMaximum() : 100.0f; }
     } Maximum;
@@ -51,29 +51,29 @@ public:
         RangeSlider* owner = nullptr;
         RangeSliderStepProperty() = default;
         explicit RangeSliderStepProperty(RangeSlider* o) : owner(o) {}
-        RangeSliderStepProperty& operator=(float v) { if (owner) owner->SetStep(v); return *this; }
+        RangeSliderStepProperty& operator=(float v) { if (owner) owner->ApplyStep(v); return *this; }
         operator float() const { return owner ? owner->GetStep() : 1.0f; }
         float Get() const { return owner ? owner->GetStep() : 1.0f; }
     } Step;
 
     float GetMinimum() const { return m_minimum; } // 获取滑动最小值
-    void SetMinimum(float minVal); // 设置滑动最小值
+    void ApplyMinimum(float minVal); // 设置滑动最小值
     float GetMaximum() const { return m_maximum; } // 获取滑动最大值
-    void SetMaximum(float maxVal); // 设置滑动最大值
+    void ApplyMaximum(float maxVal); // 设置滑动最大值
     float GetStep() const { return m_step; } // 获取调节步长精度
-    void SetStep(float step); // 设置调节步长精度
+    void ApplyStep(float step); // 设置调节步长精度
     
     float GetMinimumRange() const { return m_minimumRange; } // 获取允许选择的最小跨度范围大小
-    void SetMinimumRange(float range); // 设置允许选择的最小跨度范围大小
+    void ApplyMinimumRange(float range); // 设置允许选择的最小跨度范围大小
 
     PropertyRef<float, PropertyId::LowerValue> LowerValue; // 下限滑块位置值的双向绑定属性代理
     PropertyRef<float, PropertyId::UpperValue> UpperValue; // 上限滑块位置值的双向绑定属性代理
     
     float GetLowerValue() const { return m_lower; } // 获取下限数值
-    void SetLowerValue(float val); // 设置下限数值
+    void ApplyLowerValue(float val); // 设置下限数值
     float GetUpperValue() const { return m_upper; } // 获取上限数值
-    void SetUpperValue(float val); // 设置上限数值
-    void SetRange(float lower, float upper); // 强行一次性指定区间段上下限
+    void ApplyUpperValue(float val); // 设置上限数值
+    void ApplyRange(float lower, float upper); // 强行一次性指定区间段上下限
 
     Event<RangeSlider*, float, float>& OnValueChanged() { return m_onValueChanged; } // 区间值改变时的事件发布中心
 

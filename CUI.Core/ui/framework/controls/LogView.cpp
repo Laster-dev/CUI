@@ -120,17 +120,17 @@ D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
 
 LogView::LogView() {
     m_buf.resize(m_cap);
-        this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBorderToken(ThemeTokenId::FocusedBorder);
-    this->SetBorderThickness(1.0f);
-    this->SetCornerRadius(6.0f);
-    this->SetAlign(Alignment::Stretch);
-    this->SetClipToBounds(true);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBorderToken(ThemeTokenId::FocusedBorder);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyCornerRadius(6.0f);
+    this->ApplyAlign(Alignment::Stretch);
+    this->ApplyClipToBounds(true);
     m_expandedHeight = 280.0f;
     BuildChrome();
     SyncChipAnimTargets(true);
     m_expandAnim.Reset(m_expanded ? 1.0f : 0.0f);
-    this->SetHeight(ExpandHeight());
+    this->ApplyHeight(ExpandHeight());
 }
 
 LogView::~LogView() {
@@ -138,33 +138,33 @@ LogView::~LogView() {
 }
 
 void LogView::StyleIconButton(Button& btn, const char* svg, const char* tooltip, ThemeTokenId color) {
-    btn.SetText("");
-    btn.SetIcon(svg);
-    btn.SetToolTip(tooltip);
-    btn.SetWidth(kIconBtn);
-    btn.SetHeight(kIconBtn);
-    btn.SetFontSize(16.0f);
-    btn.SetPadding(5.0f);
-    btn.SetCornerRadius(4.0f);
-    btn.SetBorderThickness(0.0f);
-    btn.SetBackgroundToken(ThemeTokenId::Unset);
-    btn.SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    btn.SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    btn.SetBackground(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
-    btn.SetColorToken(color);
+    btn.ApplyText("");
+    btn.ApplyIcon(svg);
+    btn.ApplyToolTip(tooltip);
+    btn.ApplyWidth(kIconBtn);
+    btn.ApplyHeight(kIconBtn);
+    btn.ApplyFontSize(16.0f);
+    btn.ApplyPadding(5.0f);
+    btn.ApplyCornerRadius(4.0f);
+    btn.ApplyBorderThickness(0.0f);
+    btn.ApplyBackgroundToken(ThemeTokenId::Unset);
+    btn.ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    btn.ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    btn.ApplyBackground(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+    btn.ApplyColorToken(color);
 }
 
 void LogView::BuildChrome() {
     m_search = std::make_shared<TextBox>();
-    m_search->SetPlaceholder("搜索 消息 / 分类");
-    m_search->SetHeight(26.0f);
-    m_search->SetFontSize(12.0f);
-    m_search->SetPadding(Thickness(8.0f, 2.0f, 8.0f, 2.0f));
-    m_search->SetCornerRadius(4.0f);
-    m_search->SetBackgroundToken(ThemeTokenId::InputBackground);
+    m_search->ApplyPlaceholder("搜索 消息 / 分类");
+    m_search->ApplyHeight(26.0f);
+    m_search->ApplyFontSize(12.0f);
+    m_search->ApplyPadding(Thickness(8.0f, 2.0f, 8.0f, 2.0f));
+    m_search->ApplyCornerRadius(4.0f);
+    m_search->ApplyBackgroundToken(ThemeTokenId::InputBackground);
     m_search->OnTextChanged().Connect([this](TextBox*, const std::string& text) {
             if (!m_syncingUi) {
-                SetFilterText(text);
+                ApplyFilterText(text);
             }
         });
 
@@ -178,7 +178,7 @@ void LogView::BuildChrome() {
 
     m_btnFollow = std::make_shared<Button>();
     StyleIconButton(*m_btnFollow, kSvgFollow, "跟随", ThemeTokenId::TextPrimary);
-        m_btnFollow->OnClick().Connect([this](UIElement*) { SetFollowTail(!m_follow); });
+        m_btnFollow->OnClick().Connect([this](UIElement*) { ApplyFollowTail(!m_follow); });
 
     this->AddChild(m_search);
     this->AddChild(m_btnCopy);
@@ -192,7 +192,7 @@ void LogView::ApplyChromeVisibility() {
     const Visibility vis = (ExpandProgress() > 0.08f) ? Visibility::Visible : Visibility::Collapsed;
     auto apply = [vis](const std::shared_ptr<UIElement>& el) {
         if (el && el->GetVisibility() != vis) {
-            el->SetVisibility(vis);
+            el->ApplyVisibility(vis);
         }
     };
     apply(m_search);
@@ -205,8 +205,8 @@ void LogView::SyncActionButtons() {
     if (!m_btnFollow) {
         return;
     }
-    m_btnFollow->SetColorToken(m_follow ? ThemeTokenId::AccentColor : ThemeTokenId::TextPrimary);
-    m_btnFollow->SetToolTip(m_follow ? "跟随中" : "跟随");
+    m_btnFollow->ApplyColorToken(m_follow ? ThemeTokenId::AccentColor : ThemeTokenId::TextPrimary);
+    m_btnFollow->ApplyToolTip(m_follow ? "跟随中" : "跟随");
 }
 
 float LogView::ExpandProgress() const {
@@ -223,7 +223,7 @@ bool LogView::BodyInteractive() const {
 }
 
 void LogView::ApplyExpandLayout() {
-    this->SetHeight(ExpandHeight());
+    this->ApplyHeight(ExpandHeight());
     ApplyChromeVisibility();
     InvalidateMeasure();
     for (UIElement* walk = GetParent(); walk; walk = walk->GetParent()) {
@@ -243,7 +243,7 @@ void LogView::SyncChipAnimTargets(bool snap) {
         if (snap || !UIElement::AreAnimationsEnabled()) {
             m_chipAnim[i].Reset(t);
         } else {
-            m_chipAnim[i].SetTarget(t);
+            m_chipAnim[i].ApplyTarget(t);
         }
     }
     if (!snap && UIElement::AreAnimationsEnabled()) {
@@ -292,18 +292,18 @@ bool LogView::HasProperty(PropertyId id) const {
     }
 }
 
-void LogView::SetProperty(PropertyId id, const Value& val) {
+void LogView::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::Text: SetFilterText(val.AsString()); return;
-    case PropertyId::IsOn: SetPersistEnabled(val.AsBool()); return;
-    case PropertyId::IsExpanded: SetExpanded(val.AsBool()); return;
-    case PropertyId::FollowTail: SetFollowTail(val.AsBool()); return;
+    case PropertyId::Text: ApplyFilterText(val.AsString()); return;
+    case PropertyId::IsOn: ApplyPersistEnabled(val.AsBool()); return;
+    case PropertyId::IsExpanded: ApplyExpanded(val.AsBool()); return;
+    case PropertyId::FollowTail: ApplyFollowTail(val.AsBool()); return;
     case PropertyId::MaxEntries: {
         const float n = val.AsFloat(static_cast<float>(m_cap));
-        SetMaxEntries(n > 0.0f ? static_cast<uint32_t>(n) : m_cap);
+        ApplyMaxEntries(n > 0.0f ? static_cast<uint32_t>(n) : m_cap);
         return;
     }
-    default: Control::SetProperty(id, val); return;
+    default: Control::ApplyProperty(id, val); return;
     }
 }
 
@@ -334,7 +334,7 @@ Size LogView::Measure(Size availableSize) {
 
 void LogView::Arrange(Rect finalRect) {
     if (GetVisibility() == Visibility::Collapsed) {
-        SetBounds(Rect());
+        ApplyBounds(Rect());
         m_arrangeDirty = false;
         return;
     }
@@ -344,7 +344,7 @@ void LogView::Arrange(Rect finalRect) {
         finalRect.y + margin.top,
         (std::max)(0.0f, finalRect.width - margin.left - margin.right),
         (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
-    SetBounds(arranged);
+    ApplyBounds(arranged);
     LayoutChrome();
     m_arrangeDirty = false;
 }
@@ -391,16 +391,16 @@ bool LogView::GetLevelEnabled(LogLevel level) const {
     return (i >= 0 && i < 6) && ((m_levelMask & (1u << i)) != 0);
 }
 
-void LogView::SetLevelEnabled(LogLevel level, bool enabled) {
+void LogView::ApplyLevelEnabled(LogLevel level, bool enabled) {
     const int i = static_cast<int>(level);
     if (i < 0 || i >= 6) {
         return;
     }
     const uint8_t bit = static_cast<uint8_t>(1u << i);
-    SetLevelMask(enabled ? (m_levelMask | bit) : static_cast<uint8_t>(m_levelMask & ~bit));
+    ApplyLevelMask(enabled ? (m_levelMask | bit) : static_cast<uint8_t>(m_levelMask & ~bit));
 }
 
-void LogView::SetLevelMask(uint8_t mask) {
+void LogView::ApplyLevelMask(uint8_t mask) {
     mask &= kAllLevels;
     if (mask == m_levelMask) {
         return;
@@ -417,12 +417,12 @@ std::string LogView::GetFilterText() const {
     return m_search ? m_search->GetText() : std::string();
 }
 
-void LogView::SetFilterText(const std::string& text) {
+void LogView::ApplyFilterText(const std::string& text) {
     m_filterFold = text;
     FoldAsciiInPlace(m_filterFold);
     if (m_search && m_search->GetText() != text) {
         m_syncingUi = true;
-        m_search->SetText(text);
+        m_search->ApplyText(text);
         m_syncingUi = false;
     }
     RebuildVisible();
@@ -536,7 +536,7 @@ void LogView::Clear() {
     NotifyChanged();
 }
 
-void LogView::SetExpanded(bool expanded) {
+void LogView::ApplyExpanded(bool expanded) {
     if (m_expanded == expanded) {
         return;
     }
@@ -551,7 +551,7 @@ void LogView::SetExpanded(bool expanded) {
     }
     const bool live = UIElement::AreAnimationsEnabled() && GetParent() != nullptr;
     if (live) {
-        m_expandAnim.SetTarget(expanded ? 1.0f : 0.0f);
+        m_expandAnim.ApplyTarget(expanded ? 1.0f : 0.0f);
         RequestAnimationTicks();
     } else {
         m_expandAnim.Reset(expanded ? 1.0f : 0.0f);
@@ -563,7 +563,7 @@ void LogView::SetExpanded(bool expanded) {
     MarkRenderRectDirty(prev.Union(m_bounds).Inflate(4.0f));
 }
 
-void LogView::SetMaxEntries(uint32_t capacity) {
+void LogView::ApplyMaxEntries(uint32_t capacity) {
     capacity = (std::max)(64u, (std::min)(capacity, 200000u));
     if (capacity == m_cap) {
         return;
@@ -586,7 +586,7 @@ void LogView::SetMaxEntries(uint32_t capacity) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void LogView::SetPersistEnabled(bool enabled) {
+void LogView::ApplyPersistEnabled(bool enabled) {
     if (m_persistEnabled == enabled) {
         return;
     }
@@ -602,7 +602,7 @@ void LogView::SetPersistEnabled(bool enabled) {
     NotifyChanged();
 }
 
-void LogView::SetPersistPath(std::string path) {
+void LogView::ApplyPersistPath(std::string path) {
     if (m_persistPath == path) {
         return;
     }
@@ -655,7 +655,7 @@ void LogView::FlushPersist() {
     m_persistBuf.clear();
 }
 
-void LogView::SetFollowFlag(bool follow) {
+void LogView::ApplyFollowFlag(bool follow) {
     if (m_follow == follow) {
         return;
     }
@@ -668,14 +668,14 @@ void LogView::NotifyChanged() {
     m_onChanged.Invoke(this);
 }
 
-void LogView::SetFollowTail(bool follow) {
+void LogView::ApplyFollowTail(bool follow) {
     if (m_follow == follow) {
         return;
     }
-    SetFollowFlag(follow);
+    ApplyFollowFlag(follow);
     if (m_follow) {
         ClampScroll();
-        SetScrollTarget(m_maxScrollY, true);
+        ApplyScrollTarget(m_maxScrollY, true);
         DirtyBody();
     }
 }
@@ -690,7 +690,7 @@ void LogView::ScrollToTail() {
     m_scrollAnimator.JumpTo(m_scrollY);
 }
 
-void LogView::SetScrollTarget(float y, bool animate) {
+void LogView::ApplyScrollTarget(float y, bool animate) {
     ClampScroll();
     y = std::clamp(y, 0.0f, m_maxScrollY);
     if (!animate || !UIElement::AreAnimationsEnabled()) {
@@ -852,7 +852,7 @@ LogView::Part LogView::HitPart(Point pt, int* index) const {
     return Part::None;
 }
 
-void LogView::SetSelection(int a, int b) {
+void LogView::ApplySelection(int a, int b) {
     const int n = static_cast<int>(GetVisibleCount());
     if (n <= 0) {
         m_selA = m_selB = -1;
@@ -874,7 +874,7 @@ void LogView::SelectAllVisible() {
         ClearSelection();
         return;
     }
-    SetSelection(0, n - 1);
+    ApplySelection(0, n - 1);
 }
 
 void LogView::ClearSelection() {
@@ -1165,12 +1165,12 @@ void LogView::OnMouseDown(Point pt) {
     const Part part = HitPart(pt, &idx);
     switch (part) {
     case Part::Header:
-        SetExpanded(!m_expanded);
+        ApplyExpanded(!m_expanded);
         break;
     case Part::Chip:
         if (idx >= 0 && idx < 6) {
             const auto lv = static_cast<LogLevel>(idx);
-            SetLevelEnabled(lv, !GetLevelEnabled(lv));
+            ApplyLevelEnabled(lv, !GetLevelEnabled(lv));
         }
         break;
     case Part::Scrollbar: {
@@ -1180,12 +1180,12 @@ void LogView::OnMouseDown(Point pt) {
             m_dragStartY = pt.y;
             m_dragStartScroll = m_scrollY;
             StopSmoothScroll();
-            m_sbHide.SetDragging(true, this);
+            m_sbHide.ApplyDragging(true, this);
         } else {
             const Rect track = ScrollbarTrack();
             const float t = (track.height > 0.0f) ? std::clamp((pt.y - track.y) / track.height, 0.0f, 1.0f) : 0.0f;
-            SetScrollTarget(t * m_maxScrollY, false);
-            SetFollowFlag(false);
+            ApplyScrollTarget(t * m_maxScrollY, false);
+            ApplyFollowFlag(false);
             DirtyBody();
         }
         break;
@@ -1193,9 +1193,9 @@ void LogView::OnMouseDown(Point pt) {
     case Part::Row: {
         const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
         if (shift && m_selA >= 0) {
-            SetSelection(m_selA, idx);
+            ApplySelection(m_selA, idx);
         } else {
-            SetSelection(idx, idx);
+            ApplySelection(idx, idx);
         }
         m_selecting = true;
         break;
@@ -1214,14 +1214,14 @@ void LogView::OnMouseMove(Point pt) {
         m_scrollY = m_dragStartScroll + (pt.y - m_dragStartY) / travel * m_maxScrollY;
         ClampScroll();
         m_scrollAnimator.JumpTo(m_scrollY);
-        SetFollowFlag(m_scrollY >= m_maxScrollY - 0.5f);
+        ApplyFollowFlag(m_scrollY >= m_maxScrollY - 0.5f);
         DirtyBody();
         return;
     }
     if (m_selecting) {
         const int row = RowIndexFromY(pt.y);
         if (row >= 0) {
-            SetSelection(m_selA, row);
+            ApplySelection(m_selA, row);
         }
         return;
     }
@@ -1239,19 +1239,19 @@ void LogView::OnMouseMove(Point pt) {
             DirtyHeader();
         }
     }
-    m_sbHide.SetPointerOver(ScrollbarTrack().Contains(pt.x, pt.y), this);
+    m_sbHide.ApplyPointerOver(ScrollbarTrack().Contains(pt.x, pt.y), this);
 }
 
 void LogView::OnMouseUp(Point pt) {
     UIElement::OnMouseUp(pt);
     m_dragScrollbar = false;
     m_selecting = false;
-    m_sbHide.SetDragging(false, this);
+    m_sbHide.ApplyDragging(false, this);
 }
 
 void LogView::OnMouseLeave() {
     UIElement::OnMouseLeave();
-    m_sbHide.SetPointerOver(false, this);
+    m_sbHide.ApplyPointerOver(false, this);
     if (m_hoverPart != Part::None || m_hoverRow >= 0) {
         m_hoverPart = Part::None;
         m_hoverRow = -1;
@@ -1265,7 +1265,7 @@ void LogView::OnMouseLeave() {
 void LogView::OnMouseDblClick(Point pt) {
     int idx = -1;
     if (HitPart(pt, &idx) == Part::Row) {
-        SetSelection(idx, idx);
+        ApplySelection(idx, idx);
         CopySelection();
     }
 }
@@ -1295,7 +1295,7 @@ void LogView::OnMouseWheel(float delta) {
         UIElement::OnMouseWheel(delta);
         return;
     }
-    SetFollowFlag(newTarget >= m_maxScrollY - 0.5f);
+    ApplyFollowFlag(newTarget >= m_maxScrollY - 0.5f);
     m_sbHide.NotifyActivity(this);
     DirtyBody();
 }
@@ -1304,7 +1304,7 @@ bool LogView::OnKeyDown(int vkCode) {
     const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     if (ctrl && vkCode == 'F') {
         if (!m_expanded) {
-            SetExpanded(true);
+            ApplyExpanded(true);
         }
         return true;
     }
@@ -1317,11 +1317,11 @@ bool LogView::OnKeyDown(int vkCode) {
         return true;
     }
     if (vkCode == VK_ESCAPE && m_expanded) {
-        SetExpanded(false);
+        ApplyExpanded(false);
         return true;
     }
     if (vkCode == VK_SPACE && !m_expanded) {
-        SetExpanded(true);
+        ApplyExpanded(true);
         return true;
     }
     if (!m_expanded) {
@@ -1333,41 +1333,41 @@ bool LogView::OnKeyDown(int vkCode) {
         cur += (vkCode == VK_DOWN) ? 1 : -1;
         cur = std::clamp(cur, 0, (std::max)(0, n - 1));
         const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-        SetSelection(shift && m_selA >= 0 ? m_selA : cur, cur);
+        ApplySelection(shift && m_selA >= 0 ? m_selA : cur, cur);
         const float y = static_cast<float>(cur) * kRowH;
         const Rect body = BodyRect();
         if (y < m_scrollY) {
-            SetScrollTarget(y, true);
+            ApplyScrollTarget(y, true);
         } else if (y + kRowH > m_scrollY + body.height) {
-            SetScrollTarget(y + kRowH - body.height, true);
+            ApplyScrollTarget(y + kRowH - body.height, true);
         }
-        SetFollowFlag(false);
+        ApplyFollowFlag(false);
         DirtyBody();
         return true;
     }
     if (vkCode == VK_HOME) {
-        SetScrollTarget(0.0f, true);
-        SetFollowFlag(false);
+        ApplyScrollTarget(0.0f, true);
+        ApplyFollowFlag(false);
         DirtyBody();
         return true;
     }
     if (vkCode == VK_END) {
         ClampScroll();
-        SetScrollTarget(m_maxScrollY, true);
-        SetFollowFlag(true);
+        ApplyScrollTarget(m_maxScrollY, true);
+        ApplyFollowFlag(true);
         DirtyBody();
         return true;
     }
     if (vkCode == VK_PRIOR) {
-        SetScrollTarget(m_scrollY - BodyRect().height, true);
-        SetFollowFlag(false);
+        ApplyScrollTarget(m_scrollY - BodyRect().height, true);
+        ApplyFollowFlag(false);
         DirtyBody();
         return true;
     }
     if (vkCode == VK_NEXT) {
         ClampScroll();
-        SetScrollTarget(m_scrollY + BodyRect().height, true);
-        SetFollowFlag(m_scrollAnimator.Target() >= m_maxScrollY - 0.5f);
+        ApplyScrollTarget(m_scrollY + BodyRect().height, true);
+        ApplyFollowFlag(m_scrollAnimator.Target() >= m_maxScrollY - 0.5f);
         DirtyBody();
         return true;
     }
@@ -1383,7 +1383,7 @@ bool LogView::OnAnimationTick() {
         m_expandAnim.Reset(m_expanded ? 1.0f : 0.0f);
         SyncChipAnimTargets(true);
     } else {
-        m_expandAnim.SetTarget(m_expanded ? 1.0f : 0.0f);
+        m_expandAnim.ApplyTarget(m_expanded ? 1.0f : 0.0f);
         const float before = m_expandAnim.Current();
         const bool expanding = m_expandAnim.Tick(dt, AnimationSpec{ 0.22f, 0.01f, 0.28f });
         if (std::abs(m_expandAnim.Current() - before) > 0.0005f) {

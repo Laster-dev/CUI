@@ -20,15 +20,15 @@ DatePicker::DatePicker() : FormattedDate(this) {
     m_month = tmVal.tm_mon + 1;
     m_day = tmVal.tm_mday;
 
-        this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetBorderToken(ThemeTokenId::InputBorder);
-    this->SetBackground(tokens.inputBackground);
-    this->SetBorderBrush(tokens.inputBorder);
-    this->SetBorderThickness(1.0f);
-    this->SetColor(tokens.textPrimary);
-    this->SetCornerRadius(4.0f);
-    this->SetWidth(160.0f);
-    this->SetHeight(30.0f);
+        this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyBorderToken(ThemeTokenId::InputBorder);
+    this->ApplyBackground(tokens.inputBackground);
+    this->ApplyBorderBrush(tokens.inputBorder);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyColor(tokens.textPrimary);
+    this->ApplyCornerRadius(4.0f);
+    this->ApplyWidth(160.0f);
+    this->ApplyHeight(30.0f);
 }
 
 Value DatePicker::GetProperty(PropertyId id) const {
@@ -40,15 +40,15 @@ bool DatePicker::HasProperty(PropertyId id) const {
     return id == PropertyId::DateStr || UIElement::HasProperty(id);
 }
 
-void DatePicker::SetProperty(PropertyId id, const Value& val) {
+void DatePicker::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::DateStr) {
         int y = 0, m = 0, d = 0;
         if (sscanf_s(val.AsString().c_str(), "%d-%d-%d", &y, &m, &d) == 3) {
-            SetDate(y, m, d);
+            ApplyDate(y, m, d);
         }
         return;
     }
-    UIElement::SetProperty(id, val);
+    UIElement::ApplyProperty(id, val);
 }
 
 Size DatePicker::Measure(Size availableSize) {
@@ -84,7 +84,7 @@ static int GetFirstDayOfWeek(int year, int month) {
     return time_in.tm_wday; // 0 = Sunday, 1 = Monday, ...
 }
 
-void DatePicker::SetDate(int y, int m, int d) {
+void DatePicker::ApplyDate(int y, int m, int d) {
     m_year = y;
     m_month = std::clamp(m, 1, 12);
     int daysInMonth = GetDaysInMonth(m_year, m_month);
@@ -105,7 +105,7 @@ UIElement* DatePicker::OnHitTestOverlay(float x, float y) {
 
 bool DatePicker::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
-    m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
+    m_popupAnim.ApplyTarget(m_isPopupOpen ? 1.0f : 0.0f);
     bool animating = m_popupAnim.Tick(dt, PopupReveal::kSpec);
     if (m_scrollbarAutoHide.Tick(dt)) {
         animating = true;
@@ -147,7 +147,7 @@ void DatePicker::OnMouseDown(Point pt) {
                 if (m_viewMode == DatePickerViewMode::DayGrid) {
                     if (m_month == 1) { m_month = 12; m_year--; }
                     else { m_month--; }
-                    SetDate(m_year, m_month, m_day);
+                    ApplyDate(m_year, m_month, m_day);
                 } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
                     m_year--;
                 } else if (m_viewMode == DatePickerViewMode::YearGrid) {
@@ -160,7 +160,7 @@ void DatePicker::OnMouseDown(Point pt) {
                 if (m_viewMode == DatePickerViewMode::DayGrid) {
                     if (m_month == 12) { m_month = 1; m_year++; }
                     else { m_month++; }
-                    SetDate(m_year, m_month, m_day);
+                    ApplyDate(m_year, m_month, m_day);
                 } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
                     m_year++;
                 } else if (m_viewMode == DatePickerViewMode::YearGrid) {
@@ -236,8 +236,8 @@ void DatePicker::OnMouseDown(Point pt) {
                 int day = cellIdx - firstWday + 1;
 
                 if (day >= 1 && day <= daysInMonth) {
-                    SetDate(m_year, m_month, day);
-                    SetPopupOpen(false);
+                    ApplyDate(m_year, m_month, day);
+                    ApplyPopupOpen(false);
                 }
             } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
                 float cellW = popW / 3.0f;
@@ -246,7 +246,7 @@ void DatePicker::OnMouseDown(Point pt) {
                 int row = static_cast<int>((pt.y - bodyY + m_scrollOffset) / cellH);
                 int selectedMonth = row * 3 + col + 1;
                 if (selectedMonth >= 1 && selectedMonth <= 12) {
-                    SetDate(m_year, selectedMonth, m_day);
+                    ApplyDate(m_year, selectedMonth, m_day);
                     m_viewMode = DatePickerViewMode::DayGrid;
                     m_scrollOffset = 0.0f;
                     return;
@@ -257,7 +257,7 @@ void DatePicker::OnMouseDown(Point pt) {
                 int col = static_cast<int>((pt.x - popRect.x) / cellW);
                 int row = static_cast<int>((pt.y - bodyY + m_scrollOffset) / cellH);
                 int selectedYear = m_viewStartYear + row * 3 + col;
-                SetDate(selectedYear, m_month, m_day);
+                ApplyDate(selectedYear, m_month, m_day);
                 m_viewMode = DatePickerViewMode::MonthGrid;
                 m_scrollOffset = 0.0f;
                 return;
@@ -265,10 +265,10 @@ void DatePicker::OnMouseDown(Point pt) {
 
             return;
         }
-        SetPopupOpen(false);
+        ApplyPopupOpen(false);
     } else {
         if (m_bounds.Contains(pt.x, pt.y)) {
-            SetPopupOpen(true);
+            ApplyPopupOpen(true);
             m_viewMode = DatePickerViewMode::DayGrid;
         }
     }
@@ -331,7 +331,7 @@ void DatePicker::OnRender(GraphicsContext& ctx) {
     ctx.DrawText(text, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
-void DatePicker::SetPopupOpen(bool open) {
+void DatePicker::ApplyPopupOpen(bool open) {
     if (m_isPopupOpen == open) return;
     m_isPopupOpen = open;
     if (open) {

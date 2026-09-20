@@ -14,7 +14,7 @@ public:
     virtual const char* GetClassName() const override { return "NumberBox"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
     virtual HCURSOR GetCursor() const override;
     bool AcceptsTabFocus() const override { return false; }
 
@@ -35,7 +35,7 @@ public:
      */
     struct NumberBoxValueProperty {
         NumberBox* owner;
-        NumberBoxValueProperty& operator=(float v) { owner->SetValue(v); return *this; }
+        NumberBoxValueProperty& operator=(float v) { owner->ApplyValue(v); return *this; }
         operator float() const { return owner->GetValue(); }
         float Get() const { return owner->GetValue(); }
     } Value{this};
@@ -45,7 +45,7 @@ public:
      */
     struct NumberBoxMinimumProperty {
         NumberBox* owner;
-        NumberBoxMinimumProperty& operator=(float v) { owner->SetMinimum(v); return *this; }
+        NumberBoxMinimumProperty& operator=(float v) { owner->ApplyMinimum(v); return *this; }
         operator float() const { return owner->GetMinimum(); }
         float Get() const { return owner->GetMinimum(); }
     } Minimum{this};
@@ -55,7 +55,7 @@ public:
      */
     struct NumberBoxMaximumProperty {
         NumberBox* owner;
-        NumberBoxMaximumProperty& operator=(float v) { owner->SetMaximum(v); return *this; }
+        NumberBoxMaximumProperty& operator=(float v) { owner->ApplyMaximum(v); return *this; }
         operator float() const { return owner->GetMaximum(); }
         float Get() const { return owner->GetMaximum(); }
     } Maximum{this};
@@ -65,30 +65,30 @@ public:
      */
     struct NumberBoxStepProperty {
         NumberBox* owner;
-        NumberBoxStepProperty& operator=(float v) { owner->SetStep(v); return *this; }
+        NumberBoxStepProperty& operator=(float v) { owner->ApplyStep(v); return *this; }
         operator float() const { return owner->GetStep(); }
         float Get() const { return owner->GetStep(); }
     } Step{this};
 
     float GetValue() const { return m_value; }
-    void SetValue(float val);
+    void ApplyValue(float val);
 
     PropertyRef<float, PropertyId::ControlValue> ValueProperty; // 当前数值的响应式双向绑定属性代理
 
     float GetStep() const { return m_step; }
-    void SetStep(float s) {
+    void ApplyStep(float s) {
         m_step = s;
         NotifyFieldChanged(PropertyId::Step, CUI::Value(s));
     }
 
     float GetMinimum() const { return m_minimum; }
-    void SetMinimum(float minVal) {
+    void ApplyMinimum(float minVal) {
         m_minimum = minVal;
         NotifyFieldChanged(PropertyId::Minimum, CUI::Value(minVal));
     }
 
     float GetMaximum() const { return m_maximum; }
-    void SetMaximum(float maxVal) {
+    void ApplyMaximum(float maxVal) {
         m_maximum = maxVal;
         NotifyFieldChanged(PropertyId::Maximum, CUI::Value(maxVal));
     }

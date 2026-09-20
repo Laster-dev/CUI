@@ -19,21 +19,21 @@ ShowcasePage BuildInfoBarPage(const ShowcaseContext& ctx) {
         bar.IsOpen(true);
         bar.IsClosable(true);
 
-    auto log = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref log =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("操作日志：就绪", 12.0f, "#B5CEA8", false, "Consolas"));
 
-    auto details = std::make_shared<Command>([window = ctx.windowRef, log]() {
-                log->SetText("[InfoBar] Command 执行");
+    CUI::Widgets::Ref details =std::make_shared<Command>([window = ctx.windowRef, log]() {
+                log.Text("[InfoBar] Command 执行");
         if (window) {
             Toast::Show(window->GetRootElement().get(), "InfoBar", "操作按钮",
                         ToastType::Info, ToastCorner::BottomRight, 1600);
         }
     });
-        details->SetLabel("查看详情");
+        details.Label("查看详情");
         bar.ActionCommand(details);
 
     bar->OnClosed().Connect([log]() {
-                log->SetText("[InfoBar] 已关闭");
+                log.Text("[InfoBar] 已关闭");
     });
 
     auto show = [bar, log](InfoBarSeverity sev, const char* title, const char* msg, const char* action) {
@@ -43,7 +43,7 @@ ShowcasePage BuildInfoBarPage(const ShowcaseContext& ctx) {
                         bar.Message(msg);
                         bar.ActionText(action);
                         bar.IsOpen(true);
-                        log->SetText(std::string("[InfoBar] 打开 ") + title);
+                        log.Text(std::string("[InfoBar] 打开 ") + title);
         };
     };
 
@@ -79,16 +79,16 @@ ShowcasePage BuildInfoBarPage(const ShowcaseContext& ctx) {
     CUI::Widgets::Ref btnNoClose = CUI::Widgets::Button("禁止关闭").Shared();
     btnNoClose->OnClick().Connect([bar, log](UIElement*) {
                 bar.IsClosable(!bar->GetIsClosable());
-                log->SetText(bar->GetIsClosable() ? "[InfoBar] 可关闭" : "[InfoBar] 不可关闭");
+                log.Text(bar->GetIsClosable() ? "[InfoBar] 可关闭" : "[InfoBar] 不可关闭");
     });
     CUI::Widgets::Ref btnNoAction = CUI::Widgets::Button("无操作按钮").Shared();
     btnNoAction->OnClick().Connect([bar, log](UIElement*) {
         if (bar->GetActionText().empty()) {
                         bar.ActionText("查看详情");
-                        log->SetText("[InfoBar] 显示操作按钮");
+                        log.Text("[InfoBar] 显示操作按钮");
         } else {
                         bar.ActionText("");
-                        log->SetText("[InfoBar] 隐藏操作按钮");
+                        log.Text("[InfoBar] 隐藏操作按钮");
         }
     });
 

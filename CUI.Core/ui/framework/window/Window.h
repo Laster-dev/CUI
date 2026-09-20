@@ -52,26 +52,26 @@ Window();
         FluentBuilder& Root(std::shared_ptr<UIElement> root) { m_root = std::move(root); return *this; }
         FluentBuilder& Apply() {
             if (m_window.GetHWND()) {
-                m_window.SetThemeMode(m_theme);
-                m_window.SetBackdropType(m_backdrop);
-                m_window.SetRenderStatsOverlayVisible(m_renderStats);
-                if (m_root) m_window.SetRootElement(std::move(m_root));
+                m_window.ApplyThemeMode(m_theme);
+                m_window.ApplyBackdropType(m_backdrop);
+                m_window.ApplyRenderStatsOverlayVisible(m_renderStats);
+                if (m_root) m_window.ApplyRootElement(std::move(m_root));
             }
             return *this;
         }
         FluentBuilder& Build() {
             if (!m_built) {
                 if (m_minWidth > 0 || m_minHeight > 0) {
-                    m_window.SetMinimumSize(m_minWidth, m_minHeight);
+                    m_window.ApplyMinimumSize(m_minWidth, m_minHeight);
                 }
                 m_built = m_window.Create(m_title, m_width, m_height, m_transparent);
                 if (m_built) {
-                    m_window.SetThemeMode(m_theme);
-                    m_window.SetBackdropType(m_backdrop);
-                    m_window.SetRenderStatsOverlayVisible(m_renderStats);
+                    m_window.ApplyThemeMode(m_theme);
+                    m_window.ApplyBackdropType(m_backdrop);
+                    m_window.ApplyRenderStatsOverlayVisible(m_renderStats);
                 }
             }
-            if (m_built && m_root) m_window.SetRootElement(std::move(m_root));
+            if (m_built && m_root) m_window.ApplyRootElement(std::move(m_root));
             return *this;
         }
         explicit operator bool() const { return m_built; }
@@ -136,7 +136,7 @@ Window();
         Window* owner = nullptr;
         WindowThemeModeProperty() = default;
         explicit WindowThemeModeProperty(Window* o) : owner(o) {}
-        WindowThemeModeProperty& operator=(CUI::ThemeMode m) { if (owner) owner->SetThemeMode(m); return *this; }
+        WindowThemeModeProperty& operator=(CUI::ThemeMode m) { if (owner) owner->ApplyThemeMode(m); return *this; }
         operator CUI::ThemeMode() const { return owner ? owner->GetThemeMode() : CUI::ThemeMode::Dark; }
         CUI::ThemeMode Get() const { return owner ? owner->GetThemeMode() : CUI::ThemeMode::Dark; }
     } ThemeMode;
@@ -148,7 +148,7 @@ Window();
         Window* owner = nullptr;
         WindowBackdropTypeProperty() = default;
         explicit WindowBackdropTypeProperty(Window* o) : owner(o) {}
-        WindowBackdropTypeProperty& operator=(CUI::BackdropType b) { if (owner) owner->SetBackdropType(b); return *this; }
+        WindowBackdropTypeProperty& operator=(CUI::BackdropType b) { if (owner) owner->ApplyBackdropType(b); return *this; }
         operator CUI::BackdropType() const { return owner ? owner->GetBackdropType() : CUI::BackdropType::None; }
         CUI::BackdropType Get() const { return owner ? owner->GetBackdropType() : CUI::BackdropType::None; }
     } BackdropType;
@@ -160,7 +160,7 @@ Window();
         Window* owner = nullptr;
         WindowRenderStatsProperty() = default;
         explicit WindowRenderStatsProperty(Window* o) : owner(o) {}
-        WindowRenderStatsProperty& operator=(bool v) { if (owner) owner->SetRenderStatsOverlayVisible(v); return *this; }
+        WindowRenderStatsProperty& operator=(bool v) { if (owner) owner->ApplyRenderStatsOverlayVisible(v); return *this; }
         operator bool() const { return owner ? owner->IsRenderStatsOverlayVisible() : false; }
         bool Get() const { return owner ? owner->IsRenderStatsOverlayVisible() : false; }
     } RenderStatsOverlayVisible;
@@ -172,7 +172,7 @@ Window();
         Window* owner = nullptr;
         WindowRootElementProperty() = default;
         explicit WindowRootElementProperty(Window* o) : owner(o) {}
-        WindowRootElementProperty& operator=(std::shared_ptr<UIElement> r) { if (owner) owner->SetRootElement(std::move(r)); return *this; }
+        WindowRootElementProperty& operator=(std::shared_ptr<UIElement> r) { if (owner) owner->ApplyRootElement(std::move(r)); return *this; }
         operator std::shared_ptr<UIElement>() const { return owner ? owner->GetRootElement() : nullptr; }
         std::shared_ptr<UIElement> Get() const { return owner ? owner->GetRootElement() : nullptr; }
         std::shared_ptr<UIElement> operator->() const { return owner ? owner->GetRootElement() : nullptr; }
@@ -189,7 +189,7 @@ Window();
         ::HWND Get() const { return owner ? owner->GetHWND() : nullptr; }
     } HWND;
 
-    void SetRootElement(std::shared_ptr<UIElement> root);
+    void ApplyRootElement(std::shared_ptr<UIElement> root);
 
     /**
      * @brief 标记整棵树重新测算布局并执行立即重排。
@@ -199,7 +199,7 @@ Window();
     /**
      * @brief 设置窗口可调整到的最小外部尺寸（单位：逻辑 DIP）。
      */
-    void SetMinimumSize(int width, int height);
+    void ApplyMinimumSize(int width, int height);
 
     /**
      * @brief 获取窗口当前设置的最小外部尺寸（单位：逻辑 DIP）。
@@ -240,12 +240,12 @@ Window();
     /**
      * @brief 设置是否启用全透明通道混合模式。
      */
-    void SetTransparentMode(bool enabled);
+    void ApplyTransparentMode(bool enabled);
 
     /**
      * @brief 设定低性能优化运行模式（此模式下会限制部分粒子或复杂过渡动画）。
      */
-    void SetLowPerformanceMode(bool enabled);
+    void ApplyLowPerformanceMode(bool enabled);
 
     /**
      * @brief 判定是否处于低性能运行模式。
@@ -255,7 +255,7 @@ Window();
     /**
      * @brief 设置窗口的毛玻璃/云母/亚克力等系统级后置背景样式。
      */
-    void SetBackdropType(CUI::BackdropType type);
+    void ApplyBackdropType(CUI::BackdropType type);
 
     /**
      * @brief 获取窗口的毛玻璃后置背景样式。
@@ -265,14 +265,14 @@ Window();
     /**
      * @brief 手动修改程序的主题颜色模式（Light/Dark）。
      */
-    void SetThemeMode(CUI::ThemeMode theme);
+    void ApplyThemeMode(CUI::ThemeMode theme);
 
     /**
      * @brief 触发带水波纹涟漪渐变的主题颜色平滑过渡。
      * @param theme 目标的主题模式。
      * @param originPoint 水波纹扩散的源起坐标中心点。
      */
-    void SetThemeModeWithRipple(CUI::ThemeMode theme, Point originPoint);
+    void ApplyThemeModeWithRipple(CUI::ThemeMode theme, Point originPoint);
 
     /**
      * @brief 获取当前的主题颜色模式。
@@ -287,7 +287,7 @@ Window();
     /**
      * @brief 设置是否显示右上角的帧率与脏渲染统计信息 Overlay。
      */
-    void SetRenderStatsOverlayVisible(bool visible) { m_showRenderStatsOverlay = visible; }
+    void ApplyRenderStatsOverlayVisible(bool visible) { m_showRenderStatsOverlay = visible; }
 
     /**
      * @brief 判定是否显示帧率与脏渲染统计信息 Overlay。
@@ -359,7 +359,7 @@ Window();
     /**
      * @brief 指定窗口当前激活工作的 ContextMenu 实例。
      */
-    void SetActiveContextMenu(std::shared_ptr<ContextMenu> menu) { m_activeContextMenu = menu; }
+    void ApplyActiveContextMenu(std::shared_ptr<ContextMenu> menu) { m_activeContextMenu = menu; }
 
 protected:
     virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);                         // 实例消息路由处理函数
@@ -389,9 +389,9 @@ private:
     static std::shared_ptr<UIElement> CaptureElementRef(UIElement* element); // 为普通指针提升为强共享引用
     std::shared_ptr<UIElement> LockElement(const std::weak_ptr<UIElement>& element) const; // 锁住弱指针提取强指针
     static bool NeedsContinuousMouseRedraw(UIElement* element);         // 辨识此控件是否需要高频鼠标移位强制重绘
-    void SetHoveredElement(UIElement* element);                         // 登记当前悬停的节点
-    void SetPressedElement(UIElement* element);                         // 登记当前按下的节点
-    void SetFocusedElement(UIElement* element);                         // 登记当前获焦的节点
+    void ApplyHoveredElement(UIElement* element);                         // 登记当前悬停的节点
+    void ApplyPressedElement(UIElement* element);                         // 登记当前按下的节点
+    void ApplyFocusedElement(UIElement* element);                         // 登记当前获焦的节点
     void InvalidateAnimatedRegions(bool animationStillActive);          // 污损重绘包含有活跃动画组件的画面图层区域
     void CommitFrame(bool animationStillActive);                        // 渲染完毕后，向 DWM 交换链或 DirectComposition 提交新帧
     void FlushLayoutIfNeeded();                                         // 刷新 Measure/Arrange 两阶段排版管道

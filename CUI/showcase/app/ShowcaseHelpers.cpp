@@ -12,18 +12,18 @@ template <typename T>
 std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::string& tokenProp, const std::string& tokenName) {
     if (element) {
         ThemeTokenId id = ThemeTokenIdFromName(tokenName);
-        if (tokenProp == "theme.backgroundToken")         element->SetBackgroundToken(id);
-        else if (tokenProp == "theme.hoverBackgroundToken")         element->SetHoverBackgroundToken(id);
-        else if (tokenProp == "theme.pressedBackgroundToken")         element->SetPressedBackgroundToken(id);
-        else if (tokenProp == "theme.borderToken")         element->SetBorderToken(id);
-        else if (tokenProp == "theme.focusedBorderToken")         element->SetFocusedBorderToken(id);
-        else if (tokenProp == "theme.colorToken")         element->SetColorToken(id);
-        else if (tokenProp == "theme.placeholderColorToken")         element->SetPlaceholderColorToken(id);
-        else if (tokenProp == "theme.dropdownBackgroundToken")         element->SetDropdownBackgroundToken(id);
-        else if (tokenProp == "theme.selectedItemBackgroundToken")         element->SetSelectedItemBackgroundToken(id);
-        else if (tokenProp == "theme.underlineColorToken")         element->SetUnderlineColorToken(id);
-        else if (tokenProp == "theme.activeUnderlineColorToken")         element->SetActiveUnderlineColorToken(id);
-        else if (tokenProp == "theme.caretColorToken")         element->SetCaretColorToken(id);
+        if (tokenProp == "theme.backgroundToken")         element->ApplyBackgroundToken(id);
+        else if (tokenProp == "theme.hoverBackgroundToken")         element->ApplyHoverBackgroundToken(id);
+        else if (tokenProp == "theme.pressedBackgroundToken")         element->ApplyPressedBackgroundToken(id);
+        else if (tokenProp == "theme.borderToken")         element->ApplyBorderToken(id);
+        else if (tokenProp == "theme.focusedBorderToken")         element->ApplyFocusedBorderToken(id);
+        else if (tokenProp == "theme.colorToken")         element->ApplyColorToken(id);
+        else if (tokenProp == "theme.placeholderColorToken")         element->ApplyPlaceholderColorToken(id);
+        else if (tokenProp == "theme.dropdownBackgroundToken")         element->ApplyDropdownBackgroundToken(id);
+        else if (tokenProp == "theme.selectedItemBackgroundToken")         element->ApplySelectedItemBackgroundToken(id);
+        else if (tokenProp == "theme.underlineColorToken")         element->ApplyUnderlineColorToken(id);
+        else if (tokenProp == "theme.activeUnderlineColorToken")         element->ApplyActiveUnderlineColorToken(id);
+        else if (tokenProp == "theme.caretColorToken")         element->ApplyCaretColorToken(id);
     }
     return element;
 }
@@ -49,17 +49,17 @@ std::shared_ptr<UIElement> CreateShowcaseText(
     const std::string& color,
     bool bold,
     const std::string& fontFamily) {
-    auto text = Text(content).FontSize(size).Build();
+    CUI::Widgets::Ref text =Text(content).FontSize(size).Build();
     const std::string mappedToken = ResolveLegacyColorToken(color);
     if (color.empty()) {
-        BindThemeToken(text, "theme.colorToken", "textPrimary");
+        BindThemeToken(text.Ptr(), "theme.colorToken", "textPrimary");
     } else if (!mappedToken.empty()) {
-        BindThemeToken(text, "theme.colorToken", mappedToken);
+        BindThemeToken(text.Ptr(), "theme.colorToken", mappedToken);
     } else {
-        BindThemeToken(text, "theme.colorToken", "textPrimary");
+        BindThemeToken(text.Ptr(), "theme.colorToken", "textPrimary");
     }
-    if (bold)     text->SetFontWeight(FontWeight::Bold);
-    if (!fontFamily.empty())     text->SetFontFamily(fontFamily);
+    if (bold)     text.FontWeight(FontWeight::Bold);
+    if (!fontFamily.empty())     text.FontFamily(fontFamily);
     return text;
 }
 

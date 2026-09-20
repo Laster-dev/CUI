@@ -15,7 +15,7 @@ public:
     virtual const char* GetClassName() const override { return "ToggleSwitch"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取悬浮交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 计算开关加上右侧说明标签文本的总大小
@@ -31,10 +31,10 @@ public:
     PropertyRef<bool, PropertyId::IsOn> IsOn; // 开关是否开启的双向绑定属性代理
 
     bool GetIsOn() const { return m_isOn; } // 获取开关状态
-    void SetIsOn(bool on); // 设置开关状态
+    void ApplyIsOn(bool on); // 设置开关状态
 
     const std::string& GetHeader() const { return m_header; } // 获取轨道右侧伴随的说明标签文本
-    void SetHeader(const std::string& header) { // 设置轨道右侧伴随的说明标签文本
+    void ApplyHeader(const std::string& header) { // 设置轨道右侧伴随的说明标签文本
         if (m_header == header) return;
         m_header = header;
         NotifyFieldChanged(PropertyId::Header, Value(header));

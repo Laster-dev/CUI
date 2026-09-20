@@ -15,14 +15,14 @@ public:
     ~NavigationViewItemBase() override = default;
 
     bool IsSelected() const { return m_isSelected; }
-    void SetIsSelected(bool selected);
+    void ApplyIsSelected(bool selected);
 
     // Depth in the menu tree (0 = top-level). Used for indent.
     int Depth() const { return m_depth; }
-    void SetDepth(int depth) { m_depth = depth; }
+    void ApplyDepth(int depth) { m_depth = depth; }
 
     NavigationView* Owner() const { return m_owner; }
-    void SetOwner(NavigationView* owner) { m_owner = owner; }
+    void ApplyOwner(NavigationView* owner) { m_owner = owner; }
 
 protected:
     bool m_isSelected = false;
@@ -38,7 +38,7 @@ public:
 
     const char* GetClassName() const override { return "NavigationViewItemHeader"; }
 
-    void SetText(const std::string& text);
+    void ApplyText(const std::string& text);
     const std::string& GetText() const { return m_text; }
 
     Size Measure(Size availableSize) override;
@@ -71,18 +71,18 @@ public:
      */
     struct NavItemContentProperty {
         NavigationViewItem* owner;
-        NavItemContentProperty& operator=(const std::string& c) { owner->SetContent(c); return *this; }
+        NavItemContentProperty& operator=(const std::string& c) { owner->ApplyContent(c); return *this; }
         operator const std::string&() const { return owner->GetContent(); }
         const std::string& Get() const { return owner->GetContent(); }
     } Content{this};
 
-    void SetContent(const std::string& content);
+    void ApplyContent(const std::string& content);
     const std::string& GetContent() const { return m_content; }
 
-    void SetIcon(const std::string& icon);
+    void ApplyIcon(const std::string& icon);
     const std::string& GetIcon() const { return m_icon; }
 
-    void SetTag(const std::string& tag) { m_tag = tag; }
+    void ApplyTag(const std::string& tag) { m_tag = tag; }
     const std::string& GetTag() const { return m_tag; }
 
     // If false, invoke expands/collapses children instead of selecting (WinUI).
@@ -93,21 +93,21 @@ public:
         NavigationViewItem* owner = nullptr;
         NavItemSelectsOnInvokedProperty() = default;
         explicit NavItemSelectsOnInvokedProperty(NavigationViewItem* o) : owner(o) {}
-        NavItemSelectsOnInvokedProperty& operator=(bool v) { if (owner) owner->SetSelectsOnInvoked(v); return *this; }
+        NavItemSelectsOnInvokedProperty& operator=(bool v) { if (owner) owner->ApplySelectsOnInvoked(v); return *this; }
         operator bool() const { return owner ? owner->GetSelectsOnInvoked() : true; }
         bool Get() const { return owner ? owner->GetSelectsOnInvoked() : true; }
     } SelectsOnInvoked;
 
-    void SetSelectsOnInvoked(bool value) { m_selectsOnInvoked = value; }
+    void ApplySelectsOnInvoked(bool value) { m_selectsOnInvoked = value; }
     bool GetSelectsOnInvoked() const { return m_selectsOnInvoked; }
 
-    void SetIsExpanded(bool expanded);
+    void ApplyIsExpanded(bool expanded);
     // Expand/collapse without firing OnExpandChanged (avoids sync Relayout on select).
-    void SetIsExpandedSilent(bool expanded);
+    void ApplyIsExpandedSilent(bool expanded);
     bool IsExpanded() const { return m_isExpanded; }
 
     bool IsChildSelected() const { return m_isChildSelected; }
-    void SetIsChildSelected(bool value) {
+    void ApplyIsChildSelected(bool value) {
         if (m_isChildSelected == value) {
             return;
         }
@@ -121,11 +121,11 @@ public:
     bool HasChildren() const { return !m_menuItems.empty(); }
 
     // Compact / closed-compact: icon rail (hide label). Full: show label.
-    void SetCompact(bool compact);
+    void ApplyCompact(bool compact);
     bool IsCompact() const { return m_compact; }
 
     // Top nav: horizontal layout cue for indicator placement.
-    void SetTopMode(bool top) { m_topMode = top; }
+    void ApplyTopMode(bool top) { m_topMode = top; }
     bool IsTopMode() const { return m_topMode; }
 
     Size Measure(Size availableSize) override;

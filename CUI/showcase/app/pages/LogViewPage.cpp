@@ -42,7 +42,7 @@ ShowcasePage BuildLogViewPage(const ShowcaseContext& ctx) {
         log.Expanded(true);
         log.ToolTip("折叠后单行最新；展开后级别芯片 + 搜索 + 虚拟化列表。Ctrl+C 复制，Ctrl+A 全选，Ctrl+F 搜索。");
 
-    auto hint = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref hint =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("", 12.0f, "textSecondary", false));
     CUI::Widgets::Ref btnToggle = CUI::Widgets::Button("折叠").Shared();
     log->OnChanged().Connect([hint, log](LogView*) {
@@ -50,7 +50,7 @@ ShowcasePage BuildLogViewPage(const ShowcaseContext& ctx) {
         s += log->GetFollowTail() ? " · 跟随尾部" : " · 已停跟随";
         s += log->GetPersistEnabled() ? " · 已落盘 " + log->GetPersistPath() : " · 未持久化";
         s += " · " + std::to_string(log->GetCount()) + " 条";
-                hint->SetText(s);
+                hint.Text(s);
     });
     log->OnExpandedChanged().Connect([btnToggle](LogView* lv) {
                 btnToggle.Text(lv->IsExpanded() ? "折叠" : "展开");

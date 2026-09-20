@@ -17,12 +17,12 @@ std::shared_ptr<CUI::Button> MakeDockBar(
     D2D1_COLOR_F color,
     Dock dock,
     float mainSize = 0.0f) {
-    auto bar = ElevatedButton(text).Background(color).Build();
-        bar->SetDock(dock);
+    CUI::Widgets::Ref bar =ElevatedButton(text).Background(color).Build();
+        bar.Dock(dock);
     if (dock == Dock::Left || dock == Dock::Right) {
-                bar->SetWidth(mainSize > 0.0f ? mainSize : 90.0f);
+                bar.Width(mainSize > 0.0f ? mainSize : 90.0f);
     } else {
-                bar->SetHeight(mainSize > 0.0f ? mainSize : 32.0f);
+                bar.Height(mainSize > 0.0f ? mainSize : 32.0f);
     }
     return bar;
 }
@@ -69,7 +69,7 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
 
     // —— 运行时动态切换停靠方位 ——
     CUI::Widgets::Ref liveDock = Widgets::DockPanel().Width(420).Height(200).Shared();
-    auto hero = MakeDockBar("主角元素", Rgb(0x007ACC), Dock::Left, 100);
+    CUI::Widgets::Ref hero =MakeDockBar("主角元素", Rgb(0x007ACC), Dock::Left, 100);
     liveDock->AddChild(hero);
     liveDock->AddChild(MakeDockBar("剩余填充区", Rgb(0x2F3A46), Dock::Left));
 
@@ -87,14 +87,14 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
     auto applyDock = [hero](int index) {
         const Dock docks[] = { Dock::Left, Dock::Top, Dock::Right, Dock::Bottom };
         const D2D1_COLOR_F colors[] = { Rgb(0x007ACC), Rgb(0x10B981), Rgb(0xF59F00), Rgb(0x845EF7) };
-                hero->SetDock(docks[index]);
-                hero->SetBackground(colors[index]);
+                hero.Dock(docks[index]);
+                hero.Background(colors[index]);
         if (docks[index] == Dock::Left || docks[index] == Dock::Right) {
-                        hero->SetWidth(100.0f);
-                        hero->SetHeight(-1.0f);
+                        hero.Width(100.0f);
+                        hero.Height(-1.0f);
         } else {
-                        hero->SetHeight(44.0f);
-                        hero->SetWidth(-1.0f);
+                        hero.Height(44.0f);
+                        hero.Width(-1.0f);
         }
     };
     dockCombo->OnSelectionChanged().Connect([applyDock](ComboBox*, int index, const std::string&) {
@@ -133,7 +133,7 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
         },
         {
             "LastChildFill 实时开关",
-            "SetLastChildFill(false) 后，最后一项不再填满剩余区域，而是按自己的 Dock 方位正常停靠。",
+            "ApplyLastChildFill(false) 后，最后一项不再填满剩余区域，而是按自己的 Dock 方位正常停靠。",
             Column(12, {
                 fillDock,
                 Widgets::WrapPanel().Gap(16).Children( fillToggle, fillStatus ).Shared(),

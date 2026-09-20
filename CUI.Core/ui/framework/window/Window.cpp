@@ -370,7 +370,7 @@ Window::Window() : ThemeMode(this), BackdropType(this), RenderStatsOverlayVisibl
         s_current = this;
     }
     s_allWindows.push_back(this);
-    m_sceneLayer.SetCacheable(true);
+    m_sceneLayer.ApplyCacheable(true);
 }
 
 std::shared_ptr<UIElement> Window::CaptureElementRef(UIElement* element) {
@@ -393,17 +393,17 @@ bool Window::NeedsContinuousMouseRedraw(UIElement* element) {
     return false;
 }
 
-void Window::SetHoveredElement(UIElement* element) {
+void Window::ApplyHoveredElement(UIElement* element) {
     m_hoveredRaw = element;
     m_hoveredElement = CaptureElementRef(element);
 }
 
-void Window::SetPressedElement(UIElement* element) {
+void Window::ApplyPressedElement(UIElement* element) {
     m_pressedRaw = element;
     m_pressedElement = CaptureElementRef(element);
 }
 
-void Window::SetFocusedElement(UIElement* element) {
+void Window::ApplyFocusedElement(UIElement* element) {
     m_focusedElement = CaptureElementRef(element);
 }
 
@@ -433,7 +433,7 @@ void Window::ApplyFocus(UIElement* target, FocusState state) {
     if (target && !target->IsEnabled()) {
         if (focused) {
             focused->OnBlur();
-            SetFocusedElement(nullptr);
+            ApplyFocusedElement(nullptr);
         }
         return;
     }
@@ -454,7 +454,7 @@ void Window::ApplyFocus(UIElement* target, FocusState state) {
 
     if (focused && focused.get() == resolved) {
         if (resolved) {
-            resolved->SetFocusState(state);
+            resolved->ApplyFocusState(state);
             resolved->MarkRenderRectDirty(resolved->GetBounds().Inflate(6.0f));
         }
         return;
@@ -462,9 +462,9 @@ void Window::ApplyFocus(UIElement* target, FocusState state) {
     if (focused) {
         focused->OnBlur();
     }
-    SetFocusedElement(resolved);
+    ApplyFocusedElement(resolved);
     if (resolved) {
-        resolved->SetFocusState(state);
+        resolved->ApplyFocusState(state);
         resolved->OnFocus();
     }
 }
@@ -973,17 +973,17 @@ Window::~Window() {
         s_current = nullptr;
     }
     if (FrameScheduler::Current() == &m_frameScheduler) {
-        FrameScheduler::SetCurrent(nullptr);
+        FrameScheduler::ApplyCurrent(nullptr);
     }
     if (AnimationManager::Current() == &m_animationManager) {
-        AnimationManager::SetCurrent(nullptr);
+        AnimationManager::ApplyCurrent(nullptr);
     }
     if (PopupHost::Current() == &m_popupHost) {
-        PopupHost::SetCurrent(nullptr);
+        PopupHost::ApplyCurrent(nullptr);
     }
     if (DragDropService::Current() == &m_dragDrop) {
         m_dragDrop.Cancel();
-        DragDropService::SetCurrent(nullptr);
+        DragDropService::ApplyCurrent(nullptr);
     }
     m_popupHost.CloseAll();
     RevokeShellDropTarget();
@@ -1098,7 +1098,7 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
 
     m_dpiScale = GetDpiScaleForWindow(m_hwnd);
     if (m_minWindowWidth > 0 || m_minWindowHeight > 0) {
-        SetMinimumSize(m_minWindowWidth, m_minWindowHeight);
+        ApplyMinimumSize(m_minWindowWidth, m_minWindowHeight);
     }
 
     m_themeMode = ThemeManager::Instance().GetThemeMode();
@@ -1110,19 +1110,19 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     }
 
     m_materialState = MakeMaterialState();
-    m_gfxContext.SetRequirePerPixelAlpha(m_materialState.requiresPerPixelAlpha);
+    m_gfxContext.ApplyRequirePerPixelAlpha(m_materialState.requiresPerPixelAlpha);
     if (!m_gfxContext.Initialize(m_hwnd)) {
         return false;
     }
 
     m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
-    m_layerRasterizer.SetCompletionCallback([hwnd = m_hwnd]() {
+    m_layerRasterizer.ApplyCompletionCallback([hwnd = m_hwnd]() {
         if (hwnd) {
             PostMessage(hwnd, WM_CUI_RASTER_COMPLETE, 0, 0);
         }
     });
     // Worker ready; jobs still FlushSync unless callers enable async + KickAsync.
-    m_layerRasterizer.SetAsyncEnabled(true);
+    m_layerRasterizer.ApplyAsyncEnabled(true);
 
     // Graphics may add WS_EX_NOREDIRECTIONBITMAP for the composition fallback —
     // re-apply DWM alpha/backdrop so the final present path is wired correctly.
@@ -1140,19 +1140,19 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
         m_materialState.dwmBackdropActive
         || (m_transparentMode && !IsZoomed(m_hwnd));
 
-    m_popupHost.SetOwnerHwnd(m_hwnd);
+    m_popupHost.ApplyOwnerHwnd(m_hwnd);
     if (!Window::s_current || Window::s_current == this) {
         Window::s_current = this;
-        PopupHost::SetCurrent(&m_popupHost);
-        AnimationManager::SetCurrent(&m_animationManager);
-        FrameScheduler::SetCurrent(&m_frameScheduler);
-        DragDropService::SetCurrent(&m_dragDrop);
+        PopupHost::ApplyCurrent(&m_popupHost);
+        AnimationManager::ApplyCurrent(&m_animationManager);
+        FrameScheduler::ApplyCurrent(&m_frameScheduler);
+        DragDropService::ApplyCurrent(&m_dragDrop);
     }
     RegisterShellDropTarget();
     return true;
 }
 
-void Window::SetBackdropType(CUI::BackdropType type) {
+void Window::ApplyBackdropType(CUI::BackdropType type) {
     m_backdropType = type;
     ++m_materialGeneration;
 
@@ -1163,7 +1163,7 @@ void Window::SetBackdropType(CUI::BackdropType type) {
         // 2. 更新 ThemeManager 材质状态 + 3. 应用 DWM backdrop 属性（Apply 内部同步）。
         const bool applied = MaterialHost::Apply(m_hwnd, type, m_themeMode);
         // 4. 根据最终状态重建 GraphicsContext / SwapChain（flag 变化时自动重建）。
-        m_gfxContext.SetRequirePerPixelAlpha(state.requiresPerPixelAlpha);
+        m_gfxContext.ApplyRequirePerPixelAlpha(state.requiresPerPixelAlpha);
         m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
         UpdateDwmChrome();
         // 记录实际生效状态（含 DWM 降级结果：失败回落 Solid 时材质不激活）。
@@ -1185,7 +1185,7 @@ void Window::SetBackdropType(CUI::BackdropType type) {
         RequestFullRepaint();
     } else {
         // 窗口尚未创建：仅同步 ThemeManager 材质状态。
-        ThemeManager::Instance().SetBackdropType(type);
+        ThemeManager::Instance().ApplyBackdropType(type);
     }
 }
 
@@ -1217,7 +1217,7 @@ RenderCacheStamp Window::BuildRenderCacheStamp() const {
     return stamp;
 }
 
-void Window::SetThemeMode(CUI::ThemeMode theme) {
+void Window::ApplyThemeMode(CUI::ThemeMode theme) {
     Point origin(m_logicalClientSize.width * 0.5f, m_logicalClientSize.height * 0.5f);
     if (m_hwnd) {
         POINT pt{};
@@ -1225,10 +1225,10 @@ void Window::SetThemeMode(CUI::ThemeMode theme) {
             origin = ClientPointToLogical(pt.x, pt.y);
         }
     }
-    SetThemeModeWithRipple(theme, origin);
+    ApplyThemeModeWithRipple(theme, origin);
 }
 
-void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
+void Window::ApplyThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     // Idle no-op only when already on this theme and no wave is playing.
     // Mid-wave clicks must always start a brand-new ripple.
     if (m_themeMode == theme && !m_themeRippleActive) {
@@ -1243,7 +1243,7 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
         m_themeRippleProgress = 1.0f;
         m_sceneLayer.ResetCache();
         m_themeOldSceneLayer.ResetCache();
-        ThemeManager::Instance().SetThemeMode(theme);
+        ThemeManager::Instance().ApplyThemeMode(theme);
         StyleManager::Instance().ReloadFromTheme();
         MaterialHost::Apply(m_hwnd, m_backdropType, theme);
         m_gfxContext.GetResources().ClearBrushCaches();
@@ -1262,7 +1262,7 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     if (!m_hwnd || sceneSize.width < 0.5f || sceneSize.height < 0.5f) {
         m_themeMode = theme;
         m_themeRippleActive = false;
-        ThemeManager::Instance().SetThemeMode(theme);
+        ThemeManager::Instance().ApplyThemeMode(theme);
         StyleManager::Instance().ReloadFromTheme();
         return;
     }
@@ -1280,7 +1280,7 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     // 1. Capture old theme full window snapshot into m_themeOldSceneLayer
     D2D1_COLOR_F oldClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
     if (m_gfxContext.PushLayerTarget(m_themeOldSceneLayer, sceneSize, viewportBounds, oldClearBg, true)) {
-        m_gfxContext.SetPaintBounds(viewportBounds);
+        m_gfxContext.ApplyPaintBounds(viewportBounds);
         renderFullWindow();
         m_gfxContext.PopLayerTarget(m_themeOldSceneLayer);
         m_themeOldSceneLayer.Validate();
@@ -1288,7 +1288,7 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
 
     // Apply theme tokens + refresh control caches before capturing the destination scene.
     m_themeMode = theme;
-    ThemeManager::Instance().SetThemeMode(theme);
+    ThemeManager::Instance().ApplyThemeMode(theme);
     StyleManager::Instance().ReloadFromTheme();
     MaterialHost::Apply(m_hwnd, m_backdropType, theme);
     m_gfxContext.GetResources().ClearBrushCaches();
@@ -1301,11 +1301,11 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     // 2. Pre-render destination theme full window snapshot into m_sceneLayer
     D2D1_COLOR_F newClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
     if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, viewportBounds, newClearBg, true)) {
-        m_gfxContext.SetPaintBounds(viewportBounds);
+        m_gfxContext.ApplyPaintBounds(viewportBounds);
         renderFullWindow();
         m_gfxContext.PopLayerTarget(m_sceneLayer);
         m_sceneLayer.Validate();
-        m_sceneLayer.SetStamp(BuildRenderCacheStamp());
+        m_sceneLayer.ApplyStamp(BuildRenderCacheStamp());
     }
 
     // Drop dirties created by ForceThemeRefresh — destination is already fully painted.
@@ -1329,13 +1329,13 @@ void Window::SetThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     }
 }
 
-void Window::SetTransparentMode(bool enabled) {
+void Window::ApplyTransparentMode(bool enabled) {
     m_transparentMode = enabled;
     ++m_materialGeneration;
     const CUI::WindowMaterialState state = MakeMaterialState();
     m_materialState = state;
     if (m_hwnd) {
-        m_gfxContext.SetRequirePerPixelAlpha(state.requiresPerPixelAlpha);
+        m_gfxContext.ApplyRequirePerPixelAlpha(state.requiresPerPixelAlpha);
         m_layerRasterizer.BindDevice(m_gfxContext.GetD2DDevice());
         // 透明模式切换同样会改变根表面模式：丢弃旧缓存，防止旧不透明像素残留。
         m_themeRippleActive = false;
@@ -1345,7 +1345,7 @@ void Window::SetTransparentMode(bool enabled) {
     }
 }
 
-void Window::SetMinimumSize(int width, int height) {
+void Window::ApplyMinimumSize(int width, int height) {
     m_minWindowWidth = (std::max)(0, width);
     m_minWindowHeight = (std::max)(0, height);
 
@@ -1404,16 +1404,16 @@ void Window::Hide() {
     }
 }
 
-void Window::SetLowPerformanceMode(bool enabled) {
+void Window::ApplyLowPerformanceMode(bool enabled) {
     if (m_lowPerformanceMode == enabled) {
         return;
     }
 
     m_lowPerformanceMode = enabled;
-    UIElement::SetAnimationsEnabled(!enabled);
+    UIElement::ApplyAnimationsEnabled(!enabled);
 
     if (m_rootElement) {
-        UIElement::SetAnimationDeltaSeconds(1.0f / 60.0f);
+        UIElement::ApplyAnimationDeltaSeconds(1.0f / 60.0f);
         m_rootElement->OnAnimationTick();
         m_rootElement->SyncRenderState();
     }
@@ -1434,8 +1434,8 @@ bool Window::PumpFrameStep(std::chrono::steady_clock::time_point now) {
         : static_cast<double>(std::clamp(refreshHz, 30.0f, 240.0f));
     const auto targetFrame = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
         std::chrono::duration<double>(1.0 / targetFps));
-    m_frameScheduler.SetMinFrameInterval(targetFrame);
-    m_animationManager.SetTargetFrameSeconds(static_cast<float>(1.0 / targetFps));
+    m_frameScheduler.ApplyMinFrameInterval(targetFrame);
+    m_animationManager.ApplyTargetFrameSeconds(static_cast<float>(1.0 / targetFps));
 
     m_animationManager.DispatchDueWakes(now);
     const bool hasPendingLayout =
@@ -1472,7 +1472,7 @@ bool Window::PumpFrameStep(std::chrono::steady_clock::time_point now) {
         FlushLayoutIfNeeded();
 
         m_animationManager.BeginFrame(now, m_animationActive);
-        UIElement::SetAnimationDeltaSeconds(m_animationManager.GetDeltaSeconds());
+        UIElement::ApplyAnimationDeltaSeconds(m_animationManager.GetDeltaSeconds());
         animating = m_animationManager.Tick();
         if (m_popupHost.TickAnimations()) {
             animating = true;
@@ -1581,10 +1581,10 @@ void Window::RunMessageLoop() {
             }
 
             Window::s_current = win;
-            AnimationManager::SetCurrent(&win->m_animationManager);
-            FrameScheduler::SetCurrent(&win->m_frameScheduler);
-            PopupHost::SetCurrent(&win->m_popupHost);
-            DragDropService::SetCurrent(&win->m_dragDrop);
+            AnimationManager::ApplyCurrent(&win->m_animationManager);
+            FrameScheduler::ApplyCurrent(&win->m_frameScheduler);
+            PopupHost::ApplyCurrent(&win->m_popupHost);
+            DragDropService::ApplyCurrent(&win->m_dragDrop);
 
             const bool didFrame = win->PumpFrameStep(now);
             if (didFrame) {
@@ -1612,10 +1612,10 @@ void Window::RunMessageLoop() {
 
         // Restore primary window context
         Window::s_current = this;
-        AnimationManager::SetCurrent(&m_animationManager);
-        FrameScheduler::SetCurrent(&m_frameScheduler);
-        PopupHost::SetCurrent(&m_popupHost);
-        DragDropService::SetCurrent(&m_dragDrop);
+        AnimationManager::ApplyCurrent(&m_animationManager);
+        FrameScheduler::ApplyCurrent(&m_frameScheduler);
+        PopupHost::ApplyCurrent(&m_popupHost);
+        DragDropService::ApplyCurrent(&m_dragDrop);
 
         if (!hadMessage) {
             if (PeekMessage(&msg, nullptr, 0, 0, PM_NOREMOVE)) {
@@ -1637,7 +1637,7 @@ void Window::RunMessageLoop() {
     }
 }
 
-void Window::SetRootElement(std::shared_ptr<UIElement> root) {
+void Window::ApplyRootElement(std::shared_ptr<UIElement> root) {
     if (m_hwnd && GetCapture() == m_hwnd) {
         ::ReleaseCapture();
     }
@@ -1665,7 +1665,7 @@ void Window::SetRootElement(std::shared_ptr<UIElement> root) {
     m_trackingMouse = false;
 
     m_rootElement = root;
-    m_animationManager.SetLiveRoot(m_rootElement.get());
+    m_animationManager.ApplyLiveRoot(m_rootElement.get());
     if (m_rootElement) {
         std::function<void(UIElement*)> collect = [&](UIElement* el) {
             if (!el) {
@@ -1747,18 +1747,18 @@ LRESULT CALLBACK Window::WindowProc(::HWND hwnd, UINT uMsg, WPARAM wParam, LPARA
                 prevDnd = DragDropService::Current();
 
                 Window::s_current = w;
-                AnimationManager::SetCurrent(&w->m_animationManager);
-                FrameScheduler::SetCurrent(&w->m_frameScheduler);
-                PopupHost::SetCurrent(&w->m_popupHost);
-                DragDropService::SetCurrent(&w->m_dragDrop);
+                AnimationManager::ApplyCurrent(&w->m_animationManager);
+                FrameScheduler::ApplyCurrent(&w->m_frameScheduler);
+                PopupHost::ApplyCurrent(&w->m_popupHost);
+                DragDropService::ApplyCurrent(&w->m_dragDrop);
             }
 
             ~WindowContextScope() {
                 Window::s_current = prevWin;
-                AnimationManager::SetCurrent(prevAnim);
-                FrameScheduler::SetCurrent(prevSched);
-                PopupHost::SetCurrent(prevPopup);
-                DragDropService::SetCurrent(prevDnd);
+                AnimationManager::ApplyCurrent(prevAnim);
+                FrameScheduler::ApplyCurrent(prevSched);
+                PopupHost::ApplyCurrent(prevPopup);
+                DragDropService::ApplyCurrent(prevDnd);
             }
         } scope(pThis);
 
@@ -1972,7 +1972,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_SETTINGCHANGE:
     case WM_THEMECHANGED:
         if (ThemeManager::Instance().CheckAndUpdateSystemTheme()) {
-            SetThemeMode(ThemeManager::Instance().GetThemeMode());
+            ApplyThemeMode(ThemeManager::Instance().GetThemeMode());
         }
         break;
 
@@ -2230,9 +2230,9 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                         if (bytes > 0) {
                             std::wstring compStr(bytes / sizeof(wchar_t), 0);
                             ImmGetCompositionStringW(hIMC, GCS_COMPSTR, &compStr[0], bytes);
-                            tb->SetCompositionString(compStr);
+                            tb->ApplyCompositionString(compStr);
                         } else {
-                            tb->SetCompositionString(L"");
+                            tb->ApplyCompositionString(L"");
                         }
                     }
                     if (lParam & GCS_RESULTSTR) {
@@ -2242,7 +2242,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
                             ImmGetCompositionStringW(hIMC, GCS_RESULTSTR, &resultStr[0], bytes);
                             tb->CommitImeResult(resultStr);
                         } else {
-                            tb->SetCompositionString(L"");
+                            tb->ApplyCompositionString(L"");
                         }
                     }
                     ImmReleaseContext(m_hwnd, hIMC);
@@ -2373,7 +2373,7 @@ void Window::OnPaint() {
         ),
         dpiScale
     );
-    m_gfxContext.SetPaintBounds(paintBounds);
+    m_gfxContext.ApplyPaintBounds(paintBounds);
     DirtyRegion frameDirtyRegion = m_pendingDirtyRegion;
     if (frameDirtyRegion.IsEmpty()) {
         frameDirtyRegion.AddRect(paintBounds);
@@ -2414,7 +2414,7 @@ void Window::OnPaint() {
     const bool fullRepaint = !canRestoreScene;
 
     m_compositionContext.BeginFrame(viewportBounds, frameDirtyRegion, fullRepaint);
-    m_gfxContext.SetCompositionContext(&m_compositionContext);
+    m_gfxContext.ApplyCompositionContext(&m_compositionContext);
 
     m_gfxContext.BeginDraw();
 
@@ -2440,14 +2440,14 @@ void Window::OnPaint() {
         // popup content, etc.) may sit outside that strip and would be wrongly
         // culled even though the overlay root itself is visible.
         const Rect savedPaintBounds = m_gfxContext.GetPaintBounds();
-        m_gfxContext.SetPaintBounds(viewportBounds);
+        m_gfxContext.ApplyPaintBounds(viewportBounds);
         if (m_rootElement) {
             m_rootElement->RenderOverlay(m_gfxContext);
         }
         m_popupHost.Render(m_gfxContext);
         m_dragDrop.RenderOverlay(m_gfxContext);
         DrawKeyboardFocusRing();
-        m_gfxContext.SetPaintBounds(savedPaintBounds);
+        m_gfxContext.ApplyPaintBounds(savedPaintBounds);
     };
 
 
@@ -2515,13 +2515,13 @@ void Window::OnPaint() {
                         sceneClearColor);
                 }
             }
-            m_gfxContext.SetPaintBounds(unionPatch);
+            m_gfxContext.ApplyPaintBounds(unionPatch);
             m_gfxContext.PushClip(unionPatch);
             renderScene();
             m_gfxContext.PopClip();
             m_gfxContext.PopLayerTarget(m_sceneLayer);
             m_sceneLayer.Validate();
-            m_sceneLayer.SetStamp(frameStamp);
+            m_sceneLayer.ApplyStamp(frameStamp);
             scenePatched = true;
         } else {
             unionPatch = viewportBounds;
@@ -2559,13 +2559,13 @@ void Window::OnPaint() {
                             sceneClearColor);
                     }
                 }
-                m_gfxContext.SetPaintBounds(unionPatch);
+                m_gfxContext.ApplyPaintBounds(unionPatch);
                 m_gfxContext.PushClip(unionPatch);
                 renderScene();
                 m_gfxContext.PopClip();
                 m_gfxContext.PopLayerTarget(m_sceneLayer);
                 m_sceneLayer.Validate();
-                m_sceneLayer.SetStamp(frameStamp);
+                m_sceneLayer.ApplyStamp(frameStamp);
                 scenePatched = true;
             }
         }
@@ -2576,11 +2576,11 @@ void Window::OnPaint() {
                 viewportBounds,
                 sceneClearColor,
                 true)) {
-            m_gfxContext.SetPaintBounds(viewportBounds);
+            m_gfxContext.ApplyPaintBounds(viewportBounds);
             renderScene();
             m_gfxContext.PopLayerTarget(m_sceneLayer);
             m_sceneLayer.Validate();
-            m_sceneLayer.SetStamp(frameStamp);
+            m_sceneLayer.ApplyStamp(frameStamp);
             unionPatch = viewportBounds;
         }
     }
@@ -2674,7 +2674,7 @@ void Window::OnPaint() {
         m_gfxContext.EndDraw();
     }
 
-    m_gfxContext.SetCompositionContext(nullptr);
+    m_gfxContext.ApplyCompositionContext(nullptr);
     m_compositionContext.EndFrame();
     m_pendingDirtyRegion.Clear();
 
@@ -2785,7 +2785,7 @@ void Window::OnResize(UINT width, UINT height) {
         Size avail(layoutW, layoutH);
         m_rootElement->Measure(avail);
         m_rootElement->Arrange(Rect(padLeft, padTop, layoutW, layoutH));
-        m_popupHost.SetViewport(Rect(padLeft, padTop, layoutW, layoutH));
+        m_popupHost.ApplyViewport(Rect(padLeft, padTop, layoutW, layoutH));
     }
 }
 
@@ -2890,7 +2890,7 @@ bool Window::OnMouseMove(int x, int y) {
         if (hovered) {
             hovered->OnMouseLeave();
         }
-        SetHoveredElement(newHover);
+        ApplyHoveredElement(newHover);
         hovered = LockElement(m_hoveredElement);
         if (hovered) {
             hovered->OnMouseEnter();
@@ -2948,7 +2948,7 @@ bool Window::OnLButtonDown(int x, int y) {
     };
 
     auto pressElement = [&](UIElement* el) {
-        SetPressedElement(el);
+        ApplyPressedElement(el);
         SetCapture(m_hwnd);
         el->OnMouseDown(Point(fx, fy));
         noteClosedContextMenu();
@@ -3110,7 +3110,7 @@ void Window::OnRButtonDown(int x, int y) {
     if (focused && focused.get() != target) {
         focused->OnBlur();
     }
-    SetFocusedElement(target);
+    ApplyFocusedElement(target);
     if (auto curFocused = LockElement(m_focusedElement)) {
         curFocused->OnFocus();
     }
@@ -3210,7 +3210,7 @@ void Window::OnMButtonDown(int x, int y) {
     for (UIElement* curr = target; curr; curr = curr->GetParent()) {
         if (curr->OnMiddleButtonDown(Point(fx, fy))) {
             m_middleScrollElement = CaptureElementRef(curr);
-            SetFocusedElement(curr);
+            ApplyFocusedElement(curr);
             SetCapture(m_hwnd);
             return;
         }

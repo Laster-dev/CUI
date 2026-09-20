@@ -19,9 +19,9 @@ namespace {
 class CommandConsoleControl : public Control {
 public:
     CommandConsoleControl() {
-                this->SetHeight(120.0f);
-        this->SetCornerRadius(8.0f);
-        this->SetToolTip("点击此处聚焦后，按下键盘快捷键 (如 Ctrl+N, Ctrl+S, F5, Ctrl+F, Ctrl+R) 即可实时触发命令");
+                this->ApplyHeight(120.0f);
+        this->ApplyCornerRadius(8.0f);
+        this->ApplyToolTip("点击此处聚焦后，按下键盘快捷键 (如 Ctrl+N, Ctrl+S, F5, Ctrl+F, Ctrl+R) 即可实时触发命令");
 
         InitCommands();
     }
@@ -39,31 +39,31 @@ public:
         m_cmdNew = std::make_shared<Command>(
             [this]() { LogAction("📄 [File.New] 触发【新建文档】命令 (Ctrl + N)"); }
         );
-                m_cmdNew->SetId("File.New");
-                m_cmdNew->SetLabel("新建文档");
-                m_cmdNew->SetGesture("Ctrl+N");
+                m_cmdNew.Id("File.New");
+                m_cmdNew.Label("新建文档");
+                m_cmdNew.Gesture("Ctrl+N");
 
         m_cmdSave = std::make_shared<Command>(
             [this]() { LogAction("💾 [File.Save] 触发【保存文件】命令 (Ctrl + S)"); },
             [this]() { return m_canSave; }
         );
-                m_cmdSave->SetId("File.Save");
-                m_cmdSave->SetLabel("保存文件");
-                m_cmdSave->SetGesture("Ctrl+S");
+                m_cmdSave.Id("File.Save");
+                m_cmdSave.Label("保存文件");
+                m_cmdSave.Gesture("Ctrl+S");
 
         m_cmdBuild = std::make_shared<Command>(
             [this]() { LogAction("⚡ [Build.Run] 触发【一键构建调试】命令 (F5)"); }
         );
-                m_cmdBuild->SetId("Build.Run");
-                m_cmdBuild->SetLabel("启动调试");
-                m_cmdBuild->SetGesture("F5");
+                m_cmdBuild.Id("Build.Run");
+                m_cmdBuild.Label("启动调试");
+                m_cmdBuild.Gesture("F5");
 
         m_cmdFind = std::make_shared<Command>(
             [this]() { LogAction("🔍 [Edit.Find] 触发【全局搜索查找】命令 (Ctrl + F)"); }
         );
-                m_cmdFind->SetId("Edit.Find");
-                m_cmdFind->SetLabel("查找替换");
-                m_cmdFind->SetGesture("Ctrl+F");
+                m_cmdFind.Id("Edit.Find");
+                m_cmdFind.Label("查找替换");
+                m_cmdFind.Gesture("Ctrl+F");
 
         m_manager.Register(m_cmdNew);
         m_manager.Register(m_cmdSave);
@@ -169,11 +169,11 @@ public:
         }
     }
 
-    void SetStatusHandler(std::function<void(const std::string&)> handler) {
+    void ApplyStatusHandler(std::function<void(const std::string&)> handler) {
         m_onStatusChanged = std::move(handler);
     }
 
-    void SetCanSave(bool canSave) {
+    void ApplyCanSave(bool canSave) {
         m_canSave = canSave;
         m_cmdSave->RaiseCanExecuteChanged();
     }
@@ -185,10 +185,10 @@ public:
 
 private:
     CommandManager m_manager;
-    std::shared_ptr<Command> m_cmdNew;
-    std::shared_ptr<Command> m_cmdSave;
-    std::shared_ptr<Command> m_cmdBuild;
-    std::shared_ptr<Command> m_cmdFind;
+    CUI::Widgets::Ref<::CUI::Command> m_cmdNew;
+    CUI::Widgets::Ref<::CUI::Command> m_cmdSave;
+    CUI::Widgets::Ref<::CUI::Command> m_cmdBuild;
+    CUI::Widgets::Ref<::CUI::Command> m_cmdFind;
     bool m_canSave = true;
     std::string m_lastLog = "就绪。支持快捷键：Ctrl+N (新建), Ctrl+S (保存), F5 (调试), Ctrl+F (查找)";
     std::function<void(const std::string&)> m_onStatusChanged;
@@ -203,8 +203,8 @@ private:
 Element BuildCommandsPage() {
     auto statusLabel = MakeStatus("提示：按下键盘快捷键 (Ctrl+N, Ctrl+S, F5, Ctrl+F) 或点击下方按钮均可触发命令。");
 
-    auto console = std::make_shared<CommandConsoleControl>();
-        console->SetStatusHandler([statusLabel](const std::string& msg) {
+    CUI::Widgets::Ref console =std::make_shared<CommandConsoleControl>();
+        console.StatusHandler([statusLabel](const std::string& msg) {
         statusLabel->Text = msg;
     });
 
@@ -241,7 +241,7 @@ Element BuildCommandsPage() {
     toggleCanSave->OnClick.Connect([console, statusLabel](UIElement* sender) {
         auto btn = dynamic_cast<ToggleButton*>(sender);
         bool canSave = btn && btn->IsChecked();
-                console->SetCanSave(canSave);
+                console.CanSave(canSave);
         statusLabel->Text = canSave
             ? "已【启用】保存命令 (Ctrl+S 可正常触发)"
             : "已【禁用】保存命令 (Ctrl+S 将被拦截阻断)";
@@ -270,12 +270,12 @@ Element BuildCommandsPage() {
     };
 
     spec.source = R"cpp(// 1. 创建 Command 并指定快捷键手势与判定函数
-auto cmdSave = std::make_shared<Command>(
+CUI::Widgets::Ref cmdSave =std::make_shared<Command>(
     []() { /* 保存文件逻辑 */ },
     []() { return isModified(); } // CanExecute 判定
 );
-cmdSave->SetId("File.Save");
-cmdSave->SetGesture("Ctrl+S");
+cmdSave.Id("File.Save");
+cmdSave.Gesture("Ctrl+S");
 
 // 2. 注册到 Window 全局命令管理器
 Window::Current()->GetCommands().Register(cmdSave);

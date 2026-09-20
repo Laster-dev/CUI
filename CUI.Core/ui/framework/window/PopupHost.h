@@ -39,7 +39,7 @@ public:
 class PopupHost {
 public:
     static PopupHost* Current();
-    static void SetCurrent(PopupHost* host);
+    static void ApplyCurrent(PopupHost* host);
 
     void Open(IPopup* popup);
     void Close(IPopup* popup);
@@ -54,10 +54,10 @@ public:
     bool TickAnimations();
     void CollectDirty(Rect& dirtyRect, bool& hasDirty) const;
 
-    void SetViewport(const Rect& viewport) { m_viewport = viewport; }
+    void ApplyViewport(const Rect& viewport) { m_viewport = viewport; }
     const Rect& GetViewport() const { return m_viewport; }
 
-    void SetOwnerHwnd(HWND hwnd) { m_ownerHwnd = hwnd; }
+    void ApplyOwnerHwnd(HWND hwnd) { m_ownerHwnd = hwnd; }
     HWND GetOwnerHwnd() const { return m_ownerHwnd; }
 
     bool HasOpenPopups() const { return !m_open.empty(); }

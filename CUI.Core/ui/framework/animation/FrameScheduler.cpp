@@ -10,7 +10,7 @@ FrameScheduler* FrameScheduler::Current() {
     return s_current;
 }
 
-void FrameScheduler::SetCurrent(FrameScheduler* scheduler) {
+void FrameScheduler::ApplyCurrent(FrameScheduler* scheduler) {
     s_current = scheduler;
 }
 
@@ -73,7 +73,7 @@ bool FrameScheduler::ConsumeDue(clock::time_point now) {
     return false;
 }
 
-void FrameScheduler::SetMinFrameInterval(clock::duration interval) {
+void FrameScheduler::ApplyMinFrameInterval(clock::duration interval) {
     m_minInterval = interval;
     if (m_minInterval < std::chrono::milliseconds(1)) {
         m_minInterval = std::chrono::milliseconds(1);

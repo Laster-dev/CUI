@@ -44,23 +44,23 @@ public:
     virtual bool HitDismissExempt(float x, float y) const override; // 判定点击该区域是否免于强制消退收起
     virtual UIElement* HitTestPopup(float x, float y) override { return HitTestOverlay(x, y); } // 弹窗穿透命中定位
     virtual void RenderPopup(GraphicsContext& ctx) override; // 绘制具体的下拉菜单内部条目与背景
-    virtual void OnLightDismiss() override { SetDropDownOpen(false); } // 轻点空白背景消退时触发收拢关闭
+    virtual void OnLightDismiss() override { ApplyDropDownOpen(false); } // 轻点空白背景消退时触发收拢关闭
 
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
 
     void AddItem(const std::string& item); // 向列表末尾添加一个项文本
     void ClearItems(); // 清空列表中的所有项
-    void SetItems(const std::string& itemsCsv); // 通过逗号分隔符 (CSV) 批量快速导入并设置列表项
+    void ApplyItems(const std::string& itemsCsv); // 通过逗号分隔符 (CSV) 批量快速导入并设置列表项
     const std::vector<std::string>& GetItems() const { return m_items; } // 获取选项明细队列
 
     PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex; // 选中行号的属性双向绑定代理
 
     int GetSelectedIndex() const { return m_selectedIndex; } // 获取当前选中项的索引位置（-1为未选）
-    void SetSelectedIndex(int index); // 设置当前选中项的索引位置
+    void ApplySelectedIndex(int index); // 设置当前选中项的索引位置
 
     std::string GetSelectedItem() const; // 读取当前选中的条目文本内容
 
-    void SetDropDownOpen(bool open); // 展开或折叠收拢下拉列表面板
+    void ApplyDropDownOpen(bool open); // 展开或折叠收拢下拉列表面板
     bool IsDropDownOpen() const { return m_isDropDownOpen; } // 查询当前下拉列表是否已展开
 
     Event<ComboBox*, int, const std::string&>& OnSelectionChanged() { return m_onSelectionChangedEvent; } // 选中更改事件派发中心

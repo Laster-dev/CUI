@@ -66,7 +66,7 @@ TerminalRenderer::TerminalRenderer(const TerminalOptions& options)
     , m_colors(options.Theme) {
 }
 
-void TerminalRenderer::SetDpi(float pixelsPerDip) {
+void TerminalRenderer::ApplyDpi(float pixelsPerDip) {
     if (pixelsPerDip <= 0.0f) {
         pixelsPerDip = 1.0f;
     }
@@ -85,7 +85,7 @@ void TerminalRenderer::UpdateFont(const std::string& familyList, float size) {
 }
 
 void TerminalRenderer::ApplyTheme(const TerminalTheme& theme) {
-    m_colors.SetTheme(theme);
+    m_colors.ApplyTheme(theme);
 }
 
 void TerminalRenderer::EnsureMetrics(GraphicsContext& ctx) {
@@ -643,7 +643,7 @@ void TerminalRenderer::Render(GraphicsContext& ctx, Terminal& terminal, bool cur
     for (int row = 0; row < rows; ++row) {
         BufferLine& line = buf.GetViewportLine(row);
         PaintRow(ctx, line, cols, area.x, area.y + row * m_cellHeight);
-        line.SetIsDirty(false);
+        line.ApplyIsDirty(false);
     }
     PaintOverlay(ctx, terminal, cursorOn, area.x, area.y, imePreedit);
 }

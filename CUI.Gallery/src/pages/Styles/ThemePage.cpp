@@ -33,10 +33,10 @@ std::string DescribeTheme(ThemeManager& tm, ThemeSource source) {
 }
 
 Element MakeSwatch(const std::string& name, ThemeTokenId token) {
-    auto chip = Container().Size(44.0f, 44.0f).CornerRadius(8.0f);
-        chip->SetBackgroundToken(token);
-        chip->SetBorderToken(ThemeTokenId::CardBorder);
-        chip->SetBorderThickness(1.0f);
+    auto chip =Container().Size(44.0f, 44.0f).CornerRadius(8.0f);
+        chip.BackgroundToken(token);
+        chip.BorderToken(ThemeTokenId::CardBorder);
+        chip.BorderThickness(1.0f);
     return Column(4, { chip, MakeLabel(name, 11.0f, ThemeTokenId::TextMuted, false) });
 }
 
@@ -46,7 +46,7 @@ Element BuildThemePage() {
     Window* window = Window::Current();
     ThemeManager& tm = ThemeManager::Instance();
 
-    auto status = MakeStatus(DescribeTheme(tm, tm.GetThemeSource()));
+    CUI::Widgets::Ref status =MakeStatus(DescribeTheme(tm, tm.GetThemeSource()));
 
     CUI::Widgets::Ref mode = CUI::Widgets::SegmentedControl().Shared();
     mode->AddItem("跟随系统");
@@ -60,16 +60,16 @@ Element BuildThemePage() {
         } else if (window) {
             window->Fluent().Theme(source == ThemeSource::Dark ? ThemeMode::Dark : ThemeMode::Light).Apply();
         }
-                status->SetText(DescribeTheme(tm, source));
+                status.Text(DescribeTheme(tm, source));
     });
 
     // 预览：全部通过 ThemeTokenId 取色，切换主题后随广播自动重绘。
-    auto secondaryBtn = ElevatedButton("次要操作");
-        secondaryBtn->SetBackgroundToken(ThemeTokenId::CardBackground);
-        secondaryBtn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-        secondaryBtn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-        secondaryBtn->SetBorderToken(ThemeTokenId::CardBorder);
-        secondaryBtn->SetBorderThickness(1.0f);
+    auto secondaryBtn =ElevatedButton("次要操作");
+        secondaryBtn.BackgroundToken(ThemeTokenId::CardBackground);
+        secondaryBtn.HoverBackgroundToken(ThemeTokenId::HoverBackground);
+        secondaryBtn.PressedBackgroundToken(ThemeTokenId::PressedBackground);
+        secondaryBtn.BorderToken(ThemeTokenId::CardBorder);
+        secondaryBtn.BorderThickness(1.0f);
     
 
     CUI::Widgets::Ref input = Widgets::TextBox().Text("输入内容").Shared();

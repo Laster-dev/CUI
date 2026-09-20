@@ -126,9 +126,9 @@ Element BuildGridPage() {
         },
     };
     spec.source =
-        "auto grid = Widgets::Grid().Shared();\n"
-        "        grid->SetColumnDefinitions(\"1*,2*,100\");\n"
-        "        grid->SetRowDefinitions(\"Auto,Auto,Auto\");\n"
+        "CUI::Widgets::Ref grid =Widgets::Grid().Shared();\n"
+        "        grid.ColumnDefinitions(\"1*,2*,100\");\n"
+        "        grid.RowDefinitions(\"Auto,Auto,Auto\");\n"
         "// 宽度由父容器提供，因此 * 列按比例分配。\n"
         "// 页面垂直滚动时高度无界，因此使用 Auto 行。\n"
         "\n"

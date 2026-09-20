@@ -16,8 +16,8 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
     
         title.Color(ThemeManager::Instance().GetColor("textPrimary"));
 
-    auto nav = std::make_shared<NavigationView>();
-    nav->SetHeader("CUI WinUI 3 Navigation");
+    CUI::Widgets::Ref nav =std::make_shared<NavigationView>();
+    nav.Header("CUI WinUI 3 Navigation");
 
     auto pageHome = Column(12.0f).Children({
         std::make_shared<TextBlock>("🏠 首页 (Home Page)"),
@@ -43,9 +43,9 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
     CUI::Widgets::Ref btnLeftCompact = CUI::Widgets::Button("LeftCompact 紧凑模式").Shared();
     CUI::Widgets::Ref btnTop = CUI::Widgets::Button("Top 顶部模式").Shared();
 
-    btnLeft->OnClick().Connect([nav](UIElement*) { nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Left); });
-    btnLeftCompact->OnClick().Connect([nav](UIElement*) { nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::LeftCompact); });
-    btnTop->OnClick().Connect([nav](UIElement*) { nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Top); });
+    btnLeft->OnClick().Connect([nav](UIElement*) { nav.PaneDisplayMode(NavigationViewPaneDisplayMode::Left); });
+    btnLeftCompact->OnClick().Connect([nav](UIElement*) { nav.PaneDisplayMode(NavigationViewPaneDisplayMode::LeftCompact); });
+    btnTop->OnClick().Connect([nav](UIElement*) { nav.PaneDisplayMode(NavigationViewPaneDisplayMode::Top); });
 
     Window* win = ctx.windowRef;
 
@@ -54,10 +54,10 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
     CUI::Widgets::Ref btnLight = CUI::Widgets::Button("☀️ 亮色主题 (Light)").Shared();
 
     btnDark->OnClick().Connect([win](UIElement*) {
-        if (win) win->SetThemeMode(ThemeMode::Dark);
+        if (win) win->ThemeMode(ThemeMode::Dark);
     });
     btnLight->OnClick().Connect([win](UIElement*) {
-        if (win) win->SetThemeMode(ThemeMode::Light);
+        if (win) win->ThemeMode(ThemeMode::Light);
     });
 
     auto cardModes = Column(10.0f).Children({
@@ -74,8 +74,8 @@ std::shared_ptr<UIElement> CreateNavigationViewPage(const ShowcaseContext& ctx) 
         }).Build()
     }).Build();
 
-        nav->SetWidth(800.0f);
-        nav->SetHeight(340.0f);
+        nav.Width(800.0f);
+        nav.Height(340.0f);
 
     return Column(16.0f).Children({
         title,

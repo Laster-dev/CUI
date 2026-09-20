@@ -15,7 +15,7 @@ public:
 
     virtual const char* GetClassName() const { return "Object"; }
 
-    virtual void SetProperty(PropertyId id, const Value& val);
+    virtual void ApplyProperty(PropertyId id, const Value& val);
     virtual Value GetProperty(PropertyId id) const;
     virtual bool HasProperty(PropertyId id) const;
     virtual std::vector<std::pair<PropertyId, Value>> SnapshotProperties() const { return {}; }

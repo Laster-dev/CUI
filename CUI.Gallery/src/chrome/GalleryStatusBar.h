@@ -38,7 +38,7 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override { return false; }
 
-    void SetCurrentPage(const std::string& pageTitle);
+    void ApplyCurrentPage(const std::string& pageTitle);
 
 private:
     void EnsureItems();

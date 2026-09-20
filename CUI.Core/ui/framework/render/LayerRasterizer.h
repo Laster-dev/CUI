@@ -32,7 +32,7 @@ public:
     LayerRasterizer& operator=(const LayerRasterizer&) = delete;
 
     void BindDevice(ID2D1Device* device);
-    void SetCompletionCallback(CompletionFn fn) { m_onComplete = std::move(fn); }
+    void ApplyCompletionCallback(CompletionFn fn) { m_onComplete = std::move(fn); }
 
     void Enqueue(RasterJob job);
     // Drain on the calling thread (UI). Returns number executed.
@@ -44,7 +44,7 @@ public:
     bool IsBusy() const { return m_busy.load(); }
     bool HasPendingJobs() const;
 
-    void SetAsyncEnabled(bool enabled);
+    void ApplyAsyncEnabled(bool enabled);
     bool IsAsyncEnabled() const { return m_asyncEnabled; }
 
 private:

@@ -42,15 +42,15 @@ D2D1_COLOR_F Mix(D2D1_COLOR_F a, D2D1_COLOR_F b, float t) {
 } // namespace
 
 CommandBar::CommandBar() {
-        this->SetWidth(-1.0f);
-    this->SetHeight(kBarH);
-    this->SetAlign(Alignment::Stretch);
-    this->SetClipToBounds(true);
-    this->SetCornerRadius(6.0f);
-    this->SetBorderThickness(1.0f);
-    this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
+        this->ApplyWidth(-1.0f);
+    this->ApplyHeight(kBarH);
+    this->ApplyAlign(Alignment::Stretch);
+    this->ApplyClipToBounds(true);
+    this->ApplyCornerRadius(6.0f);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
     EnsureOverflowChrome();
 }
 
@@ -71,14 +71,14 @@ bool CommandBar::HasProperty(PropertyId id) const {
     return id == PropertyId::LabelPosition || UIElement::HasProperty(id);
 }
 
-void CommandBar::SetProperty(PropertyId id, const Value& val) {
+void CommandBar::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::LabelPosition) {
-        SetLabelPosition(val.AsString() == "Collapsed"
+        ApplyLabelPosition(val.AsString() == "Collapsed"
             ? CommandBarLabelPosition::Collapsed
             : CommandBarLabelPosition::Right);
         return;
     }
-    UIElement::SetProperty(id, val);
+    UIElement::ApplyProperty(id, val);
 }
 
 void CommandBar::EnsureOverflowChrome() {
@@ -98,43 +98,43 @@ void CommandBar::EnsureOverflowChrome() {
             .Background(D2D1::ColorF(0, 0, 0, 0))
             .ForegroundToken(ThemeTokenId::TextPrimary)
             .OnClick([this](UIElement*) {
-            SetOverflowOpen(!IsOverflowOpen());
+            ApplyOverflowOpen(!IsOverflowOpen());
         }).Shared();
         this->AddChild(m_overflowBtn);
     }
     if (!m_overflowMenu) {
         m_overflowMenu = std::make_shared<ContextMenu>();
-        m_overflowMenu->SetClosedCallback([this]() {
+        m_overflowMenu->ApplyClosedCallback([this]() {
             if (m_overflowBtn) {
                 m_overflowBtn->MarkRenderRectDirty(m_overflowBtn->GetBounds());
             }
             // Light-dismiss / item-click close: drop the stale assignment so it
             // never hijacks right-clicks elsewhere in the window.
-            SetContextMenu(nullptr);
+            ApplyContextMenu(nullptr);
         });
     }
 }
 
 void CommandBar::StyleItemButton(Button& btn, const Item& item, bool checked) const {
-    btn.SetHeight(kBtnH);
-    btn.SetFontSize(12.0f);
-    btn.SetCornerRadius(4.0f);
-    btn.SetPadding(Thickness(
+    btn.ApplyHeight(kBtnH);
+    btn.ApplyFontSize(12.0f);
+    btn.ApplyCornerRadius(4.0f);
+    btn.ApplyPadding(Thickness(
             m_labelPosition == CommandBarLabelPosition::Right && !item.label.empty() ? 8.0f : 6.0f, 4.0f, m_labelPosition == CommandBarLabelPosition::Right && !item.label.empty() ? 10.0f : 6.0f, 4.0f));
     if (checked) {
-        btn.SetBackgroundToken(ThemeTokenId::AccentColor);
-        btn.SetHoverBackgroundToken(ThemeTokenId::AccentColor);
-        btn.SetPressedBackgroundToken(ThemeTokenId::AccentColor);
-        btn.SetColorToken(ThemeTokenId::AccentForeground);
-        btn.SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor));
-        btn.SetBorderThickness(0.0f);
+        btn.ApplyBackgroundToken(ThemeTokenId::AccentColor);
+        btn.ApplyHoverBackgroundToken(ThemeTokenId::AccentColor);
+        btn.ApplyPressedBackgroundToken(ThemeTokenId::AccentColor);
+        btn.ApplyColorToken(ThemeTokenId::AccentForeground);
+        btn.ApplyBackground(ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor));
+        btn.ApplyBorderThickness(0.0f);
     } else {
-        btn.SetBackgroundToken(ThemeTokenId::Unset);
-        btn.SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-        btn.SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-        btn.SetColorToken(ThemeTokenId::TextPrimary);
-        btn.SetBackground(D2D1::ColorF(0, 0, 0, 0));
-        btn.SetBorderThickness(0.0f);
+        btn.ApplyBackgroundToken(ThemeTokenId::Unset);
+        btn.ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+        btn.ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
+        btn.ApplyColorToken(ThemeTokenId::TextPrimary);
+        btn.ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
+        btn.ApplyBorderThickness(0.0f);
     }
 }
 
@@ -143,10 +143,10 @@ void CommandBar::ApplyLabelChrome(Item& item) {
         return;
     }
     const bool showLabel = m_labelPosition == CommandBarLabelPosition::Right && !item.label.empty();
-    item.button->SetIcon(item.icon);
-    item.button->SetText(showLabel ? item.label : std::string());
-    item.button->SetToolTip(item.label);
-    item.button->SetWidth(showLabel ? -1.0f : kIconBtn);
+    item.button->ApplyIcon(item.icon);
+    item.button->ApplyText(showLabel ? item.label : std::string());
+    item.button->ApplyToolTip(item.label);
+    item.button->ApplyWidth(showLabel ? -1.0f : kIconBtn);
     bool checked = false;
     if (auto* toggle = dynamic_cast<ToggleButton*>(item.button.get())) {
         checked = toggle->IsChecked();
@@ -166,9 +166,9 @@ std::shared_ptr<Button> CommandBar::AddButton(
     item.button = Widgets::Button("").Build();
     if (command) {
         if (command->GetLabel().empty()) {
-            command->SetLabel(label);
+            command->ApplyLabel(label);
         }
-        item.button->SetCommand(std::move(command));
+        item.button->ApplyCommand(std::move(command));
     }
     ApplyLabelChrome(item);
     this->AddChild(item.button);
@@ -192,9 +192,9 @@ std::shared_ptr<ToggleButton> CommandBar::AddToggle(
     item.button = toggle;
     if (command) {
         if (command->GetLabel().empty()) {
-            command->SetLabel(label);
+            command->ApplyLabel(label);
         }
-        toggle->SetCommand(std::move(command));
+        toggle->ApplyCommand(std::move(command));
     }
     toggle->OnToggled().Connect([this, raw = toggle.get()](ToggleButton*, bool) {
         for (auto& it : m_items) {
@@ -236,12 +236,12 @@ std::shared_ptr<Button> CommandBar::AddSecondary(
     item.button = Widgets::Button("").Build();
     if (command) {
         if (command->GetLabel().empty()) {
-            command->SetLabel(label);
+            command->ApplyLabel(label);
         }
-        item.button->SetCommand(std::move(command));
+        item.button->ApplyCommand(std::move(command));
     }
     ApplyLabelChrome(item);
-    item.button->SetVisibility(Visibility::Collapsed);
+    item.button->ApplyVisibility(Visibility::Collapsed);
     this->AddChild(item.button);
     auto btn = item.button;
     m_items.push_back(std::move(item));
@@ -262,7 +262,7 @@ void CommandBar::AddSecondarySeparator() {
 }
 
 void CommandBar::Clear() {
-    SetOverflowOpen(false);
+    ApplyOverflowOpen(false);
     for (auto& item : m_items) {
         if (item.button) {
             this->RemoveChild(item.button);
@@ -275,7 +275,7 @@ void CommandBar::Clear() {
     MarkRenderRectDirty(m_bounds);
 }
 
-void CommandBar::SetLabelPosition(CommandBarLabelPosition position) {
+void CommandBar::ApplyLabelPosition(CommandBarLabelPosition position) {
     if (m_labelPosition == position) {
         return;
     }
@@ -343,7 +343,7 @@ void CommandBar::Arrange(Rect finalRect) {
     if (GetHeight() >= 0.0f) {
         arranged.height = (std::min)(arranged.height, GetHeight());
     }
-    SetBounds(arranged);
+    ApplyBounds(arranged);
     LayoutChrome();
     m_arrangeDirty = false;
 }
@@ -422,7 +422,7 @@ void CommandBar::LayoutChrome() {
         if (item.secondary || item.overflowed) {
             item.slot = Rect();
             if (item.button) {
-                item.button->SetVisibility(Visibility::Collapsed);
+                item.button->ApplyVisibility(Visibility::Collapsed);
                 item.button->Arrange(Rect(m_bounds.x, m_bounds.y, 0, 0));
             }
             ++m_overflowCount;
@@ -431,20 +431,20 @@ void CommandBar::LayoutChrome() {
         const float w = item.kind == ItemKind::Separator ? kSepW : widths[i];
         item.slot = Rect(x, y, w, kBtnH);
         if (item.button) {
-            item.button->SetVisibility(Visibility::Visible);
+            item.button->ApplyVisibility(Visibility::Visible);
             item.button->Arrange(item.slot);
         }
         x += w + kGap;
     }
 
     if (needOverflow && m_overflowBtn) {
-        m_overflowBtn->SetVisibility(Visibility::Visible);
+        m_overflowBtn->ApplyVisibility(Visibility::Visible);
         const float ox = m_bounds.x + m_bounds.width - kPad - overflowW;
         m_overflowBtn->Arrange(Rect(ox, y, overflowW, kBtnH));
     } else if (m_overflowBtn) {
-        m_overflowBtn->SetVisibility(Visibility::Collapsed);
+        m_overflowBtn->ApplyVisibility(Visibility::Collapsed);
         m_overflowBtn->Arrange(Rect(m_bounds.x, m_bounds.y, 0, 0));
-        SetOverflowOpen(false);
+        ApplyOverflowOpen(false);
     }
 
     RebuildOverflowMenu();
@@ -496,7 +496,7 @@ void CommandBar::RebuildOverflowMenu() {
         if (toggle) {
             auto btn = item.button;
             menuItem = m_overflowMenu->AddItem(item.label, [toggle, btn]() {
-                toggle->SetIsChecked(!toggle->IsChecked());
+                toggle->ApplyIsChecked(!toggle->IsChecked());
                 if (btn) {
                     btn->ExecuteBoundCommand();
                 }
@@ -512,15 +512,15 @@ void CommandBar::RebuildOverflowMenu() {
             menuItem = m_overflowMenu->AddItem(item.label);
         }
         if (toggle && menuItem) {
-            menuItem->SetChecked(toggle->IsChecked());
+            menuItem->ApplyChecked(toggle->IsChecked());
         }
         if (menuItem && !item.icon.empty()) {
-            menuItem->SetIcon(item.icon);
+            menuItem->ApplyIcon(item.icon);
         }
     }
 }
 
-void CommandBar::SetOverflowOpen(bool open) {
+void CommandBar::ApplyOverflowOpen(bool open) {
     EnsureOverflowChrome();
     if (!m_overflowMenu) {
         return;
@@ -535,11 +535,11 @@ void CommandBar::SetOverflowOpen(bool open) {
         // Expose the overflow dropdown as the context menu of the CommandBar
         // itself only; propagating it to the ancestor chain hijacks every
         // right-click in the window.
-        SetContextMenu(m_overflowMenu);
+        ApplyContextMenu(m_overflowMenu);
         m_onOverflowOpened.Invoke();
     } else if (m_overflowMenu->IsOpen()) {
         m_overflowMenu->Hide();
-        SetContextMenu(nullptr);
+        ApplyContextMenu(nullptr);
     }
 }
 
@@ -569,14 +569,14 @@ void CommandBar::OnRender(GraphicsContext& ctx) {
 
 bool CommandBar::OnKeyDown(int vkCode) {
     if (vkCode == VK_ESCAPE && IsOverflowOpen()) {
-        SetOverflowOpen(false);
+        ApplyOverflowOpen(false);
         return true;
     }
     if ((vkCode == VK_DOWN || vkCode == VK_SPACE || vkCode == VK_RETURN)
         && m_overflowBtn
         && m_overflowBtn->IsFocused()
         && m_overflowBtn->GetVisibility() == Visibility::Visible) {
-        SetOverflowOpen(true);
+        ApplyOverflowOpen(true);
         if (m_overflowMenu) {
             m_overflowMenu->HighlightFirst();
         }
@@ -586,7 +586,7 @@ bool CommandBar::OnKeyDown(int vkCode) {
 }
 
 void CommandBar::OnNavigatedFrom() {
-    SetOverflowOpen(false);
+    ApplyOverflowOpen(false);
 }
 
 } // namespace CUI

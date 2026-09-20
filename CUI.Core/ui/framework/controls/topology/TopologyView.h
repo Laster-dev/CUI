@@ -40,8 +40,8 @@ public:
     void RemoveNode(const std::string& id);
     void AddEdge(TopologyEdge edge);
     void RemoveEdge(const std::string& fromId, const std::string& toId);
-    void SetNodes(const std::vector<std::shared_ptr<TopologyNode>>& nodes);
-    void SetEdges(const std::vector<TopologyEdge>& edges);
+    void ApplyNodes(const std::vector<std::shared_ptr<TopologyNode>>& nodes);
+    void ApplyEdges(const std::vector<TopologyEdge>& edges);
     void Clear();
 
     std::shared_ptr<TopologyNode> FindNode(const std::string& id) const;
@@ -56,7 +56,7 @@ public:
     void CollapseAll();
 
     // --- 视口与排版控制 ---
-    void SetLayoutType(TopologyLayoutType type);
+    void ApplyLayoutType(TopologyLayoutType type);
     TopologyLayoutType GetLayoutType() const { return m_layoutType; }
 
     void Relayout();
@@ -66,19 +66,19 @@ public:
     void ZoomOut(bool animated = true);
 
     float GetZoom() const { return m_zoom; }
-    void SetZoom(float zoom, bool animated = true);
+    void ApplyZoom(float zoom, bool animated = true);
 
     Point GetPanOffset() const { return m_panOffset; }
-    void SetPanOffset(Point offset, bool animated = true);
+    void ApplyPanOffset(Point offset, bool animated = true);
 
     bool IsFlowParticlesEnabled() const { return m_flowParticlesEnabled; }
-    void SetFlowParticlesEnabled(bool enabled);
+    void ApplyFlowParticlesEnabled(bool enabled);
 
     bool IsReadOnly() const { return m_isReadOnly; }
-    void SetIsReadOnly(bool ro);
+    void ApplyIsReadOnly(bool ro);
 
     std::shared_ptr<TopologyNode> GetSelectedItem() const { return m_selectedNode; }
-    void SetSelectedItem(std::shared_ptr<TopologyNode> node);
+    void ApplySelectedItem(std::shared_ptr<TopologyNode> node);
 
     // --- 统一属性代理体系 ---
     /**
@@ -88,7 +88,7 @@ public:
         TopologyView* owner = nullptr;
         TopologyNodesProperty() = default;
         explicit TopologyNodesProperty(TopologyView* o) : owner(o) {}
-        TopologyNodesProperty& operator=(const std::vector<std::shared_ptr<TopologyNode>>& nodes) { if (owner) owner->SetNodes(nodes); return *this; }
+        TopologyNodesProperty& operator=(const std::vector<std::shared_ptr<TopologyNode>>& nodes) { if (owner) owner->ApplyNodes(nodes); return *this; }
         operator const std::vector<std::shared_ptr<TopologyNode>>&() const { return owner->GetNodes(); }
         const std::vector<std::shared_ptr<TopologyNode>>& Get() const { return owner->GetNodes(); }
         size_t size() const { return owner->GetNodes().size(); }
@@ -102,7 +102,7 @@ public:
         TopologyView* owner = nullptr;
         TopologyEdgesProperty() = default;
         explicit TopologyEdgesProperty(TopologyView* o) : owner(o) {}
-        TopologyEdgesProperty& operator=(const std::vector<TopologyEdge>& edges) { if (owner) owner->SetEdges(edges); return *this; }
+        TopologyEdgesProperty& operator=(const std::vector<TopologyEdge>& edges) { if (owner) owner->ApplyEdges(edges); return *this; }
         operator const std::vector<TopologyEdge>&() const { return owner->GetEdges(); }
         const std::vector<TopologyEdge>& Get() const { return owner->GetEdges(); }
         size_t size() const { return owner->GetEdges().size(); }
@@ -116,7 +116,7 @@ public:
         TopologyView* owner = nullptr;
         TopologyLayoutProperty() = default;
         explicit TopologyLayoutProperty(TopologyView* o) : owner(o) {}
-        TopologyLayoutProperty& operator=(TopologyLayoutType t) { if (owner) owner->SetLayoutType(t); return *this; }
+        TopologyLayoutProperty& operator=(TopologyLayoutType t) { if (owner) owner->ApplyLayoutType(t); return *this; }
         operator TopologyLayoutType() const { return owner->GetLayoutType(); }
         TopologyLayoutType Get() const { return owner->GetLayoutType(); }
     } LayoutType;
@@ -128,7 +128,7 @@ public:
         TopologyView* owner = nullptr;
         TopologySelectedItemProperty() = default;
         explicit TopologySelectedItemProperty(TopologyView* o) : owner(o) {}
-        TopologySelectedItemProperty& operator=(std::shared_ptr<TopologyNode> n) { if (owner) owner->SetSelectedItem(std::move(n)); return *this; }
+        TopologySelectedItemProperty& operator=(std::shared_ptr<TopologyNode> n) { if (owner) owner->ApplySelectedItem(std::move(n)); return *this; }
         operator std::shared_ptr<TopologyNode>() const { return owner->GetSelectedItem(); }
         std::shared_ptr<TopologyNode> Get() const { return owner->GetSelectedItem(); }
         std::shared_ptr<TopologyNode> operator->() const { return owner->GetSelectedItem(); }
@@ -141,7 +141,7 @@ public:
         TopologyView* owner = nullptr;
         TopologyFlowParticlesProperty() = default;
         explicit TopologyFlowParticlesProperty(TopologyView* o) : owner(o) {}
-        TopologyFlowParticlesProperty& operator=(bool e) { if (owner) owner->SetFlowParticlesEnabled(e); return *this; }
+        TopologyFlowParticlesProperty& operator=(bool e) { if (owner) owner->ApplyFlowParticlesEnabled(e); return *this; }
         operator bool() const { return owner->IsFlowParticlesEnabled(); }
         bool Get() const { return owner->IsFlowParticlesEnabled(); }
     } FlowParticles;
@@ -153,7 +153,7 @@ public:
         TopologyView* owner = nullptr;
         TopologyReadOnlyProperty() = default;
         explicit TopologyReadOnlyProperty(TopologyView* o) : owner(o) {}
-        TopologyReadOnlyProperty& operator=(bool ro) { if (owner) owner->SetIsReadOnly(ro); return *this; }
+        TopologyReadOnlyProperty& operator=(bool ro) { if (owner) owner->ApplyIsReadOnly(ro); return *this; }
         operator bool() const { return owner->IsReadOnly(); }
         bool Get() const { return owner->IsReadOnly(); }
     } ReadOnly;

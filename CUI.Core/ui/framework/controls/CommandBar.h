@@ -22,7 +22,7 @@ public:
     virtual const char* GetClassName() const override { return "CommandBar"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;
@@ -48,7 +48,7 @@ public:
 
     void Clear();
 
-    void SetLabelPosition(CommandBarLabelPosition position);
+    void ApplyLabelPosition(CommandBarLabelPosition position);
     CommandBarLabelPosition GetLabelPosition() const { return m_labelPosition; }
 
     int GetPrimaryCount() const;
@@ -75,7 +75,7 @@ private:
     void ApplyLabelChrome(Item& item);
     void LayoutChrome();
     void RebuildOverflowMenu();
-    void SetOverflowOpen(bool open);
+    void ApplyOverflowOpen(bool open);
     void DrawSeparator(GraphicsContext& ctx, const Rect& slot) const;
     float MeasureItemWidth(Item& item) const;
     static constexpr float kBarH = 40.0f;

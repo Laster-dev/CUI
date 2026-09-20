@@ -47,7 +47,7 @@ public:
         WindowTitleBar* owner = nullptr;
         WindowTitleBarRightContentProperty() = default;
         explicit WindowTitleBarRightContentProperty(WindowTitleBar* o) : owner(o) {}
-        WindowTitleBarRightContentProperty& operator=(std::shared_ptr<UIElement> c) { if (owner) owner->SetRightContent(std::move(c)); return *this; }
+        WindowTitleBarRightContentProperty& operator=(std::shared_ptr<UIElement> c) { if (owner) owner->ApplyRightContent(std::move(c)); return *this; }
         operator std::shared_ptr<UIElement>() const { return owner ? owner->GetRightContent() : nullptr; }
         std::shared_ptr<UIElement> Get() const { return owner ? owner->GetRightContent() : nullptr; }
         std::shared_ptr<UIElement> operator->() const { return owner ? owner->GetRightContent() : nullptr; }
@@ -69,16 +69,16 @@ public:
     CUI::MenuBar& GetMenuBar() { return *m_menuBar; } // 获取内部持有的菜单栏引用
     const CUI::MenuBar& GetMenuBar() const { return *m_menuBar; }
 
-    void SetRightContent(const std::shared_ptr<UIElement>& content); // 设置在标题栏右侧（窗口按钮左侧）自定义注入填充的视觉子元素
+    void ApplyRightContent(const std::shared_ptr<UIElement>& content); // 设置在标题栏右侧（窗口按钮左侧）自定义注入填充的视觉子元素
     std::shared_ptr<UIElement> GetRightContent() const { return m_rightContent; } // 获取右侧自定义注入填充的视觉子元素
 
-    void SetTitle(const std::string& title); // 设置标题栏主文本
+    void ApplyTitle(const std::string& title); // 设置标题栏主文本
     const std::string& GetTitle() const { return m_title; } // 获取标题栏主文本
 
-    void SetIconText(const std::string& iconText); // 设置以文本符号形式表达的左侧小图标标签
+    void ApplyIconText(const std::string& iconText); // 设置以文本符号形式表达的左侧小图标标签
     const std::string& GetIconText() const { return m_iconText; }
 
-    void SetNativeIcon(HICON icon, bool takeOwnership = false); // 设置原生 Windows 操作系统 HICON 格式文件图标
+    void ApplyNativeIcon(HICON icon, bool takeOwnership = false); // 设置原生 Windows 操作系统 HICON 格式文件图标
     HICON GetNativeIcon() const { return m_nativeIcon; }
 
     Rect GetMinimizeButtonRect() const; // 计算并返回最小化按钮在标题栏局部坐标系下的矩形包络盒
@@ -87,42 +87,42 @@ public:
     float GetCaptionButtonsLeft() const; // 计算最左侧窗口控制按钮的 X 轴起点
 
     bool IsMinimizeButtonVisible() const { return m_isMinimizeButtonVisible; }
-    void SetIsMinimizeButtonVisible(bool visible) {
+    void ApplyIsMinimizeButtonVisible(bool visible) {
         if (m_isMinimizeButtonVisible == visible) return;
         m_isMinimizeButtonVisible = visible;
         MarkRenderContentDirty();
     }
 
     bool IsMaximizeButtonVisible() const { return m_isMaximizeButtonVisible; }
-    void SetIsMaximizeButtonVisible(bool visible) {
+    void ApplyIsMaximizeButtonVisible(bool visible) {
         if (m_isMaximizeButtonVisible == visible) return;
         m_isMaximizeButtonVisible = visible;
         MarkRenderContentDirty();
     }
 
     bool IsCloseButtonVisible() const { return m_isCloseButtonVisible; }
-    void SetIsCloseButtonVisible(bool visible) {
+    void ApplyIsCloseButtonVisible(bool visible) {
         if (m_isCloseButtonVisible == visible) return;
         m_isCloseButtonVisible = visible;
         MarkRenderContentDirty();
     }
 
     bool IsMinimizeButtonEnabled() const { return m_isMinimizeButtonEnabled; }
-    void SetIsMinimizeButtonEnabled(bool enabled) {
+    void ApplyIsMinimizeButtonEnabled(bool enabled) {
         if (m_isMinimizeButtonEnabled == enabled) return;
         m_isMinimizeButtonEnabled = enabled;
         MarkRenderContentDirty();
     }
 
     bool IsMaximizeButtonEnabled() const { return m_isMaximizeButtonEnabled; }
-    void SetIsMaximizeButtonEnabled(bool enabled) {
+    void ApplyIsMaximizeButtonEnabled(bool enabled) {
         if (m_isMaximizeButtonEnabled == enabled) return;
         m_isMaximizeButtonEnabled = enabled;
         MarkRenderContentDirty();
     }
 
     bool IsCloseButtonEnabled() const { return m_isCloseButtonEnabled; }
-    void SetIsCloseButtonEnabled(bool enabled) {
+    void ApplyIsCloseButtonEnabled(bool enabled) {
         if (m_isCloseButtonEnabled == enabled) return;
         m_isCloseButtonEnabled = enabled;
         MarkRenderContentDirty();

@@ -80,13 +80,13 @@ void FillBar(CommandBar& bar, const std::function<void(const char*)>& log) {
 } // namespace
 
 ShowcasePage BuildCommandBarPage(const ShowcaseContext& ctx) {
-    auto log = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref log =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("命令日志：就绪", 12.0f, "#B5CEA8", false, "Consolas"));
-    auto overflowHint = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref overflowHint =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("窄栏溢出：—", 12.0f, "textSecondary", false));
 
     auto logFn = [window = ctx.windowRef, log](const char* name) {
-                log->SetText(std::string("[CommandBar] ") + name);
+                log.Text(std::string("[CommandBar] ") + name);
         if (window) {
             Toast::Show(window->GetRootElement().get(), "CommandBar", name,
                         ToastType::Info, ToastCorner::BottomRight, 1200);
@@ -107,7 +107,7 @@ ShowcasePage BuildCommandBarPage(const ShowcaseContext& ctx) {
         narrow.LabelPosition(CommandBarLabelPosition::Right);
     FillBar(*narrow, logFn);
     narrow->OnOverflowOpened().Connect([overflowHint, narrow]() {
-                overflowHint->SetText("窄栏溢出：已打开，共 "
+                overflowHint.Text("窄栏溢出：已打开，共 "
             + std::to_string(narrow->GetOverflowCount()) + " 项进菜单");
     });
 
@@ -115,7 +115,7 @@ ShowcasePage BuildCommandBarPage(const ShowcaseContext& ctx) {
     btnLabels->OnClick().Connect([full, log](UIElement*) {
         const bool show = full->GetLabelPosition() != CommandBarLabelPosition::Right;
                 full.LabelPosition(show ? CommandBarLabelPosition::Right : CommandBarLabelPosition::Collapsed);
-                log->SetText(show ? "[CommandBar] 显示文字" : "[CommandBar] 仅图标");
+                log.Text(show ? "[CommandBar] 显示文字" : "[CommandBar] 仅图标");
     });
 
     auto demo = Column(12).Children({

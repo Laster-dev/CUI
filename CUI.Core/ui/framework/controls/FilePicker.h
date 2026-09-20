@@ -36,24 +36,24 @@ public:
     virtual bool HitDismissExempt(float x, float y) const override;
     virtual UIElement* HitTestPopup(float x, float y) override { return OnHitTestOverlay(x, y); }
     virtual void RenderPopup(GraphicsContext& ctx) override;
-    virtual void OnLightDismiss() override { SetPopupOpen(false); }
+    virtual void OnLightDismiss() override { ApplyPopupOpen(false); }
     // Overlay-composed TreeView / BreadcrumbBar — re-arm ticks if attach raced.
     virtual void CollectPopupOwnedElements(std::vector<UIElement*>& out) const override;
 
-    void SetPopupOpen(bool open);
+    void ApplyPopupOpen(bool open);
 
     const std::string& GetPath() const { return GetText(); }
-    void SetPath(const std::string& path);
+    void ApplyPath(const std::string& path);
 
     const std::string& GetDialogTitle() const { return m_dialogTitle; }
-    void SetDialogTitle(const std::string& title) { m_dialogTitle = title; }
+    void ApplyDialogTitle(const std::string& title) { m_dialogTitle = title; }
 
-    void SetFilter(const std::string& name, const std::string& spec);
+    void ApplyFilter(const std::string& name, const std::string& spec);
     void AddFilter(const std::string& name, const std::string& spec);
     void ClearFilters();
 
     // 拖放支持：默认允许，将文件拖到选择器上即可填入路径
-    void SetAllowDrop(bool allow) { m_allowDrop = allow; }
+    void ApplyAllowDrop(bool allow) { m_allowDrop = allow; }
     bool GetAllowDrop() const { return m_allowDrop; }
 
     DragDropEffects OnDragOver(Point pt, const DataPackage& data, DragDropEffects allowed) override;
@@ -71,7 +71,7 @@ private:
     void MarkPickerDirty();
     void UpdateHover(Point pt);
     bool HandleBrowserClick(Point pt);
-    void SetFilterDropDownOpen(bool open);
+    void ApplyFilterDropDownOpen(bool open);
     void SyncBrowserChrome();
     float PopupProgress() const;
 

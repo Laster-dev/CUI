@@ -20,22 +20,22 @@ public:
     virtual const char* GetClassName() const override { return "ChartBase"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
 
-    void SetCategories(std::vector<std::string> categories, bool replayReveal = true); // 设定 X 轴所有分类标签名称
+    void ApplyCategories(std::vector<std::string> categories, bool replayReveal = true); // 设定 X 轴所有分类标签名称
     const std::vector<std::string>& GetCategories() const { return m_categories; } // 获取所有分类标签
 
-    void SetSeries(std::vector<ChartSeries> series, bool replayReveal = true); // 设定并批量覆盖数据系列内容，并默认重新播放入场动效
+    void ApplySeries(std::vector<ChartSeries> series, bool replayReveal = true); // 设定并批量覆盖数据系列内容，并默认重新播放入场动效
     void AddSeries(ChartSeries series); // 新增添加一个数据系列
     void ClearSeries(); // 清空图表中的全部数据系列
     const std::vector<ChartSeries>& GetSeries() const { return m_series; } // 获取全部系列明细
-    void SetLiveData(std::vector<std::string> categories, std::vector<ChartSeries> series, bool replayReveal = false); // 动态实时增量更新数据接口（屏蔽入场动画，防止界面高频刷新发生抖动）
+    void ApplyLiveData(std::vector<std::string> categories, std::vector<ChartSeries> series, bool replayReveal = false); // 动态实时增量更新数据接口（屏蔽入场动画，防止界面高频刷新发生抖动）
 
-    void SetShowGrid(bool show); // 设定是否在直角坐标系绘制水平/垂直背景网格线
+    void ApplyShowGrid(bool show); // 设定是否在直角坐标系绘制水平/垂直背景网格线
     bool GetShowGrid() const { return m_showGrid; } // 检查是否显示网格线
-    void SetShowLegend(bool show); // 设定是否在图表底部或顶部渲染系列色块图例
+    void ApplyShowLegend(bool show); // 设定是否在图表底部或顶部渲染系列色块图例
     bool GetShowLegend() const { return m_showLegend; } // 检查是否显示图例
-    void SetShowTooltip(bool show); // 设定在鼠标滑过数据项时是否弹窗富文本提示卡片
+    void ApplyShowTooltip(bool show); // 设定在鼠标滑过数据项时是否弹窗富文本提示卡片
     bool GetShowTooltip() const { return m_showTooltip; } // 检查是否显示提示卡片
 
     int GetHoverIndex() const { return m_hoverIndex; } // 获取鼠标当前悬停的分类项 X 轴索引位置
@@ -80,7 +80,7 @@ protected:
                             float yMin, float yMax, const std::vector<ChartTick>& ticks); // 绘制笛卡尔坐标系的背景网格线与 Y 轴刻度文本
     virtual void DrawLegend(GraphicsContext& ctx); // 绘制图表图例色块
     void DrawTooltipCard(GraphicsContext& ctx, const std::vector<std::string>& lines, Point anchor); // 在指定坐标自绘出精细的带阴影浮空信息提示框
-    void SetHover(int index, int series); // 登记当前的 Hover 数据项索引
+    void ApplyHover(int index, int series); // 登记当前的 Hover 数据项索引
     void NotifyDataChanged(); // 刷新布局和图表数值
     void SyncVisibilityAnim(); // 同步卡片可见性动画
     float Reveal() const { return m_reveal.Current(); } // 获取当前的入场生长动画播放进度 (0.0f - 1.0f)

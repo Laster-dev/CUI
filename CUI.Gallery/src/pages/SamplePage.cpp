@@ -9,10 +9,10 @@ Element MakeLabel(
     float size,
     ThemeTokenId token,
     bool bold) {
-    auto label = Text(text).AlignVertical(Alignment::Center).FontSize(size).Build();
+    CUI::Widgets::Ref label =Text(text).AlignVertical(Alignment::Center).FontSize(size).Build();
     
     if (bold) {
-                label->SetFontWeight(FontWeight::Bold);
+                label.FontWeight(FontWeight::Bold);
     }
     return label;
 }
@@ -20,19 +20,19 @@ Element MakeLabel(
 Element MakeCard(
     std::initializer_list<Element> children,
     float gap) {
-    auto card = Column(gap).Padding(24).CornerRadius(6).Children(children).Build();
-        card->SetBackgroundToken(ThemeTokenId::CardBackground);
-        card->SetBorderToken(ThemeTokenId::CardBorder);
-        card->SetBorderThickness(1.0f);
-        card->SetClipToBounds(true);
-        card->SetMargin(Thickness(0, 0, 0, 8));
+    CUI::Widgets::Ref card =Column(gap).Padding(24).CornerRadius(6).Children(children).Build();
+        card.BackgroundToken(ThemeTokenId::CardBackground);
+        card.BorderToken(ThemeTokenId::CardBorder);
+        card.BorderThickness(1.0f);
+        card.ClipToBounds(true);
+        card.Margin(Thickness(0, 0, 0, 8));
     return card;
 }
 
 std::shared_ptr<TextBlock> MakeStatus(const std::string& text) {
-    auto label = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref label =std::static_pointer_cast<TextBlock>(
         MakeLabel(text, 12.0f, ThemeTokenId::TextSecondary, false));
-        label->SetAlignVertical(Alignment::Center);
+        label.AlignVertical(Alignment::Center);
     return label;
 }
 
@@ -65,7 +65,7 @@ Element MakeSourceExpander(const std::string& source) {
 }
 
 Element MakeSectionCard(const SampleSection& section) {
-    auto card = Column(12).Padding(24).CornerRadius(6);
+    auto card =Column(12).Padding(24).CornerRadius(6);
     card.AddChild(MakeLabel(section.heading, 15.0f, ThemeTokenId::TextPrimary, true));
     if (!section.description.empty()) {
         card.AddChild(MakeLabel(section.description, 12.0f, ThemeTokenId::TextMuted, false));
@@ -73,11 +73,11 @@ Element MakeSectionCard(const SampleSection& section) {
     if (section.content) {
         card.AddChild(section.content);
     }
-    auto built = card.Build();
-        built->SetBackgroundToken(ThemeTokenId::CardBackground);
-        built->SetBorderToken(ThemeTokenId::CardBorder);
-        built->SetBorderThickness(1.0f);
-        built->SetClipToBounds(false);
+    auto built =card.Build();
+        built->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+        built->ApplyBorderToken(ThemeTokenId::CardBorder);
+        built->ApplyBorderThickness(1.0f);
+        built->ApplyClipToBounds(false);
     return built;
 }
 
@@ -97,9 +97,9 @@ Element BuildSamplePage(const SamplePageSpec& spec) {
         main.AddChild(source);
     }
 
-    auto column = main.Build();
-        column->SetBackgroundToken(ThemeTokenId::WindowBackground);
-        column->SetAlignHorizontal(Alignment::Stretch);
+    CUI::Widgets::Ref column =main.Build();
+        column.BackgroundToken(ThemeTokenId::WindowBackground);
+        column.AlignHorizontal(Alignment::Stretch);
 
     CUI::Widgets::Ref scroll = CUI::Widgets::ScrollViewer().Shared();
         scroll.FlexGrow(1.0f);

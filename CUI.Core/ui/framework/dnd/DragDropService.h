@@ -38,7 +38,7 @@ public:
 class DragDropService {
 public:
     static DragDropService* Current();
-    static void SetCurrent(DragDropService* service);
+    static void ApplyCurrent(DragDropService* service);
 
     void BeginDrag(IDragSource* source, Point start, DataPackage package, DragDropEffects allowed);
     bool IsDragging() const { return m_dragging; }
@@ -67,7 +67,7 @@ public:
 private:
     IDropTarget* FindTarget(Point pt, UIElement* root) const;
     DragDropEffects ProposeEffect(DragDropEffects allowed) const;
-    void SetTarget(IDropTarget* target, Point pt);
+    void ApplyTarget(IDropTarget* target, Point pt);
     void DirtyGhost();
     Rect GhostRect() const;
 

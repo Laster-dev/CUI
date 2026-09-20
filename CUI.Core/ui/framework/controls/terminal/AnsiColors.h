@@ -17,11 +17,11 @@ public:
 
     const TerminalTheme& Theme() const { return m_theme; }
 
-    void SetTheme(const TerminalTheme& theme);
+    void ApplyTheme(const TerminalTheme& theme);
 
     TermColor Resolve(int color, bool foreground) const;
     TermColor Palette(int index) const;
-    void SetPalette(int index, TermColor color);
+    void ApplyPalette(int index, TermColor color);
 
 private:
     void RebuildTable();

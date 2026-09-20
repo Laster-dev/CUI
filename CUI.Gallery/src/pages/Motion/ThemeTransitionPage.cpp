@@ -14,10 +14,10 @@ namespace Gallery {
 namespace {
 
 Element MakeColorChip(const std::string& name, ThemeTokenId token) {
-    auto chip = Container().Size(48.0f, 48.0f).CornerRadius(8.0f);
-        chip->SetBackgroundToken(token);
-        chip->SetBorderToken(ThemeTokenId::CardBorder);
-        chip->SetBorderThickness(1.0f);
+    auto chip =Container().Size(48.0f, 48.0f).CornerRadius(8.0f);
+        chip.BackgroundToken(token);
+        chip.BorderToken(ThemeTokenId::CardBorder);
+        chip.BorderThickness(1.0f);
     return Column(4, {
         chip,
         MakeLabel(name, 11.0f, ThemeTokenId::TextMuted, false)
@@ -37,7 +37,7 @@ Element BuildThemeTransitionPage() {
             const ThemeMode nextMode = (ThemeManager::Instance().GetThemeMode() == ThemeMode::Dark)
                 ? ThemeMode::Light
                 : ThemeMode::Dark;
-                        win->SetThemeModeWithRipple(nextMode, origin);
+                        win->ApplyThemeModeWithRipple(nextMode, origin);
             statusTheme->Text = std::string("当前系统主题：")
                 + (nextMode == ThemeMode::Dark ? "深色模式 (Dark)" : "浅色模式 (Light)")
                 + " [波纹扩散已完成]";
@@ -126,10 +126,10 @@ Element BuildThemeTransitionPage() {
         sampleBar.Height(6.0f);
         sampleBar.Align(Alignment::Stretch);
 
-    auto sandboxCard = Container().Padding(16.0f).CornerRadius(12.0f);
-        sandboxCard->SetBackgroundToken(ThemeTokenId::CardBackground);
-        sandboxCard->SetBorderToken(ThemeTokenId::CardBorder);
-        sandboxCard->SetBorderThickness(1.0f);
+    auto sandboxCard =Container().Padding(16.0f).CornerRadius(12.0f);
+        sandboxCard.BackgroundToken(ThemeTokenId::CardBackground);
+        sandboxCard.BorderToken(ThemeTokenId::CardBorder);
+        sandboxCard.BorderThickness(1.0f);
         sandboxCard->AddChild(Column(14, {
         MakeLabel("主题响应沙盒 (Theme Live Sandbox)", 16.0f, ThemeTokenId::TextPrimary, true),
         MakeLabel("波纹扫过时，所有 Token 配色将随 Direct2D 裁剪圆圈平滑刷新，无闪烁无重叠。", 12.0f, ThemeTokenId::TextSecondary, false),

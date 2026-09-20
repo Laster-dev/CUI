@@ -52,7 +52,7 @@ void StyleManager::ApplyStyle(UIElement* element) {
                 PropertyId propId = PropertyIdFromName(kv.first);
                 if (propId == PropertyId::None) continue;
                 if (!element->HasProperty(propId)) {
-                    element->SetProperty(propId, kv.second);
+                    element->ApplyProperty(propId, kv.second);
                 }
             }
         }

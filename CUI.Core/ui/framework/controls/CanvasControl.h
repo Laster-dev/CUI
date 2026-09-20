@@ -63,31 +63,31 @@ public:
      * @brief 设置即时绘制模式的 OnDraw 回调函数。
      * @param callback 绘制闭包函数 `[](GraphicsContext& ctx, Size canvasSize){ ... }`。
      */
-    void SetOnDraw(DrawCallback callback) { m_onDraw = std::move(callback); Invalidate(); }
+    void ApplyOnDraw(DrawCallback callback) { m_onDraw = std::move(callback); Invalidate(); }
 
     /**
      * @brief 设置画布的鼠标按下事件回调。
      * @param cb 交互闭包 `[](Point pt){ ... }`，开发者可以在闭包中拿着 pt 进行手写坐标碰撞测试。
      */
-    void SetOnCanvasMouseDown(MouseCallback cb) { m_onMouseDown = std::move(cb); }
+    void ApplyOnCanvasMouseDown(MouseCallback cb) { m_onMouseDown = std::move(cb); }
 
     /**
      * @brief 设置画布的鼠标抬起释放事件回调。
      * @param cb 交互闭包 `[](Point pt){ ... }`。
      */
-    void SetOnCanvasMouseUp(MouseCallback cb) { m_onMouseUp = std::move(cb); }
+    void ApplyOnCanvasMouseUp(MouseCallback cb) { m_onMouseUp = std::move(cb); }
 
     /**
      * @brief 设置画布的鼠标移动事件回调（适合处理画笔拖拽绘制或 Hover 提示）。
      * @param cb 交互闭包 `[](Point pt){ ... }`。
      */
-    void SetOnCanvasMouseMove(MouseCallback cb) { m_onMouseMove = std::move(cb); }
+    void ApplyOnCanvasMouseMove(MouseCallback cb) { m_onMouseMove = std::move(cb); }
 
     /**
      * @brief 设置每帧更新回调（物理/粒子高频模拟）。
      * @param cb 回调闭包 `[](float dt){ return keepRunning; }`，返回 false 后自动停止 Tick。
      */
-    void SetOnTick(TickCallback cb) { m_onTick = std::move(cb); }
+    void ApplyOnTick(TickCallback cb) { m_onTick = std::move(cb); }
 
     /**
      * @brief 核心渲染入口：将 GraphicsContext 和当前画布大小透传给 m_onDraw 回调。

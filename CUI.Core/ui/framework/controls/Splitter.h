@@ -24,7 +24,7 @@ public:
     virtual void OnMouseUp(Point pt) override; // 鼠标抬起释放拖拽
 
     bool IsVerticalSplitter() const { return GetOrientation() == CUI::Orientation::Vertical; } // 判定是否为垂直切割条
-    void SetOrientation(CUI::Orientation orientation); // 设置分割条的排布方向
+    void ApplyOrientation(CUI::Orientation orientation); // 设置分割条的排布方向
 
     Event<Splitter*, float>& OnSplitterMoved() { return m_onSplitterMovedEvent; } // 拖拽移动触发的事件发布中心
 

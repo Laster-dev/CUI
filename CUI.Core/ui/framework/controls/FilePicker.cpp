@@ -17,43 +17,43 @@ constexpr float kDefaultH = 32.0f;
 } // namespace
 
 FilePicker::FilePicker() {
-        this->SetPlaceholder("未选择文件...");
-    this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    this->SetBorderToken(ThemeTokenId::InputBorder);
-    this->SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
-    this->SetBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
-    this->SetBorderThickness(1.0f);
-    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    this->SetFontFamily("Segoe UI");
-    this->SetFontSize(12.0f);
-    this->SetPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
-    this->SetCornerRadius(4.0f);
-    this->SetHeight(kDefaultH);
-    this->SetFilter("所有文件", "*.*");
+        this->ApplyPlaceholder("未选择文件...");
+    this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    this->ApplyBorderToken(ThemeTokenId::InputBorder);
+    this->ApplyFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->ApplyFontFamily("Segoe UI");
+    this->ApplyFontSize(12.0f);
+    this->ApplyPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
+    this->ApplyCornerRadius(4.0f);
+    this->ApplyHeight(kDefaultH);
+    this->ApplyFilter("所有文件", "*.*");
 
     m_breadcrumbHost.AttachTo(this);
     m_treeHost.AttachTo(this);
 
-    m_breadcrumbHost.SetNavigateHandler([this](const std::string& path) {
-        m_browser.SetCurrentPath(path);
+    m_breadcrumbHost.ApplyNavigateHandler([this](const std::string& path) {
+        m_browser.ApplyCurrentPath(path);
         m_treeHost.NavigateTo(path, m_browser);
         SyncBrowserChrome();
         MarkPickerDirty();
         RequestAnimationTicks();
     });
 
-    m_treeHost.SetPathChangedHandler([this](const std::string& path) {
-        m_browser.SetCurrentPath(path);
+    m_treeHost.ApplyPathChangedHandler([this](const std::string& path) {
+        m_browser.ApplyCurrentPath(path);
         SyncBrowserChrome();
         MarkPickerDirty();
     });
 
-    m_treeHost.SetConfirmHandler([this](const std::string& path) {
-        SetPath(path);
-        SetPopupOpen(false);
+    m_treeHost.ApplyConfirmHandler([this](const std::string& path) {
+        ApplyPath(path);
+        ApplyPopupOpen(false);
     });
 }
 
@@ -115,21 +115,21 @@ bool FilePicker::OnDrop(Point pt, DataPackage& data, DragDropEffects effect) {
         return false;
     }
     // 取第一个文件路径填入（多文件拖入时忽略其余）
-    SetPath(files.front());
+    ApplyPath(files.front());
     return true;
 }
 
-void FilePicker::SetPath(const std::string& path) {
+void FilePicker::ApplyPath(const std::string& path) {
     if (GetText() == path) {
         return;
     }
-    SetText(path);
+    ApplyText(path);
     NotifyFieldChanged(PropertyId::Text, Value(path));
     m_onPathChangedEvent.Invoke(this, path);
     MarkPickerDirty();
 }
 
-void FilePicker::SetFilter(const std::string& name, const std::string& spec) {
+void FilePicker::ApplyFilter(const std::string& name, const std::string& spec) {
     m_filters.clear();
     m_filters.emplace_back(name, spec);
 }
@@ -212,7 +212,7 @@ void FilePicker::MarkPickerDirty() {
     }
 }
 
-void FilePicker::SetFilterDropDownOpen(bool open) {
+void FilePicker::ApplyFilterDropDownOpen(bool open) {
     if (m_filterDropDownOpen == open) {
         return;
     }
@@ -223,7 +223,7 @@ void FilePicker::SetFilterDropDownOpen(bool open) {
     MarkPickerDirty();
 }
 
-void FilePicker::SetPopupOpen(bool open) {
+void FilePicker::ApplyPopupOpen(bool open) {
     if (m_isPopupOpen == open) {
         return;
     }
@@ -327,27 +327,27 @@ bool FilePicker::HandleBrowserClick(Point pt) {
     if (m_filterDropDownOpen) {
         const int filterItem = m_browser.HitTestFilterItem(pop, pt);
         if (filterItem >= 0) {
-            m_browser.SetFilterIndex(filterItem);
+            m_browser.ApplyFilterIndex(filterItem);
             m_treeHost.ApplyFilter(m_browser);
-            SetFilterDropDownOpen(false);
+            ApplyFilterDropDownOpen(false);
             SyncBrowserChrome();
             MarkPickerDirty();
             RequestAnimationTicks();
             return true;
         }
         if (m_browser.FilterButtonRect(pop).Contains(pt.x, pt.y)) {
-            SetFilterDropDownOpen(false);
+            ApplyFilterDropDownOpen(false);
             return true;
         }
         if (m_browser.FilterDropdownRect(pop).Contains(pt.x, pt.y)) {
             return true;
         }
-        SetFilterDropDownOpen(false);
+        ApplyFilterDropDownOpen(false);
     }
 
     if (m_browser.FilterButtonRect(pop).Contains(pt.x, pt.y)) {
         if (m_browser.GetFilters().size() > 1) {
-            SetFilterDropDownOpen(true);
+            ApplyFilterDropDownOpen(true);
         }
         return true;
     }
@@ -360,14 +360,14 @@ bool FilePicker::HandleBrowserClick(Point pt) {
         return true;
     }
     if (m_browser.CancelButtonRect(pop).Contains(pt.x, pt.y)) {
-        SetPopupOpen(false);
+        ApplyPopupOpen(false);
         return true;
     }
     if (m_browser.ConfirmButtonRect(pop).Contains(pt.x, pt.y)) {
         std::string path;
         if (m_treeHost.TryConfirm(m_browser, path)) {
-            SetPath(path);
-            SetPopupOpen(false);
+            ApplyPath(path);
+            ApplyPopupOpen(false);
         }
         return true;
     }
@@ -498,7 +498,7 @@ void FilePicker::OnMouseDown(Point pt) {
             HandleBrowserClick(pt);
             return;
         }
-        SetPopupOpen(false);
+        ApplyPopupOpen(false);
         return;
     }
 
@@ -510,7 +510,7 @@ void FilePicker::OnMouseUp(Point pt) {
     const HitPart pressed = m_pressed;
     m_pressed = HitPart::None;
     if (!m_isPopupOpen && pressed != HitPart::None && HitTestPart(pt) == pressed) {
-        SetPopupOpen(true);
+        ApplyPopupOpen(true);
     }
     MarkPickerDirty();
 }
@@ -548,9 +548,9 @@ bool FilePicker::OnKeyDown(int vkCode) {
     if (m_isPopupOpen) {
         if (vkCode == VK_ESCAPE) {
             if (m_filterDropDownOpen) {
-                SetFilterDropDownOpen(false);
+                ApplyFilterDropDownOpen(false);
             } else {
-                SetPopupOpen(false);
+                ApplyPopupOpen(false);
             }
             return true;
         }
@@ -574,18 +574,18 @@ bool FilePicker::OnKeyDown(int vkCode) {
         }
         if (m_filterDropDownOpen && vkCode == VK_RETURN) {
             if (m_hoverFilterItem >= 0) {
-                m_browser.SetFilterIndex(m_hoverFilterItem);
+                m_browser.ApplyFilterIndex(m_hoverFilterItem);
                 m_treeHost.ApplyFilter(m_browser);
             }
-            SetFilterDropDownOpen(false);
+            ApplyFilterDropDownOpen(false);
             SyncBrowserChrome();
             return true;
         }
         if (vkCode == VK_RETURN) {
             std::string path;
             if (m_treeHost.TryConfirm(m_browser, path)) {
-                SetPath(path);
-                SetPopupOpen(false);
+                ApplyPath(path);
+                ApplyPopupOpen(false);
             }
             return true;
         }
@@ -599,7 +599,7 @@ bool FilePicker::OnKeyDown(int vkCode) {
         return true;
     }
     if (vkCode == VK_RETURN || vkCode == VK_SPACE) {
-        SetPopupOpen(true);
+        ApplyPopupOpen(true);
         return true;
     }
     return Control::OnKeyDown(vkCode);
@@ -607,7 +607,7 @@ bool FilePicker::OnKeyDown(int vkCode) {
 
 bool FilePicker::OnAnimationTick() {
     const float dt = UIElement::GetAnimationDeltaSeconds();
-    m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
+    m_popupAnim.ApplyTarget(m_isPopupOpen ? 1.0f : 0.0f);
     bool animating = m_popupAnim.Tick(dt, PopupReveal::kSpec);
     // Popup open/close only. TreeView/Breadcrumb register themselves through
     // AnimationHost(this) — do not manually Tick them here.

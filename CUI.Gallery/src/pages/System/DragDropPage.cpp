@@ -17,10 +17,10 @@ class DragChip : public Control, public CUI::IDragSource {
 public:
     explicit DragChip(std::string payload, std::string icon = "🏷️")
         : m_payload(std::move(payload)), m_icon(std::move(icon)) {
-                this->SetText(m_payload);
-        this->SetHeight(32.0f);
-        this->SetCornerRadius(16.0f);
-        this->SetToolTip("按住鼠标左键可拖拽此数据包至右侧列表、输入框或文件投放槽；按住 Ctrl 为复制。");
+                this->ApplyText(m_payload);
+        this->ApplyHeight(32.0f);
+        this->ApplyCornerRadius(16.0f);
+        this->ApplyToolTip("按住鼠标左键可拖拽此数据包至右侧列表、输入框或文件投放槽；按住 Ctrl 为复制。");
     }
 
     ~DragChip() override {
@@ -101,8 +101,8 @@ class DropZoneWell : public Control, public CUI::IDropTarget {
 public:
     explicit DropZoneWell(std::function<void(const std::string&)> onReceived)
         : m_onReceived(std::move(onReceived)) {
-                this->SetHeight(88.0f);
-        this->SetCornerRadius(8.0f);
+                this->ApplyHeight(88.0f);
+        this->ApplyCornerRadius(8.0f);
     }
 
     ~DropZoneWell() override {
@@ -218,7 +218,7 @@ private:
  * 遵循 Fluent 规范，全弹性流式布局，不硬编码固定宽度。
  */
 Element BuildDragDropPage() {
-    auto statusLabel = MakeStatus("提示：支持控件间数据拖拽（IDragSource -> IDropTarget）与 Windows 资源管理器外部文件拖放。");
+    CUI::Widgets::Ref statusLabel =MakeStatus("提示：支持控件间数据拖拽（IDragSource -> IDropTarget）与 Windows 资源管理器外部文件拖放。");
 
     // ==========================================
     // 1. 列表间拖拽互换 (ListBox 跨列表拖拽)
@@ -255,7 +255,7 @@ Element BuildDragDropPage() {
     auto chip3 = std::make_shared<DragChip>("主题 Token: AccentColor", "🎨");
 
     auto well = std::make_shared<DropZoneWell>([statusLabel](const std::string& msg) {
-                statusLabel->SetText(msg);
+                statusLabel.Text(msg);
     });
 
     // 3. 接受拖放的文本输入框

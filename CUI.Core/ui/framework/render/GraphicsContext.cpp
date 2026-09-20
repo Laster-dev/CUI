@@ -163,7 +163,7 @@ bool GraphicsContext::Initialize(HWND hwnd) {
     return true;
 }
 
-void GraphicsContext::SetRequirePerPixelAlpha(bool enabled) {
+void GraphicsContext::ApplyRequirePerPixelAlpha(bool enabled) {
     if (m_requirePerPixelAlpha == enabled) {
         return;
     }
@@ -921,7 +921,7 @@ bool GraphicsContext::EnsureLayerCache(RenderLayer& layer, Size sizeInDips) {
 
     layer.m_cacheContext->SetDpi(dpi, dpi);
     layer.m_cacheContext->SetTarget(layer.m_cacheBitmap.Get());
-    layer.SetCacheSurfaceSize(Size(widthDips, heightDips));
+    layer.ApplyCacheSurfaceSize(Size(widthDips, heightDips));
     layer.Invalidate(RenderLayer::SizeDirty | RenderLayer::ContentDirty);
     return true;
 }

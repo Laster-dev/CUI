@@ -14,19 +14,19 @@ constexpr AnimationSpec kMenuHoverSpec{ 0.05f, 0.001f, 0.05f }; // snappy hover 
 } // namespace
 
 MenuItem::MenuItem() {
-    this->SetText("");
-    this->SetColorToken(ThemeTokenId::TextSecondary);
-    this->SetColor(ThemeManager::Instance().GetColor("textSecondary"));
-    this->SetFontSize(12.0f);
-    this->SetFontFamily("微软雅黑");
-    this->SetFontWeight(CUI::FontWeight::Normal);
-    this->SetHeight(ContextMenu::kItemHeight);
+    this->ApplyText("");
+    this->ApplyColorToken(ThemeTokenId::TextSecondary);
+    this->ApplyColor(ThemeManager::Instance().GetColor("textSecondary"));
+    this->ApplyFontSize(12.0f);
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyFontWeight(CUI::FontWeight::Normal);
+    this->ApplyHeight(ContextMenu::kItemHeight);
 }
 
 MenuItem::MenuItem(const std::string& text, std::function<void()> onClick) : MenuItem() {
-    this->SetText(text);
+    this->ApplyText(text);
     if (onClick) {
-        this->SetCommand(std::make_shared<Command>(std::move(onClick)));
+        this->ApplyCommand(std::make_shared<Command>(std::move(onClick)));
     }
 }
 
@@ -37,7 +37,7 @@ MenuItem::~MenuItem() {
     }
 }
 
-void MenuItem::SetNativeIcon(HICON icon, bool takeOwnership) {
+void MenuItem::ApplyNativeIcon(HICON icon, bool takeOwnership) {
     if (m_ownsNativeIcon && m_nativeIcon && m_nativeIcon != icon) {
         DestroyIcon(m_nativeIcon);
     }
@@ -227,7 +227,7 @@ void MenuItem::OnMouseWheel(float delta) {
     }
 }
 
-void MenuItem::SetHighlight(bool highlighted) {
+void MenuItem::ApplyHighlight(bool highlighted) {
     m_hoverAnim.Reset(highlighted ? 1.0f : 0.0f);
     RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds);
@@ -251,12 +251,12 @@ void MenuItem::ExecuteCommand() {
 // ---------------- ContextMenu ----------------
 
 ContextMenu::ContextMenu() {
-        this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
-    this->SetBorderThickness(1.0f);
-    this->SetCornerRadius(8.0f);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyCornerRadius(8.0f);
 }
 
 ContextMenu::~ContextMenu() {
@@ -286,7 +286,7 @@ std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, std::fun
 std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, const std::string& shortcut, std::function<void()> onClick) {
     auto cmd = onClick ? std::make_shared<Command>(std::move(onClick)) : nullptr;
     if (cmd && !shortcut.empty()) {
-        cmd->SetGesture(shortcut);
+        cmd->ApplyGesture(shortcut);
     }
     return AddItem(text, shortcut, cmd);
 }
@@ -301,20 +301,20 @@ std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, std::sha
 
 std::shared_ptr<MenuItem> ContextMenu::AddItem(const std::string& text, const std::string& shortcut, std::shared_ptr<Command> command) {
     auto item = Widgets::MenuItem(text).Shared();
-    item->SetParentContextMenu(this);
+    item->ApplyParentContextMenu(this);
     if (command) {
         if (command->GetLabel().empty()) {
-            command->SetLabel(text);
+            command->ApplyLabel(text);
         }
         if (!shortcut.empty() && command->GetGesture().IsEmpty()) {
-            command->SetGesture(shortcut);
+            command->ApplyGesture(shortcut);
         }
-        item->SetCommand(std::move(command));
+        item->ApplyCommand(std::move(command));
     }
     if (!shortcut.empty()) {
-        item->SetShortcutText(shortcut);
+        item->ApplyShortcutText(shortcut);
     } else if (item->GetCommand() && !item->GetCommand()->GetGesture().IsEmpty()) {
-        item->SetShortcutText(item->GetCommand()->GetGesture().ToDisplayString());
+        item->ApplyShortcutText(item->GetCommand()->GetGesture().ToDisplayString());
     }
     m_items.push_back(item);
     this->AddChild(item);
@@ -329,12 +329,12 @@ std::shared_ptr<ContextMenu> ContextMenu::AddSubMenu(const std::string& text) {
 std::shared_ptr<MenuItem> ContextMenu::AddSubMenuItem(const std::string& text) {
     auto item = Widgets::MenuItem(text).Shared();
     auto subMenu = std::make_shared<ContextMenu>();
-    subMenu->SetOwnerMenu(this);
+    subMenu->ApplyOwnerMenu(this);
     if (auto owner = GetOwnerHwnd()) {
-        subMenu->SetOwnerHwnd(owner);
+        subMenu->ApplyOwnerHwnd(owner);
     }
-    item->SetSubMenu(subMenu);
-    item->SetParentContextMenu(this);
+    item->ApplySubMenu(subMenu);
+    item->ApplyParentContextMenu(this);
     m_items.push_back(item);
     this->AddChild(item);
     return item;
@@ -824,7 +824,7 @@ void ContextMenu::HighlightFirst() {
     m_hoveredIndex = first;
     for (int i = 0; i < static_cast<int>(m_items.size()); ++i) {
         if (m_items[i]) {
-            m_items[i]->SetHighlight(i == first);
+            m_items[i]->ApplyHighlight(i == first);
         }
     }
 }
@@ -862,10 +862,10 @@ bool ContextMenu::HandleKey(int vkCode) {
             }
             if (isSelectable(m_items[idx])) {
                 if (start >= 0 && start < static_cast<int>(m_items.size()) && m_items[start]) {
-                    m_items[start]->SetHighlight(false);
+                    m_items[start]->ApplyHighlight(false);
                 }
                 m_hoveredIndex = idx;
-                m_items[idx]->SetHighlight(true);
+                m_items[idx]->ApplyHighlight(true);
                 CloseActiveSubMenu();
                 return;
             }

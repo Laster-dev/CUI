@@ -64,7 +64,7 @@ bool AnimationService::AreAnimationsEnabled() const {
     return m_animationsEnabled;
 }
 
-void AnimationService::SetAnimationsEnabled(bool enabled) {
+void AnimationService::ApplyAnimationsEnabled(bool enabled) {
     m_animationsEnabled = enabled;
 }
 
@@ -299,7 +299,7 @@ bool AnimationService::Tick(clock::time_point now) {
         m_lastFrameTime = now;
     }
 
-    UIElement::SetAnimationDeltaSeconds(m_deltaSeconds);
+    UIElement::ApplyAnimationDeltaSeconds(m_deltaSeconds);
 
     std::vector<UIElement*> animSnapshot;
     {

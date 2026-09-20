@@ -13,12 +13,12 @@ constexpr AnimationSpec kMenuBarHoverSpec{ 0.22f, 0.01f, 0.16f };
 } // namespace
 
 MenuBar::MenuBar() {
-    this->SetHeight(30.0f);// Hosted on the title bar: do not fill an opaque pane. Control::OnRender would
+    this->ApplyHeight(30.0f);// Hosted on the title bar: do not fill an opaque pane. Control::OnRender would
     // cover the parent's 1px bottom hairline (drawn before children).
-        this->SetBackgroundToken(ThemeTokenId::Unset);
-        this->SetHoverBackgroundToken(ThemeTokenId::Unset);
-        this->SetPressedBackgroundToken(ThemeTokenId::Unset);
-        this->SetKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
+        this->ApplyBackgroundToken(ThemeTokenId::Unset);
+        this->ApplyHoverBackgroundToken(ThemeTokenId::Unset);
+        this->ApplyPressedBackgroundToken(ThemeTokenId::Unset);
+        this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
 }
 
 std::shared_ptr<ContextMenu> MenuBar::AddMenu(const std::string& title) {
@@ -121,7 +121,7 @@ void MenuBar::SyncHoverAnimationTargets() {
         const bool isOpen = (static_cast<int>(i) == m_activeOpenIndex);
         const bool isHover = (static_cast<int>(i) == m_hoveredIndex) && !isOpen;
         // Open state stays lit via open paint path; hover anim only for hover pill.
-        m_menus[i].hoverAnim.SetTarget(isHover ? 1.0f : 0.0f);
+        m_menus[i].hoverAnim.ApplyTarget(isHover ? 1.0f : 0.0f);
     }
 }
 
@@ -181,7 +181,7 @@ void MenuBar::OpenMenu(int index) {
     if (menu) {
         // When the dropdown closes (item click / Escape / light-dismiss), clear the
         // open highlight — MenuBar is not a layout child so tree walks often miss it.
-        menu->SetClosedCallback([this, index]() {
+        menu->ApplyClosedCallback([this, index]() {
             if (m_activeOpenIndex != index) return;
             const int previous = m_activeOpenIndex;
             m_activeOpenIndex = -1;
@@ -193,7 +193,7 @@ void MenuBar::OpenMenu(int index) {
             RequestAnimationTicks();
             // Drop the assignment once the dropdown closes so a stale menu
             // never hijacks right-clicks elsewhere in the window.
-            SetContextMenu(nullptr);
+            ApplyContextMenu(nullptr);
         });
         menu->ShowAt(m_menus[index].bounds.x, m_bounds.y + m_bounds.height);
         menu->HighlightFirst();
@@ -202,7 +202,7 @@ void MenuBar::OpenMenu(int index) {
         // Propagating it to the whole ancestor chain made every right-click in
         // the window (online list, log control, ...) resolve to this menu
         // instead of the target control's own context menu.
-        SetContextMenu(menu);
+        ApplyContextMenu(menu);
     }
 }
 
@@ -211,7 +211,7 @@ void MenuBar::CloseActiveMenu() {
     // Clear open index before Hide so ClosedCallback does not double-invalidate.
     m_activeOpenIndex = -1;
     HideAllMenusExcept(-1);
-    SetContextMenu(nullptr);
+    ApplyContextMenu(nullptr);
     SyncHoverAnimationTargets();
     InvalidateMenuChrome(previousOpen, m_hoveredIndex);
     RequestAnimationTicks();

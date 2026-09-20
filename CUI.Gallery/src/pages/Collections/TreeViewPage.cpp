@@ -60,7 +60,7 @@ std::vector<std::shared_ptr<TreeViewItem>> BuildProjectTree() {
 void ExpandedRecursively(TreeView* tree, const std::vector<std::shared_ptr<TreeViewItem>>& items, bool expanded) {
     for (const auto& item : items) {
         if (!item) continue;
-        tree->SetItemExpanded(item, expanded);
+        tree->ApplyItemExpanded(item, expanded);
         ExpandedRecursively(tree, item->children, expanded);
     }
 }
@@ -141,7 +141,7 @@ Element BuildTreeViewPage() {
     auto resetTree = Button("替换整个数据源")
         .OnClick([tree, treeStatusText](UIElement*) {
                         tree.Items(BuildProjectTree());
-            treeStatusText = "已通过 SetItems 替换整个树形集合。";
+            treeStatusText = "已通过 ApplyItems 替换整个树形集合。";
             });
 
     CUI::Widgets::Ref lazyTree = CUI::Widgets::TreeView()

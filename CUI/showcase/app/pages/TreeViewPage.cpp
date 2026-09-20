@@ -20,10 +20,10 @@ ShowcasePage BuildTreeViewPage(const ShowcaseContext& ctx) {
     auto childInput = std::make_shared<CUI::TreeViewItem>(); childInput->header = "输入与焦点系统";
     rootFeatures->children = { childDsl, childRender, childInput };
 
-    auto tree = std::make_shared<CUI::TreeView>();
-        tree->SetItems({ rootDocs, rootFeatures });
-        tree->SetWidth(300.0f);
-        tree->SetHeight(360.0f);
+    CUI::Widgets::Ref tree =std::make_shared<CUI::TreeView>();
+        tree.Items({ rootDocs, rootFeatures });
+        tree.Width(300.0f);
+        tree.Height(360.0f);
 
     return { "TreeView 树形图", CreatePage(
         "TreeView 树形视图控件 (支持层级折叠/展开与多项交互)",

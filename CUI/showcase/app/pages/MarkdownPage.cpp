@@ -75,11 +75,11 @@ ShowcasePage BuildMarkdownPage(const ShowcaseContext& ctx) {
         view.ShowCodeLineNumbers(true);
         view.Markdown(kSampleDoc);
 
-    auto log = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref log =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("提示：拖选复制；点击链接会打开浏览器。", 12.0f, "#B5CEA8", false, "Consolas"));
 
     view->OnLinkClicked().Connect([window = ctx.windowRef, log](MarkdownView*, const std::string& url) {
-                log->SetText("[链接] " + url);
+                log.Text("[链接] " + url);
         if (window) {
             Toast::Show(window->GetRootElement().get(), "Markdown", url, ToastCorner::BottomRight, 1800);
         }
@@ -90,14 +90,14 @@ ShowcasePage BuildMarkdownPage(const ShowcaseContext& ctx) {
         fullBtn.Height(32.0f);
     fullBtn->OnClick().Connect([view, log](UIElement*) {
                 view.Markdown(kSampleDoc);
-                log->SetText("已加载完整样例");
+                log.Text("已加载完整样例");
     });
     CUI::Widgets::Ref shortBtn = CUI::Widgets::Button("紧凑样例").Shared();
         shortBtn.Width(100.0f);
         shortBtn.Height(32.0f);
     shortBtn->OnClick().Connect([view, log](UIElement*) {
                 view.Markdown(kSampleCompact);
-                log->SetText("已加载紧凑样例");
+                log.Text("已加载紧凑样例");
     });
     CUI::Widgets::Ref copyBtn = CUI::Widgets::Button("复制选区").Shared();
         copyBtn.Width(100.0f);
@@ -105,14 +105,14 @@ ShowcasePage BuildMarkdownPage(const ShowcaseContext& ctx) {
     copyBtn->OnClick().Connect([view, log](UIElement*) {
         view->CopySelection();
         const auto sel = view->GetSelectedText();
-                log->SetText(sel.empty() ? "已复制全文" : ("已复制 " + std::to_string(sel.size()) + " 字符"));
+                log.Text(sel.empty() ? "已复制全文" : ("已复制 " + std::to_string(sel.size()) + " 字符"));
     });
     CUI::Widgets::Ref linesBtn = CUI::Widgets::Button("切换行号").Shared();
         linesBtn.Width(100.0f);
         linesBtn.Height(32.0f);
     linesBtn->OnClick().Connect([view, log](UIElement*) {
                 view.ShowCodeLineNumbers(!view->GetShowCodeLineNumbers());
-                log->SetText(view->GetShowCodeLineNumbers() ? "代码行号：开" : "代码行号：关");
+                log.Text(view->GetShowCodeLineNumbers() ? "代码行号：开" : "代码行号：关");
     });
 
     auto demo = Column(12).Children({

@@ -17,10 +17,10 @@ ShowcasePage BuildSegmentedPage(const ShowcaseContext& ctx) {
     target->AddItem("全局");
     target->AddItem("直连");
 
-    auto status = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref status =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("当前：规则", 12.0f, "textSecondary", false));
     target->OnSelectionChanged().Connect([window = ctx.windowRef, status](SegmentedControl*, int, const std::string& item) {
-                status->SetText("当前：" + item);
+                status.Text("当前：" + item);
         Toast::Show(window->GetRootElement().get(), "SegmentedControl", item, ToastCorner::BottomRight, 1400);
     });
 

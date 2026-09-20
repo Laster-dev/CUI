@@ -71,7 +71,7 @@ bool MenuPopupWindow::EnsureWindow(HWND owner) {
     if (!m_hwnd) return false;
 
     m_dpiScale = GetDpiScaleForWindow(m_hwnd);
-    m_gfx.SetRequirePerPixelAlpha(true);
+    m_gfx.ApplyRequirePerPixelAlpha(true);
     m_deviceReady = m_gfx.Initialize(m_hwnd);
     return m_deviceReady;
 }

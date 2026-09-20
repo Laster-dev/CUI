@@ -310,8 +310,8 @@ int RegeditPlusApp::Run() {
     return 0;
 }
 std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
-    auto root = Column(0).BackgroundToken(ThemeTokenId::WindowBackground).Build();
-        root->SetColorToken(ThemeTokenId::TextPrimary);
+    CUI::Widgets::Ref root =Column(0).BackgroundToken(ThemeTokenId::WindowBackground).Build();
+        root.ColorToken(ThemeTokenId::TextPrimary);
 
     m_titleBar = std::make_shared<WindowTitleBar>();
     m_titleBar.Title("注册表编辑器 (RegeditPlus)");
@@ -329,15 +329,15 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
         OnBreadcrumbClicked(index);
     });
 
-    auto body = Row(0).Build();
-        body->SetFlexGrow(1.0f);
-        body->SetGap(0.0f);
+    CUI::Widgets::Ref body =Row(0).Build();
+        body.FlexGrow(1.0f);
+        body.Gap(0.0f);
 
     // Left: tree pane
-    auto treePane = Column(0).Build();
-        treePane->SetWidth(320.0f);
-        treePane->SetBackgroundToken(ThemeTokenId::PaneBackground);
-        treePane->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+    CUI::Widgets::Ref treePane =Column(0).Build();
+        treePane.Width(320.0f);
+        treePane.BackgroundToken(ThemeTokenId::PaneBackground);
+        treePane.Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
 
     m_tree = std::make_shared<TreeView>();
         m_tree.Width(-1.0f);
@@ -362,10 +362,10 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
     CUI::Widgets::Ref splitter = Widgets::Splitter().Orientation(CUI::Orientation::Vertical).Width(10.0f).Height(-1.0f).Align(CUI::Alignment::Stretch).Shared();
 
     // Right: list pane
-    auto listPane = Column(0).Build();
-        listPane->SetFlexGrow(1.0f);
-        listPane->SetBackgroundToken(ThemeTokenId::WindowBackground);
-        listPane->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
+    CUI::Widgets::Ref listPane =Column(0).Build();
+        listPane.FlexGrow(1.0f);
+        listPane.BackgroundToken(ThemeTokenId::WindowBackground);
+        listPane.Background(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
 
     m_list = std::make_shared<ListView>();
         m_list.Width(-1.0f);
@@ -402,9 +402,9 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
         statusBar.BorderThickness(0.0f);
     m_statusBar = statusBar;
 
-    auto statusRow = Row(0).Build();
-        statusRow->SetPadding(Thickness(12, 0, 12, 0));
-        statusRow->SetFlexGrow(1.0f);
+    CUI::Widgets::Ref statusRow =Row(0).Build();
+        statusRow.Padding(Thickness(12, 0, 12, 0));
+        statusRow.FlexGrow(1.0f);
 
     m_statusPath = Text("就绪").FontSize(16.0f).FontFamily("微软雅黑").FontWeight(FontWeight::Normal).Build();
         m_statusPath.ColorToken(ThemeTokenId::TextSecondary);
@@ -1309,16 +1309,16 @@ void RegeditPlusApp::ToggleStatusBar() {
 void RegeditPlusApp::ToggleTheme() {
     const ThemeMode currentMode = m_window.GetThemeMode();
     const ThemeMode nextMode = (currentMode == ThemeMode::Light) ? ThemeMode::Dark : ThemeMode::Light;
-    ThemeManager::Instance().SetThemeSource(nextMode == ThemeMode::Dark ? ThemeSource::Dark : ThemeSource::Light);
-    m_window.SetThemeMode(nextMode);
+    ThemeManager::Instance().ApplyThemeSource(nextMode == ThemeMode::Dark ? ThemeSource::Dark : ThemeSource::Light);
+    m_window.ApplyThemeMode(nextMode);
     ApplyChromeColors();
 }
 
 void RegeditPlusApp::ApplyChromeColors() {
     auto& tm = ThemeManager::Instance();
     if (m_root) {
-                m_root->SetBackgroundToken(ThemeTokenId::WindowBackground);
-                m_root->SetBackground(tm.GetColor(ThemeTokenId::WindowBackground));
+                m_root->ApplyBackgroundToken(ThemeTokenId::WindowBackground);
+                m_root->ApplyBackground(tm.GetColor(ThemeTokenId::WindowBackground));
     }
     if (m_tree) {
                 m_tree.BackgroundToken(ThemeTokenId::PaneBackground);

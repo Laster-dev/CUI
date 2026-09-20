@@ -29,11 +29,11 @@ Element BuildContentDialogPage() {
             });
 
     // ── 2. 三按钮对话框 ─────────────────────────────────────────────────
-    auto btnThree = Button("三个按钮的对话框");
-        btnThree->SetBackgroundToken(ThemeTokenId::CardBackground);
+    auto btnThree =Button("三个按钮的对话框");
+        btnThree.BackgroundToken(ThemeTokenId::CardBackground);
     
-        btnThree->SetBorderToken(ThemeTokenId::CardBorder);
-        btnThree->SetBorderThickness(1.0f);
+        btnThree.BorderToken(ThemeTokenId::CardBorder);
+        btnThree.BorderThickness(1.0f);
     btnThree->OnClick().Connect([status](UIElement* src) {
         CUI::Widgets::Ref dlg = CUI::Widgets::ContentDialog().Shared();
         dlg.Title("保存更改");
@@ -53,11 +53,11 @@ Element BuildContentDialogPage() {
     });
 
     // ── 3. 输入对话框 ───────────────────────────────────────────────────
-    auto btnInput = Button("带文本输入的对话框");
-        btnInput->SetBackgroundToken(ThemeTokenId::CardBackground);
+    auto btnInput =Button("带文本输入的对话框");
+        btnInput.BackgroundToken(ThemeTokenId::CardBackground);
     
-        btnInput->SetBorderToken(ThemeTokenId::CardBorder);
-        btnInput->SetBorderThickness(1.0f);
+        btnInput.BorderToken(ThemeTokenId::CardBorder);
+        btnInput.BorderThickness(1.0f);
     btnInput->OnClick().Connect([status](UIElement* src) {
         CUI::Widgets::Ref dlg = CUI::Widgets::ContentDialog().Shared();
         dlg.Title("新建文件夹");

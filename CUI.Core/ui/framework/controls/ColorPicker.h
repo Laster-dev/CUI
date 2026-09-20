@@ -18,7 +18,7 @@ public:
     virtual const char* GetClassName() const override { return "ColorPicker"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取悬浮交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 测算色块按钮的尺寸
@@ -38,14 +38,14 @@ public:
     virtual bool HitDismissExempt(float x, float y) const override; // 判定该点击位置是否豁免消退收起
     virtual UIElement* HitTestPopup(float x, float y) override { return OnHitTestOverlay(x, y); } // 弹窗穿透命中定位
     virtual void RenderPopup(GraphicsContext& ctx) override; // 绘制 HSV 二维渐变板、一维彩虹色相条及调色格子
-    virtual void OnLightDismiss() override { SetPopupOpen(false); } // 点击背景空白消退收拢关闭
+    virtual void OnLightDismiss() override { ApplyPopupOpen(false); } // 点击背景空白消退收拢关闭
 
-    void SetPopupOpen(bool open); // 开启或折叠关闭调色弹出面板
+    void ApplyPopupOpen(bool open); // 开启或折叠关闭调色弹出面板
 
     PropertyRef<Color, PropertyId::SelectedColor> SelectedColor; // 当前选中颜色的双向绑定属性代理
     
     D2D1_COLOR_F GetSelectedColor() const { return m_selectedColor; } // 获取当前选中颜色的 RGBA 浮点色彩结构
-    void SetSelectedColor(D2D1_COLOR_F color); // 设置当前选中颜色并反算 H、S、V 分量值
+    void ApplySelectedColor(D2D1_COLOR_F color); // 设置当前选中颜色并反算 H、S、V 分量值
 
     Event<ColorPicker*, D2D1_COLOR_F>& OnColorChanged() { return m_onColorChangedEvent; } // 颜色改变时的事件发布中心
 

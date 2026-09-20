@@ -63,18 +63,18 @@ public:
     const char* GetClassName() const override { return "NavigationView"; }
     Value GetProperty(PropertyId id) const override;
     bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
 
     struct NavPaneDisplayModeProperty {
         NavigationView* owner;
-        NavPaneDisplayModeProperty& operator=(NavigationViewPaneDisplayMode mode) { owner->SetPaneDisplayMode(mode); return *this; }
+        NavPaneDisplayModeProperty& operator=(NavigationViewPaneDisplayMode mode) { owner->ApplyPaneDisplayMode(mode); return *this; }
         operator NavigationViewPaneDisplayMode() const { return owner->GetPaneDisplayMode(); }
         NavigationViewPaneDisplayMode Get() const { return owner->GetPaneDisplayMode(); }
     } PaneDisplayMode{this};
 
     struct NavSelectedItemProperty {
         NavigationView* owner;
-        NavSelectedItemProperty& operator=(NavigationViewItem* item) { owner->SetSelectedItem(item); return *this; }
+        NavSelectedItemProperty& operator=(NavigationViewItem* item) { owner->ApplySelectedItem(item); return *this; }
         operator NavigationViewItem*() const { return owner->GetSelectedItem(); }
         NavigationViewItem* Get() const { return owner->GetSelectedItem(); }
         NavigationViewItem* operator->() const { return owner->GetSelectedItem(); }
@@ -82,7 +82,7 @@ public:
 
     struct NavContentProperty {
         NavigationView* owner;
-        NavContentProperty& operator=(const std::shared_ptr<UIElement>& content) { owner->SetContent(content); return *this; }
+        NavContentProperty& operator=(const std::shared_ptr<UIElement>& content) { owner->ApplyContent(content); return *this; }
         operator std::shared_ptr<UIElement>() const { return owner->GetContent(); }
         std::shared_ptr<UIElement> Get() const { return owner->GetContent(); }
         std::shared_ptr<UIElement> operator->() const { return owner->GetContent(); }
@@ -90,12 +90,12 @@ public:
 
     struct NavContentFactoryProperty {
         NavigationView* owner;
-        NavContentFactoryProperty& operator=(std::function<std::shared_ptr<UIElement>()> factory) { owner->SetContentFactory(std::move(factory)); return *this; }
+        NavContentFactoryProperty& operator=(std::function<std::shared_ptr<UIElement>()> factory) { owner->ApplyContentFactory(std::move(factory)); return *this; }
     } ContentFactory{this};
 
     struct NavAutoSuggestBoxProperty {
         NavigationView* owner;
-        NavAutoSuggestBoxProperty& operator=(const std::shared_ptr<UIElement>& box) { owner->SetAutoSuggestBox(box); return *this; }
+        NavAutoSuggestBoxProperty& operator=(const std::shared_ptr<UIElement>& box) { owner->ApplyAutoSuggestBox(box); return *this; }
         operator std::shared_ptr<UIElement>() const { return owner->GetAutoSuggestBox(); }
         std::shared_ptr<UIElement> Get() const { return owner->GetAutoSuggestBox(); }
     } AutoSuggestBox{this};
@@ -106,7 +106,7 @@ public:
      */
     struct NavIsPaneOpenProperty {
         NavigationView* owner;
-        NavIsPaneOpenProperty& operator=(bool o) { owner->SetIsPaneOpen(o); return *this; }
+        NavIsPaneOpenProperty& operator=(bool o) { owner->ApplyIsPaneOpen(o); return *this; }
         operator bool() const { return owner->GetIsPaneOpen(); }
         bool Get() const { return owner->GetIsPaneOpen(); }
     } IsPaneOpen{this};
@@ -116,30 +116,30 @@ public:
      */
     struct NavIsSettingsVisibleProperty {
         NavigationView* owner;
-        NavIsSettingsVisibleProperty& operator=(bool v) { owner->SetIsSettingsVisible(v); return *this; }
+        NavIsSettingsVisibleProperty& operator=(bool v) { owner->ApplyIsSettingsVisible(v); return *this; }
         operator bool() const { return owner->GetIsSettingsVisible(); }
         bool Get() const { return owner->GetIsSettingsVisible(); }
     } IsSettingsVisible{this};
 
-    void SetPaneDisplayMode(NavigationViewPaneDisplayMode mode);
+    void ApplyPaneDisplayMode(NavigationViewPaneDisplayMode mode);
     NavigationViewPaneDisplayMode GetPaneDisplayMode() const { return m_paneDisplayMode; }
 
     NavigationViewDisplayMode GetDisplayMode() const { return m_displayMode; }
 
-    void SetIsPaneOpen(bool open);
+    void ApplyIsPaneOpen(bool open);
     bool GetIsPaneOpen() const { return m_isPaneOpen; }
     void TogglePane();
 
-    void SetOpenPaneLength(float length);
+    void ApplyOpenPaneLength(float length);
     float GetOpenPaneLength() const { return m_openPaneLength; }
 
-    void SetCompactPaneLength(float length);
+    void ApplyCompactPaneLength(float length);
     float GetCompactPaneLength() const { return m_compactPaneLength; }
 
-    void SetCompactModeThresholdWidth(float w) { m_compactThreshold = w; }
+    void ApplyCompactModeThresholdWidth(float w) { m_compactThreshold = w; }
     float GetCompactModeThresholdWidth() const { return m_compactThreshold; }
 
-    void SetExpandedModeThresholdWidth(float w) { m_expandedThreshold = w; }
+    void ApplyExpandedModeThresholdWidth(float w) { m_expandedThreshold = w; }
     float GetExpandedModeThresholdWidth() const { return m_expandedThreshold; }
 
     // --- Menu collections ---
@@ -152,12 +152,12 @@ public:
     const std::vector<std::shared_ptr<NavigationViewItemBase>>& FooterMenuItems() const { return m_footerItems; }
 
     // --- Settings ---
-    void SetIsSettingsVisible(bool visible);
+    void ApplyIsSettingsVisible(bool visible);
     bool GetIsSettingsVisible() const { return m_settingsVisible; }
     NavigationViewItem* SettingsItem() const { return m_settingsItem.get(); }
 
     // --- Selection ---
-    void SetSelectedItem(NavigationViewItem* item);
+    void ApplySelectedItem(NavigationViewItem* item);
     NavigationViewItem* GetSelectedItem() const { return m_selectedItem; }
     void SelectByTag(const std::string& tag);
     bool NavigateTo(const std::string& tag);
@@ -165,33 +165,33 @@ public:
     bool GoBack();
 
     // --- Content / header / pane chrome ---
-    void SetContent(const std::shared_ptr<UIElement>& content);
+    void ApplyContent(const std::shared_ptr<UIElement>& content);
     // Build the page on a later animation frame (not on the click that selects the item).
-    void SetContentFactory(std::function<std::shared_ptr<UIElement>()> factory);
+    void ApplyContentFactory(std::function<std::shared_ptr<UIElement>()> factory);
     std::shared_ptr<UIElement> GetContent() const {
         return m_hasPendingContent ? m_pendingContent : m_content;
     }
 
-    void SetHeader(const std::string& header);
+    void ApplyHeader(const std::string& header);
     const std::string& GetHeader() const { return m_header; }
 
-    void SetAlwaysShowHeader(bool always);
+    void ApplyAlwaysShowHeader(bool always);
     bool AlwaysShowHeader() const { return m_alwaysShowHeader; }
 
-    void SetPaneTitle(const std::string& title);
+    void ApplyPaneTitle(const std::string& title);
     const std::string& GetPaneTitle() const { return m_paneTitle; }
 
-    void SetPaneFooter(const std::shared_ptr<UIElement>& footer);
+    void ApplyPaneFooter(const std::shared_ptr<UIElement>& footer);
     std::shared_ptr<UIElement> GetPaneFooter() const { return m_paneFooter; }
 
-    void SetAutoSuggestBox(const std::shared_ptr<UIElement>& box);
+    void ApplyAutoSuggestBox(const std::shared_ptr<UIElement>& box);
     std::shared_ptr<UIElement> GetAutoSuggestBox() const { return m_autoSuggestBox; }
 
     // --- Back button ---
-    void SetIsBackButtonVisible(NavigationViewBackButtonVisible visible);
+    void ApplyIsBackButtonVisible(NavigationViewBackButtonVisible visible);
     NavigationViewBackButtonVisible GetIsBackButtonVisible() const { return m_backVisible; }
 
-    void SetIsBackEnabled(bool enabled);
+    void ApplyIsBackEnabled(bool enabled);
     bool IsBackEnabled() const { return m_backEnabled; }
 
     // --- Layout / render ---

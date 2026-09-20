@@ -25,7 +25,7 @@ public:
     virtual bool OnAnimationTick() override; // 驱动水波纹动画帧更新
     virtual bool HasSelfAnimation() const override; // 检查是否存在未完成的水波纹动画
 
-    void SetText(const std::string& text) { UIElement::SetText(text); } // 修改文字内容，触发重新测量重绘
+    void ApplyText(const std::string& text) { UIElement::ApplyText(text); } // 修改文字内容，触发重新测量重绘
     const std::string& GetText() const { return UIElement::GetText(); } // 获取按钮文字内容
 
 protected:

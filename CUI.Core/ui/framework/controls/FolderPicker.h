@@ -34,17 +34,17 @@ public:
     virtual bool HitDismissExempt(float x, float y) const override;
     virtual UIElement* HitTestPopup(float x, float y) override { return OnHitTestOverlay(x, y); }
     virtual void RenderPopup(GraphicsContext& ctx) override;
-    virtual void OnLightDismiss() override { SetPopupOpen(false); }
+    virtual void OnLightDismiss() override { ApplyPopupOpen(false); }
     // Overlay-composed TreeView / BreadcrumbBar — re-arm ticks if attach raced.
     virtual void CollectPopupOwnedElements(std::vector<UIElement*>& out) const override;
 
-    void SetPopupOpen(bool open);
+    void ApplyPopupOpen(bool open);
 
     const std::string& GetPath() const { return GetText(); }
-    void SetPath(const std::string& path);
+    void ApplyPath(const std::string& path);
 
     const std::string& GetDialogTitle() const { return m_dialogTitle; }
-    void SetDialogTitle(const std::string& title) { m_dialogTitle = title; }
+    void ApplyDialogTitle(const std::string& title) { m_dialogTitle = title; }
 
     Event<FolderPicker*, const std::string&>& OnPathChanged() { return m_onPathChangedEvent; }
 

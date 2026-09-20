@@ -17,7 +17,7 @@ public:
 
     // Callback is invoked on the backend's reader thread; implementations must
     // only queue the data.
-    virtual void SetOutputCallback(OutputCallback callback) = 0;
+    virtual void ApplyOutputCallback(OutputCallback callback) = 0;
 
     virtual bool Start(int cols, int rows) = 0;
     virtual void Write(const char* data, size_t length) = 0;

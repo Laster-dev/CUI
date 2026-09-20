@@ -73,37 +73,37 @@ bool IsOverHScrollbar(const Rect& bounds, Point pt, bool canScrollH, bool canScr
 } // namespace
 
 ListView::ListView() {
-        this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetHeaderBackgroundToken(ThemeTokenId::PaneBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetGridLineBrushToken(ThemeTokenId::InputBorder);
-    this->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
-    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->SetBorderThickness(1.0f);
-    this->SetFontSize(12.0f);
-    this->SetFontFamily("微软雅黑");
-    this->SetFontWeight(CUI::FontWeight::Normal);
-    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    this->SetCornerRadius(4.0f);
-    this->SetWidth(-1.0f);
-    this->SetHeight(-1.0f);
-    this->SetRowHeight(30.0f);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyHeaderBackgroundToken(ThemeTokenId::PaneBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyGridLineBrushToken(ThemeTokenId::InputBorder);
+    this->ApplySelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyFontSize(12.0f);
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyFontWeight(CUI::FontWeight::Normal);
+    this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->ApplyCornerRadius(4.0f);
+    this->ApplyWidth(-1.0f);
+    this->ApplyHeight(-1.0f);
+    this->ApplyRowHeight(30.0f);
     SelectedIndex.Initialize(*this);
-    m_rowsLayer.SetCacheable(true);
+    m_rowsLayer.ApplyCacheable(true);
 }
 
-void ListView::SetProperty(PropertyId id, const Value& val) {
+void ListView::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::SelectedIndex) {
         const int index = static_cast<int>(val.AsFloat(-1.0f));
         if (index >= 0) {
             m_selectedIndices.clear();
-            SetRowSelected(index, true);
+            ApplyRowSelected(index, true);
         } else {
             ClearSelection();
         }
         return;
     }
-    Control::SetProperty(id, val);
+    Control::ApplyProperty(id, val);
 }
 
 Value ListView::GetProperty(PropertyId id) const {
@@ -157,7 +157,7 @@ void ListView::AddRow(const std::vector<ListViewCellData>& rowData) {
     }
 }
 
-void ListView::SetRows(const std::vector<std::vector<std::string>>& rowsData) {
+void ListView::ApplyRows(const std::vector<std::vector<std::string>>& rowsData) {
     ClearChildren();
     m_rows.clear();
     m_rowIcons.clear();
@@ -174,7 +174,7 @@ void ListView::SetRows(const std::vector<std::vector<std::string>>& rowsData) {
     InvalidateRowsLayer();
 }
 
-void ListView::SetRows(const std::vector<std::vector<ListViewCellData>>& rowsData) {
+void ListView::ApplyRows(const std::vector<std::vector<ListViewCellData>>& rowsData) {
     ClearChildren();
     m_rows.clear();
     m_rowIcons.clear();
@@ -209,7 +209,7 @@ void ListView::ClearRows() {
     InvalidateRowsLayer();
 }
 
-void ListView::SetRowIcons(const std::vector<HICON>& icons) {
+void ListView::ApplyRowIcons(const std::vector<HICON>& icons) {
     m_rowIcons = icons;
     InvalidateRowsLayer();
 }
@@ -219,7 +219,7 @@ void ListView::ClearRowIcons() {
     InvalidateRowsLayer();
 }
 
-void ListView::SetRowTags(const std::vector<std::string>& tags) {
+void ListView::ApplyRowTags(const std::vector<std::string>& tags) {
     m_rowTags = tags;
 }
 
@@ -239,7 +239,7 @@ size_t ListView::GetRowCount() const {
     return m_rows.size();
 }
 
-void ListView::SetVirtualMode(int rowCount, ListViewDataSource* dataSource) {
+void ListView::ApplyVirtualMode(int rowCount, ListViewDataSource* dataSource) {
     ClearChildren();
     m_rows.clear();
     m_virtualMode = true;
@@ -255,9 +255,9 @@ void ListView::SetVirtualMode(int rowCount, ListViewDataSource* dataSource) {
     InvalidateRowsLayer();
 }
 
-void ListView::SetVirtualRowCount(int rowCount) {
+void ListView::ApplyVirtualRowCount(int rowCount) {
     if (!m_virtualMode || m_dataSource == nullptr) {
-        SetVirtualMode(rowCount, m_dataSource);
+        ApplyVirtualMode(rowCount, m_dataSource);
         return;
     }
     if (m_virtualRowCount == rowCount) return;
@@ -319,7 +319,7 @@ void ListView::ClearSelection() {
     InvalidateRowsLayer();
 }
 
-void ListView::SetRowSelected(int rowIndex, bool selected) {
+void ListView::ApplyRowSelected(int rowIndex, bool selected) {
     if (rowIndex >= 0 && rowIndex < static_cast<int>(GetRowCount())) {
         if (selected) {
             if (m_selectionMode == ListViewSelectionMode::Single) {
@@ -341,7 +341,7 @@ bool ListView::IsRowSelected(int rowIndex) const {
     return m_selectedIndices.find(rowIndex) != m_selectedIndices.end();
 }
 
-void ListView::SetCaretIndex(int index) {
+void ListView::ApplyCaretIndex(int index) {
     int rowCount = static_cast<int>(GetRowCount());
     if (index >= 0 && index < rowCount) {
         m_caretIndex = index;
@@ -364,7 +364,7 @@ void ListView::EnsureVisible(int rowIndex) {
         m_targetScrollY = rowBottom - viewH;
     }
     ClampScroll();
-    m_scrollYAnim.SetTarget(m_targetScrollY);
+    m_scrollYAnim.ApplyTarget(m_targetScrollY);
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
@@ -479,7 +479,7 @@ float ListView::GetColumnWidth(size_t index) const {
     return base;
 }
 
-void ListView::SetColumnVisible(int columnIndex, bool visible) {
+void ListView::ApplyColumnVisible(int columnIndex, bool visible) {
     if (columnIndex < 0 || columnIndex >= static_cast<int>(m_columns.size())) return;
     m_columns[static_cast<size_t>(columnIndex)].visible = visible;
     ClampScroll();
@@ -509,9 +509,9 @@ void ListView::RebuildHeaderContextMenu() {
     for (size_t i = 0; i < m_columns.size(); ++i) {
         const int col = static_cast<int>(i);
         auto item = m_headerContextMenu->AddItem(m_columns[i].header, [this, col]() {
-            SetColumnVisible(col, !IsColumnVisible(col));
+            ApplyColumnVisible(col, !IsColumnVisible(col));
         });
-        item->SetChecked(m_columns[i].visible);
+        item->ApplyChecked(m_columns[i].visible);
     }
 }
 
@@ -915,7 +915,7 @@ void ListView::RenderRowsLayer(GraphicsContext& ctx) {
     ctx.PushClip(viewport);
     ctx.DrawLayer(m_rowsLayer, dest, &sourceRect);
     ctx.PopClip();
-    m_rowsLayer.SetTranslation(-m_scrollX, -m_scrollY);
+    m_rowsLayer.ApplyTranslation(-m_scrollX, -m_scrollY);
 }
 
 void ListView::OnRender(GraphicsContext& ctx) {
@@ -1090,7 +1090,7 @@ void ListView::OnMouseDown(Point pt) {
     // 0. Check Horizontal ScrollBar Track / Thumb Click
     if (m_showScrollBars && IsOverHScrollbar(m_bounds, pt, m_maxScrollX > 0.0f, m_maxScrollY > 0.0f)) {
         m_isDraggingHScrollbar = true;
-        m_scrollbarAutoHide.SetDragging(true, this);
+        m_scrollbarAutoHide.ApplyDragging(true, this);
         m_scrollbarAutoHide.NotifyActivity(this);
         RequestAnimationTicks();
         m_hDragStartX = pt.x;
@@ -1101,7 +1101,7 @@ void ListView::OnMouseDown(Point pt) {
     // 1. Check Vertical ScrollBar Track / Thumb Click
     if (m_showScrollBars && IsOverScrollbar(m_bounds, m_headerHeight, pt, m_maxScrollY > 0.0f)) {
         m_isDraggingScrollbar = true;
-        m_scrollbarAutoHide.SetDragging(true, this);
+        m_scrollbarAutoHide.ApplyDragging(true, this);
         m_scrollbarAutoHide.NotifyActivity(this);
         RequestAnimationTicks();
         m_dragStartY = pt.y;
@@ -1193,7 +1193,7 @@ void ListView::OnMouseMove(Point pt) {
     }
 
     const bool overBar = m_showScrollBars && IsOverScrollbar(m_bounds, m_headerHeight, pt, m_maxScrollY > 0.0f);
-    m_scrollbarAutoHide.SetPointerOver(overBar, this);
+    m_scrollbarAutoHide.ApplyPointerOver(overBar, this);
     if (overBar) {
         RequestAnimationTicks();
     }
@@ -1379,7 +1379,7 @@ void ListView::OnMouseUp(Point pt) {
     m_isRubberBandSelecting = false;
     m_isDraggingScrollbar = false;
     m_isDraggingHScrollbar = false;
-    m_scrollbarAutoHide.SetDragging(false, this);
+    m_scrollbarAutoHide.ApplyDragging(false, this);
     m_pendingRowClick = -1;
     RequestAnimationTicks();
     InvalidateRowsLayer();
@@ -1387,7 +1387,7 @@ void ListView::OnMouseUp(Point pt) {
 
 void ListView::OnMouseLeave() {
     Control::OnMouseLeave();
-    m_scrollbarAutoHide.SetPointerOver(false, this);
+    m_scrollbarAutoHide.ApplyPointerOver(false, this);
     if (m_hoveredRowIndex != -1) {
         m_hoveredRowIndex = -1;
         InvalidateRowsLayer();
@@ -1517,7 +1517,7 @@ void ListView::OnMouseWheel(float delta) {
         return;
     }
 
-    m_scrollYAnim.SetTarget(m_targetScrollY);
+    m_scrollYAnim.ApplyTarget(m_targetScrollY);
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
@@ -1657,9 +1657,9 @@ bool ListView::OnKeyDown(int vkCode) {
     case VK_SPACE:
         if (m_caretIndex >= 0) {
             if (m_selectionMode == ListViewSelectionMode::Extended || m_selectionMode == ListViewSelectionMode::Multiple) {
-                SetRowSelected(m_caretIndex, !IsRowSelected(m_caretIndex));
+                ApplyRowSelected(m_caretIndex, !IsRowSelected(m_caretIndex));
             } else {
-                SetRowSelected(m_caretIndex, true);
+                ApplyRowSelected(m_caretIndex, true);
             }
         }
         return true;
@@ -1738,7 +1738,7 @@ bool ListView::OnAnimationTick() {
         rippleAnim = true;
     }
 
-    m_scrollYAnim.SetTarget(m_targetScrollY);
+    m_scrollYAnim.ApplyTarget(m_targetScrollY);
     const float prevScroll = m_scrollY;
     bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.5f });
     if (anim) {

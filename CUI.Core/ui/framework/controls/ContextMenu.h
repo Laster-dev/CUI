@@ -30,31 +30,31 @@ public:
     virtual bool HasSelfAnimation() const override;
 
     bool IsSeparator() const { return m_isSeparator; }
-    void SetIsSeparator(bool isSep) { m_isSeparator = isSep; }
+    void ApplyIsSeparator(bool isSep) { m_isSeparator = isSep; }
 
     bool IsChecked() const { return m_isChecked; }
-    void SetChecked(bool checked) {
+    void ApplyChecked(bool checked) {
         if (m_isChecked == checked) return;
         m_isChecked = checked;
         MarkRenderContentDirty();
     }
 
     const std::string& GetShortcutText() const { return m_shortcutText; }
-    void SetShortcutText(const std::string& shortcut) {
+    void ApplyShortcutText(const std::string& shortcut) {
         m_shortcutText = shortcut;
         MarkRenderContentDirty();
     }
 
     // Native shell / stock icon drawn in the left gutter (16x16). Takes ownership when takeOwnership=true.
-    void SetNativeIcon(HICON icon, bool takeOwnership = true);
+    void ApplyNativeIcon(HICON icon, bool takeOwnership = true);
     HICON GetNativeIcon() const { return m_nativeIcon; }
 
     std::shared_ptr<ContextMenu> GetSubMenu() const { return m_subMenu; }
-    void SetSubMenu(std::shared_ptr<ContextMenu> subMenu) { m_subMenu = subMenu; }
+    void ApplySubMenu(std::shared_ptr<ContextMenu> subMenu) { m_subMenu = subMenu; }
     bool HasSubMenu() const { return m_subMenu != nullptr; }
 
-    void SetParentContextMenu(ContextMenu* menu) { m_parentMenu = menu; }
-    void SetHighlight(bool highlighted);
+    void ApplyParentContextMenu(ContextMenu* menu) { m_parentMenu = menu; }
+    void ApplyHighlight(bool highlighted);
     void ExecuteCommand();
 
     // Preferred content width (label + icon + shortcut/arrow), excluding outer menu chrome.
@@ -99,7 +99,7 @@ public:
     // Shell cascading menus (Send To, NanaZip, …) fill lazily on WM_INITMENUPOPUP.
     // When set, ShowSubMenuAt clears and re-runs this before measuring/showing.
     using LazyPopulateFn = std::function<void(ContextMenu&)>;
-    void SetLazyPopulate(LazyPopulateFn fn) { m_lazyPopulate = std::move(fn); }
+    void ApplyLazyPopulate(LazyPopulateFn fn) { m_lazyPopulate = std::move(fn); }
     bool HasLazyPopulate() const { return static_cast<bool>(m_lazyPopulate); }
     void EnsurePopulated();
 
@@ -114,18 +114,18 @@ public:
 
     // Fired once when a root menu finishes closing (item click, light-dismiss, etc.).
     using ClosedCallback = std::function<void()>;
-    void SetClosedCallback(ClosedCallback cb) { m_closedCallback = std::move(cb); }
+    void ApplyClosedCallback(ClosedCallback cb) { m_closedCallback = std::move(cb); }
     Rect GetTotalBounds() const;
     void OffsetPopupHierarchy(float dx, float dy);
     std::shared_ptr<ContextMenu> GetActiveSubMenu() const { return m_activeSubMenu; }
     ContextMenu* GetOwnerMenu() const { return m_ownerMenu; }
-    void SetOwnerMenu(ContextMenu* owner) { m_ownerMenu = owner; }
+    void ApplyOwnerMenu(ContextMenu* owner) { m_ownerMenu = owner; }
     ::HWND GetOwnerHwnd() const {
         if (m_ownerHwnd) return m_ownerHwnd;
         if (m_ownerMenu) return m_ownerMenu->GetOwnerHwnd();
         return nullptr;
     }
-    void SetOwnerHwnd(::HWND hwnd) { m_ownerHwnd = hwnd; }
+    void ApplyOwnerHwnd(::HWND hwnd) { m_ownerHwnd = hwnd; }
 
     // IPopup
     virtual bool IsPopupOpen() const override { return m_isOpen; }

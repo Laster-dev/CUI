@@ -329,7 +329,7 @@ TreeCategoryView::TreeCategoryView(
 }
 
 std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, const std::string& desc) {
-    auto viewModel = m_viewModel;
+    CUI::Widgets::Ref viewModel =m_viewModel;
     auto window = m_window;
     auto onSelectionChanged = m_onSelectionChanged;
     auto onShowToast = m_onShowToast;
@@ -471,9 +471,9 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
 
         listView->OnSelectionChanged().Connect([viewModel, listView, onSelectionChanged](ListView*, int idx) {
             if (idx >= 0) {
-                viewModel->SetSelectedId(listView->GetRowTag(idx));
+                viewModel.SelectedId(listView->GetRowTag(idx));
             } else {
-                viewModel->SetSelectedId("");
+                viewModel.SelectedId("");
             }
             if (onSelectionChanged) onSelectionChanged();
         });
@@ -482,7 +482,7 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
             if (idx >= 0) {
                 std::string selId = listView->GetRowTag(idx);
                 if (!selId.empty()) {
-                    viewModel->SetSelectedId(selId);
+                    viewModel.SelectedId(selId);
                     viewModel->JumpToImage();
                 }
             }
@@ -588,9 +588,9 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
 
             listView->OnSelectionChanged().Connect([viewModel, listView, onSelectionChanged](ListView*, int idx) {
                 if (idx >= 0) {
-                    viewModel->SetSelectedId(listView->GetRowTag(idx));
+                    viewModel.SelectedId(listView->GetRowTag(idx));
                 } else {
-                    viewModel->SetSelectedId("");
+                    viewModel.SelectedId("");
                 }
                 if (onSelectionChanged) onSelectionChanged();
             });
@@ -599,7 +599,7 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
                 if (idx >= 0) {
                     std::string selId = listView->GetRowTag(idx);
                     if (!selId.empty()) {
-                        viewModel->SetSelectedId(selId);
+                        viewModel.SelectedId(selId);
                         viewModel->JumpToImage();
                     }
                 }

@@ -62,8 +62,8 @@ bool CanCullElementForCurrentPass(const UIElement* element, const GraphicsContex
 
 UIElement::UIElement() {
     // Defaults live in members — no string property bag.
-    m_renderNode.SetOwner(this);
-    m_renderNode.SetBounds(m_bounds);
+    m_renderNode.ApplyOwner(this);
+    m_renderNode.ApplyBounds(m_bounds);
     Text.Initialize(*this);
     FontFamily.Initialize(*this);
     FontSize.Initialize(*this);
@@ -201,7 +201,7 @@ UIElement::~UIElement() {
     // Avoid ClearChildren() — it also marks render dirty during teardown.
     for (auto& child : m_children) {
         if (child && child->GetParent() == this) {
-            child->SetParent(nullptr);
+            child->ApplyParent(nullptr);
         }
     }
     m_children.clear();
@@ -212,7 +212,7 @@ UIElement::~UIElement() {
     return nullptr;
 }
 
-void UIElement::SetParent(UIElement* parent) {
+void UIElement::ApplyParent(UIElement* parent) {
 #ifdef _DEBUG
     assert(parent != this);
     if (parent) {
@@ -239,7 +239,7 @@ void UIElement::MarkSubtreeNeedsOverlayHitTest() {
     }
 }
 
-void UIElement::SetAnimationHost(UIElement* host) {
+void UIElement::ApplyAnimationHost(UIElement* host) {
     if (host == this) {
         return;
     }
@@ -315,7 +315,7 @@ bool UIElement::HasLayoutDirtyInSubtree() const {
 
 void UIElement::FlushLayout(Size availableSize, const Rect& arrangeRect) {
     if (m_visibility == Visibility::Collapsed) {
-        SetBounds(Rect(0, 0, 0, 0));
+        ApplyBounds(Rect(0, 0, 0, 0));
         m_measureDirty = false;
         m_arrangeDirty = false;
         return;
@@ -351,14 +351,14 @@ void UIElement::FlushLayout(Size availableSize, const Rect& arrangeRect) {
 
 void UIElement::PromoteLayer(bool promote) {
     m_layerPromoted = promote;
-    m_renderNode.GetLayer().SetCacheable(promote);
+    m_renderNode.GetLayer().ApplyCacheable(promote);
     if (promote) {
         m_composeOpacity = m_opacity;
         m_renderNode.GetLayer().Invalidate(RenderLayer::ContentDirty | RenderLayer::OpacityDirty);
     }
 }
 
-void UIElement::SetComposeOpacity(float opacity) {
+void UIElement::ApplyComposeOpacity(float opacity) {
     opacity = std::clamp(opacity, 0.0f, 1.0f);
     if (std::abs(opacity - m_composeOpacity) < 0.0005f) {
         return;
@@ -371,11 +371,11 @@ void UIElement::SetComposeOpacity(float opacity) {
         // Footprint for commit — old and new are same bounds for opacity-only.
         MarkRenderRectDirty(m_bounds.Inflate(2.0f));
     } else {
-        SetOpacity(opacity);
+        ApplyOpacity(opacity);
     }
 }
 
-void UIElement::SetComposeOffset(float x, float y) {
+void UIElement::ApplyComposeOffset(float x, float y) {
     if (std::abs(x - m_composeOffsetX) < 0.01f && std::abs(y - m_composeOffsetY) < 0.01f) {
         return;
     }
@@ -388,7 +388,7 @@ void UIElement::SetComposeOffset(float x, float y) {
     m_composeOffsetY = y;
     m_composeDirty = true;
     if (m_layerPromoted) {
-        m_renderNode.GetLayer().SetTranslation(x, y);
+        m_renderNode.GetLayer().ApplyTranslation(x, y);
         m_renderNode.GetLayer().Invalidate(RenderLayer::TransformDirty);
     }
     Rect newFootprint = Rect(
@@ -482,7 +482,7 @@ std::vector<std::shared_ptr<UIElement>> UIElement::GetVisualChildren() const {
 void UIElement::AddChild(std::shared_ptr<UIElement> child) {
     if (!child) return;
     NotifyVisualTreeChanged();
-    child->SetParent(this);
+    child->ApplyParent(this);
     m_children.push_back(child);
     MarkRenderContentDirty();
     InvalidateMeasure();
@@ -491,7 +491,7 @@ void UIElement::AddChild(std::shared_ptr<UIElement> child) {
 void UIElement::AddChildQuiet(std::shared_ptr<UIElement> child) {
     if (!child) return;
     NotifyVisualTreeChanged();
-    child->SetParent(this);
+    child->ApplyParent(this);
     m_children.push_back(child);
 }
 
@@ -499,7 +499,7 @@ void UIElement::RemoveChild(std::shared_ptr<UIElement> child) {
     auto it = std::find(m_children.begin(), m_children.end(), child);
     if (it != m_children.end()) {
         NotifyVisualTreeChanged();
-        (*it)->SetParent(nullptr);
+        (*it)->ApplyParent(nullptr);
         m_children.erase(it);
         MarkRenderContentDirty();
         InvalidateMeasure();
@@ -510,7 +510,7 @@ void UIElement::RemoveChildQuiet(std::shared_ptr<UIElement> child) {
     auto it = std::find(m_children.begin(), m_children.end(), child);
     if (it != m_children.end()) {
         NotifyVisualTreeChanged();
-        (*it)->SetParent(nullptr);
+        (*it)->ApplyParent(nullptr);
         m_children.erase(it);
     }
 }
@@ -521,7 +521,7 @@ void UIElement::RemoveChildRaw(UIElement* child) {
     });
     if (it != m_children.end()) {
         NotifyVisualTreeChanged();
-        (*it)->SetParent(nullptr);
+        (*it)->ApplyParent(nullptr);
         m_children.erase(it);
         MarkRenderContentDirty();
     }
@@ -533,7 +533,7 @@ void UIElement::ClearChildren() {
     }
     NotifyVisualTreeChanged();
     for (auto& child : m_children) {
-        child->SetParent(nullptr);
+        child->ApplyParent(nullptr);
     }
     m_children.clear();
     MarkRenderContentDirty();
@@ -577,7 +577,7 @@ bool UIElement::ShouldClipToBounds() const {
 
 void UIElement::Arrange(Rect finalRect) {
     if (m_visibility == Visibility::Collapsed) {
-        SetBounds(Rect(0, 0, 0, 0));
+        ApplyBounds(Rect(0, 0, 0, 0));
         m_arrangeDirty = false;
         return;
     }
@@ -592,7 +592,7 @@ void UIElement::Arrange(Rect finalRect) {
         (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
     if (m_maxWidth >= 0.0f) arranged.width = (std::min)(arranged.width, m_maxWidth);
     if (m_maxHeight >= 0.0f) arranged.height = (std::min)(arranged.height, m_maxHeight);
-    SetBounds(arranged);
+    ApplyBounds(arranged);
     LayoutEngine::ArrangeElement(this, arranged);
     m_arrangeDirty = false;
 }
@@ -619,7 +619,7 @@ void UIElement::Render(GraphicsContext& ctx) {
 
     auto& layer = m_renderNode.GetLayer();
     if (m_layerPromoted && layer.IsCacheable()) {
-        layer.SetBounds(m_bounds);
+        layer.ApplyBounds(m_bounds);
         const bool needRaster = layer.NeedsContentRaster();
         if (needRaster) {
             const float w = (std::max)(1.0f, std::ceil(m_bounds.width));
@@ -633,7 +633,7 @@ void UIElement::Render(GraphicsContext& ctx) {
                 // Record in local space so the bitmap is (0,0)-(w,h).
                 // Paint-bounds cull uses world coords — disable for this pass.
                 const Rect savedPaintBounds = ctx.GetPaintBounds();
-                ctx.SetPaintBounds(Rect());
+                ctx.ApplyPaintBounds(Rect());
                 ctx.PushTransform(D2D1::Matrix3x2F::Translation(-m_bounds.x, -m_bounds.y));
                 if (auto* composition = ctx.GetCompositionContext()) {
                     composition->CountRasterizedNode();
@@ -646,7 +646,7 @@ void UIElement::Render(GraphicsContext& ctx) {
                     }
                 }
                 ctx.PopTransform();
-                ctx.SetPaintBounds(savedPaintBounds);
+                ctx.ApplyPaintBounds(savedPaintBounds);
                 ctx.PopLayerTarget(layer);
                 layer.Validate();
             }
@@ -935,7 +935,7 @@ bool UIElement::Focus(FocusState state) {
     if (!AcceptsTabFocus()) {
         return false;
     }
-    SetFocusState(state);
+    ApplyFocusState(state);
     if (!IsFocused()) {
         OnFocus();
     }
@@ -964,14 +964,14 @@ void UIElement::OnBlur() {
     MarkRenderRectDirty(m_bounds.Inflate(6.0f));
 }
 
-void UIElement::SetCommand(std::shared_ptr<Command> command) {
+void UIElement::ApplyCommand(std::shared_ptr<Command> command) {
     m_command = std::move(command);
     if (m_command) {
         if (Window* win = Window::Current()) {
             win->GetCommands().Register(m_command);
         }
         if (m_command->GetLabel().empty() && !GetText().empty()) {
-            m_command->SetLabel(GetText());
+            m_command->ApplyLabel(GetText());
         }
     }
 }
@@ -1096,8 +1096,8 @@ void UIElement::OnThemeChanged() {
     MarkRenderContentDirty();
 }
 
-void UIElement::SetAnimationsEnabled(bool enabled) {
-    AnimationService::Instance().SetAnimationsEnabled(enabled);
+void UIElement::ApplyAnimationsEnabled(bool enabled) {
+    AnimationService::Instance().ApplyAnimationsEnabled(enabled);
     s_animationsEnabled = enabled;
 }
 
@@ -1105,8 +1105,8 @@ bool UIElement::AreAnimationsEnabled() {
     return AnimationService::Instance().AreAnimationsEnabled();
 }
 
-void UIElement::SetAnimationDeltaSeconds(float dtSeconds) {
-    AnimationService::Instance().SetDeltaSeconds(dtSeconds);
+void UIElement::ApplyAnimationDeltaSeconds(float dtSeconds) {
+    AnimationService::Instance().ApplyDeltaSeconds(dtSeconds);
     s_animationDeltaSeconds = std::clamp(dtSeconds, 1.0f / 240.0f, 0.050f);
 }
 
@@ -1114,7 +1114,7 @@ float UIElement::GetAnimationDeltaSeconds() {
     return AnimationService::Instance().GetDeltaSeconds();
 }
 
-void UIElement::SetBounds(const Rect& bounds) {
+void UIElement::ApplyBounds(const Rect& bounds) {
     if (bounds.x == m_bounds.x && bounds.y == m_bounds.y
         && bounds.width == m_bounds.width && bounds.height == m_bounds.height) {
         return;
@@ -1122,13 +1122,13 @@ void UIElement::SetBounds(const Rect& bounds) {
 
     MarkRenderContentDirty();
     m_bounds = bounds;
-    m_renderNode.SetBounds(m_bounds);
+    m_renderNode.ApplyBounds(m_bounds);
     MarkRenderContentDirty();
 }
 
 void UIElement::SyncRenderState() {
-    m_renderNode.SetOwner(this);
-    m_renderNode.SetBounds(m_bounds);
+    m_renderNode.ApplyOwner(this);
+    m_renderNode.ApplyBounds(m_bounds);
     m_renderNode.SyncLayerState();
     for (auto& child : m_children) {
         if (child) {
@@ -1137,19 +1137,19 @@ void UIElement::SyncRenderState() {
     }
 }
 
-void UIElement::SetToolTipShowDelayMs(int ms) {
+void UIElement::ApplyToolTipShowDelayMs(int ms) {
     s_toolTipShowDelayMs = (std::max)(0, ms);
 }
 
-void UIElement::SetToolTipHideDelayMs(int ms) {
+void UIElement::ApplyToolTipHideDelayMs(int ms) {
     s_toolTipHideDelayMs = (std::max)(0, ms);
 }
 
-void UIElement::SetDefaultToolTipMaxWidth(float width) {
+void UIElement::ApplyDefaultToolTipMaxWidth(float width) {
     s_toolTipMaxWidth = (std::max)(48.0f, width);
 }
 
-void UIElement::SetDefaultToolTipAutoHideMs(int ms) {
+void UIElement::ApplyDefaultToolTipAutoHideMs(int ms) {
     s_toolTipAutoHideMs = (std::max)(0, ms);
 }
 
@@ -1158,7 +1158,7 @@ int UIElement::GetToolTipHideDelayMs() { return s_toolTipHideDelayMs; }
 float UIElement::GetDefaultToolTipMaxWidth() { return s_toolTipMaxWidth; }
 int UIElement::GetDefaultToolTipAutoHideMs() { return s_toolTipAutoHideMs; }
 
-void UIElement::SetToolTipMaxWidth(float width) {
+void UIElement::ApplyToolTipMaxWidth(float width) {
     if (std::abs(m_toolTipMaxWidth - width) < 0.01f) {
         return;
     }
@@ -1168,7 +1168,7 @@ void UIElement::SetToolTipMaxWidth(float width) {
     }
 }
 
-void UIElement::SetToolTipAutoHideMs(int ms) {
+void UIElement::ApplyToolTipAutoHideMs(int ms) {
     if (m_toolTipAutoHideMs == ms) {
         return;
     }

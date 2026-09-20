@@ -47,13 +47,13 @@ Size MeasureWrapped(const std::string& text, float fontSize, float maxWidth, DWR
 } // namespace
 
 TeachingTip::TeachingTip() {
-        this->SetVisibility(Visibility::Visible);
-    this->SetClipToBounds(false);
-    this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetTitleColorToken(ThemeTokenId::TextPrimary);
-    this->SetMessageColorToken(ThemeTokenId::TextSecondary);
-    this->SetAccentColorToken(ThemeTokenId::AccentColor);
+        this->ApplyVisibility(Visibility::Visible);
+    this->ApplyClipToBounds(false);
+    this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyTitleColorToken(ThemeTokenId::TextPrimary);
+    this->ApplyMessageColorToken(ThemeTokenId::TextSecondary);
+    this->ApplyAccentColorToken(ThemeTokenId::AccentColor);
 
     // 气泡外壳自绘；内部标题/正文/按钮全部复用现有控件。
     m_titleText = Widgets::TextBlock()
@@ -83,29 +83,29 @@ TeachingTip::TeachingTip() {
         }).Shared();
 
     m_closeButton = std::make_shared<Button>();
-        m_closeButton->SetText("×");
-    m_closeButton->SetFontFamily("微软雅黑");
-    m_closeButton->SetFontSize(14.0f);
-    m_closeButton->SetBackgroundToken(ThemeTokenId::Unset);
-    m_closeButton->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    m_closeButton->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    m_closeButton->SetBorderToken(ThemeTokenId::Unset);
-    m_closeButton->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    m_closeButton->SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
-    m_closeButton->SetBorderThickness(0.0f);
-    m_closeButton->SetCornerRadius(4.0f);
-    m_closeButton->SetPadding(0.0f);
+        m_closeButton->ApplyText("×");
+    m_closeButton->ApplyFontFamily("微软雅黑");
+    m_closeButton->ApplyFontSize(14.0f);
+    m_closeButton->ApplyBackgroundToken(ThemeTokenId::Unset);
+    m_closeButton->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    m_closeButton->ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    m_closeButton->ApplyBorderToken(ThemeTokenId::Unset);
+    m_closeButton->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
+    m_closeButton->ApplyBorderBrush(D2D1::ColorF(0, 0, 0, 0));
+    m_closeButton->ApplyBorderThickness(0.0f);
+    m_closeButton->ApplyCornerRadius(4.0f);
+    m_closeButton->ApplyPadding(0.0f);
     m_closeButton->OnClick().Connect([this](UIElement*) { Close(); });
 
     // 挂到自身子树上（经 ShowAround 的 SetAnimationHost 链可进入活树），
     // 并标记为 overlay 合成，避免主树渲染时重复绘制。
-    m_titleText->SetOverlayComposed(true);
+    m_titleText->ApplyOverlayComposed(true);
     this->AddChild(m_titleText);
-    m_messageText->SetOverlayComposed(true);
+    m_messageText->ApplyOverlayComposed(true);
     this->AddChild(m_messageText);
-    m_actionButton->SetOverlayComposed(true);
+    m_actionButton->ApplyOverlayComposed(true);
     this->AddChild(m_actionButton);
-    m_closeButton->SetOverlayComposed(true);
+    m_closeButton->ApplyOverlayComposed(true);
     this->AddChild(m_closeButton);
 }
 
@@ -133,12 +133,12 @@ bool TeachingTip::HasProperty(PropertyId id) const {
     }
 }
 
-void TeachingTip::SetProperty(PropertyId id, const Value& val) {
+void TeachingTip::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::Title: SetTitle(val.AsString()); return;
-    case PropertyId::Message: SetMessage(val.AsString()); return;
-    case PropertyId::ActionText: SetActionText(val.AsString()); return;
-    case PropertyId::IsClosable: SetIsCloseVisible(val.AsBool()); return;
+    case PropertyId::Title: ApplyTitle(val.AsString()); return;
+    case PropertyId::Message: ApplyMessage(val.AsString()); return;
+    case PropertyId::ActionText: ApplyActionText(val.AsString()); return;
+    case PropertyId::IsClosable: ApplyIsCloseVisible(val.AsBool()); return;
     case PropertyId::IsOpen:
         if (val.AsBool()) {
             if (m_anchor) {
@@ -149,7 +149,7 @@ void TeachingTip::SetProperty(PropertyId id, const Value& val) {
         }
         return;
     default:
-        Control::SetProperty(id, val);
+        Control::ApplyProperty(id, val);
         return;
     }
 }
@@ -160,13 +160,13 @@ TeachingTip::~TeachingTip() {
     }
 }
 
-void TeachingTip::SetTitle(const std::string& title) {
+void TeachingTip::ApplyTitle(const std::string& title) {
     if (m_title == title) {
         return;
     }
     m_title = title;
     if (m_titleText) {
-        m_titleText->SetText(title);
+        m_titleText->ApplyText(title);
     }
     if (m_isOpen) {
         Relayout();
@@ -174,13 +174,13 @@ void TeachingTip::SetTitle(const std::string& title) {
     }
 }
 
-void TeachingTip::SetMessage(const std::string& message) {
+void TeachingTip::ApplyMessage(const std::string& message) {
     if (m_message == message) {
         return;
     }
     m_message = message;
     if (m_messageText) {
-        m_messageText->SetText(message);
+        m_messageText->ApplyText(message);
     }
     if (m_isOpen) {
         Relayout();
@@ -188,14 +188,14 @@ void TeachingTip::SetMessage(const std::string& message) {
     }
 }
 
-void TeachingTip::SetActionText(const std::string& text) {
+void TeachingTip::ApplyActionText(const std::string& text) {
     if (m_actionText == text) {
         return;
     }
     m_actionText = text;
     if (m_actionButton) {
-        m_actionButton->SetText(text);
-        m_actionButton->SetVisibility(text.empty() ? Visibility::Collapsed : Visibility::Visible);
+        m_actionButton->ApplyText(text);
+        m_actionButton->ApplyVisibility(text.empty() ? Visibility::Collapsed : Visibility::Visible);
     }
     if (m_isOpen) {
         Relayout();
@@ -203,13 +203,13 @@ void TeachingTip::SetActionText(const std::string& text) {
     }
 }
 
-void TeachingTip::SetIsCloseVisible(bool visible) {
+void TeachingTip::ApplyIsCloseVisible(bool visible) {
     if (m_closeVisible == visible) {
         return;
     }
     m_closeVisible = visible;
     if (m_closeButton) {
-        m_closeButton->SetVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
+        m_closeButton->ApplyVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
     }
     if (m_isOpen) {
         Relayout();
@@ -217,7 +217,7 @@ void TeachingTip::SetIsCloseVisible(bool visible) {
     }
 }
 
-void TeachingTip::SetIsModal(bool modal) {
+void TeachingTip::ApplyIsModal(bool modal) {
     if (m_isModal == modal) {
         return;
     }
@@ -227,7 +227,7 @@ void TeachingTip::SetIsModal(bool modal) {
     }
 }
 
-void TeachingTip::SetPreferredPlacement(BubblePlacement placement) {
+void TeachingTip::ApplyPreferredPlacement(BubblePlacement placement) {
     if (m_preferredPlacement == placement) {
         return;
     }
@@ -238,7 +238,7 @@ void TeachingTip::SetPreferredPlacement(BubblePlacement placement) {
     }
 }
 
-void TeachingTip::SetMaxWidth(float width) {
+void TeachingTip::ApplyMaxWidth(float width) {
     width = (std::max)(160.0f, width);
     if (std::abs(m_maxWidth - width) < 0.01f) {
         return;
@@ -257,7 +257,7 @@ Size TeachingTip::Measure(Size availableSize) {
 }
 
 void TeachingTip::Arrange(Rect finalRect) {
-    SetBounds(Rect(finalRect.x, finalRect.y, 0.0f, 0.0f));
+    ApplyBounds(Rect(finalRect.x, finalRect.y, 0.0f, 0.0f));
 }
 
 void TeachingTip::Relayout() {
@@ -346,18 +346,18 @@ void TeachingTip::Relayout() {
 
     // 气泡外壳自绘；内部标题/正文/按钮均为真实子控件，这里只摆放边界。
     if (m_titleText) {
-        m_titleText->SetBounds(m_titleRect);
-        m_titleText->SetVisibility(m_titleRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
+        m_titleText->ApplyBounds(m_titleRect);
+        m_titleText->ApplyVisibility(m_titleRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
     }
     if (m_messageText) {
-        m_messageText->SetBounds(m_bodyRect);
-        m_messageText->SetVisibility(m_bodyRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
+        m_messageText->ApplyBounds(m_bodyRect);
+        m_messageText->ApplyVisibility(m_bodyRect.IsEmpty() ? Visibility::Collapsed : Visibility::Visible);
     }
     if (m_actionButton) {
-        m_actionButton->SetBounds(m_actionRect);
+        m_actionButton->ApplyBounds(m_actionRect);
     }
     if (m_closeButton) {
-        m_closeButton->SetBounds(m_closeRect);
+        m_closeButton->ApplyBounds(m_closeRect);
     }
 }
 
@@ -369,10 +369,10 @@ void TeachingTip::ShowAround(UIElement* target) {
     // Anchor chain keeps IsInLiveTree true even when the caller did not
     // AddChild this overlay control first — otherwise AnimationManager drops
     // the tick registration and the reveal never progresses past opacity 0.
-    SetAnimationHost(target);
+    ApplyAnimationHost(target);
     Relayout();
     m_isOpen = true;
-    m_popupAnim.SetTarget(1.0f);
+    m_popupAnim.ApplyTarget(1.0f);
     if (!UIElement::AreAnimationsEnabled()) {
         m_popupAnim.Reset(1.0f);
     }
@@ -389,7 +389,7 @@ void TeachingTip::Close() {
     }
     const bool wasOpen = m_isOpen;
     m_isOpen = false;
-    m_popupAnim.SetTarget(0.0f);
+    m_popupAnim.ApplyTarget(0.0f);
     if (!UIElement::AreAnimationsEnabled()) {
         m_popupAnim.Reset(0.0f);
     }
@@ -564,7 +564,7 @@ bool TeachingTip::OnKeyDown(int vkCode) {
 
 bool TeachingTip::OnAnimationTick() {
     const float dt = UIElement::GetAnimationDeltaSeconds();
-    m_popupAnim.SetTarget(m_isOpen ? 1.0f : 0.0f);
+    m_popupAnim.ApplyTarget(m_isOpen ? 1.0f : 0.0f);
     bool animating = m_popupAnim.Tick(dt, AnimationSpec{ 0.22f, 0.01f });
     if (animating) {
         DirtyPopup();

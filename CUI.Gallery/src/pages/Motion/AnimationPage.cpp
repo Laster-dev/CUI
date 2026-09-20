@@ -29,10 +29,10 @@ public:
         m_expanded = !m_expanded;
         if (m_expanded) {
  
-            m_heightScalar.SetTarget(100.0f);
-            m_radiusScalar.SetTarget(24.0f);
-            m_opacityScalar.SetTarget(0.95f);
-            m_offsetScalar.SetTarget(40.0f);
+            m_heightScalar.ApplyTarget(100.0f);
+            m_radiusScalar.ApplyTarget(24.0f);
+            m_opacityScalar.ApplyTarget(0.95f);
+            m_offsetScalar.ApplyTarget(40.0f);
         } else {
             m_widthScalar.Reset(m_widthScalar.Current());
             m_heightScalar.Reset(m_heightScalar.Current());
@@ -41,10 +41,10 @@ public:
             m_offsetScalar.Reset(m_offsetScalar.Current());
 
  
-            m_heightScalar.SetTarget(60.0f);
-            m_radiusScalar.SetTarget(8.0f);
-            m_opacityScalar.SetTarget(1.0f);
-            m_offsetScalar.SetTarget(0.0f);
+            m_heightScalar.ApplyTarget(60.0f);
+            m_radiusScalar.ApplyTarget(8.0f);
+            m_opacityScalar.ApplyTarget(1.0f);
+            m_offsetScalar.ApplyTarget(0.0f);
         }
         RequestAnimationTicks();
     }
@@ -66,9 +66,9 @@ public:
         const bool oMoving = m_opacityScalar.Tick(dt, spec);
         const bool offMoving = m_offsetScalar.Tick(dt, spec);
 
-        SetComposeOpacity(m_opacityScalar.Current());
-        SetComposeOffset(m_offsetScalar.Current(), 0.0f);
-        SetCornerRadius(m_radiusScalar.Current());
+        ApplyComposeOpacity(m_opacityScalar.Current());
+        ApplyComposeOffset(m_offsetScalar.Current(), 0.0f);
+        ApplyCornerRadius(m_radiusScalar.Current());
         InvalidateMeasure();
         MarkRenderContentDirty();
 
@@ -113,7 +113,7 @@ private:
 class SpringBallControl : public UIElement {
 public:
     SpringBallControl() {
-                this->SetHeight(100.0f);
+                this->ApplyHeight(100.0f);
         m_currentX = 20.0f;
         m_targetX = 20.0f;
         m_velocity = 0.0f;
@@ -124,8 +124,8 @@ public:
         RequestAnimationTicks();
     }
 
-    void SetStiffness(float k) { m_stiffness = k; }
-    void SetDamping(float d) { m_damping = d; }
+    void ApplyStiffness(float k) { m_stiffness = k; }
+    void ApplyDamping(float d) { m_damping = d; }
 
     bool HasSelfAnimation() const override {
         return std::abs(m_currentX - m_targetX) > 0.001f || std::abs(m_velocity) > 0.001f;
@@ -174,7 +174,7 @@ class RaceTrackIndicator : public UIElement {
 public:
     RaceTrackIndicator(EasingType type, ThemeTokenId token)
         : m_type(type), m_token(token) {
-                this->SetHeight(28.0f);
+                this->ApplyHeight(28.0f);
     }
 
     void StartRace(float durationSec) {
@@ -279,12 +279,12 @@ Element BuildAnimationPage() {
 
     int colorIdx = 0;
     for (const auto& item : easings) {
-        auto ind = std::make_shared<RaceTrackIndicator>(item.second, tokens[colorIdx % 9]);
-                ind->SetWidth(460.0f);
+        CUI::Widgets::Ref ind =std::make_shared<RaceTrackIndicator>(item.second, tokens[colorIdx % 9]);
+                ind.Width(460.0f);
         tracks.push_back(ind);
 
-        auto lbl = MakeLabel(item.first, 12.0f, ThemeTokenId::TextPrimary, false);
-                lbl->SetWidth(170.0f);
+        CUI::Widgets::Ref lbl =MakeLabel(item.first, 12.0f, ThemeTokenId::TextPrimary, false);
+                lbl.Width(170.0f);
 
                 tracksColumn->AddChild(Row(8, { lbl, ind }).Build());
         colorIdx++;
@@ -316,8 +316,8 @@ Element BuildAnimationPage() {
         });
 
     // 4. 物理弹簧振荡器
-    auto springBall = std::make_shared<SpringBallControl>();
-        springBall->SetWidth(460.0f);
+    CUI::Widgets::Ref springBall =std::make_shared<SpringBallControl>();
+        springBall.Width(460.0f);
 
     auto btnSpringLeft = Button("移至左侧 (20px)")
         .BackgroundToken(ThemeTokenId::CardBackground)
@@ -352,12 +352,12 @@ Element BuildAnimationPage() {
     auto statusDamping = MakeStatus(std::format("阻尼 (Damping): {:.1f}", 18.0f));
 
     sliderStiffness->OnValueChanged().Connect([springBall, statusStiffness](Slider*, float k) {
-                springBall->SetStiffness(k);
+                springBall.Stiffness(k);
         statusStiffness->Text = std::format("刚度 (Stiffness): {:.0f}", k);
     });
 
     sliderDamping->OnValueChanged().Connect([springBall, statusDamping](Slider*, float d) {
-                springBall->SetDamping(d);
+                springBall.Damping(d);
         statusDamping->Text = std::format("阻尼 (Damping): {:.1f}", d);
     });
 
@@ -367,7 +367,7 @@ Element BuildAnimationPage() {
     spec.sections = {
         {
             "全局动画策略控制",
-            "通过 AnimationService::Instance().SetAnimationsEnabled 控制全局动效开关。关闭时将立即可视吸附，兼顾无障碍设定与节能场景。",
+            "通过 AnimationService::Instance().ApplyAnimationsEnabled 控制全局动效开关。关闭时将立即可视吸附，兼顾无障碍设定与节能场景。",
             Column(12, { toggleAnim, statusGlobal }),
         },
         {

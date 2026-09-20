@@ -28,13 +28,13 @@ std::string FormatRangeValue(float v) {
 RangeSlider::RangeSlider() : Minimum(this), Maximum(this), Step(this) {
     LowerValue.Initialize(*this);
     UpperValue.Initialize(*this);
-    this->SetOrientation(Orientation::Horizontal);
-    this->SetTrackColorToken(ThemeTokenId::InputBorder);
-    this->SetActiveTrackColorToken(ThemeTokenId::AccentColor);
-    this->SetThumbColorToken(ThemeTokenId::AccentColor);
-    this->SetWidth(280.0f);
-    this->SetHeight(48.0f);
-    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->ApplyOrientation(Orientation::Horizontal);
+    this->ApplyTrackColorToken(ThemeTokenId::InputBorder);
+    this->ApplyActiveTrackColorToken(ThemeTokenId::AccentColor);
+    this->ApplyThumbColorToken(ThemeTokenId::AccentColor);
+    this->ApplyWidth(280.0f);
+    this->ApplyHeight(48.0f);
+    this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Contained);
     m_lowerAnim.Reset(m_lower);
     m_upperAnim.Reset(m_upper);
 }
@@ -65,15 +65,15 @@ bool RangeSlider::HasProperty(PropertyId id) const {
     }
 }
 
-void RangeSlider::SetProperty(PropertyId id, const Value& val) {
+void RangeSlider::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::LowerValue: SetLowerValue(val.AsFloat()); return;
-    case PropertyId::UpperValue: SetUpperValue(val.AsFloat()); return;
-    case PropertyId::Minimum: SetMinimum(val.AsFloat()); return;
-    case PropertyId::Maximum: SetMaximum(val.AsFloat()); return;
-    case PropertyId::Step: SetStep(val.AsFloat()); return;
-    case PropertyId::MinimumRange: SetMinimumRange(val.AsFloat()); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::LowerValue: ApplyLowerValue(val.AsFloat()); return;
+    case PropertyId::UpperValue: ApplyUpperValue(val.AsFloat()); return;
+    case PropertyId::Minimum: ApplyMinimum(val.AsFloat()); return;
+    case PropertyId::Maximum: ApplyMaximum(val.AsFloat()); return;
+    case PropertyId::Step: ApplyStep(val.AsFloat()); return;
+    case PropertyId::MinimumRange: ApplyMinimumRange(val.AsFloat()); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
@@ -111,7 +111,7 @@ float RangeSlider::ClampUpper(float val) const {
     return std::clamp(val, (std::min)(m_maximum, minUpper), m_maximum);
 }
 
-void RangeSlider::SetMinimum(float minVal) {
+void RangeSlider::ApplyMinimum(float minVal) {
     if (std::abs(m_minimum - minVal) < 0.0001f) {
         return;
     }
@@ -120,10 +120,10 @@ void RangeSlider::SetMinimum(float minVal) {
         m_maximum = m_minimum;
     }
     NotifyFieldChanged(PropertyId::Minimum, Value(m_minimum));
-    SetRange(m_lower, m_upper);
+    ApplyRange(m_lower, m_upper);
 }
 
-void RangeSlider::SetMaximum(float maxVal) {
+void RangeSlider::ApplyMaximum(float maxVal) {
     if (std::abs(m_maximum - maxVal) < 0.0001f) {
         return;
     }
@@ -132,30 +132,30 @@ void RangeSlider::SetMaximum(float maxVal) {
         m_minimum = m_maximum;
     }
     NotifyFieldChanged(PropertyId::Maximum, Value(m_maximum));
-    SetRange(m_lower, m_upper);
+    ApplyRange(m_lower, m_upper);
 }
 
-void RangeSlider::SetStep(float step) {
+void RangeSlider::ApplyStep(float step) {
     step = (std::max)(0.0f, step);
     if (std::abs(m_step - step) < 0.0001f) {
         return;
     }
     m_step = step;
     NotifyFieldChanged(PropertyId::Step, Value(m_step));
-    SetRange(m_lower, m_upper);
+    ApplyRange(m_lower, m_upper);
 }
 
-void RangeSlider::SetMinimumRange(float range) {
+void RangeSlider::ApplyMinimumRange(float range) {
     range = (std::max)(0.0f, range);
     if (std::abs(m_minimumRange - range) < 0.0001f) {
         return;
     }
     m_minimumRange = range;
     NotifyFieldChanged(PropertyId::MinimumRange, Value(m_minimumRange));
-    SetRange(m_lower, m_upper);
+    ApplyRange(m_lower, m_upper);
 }
 
-void RangeSlider::SetLowerValue(float val) {
+void RangeSlider::ApplyLowerValue(float val) {
     val = ClampLower(val);
     if (std::abs(m_lower - val) < 0.0001f) {
         return;
@@ -172,7 +172,7 @@ void RangeSlider::SetLowerValue(float val) {
     FireChanged();
 }
 
-void RangeSlider::SetUpperValue(float val) {
+void RangeSlider::ApplyUpperValue(float val) {
     val = ClampUpper(val);
     if (std::abs(m_upper - val) < 0.0001f) {
         return;
@@ -189,7 +189,7 @@ void RangeSlider::SetUpperValue(float val) {
     FireChanged();
 }
 
-void RangeSlider::SetRange(float lower, float upper) {
+void RangeSlider::ApplyRange(float lower, float upper) {
     if (lower > upper) {
         std::swap(lower, upper);
     }
@@ -375,10 +375,10 @@ void RangeSlider::OnMouseDown(Point pt) {
     m_dragging = true;
     const float v = ValueFromPoint(pt);
     if (m_active == Thumb::Upper) {
-        SetUpperValue(v);
+        ApplyUpperValue(v);
     } else {
         m_active = Thumb::Lower;
-        SetLowerValue(v);
+        ApplyLowerValue(v);
     }
 }
 
@@ -390,9 +390,9 @@ void RangeSlider::OnMouseMove(Point pt) {
     if (m_dragging) {
         const float v = ValueFromPoint(pt);
         if (m_active == Thumb::Upper) {
-            SetUpperValue(v);
+            ApplyUpperValue(v);
         } else {
-            SetLowerValue(v);
+            ApplyLowerValue(v);
         }
         return;
     }
@@ -455,16 +455,16 @@ bool RangeSlider::OnKeyDown(int vkCode) {
         delta = -step * 10.0f;
     } else if (vkCode == VK_HOME) {
         if (m_active == Thumb::Upper) {
-            SetUpperValue(m_lower + m_minimumRange);
+            ApplyUpperValue(m_lower + m_minimumRange);
         } else {
-            SetLowerValue(m_minimum);
+            ApplyLowerValue(m_minimum);
         }
         return true;
     } else if (vkCode == VK_END) {
         if (m_active == Thumb::Upper) {
-            SetUpperValue(m_maximum);
+            ApplyUpperValue(m_maximum);
         } else {
-            SetLowerValue(m_upper - m_minimumRange);
+            ApplyLowerValue(m_upper - m_minimumRange);
         }
         return true;
     }
@@ -472,9 +472,9 @@ bool RangeSlider::OnKeyDown(int vkCode) {
         return false;
     }
     if (m_active == Thumb::Upper) {
-        SetUpperValue(m_upper + delta);
+        ApplyUpperValue(m_upper + delta);
     } else {
-        SetLowerValue(m_lower + delta);
+        ApplyLowerValue(m_lower + delta);
     }
     return true;
 }
@@ -486,8 +486,8 @@ bool RangeSlider::OnAnimationTick() {
         return false;
     }
     bool base = Control::OnAnimationTick();
-    m_lowerAnim.SetTarget(m_lower);
-    m_upperAnim.SetTarget(m_upper);
+    m_lowerAnim.ApplyTarget(m_lower);
+    m_upperAnim.ApplyTarget(m_upper);
     const bool moving = m_lowerAnim.IsAnimating(0.01f) || m_upperAnim.IsAnimating(0.01f);
     if (!moving) {
         m_lowerAnim.Reset(m_lower);

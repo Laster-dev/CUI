@@ -57,17 +57,17 @@ D2D1_COLOR_F WarningColor() {
 } // namespace
 
 InfoBar::InfoBar() {
-        this->SetWidth(-1.0f);
-    this->SetHeight(-1.0f);
-    this->SetAlign(Alignment::Stretch);
-    this->SetClipToBounds(true);
-    this->SetCornerRadius(kRadius);
-    this->SetBorderThickness(1.0f);
-    this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetTitleColorToken(ThemeTokenId::TextPrimary);
-    this->SetMessageColorToken(ThemeTokenId::TextSecondary);
-    this->SetAccentColorToken(ThemeTokenId::AccentColor);
+        this->ApplyWidth(-1.0f);
+    this->ApplyHeight(-1.0f);
+    this->ApplyAlign(Alignment::Stretch);
+    this->ApplyClipToBounds(true);
+    this->ApplyCornerRadius(kRadius);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyTitleColorToken(ThemeTokenId::TextPrimary);
+    this->ApplyMessageColorToken(ThemeTokenId::TextSecondary);
+    this->ApplyAccentColorToken(ThemeTokenId::AccentColor);
     EnsureChrome();
     SyncChrome();
     m_openAnim.Reset(1.0f);
@@ -123,21 +123,21 @@ bool InfoBar::HasProperty(PropertyId id) const {
     }
 }
 
-void InfoBar::SetProperty(PropertyId id, const Value& val) {
+void InfoBar::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
     case PropertyId::Title:
     case PropertyId::Text:
-        SetTitle(val.AsString());
+        ApplyTitle(val.AsString());
         return;
     case PropertyId::Message:
     case PropertyId::Placeholder:
-        SetMessage(val.AsString());
+        ApplyMessage(val.AsString());
         return;
-    case PropertyId::Severity: SetSeverity(ParseSeverity(val.AsString())); return;
-    case PropertyId::IsOpen: SetIsOpen(val.AsBool()); return;
-    case PropertyId::IsClosable: SetIsClosable(val.AsBool()); return;
-    case PropertyId::ActionText: SetActionText(val.AsString()); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::Severity: ApplySeverity(ParseSeverity(val.AsString())); return;
+    case PropertyId::IsOpen: ApplyIsOpen(val.AsBool()); return;
+    case PropertyId::IsClosable: ApplyIsClosable(val.AsBool()); return;
+    case PropertyId::ActionText: ApplyActionText(val.AsString()); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
@@ -177,45 +177,45 @@ void InfoBar::SyncChrome() {
     EnsureChrome();
     const bool showAction = m_isOpen && !m_actionText.empty();
     const bool showClose = m_isOpen && m_isClosable;
-    m_actionBtn->SetText(m_actionText);
-    m_actionBtn->SetVisibility(showAction ? Visibility::Visible : Visibility::Collapsed);
+    m_actionBtn->ApplyText(m_actionText);
+    m_actionBtn->ApplyVisibility(showAction ? Visibility::Visible : Visibility::Collapsed);
     if (m_actionCommand) {
-        m_actionBtn->SetCommand(m_actionCommand);
+        m_actionBtn->ApplyCommand(m_actionCommand);
     }
-    m_closeBtn->SetVisibility(showClose ? Visibility::Visible : Visibility::Collapsed);
+    m_closeBtn->ApplyVisibility(showClose ? Visibility::Visible : Visibility::Collapsed);
 
     const Palette pal = Colors();
-    m_actionBtn->SetBackgroundToken(ThemeTokenId::Unset);
-    m_actionBtn->SetHoverBackgroundToken(ThemeTokenId::Unset);
-    m_actionBtn->SetPressedBackgroundToken(ThemeTokenId::Unset);
-    m_actionBtn->SetBackground(pal.accent);
-    m_actionBtn->SetHoverBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::White), 0.12f));
-    m_actionBtn->SetPressedBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::Black), 0.12f));
-    m_actionBtn->SetColorToken(ThemeTokenId::AccentForeground);
-    m_actionBtn->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground));
+    m_actionBtn->ApplyBackgroundToken(ThemeTokenId::Unset);
+    m_actionBtn->ApplyHoverBackgroundToken(ThemeTokenId::Unset);
+    m_actionBtn->ApplyPressedBackgroundToken(ThemeTokenId::Unset);
+    m_actionBtn->ApplyBackground(pal.accent);
+    m_actionBtn->ApplyHoverBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::White), 0.12f));
+    m_actionBtn->ApplyPressedBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::Black), 0.12f));
+    m_actionBtn->ApplyColorToken(ThemeTokenId::AccentForeground);
+    m_actionBtn->ApplyColor(ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground));
 }
 
-void InfoBar::SetTitle(const std::string& title) {
+void InfoBar::ApplyTitle(const std::string& title) {
     if (m_title == title) {
         return;
     }
     m_title = title;
-    SetText(title);
+    ApplyText(title);
     InvalidateMeasure();
     MarkRenderRectDirty(m_bounds);
 }
 
-void InfoBar::SetMessage(const std::string& message) {
+void InfoBar::ApplyMessage(const std::string& message) {
     if (m_message == message) {
         return;
     }
     m_message = message;
-    SetPlaceholder(message);
+    ApplyPlaceholder(message);
     InvalidateMeasure();
     MarkRenderRectDirty(m_bounds);
 }
 
-void InfoBar::SetSeverity(InfoBarSeverity severity) {
+void InfoBar::ApplySeverity(InfoBarSeverity severity) {
     if (m_severity == severity) {
         return;
     }
@@ -224,7 +224,7 @@ void InfoBar::SetSeverity(InfoBarSeverity severity) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void InfoBar::SetIsClosable(bool closable) {
+void InfoBar::ApplyIsClosable(bool closable) {
     if (m_isClosable == closable) {
         return;
     }
@@ -234,7 +234,7 @@ void InfoBar::SetIsClosable(bool closable) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void InfoBar::SetActionText(const std::string& text) {
+void InfoBar::ApplyActionText(const std::string& text) {
     if (m_actionText == text) {
         return;
     }
@@ -244,23 +244,23 @@ void InfoBar::SetActionText(const std::string& text) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void InfoBar::SetActionCommand(std::shared_ptr<Command> command) {
+void InfoBar::ApplyActionCommand(std::shared_ptr<Command> command) {
     m_actionCommand = std::move(command);
     SyncChrome();
 }
 
 void InfoBar::ApplyOpenState(bool open, bool animate) {
     if (open) {
-        SetVisibility(Visibility::Visible);
-        m_openAnim.SetTarget(1.0f);
+        ApplyVisibility(Visibility::Visible);
+        m_openAnim.ApplyTarget(1.0f);
         if (!animate || !UIElement::AreAnimationsEnabled()) {
             m_openAnim.Reset(1.0f);
         }
     } else {
-        m_openAnim.SetTarget(0.0f);
+        m_openAnim.ApplyTarget(0.0f);
         if (!animate || !UIElement::AreAnimationsEnabled()) {
             m_openAnim.Reset(0.0f);
-            SetVisibility(Visibility::Collapsed);
+            ApplyVisibility(Visibility::Collapsed);
         }
     }
     SyncChrome();
@@ -271,7 +271,7 @@ void InfoBar::ApplyOpenState(bool open, bool animate) {
     MarkRenderRectDirty(m_bounds.Inflate(4.0f));
 }
 
-void InfoBar::SetIsOpen(bool open) {
+void InfoBar::ApplyIsOpen(bool open) {
     if (m_isOpen == open) {
         if (open && GetVisibility() != Visibility::Visible) {
             ApplyOpenState(true, false);
@@ -412,7 +412,7 @@ void InfoBar::Arrange(Rect finalRect) {
         finalRect.y + margin.top,
         (std::max)(0.0f, finalRect.width - margin.left - margin.right),
         (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
-    SetBounds(arranged);
+    ApplyBounds(arranged);
     LayoutChrome();
     m_arrangeDirty = false;
 }
@@ -558,7 +558,7 @@ bool InfoBar::OnAnimationTick() {
         MarkRenderRectDirty(m_bounds.Inflate(4.0f));
     }
     if (!moving && !m_isOpen && m_openAnim.Current() <= 0.001f) {
-        SetVisibility(Visibility::Collapsed);
+        ApplyVisibility(Visibility::Collapsed);
         return false;
     }
     return moving || Control::OnAnimationTick();

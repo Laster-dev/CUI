@@ -34,7 +34,7 @@ public:
     virtual const char* GetClassName() const override { return "DropDownButton"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射读取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否包含对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
 
     virtual Size Measure(Size availableSize) override; // 计算宽度并加入下拉箭头预留尺寸
     virtual void OnRender(GraphicsContext& ctx) override; // 绘制静止态下拉按钮、分割线以及下拉方向箭头
@@ -58,7 +58,7 @@ public:
     virtual bool HitDismissExempt(float x, float y) const override; // 检查点击坐标是否落在下拉按钮身上以豁免点击消退
     virtual UIElement* HitTestPopup(float x, float y) override { return HitTestOverlay(x, y); } // 弹窗层命中穿透测试定位
     virtual void RenderPopup(GraphicsContext& ctx) override; // 对弹出框进行实际渲染绘制
-    virtual void OnLightDismiss() override { SetDropDownOpen(false); } // 轻点背景消退时触发关闭收起弹出层
+    virtual void OnLightDismiss() override { ApplyDropDownOpen(false); } // 轻点背景消退时触发关闭收起弹出层
 
     int AddItem(const std::string& text, std::function<void()> onClick = nullptr); // 尾部插入一条普通菜单文本选项并返回索引
     void AddSeparator(); // 尾部插入一条装饰横分割线
@@ -69,10 +69,10 @@ public:
     PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex; // 绑定菜单被选中的索引项双向绑定属性代理
 
     int GetSelectedIndex() const { return m_selectedIndex; } // 获取当前选中项的索引位置
-    void SetSelectedIndex(int index); // 设置选中项索引位置
+    void ApplySelectedIndex(int index); // 设置选中项索引位置
     std::string GetSelectedItem() const; // 读取被选中项的字符串文本
 
-    void SetDropDownOpen(bool open); // 控制下拉菜单列表的弹起与折叠收拢
+    void ApplyDropDownOpen(bool open); // 控制下拉菜单列表的弹起与折叠收拢
     bool IsDropDownOpen() const { return m_isDropDownOpen; } // 查询当前是否处于展开状态
 
     Event<DropDownButton*, int, const std::string&>& OnItemChosen() { return m_onItemChosenEvent; } // 菜单项被点选确认的事件发布中心

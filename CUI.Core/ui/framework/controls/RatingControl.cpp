@@ -36,14 +36,14 @@ void StarPoints(Point center, float radius, Point out[10]) {
 
 RatingControl::RatingControl() : MaxRating(this), Step(this), Value(this) {
     ValueProperty.Initialize(*this);
-    this->SetFillColorToken(ThemeTokenId::AccentColor);
-    this->SetTrackColorToken(ThemeTokenId::CardBorder);
-    this->SetColorToken(ThemeTokenId::TextSecondary);
-    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetWidth(-1.0f);
-    this->SetHeight(32.0f);
+    this->ApplyFillColorToken(ThemeTokenId::AccentColor);
+    this->ApplyTrackColorToken(ThemeTokenId::CardBorder);
+    this->ApplyColorToken(ThemeTokenId::TextSecondary);
+    this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyPressedBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyWidth(-1.0f);
+    this->ApplyHeight(32.0f);
     m_displayValueAnim.Reset(m_value);
 }
 
@@ -75,14 +75,14 @@ bool RatingControl::HasProperty(PropertyId id) const {
     }
 }
 
-void RatingControl::SetProperty(PropertyId id, const CUI::Value& val) {
+void RatingControl::ApplyProperty(PropertyId id, const CUI::Value& val) {
     switch (id) {
-    case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
-    case PropertyId::Maximum: SetMaxRating(static_cast<int>(val.AsFloat(static_cast<float>(m_maxRating)))); return;
-    case PropertyId::Step: SetStep(val.AsFloat(m_step)); return;
-    case PropertyId::IsReadOnly: SetIsReadOnly(val.AsBool()); return;
-    case PropertyId::IsClearEnabled: SetIsClearEnabled(val.AsBool()); return;
-    default: Control::SetProperty(id, val); return;
+    case PropertyId::ControlValue: ApplyValue(val.AsFloat()); return;
+    case PropertyId::Maximum: ApplyMaxRating(static_cast<int>(val.AsFloat(static_cast<float>(m_maxRating)))); return;
+    case PropertyId::Step: ApplyStep(val.AsFloat(m_step)); return;
+    case PropertyId::IsReadOnly: ApplyIsReadOnly(val.AsBool()); return;
+    case PropertyId::IsClearEnabled: ApplyIsClearEnabled(val.AsBool()); return;
+    default: Control::ApplyProperty(id, val); return;
     }
 }
 
@@ -184,7 +184,7 @@ Size RatingControl::Measure(Size availableSize) {
     return m_desiredSize;
 }
 
-void RatingControl::SetValue(float val) {
+void RatingControl::ApplyValue(float val) {
     val = SnapValue(val);
     if (std::abs(m_value - val) <= 0.0001f) {
         return;
@@ -194,14 +194,14 @@ void RatingControl::SetValue(float val) {
     if (m_isDragging || m_hoverValue >= 0.0f || !UIElement::AreAnimationsEnabled()) {
         m_displayValueAnim.Reset(val);
     } else {
-        m_displayValueAnim.SetTarget(val);
+        m_displayValueAnim.ApplyTarget(val);
         RequestAnimationTicks();
     }
     MarkRenderRectDirty(m_bounds);
     m_onValueChangedEvent.Invoke(this, val);
 }
 
-void RatingControl::SetMaxRating(int maxRating) {
+void RatingControl::ApplyMaxRating(int maxRating) {
     maxRating = std::clamp(maxRating, 1, 10);
     if (m_maxRating == maxRating) {
         return;
@@ -209,21 +209,21 @@ void RatingControl::SetMaxRating(int maxRating) {
     m_maxRating = maxRating;
     NotifyFieldChanged(PropertyId::Maximum, CUI::Value(static_cast<float>(maxRating)));
     InvalidateMeasure();
-    SetValue(m_value);
+    ApplyValue(m_value);
     MarkRenderRectDirty(m_bounds);
 }
 
-void RatingControl::SetStep(float step) {
+void RatingControl::ApplyStep(float step) {
     step = (step <= 0.0f) ? 0.5f : step;
     if (m_step == step) {
         return;
     }
     m_step = step;
     NotifyFieldChanged(PropertyId::Step, CUI::Value(step));
-    SetValue(m_value);
+    ApplyValue(m_value);
 }
 
-void RatingControl::SetIsReadOnly(bool readOnly) {
+void RatingControl::ApplyIsReadOnly(bool readOnly) {
     if (m_isReadOnly == readOnly) {
         return;
     }
@@ -236,7 +236,7 @@ void RatingControl::SetIsReadOnly(bool readOnly) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void RatingControl::SetIsClearEnabled(bool enabled) {
+void RatingControl::ApplyIsClearEnabled(bool enabled) {
     if (m_isClearEnabled == enabled) {
         return;
     }
@@ -246,7 +246,7 @@ void RatingControl::SetIsClearEnabled(bool enabled) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void RatingControl::SetStarSize(float size) {
+void RatingControl::ApplyStarSize(float size) {
     size = std::clamp(size, 12.0f, 48.0f);
     if (m_starSize == size) {
         return;
@@ -259,10 +259,10 @@ void RatingControl::SetStarSize(float size) {
 void RatingControl::CommitFromPoint(Point pt) {
     const float next = ValueFromPoint(pt);
     if (m_isClearEnabled && std::abs(next - m_value) <= 0.0001f) {
-        SetValue(0.0f);
+        ApplyValue(0.0f);
         return;
     }
-    SetValue(next);
+    ApplyValue(next);
 }
 
 void RatingControl::OnMouseDown(Point pt) {
@@ -285,7 +285,7 @@ void RatingControl::OnMouseMove(Point pt) {
         if (std::abs(nextHover - m_hoverValue) > 0.0001f) {
             m_hoverValue = nextHover;
         }
-        SetValue(nextHover);
+        ApplyValue(nextHover);
         return;
     }
     if (std::abs(nextHover - m_hoverValue) > 0.0001f) {
@@ -318,23 +318,23 @@ bool RatingControl::OnKeyDown(int vkCode) {
     }
     const float step = (m_step > 0.0f) ? m_step : 0.5f;
     if (vkCode == VK_LEFT || vkCode == VK_DOWN) {
-        SetValue(m_value - step);
+        ApplyValue(m_value - step);
         return true;
     }
     if (vkCode == VK_RIGHT || vkCode == VK_UP) {
-        SetValue(m_value + step);
+        ApplyValue(m_value + step);
         return true;
     }
     if (vkCode == VK_HOME) {
-        SetValue(m_isClearEnabled ? 0.0f : step);
+        ApplyValue(m_isClearEnabled ? 0.0f : step);
         return true;
     }
     if (vkCode == VK_END) {
-        SetValue(static_cast<float>(m_maxRating));
+        ApplyValue(static_cast<float>(m_maxRating));
         return true;
     }
     if (m_isClearEnabled && (vkCode == VK_DELETE || vkCode == VK_BACK)) {
-        SetValue(0.0f);
+        ApplyValue(0.0f);
         return true;
     }
     return Control::OnKeyDown(vkCode);
@@ -346,7 +346,7 @@ bool RatingControl::OnAnimationTick() {
         m_displayValueAnim.Reset(m_value);
         return base;
     }
-    m_displayValueAnim.SetTarget(m_value);
+    m_displayValueAnim.ApplyTarget(m_value);
     if (!m_displayValueAnim.IsAnimating(kFillSpec.epsilon)) {
         m_displayValueAnim.Reset(m_value);
         return base;

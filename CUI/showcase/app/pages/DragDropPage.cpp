@@ -19,11 +19,11 @@ class DragChip : public Control, public CUI::IDragSource {
 public:
     explicit DragChip(std::string payload)
         : m_payload(std::move(payload)) {
-                this->SetText(m_payload);
-        this->SetWidth(148.0f);
-        this->SetHeight(34.0f);
-        this->SetCornerRadius(17.0f);
-        this->SetToolTip("按住拖到列表或输入框；Ctrl 为复制");
+                this->ApplyText(m_payload);
+        this->ApplyWidth(148.0f);
+        this->ApplyHeight(34.0f);
+        this->ApplyCornerRadius(17.0f);
+        this->ApplyToolTip("按住拖到列表或输入框；Ctrl 为复制");
     }
 
     ~DragChip() override {
@@ -97,10 +97,10 @@ class FileDropWell : public Control, public CUI::IDropTarget {
 public:
     explicit FileDropWell(std::function<void(const std::vector<std::string>&)> onFiles)
         : m_onFiles(std::move(onFiles)) {
-                this->SetWidth(-1.0f);
-        this->SetHeight(88.0f);
-        this->SetCornerRadius(8.0f);
-        this->SetToolTip("从资源管理器拖入文件");
+                this->ApplyWidth(-1.0f);
+        this->ApplyHeight(88.0f);
+        this->ApplyCornerRadius(8.0f);
+        this->ApplyToolTip("从资源管理器拖入文件");
     }
 
     ~FileDropWell() override {
@@ -216,11 +216,11 @@ ShowcasePage BuildDragDropPage(const ShowcaseContext& ctx) {
     auto left = MakeDemoList({ "苹果", "香蕉", "橙子", "葡萄", "西瓜" }, 220.0f);
     auto right = MakeDemoList({ "文档.docx", "截图.png", "笔记.md", "备份.zip" }, 220.0f);
 
-    auto log = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref log =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("日志：就绪。两列表互拖；Ctrl=复制，Esc=取消。", 12.0f, "#B5CEA8", false, "Consolas"));
 
     auto appendLog = [log](const std::string& line) {
-                log->SetText(line);
+                log.Text(line);
     };
 
     left->OnSelectionChanged().Connect([appendLog](ListBox*, int idx, const std::string& text) {

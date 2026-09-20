@@ -34,7 +34,7 @@ public:
 
     virtual const char* GetClassName() const override { return "FlyoutPresenter"; } // 获取类名
 
-    void SetContent(std::shared_ptr<UIElement> content); // 放入并设置卡片要具体展示的子控件
+    void ApplyContent(std::shared_ptr<UIElement> content); // 放入并设置卡片要具体展示的子控件
     std::shared_ptr<UIElement> GetContent() const { return m_content; } // 获取所承载的子控件
 
     virtual Size Measure(Size availableSize) override; // 计算卡片在保留内边距和圆角下的理想尺寸大小
@@ -64,7 +64,7 @@ public:
         Flyout* owner = nullptr;
         FlyoutPlacementProperty() = default;
         explicit FlyoutPlacementProperty(Flyout* o) : owner(o) {}
-        FlyoutPlacementProperty& operator=(FlyoutPlacement p) { if (owner) owner->SetPlacement(p); return *this; }
+        FlyoutPlacementProperty& operator=(FlyoutPlacement p) { if (owner) owner->ApplyPlacement(p); return *this; }
         operator FlyoutPlacement() const { return owner ? owner->GetPlacement() : FlyoutPlacement::Bottom; }
         FlyoutPlacement Get() const { return owner ? owner->GetPlacement() : FlyoutPlacement::Bottom; }
     } Placement;
@@ -76,16 +76,16 @@ public:
         Flyout* owner = nullptr;
         FlyoutContentProperty() = default;
         explicit FlyoutContentProperty(Flyout* o) : owner(o) {}
-        FlyoutContentProperty& operator=(std::shared_ptr<UIElement> c) { if (owner) owner->SetContent(std::move(c)); return *this; }
+        FlyoutContentProperty& operator=(std::shared_ptr<UIElement> c) { if (owner) owner->ApplyContent(std::move(c)); return *this; }
         operator std::shared_ptr<UIElement>() const { return owner ? owner->GetContent() : nullptr; }
         std::shared_ptr<UIElement> Get() const { return owner ? owner->GetContent() : nullptr; }
         std::shared_ptr<UIElement> operator->() const { return owner ? owner->GetContent() : nullptr; }
     } Content;
 
-    void SetContent(std::shared_ptr<UIElement> content); // 设置弹出框中要呈现的元素
+    void ApplyContent(std::shared_ptr<UIElement> content); // 设置弹出框中要呈现的元素
     std::shared_ptr<UIElement> GetContent() const { return m_presenter ? m_presenter->GetContent() : nullptr; } // 获取弹出框中呈现的元素
 
-    void SetPlacement(FlyoutPlacement placement) { m_placement = placement; } // 更改首选的停靠方位
+    void ApplyPlacement(FlyoutPlacement placement) { m_placement = placement; } // 更改首选的停靠方位
     FlyoutPlacement GetPlacement() const { return m_placement; } // 获取首选的停靠方位
 
     void ShowAt(UIElement* target); // 在指定其他控件节点的边侧弹开浮出框

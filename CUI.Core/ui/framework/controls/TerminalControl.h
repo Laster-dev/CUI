@@ -31,7 +31,7 @@ public:
     bool ReceivesTabInput() const override { return true; } // 将 Tab 发送给 PTY，供 shell 补全或终端程序使用
     Value GetProperty(PropertyId id) const override; // 反射获取属性值
     bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
     HCURSOR GetCursor() const override; // 获取终端网格表面上特有的 Windows I-Beam 文本鼠标指针
 
     Term::Terminal& Terminal() { return *m_terminal; } // 获取内部终端虚拟缓冲区对象
@@ -52,7 +52,7 @@ public:
     bool IsFindVisible() const { return m_findVisible; } // 检查搜索栏目前是否处于可见状态
 
     const std::string& GetShell() const { return m_pendingShell; } // 读取待启动的目标 Shell 文件路径
-    void SetShell(const std::string& shellPath) { // 预备设置要启动的 Shell 并标记局部重绘
+    void ApplyShell(const std::string& shellPath) { // 预备设置要启动的 Shell 并标记局部重绘
         m_pendingShell = shellPath;
         MarkRenderContentDirty();
     }

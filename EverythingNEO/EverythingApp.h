@@ -160,11 +160,11 @@ private:
     bool m_sortAscending = true;
     bool m_statusBarVisible = true;
 
-    std::shared_ptr<CUI::MenuItem> m_menuRegex;
-    std::shared_ptr<CUI::MenuItem> m_menuMatchPath;
-    std::shared_ptr<CUI::MenuItem> m_menuWholeWord;
-    std::shared_ptr<CUI::MenuItem> m_menuMatchCase;
-    std::shared_ptr<CUI::MenuItem> m_menuStatusBar;
+    CUI::Widgets::Ref<::CUI::MenuItem> m_menuRegex;
+    CUI::Widgets::Ref<::CUI::MenuItem> m_menuMatchPath;
+    CUI::Widgets::Ref<::CUI::MenuItem> m_menuWholeWord;
+    CUI::Widgets::Ref<::CUI::MenuItem> m_menuMatchCase;
+    CUI::Widgets::Ref<::CUI::MenuItem> m_menuStatusBar;
     CUI::Widgets::Ref<::CUI::ContextMenu> m_fileContextMenu;
 };
 

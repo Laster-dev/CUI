@@ -27,14 +27,14 @@ public:
     Command() = default;
     explicit Command(ExecuteFn execute, CanExecuteFn canExecute = nullptr);
 
-    void SetId(std::string id) { m_id = std::move(id); }
+    void ApplyId(std::string id) { m_id = std::move(id); }
     const std::string& GetId() const { return m_id; }
 
-    void SetLabel(std::string label) { m_label = std::move(label); }
+    void ApplyLabel(std::string label) { m_label = std::move(label); }
     const std::string& GetLabel() const { return m_label; }
 
-    void SetGesture(KeyGesture gesture) { m_gesture = gesture; }
-    void SetGesture(const std::string& shortcut) { m_gesture = KeyGesture::Parse(shortcut); }
+    void ApplyGesture(KeyGesture gesture) { m_gesture = gesture; }
+    void ApplyGesture(const std::string& shortcut) { m_gesture = KeyGesture::Parse(shortcut); }
     const KeyGesture& GetGesture() const { return m_gesture; }
 
     bool CanExecute() const;

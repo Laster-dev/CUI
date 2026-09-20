@@ -20,21 +20,21 @@ std::shared_ptr<Button> MakeTipButton(const std::string& text) {
 } // namespace
 
 ShowcasePage BuildTeachingTipPage(const ShowcaseContext& ctx) {
-    auto shortTip = MakeTipButton("短提示");
-        shortTip->SetToolTip("保存");
+    CUI::Widgets::Ref shortTip =MakeTipButton("短提示");
+        shortTip.ToolTip("保存");
 
-    auto wrapTip = MakeTipButton("长文本换行");
-        wrapTip->SetToolTip(
-        "这是框架 SetToolTip 的换行示例：超过最大宽度后自动折行，气泡带三角并在靠近视口边缘时翻转。");
-        wrapTip->SetToolTipMaxWidth(220.0f);
+    CUI::Widgets::Ref wrapTip =MakeTipButton("长文本换行");
+        wrapTip.ToolTip(
+        "这是框架 ApplyToolTip 的换行示例：超过最大宽度后自动折行，气泡带三角并在靠近视口边缘时翻转。");
+        wrapTip.ToolTipMaxWidth(220.0f);
 
-    auto timeoutTip = MakeTipButton("超时自动隐藏");
-        timeoutTip->SetToolTip("悬停约 0.45s 后出现，显示 3 秒后自动消失；移出还有短暂隐藏延迟。");
-        timeoutTip->SetToolTipAutoHideMs(3000);
+    CUI::Widgets::Ref timeoutTip =MakeTipButton("超时自动隐藏");
+        timeoutTip.ToolTip("悬停约 0.45s 后出现，显示 3 秒后自动消失；移出还有短暂隐藏延迟。");
+        timeoutTip.ToolTipAutoHideMs(3000);
 
-    auto anchor = MakeTipButton("锚点目标");
-        anchor->SetWidth(160.0f);
-        anchor->SetToolTip("TeachingTip 会指向这个锚点。");
+    CUI::Widgets::Ref anchor =MakeTipButton("锚点目标");
+        anchor.Width(160.0f);
+        anchor.ToolTip("TeachingTip 会指向这个锚点。");
 
     CUI::Widgets::Ref tip = CUI::Widgets::TeachingTip().Shared();
         tip.Title("欢迎使用 TeachingTip");
@@ -42,17 +42,17 @@ ShowcasePage BuildTeachingTipPage(const ShowcaseContext& ctx) {
         tip.ActionText("知道了");
         tip.PreferredPlacement(BubblePlacement::Bottom);
 
-    auto log = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref log =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("操作日志：就绪", 12.0f, "#B5CEA8", false, "Consolas"));
 
     tip->OnAction().Connect([window = ctx.windowRef, log]() {
-                log->SetText("[TeachingTip] 操作按钮");
+                log.Text("[TeachingTip] 操作按钮");
         if (window) {
             Toast::Show(window->GetRootElement().get(), "TeachingTip", "操作按钮", ToastCorner::BottomRight, 1800);
         }
     });
     tip->OnClosed().Connect([log]() {
-                log->SetText("[TeachingTip] 已关闭");
+                log.Text("[TeachingTip] 已关闭");
     });
 
     auto openAt = [tip, anchor](BubblePlacement placement, bool modal) {
@@ -87,7 +87,7 @@ ShowcasePage BuildTeachingTipPage(const ShowcaseContext& ctx) {
 
     auto demo = Column(12).Children({
         CreateDemoSurface({
-            CreateShowcaseText("1. Tooltip（UIElement::SetToolTip，任意页可复用）", 12.0f, "textSecondary", false),
+            CreateShowcaseText("1. Tooltip（UIElement::ApplyToolTip，任意页可复用）", 12.0f, "textSecondary", false),
             CreateShowcaseText("悬停延迟显示，移出延迟隐藏；长文本换行；超时示例 3 秒后消失。", 12.0f, "textMuted", false),
             Row(10).Children({ shortTip, wrapTip, timeoutTip }).Build(),
         }, 10.0f),
@@ -102,6 +102,6 @@ ShowcasePage BuildTeachingTipPage(const ShowcaseContext& ctx) {
 
     return { "TeachingTip", CreatePage(
         "TeachingTip / Tooltip",
-        "Tooltip 是框架能力（SetToolTip）；TeachingTip 是自绘 IPopup 气泡，可模态，指向锚点。",
+        "Tooltip 是框架能力（ApplyToolTip）；TeachingTip 是自绘 IPopup 气泡，可模态，指向锚点。",
         demo) };
 }

@@ -13,33 +13,33 @@
 namespace CUI {
 
 ListBox::ListBox() {
-        this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
-    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
-    this->SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
-    this->SetBorderThickness(1.0f);
-    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    this->SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
-    this->SetFontSize(12.0f);
-    this->SetFontFamily("微软雅黑");
-    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    this->SetItemHeight(28.0f);
-    this->SetCornerRadius(4.0f);
-    this->SetWidth(240.0f);
-    this->SetHeight(300.0f);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplySelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->ApplyBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->ApplyHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
+    this->ApplyFontSize(12.0f);
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->ApplyItemHeight(28.0f);
+    this->ApplyCornerRadius(4.0f);
+    this->ApplyWidth(240.0f);
+    this->ApplyHeight(300.0f);
     SelectedIndex.Initialize(*this);
-    m_itemsLayer.SetCacheable(true);
+    m_itemsLayer.ApplyCacheable(true);
 }
 
-void ListBox::SetProperty(PropertyId id, const Value& val) {
-    if (id == PropertyId::Items) { SetItems(val.AsString("")); return; }
+void ListBox::ApplyProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::Items) { ApplyItems(val.AsString("")); return; }
     if (id == PropertyId::SelectedIndex) {
-        SetSelectedIndex(static_cast<int>(val.AsFloat(-1.0f)));
+        ApplySelectedIndex(static_cast<int>(val.AsFloat(-1.0f)));
         return;
     }
-    Control::SetProperty(id, val);
+    Control::ApplyProperty(id, val);
 }
 
 Value ListBox::GetProperty(PropertyId id) const {
@@ -123,7 +123,7 @@ void ListBox::RemoveItem(int index) {
     InvalidateItemsLayer();
 }
 
-void ListBox::SetVirtualCount(size_t count) {
+void ListBox::ApplyVirtualCount(size_t count) {
     m_virtualMode = true;
     m_virtualCount = count;
     m_itemDatas.clear();
@@ -151,7 +151,7 @@ void ListBox::RefreshVirtualCount(size_t count) {
     InvalidateItemsLayer();
 }
 
-void ListBox::SetVirtualMode(size_t count, ListBoxDataSource* dataSource) {
+void ListBox::ApplyVirtualMode(size_t count, ListBoxDataSource* dataSource) {
     m_virtualMode = true;
     m_virtualCount = count;
     m_dataSource = dataSource;
@@ -163,7 +163,7 @@ void ListBox::SetVirtualMode(size_t count, ListBoxDataSource* dataSource) {
     ClampScroll();
 }
 
-void ListBox::SetItems(const std::vector<std::string>& items) {
+void ListBox::ApplyItems(const std::vector<std::string>& items) {
     if (!m_virtualMode && items.size() == m_itemDatas.size()) {
         bool same = true;
         for (size_t i = 0; i < items.size(); ++i) {
@@ -192,14 +192,14 @@ void ListBox::SetItems(const std::vector<std::string>& items) {
     InvalidateItemsLayer();
 }
 
-void ListBox::SetItems(const std::string& itemsCsv) {
+void ListBox::ApplyItems(const std::string& itemsCsv) {
     std::vector<std::string> items;
     std::stringstream ss(itemsCsv);
     std::string item;
     while (std::getline(ss, item, ',')) {
         if (!item.empty()) items.push_back(item);
     }
-    SetItems(items);
+    ApplyItems(items);
 }
 
 void ListBox::ClearItems() {
@@ -241,7 +241,7 @@ bool ListBox::IsItemSelected(int index) const {
     return m_selectedIndices.find(index) != m_selectedIndices.end();
 }
 
-void ListBox::SetSelectedIndex(int index) {
+void ListBox::ApplySelectedIndex(int index) {
     size_t count = GetItemCount();
     if (index < -1 || index >= static_cast<int>(count)) return;
     if (index == m_selectedIndex
@@ -265,7 +265,7 @@ void ListBox::SetSelectedIndex(int index) {
     InvalidateItemsLayer();
 }
 
-void ListBox::SetCaretIndex(int index) {
+void ListBox::ApplyCaretIndex(int index) {
     size_t count = GetItemCount();
     if (index >= 0 && index < static_cast<int>(count)) {
         m_caretIndex = index;
@@ -274,13 +274,13 @@ void ListBox::SetCaretIndex(int index) {
     }
 }
 
-void ListBox::SetItemSelected(int index, bool selected) {
+void ListBox::ApplyItemSelected(int index, bool selected) {
     size_t count = GetItemCount();
     if (index < 0 || index >= static_cast<int>(count)) return;
 
     if (selected) {
         if (m_selectionMode == ListBoxSelectionMode::Single) {
-            SetSelectedIndex(index);
+            ApplySelectedIndex(index);
             return;
         }
         m_selectedIndices.insert(index);
@@ -423,7 +423,7 @@ void ListBox::EnsureVisible(int index) {
         m_targetScrollY = itemBottom - viewH;
     }
     ClampScroll();
-    m_scrollYAnim.SetTarget(m_targetScrollY);
+    m_scrollYAnim.ApplyTarget(m_targetScrollY);
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
@@ -541,7 +541,7 @@ void ListBox::RenderItemsLayer(GraphicsContext& ctx, float itemW) {
     ctx.PushClip(viewport);
     ctx.DrawLayer(m_itemsLayer, dest, &sourceRect);
     ctx.PopClip();
-    m_itemsLayer.SetTranslation(0.0f, -m_scrollY);
+    m_itemsLayer.ApplyTranslation(0.0f, -m_scrollY);
 }
 
 void ListBox::Render(GraphicsContext& ctx) {
@@ -639,7 +639,7 @@ void ListBox::OnMouseDown(Point pt) {
         float trackX = m_bounds.x + m_bounds.width - 10.0f;
         if (pt.x >= trackX) {
             m_isDraggingScrollbar = true;
-            m_scrollbarAutoHide.SetDragging(true, this);
+            m_scrollbarAutoHide.ApplyDragging(true, this);
             m_scrollbarAutoHide.NotifyActivity(this);
             RequestAnimationTicks();
             m_dragStartY = pt.y;
@@ -663,18 +663,18 @@ void ListBox::OnMouseDown(Point pt) {
             m_caretIndex = clickedIdx;
         } else if (ctrlDown) {
             bool currentSelected = IsItemSelected(clickedIdx);
-            SetItemSelected(clickedIdx, !currentSelected);
+            ApplyItemSelected(clickedIdx, !currentSelected);
             m_caretIndex = clickedIdx;
             m_anchorIndex = clickedIdx;
         } else {
-            SetSelectedIndex(clickedIdx);
+            ApplySelectedIndex(clickedIdx);
         }
     } else if (m_selectionMode == ListBoxSelectionMode::Multiple) {
         bool currentSelected = IsItemSelected(clickedIdx);
-        SetItemSelected(clickedIdx, !currentSelected);
+        ApplyItemSelected(clickedIdx, !currentSelected);
         m_caretIndex = clickedIdx;
     } else {
-        SetSelectedIndex(clickedIdx);
+        ApplySelectedIndex(clickedIdx);
     }
 }
 
@@ -691,7 +691,7 @@ void ListBox::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
 
     const bool overBar = m_maxScrollY > 0.0f && pt.x >= m_bounds.x + m_bounds.width - 10.0f;
-    m_scrollbarAutoHide.SetPointerOver(overBar, this);
+    m_scrollbarAutoHide.ApplyPointerOver(overBar, this);
     if (overBar) {
         RequestAnimationTicks();
     }
@@ -746,13 +746,13 @@ void ListBox::OnMouseUp(Point pt) {
     Control::OnMouseUp(pt);
     m_isDraggingScrollbar = false;
     m_pressIndex = -1;
-    m_scrollbarAutoHide.SetDragging(false, this);
+    m_scrollbarAutoHide.ApplyDragging(false, this);
     RequestAnimationTicks();
 }
 
 void ListBox::OnMouseLeave() {
     Control::OnMouseLeave();
-    m_scrollbarAutoHide.SetPointerOver(false, this);
+    m_scrollbarAutoHide.ApplyPointerOver(false, this);
     if (m_hoveredIndex != -1) {
         m_hoveredIndex = -1;
         InvalidateItemsLayer();
@@ -779,7 +779,7 @@ void ListBox::OnMouseWheel(float delta) {
         return;
     }
 
-    m_scrollYAnim.SetTarget(m_targetScrollY);
+    m_scrollYAnim.ApplyTarget(m_targetScrollY);
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
@@ -804,7 +804,7 @@ bool ListBox::OnAnimationTick() {
         }
         return base || hideAnimating;
     }
-    m_scrollYAnim.SetTarget(m_targetScrollY);
+    m_scrollYAnim.ApplyTarget(m_targetScrollY);
     const float prevScroll = m_scrollY;
     bool anim = m_scrollYAnim.Tick(dt, AnimationSpec{ 0.55f, 0.5f });
     if (anim) {
@@ -863,9 +863,9 @@ bool ListBox::OnKeyDown(int vkCode) {
     case VK_SPACE:
         if (m_caretIndex >= 0) {
             if (m_selectionMode == ListBoxSelectionMode::Extended || m_selectionMode == ListBoxSelectionMode::Multiple) {
-                SetItemSelected(m_caretIndex, !IsItemSelected(m_caretIndex));
+                ApplyItemSelected(m_caretIndex, !IsItemSelected(m_caretIndex));
             } else {
-                SetSelectedIndex(m_caretIndex);
+                ApplySelectedIndex(m_caretIndex);
             }
         }
         return true;
@@ -886,10 +886,10 @@ bool ListBox::OnKeyDown(int vkCode) {
                 int anchor = (m_anchorIndex >= 0) ? m_anchorIndex : 0;
                 SelectRange(anchor, m_caretIndex, ctrlDown);
             } else if (!ctrlDown) {
-                SetSelectedIndex(m_caretIndex);
+                ApplySelectedIndex(m_caretIndex);
             }
         } else if (m_selectionMode == ListBoxSelectionMode::Single) {
-            SetSelectedIndex(m_caretIndex);
+            ApplySelectedIndex(m_caretIndex);
         }
         InvalidateItemsLayer();
         return true;
@@ -926,7 +926,7 @@ void ListBox::PerformTypeSearch(wchar_t ch) {
         std::transform(lowerText.begin(), lowerText.end(), lowerText.begin(), ::tolower);
 
         if (lowerText.rfind(m_searchBuffer, 0) == 0) {
-            SetSelectedIndex(idx);
+            ApplySelectedIndex(idx);
             break;
         }
     }

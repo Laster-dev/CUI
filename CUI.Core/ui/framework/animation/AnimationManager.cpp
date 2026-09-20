@@ -14,7 +14,7 @@ AnimationManager* AnimationManager::Current() {
     return s_current;
 }
 
-void AnimationManager::SetCurrent(AnimationManager* manager) {
+void AnimationManager::ApplyCurrent(AnimationManager* manager) {
     s_current = manager;
 }
 
@@ -31,7 +31,7 @@ void AnimationManager::BeginFrame(clock::time_point now, bool animationActiveBef
     m_lastFrameTime = now;
 }
 
-void AnimationManager::SetTargetFrameSeconds(float seconds) {
+void AnimationManager::ApplyTargetFrameSeconds(float seconds) {
     m_targetFrameSeconds = std::clamp(seconds, 1.0f / 240.0f, 1.0f / 15.0f);
 }
 
@@ -171,7 +171,7 @@ bool AnimationManager::IsRegistered(const UIElement* element) const {
     return std::find(m_animating.begin(), m_animating.end(), element) != m_animating.end();
 }
 
-void AnimationManager::SetLiveRoot(UIElement* root) {
+void AnimationManager::ApplyLiveRoot(UIElement* root) {
     m_liveRoot = root;
     PruneDetachedAnimators();
 }

@@ -85,10 +85,10 @@ Element BuildMenuBarPage() {
     // 3. 视图 (View) 菜单
     auto viewMenu = appMenuBar->AddMenu("视图 (V)");
     auto appSub = viewMenu->AddSubMenu("外观与排版");
-    auto itemWrap = appSub->AddItem("自动换行 (Word Wrap)", [statusLabel]() {
+    CUI::Widgets::Ref itemWrap =appSub->AddItem("自动换行 (Word Wrap)", [statusLabel]() {
         statusLabel->Text = "菜单栏指令：【视图】 -> 【自动换行状态已切换】";
     });
-    itemWrap->SetChecked(true);
+    itemWrap.Checked(true);
     appSub->AddItem("全屏模式", "F11", [statusLabel]() {
         statusLabel->Text = "菜单栏指令：【视图】 -> 【全屏展示 (F11)】";
     });

@@ -31,19 +31,19 @@ ShowcasePage BuildAutoSuggestPage(const ShowcaseContext& ctx) {
         "猕猴桃 Kiwi",
     });
 
-    auto status = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref status =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("输入关键字过滤建议；↑↓ 选择，Enter 确认，Esc 关闭。", 12.0f, "textSecondary", false));
 
     box->OnTextChanged().Connect([status](AutoSuggestBox*, const std::string& text) {
-                status->SetText(text.empty() ? "输入关键字过滤建议；↑↓ 选择，Enter 确认，Esc 关闭。"
+                status.Text(text.empty() ? "输入关键字过滤建议；↑↓ 选择，Enter 确认，Esc 关闭。"
                                                : ("正在输入: " + text));
     });
     box->OnSuggestionChosen().Connect([window = ctx.windowRef, status](AutoSuggestBox*, const std::string& item) {
-                status->SetText("已选择: " + item);
+                status.Text("已选择: " + item);
         Toast::Show(window->GetRootElement().get(), "AutoSuggestBox", "选择了 " + item, ToastCorner::BottomRight, 1600);
     });
     box->OnQuerySubmitted().Connect([window = ctx.windowRef, status](AutoSuggestBox*, const std::string& q) {
-                status->SetText("提交查询: " + q);
+                status.Text("提交查询: " + q);
         Toast::Show(window->GetRootElement().get(), "AutoSuggestBox", "提交: " + (q.empty() ? "(空)" : q), ToastCorner::BottomRight, 1600);
     });
 

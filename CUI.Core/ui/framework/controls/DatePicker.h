@@ -30,7 +30,7 @@ public:
     virtual const char* GetClassName() const override { return "DatePicker"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取悬浮交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 计算日期展示框的理想自适应尺寸
@@ -49,14 +49,14 @@ public:
     virtual bool HitDismissExempt(float x, float y) const override; // 判定该点击位置是否免于强制消退收起
     virtual UIElement* HitTestPopup(float x, float y) override { return OnHitTestOverlay(x, y); } // 弹窗穿透命中定位
     virtual void RenderPopup(GraphicsContext& ctx) override; // 绘制具体的日历网格及月份/年份选择盘
-    virtual void OnLightDismiss() override { SetPopupOpen(false); } // 轻点空白背景消退收拢关闭
+    virtual void OnLightDismiss() override { ApplyPopupOpen(false); } // 轻点空白背景消退收拢关闭
 
-    void SetPopupOpen(bool open); // 打开或折叠日期面板
+    void ApplyPopupOpen(bool open); // 打开或折叠日期面板
 
     int GetYear() const { return m_year; } // 获取当前设置的年份
     int GetMonth() const { return m_month; } // 获取当前设置的月份（1-12）
     int GetDay() const { return m_day; } // 获取当前设置的日期（1-31）
-    void SetDate(int year, int month, int day); // 设定具体日期并刷新日历状态
+    void ApplyDate(int year, int month, int day); // 设定具体日期并刷新日历状态
     struct DatePickerFormattedDateProperty {
         DatePicker* owner = nullptr;
         DatePickerFormattedDateProperty() = default;

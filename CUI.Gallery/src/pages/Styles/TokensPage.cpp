@@ -18,17 +18,17 @@ Element BuildTokensPage() {
     for (const auto& name : tm.GetTokenNames()) {
         const D2D1_COLOR_F color = tm.GetFlatColor(name);
 
-        auto chip = Container().Size(56.0f, 56.0f).CornerRadius(8.0f);
-                chip->SetBackground(color);
-                chip->SetBorderToken(ThemeTokenId::CardBorder);
-                chip->SetBorderThickness(1.0f);
+        auto chip =Container().Size(56.0f, 56.0f).CornerRadius(8.0f);
+                chip.Background(color);
+                chip.BorderToken(ThemeTokenId::CardBorder);
+                chip.BorderThickness(1.0f);
 
-        auto item = Column(8, {
+        auto item =Column(8, {
             chip,
             MakeLabel(name, 12.0f, ThemeTokenId::TextPrimary, false),
             MakeLabel(tm.GetColorHex(name), 11.0f, ThemeTokenId::TextMuted, false),
         });
-                item->SetWidth(128.0f);
+                item.Width(128.0f);
                 grid->AddChild(item);
     }
 

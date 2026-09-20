@@ -47,13 +47,13 @@ ThemeManager::ThemeManager() {
     UpdateTokens();
 }
 
-void ThemeManager::SetThemeSource(ThemeSource source) {
+void ThemeManager::ApplyThemeSource(ThemeSource source) {
     m_source = source;
     if (m_source == ThemeSource::System) {
         CheckAndUpdateSystemTheme();
     } else {
         ThemeMode targetMode = (m_source == ThemeSource::Dark) ? ThemeMode::Dark : ThemeMode::Light;
-        SetThemeMode(targetMode);
+        ApplyThemeMode(targetMode);
     }
 }
 
@@ -68,21 +68,21 @@ bool ThemeManager::CheckAndUpdateSystemTheme() {
     return false;
 }
 
-void ThemeManager::SetThemeMode(ThemeMode mode) {
+void ThemeManager::ApplyThemeMode(ThemeMode mode) {
     if (m_mode != mode) {
         m_mode = mode;
         UpdateTokens();
     }
 }
 
-void ThemeManager::SetBackdropActive(bool active) {
+void ThemeManager::ApplyBackdropActive(bool active) {
     m_backdropActive = active;
     if (!active) {
         m_backdropType = BackdropType::None;
     }
 }
 
-void ThemeManager::SetBackdropType(BackdropType type) {
+void ThemeManager::ApplyBackdropType(BackdropType type) {
     m_backdropType = type;
     m_backdropActive = type != BackdropType::None && type != BackdropType::Solid;
 }

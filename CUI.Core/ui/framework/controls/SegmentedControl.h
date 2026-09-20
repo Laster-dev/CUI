@@ -33,21 +33,21 @@ public:
     virtual bool OnAnimationTick() override; // 驱动高亮背景滑块 Pill 在选项间的位移和宽度形变动画
     virtual bool HasSelfAnimation() const override; // 检查背景滑块是否仍在滑动过程中
 
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
 
     void AddItem(const std::string& item); // 插入一个新的文本分段卡片项
     void ClearItems(); // 清空所有的分段项目
-    void SetItems(const std::string& itemsCsv); // 通过逗号分隔符 (CSV) 批量快速导入并更新分段项目
+    void ApplyItems(const std::string& itemsCsv); // 通过逗号分隔符 (CSV) 批量快速导入并更新分段项目
     const std::vector<std::string>& GetItems() const { return m_items; } // 读取分段选项队列
 
     PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex; // 被选中分段卡片的索引双向绑定属性代理
 
     int GetSelectedIndex() const { return m_selectedIndex; } // 获取当前选中项的行号索引
-    void SetSelectedIndex(int index); // 设置当前选中项的行号索引并引发滑动
+    void ApplySelectedIndex(int index); // 设置当前选中项的行号索引并引发滑动
 
     std::string GetSelectedItem() const; // 读取当前选中的分段项目文本
 
-    void SetItemEnabled(int index, bool enabled); // 设置指定分段选项的启用/禁用状态
+    void ApplyItemEnabled(int index, bool enabled); // 设置指定分段选项的启用/禁用状态
     bool IsItemEnabled(int index) const; // 检查指定分段选项是否处于启用状态
 
     Event<SegmentedControl*, int, const std::string&>& OnSelectionChanged() { return m_onSelectionChangedEvent; } // 分段更改时的事件发布中心

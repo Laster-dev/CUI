@@ -24,7 +24,7 @@ private:
     std::shared_ptr<MainViewModel> m_viewModel;
 
     std::shared_ptr<CUI::UIElement> m_root;
-    std::shared_ptr<HIconElement> m_iconElement;
+    CUI::Widgets::Ref<HIconElement> m_iconElement;
 
     CUI::Widgets::Ref<::CUI::TextBlock> m_titleName;
     CUI::Widgets::Ref<::CUI::TextBlock> m_statusBadge;

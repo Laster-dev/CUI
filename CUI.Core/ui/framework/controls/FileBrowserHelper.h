@@ -27,8 +27,8 @@ public:
         const std::vector<std::pair<std::string, std::string>>& filters,
         int filterIndex = 0);
 
-    void SetFilterIndex(int index);
-    void SetCurrentPath(const std::string& path);
+    void ApplyFilterIndex(int index);
+    void ApplyCurrentPath(const std::string& path);
 
     FileBrowserMode GetMode() const { return m_mode; }
     const std::string& GetCurrentPath() const { return m_currentPath; }
@@ -100,7 +100,7 @@ public:
 
     FileBrowserBreadcrumbHost();
     void AttachTo(UIElement* owner);
-    void SetNavigateHandler(NavigateCallback handler);
+    void ApplyNavigateHandler(NavigateCallback handler);
     void Sync(const std::string& currentPath);
     void Layout(const FileBrowserSession& session, const Rect& pop);
     void Render(GraphicsContext& ctx);
@@ -126,8 +126,8 @@ public:
     FileBrowserTreeHost();
     void AttachTo(UIElement* owner);
 
-    void SetPathChangedHandler(PathChangedCallback handler);
-    void SetConfirmHandler(ConfirmCallback handler);
+    void ApplyPathChangedHandler(PathChangedCallback handler);
+    void ApplyConfirmHandler(ConfirmCallback handler);
 
     void Configure(const FileBrowserSession& session);
     void ApplyFilter(const FileBrowserSession& session);

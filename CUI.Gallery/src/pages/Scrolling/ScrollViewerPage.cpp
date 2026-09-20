@@ -16,7 +16,7 @@ namespace Gallery {
  * 遵循 Fluent 规范，全弹性流式布局，不硬编码固定宽度。
  */
 Element BuildScrollViewerPage() {
-    auto statusLabel = MakeStatus("提示：使用鼠标滚轮体验 Chromium 级贝塞尔丝滑减速阻尼；或单击鼠标中键启用自动漫游滚动。");
+    CUI::Widgets::Ref statusLabel =MakeStatus("提示：使用鼠标滚轮体验 Chromium 级贝塞尔丝滑减速阻尼；或单击鼠标中键启用自动漫游滚动。");
 
     // ==========================================
     // 示例 1: 经典长列表平滑滚动容器
@@ -83,19 +83,19 @@ Element BuildScrollViewerPage() {
     auto btnScrollTop = Button("⬆️ 滚至顶部 (Top)")
         .OnClick([scrollViewer1, statusLabel](UIElement*) {
                         scrollViewer1.ScrollOffsetY(0.0f);
-                        statusLabel->SetText("已平滑滚动至容器【最顶部】。");
+                        statusLabel.Text("已平滑滚动至容器【最顶部】。");
         });
 
     auto btnScrollMid = Button("↕️ 滚至中间 (50%)")
         .OnClick([scrollViewer1, statusLabel](UIElement*) {
                         scrollViewer1.ScrollOffsetY(400.0f);
-                        statusLabel->SetText("已平滑滚动至内容【中间位置】(Offset: 400px)。");
+                        statusLabel.Text("已平滑滚动至内容【中间位置】(Offset: 400px)。");
         });
 
     auto btnScrollBottom = Button("⬇️ 滚至底部 (Bottom)")
         .OnClick([scrollViewer1, statusLabel](UIElement*) {
                         scrollViewer1.ScrollOffsetY(2000.0f);
-                        statusLabel->SetText("已平滑滚动至容器【最底部】。");
+                        statusLabel.Text("已平滑滚动至容器【最底部】。");
         });
 
     CUI::Widgets::Ref toggleOverlay = Widgets::ToggleButton("浮层滚动条模式 (Overlay Scrollbar)").Shared();

@@ -19,17 +19,17 @@ constexpr float kProgressMinW = 56.0f;
 } // namespace
 
 StatusBar::StatusBar() {
-        this->SetBackgroundToken(ThemeTokenId::PaneBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
-    this->SetBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
-    this->SetBorderThickness(1.0f);
-    this->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
-    this->SetFontFamily("Segoe UI");
-    this->SetFontSize(11.0f);
-    this->SetHeight(kBarH);
-    this->SetWidth(-1.0f);
-    this->SetCornerRadius(0.0f);
+        this->ApplyBackgroundToken(ThemeTokenId::PaneBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+    this->ApplyBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
+    this->ApplyFontFamily("Segoe UI");
+    this->ApplyFontSize(11.0f);
+    this->ApplyHeight(kBarH);
+    this->ApplyWidth(-1.0f);
+    this->ApplyCornerRadius(0.0f);
 }
 
 Size StatusBar::Measure(Size availableSize) {
@@ -107,7 +107,7 @@ int StatusBar::AddSeparator(StatusBarItemAlignment align) {
     return item.id;
 }
 
-void StatusBar::SetItemText(int id, const std::string& text) {
+void StatusBar::ApplyItemText(int id, const std::string& text) {
     if (StatusBarItem* item = MutableFind(id)) {
         if (item->text == text) {
             return;
@@ -117,7 +117,7 @@ void StatusBar::SetItemText(int id, const std::string& text) {
     }
 }
 
-void StatusBar::SetItemIcon(int id, const std::string& icon) {
+void StatusBar::ApplyItemIcon(int id, const std::string& icon) {
     if (StatusBarItem* item = MutableFind(id)) {
         if (item->icon == icon) {
             return;
@@ -127,7 +127,7 @@ void StatusBar::SetItemIcon(int id, const std::string& icon) {
     }
 }
 
-void StatusBar::SetItemProgress(int id, float progress01) {
+void StatusBar::ApplyItemProgress(int id, float progress01) {
     if (StatusBarItem* item = MutableFind(id)) {
         const float clamped = std::clamp(progress01, 0.0f, 1.0f);
         if (item->kind == StatusBarItemKind::Progress && item->progress == clamped) {
@@ -139,7 +139,7 @@ void StatusBar::SetItemProgress(int id, float progress01) {
     }
 }
 
-void StatusBar::SetItemVisible(int id, bool visible) {
+void StatusBar::ApplyItemVisible(int id, bool visible) {
     if (StatusBarItem* item = MutableFind(id)) {
         if (item->visible == visible) {
             return;
@@ -149,7 +149,7 @@ void StatusBar::SetItemVisible(int id, bool visible) {
     }
 }
 
-void StatusBar::SetItemFixedWidth(int id, float width) {
+void StatusBar::ApplyItemFixedWidth(int id, float width) {
     if (StatusBarItem* item = MutableFind(id)) {
         if (item->fixedWidth == width) {
             return;

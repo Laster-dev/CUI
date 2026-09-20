@@ -23,7 +23,7 @@ float FrameBlend(float factorAt60Hz) {
 }
 }
 
-void NavigationViewItemBase::SetIsSelected(bool selected) {
+void NavigationViewItemBase::ApplyIsSelected(bool selected) {
     if (m_isSelected == selected) {
         return;
     }
@@ -35,10 +35,10 @@ void NavigationViewItemBase::SetIsSelected(bool selected) {
 NavigationViewItemHeader::NavigationViewItemHeader(const std::string& text) {
     m_text = text;
     // Defaults via theme tokens only — paint path resolves through ThemeManager.
-    this->SetColorToken(ThemeTokenId::TextSecondary);
+    this->ApplyColorToken(ThemeTokenId::TextSecondary);
 }
 
-void NavigationViewItemHeader::SetText(const std::string& text) {
+void NavigationViewItemHeader::ApplyText(const std::string& text) {
     m_text = text;
     MarkRenderContentDirty();
 }
@@ -68,7 +68,7 @@ Size NavigationViewItemSeparator::Measure(Size availableSize) {
 void NavigationViewItemSeparator::OnRender(GraphicsContext& ctx) {
     // No Control chrome fill — a 9px filled strip reads as a black bar on the pane.
     if (GetBorderToken() == ThemeTokenId::Unset) {
-        SetBorderToken(ThemeTokenId::CardBorder);
+        ApplyBorderToken(ThemeTokenId::CardBorder);
     }
     const D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     const float y = m_bounds.y + m_bounds.height * 0.5f;
@@ -92,29 +92,29 @@ void NavigationViewItem::StyleDefaults() {
     // the single color source unless user code overrides a property.
     // Hover/selected fills are drawn inset in OnRender — keep Control hover
     // tokens unset so GetAnimatedBackground cannot paint a second full-bounds layer.
-    this->SetHoverBackgroundToken(ThemeTokenId::Unset);
-    this->SetPressedBackgroundToken(ThemeTokenId::Unset);
-    this->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
-    this->SetColorToken(ThemeTokenId::TextPrimary);
-    this->SetSecondaryColorToken(ThemeTokenId::TextSecondary);
-    this->SetIndicatorColorToken(ThemeTokenId::AccentColor);
-    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetCornerRadius(6.0f);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::Unset);
+    this->ApplyPressedBackgroundToken(ThemeTokenId::Unset);
+    this->ApplySelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
+    this->ApplySecondaryColorToken(ThemeTokenId::TextSecondary);
+    this->ApplyIndicatorColorToken(ThemeTokenId::AccentColor);
+    this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyPressedBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyCornerRadius(6.0f);
 }
 
-void NavigationViewItem::SetContent(const std::string& content) {
+void NavigationViewItem::ApplyContent(const std::string& content) {
     m_content = content;
     MarkRenderContentDirty();
 }
 
-void NavigationViewItem::SetIcon(const std::string& icon) {
+void NavigationViewItem::ApplyIcon(const std::string& icon) {
     m_icon = icon;
     MarkRenderContentDirty();
 }
 
-void NavigationViewItem::SetIsExpanded(bool expanded) {
+void NavigationViewItem::ApplyIsExpanded(bool expanded) {
     if (m_isExpanded == expanded) {
         return;
     }
@@ -123,7 +123,7 @@ void NavigationViewItem::SetIsExpanded(bool expanded) {
     MarkRenderContentDirty();
 }
 
-void NavigationViewItem::SetIsExpandedSilent(bool expanded) {
+void NavigationViewItem::ApplyIsExpandedSilent(bool expanded) {
     if (m_isExpanded == expanded) {
         return;
     }
@@ -135,13 +135,13 @@ void NavigationViewItem::AddMenuItem(const std::shared_ptr<NavigationViewItemBas
     if (!item) {
         return;
     }
-    item->SetDepth(m_depth + 1);
-    item->SetOwner(m_owner);
+    item->ApplyDepth(m_depth + 1);
+    item->ApplyOwner(m_owner);
     m_menuItems.push_back(item);
     MarkRenderContentDirty();
 }
 
-void NavigationViewItem::SetCompact(bool compact) {
+void NavigationViewItem::ApplyCompact(bool compact) {
     if (m_compact == compact) {
         return;
     }
@@ -156,7 +156,7 @@ Size NavigationViewItem::Measure(Size availableSize) {
 }
 
 void NavigationViewItem::Arrange(Rect finalRect) {
-    SetBounds(finalRect);
+    ApplyBounds(finalRect);
 }
 
 Rect NavigationViewItem::GetChevronRect() const {
@@ -279,12 +279,12 @@ void NavigationViewItem::OnMouseDown(Point pt) {
     StartRipple(pt);
 
     if (HitChevron(pt)) {
-        SetIsExpanded(!m_isExpanded);
+        ApplyIsExpanded(!m_isExpanded);
         return;
     }
 
     if (HasChildren() && !m_selectsOnInvoked) {
-        SetIsExpanded(!m_isExpanded);
+        ApplyIsExpanded(!m_isExpanded);
     }
     // Same as Button: invoke immediately. Deferred invoke left the item mid-ripple
     // while NavigationView/ScrollViewer also registered and walked the tree.

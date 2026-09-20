@@ -4,7 +4,7 @@ namespace CUI {
 
 RenderNode::RenderNode(UIElement* owner) : m_owner(owner) {}
 
-void RenderNode::SetBounds(const Rect& bounds) {
+void RenderNode::ApplyBounds(const Rect& bounds) {
     if (bounds.x == m_bounds.x && bounds.y == m_bounds.y
         && bounds.width == m_bounds.width && bounds.height == m_bounds.height) {
         return;
@@ -17,7 +17,7 @@ void RenderNode::SetBounds(const Rect& bounds) {
     MarkTransformDirty(m_bounds, bounds);
     m_previousBounds = m_bounds;
     m_bounds = bounds;
-    m_layer.SetBounds(bounds);
+    m_layer.ApplyBounds(bounds);
     // Translation-only moves (ScrollViewer offset) must NOT SizeDirty — that
     // invalidates cached bitmaps and forces full PropertyGrid re-raster on scroll.
     if (sizeChanged) {
@@ -65,7 +65,7 @@ DirtyRegion RenderNode::ConsumeWorldDirtyRegion() {
 }
 
 void RenderNode::SyncLayerState() {
-    m_layer.SetBounds(m_bounds);
+    m_layer.ApplyBounds(m_bounds);
 }
 
 } // namespace CUI

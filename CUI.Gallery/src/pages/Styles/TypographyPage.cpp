@@ -18,8 +18,8 @@ Element TypeScaleItem(const std::string& style, float size, CUI::FontWeight weig
 } // namespace
 
 Element BuildTypographyPage() {
-    auto spaced = Text("行距 1.8 的段落示例\n第二行文字\n第三行文字").FontSize(14.0f).FontFamily("微软雅黑").Build();
-        spaced->SetLineSpacing(1.8f);
+    CUI::Widgets::Ref spaced =Text("行距 1.8 的段落示例\n第二行文字\n第三行文字").FontSize(14.0f).FontFamily("微软雅黑").Build();
+        spaced.LineSpacing(1.8f);
 
     auto italic = Text("Italic 斜体示例").FontStyle(CUI::FontStyle::Italic).FontSize(14.0f).FontFamily("微软雅黑").Build();
     auto underline = Text("下划线示例").Underline().FontSize(14.0f).FontFamily("微软雅黑").Build();
@@ -66,7 +66,7 @@ Element BuildTypographyPage() {
             "行距与文本样式",
             "TextBlock 支持行距、斜体、下划线与删除线。",
             Column(10, {
-                MakeLabel("SetLineSpacing(1.8f)：", 12.0f, ThemeTokenId::TextMuted, false),
+                MakeLabel("ApplyLineSpacing(1.8f)：", 12.0f, ThemeTokenId::TextMuted, false),
                 spaced,
                 MakeLabel("斜体 / 下划线 / 删除线：", 12.0f, ThemeTokenId::TextMuted, false),
                 Row(16, { italic, underline, strike }),
@@ -79,7 +79,7 @@ Element BuildTypographyPage() {
         "    .FontWeight(CUI::FontWeight::SemiBold)\n"
         "    .FontFamily(\"微软雅黑\")\n"
         "    .Build();\n"
-        "        text->SetLineSpacing(1.6f);\n";
+        "        text->LineSpacing(1.6f);\n";
     return BuildSamplePage(spec);
 }
 

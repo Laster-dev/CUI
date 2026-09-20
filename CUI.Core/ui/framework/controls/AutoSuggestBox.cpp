@@ -70,24 +70,24 @@ bool ContainsInsensitive(const std::string& hay, const std::string& needle) {
 } // namespace
 
 AutoSuggestBox::AutoSuggestBox() {
-        this->SetPlaceholder("搜索…");
-    this->SetBackgroundToken(ThemeTokenId::Unset);
-    this->SetHoverBackgroundToken(ThemeTokenId::Unset);
-    this->SetBorderToken(ThemeTokenId::Unset);
-    this->SetFocusedBorderToken(ThemeTokenId::Unset);
-    this->SetPlaceholderColorToken(ThemeTokenId::TextMuted);
-    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
-    this->SetBorderThickness(0.0f);
-    this->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary));
-    this->SetFontFamily("微软雅黑");
-    this->SetFontSize(12.0f);
-    this->SetPadding(0.0f);
-    this->SetCornerRadius(0.0f);
-    this->SetWidth(280.0f);
-    this->SetHeight(32.0f);
-    UIElement::SetText("");
+        this->ApplyPlaceholder("搜索…");
+    this->ApplyBackgroundToken(ThemeTokenId::Unset);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::Unset);
+    this->ApplyBorderToken(ThemeTokenId::Unset);
+    this->ApplyFocusedBorderToken(ThemeTokenId::Unset);
+    this->ApplyPlaceholderColorToken(ThemeTokenId::TextMuted);
+    this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyBorderBrush(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyBorderThickness(0.0f);
+    this->ApplyColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary));
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyFontSize(12.0f);
+    this->ApplyPadding(0.0f);
+    this->ApplyCornerRadius(0.0f);
+    this->ApplyWidth(280.0f);
+    this->ApplyHeight(32.0f);
+    UIElement::ApplyText("");
 
     auto field = std::make_shared<AutoSuggestField>();
     field->host = this;
@@ -97,7 +97,7 @@ AutoSuggestBox::AutoSuggestBox() {
         if (m_syncingField) {
             return;
         }
-        SetTextInternal(text, true, true);
+        ApplyTextInternal(text, true, true);
     });
     this->AddChild(m_field);
 }
@@ -106,43 +106,43 @@ void AutoSuggestBox::StyleField() {
     if (!m_field) {
         return;
     }
-    m_field->SetPlaceholder(GetPlaceholder());
-    m_field->SetFontFamily(GetFontFamily());
-    m_field->SetFontSize(GetFontSize());
-    m_field->SetColorToken(GetColorToken());
-    m_field->SetPlaceholderColorToken(GetPlaceholderColorToken());
-    m_field->SetWidth(GetWidth() >= 0.0f ? GetWidth() : 280.0f);
-    m_field->SetHeight(GetHeight() >= 0.0f ? GetHeight() : 32.0f);
-    m_field->SetPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
+    m_field->ApplyPlaceholder(GetPlaceholder());
+    m_field->ApplyFontFamily(GetFontFamily());
+    m_field->ApplyFontSize(GetFontSize());
+    m_field->ApplyColorToken(GetColorToken());
+    m_field->ApplyPlaceholderColorToken(GetPlaceholderColorToken());
+    m_field->ApplyWidth(GetWidth() >= 0.0f ? GetWidth() : 280.0f);
+    m_field->ApplyHeight(GetHeight() >= 0.0f ? GetHeight() : 32.0f);
+    m_field->ApplyPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
 }
 
 HCURSOR AutoSuggestBox::GetCursor() const {
     return nullptr;
 }
 
-void AutoSuggestBox::SetPlaceholder(const std::string& text) {
-    UIElement::SetPlaceholder(text);
+void AutoSuggestBox::ApplyPlaceholder(const std::string& text) {
+    UIElement::ApplyPlaceholder(text);
     if (m_field) {
-        m_field->SetPlaceholder(text);
+        m_field->ApplyPlaceholder(text);
     }
     MarkRenderContentDirty();
 }
 
-void AutoSuggestBox::SetText(const std::string& text) {
-    SetTextInternal(text, true, true);
+void AutoSuggestBox::ApplyText(const std::string& text) {
+    ApplyTextInternal(text, true, true);
 }
 
-void AutoSuggestBox::SetTextInternal(const std::string& text, bool fireChanged, bool scheduleSuggest) {
+void AutoSuggestBox::ApplyTextInternal(const std::string& text, bool fireChanged, bool scheduleSuggest) {
     if (UIElement::GetText() == text) {
         if (scheduleSuggest) {
             ScheduleSuggestRefresh();
         }
         return;
     }
-    UIElement::SetText(text);
+    UIElement::ApplyText(text);
     if (m_field && m_field->GetText() != text) {
         m_syncingField = true;
-        m_field->SetText(text);
+        m_field->ApplyText(text);
         m_syncingField = false;
     }
     MarkRenderContentDirty();
@@ -154,7 +154,7 @@ void AutoSuggestBox::SetTextInternal(const std::string& text, bool fireChanged, 
     }
 }
 
-void AutoSuggestBox::SetSuggestionItems(const std::vector<std::string>& items) {
+void AutoSuggestBox::ApplySuggestionItems(const std::vector<std::string>& items) {
     m_catalog = items;
     ScheduleSuggestRefresh();
 }
@@ -166,7 +166,7 @@ void AutoSuggestBox::ClearSuggestionItems() {
     MarkRenderContentDirty();
 }
 
-void AutoSuggestBox::SetSuggestionProvider(SuggestionProviderFn provider) {
+void AutoSuggestBox::ApplySuggestionProvider(SuggestionProviderFn provider) {
     m_provider = std::move(provider);
     ScheduleSuggestRefresh();
 }
@@ -181,7 +181,7 @@ Size AutoSuggestBox::Measure(Size availableSize) {
 
 void AutoSuggestBox::Arrange(Rect finalRect) {
     if (GetVisibility() == Visibility::Collapsed) {
-        SetBounds(Rect());
+        ApplyBounds(Rect());
         m_arrangeDirty = false;
         return;
     }
@@ -191,7 +191,7 @@ void AutoSuggestBox::Arrange(Rect finalRect) {
         finalRect.y + margin.top,
         (std::max)(0.0f, finalRect.width - margin.left - margin.right),
         (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
-    SetBounds(arranged);
+    ApplyBounds(arranged);
     LayoutField();
     m_arrangeDirty = false;
 }
@@ -201,10 +201,10 @@ void AutoSuggestBox::LayoutField() {
         return;
     }
     if (m_field->GetFontSize() != GetFontSize()) {
-        m_field->SetFontSize(GetFontSize());
+        m_field->ApplyFontSize(GetFontSize());
     }
     if (m_field->GetFontFamily() != GetFontFamily()) {
-        m_field->SetFontFamily(GetFontFamily());
+        m_field->ApplyFontFamily(GetFontFamily());
     }
     const Rect r = m_bounds;
     m_field->Measure(Size(r.width, r.height));
@@ -350,7 +350,7 @@ void AutoSuggestBox::ChooseSuggestion(int index) {
         return;
     }
     const std::string chosen = m_filtered[static_cast<size_t>(index)];
-    SetTextInternal(chosen, true, false);
+    ApplyTextInternal(chosen, true, false);
     CloseSuggestions();
     m_onSuggestionChosen.Invoke(this, chosen);
     MarkRenderContentDirty();
@@ -685,7 +685,7 @@ bool AutoSuggestBox::OnAnimationTick() {
         animating = true;
     }
 
-    m_popupAnim.SetTarget(m_suggestionsOpen ? 1.0f : 0.0f);
+    m_popupAnim.ApplyTarget(m_suggestionsOpen ? 1.0f : 0.0f);
     const AnimationSpec popupSpec = PopupReveal::kSpec;
     if (m_popupAnim.Tick(dt, popupSpec)) {
         animating = true;

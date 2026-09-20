@@ -33,7 +33,7 @@ void FillSlice(GraphicsContext& ctx, Point center, float radius, float start, fl
 } // namespace
 
 PieChart::PieChart() {
-    this->SetText("饼图");
+    this->ApplyText("饼图");
 }
 
 void PieChart::CollectSlices(std::vector<Slice>& slices, float& total) const {
@@ -83,8 +83,8 @@ void PieChart::BindHoverMotion(const Rect& plot) {
     for (const auto& slice : slices) {
         if (slice.index == m_hoverIndex) {
             const Point p = SliceAnchor(plot, slice);
-            m_crossX.SetTarget(p.x);
-            m_crossY.SetTarget(p.y);
+            m_crossX.ApplyTarget(p.x);
+            m_crossY.ApplyTarget(p.y);
             return;
         }
     }

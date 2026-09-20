@@ -42,7 +42,7 @@ struct CellData {
     }
 
     int GetCodePoint() const { return Content & ContentMask; }
-    void SetCodePoint(int value) { Content = (Content & ~ContentMask) | (value & ContentMask); }
+    void ApplyCodePoint(int value) { Content = (Content & ~ContentMask) | (value & ContentMask); }
 
     int GetWidth() const { return (Content & WidthMask) >> WidthShift; }
     CellData& Width(int value) { Content = (Content & ~WidthMask) | ((value << WidthShift) & WidthMask); return *this; }
@@ -53,8 +53,8 @@ struct CellData {
         return static_cast<wchar_t>(cp <= 0xFFFF ? cp : '?');
     }
 
-    void SetChar(wchar_t value) {
-        SetCodePoint(static_cast<int>(value));
+    void ApplyChar(wchar_t value) {
+        ApplyCodePoint(static_cast<int>(value));
         Width(value == 0 ? 0 : 1);
     }
 
@@ -63,7 +63,7 @@ struct CellData {
         return cp == 0 || cp == ' ';
     }
 
-    void SetFrom(const CellData& other) {
+    void ApplyFrom(const CellData& other) {
         Content = other.Content;
         Fg = other.Fg;
         Bg = other.Bg;

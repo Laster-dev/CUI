@@ -42,7 +42,7 @@ public:
     virtual void OnThemeChanged() override;
 
     float GetScrollOffsetY() const { return m_offsetY; }
-    void SetScrollOffsetY(float offset);
+    void ApplyScrollOffsetY(float offset);
     bool IsScrollAnimating() const { return m_scrollAnimator.IsActive(); }
 
     // Expand/collapse / host rebuild: drop visual-height floor and force content-layer FULL.
@@ -50,7 +50,7 @@ public:
 
     // When true, thumb overlays content and does not shrink the content width.
     // Keeps NavigationView chevrons aligned whether or not the menu overflows.
-    void SetOverlayScrollbar(bool overlay) { m_overlayScrollbar = overlay; }
+    void ApplyOverlayScrollbar(bool overlay) { m_overlayScrollbar = overlay; }
     bool OverlayScrollbar() const { return m_overlayScrollbar; }
 
 private:

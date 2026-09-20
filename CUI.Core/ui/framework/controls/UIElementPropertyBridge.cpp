@@ -97,192 +97,192 @@ void DescGetWidth(const UIElement* self, Value& out) {
     const float w = self->GetWidth();
     out = (w >= 0.0f) ? Value(w) : Value();
 }
-void DescSetWidth(UIElement* self, const Value& in) { self->SetWidth(in.AsFloat()); }
+void DescSetWidth(UIElement* self, const Value& in) { self->ApplyWidth(in.AsFloat()); }
 void DescGetHeight(const UIElement* self, Value& out) {
     const float h = self->GetHeight();
     out = (h >= 0.0f) ? Value(h) : Value();
 }
-void DescSetHeight(UIElement* self, const Value& in) { self->SetHeight(in.AsFloat()); }
+void DescSetHeight(UIElement* self, const Value& in) { self->ApplyHeight(in.AsFloat()); }
 void DescGetMinWidth(const UIElement* self, Value& out) { out = Value(self->GetMinWidth()); }
-void DescSetMinWidth(UIElement* self, const Value& in) { self->SetMinWidth(in.AsFloat()); }
+void DescSetMinWidth(UIElement* self, const Value& in) { self->ApplyMinWidth(in.AsFloat()); }
 void DescGetMinHeight(const UIElement* self, Value& out) { out = Value(self->GetMinHeight()); }
-void DescSetMinHeight(UIElement* self, const Value& in) { self->SetMinHeight(in.AsFloat()); }
+void DescSetMinHeight(UIElement* self, const Value& in) { self->ApplyMinHeight(in.AsFloat()); }
 void DescGetMaxWidth(const UIElement* self, Value& out) { out = Value(self->GetMaxWidth()); }
-void DescSetMaxWidth(UIElement* self, const Value& in) { self->SetMaxWidth(in.AsFloat()); }
+void DescSetMaxWidth(UIElement* self, const Value& in) { self->ApplyMaxWidth(in.AsFloat()); }
 void DescGetMaxHeight(const UIElement* self, Value& out) { out = Value(self->GetMaxHeight()); }
-void DescSetMaxHeight(UIElement* self, const Value& in) { self->SetMaxHeight(in.AsFloat()); }
+void DescSetMaxHeight(UIElement* self, const Value& in) { self->ApplyMaxHeight(in.AsFloat()); }
 void DescGetMargin(const UIElement* self, Value& out) { out = Value(self->GetMargin()); }
-void DescSetMargin(UIElement* self, const Value& in) { self->SetMargin(ThicknessFromValue(in)); }
+void DescSetMargin(UIElement* self, const Value& in) { self->ApplyMargin(ThicknessFromValue(in)); }
 void DescGetPadding(const UIElement* self, Value& out) { out = Value(self->GetPadding()); }
-void DescSetPadding(UIElement* self, const Value& in) { self->SetPadding(ThicknessFromValue(in)); }
+void DescSetPadding(UIElement* self, const Value& in) { self->ApplyPadding(ThicknessFromValue(in)); }
 void DescGetOpacity(const UIElement* self, Value& out) { out = Value(self->GetOpacity()); }
-void DescSetOpacity(UIElement* self, const Value& in) { self->SetOpacity(in.AsFloat()); }
+void DescSetOpacity(UIElement* self, const Value& in) { self->ApplyOpacity(in.AsFloat()); }
 void DescGetIsEnabled(const UIElement* self, Value& out) { out = Value(self->IsEnabled()); }
-void DescSetIsEnabled(UIElement* self, const Value& in) { self->SetIsEnabled(in.AsBool()); }
+void DescSetIsEnabled(UIElement* self, const Value& in) { self->ApplyIsEnabled(in.AsBool()); }
 void DescGetVisibility(const UIElement* self, Value& out) {
     out = Value(VisibilityToString(self->GetVisibility()));
 }
 void DescSetVisibility(UIElement* self, const Value& in) {
-    self->SetVisibility(ParseVisibility(in.AsString("Visible")));
+    self->ApplyVisibility(ParseVisibility(in.AsString("Visible")));
 }
 void DescGetBorderThickness(const UIElement* self, Value& out) { out = Value(self->GetBorderThickness()); }
-void DescSetBorderThickness(UIElement* self, const Value& in) { self->SetBorderThickness(in.AsFloat()); }
+void DescSetBorderThickness(UIElement* self, const Value& in) { self->ApplyBorderThickness(in.AsFloat()); }
 void DescGetCornerRadius(const UIElement* self, Value& out) { out = Value(self->GetCornerRadius()); }
-void DescSetCornerRadius(UIElement* self, const Value& in) { self->SetCornerRadius(in.AsFloat()); }
+void DescSetCornerRadius(UIElement* self, const Value& in) { self->ApplyCornerRadius(in.AsFloat()); }
 void DescGetAlignH(const UIElement* self, Value& out) {
     out = Value(AlignmentToString(self->GetAlignHorizontal()));
 }
 void DescSetAlignH(UIElement* self, const Value& in) {
-    self->SetAlignHorizontal(ParseAlignment(in.AsString("Stretch")));
+    self->ApplyAlignHorizontal(ParseAlignment(in.AsString("Stretch")));
 }
 void DescGetAlignV(const UIElement* self, Value& out) {
     out = Value(AlignmentToString(self->GetAlignVertical()));
 }
 void DescSetAlignV(UIElement* self, const Value& in) {
-    self->SetAlignVertical(ParseAlignment(in.AsString("Stretch")));
+    self->ApplyAlignVertical(ParseAlignment(in.AsString("Stretch")));
 }
 void DescGetText(const UIElement* self, Value& out) { out = Value(self->GetText()); }
-void DescSetText(UIElement* self, const Value& in) { self->SetText(in.AsString()); }
+void DescSetText(UIElement* self, const Value& in) { self->ApplyText(in.AsString()); }
 void DescGetToolTip(const UIElement* self, Value& out) { out = Value(self->GetToolTip()); }
-void DescSetToolTip(UIElement* self, const Value& in) { self->SetToolTip(in.AsString()); }
+void DescSetToolTip(UIElement* self, const Value& in) { self->ApplyToolTip(in.AsString()); }
 void DescGetFontFamily(const UIElement* self, Value& out) { out = Value(self->GetFontFamily()); }
-void DescSetFontFamily(UIElement* self, const Value& in) { self->SetFontFamily(in.AsString()); }
+void DescSetFontFamily(UIElement* self, const Value& in) { self->ApplyFontFamily(in.AsString()); }
 void DescGetFontSize(const UIElement* self, Value& out) { out = Value(self->GetFontSize()); }
-void DescSetFontSize(UIElement* self, const Value& in) { self->SetFontSize(in.AsFloat()); }
+void DescSetFontSize(UIElement* self, const Value& in) { self->ApplyFontSize(in.AsFloat()); }
 void DescGetFontWeight(const UIElement* self, Value& out) { out = Value(FontWeightToString(self->GetFontWeight())); }
-void DescSetFontWeight(UIElement* self, const Value& in) { self->SetFontWeight(FontWeightFromString(in.AsString())); }
+void DescSetFontWeight(UIElement* self, const Value& in) { self->ApplyFontWeight(FontWeightFromString(in.AsString())); }
 void DescGetFontStyle(const UIElement* self, Value& out) { out = Value(FontStyleToString(self->GetFontStyle())); }
-void DescSetFontStyle(UIElement* self, const Value& in) { self->SetFontStyle(FontStyleFromString(in.AsString())); }
+void DescSetFontStyle(UIElement* self, const Value& in) { self->ApplyFontStyle(FontStyleFromString(in.AsString())); }
 void DescGetFontStretch(const UIElement* self, Value& out) { out = Value(FontStretchToString(self->GetFontStretch())); }
-void DescSetFontStretch(UIElement* self, const Value& in) { self->SetFontStretch(FontStretchFromString(in.AsString())); }
+void DescSetFontStretch(UIElement* self, const Value& in) { self->ApplyFontStretch(FontStretchFromString(in.AsString())); }
 void DescGetIsUnderline(const UIElement* self, Value& out) { out = Value(self->IsUnderline()); }
-void DescSetIsUnderline(UIElement* self, const Value& in) { self->SetIsUnderline(in.AsBool()); }
+void DescSetIsUnderline(UIElement* self, const Value& in) { self->ApplyIsUnderline(in.AsBool()); }
 void DescGetIsStrikethrough(const UIElement* self, Value& out) { out = Value(self->IsStrikethrough()); }
-void DescSetIsStrikethrough(UIElement* self, const Value& in) { self->SetIsStrikethrough(in.AsBool()); }
+void DescSetIsStrikethrough(UIElement* self, const Value& in) { self->ApplyIsStrikethrough(in.AsBool()); }
 
 void DescGetFlexGrow(const UIElement* self, Value& out) { out = Value(self->GetFlexGrow()); }
-void DescSetFlexGrow(UIElement* self, const Value& in) { self->SetFlexGrow(in.AsFloat()); }
+void DescSetFlexGrow(UIElement* self, const Value& in) { self->ApplyFlexGrow(in.AsFloat()); }
 void DescGetAlign(const UIElement* self, Value& out) { out = Value(AlignmentToString(self->GetAlign())); }
-void DescSetAlign(UIElement* self, const Value& in) { self->SetAlign(ParseAlignment(in.AsString("Stretch"))); }
+void DescSetAlign(UIElement* self, const Value& in) { self->ApplyAlign(ParseAlignment(in.AsString("Stretch"))); }
 void DescGetOrientation(const UIElement* self, Value& out) { out = Value(OrientationToString(self->GetOrientation())); }
-void DescSetOrientation(UIElement* self, const Value& in) { self->SetOrientation(ParseOrientation(in.AsString("Vertical"))); }
+void DescSetOrientation(UIElement* self, const Value& in) { self->ApplyOrientation(ParseOrientation(in.AsString("Vertical"))); }
 void DescGetGap(const UIElement* self, Value& out) { out = Value(self->GetGap()); }
-void DescSetGap(UIElement* self, const Value& in) { self->SetGap(in.AsFloat()); }
+void DescSetGap(UIElement* self, const Value& in) { self->ApplyGap(in.AsFloat()); }
 void DescGetItemWidth(const UIElement* self, Value& out) {
     const float w = self->GetItemWidth();
     out = (w >= 0.0f) ? Value(w) : Value();
 }
-void DescSetItemWidth(UIElement* self, const Value& in) { self->SetItemWidth(in.AsFloat()); }
+void DescSetItemWidth(UIElement* self, const Value& in) { self->ApplyItemWidth(in.AsFloat()); }
 void DescGetItemHeight(const UIElement* self, Value& out) {
     const float h = self->GetItemHeight();
     out = (h >= 0.0f) ? Value(h) : Value();
 }
-void DescSetItemHeight(UIElement* self, const Value& in) { self->SetItemHeight(in.AsFloat()); }
+void DescSetItemHeight(UIElement* self, const Value& in) { self->ApplyItemHeight(in.AsFloat()); }
 void DescGetLastChildFill(const UIElement* self, Value& out) { out = Value(self->GetLastChildFill()); }
-void DescSetLastChildFill(UIElement* self, const Value& in) { self->SetLastChildFill(in.AsBool()); }
+void DescSetLastChildFill(UIElement* self, const Value& in) { self->ApplyLastChildFill(in.AsBool()); }
 void DescGetJustifyLines(const UIElement* self, Value& out) { out = Value(self->GetJustifyLines()); }
-void DescSetJustifyLines(UIElement* self, const Value& in) { self->SetJustifyLines(in.AsBool()); }
+void DescSetJustifyLines(UIElement* self, const Value& in) { self->ApplyJustifyLines(in.AsBool()); }
 void DescGetFillLastLine(const UIElement* self, Value& out) { out = Value(self->GetFillLastLine()); }
-void DescSetFillLastLine(UIElement* self, const Value& in) { self->SetFillLastLine(in.AsBool()); }
+void DescSetFillLastLine(UIElement* self, const Value& in) { self->ApplyFillLastLine(in.AsBool()); }
 void DescGetRows(const UIElement* self, Value& out) { out = Value(self->GetRows()); }
-void DescSetRows(UIElement* self, const Value& in) { self->SetRows(in.AsInt()); }
+void DescSetRows(UIElement* self, const Value& in) { self->ApplyRows(in.AsInt()); }
 void DescGetColumns(const UIElement* self, Value& out) { out = Value(self->GetColumns()); }
-void DescSetColumns(UIElement* self, const Value& in) { self->SetColumns(in.AsInt()); }
+void DescSetColumns(UIElement* self, const Value& in) { self->ApplyColumns(in.AsInt()); }
 void DescGetClipToBounds(const UIElement* self, Value& out) { out = Value(self->GetClipToBounds()); }
-void DescSetClipToBounds(UIElement* self, const Value& in) { self->SetClipToBounds(in.AsBool()); }
+void DescSetClipToBounds(UIElement* self, const Value& in) { self->ApplyClipToBounds(in.AsBool()); }
 void DescGetPlaceholder(const UIElement* self, Value& out) { out = Value(self->GetPlaceholder()); }
-void DescSetPlaceholder(UIElement* self, const Value& in) { self->SetPlaceholder(in.AsString()); }
+void DescSetPlaceholder(UIElement* self, const Value& in) { self->ApplyPlaceholder(in.AsString()); }
 void DescGetIcon(const UIElement* self, Value& out) { out = Value(self->GetIcon()); }
-void DescSetIcon(UIElement* self, const Value& in) { self->SetIcon(in.AsString()); }
+void DescSetIcon(UIElement* self, const Value& in) { self->ApplyIcon(in.AsString()); }
 void DescGetFocused(const UIElement* self, Value& out) { out = Value(self->IsFocused()); }
 void DescSetFocused(UIElement* self, const Value& in) {
     if (in.AsBool()) self->OnFocus();
     else self->OnBlur();
 }
 void DescGetCanvasLeft(const UIElement* self, Value& out) { out = Value(self->GetCanvasLeft()); }
-void DescSetCanvasLeft(UIElement* self, const Value& in) { self->SetCanvasLeft(in.AsFloat()); }
+void DescSetCanvasLeft(UIElement* self, const Value& in) { self->ApplyCanvasLeft(in.AsFloat()); }
 void DescGetCanvasTop(const UIElement* self, Value& out) { out = Value(self->GetCanvasTop()); }
-void DescSetCanvasTop(UIElement* self, const Value& in) { self->SetCanvasTop(in.AsFloat()); }
+void DescSetCanvasTop(UIElement* self, const Value& in) { self->ApplyCanvasTop(in.AsFloat()); }
 void DescGetCanvasRight(const UIElement* self, Value& out) { out = Value(self->GetCanvasRight()); }
-void DescSetCanvasRight(UIElement* self, const Value& in) { self->SetCanvasRight(in.AsFloat()); }
+void DescSetCanvasRight(UIElement* self, const Value& in) { self->ApplyCanvasRight(in.AsFloat()); }
 void DescGetCanvasBottom(const UIElement* self, Value& out) { out = Value(self->GetCanvasBottom()); }
-void DescSetCanvasBottom(UIElement* self, const Value& in) { self->SetCanvasBottom(in.AsFloat()); }
+void DescSetCanvasBottom(UIElement* self, const Value& in) { self->ApplyCanvasBottom(in.AsFloat()); }
 void DescGetZIndex(const UIElement* self, Value& out) { out = Value(self->GetZIndex()); }
-void DescSetZIndex(UIElement* self, const Value& in) { self->SetZIndex(in.AsInt()); }
+void DescSetZIndex(UIElement* self, const Value& in) { self->ApplyZIndex(in.AsInt()); }
 void DescGetGridColumn(const UIElement* self, Value& out) { out = Value(self->GetGridColumn()); }
-void DescSetGridColumn(UIElement* self, const Value& in) { self->SetGridColumn(in.AsInt()); }
+void DescSetGridColumn(UIElement* self, const Value& in) { self->ApplyGridColumn(in.AsInt()); }
 void DescGetGridRow(const UIElement* self, Value& out) { out = Value(self->GetGridRow()); }
-void DescSetGridRow(UIElement* self, const Value& in) { self->SetGridRow(in.AsInt()); }
+void DescSetGridRow(UIElement* self, const Value& in) { self->ApplyGridRow(in.AsInt()); }
 void DescGetGridColumnSpan(const UIElement* self, Value& out) { out = Value(self->GetGridColumnSpan()); }
-void DescSetGridColumnSpan(UIElement* self, const Value& in) { self->SetGridColumnSpan(in.AsInt()); }
+void DescSetGridColumnSpan(UIElement* self, const Value& in) { self->ApplyGridColumnSpan(in.AsInt()); }
 void DescGetGridRowSpan(const UIElement* self, Value& out) { out = Value(self->GetGridRowSpan()); }
-void DescSetGridRowSpan(UIElement* self, const Value& in) { self->SetGridRowSpan(in.AsInt()); }
+void DescSetGridRowSpan(UIElement* self, const Value& in) { self->ApplyGridRowSpan(in.AsInt()); }
 void DescGetDock(const UIElement* self, Value& out) { out = Value(DockToString(self->GetDock())); }
-void DescSetDock(UIElement* self, const Value& in) { self->SetDock(ParseDock(in.AsString("Left"))); }
+void DescSetDock(UIElement* self, const Value& in) { self->ApplyDock(ParseDock(in.AsString("Left"))); }
 void DescGetBackground(const UIElement* self, Value& out) {
     out = self->HasBackgroundColor()
         ? Value(self->GetBackgroundColor())
         : Value(D2D1::ColorF(0, 0, 0, 0));
 }
-void DescSetBackground(UIElement* self, const Value& in) { self->SetBackground(in.AsColor()); }
+void DescSetBackground(UIElement* self, const Value& in) { self->ApplyBackground(in.AsColor()); }
 void DescGetBorderBrush(const UIElement* self, Value& out) {
     out = self->HasBorderBrushColor()
         ? Value(self->GetBorderBrushColor())
         : Value(D2D1::ColorF(0, 0, 0, 0));
 }
-void DescSetBorderBrush(UIElement* self, const Value& in) { self->SetBorderBrush(in.AsColor()); }
+void DescSetBorderBrush(UIElement* self, const Value& in) { self->ApplyBorderBrush(in.AsColor()); }
 void DescGetHoverBackground(const UIElement* self, Value& out) {
     out = self->HasHoverBackgroundColor() ? Value(self->GetHoverBackgroundColor()) : Value();
 }
-void DescSetHoverBackground(UIElement* self, const Value& in) { self->SetHoverBackground(in.AsColor()); }
+void DescSetHoverBackground(UIElement* self, const Value& in) { self->ApplyHoverBackground(in.AsColor()); }
 void DescGetPressedBackground(const UIElement* self, Value& out) {
     out = self->HasPressedBackgroundColor() ? Value(self->GetPressedBackgroundColor()) : Value();
 }
-void DescSetPressedBackground(UIElement* self, const Value& in) { self->SetPressedBackground(in.AsColor()); }
+void DescSetPressedBackground(UIElement* self, const Value& in) { self->ApplyPressedBackground(in.AsColor()); }
 void DescGetColor(const UIElement* self, Value& out) {
     out = self->HasColorValue()
         ? Value(self->GetColorValue())
         : Value(D2D1::ColorF(1, 1, 1, 1));
 }
-void DescSetColor(UIElement* self, const Value& in) { self->SetColor(in.AsColor()); }
+void DescSetColor(UIElement* self, const Value& in) { self->ApplyColor(in.AsColor()); }
 
 #define CUI_TOKEN_DESC(PropName, Getter, Setter) \
     void DescGet_##PropName(const UIElement* self, Value& out) { out = TokenValue(self->Getter()); } \
     void DescSet_##PropName(UIElement* self, const Value& in) { self->Setter(TokenFromValue(in)); }
 
-CUI_TOKEN_DESC(BackgroundToken, GetBackgroundToken, SetBackgroundToken)
-CUI_TOKEN_DESC(HoverBackgroundToken, GetHoverBackgroundToken, SetHoverBackgroundToken)
-CUI_TOKEN_DESC(PressedBackgroundToken, GetPressedBackgroundToken, SetPressedBackgroundToken)
-CUI_TOKEN_DESC(DisabledBackgroundToken, GetDisabledBackgroundToken, SetDisabledBackgroundToken)
-CUI_TOKEN_DESC(BorderToken, GetBorderToken, SetBorderToken)
-CUI_TOKEN_DESC(FocusedBorderToken, GetFocusedBorderToken, SetFocusedBorderToken)
-CUI_TOKEN_DESC(ColorToken, GetColorToken, SetColorToken)
-CUI_TOKEN_DESC(SecondaryColorToken, GetSecondaryColorToken, SetSecondaryColorToken)
-CUI_TOKEN_DESC(PlaceholderColorToken, GetPlaceholderColorToken, SetPlaceholderColorToken)
-CUI_TOKEN_DESC(SelectedBackgroundToken, GetSelectedBackgroundToken, SetSelectedBackgroundToken)
-CUI_TOKEN_DESC(HeaderBackgroundToken, GetHeaderBackgroundToken, SetHeaderBackgroundToken)
-CUI_TOKEN_DESC(PaneBackgroundToken, GetPaneBackgroundToken, SetPaneBackgroundToken)
-CUI_TOKEN_DESC(IndicatorColorToken, GetIndicatorColorToken, SetIndicatorColorToken)
-CUI_TOKEN_DESC(DropdownBackgroundToken, GetDropdownBackgroundToken, SetDropdownBackgroundToken)
-CUI_TOKEN_DESC(SelectedItemBackgroundToken, GetSelectedItemBackgroundToken, SetSelectedItemBackgroundToken)
-CUI_TOKEN_DESC(FillColorToken, GetFillColorToken, SetFillColorToken)
-CUI_TOKEN_DESC(TrackColorToken, GetTrackColorToken, SetTrackColorToken)
-CUI_TOKEN_DESC(ActiveTrackColorToken, GetActiveTrackColorToken, SetActiveTrackColorToken)
-CUI_TOKEN_DESC(ThumbColorToken, GetThumbColorToken, SetThumbColorToken)
-CUI_TOKEN_DESC(OnColorToken, GetOnColorToken, SetOnColorToken)
-CUI_TOKEN_DESC(OffColorToken, GetOffColorToken, SetOffColorToken)
-CUI_TOKEN_DESC(KnobColorToken, GetKnobColorToken, SetKnobColorToken)
-CUI_TOKEN_DESC(CheckedBackgroundToken, GetCheckedBackgroundToken, SetCheckedBackgroundToken)
-CUI_TOKEN_DESC(AccentColorToken, GetAccentColorToken, SetAccentColorToken)
-CUI_TOKEN_DESC(ActiveColorToken, GetActiveColorToken, SetActiveColorToken)
-CUI_TOKEN_DESC(UnderlineColorToken, GetUnderlineColorToken, SetUnderlineColorToken)
-CUI_TOKEN_DESC(ActiveUnderlineColorToken, GetActiveUnderlineColorToken, SetActiveUnderlineColorToken)
-CUI_TOKEN_DESC(ActiveTabBackgroundToken, GetActiveTabBackgroundToken, SetActiveTabBackgroundToken)
-CUI_TOKEN_DESC(InactiveTabBackgroundToken, GetInactiveTabBackgroundToken, SetInactiveTabBackgroundToken)
-CUI_TOKEN_DESC(GridLineBrushToken, GetGridLineBrushToken, SetGridLineBrushToken)
-CUI_TOKEN_DESC(TitleColorToken, GetTitleColorToken, SetTitleColorToken)
-CUI_TOKEN_DESC(MessageColorToken, GetMessageColorToken, SetMessageColorToken)
-CUI_TOKEN_DESC(CaretColorToken, GetCaretColorToken, SetCaretColorToken)
+CUI_TOKEN_DESC(BackgroundToken, GetBackgroundToken, ApplyBackgroundToken)
+CUI_TOKEN_DESC(HoverBackgroundToken, GetHoverBackgroundToken, ApplyHoverBackgroundToken)
+CUI_TOKEN_DESC(PressedBackgroundToken, GetPressedBackgroundToken, ApplyPressedBackgroundToken)
+CUI_TOKEN_DESC(DisabledBackgroundToken, GetDisabledBackgroundToken, ApplyDisabledBackgroundToken)
+CUI_TOKEN_DESC(BorderToken, GetBorderToken, ApplyBorderToken)
+CUI_TOKEN_DESC(FocusedBorderToken, GetFocusedBorderToken, ApplyFocusedBorderToken)
+CUI_TOKEN_DESC(ColorToken, GetColorToken, ApplyColorToken)
+CUI_TOKEN_DESC(SecondaryColorToken, GetSecondaryColorToken, ApplySecondaryColorToken)
+CUI_TOKEN_DESC(PlaceholderColorToken, GetPlaceholderColorToken, ApplyPlaceholderColorToken)
+CUI_TOKEN_DESC(SelectedBackgroundToken, GetSelectedBackgroundToken, ApplySelectedBackgroundToken)
+CUI_TOKEN_DESC(HeaderBackgroundToken, GetHeaderBackgroundToken, ApplyHeaderBackgroundToken)
+CUI_TOKEN_DESC(PaneBackgroundToken, GetPaneBackgroundToken, ApplyPaneBackgroundToken)
+CUI_TOKEN_DESC(IndicatorColorToken, GetIndicatorColorToken, ApplyIndicatorColorToken)
+CUI_TOKEN_DESC(DropdownBackgroundToken, GetDropdownBackgroundToken, ApplyDropdownBackgroundToken)
+CUI_TOKEN_DESC(SelectedItemBackgroundToken, GetSelectedItemBackgroundToken, ApplySelectedItemBackgroundToken)
+CUI_TOKEN_DESC(FillColorToken, GetFillColorToken, ApplyFillColorToken)
+CUI_TOKEN_DESC(TrackColorToken, GetTrackColorToken, ApplyTrackColorToken)
+CUI_TOKEN_DESC(ActiveTrackColorToken, GetActiveTrackColorToken, ApplyActiveTrackColorToken)
+CUI_TOKEN_DESC(ThumbColorToken, GetThumbColorToken, ApplyThumbColorToken)
+CUI_TOKEN_DESC(OnColorToken, GetOnColorToken, ApplyOnColorToken)
+CUI_TOKEN_DESC(OffColorToken, GetOffColorToken, ApplyOffColorToken)
+CUI_TOKEN_DESC(KnobColorToken, GetKnobColorToken, ApplyKnobColorToken)
+CUI_TOKEN_DESC(CheckedBackgroundToken, GetCheckedBackgroundToken, ApplyCheckedBackgroundToken)
+CUI_TOKEN_DESC(AccentColorToken, GetAccentColorToken, ApplyAccentColorToken)
+CUI_TOKEN_DESC(ActiveColorToken, GetActiveColorToken, ApplyActiveColorToken)
+CUI_TOKEN_DESC(UnderlineColorToken, GetUnderlineColorToken, ApplyUnderlineColorToken)
+CUI_TOKEN_DESC(ActiveUnderlineColorToken, GetActiveUnderlineColorToken, ApplyActiveUnderlineColorToken)
+CUI_TOKEN_DESC(ActiveTabBackgroundToken, GetActiveTabBackgroundToken, ApplyActiveTabBackgroundToken)
+CUI_TOKEN_DESC(InactiveTabBackgroundToken, GetInactiveTabBackgroundToken, ApplyInactiveTabBackgroundToken)
+CUI_TOKEN_DESC(GridLineBrushToken, GetGridLineBrushToken, ApplyGridLineBrushToken)
+CUI_TOKEN_DESC(TitleColorToken, GetTitleColorToken, ApplyTitleColorToken)
+CUI_TOKEN_DESC(MessageColorToken, GetMessageColorToken, ApplyMessageColorToken)
+CUI_TOKEN_DESC(CaretColorToken, GetCaretColorToken, ApplyCaretColorToken)
 
 #undef CUI_TOKEN_DESC
 
@@ -420,63 +420,63 @@ void UIElement::NotifyFieldChanged(PropertyId id, const Value& val) {
 // Same-value writes must not InvalidateMeasure / MarkRenderContentDirty.
 // FileBrowser / RelayoutChildren / theme walks call these every pass.
 
-void UIElement::SetWidth(float v) {
+void UIElement::ApplyWidth(float v) {
     if (m_width == v) return;
     m_width = v;
     NotifyFieldChanged(PropertyId::Width, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetHeight(float v) {
+void UIElement::ApplyHeight(float v) {
     if (m_height == v) return;
     m_height = v;
     NotifyFieldChanged(PropertyId::Height, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetMinWidth(float v) {
+void UIElement::ApplyMinWidth(float v) {
     if (m_minWidth == v) return;
     m_minWidth = v;
     NotifyFieldChanged(PropertyId::MinWidth, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetMinHeight(float v) {
+void UIElement::ApplyMinHeight(float v) {
     if (m_minHeight == v) return;
     m_minHeight = v;
     NotifyFieldChanged(PropertyId::MinHeight, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetMaxWidth(float v) {
+void UIElement::ApplyMaxWidth(float v) {
     if (m_maxWidth == v) return;
     m_maxWidth = v;
     NotifyFieldChanged(PropertyId::MaxWidth, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetMaxHeight(float v) {
+void UIElement::ApplyMaxHeight(float v) {
     if (m_maxHeight == v) return;
     m_maxHeight = v;
     NotifyFieldChanged(PropertyId::MaxHeight, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetMargin(const Thickness& margin) {
+void UIElement::ApplyMargin(const Thickness& margin) {
     if (m_margin == margin) return;
     m_margin = margin;
     NotifyFieldChanged(PropertyId::Margin, Value(margin));
     InvalidateMeasure();
 }
 
-void UIElement::SetPadding(const Thickness& padding) {
+void UIElement::ApplyPadding(const Thickness& padding) {
     if (m_padding == padding) return;
     m_padding = padding;
     NotifyFieldChanged(PropertyId::Padding, Value(padding));
     InvalidateMeasure();
 }
 
-void UIElement::SetVisibility(Visibility v) {
+void UIElement::ApplyVisibility(Visibility v) {
     if (m_visibility == v) {
         return;
     }
@@ -497,18 +497,18 @@ void UIElement::SetVisibility(Visibility v) {
     InvalidateMeasure();
 }
 
-void UIElement::SetIsEnabled(bool enabled) {
+void UIElement::ApplyIsEnabled(bool enabled) {
     if (m_isEnabled == enabled) return;
     m_isEnabled = enabled;
     NotifyFieldChanged(PropertyId::IsEnabled, Value(enabled));
 }
 
-void UIElement::SetOpacity(float v) {
+void UIElement::ApplyOpacity(float v) {
     if (m_layerPromoted) {
         if (std::abs(v - m_composeOpacity) < 0.0005f) {
             return;
         }
-        SetComposeOpacity(v);
+        ApplyComposeOpacity(v);
         NotifyFieldChanged(PropertyId::Opacity, Value(v));
         return;
     }
@@ -517,116 +517,116 @@ void UIElement::SetOpacity(float v) {
     NotifyFieldChanged(PropertyId::Opacity, Value(v));
 }
 
-void UIElement::SetCornerRadius(float v) {
+void UIElement::ApplyCornerRadius(float v) {
     if (m_cornerRadius == v) return;
     m_cornerRadius = v;
     NotifyFieldChanged(PropertyId::CornerRadius, Value(v));
 }
 
-void UIElement::SetBorderThickness(float v) {
+void UIElement::ApplyBorderThickness(float v) {
     if (m_borderThickness == v) return;
     m_borderThickness = v;
     NotifyFieldChanged(PropertyId::BorderThickness, Value(v));
 }
 
-void UIElement::SetFlexGrow(float v) {
+void UIElement::ApplyFlexGrow(float v) {
     if (m_flexGrow == v) return;
     m_flexGrow = v;
     NotifyFieldChanged(PropertyId::FlexGrow, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetAlign(Alignment a) {
+void UIElement::ApplyAlign(Alignment a) {
     if (m_align == a) return;
     m_align = a;
     NotifyFieldChanged(PropertyId::Align, Value(AlignmentToString(a)));
     InvalidateArrange();
 }
 
-void UIElement::SetAlignHorizontal(Alignment a) {
+void UIElement::ApplyAlignHorizontal(Alignment a) {
     if (m_alignHorizontal == a) return;
     m_alignHorizontal = a;
     NotifyFieldChanged(PropertyId::AlignHorizontal, Value(AlignmentToString(a)));
     InvalidateArrange();
 }
 
-void UIElement::SetAlignVertical(Alignment a) {
+void UIElement::ApplyAlignVertical(Alignment a) {
     if (m_alignVertical == a) return;
     m_alignVertical = a;
     NotifyFieldChanged(PropertyId::AlignVertical, Value(AlignmentToString(a)));
     InvalidateArrange();
 }
 
-void UIElement::SetOrientation(CUI::Orientation o) {
+void UIElement::ApplyOrientation(CUI::Orientation o) {
     if (m_orientation == o) return;
     m_orientation = o;
     NotifyFieldChanged(PropertyId::Orientation, Value(OrientationToString(o)));
     InvalidateMeasure();
 }
 
-void UIElement::SetGap(float v) {
+void UIElement::ApplyGap(float v) {
     if (m_gap == v) return;
     m_gap = v;
     NotifyFieldChanged(PropertyId::Gap, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetItemWidth(float v) {
+void UIElement::ApplyItemWidth(float v) {
     if (m_itemWidth == v) return;
     m_itemWidth = v;
     NotifyFieldChanged(PropertyId::ItemWidth, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetItemHeight(float v) {
+void UIElement::ApplyItemHeight(float v) {
     if (m_itemHeight == v) return;
     m_itemHeight = v;
     NotifyFieldChanged(PropertyId::ItemHeight, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetJustifyLines(bool v) {
+void UIElement::ApplyJustifyLines(bool v) {
     if (m_justifyLines == v) return;
     m_justifyLines = v;
     NotifyFieldChanged(PropertyId::JustifyLines, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetFillLastLine(bool v) {
+void UIElement::ApplyFillLastLine(bool v) {
     if (m_fillLastLine == v) return;
     m_fillLastLine = v;
     NotifyFieldChanged(PropertyId::FillLastLine, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetLastChildFill(bool v) {
+void UIElement::ApplyLastChildFill(bool v) {
     if (m_lastChildFill == v) return;
     m_lastChildFill = v;
     NotifyFieldChanged(PropertyId::LastChildFill, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetRows(int v) {
+void UIElement::ApplyRows(int v) {
     if (m_rows == v) return;
     m_rows = v;
     NotifyFieldChanged(PropertyId::Rows, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetColumns(int v) {
+void UIElement::ApplyColumns(int v) {
     if (m_columns == v) return;
     m_columns = v;
     NotifyFieldChanged(PropertyId::Columns, Value(v));
     InvalidateMeasure();
 }
 
-void UIElement::SetClipToBounds(bool v) {
+void UIElement::ApplyClipToBounds(bool v) {
     if (m_clipToBounds == v) return;
     m_clipToBounds = v;
     NotifyFieldChanged(PropertyId::ClipToBounds, Value(v));
 }
 
-void UIElement::SetCanvasLeft(float v) {
+void UIElement::ApplyCanvasLeft(float v) {
     if (m_canvasLeft == v) return;
     m_canvasLeft = v;
     NotifyFieldChanged(PropertyId::CanvasLeft, Value(v));
@@ -634,28 +634,28 @@ void UIElement::SetCanvasLeft(float v) {
     InvalidateArrange();
 }
 
-void UIElement::SetCanvasTop(float v) {
+void UIElement::ApplyCanvasTop(float v) {
     if (m_canvasTop == v) return;
     m_canvasTop = v;
     NotifyFieldChanged(PropertyId::CanvasTop, Value(v));
     InvalidateArrange();
 }
 
-void UIElement::SetCanvasRight(float v) {
+void UIElement::ApplyCanvasRight(float v) {
     if (m_canvasRight == v) return;
     m_canvasRight = v;
     NotifyFieldChanged(PropertyId::CanvasRight, Value(v));
     InvalidateArrange();
 }
 
-void UIElement::SetCanvasBottom(float v) {
+void UIElement::ApplyCanvasBottom(float v) {
     if (m_canvasBottom == v) return;
     m_canvasBottom = v;
     NotifyFieldChanged(PropertyId::CanvasBottom, Value(v));
     InvalidateArrange();
 }
 
-void UIElement::SetZIndex(int v) {
+void UIElement::ApplyZIndex(int v) {
     if (m_zIndex == v) return;
     m_zIndex = v;
     NotifyFieldChanged(PropertyId::ZIndex, Value(v));
@@ -664,35 +664,35 @@ void UIElement::SetZIndex(int v) {
     }
 }
 
-void UIElement::SetGridColumn(int v) {
+void UIElement::ApplyGridColumn(int v) {
     if (m_gridColumn == v) return;
     m_gridColumn = v;
     NotifyFieldChanged(PropertyId::GridColumn, Value(v));
     InvalidateArrange();
 }
 
-void UIElement::SetGridRow(int v) {
+void UIElement::ApplyGridRow(int v) {
     if (m_gridRow == v) return;
     m_gridRow = v;
     NotifyFieldChanged(PropertyId::GridRow, Value(v));
     InvalidateArrange();
 }
 
-void UIElement::SetGridColumnSpan(int v) {
+void UIElement::ApplyGridColumnSpan(int v) {
     if (m_gridColumnSpan == v) return;
     m_gridColumnSpan = v;
     NotifyFieldChanged(PropertyId::GridColumnSpan, Value(v));
     InvalidateArrange();
 }
 
-void UIElement::SetGridRowSpan(int v) {
+void UIElement::ApplyGridRowSpan(int v) {
     if (m_gridRowSpan == v) return;
     m_gridRowSpan = v;
     NotifyFieldChanged(PropertyId::GridRowSpan, Value(v));
     InvalidateArrange();
 }
 
-void UIElement::SetDock(Dock d) {
+void UIElement::ApplyDock(Dock d) {
     if (m_dock == d) return;
     m_dock = d;
     NotifyFieldChanged(PropertyId::Dock, Value(DockToString(d)));
@@ -702,14 +702,14 @@ void UIElement::SetDock(Dock d) {
 
 // --- Theme token setters ---
 
-void UIElement::SetBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplyBackgroundToken(ThemeTokenId id) {
     if (m_backgroundToken == id && !m_hasBackgroundColor) return;
     m_backgroundToken = id;
     m_hasBackgroundColor = false;
     NotifyFieldChanged(PropertyId::BackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetHoverBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplyHoverBackgroundToken(ThemeTokenId id) {
     if (m_hoverBackgroundToken == id && !m_hasHoverBackgroundColor) return;
     m_hoverBackgroundToken = id;
     // 显式指定的 Token 应覆盖基类/构造器预设的硬编码悬浮色（如 Button 的默认蓝色强调色），
@@ -718,190 +718,190 @@ void UIElement::SetHoverBackgroundToken(ThemeTokenId id) {
     NotifyFieldChanged(PropertyId::HoverBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetPressedBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplyPressedBackgroundToken(ThemeTokenId id) {
     if (m_pressedBackgroundToken == id && !m_hasPressedBackgroundColor) return;
     m_pressedBackgroundToken = id;
     m_hasPressedBackgroundColor = false;
     NotifyFieldChanged(PropertyId::PressedBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetDisabledBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplyDisabledBackgroundToken(ThemeTokenId id) {
     if (m_disabledBackgroundToken == id) return;
     m_disabledBackgroundToken = id;
     NotifyFieldChanged(PropertyId::DisabledBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetBorderToken(ThemeTokenId id) {
+void UIElement::ApplyBorderToken(ThemeTokenId id) {
     if (m_borderToken == id && !m_hasBorderBrushColor) return;
     m_borderToken = id;
     m_hasBorderBrushColor = false;
     NotifyFieldChanged(PropertyId::BorderToken, TokenValue(id));
 }
 
-void UIElement::SetFocusedBorderToken(ThemeTokenId id) {
+void UIElement::ApplyFocusedBorderToken(ThemeTokenId id) {
     if (m_focusedBorderToken == id) return;
     m_focusedBorderToken = id;
     NotifyFieldChanged(PropertyId::FocusedBorderToken, TokenValue(id));
 }
 
-void UIElement::SetColorToken(ThemeTokenId id) {
+void UIElement::ApplyColorToken(ThemeTokenId id) {
     if (m_colorToken == id && !m_hasColorValue) return;
     m_colorToken = id;
     m_hasColorValue = false;
     NotifyFieldChanged(PropertyId::ColorToken, TokenValue(id));
 }
 
-void UIElement::SetSecondaryColorToken(ThemeTokenId id) {
+void UIElement::ApplySecondaryColorToken(ThemeTokenId id) {
     if (m_secondaryColorToken == id) return;
     m_secondaryColorToken = id;
     NotifyFieldChanged(PropertyId::SecondaryColorToken, TokenValue(id));
 }
 
-void UIElement::SetPlaceholderColorToken(ThemeTokenId id) {
+void UIElement::ApplyPlaceholderColorToken(ThemeTokenId id) {
     if (m_placeholderColorToken == id) return;
     m_placeholderColorToken = id;
     NotifyFieldChanged(PropertyId::PlaceholderColorToken, TokenValue(id));
 }
 
-void UIElement::SetSelectedBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplySelectedBackgroundToken(ThemeTokenId id) {
     if (m_selectedBackgroundToken == id) return;
     m_selectedBackgroundToken = id;
     NotifyFieldChanged(PropertyId::SelectedBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetHeaderBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplyHeaderBackgroundToken(ThemeTokenId id) {
     if (m_headerBackgroundToken == id) return;
     m_headerBackgroundToken = id;
     NotifyFieldChanged(PropertyId::HeaderBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetPaneBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplyPaneBackgroundToken(ThemeTokenId id) {
     if (m_paneBackgroundToken == id) return;
     m_paneBackgroundToken = id;
     NotifyFieldChanged(PropertyId::PaneBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetIndicatorColorToken(ThemeTokenId id) {
+void UIElement::ApplyIndicatorColorToken(ThemeTokenId id) {
     if (m_indicatorColorToken == id) return;
     m_indicatorColorToken = id;
     NotifyFieldChanged(PropertyId::IndicatorColorToken, TokenValue(id));
 }
 
-void UIElement::SetDropdownBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplyDropdownBackgroundToken(ThemeTokenId id) {
     if (m_dropdownBackgroundToken == id) return;
     m_dropdownBackgroundToken = id;
     NotifyFieldChanged(PropertyId::DropdownBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetSelectedItemBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplySelectedItemBackgroundToken(ThemeTokenId id) {
     if (m_selectedItemBackgroundToken == id) return;
     m_selectedItemBackgroundToken = id;
     NotifyFieldChanged(PropertyId::SelectedItemBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetFillColorToken(ThemeTokenId id) {
+void UIElement::ApplyFillColorToken(ThemeTokenId id) {
     if (m_fillColorToken == id) return;
     m_fillColorToken = id;
     NotifyFieldChanged(PropertyId::FillColorToken, TokenValue(id));
 }
 
-void UIElement::SetTrackColorToken(ThemeTokenId id) {
+void UIElement::ApplyTrackColorToken(ThemeTokenId id) {
     if (m_trackColorToken == id) return;
     m_trackColorToken = id;
     NotifyFieldChanged(PropertyId::TrackColorToken, TokenValue(id));
 }
 
-void UIElement::SetActiveTrackColorToken(ThemeTokenId id) {
+void UIElement::ApplyActiveTrackColorToken(ThemeTokenId id) {
     if (m_activeTrackColorToken == id) return;
     m_activeTrackColorToken = id;
     NotifyFieldChanged(PropertyId::ActiveTrackColorToken, TokenValue(id));
 }
 
-void UIElement::SetThumbColorToken(ThemeTokenId id) {
+void UIElement::ApplyThumbColorToken(ThemeTokenId id) {
     if (m_thumbColorToken == id) return;
     m_thumbColorToken = id;
     NotifyFieldChanged(PropertyId::ThumbColorToken, TokenValue(id));
 }
 
-void UIElement::SetOnColorToken(ThemeTokenId id) {
+void UIElement::ApplyOnColorToken(ThemeTokenId id) {
     if (m_onColorToken == id) return;
     m_onColorToken = id;
     NotifyFieldChanged(PropertyId::OnColorToken, TokenValue(id));
 }
 
-void UIElement::SetOffColorToken(ThemeTokenId id) {
+void UIElement::ApplyOffColorToken(ThemeTokenId id) {
     if (m_offColorToken == id) return;
     m_offColorToken = id;
     NotifyFieldChanged(PropertyId::OffColorToken, TokenValue(id));
 }
 
-void UIElement::SetKnobColorToken(ThemeTokenId id) {
+void UIElement::ApplyKnobColorToken(ThemeTokenId id) {
     if (m_knobColorToken == id) return;
     m_knobColorToken = id;
     NotifyFieldChanged(PropertyId::KnobColorToken, TokenValue(id));
 }
 
-void UIElement::SetCheckedBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplyCheckedBackgroundToken(ThemeTokenId id) {
     if (m_checkedBackgroundToken == id) return;
     m_checkedBackgroundToken = id;
     NotifyFieldChanged(PropertyId::CheckedBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetAccentColorToken(ThemeTokenId id) {
+void UIElement::ApplyAccentColorToken(ThemeTokenId id) {
     if (m_accentColorToken == id) return;
     m_accentColorToken = id;
     NotifyFieldChanged(PropertyId::AccentColorToken, TokenValue(id));
 }
 
-void UIElement::SetActiveColorToken(ThemeTokenId id) {
+void UIElement::ApplyActiveColorToken(ThemeTokenId id) {
     if (m_activeColorToken == id) return;
     m_activeColorToken = id;
     NotifyFieldChanged(PropertyId::ActiveColorToken, TokenValue(id));
 }
 
-void UIElement::SetUnderlineColorToken(ThemeTokenId id) {
+void UIElement::ApplyUnderlineColorToken(ThemeTokenId id) {
     if (m_underlineColorToken == id) return;
     m_underlineColorToken = id;
     NotifyFieldChanged(PropertyId::UnderlineColorToken, TokenValue(id));
 }
 
-void UIElement::SetActiveUnderlineColorToken(ThemeTokenId id) {
+void UIElement::ApplyActiveUnderlineColorToken(ThemeTokenId id) {
     if (m_activeUnderlineColorToken == id) return;
     m_activeUnderlineColorToken = id;
     NotifyFieldChanged(PropertyId::ActiveUnderlineColorToken, TokenValue(id));
 }
 
-void UIElement::SetActiveTabBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplyActiveTabBackgroundToken(ThemeTokenId id) {
     if (m_activeTabBackgroundToken == id) return;
     m_activeTabBackgroundToken = id;
     NotifyFieldChanged(PropertyId::ActiveTabBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetInactiveTabBackgroundToken(ThemeTokenId id) {
+void UIElement::ApplyInactiveTabBackgroundToken(ThemeTokenId id) {
     if (m_inactiveTabBackgroundToken == id) return;
     m_inactiveTabBackgroundToken = id;
     NotifyFieldChanged(PropertyId::InactiveTabBackgroundToken, TokenValue(id));
 }
 
-void UIElement::SetGridLineBrushToken(ThemeTokenId id) {
+void UIElement::ApplyGridLineBrushToken(ThemeTokenId id) {
     if (m_gridLineBrushToken == id) return;
     m_gridLineBrushToken = id;
     NotifyFieldChanged(PropertyId::GridLineBrushToken, TokenValue(id));
 }
 
-void UIElement::SetTitleColorToken(ThemeTokenId id) {
+void UIElement::ApplyTitleColorToken(ThemeTokenId id) {
     if (m_titleColorToken == id) return;
     m_titleColorToken = id;
     NotifyFieldChanged(PropertyId::TitleColorToken, TokenValue(id));
 }
 
-void UIElement::SetMessageColorToken(ThemeTokenId id) {
+void UIElement::ApplyMessageColorToken(ThemeTokenId id) {
     if (m_messageColorToken == id) return;
     m_messageColorToken = id;
     NotifyFieldChanged(PropertyId::MessageColorToken, TokenValue(id));
 }
 
-void UIElement::SetCaretColorToken(ThemeTokenId id) {
+void UIElement::ApplyCaretColorToken(ThemeTokenId id) {
     if (m_caretColorToken == id) return;
     m_caretColorToken = id;
     NotifyFieldChanged(PropertyId::CaretColorToken, TokenValue(id));
@@ -909,7 +909,7 @@ void UIElement::SetCaretColorToken(ThemeTokenId id) {
 
 // --- Content setters ---
 
-void UIElement::SetText(const std::string& text) {
+void UIElement::ApplyText(const std::string& text) {
     if (m_text == text) return;
     m_text = text;
     NotifyFieldChanged(PropertyId::Text, Value(text));
@@ -924,19 +924,19 @@ void UIElement::UnbindText() {
     Text->Unbind();
 }
 
-void UIElement::SetPlaceholder(const std::string& placeholder) {
+void UIElement::ApplyPlaceholder(const std::string& placeholder) {
     if (m_placeholder == placeholder) return;
     m_placeholder = placeholder;
     NotifyFieldChanged(PropertyId::Placeholder, Value(placeholder));
 }
 
-void UIElement::SetFontFamily(const std::string& font) {
+void UIElement::ApplyFontFamily(const std::string& font) {
     if (m_fontFamily == font) return;
     m_fontFamily = font;
     NotifyFieldChanged(PropertyId::FontFamily, Value(font));
 }
 
-void UIElement::SetFontSize(float size) {
+void UIElement::ApplyFontSize(float size) {
     if (m_fontSize == size) return;
     m_fontSize = size;
     NotifyFieldChanged(PropertyId::FontSize, Value(size));
@@ -1008,7 +1008,7 @@ FontStretch FontStretchFromString(const std::string& value) {
     return CUI::FontStretch::Normal;
 }
 
-void UIElement::SetFontWeight(CUI::FontWeight weight) {
+void UIElement::ApplyFontWeight(CUI::FontWeight weight) {
     if (m_fontWeight == weight) return;
     m_fontWeight = weight;
     NotifyFieldChanged(PropertyId::FontWeight, Value(FontWeightToString(weight)));
@@ -1018,7 +1018,7 @@ DWRITE_FONT_WEIGHT UIElement::ResolveFontWeight() const {
     return static_cast<DWRITE_FONT_WEIGHT>(m_fontWeight);
 }
 
-void UIElement::SetFontStyle(CUI::FontStyle style) {
+void UIElement::ApplyFontStyle(CUI::FontStyle style) {
     if (m_fontStyle == style) return;
     m_fontStyle = style;
     NotifyFieldChanged(PropertyId::FontStyle, Value(FontStyleToString(style)));
@@ -1028,7 +1028,7 @@ DWRITE_FONT_STYLE UIElement::ResolveFontStyle() const {
     return static_cast<DWRITE_FONT_STYLE>(m_fontStyle);
 }
 
-void UIElement::SetFontStretch(CUI::FontStretch stretch) {
+void UIElement::ApplyFontStretch(CUI::FontStretch stretch) {
     if (m_fontStretch == stretch) return;
     m_fontStretch = stretch;
     NotifyFieldChanged(PropertyId::FontStretch, Value(FontStretchToString(stretch)));
@@ -1038,19 +1038,19 @@ DWRITE_FONT_STRETCH UIElement::ResolveFontStretch() const {
     return static_cast<DWRITE_FONT_STRETCH>(m_fontStretch);
 }
 
-void UIElement::SetIsUnderline(bool underline) {
+void UIElement::ApplyIsUnderline(bool underline) {
     if (m_isUnderline == underline) return;
     m_isUnderline = underline;
     NotifyFieldChanged(PropertyId::IsUnderline, Value(underline));
 }
 
-void UIElement::SetIsStrikethrough(bool strikethrough) {
+void UIElement::ApplyIsStrikethrough(bool strikethrough) {
     if (m_isStrikethrough == strikethrough) return;
     m_isStrikethrough = strikethrough;
     NotifyFieldChanged(PropertyId::IsStrikethrough, Value(strikethrough));
 }
 
-void UIElement::SetToolTip(const std::string& tip) {
+void UIElement::ApplyToolTip(const std::string& tip) {
     if (m_toolTip == tip) return;
     m_toolTip = tip;
     NotifyFieldChanged(PropertyId::ToolTip, Value(tip));
@@ -1059,7 +1059,7 @@ void UIElement::SetToolTip(const std::string& tip) {
     }
 }
 
-void UIElement::SetIcon(const std::string& icon) {
+void UIElement::ApplyIcon(const std::string& icon) {
     if (m_icon == icon) return;
     m_icon = icon;
     NotifyFieldChanged(PropertyId::Icon, Value(icon));
@@ -1153,7 +1153,7 @@ bool UIElement::DescHasOptionalProperty(const PropertyDesc& desc) const {
     return true;
 }
 
-void UIElement::SetProperty(PropertyId id, const Value& val) {
+void UIElement::ApplyProperty(PropertyId id, const Value& val) {
     if (const PropertyDesc* desc = FindPropertyDescForElement(this, id)) {
         if (desc->set) {
             desc->set(this, val);
@@ -1161,7 +1161,7 @@ void UIElement::SetProperty(PropertyId id, const Value& val) {
     }
 }
 
-void UIElement::SetBackground(D2D1_COLOR_F c) {
+void UIElement::ApplyBackground(D2D1_COLOR_F c) {
     if (ColorUnchanged(m_hasBackgroundColor, m_backgroundColor, c)) return;
     m_backgroundColor = c;
     m_hasBackgroundColor = true;
@@ -1169,7 +1169,7 @@ void UIElement::SetBackground(D2D1_COLOR_F c) {
     NotifyFieldChanged(PropertyId::Background, Value(c));
 }
 
-void UIElement::SetHoverBackground(D2D1_COLOR_F c) {
+void UIElement::ApplyHoverBackground(D2D1_COLOR_F c) {
     if (ColorUnchanged(m_hasHoverBackgroundColor, m_hoverBackgroundColor, c)) return;
     m_hoverBackgroundColor = c;
     m_hasHoverBackgroundColor = true;
@@ -1177,7 +1177,7 @@ void UIElement::SetHoverBackground(D2D1_COLOR_F c) {
     NotifyFieldChanged(PropertyId::HoverBackground, Value(c));
 }
 
-void UIElement::SetPressedBackground(D2D1_COLOR_F c) {
+void UIElement::ApplyPressedBackground(D2D1_COLOR_F c) {
     if (ColorUnchanged(m_hasPressedBackgroundColor, m_pressedBackgroundColor, c)) return;
     m_pressedBackgroundColor = c;
     m_hasPressedBackgroundColor = true;
@@ -1185,7 +1185,7 @@ void UIElement::SetPressedBackground(D2D1_COLOR_F c) {
     NotifyFieldChanged(PropertyId::PressedBackground, Value(c));
 }
 
-void UIElement::SetBorderBrush(D2D1_COLOR_F c) {
+void UIElement::ApplyBorderBrush(D2D1_COLOR_F c) {
     if (ColorUnchanged(m_hasBorderBrushColor, m_borderBrushColor, c)) return;
     m_borderBrushColor = c;
     m_hasBorderBrushColor = true;
@@ -1193,7 +1193,7 @@ void UIElement::SetBorderBrush(D2D1_COLOR_F c) {
     NotifyFieldChanged(PropertyId::BorderBrush, Value(c));
 }
 
-void UIElement::SetColor(D2D1_COLOR_F c) {
+void UIElement::ApplyColor(D2D1_COLOR_F c) {
     if (ColorUnchanged(m_hasColorValue, m_colorValue, c)) return;
     m_colorValue = c;
     m_hasColorValue = true;

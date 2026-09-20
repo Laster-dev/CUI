@@ -13,8 +13,8 @@ ColorPicker::ColorPicker() {
     SelectedColor.Initialize(*this);
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     m_selectedColor = tokens.accentColor;
-    this->SetWidth(220.0f);
-    this->SetHeight(32.0f);
+    this->ApplyWidth(220.0f);
+    this->ApplyHeight(32.0f);
 
     m_swatches = {
         tokens.accentColor,
@@ -35,12 +35,12 @@ bool ColorPicker::HasProperty(PropertyId id) const {
     return id == PropertyId::SelectedColor || UIElement::HasProperty(id);
 }
 
-void ColorPicker::SetProperty(PropertyId id, const Value& val) {
+void ColorPicker::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::SelectedColor) {
-        SetSelectedColor(val.AsColor());
+        ApplySelectedColor(val.AsColor());
         return;
     }
-    UIElement::SetProperty(id, val);
+    UIElement::ApplyProperty(id, val);
 }
 
 Size ColorPicker::Measure(Size availableSize) {
@@ -50,7 +50,7 @@ Size ColorPicker::Measure(Size availableSize) {
     return m_desiredSize;
 }
 
-void ColorPicker::SetSelectedColor(D2D1_COLOR_F color) {
+void ColorPicker::ApplySelectedColor(D2D1_COLOR_F color) {
     m_selectedColor = color;
     NotifyFieldChanged(PropertyId::SelectedColor, Value(color));
     m_onColorChangedEvent.Invoke(this, color);
@@ -133,14 +133,14 @@ bool ColorPicker::ApplyPopupPoint(Point pt, bool allowSwatch) {
     if (canvasRect.Contains(pt.x, pt.y)) {
         m_sat = std::clamp((pt.x - canvasRect.x) / canvasRect.width, 0.0f, 1.0f);
         m_val = std::clamp(1.0f - (pt.y - canvasRect.y) / canvasRect.height, 0.0f, 1.0f);
-        SetSelectedColor(HSVToRGB(m_hue, m_sat, m_val));
+        ApplySelectedColor(HSVToRGB(m_hue, m_sat, m_val));
         return true;
     }
 
     const Rect hueRect = HueRect(popRect);
     if (hueRect.Contains(pt.x, pt.y)) {
         m_hue = std::clamp((pt.y - hueRect.y) / hueRect.height, 0.0f, 1.0f) * 360.0f;
-        SetSelectedColor(HSVToRGB(m_hue, m_sat, m_val));
+        ApplySelectedColor(HSVToRGB(m_hue, m_sat, m_val));
         return true;
     }
 
@@ -149,7 +149,7 @@ bool ColorPicker::ApplyPopupPoint(Point pt, bool allowSwatch) {
     }
     for (size_t i = 0; i < m_swatches.size(); ++i) {
         if (SwatchRect(popRect, i).Contains(pt.x, pt.y)) {
-            SetSelectedColor(m_swatches[i]);
+            ApplySelectedColor(m_swatches[i]);
             return true;
         }
     }
@@ -158,7 +158,7 @@ bool ColorPicker::ApplyPopupPoint(Point pt, bool allowSwatch) {
 
 bool ColorPicker::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
-    m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
+    m_popupAnim.ApplyTarget(m_isPopupOpen ? 1.0f : 0.0f);
     bool animating = m_popupAnim.Tick(dt, PopupReveal::kSpec);
     if (animating) {
         MarkPopupDirty();
@@ -185,12 +185,12 @@ void ColorPicker::OnMouseDown(Point pt) {
         if (GetPopupBounds().Contains(pt.x, pt.y)) {
             return;
         }
-        SetPopupOpen(false);
+        ApplyPopupOpen(false);
         return;
     }
 
     if (m_bounds.Contains(pt.x, pt.y)) {
-        SetPopupOpen(true);
+        ApplyPopupOpen(true);
     }
 }
 
@@ -204,13 +204,13 @@ void ColorPicker::OnMouseMove(Point pt) {
         const Rect canvasRect = CanvasRect(popRect);
         m_sat = std::clamp((pt.x - canvasRect.x) / canvasRect.width, 0.0f, 1.0f);
         m_val = std::clamp(1.0f - (pt.y - canvasRect.y) / canvasRect.height, 0.0f, 1.0f);
-        SetSelectedColor(HSVToRGB(m_hue, m_sat, m_val));
+        ApplySelectedColor(HSVToRGB(m_hue, m_sat, m_val));
         return;
     }
     if (m_dragPart == PopupPart::Hue) {
         const Rect hueRect = HueRect(popRect);
         m_hue = std::clamp((pt.y - hueRect.y) / hueRect.height, 0.0f, 1.0f) * 360.0f;
-        SetSelectedColor(HSVToRGB(m_hue, m_sat, m_val));
+        ApplySelectedColor(HSVToRGB(m_hue, m_sat, m_val));
     }
 }
 
@@ -234,7 +234,7 @@ void ColorPicker::OnRender(GraphicsContext& ctx) {
     ctx.DrawText(hexBuf, textRect, ThemeManager::Instance().GetTokens().textPrimary, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
-void ColorPicker::SetPopupOpen(bool open) {
+void ColorPicker::ApplyPopupOpen(bool open) {
     if (m_isPopupOpen == open) return;
     m_isPopupOpen = open;
     if (!open) {

@@ -27,7 +27,7 @@ public:
     virtual const char* GetClassName() const override { return "Expander"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
     virtual HCURSOR GetCursor() const override; // 获取悬浮交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 测算头部空间及下方折拢状态下的子内容排版占高
@@ -46,24 +46,24 @@ public:
     virtual void OnThemeChanged() override; // 响应主题更改，重新重绘
 
     const std::string& GetHeader() const { return m_header; } // 获取头部主标题文本内容
-    void SetHeader(const std::string& header); // 设置头部主标题文本内容
+    void ApplyHeader(const std::string& header); // 设置头部主标题文本内容
 
     const std::string& GetSubtitle() const { return m_subtitle; } // 获取头部副标题说明文本内容
-    void SetSubtitle(const std::string& subtitle); // 设置头部副标题说明文本内容
+    void ApplySubtitle(const std::string& subtitle); // 设置头部副标题说明文本内容
 
     bool GetIsExpanded() const { return m_isExpanded; } // 检查当前是否处于展开状态
-    void SetIsExpanded(bool expanded); // 设定是否展开面板并启动高度缩放过渡动画
-    void SetExpanded(bool expanded) { SetIsExpanded(expanded); } // 兼容别名：设定是否展开
+    void ApplyIsExpanded(bool expanded); // 设定是否展开面板并启动高度缩放过渡动画
+    void ApplyExpanded(bool expanded) { ApplyIsExpanded(expanded); } // 兼容别名：设定是否展开
 
     ExpandDirection GetExpandDirection() const { return m_expandDirection; } // 获取折展的方向朝向
-    void SetExpandDirection(ExpandDirection direction); // 设置折展的方向朝向
+    void ApplyExpandDirection(ExpandDirection direction); // 设置折展的方向朝向
 
     /**
      * @brief 折叠面板折叠区承载的 UIElement 内容元素属性代理。
      */
     struct ExpanderContentProperty {
         Expander* owner;
-        ExpanderContentProperty& operator=(std::shared_ptr<UIElement> c) { owner->SetContent(std::move(c)); return *this; }
+        ExpanderContentProperty& operator=(std::shared_ptr<UIElement> c) { owner->ApplyContent(std::move(c)); return *this; }
         operator std::shared_ptr<UIElement>() const { return owner->GetContent(); }
         std::shared_ptr<UIElement> Get() const { return owner->GetContent(); }
         std::shared_ptr<UIElement> operator->() const { return owner->GetContent(); }
@@ -74,12 +74,12 @@ public:
      */
     struct ExpanderExpandDirectionProperty {
         Expander* owner;
-        ExpanderExpandDirectionProperty& operator=(ExpandDirection d) { owner->SetExpandDirection(d); return *this; }
+        ExpanderExpandDirectionProperty& operator=(ExpandDirection d) { owner->ApplyExpandDirection(d); return *this; }
         operator ExpandDirection() const { return owner->GetExpandDirection(); }
         ExpandDirection Get() const { return owner->GetExpandDirection(); }
     } ExpandDirection{this};
 
-    void SetContent(std::shared_ptr<UIElement> content); // 设定要展开或隐藏的子级内容控件
+    void ApplyContent(std::shared_ptr<UIElement> content); // 设定要展开或隐藏的子级内容控件
     std::shared_ptr<UIElement> GetContent() const { return m_content; } // 获取子级内容控件
 
     Event<Expander*>& OnExpanding() { return m_onExpanding; } // 展开动作发起时的事件派发器

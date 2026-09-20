@@ -7,11 +7,11 @@ namespace Gallery {
 namespace {
 
 void StyleBox(std::shared_ptr<TextBlock> t) {
-        t->SetBackgroundToken(ThemeTokenId::CardBackground);
-        t->SetBorderToken(ThemeTokenId::CardBorder);
-        t->SetBorderThickness(1.0f);
-        t->SetPadding(Thickness(8, 4, 8, 4));
-        t->SetMargin(Thickness(0, 0, 0, 4));
+        t->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+        t->ApplyBorderToken(ThemeTokenId::CardBorder);
+        t->ApplyBorderThickness(1.0f);
+        t->ApplyPadding(Thickness(8, 4, 8, 4));
+        t->ApplyMargin(Thickness(0, 0, 0, 4));
 }
 
 } // namespace
@@ -36,23 +36,23 @@ std::shared_ptr<UIElement> BuildTextBlockPage() {
     auto code = Text("Consolas 等宽字体").FontSize(13).FontFamily("Consolas").Build();
     auto colored = Text("自定义颜色 #E68A00").FontSize(14).Color(Color::Hex("#E68A00")).Build();
 
-    auto left = Text("左对齐 Left").FontSize(13).Width(240).Build();
-        left->SetTextAlign(TextAlignment::Left);
-    auto center = Text("居中对齐 Center").FontSize(13).Width(240).Build();
-        center->SetTextAlign(TextAlignment::Center);
-    auto right = Text("右对齐 Right").FontSize(13).Width(240).Build();
-        right->SetTextAlign(TextAlignment::Right);
+    CUI::Widgets::Ref left =Text("左对齐 Left").FontSize(13).Width(240).Build();
+        left.TextAlign(TextAlignment::Left);
+    CUI::Widgets::Ref center =Text("居中对齐 Center").FontSize(13).Width(240).Build();
+        center.TextAlign(TextAlignment::Center);
+    CUI::Widgets::Ref right =Text("右对齐 Right").FontSize(13).Width(240).Build();
+        right.TextAlign(TextAlignment::Right);
     StyleBox(left);
     StyleBox(center);
     StyleBox(right);
 
-    auto multiline = Text();
-        multiline->SetText("第一行：DirectWrite 自绘文本\n"
+    auto multiline =Text();
+        multiline.Text("第一行：DirectWrite 自绘文本\n"
                        "第二行：显式 \\n 换行\n"
                        "第三行：行距 LineSpacing = 1.6");
-        multiline->SetWidth(360.0f);
-        multiline->SetLineSpacing(1.6f);
-        multiline->SetFontSize(13.0f);
+        multiline.Width(360.0f);
+        multiline.LineSpacing(1.6f);
+        multiline.FontSize(13.0f);
 
     SamplePageSpec spec;
     spec.title = "TextBlock(文本块)";
@@ -92,10 +92,10 @@ std::shared_ptr<UIElement> BuildTextBlockPage() {
         },
     };
     spec.source =
-        "auto t = Text(\"你好，世界\").FontSize(16).Build();\n"
+        "CUI::Widgets::Ref t =Text(\"你好，世界\").FontSize(16).Build();\n"
         "t->ColorToken = ThemeTokenId::TextPrimary;\n"
-        "        t->SetTextAlign(TextAlignment::Center);\n"
-        "        t->SetLineSpacing(1.6f);\n"
+        "        t.TextAlign(TextAlignment::Center);\n"
+        "        t.LineSpacing(1.6f);\n"
         "t->Underline = true;\n";
     return BuildSamplePage(spec);
 }

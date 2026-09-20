@@ -29,13 +29,13 @@ public:
     void ScanSync();
     void StartScan(std::function<void()> onCompleted = nullptr);
 
-    void SetCategory(StartupCategory category);
+    void ApplyCategory(StartupCategory category);
     StartupCategory GetCategory() const { return m_activeCategory; }
 
-    void SetFilterText(const std::string& filter);
+    void ApplyFilterText(const std::string& filter);
     const std::string& GetFilterText() const { return m_filterText; }
 
-    void SetSelectedId(const std::string& id);
+    void ApplySelectedId(const std::string& id);
     const std::string& GetSelectedId() const { return m_selectedId; }
     const StartupEntry* GetSelectedEntry() const;
 

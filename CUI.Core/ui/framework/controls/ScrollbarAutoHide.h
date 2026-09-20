@@ -27,7 +27,7 @@ public:
         ArmIdleWake(wakeOwner);
     }
 
-    void SetPointerOver(bool over, UIElement* wakeOwner = nullptr) {
+    void ApplyPointerOver(bool over, UIElement* wakeOwner = nullptr) {
         if (m_pointerOver == over) {
             return;
         }
@@ -40,7 +40,7 @@ public:
         }
     }
 
-    void SetDragging(bool dragging, UIElement* wakeOwner = nullptr) {
+    void ApplyDragging(bool dragging, UIElement* wakeOwner = nullptr) {
         if (m_dragging == dragging) {
             return;
         }

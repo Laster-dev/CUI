@@ -12,7 +12,7 @@ public:
     using clock = std::chrono::steady_clock;
 
     static FrameScheduler* Current();
-    static void SetCurrent(FrameScheduler* scheduler);
+    static void ApplyCurrent(FrameScheduler* scheduler);
 
     // Request the next frame slot (paced by DXGI Present when painting).
     void ScheduleFrame();
@@ -27,7 +27,7 @@ public:
     // True if a frame should run now. Clears "immediate" request; keeps future ScheduleFrameAt.
     bool ConsumeDue(clock::time_point now);
 
-    void SetMinFrameInterval(clock::duration interval);
+    void ApplyMinFrameInterval(clock::duration interval);
     clock::duration GetMinFrameInterval() const { return m_minInterval; }
 
 private:

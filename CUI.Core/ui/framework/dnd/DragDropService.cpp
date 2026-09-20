@@ -15,7 +15,7 @@ DragDropService* DragDropService::Current() {
     return s_current;
 }
 
-void DragDropService::SetCurrent(DragDropService* service) {
+void DragDropService::ApplyCurrent(DragDropService* service) {
     s_current = service;
 }
 
@@ -91,7 +91,7 @@ IDropTarget* DragDropService::FindTarget(Point pt, UIElement* root) const {
     return FindDeepestDropTarget(root, pt, 0, bestDepth);
 }
 
-void DragDropService::SetTarget(IDropTarget* target, Point pt) {
+void DragDropService::ApplyTarget(IDropTarget* target, Point pt) {
     if (m_target == target) {
         if (m_target) {
             m_effect = m_target->OnDragOver(pt, m_package, ProposeEffect(m_allowed));
@@ -191,7 +191,7 @@ void DragDropService::Update(Point pt, UIElement* root) {
     }
     DirtyGhost();
     m_pointer = pt;
-    SetTarget(FindTarget(pt, root), pt);
+    ApplyTarget(FindTarget(pt, root), pt);
     if (!m_external) {
         SetCursor(LoadCursor(nullptr, m_effect == DragDropEffects::None ? IDC_NO : IDC_ARROW));
     }
@@ -203,7 +203,7 @@ void DragDropService::CompleteDrop(Point pt, UIElement* root) {
         return;
     }
     m_pointer = pt;
-    SetTarget(FindTarget(pt, root), pt);
+    ApplyTarget(FindTarget(pt, root), pt);
     IDropTarget* droppedOn = m_target;
     DragDropEffects effect = m_effect;
     bool accepted = false;

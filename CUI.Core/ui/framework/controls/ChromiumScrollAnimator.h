@@ -16,7 +16,7 @@ public:
         m_totalDuration = 0.0;
         m_lastRetarget = 0.0;
         m_active = false;
-        SetEaseInOut();
+        ApplyEaseInOut();
     }
 
     void ScrollBy(float delta, float minValue, float maxValue) {
@@ -27,7 +27,7 @@ public:
             m_lastRetarget = m_elapsed;
             m_totalDuration = m_elapsed + SegmentDuration(m_target - m_initial);
             m_active = std::abs(m_target - m_initial) >= kEpsilon;
-            SetEaseInOut();
+            ApplyEaseInOut();
             return;
         }
         UpdateTarget(newTarget);
@@ -125,11 +125,11 @@ private:
         kInverseDeltaMaxDuration - kInverseDeltaRampStartPx * kInverseDeltaSlope;
     static constexpr double kEpsilon = 0.01;
 
-    void SetEaseInOut() {
+    void ApplyEaseInOut() {
         m_bezier = CubicBezier{ 0.42, 0.0, 0.58, 1.0 };
     }
 
-    void SetEaseInOutWithInitialSlope(double slope) {
+    void ApplyEaseInOutWithInitialSlope(double slope) {
         slope = std::clamp(slope, -1000.0, 1000.0);
         m_bezier = CubicBezier{ 0.42, 0.42 * slope, 0.58, 1.0 };
     }
@@ -195,7 +195,7 @@ private:
             m_target = newTarget;
             m_totalDuration = t + SegmentDuration(newDelta);
             m_lastRetarget = t;
-            SetEaseInOut();
+            ApplyEaseInOut();
             m_active = true;
             return;
         }
@@ -212,7 +212,7 @@ private:
 
         double velocity = CalculateVelocity(t);
         double newSlope = velocity * (newDuration / newDelta);
-        SetEaseInOutWithInitialSlope(newSlope);
+        ApplyEaseInOutWithInitialSlope(newSlope);
         m_current = currentPosition;
         m_initial = currentPosition;
         m_target = newTarget;

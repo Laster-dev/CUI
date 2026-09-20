@@ -23,7 +23,7 @@ public:
     virtual const char* GetClassName() const override { return "InfoBar"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;
@@ -33,23 +33,23 @@ public:
     virtual bool HasSelfAnimation() const override;
     virtual void OnThemeChanged() override;
 
-    void SetTitle(const std::string& title);
+    void ApplyTitle(const std::string& title);
     const std::string& GetTitle() const { return m_title; }
-    void SetMessage(const std::string& message);
+    void ApplyMessage(const std::string& message);
     const std::string& GetMessage() const { return m_message; }
 
-    void SetSeverity(InfoBarSeverity severity);
+    void ApplySeverity(InfoBarSeverity severity);
     InfoBarSeverity GetSeverity() const { return m_severity; }
 
-    void SetIsOpen(bool open);
+    void ApplyIsOpen(bool open);
     bool GetIsOpen() const { return m_isOpen; }
 
-    void SetIsClosable(bool closable);
+    void ApplyIsClosable(bool closable);
     bool GetIsClosable() const { return m_isClosable; }
 
-    void SetActionText(const std::string& text);
+    void ApplyActionText(const std::string& text);
     const std::string& GetActionText() const { return m_actionText; }
-    void SetActionCommand(std::shared_ptr<Command> command);
+    void ApplyActionCommand(std::shared_ptr<Command> command);
     std::shared_ptr<Command> GetActionCommand() const { return m_actionCommand; }
 
     Event<>& OnAction() { return m_onAction; }

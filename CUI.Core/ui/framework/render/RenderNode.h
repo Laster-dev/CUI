@@ -11,13 +11,13 @@ class RenderNode {
 public:
     explicit RenderNode(UIElement* owner = nullptr);
 
-    void SetOwner(UIElement* owner) { m_owner = owner; }
+    void ApplyOwner(UIElement* owner) { m_owner = owner; }
     UIElement* GetOwner() const { return m_owner; }
 
     RenderLayer& GetLayer() { return m_layer; }
     const RenderLayer& GetLayer() const { return m_layer; }
 
-    void SetBounds(const Rect& bounds);
+    void ApplyBounds(const Rect& bounds);
     const Rect& GetBounds() const { return m_bounds; }
     const Rect& GetPreviousBounds() const { return m_previousBounds; }
 

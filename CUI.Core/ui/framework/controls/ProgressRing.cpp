@@ -58,13 +58,13 @@ float NormalizeAngle(float radians) {
 } // namespace
 
 ProgressRing::ProgressRing() {
-    this->SetFillColorToken(ThemeTokenId::AccentColor);
-    this->SetTrackColorToken(ThemeTokenId::CardBorder);
-    this->SetWidth(32.0f);
-    this->SetHeight(32.0f);
-    this->SetHoverBackgroundToken(ThemeTokenId::Unset);
-    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyFillColorToken(ThemeTokenId::AccentColor);
+    this->ApplyTrackColorToken(ThemeTokenId::CardBorder);
+    this->ApplyWidth(32.0f);
+    this->ApplyHeight(32.0f);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::Unset);
+    this->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
     m_displayValue = GetValue();
 }
 
@@ -90,17 +90,17 @@ bool ProgressRing::HasProperty(PropertyId id) const {
     }
 }
 
-void ProgressRing::SetProperty(PropertyId id, const Value& val) {
+void ProgressRing::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::ControlValue: SetValue(val.AsFloat()); return;
-    case PropertyId::Minimum: SetMinimum(val.AsFloat()); return;
-    case PropertyId::Maximum: SetMaximum(val.AsFloat()); return;
-    case PropertyId::IsIndeterminate: SetIsIndeterminate(val.AsBool()); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::ControlValue: ApplyValue(val.AsFloat()); return;
+    case PropertyId::Minimum: ApplyMinimum(val.AsFloat()); return;
+    case PropertyId::Maximum: ApplyMaximum(val.AsFloat()); return;
+    case PropertyId::IsIndeterminate: ApplyIsIndeterminate(val.AsBool()); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
-void ProgressRing::SetValue(float val) {
+void ProgressRing::ApplyValue(float val) {
     if (m_value == val) {
         return;
     }
@@ -113,7 +113,7 @@ void ProgressRing::SetValue(float val) {
     RequestAnimationTicks();
 }
 
-void ProgressRing::SetMinimum(float minVal) {
+void ProgressRing::ApplyMinimum(float minVal) {
     if (m_minimum == minVal) {
         return;
     }
@@ -122,7 +122,7 @@ void ProgressRing::SetMinimum(float minVal) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void ProgressRing::SetMaximum(float maxVal) {
+void ProgressRing::ApplyMaximum(float maxVal) {
     if (m_maximum == maxVal) {
         return;
     }
@@ -131,7 +131,7 @@ void ProgressRing::SetMaximum(float maxVal) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void ProgressRing::SetIsIndeterminate(bool ind) {
+void ProgressRing::ApplyIsIndeterminate(bool ind) {
     if (m_isIndeterminate == ind) {
         return;
     }

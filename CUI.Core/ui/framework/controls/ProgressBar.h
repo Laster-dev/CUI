@@ -15,7 +15,7 @@ public:
     virtual const char* GetClassName() const override { return "ProgressBar"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
@@ -27,7 +27,7 @@ public:
     virtual void OnNavigatedFrom() override;
 
     float GetValue() const { return m_value; }
-    void SetValue(float val) {
+    void ApplyValue(float val) {
         if (m_value == val) {
             return;
         }
@@ -41,7 +41,7 @@ public:
     }
 
     float GetMinimum() const { return m_minimum; }
-    void SetMinimum(float minVal) {
+    void ApplyMinimum(float minVal) {
         if (m_minimum == minVal) {
             return;
         }
@@ -51,7 +51,7 @@ public:
     }
 
     float GetMaximum() const { return m_maximum; }
-    void SetMaximum(float maxVal) {
+    void ApplyMaximum(float maxVal) {
         if (m_maximum == maxVal) {
             return;
         }
@@ -61,7 +61,7 @@ public:
     }
 
     bool IsIndeterminate() const { return m_isIndeterminate; }
-    void SetIsIndeterminate(bool ind);
+    void ApplyIsIndeterminate(bool ind);
 
 private:
     struct ComposePill {

@@ -11,7 +11,7 @@
 namespace CUI {
 
 LineChart::LineChart() {
-    this->SetText("折线图");
+    this->ApplyText("折线图");
 }
 
 void LineChart::BindHoverMotion(const Rect& plot) {
@@ -25,7 +25,7 @@ void LineChart::BindHoverMotion(const Rect& plot) {
     std::vector<ChartTick> ticks;
     BuildYScale(plot, yMin, yMax, ticks);
     if (m_hoverIndex < static_cast<int>(m_series[0].values.size())) {
-        m_crossY.SetTarget(MapY(plot, m_series[0].values[m_hoverIndex], yMin, yMax));
+        m_crossY.ApplyTarget(MapY(plot, m_series[0].values[m_hoverIndex], yMin, yMax));
     }
 }
 

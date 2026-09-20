@@ -27,7 +27,7 @@ public:
     virtual const char* GetClassName() const override { return "ListBox"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_ARROW) : nullptr; }
 
     virtual Size Measure(Size availableSize) override;
@@ -48,9 +48,9 @@ public:
 
     struct ListBoxItemsProperty {
         ListBox* owner;
-        ListBoxItemsProperty& operator=(const std::vector<std::string>& items) { owner->SetItems(items); return *this; }
-        ListBoxItemsProperty& operator=(std::initializer_list<std::string> items) { owner->SetItems(std::vector<std::string>(items)); return *this; }
-        ListBoxItemsProperty& operator=(const std::string& itemsCsv) { owner->SetItems(itemsCsv); return *this; }
+        ListBoxItemsProperty& operator=(const std::vector<std::string>& items) { owner->ApplyItems(items); return *this; }
+        ListBoxItemsProperty& operator=(std::initializer_list<std::string> items) { owner->ApplyItems(std::vector<std::string>(items)); return *this; }
+        ListBoxItemsProperty& operator=(const std::string& itemsCsv) { owner->ApplyItems(itemsCsv); return *this; }
         size_t size() const { return owner->GetItemCount(); }
     } Items{this};
 
@@ -59,7 +59,7 @@ public:
 
     struct ListBoxSelectionModeProperty {
         ListBox* owner;
-        ListBoxSelectionModeProperty& operator=(ListBoxSelectionMode mode) { owner->SetSelectionMode(mode); return *this; }
+        ListBoxSelectionModeProperty& operator=(ListBoxSelectionMode mode) { owner->ApplySelectionMode(mode); return *this; }
         operator ListBoxSelectionMode() const { return owner->GetSelectionMode(); }
         ListBoxSelectionMode Get() const { return owner->GetSelectionMode(); }
     } SelectionMode{this};
@@ -69,8 +69,8 @@ public:
     void AddItem(std::shared_ptr<UIElement> customElement);
     void InsertItem(int index, const std::string& item);
     void RemoveItem(int index);
-    void SetItems(const std::vector<std::string>& items);
-    void SetItems(const std::string& itemsCsv);
+    void ApplyItems(const std::vector<std::string>& items);
+    void ApplyItems(const std::string& itemsCsv);
     void ClearItems();
 
     virtual UIElement* HitTest(float x, float y) override;
@@ -80,10 +80,10 @@ public:
 
     // Selection Management
     ListBoxSelectionMode GetSelectionMode() const { return m_selectionMode; }
-    void SetSelectionMode(ListBoxSelectionMode mode) { m_selectionMode = mode; }
+    void ApplySelectionMode(ListBoxSelectionMode mode) { m_selectionMode = mode; }
 
     int GetSelectedIndex() const { return m_selectedIndex; }
-    void SetSelectedIndex(int index);
+    void ApplySelectedIndex(int index);
 
     PropertyRef<int, PropertyId::SelectedIndex> SelectedIndex; // 选中项索引的响应式双向绑定属性代理
     /**
@@ -101,7 +101,7 @@ public:
      */
     struct ListBoxSelectedItemProperty {
         ListBox* owner;
-        ListBoxSelectedItemProperty& operator=(const std::string& item) { owner->SetSelectedItem(item); return *this; }
+        ListBoxSelectedItemProperty& operator=(const std::string& item) { owner->ApplySelectedItem(item); return *this; }
         operator std::string() const { return owner->GetSelectedItem(); }
         std::string Get() const { return owner->GetSelectedItem(); }
     } SelectedItem{this};
@@ -111,7 +111,7 @@ public:
      */
     struct ListBoxAllowDragProperty {
         ListBox* owner;
-        ListBoxAllowDragProperty& operator=(bool d) { owner->SetAllowDrag(d); return *this; }
+        ListBoxAllowDragProperty& operator=(bool d) { owner->ApplyAllowDrag(d); return *this; }
         operator bool() const { return owner->GetAllowDrag(); }
         bool Get() const { return owner->GetAllowDrag(); }
     } AllowDrag{this};
@@ -121,49 +121,49 @@ public:
      */
     struct ListBoxAllowDropProperty {
         ListBox* owner;
-        ListBoxAllowDropProperty& operator=(bool d) { owner->SetAllowDrop(d); return *this; }
+        ListBoxAllowDropProperty& operator=(bool d) { owner->ApplyAllowDrop(d); return *this; }
         operator bool() const { return owner->GetAllowDrop(); }
         bool Get() const { return owner->GetAllowDrop(); }
     } AllowDrop{this};
 
     std::string GetSelectedItem() const;
-    void SetSelectedItem(const std::string& item) {
+    void ApplySelectedItem(const std::string& item) {
         for (size_t i = 0; i < GetItemCount(); ++i) {
             if (GetItemAt(i) == item) {
-                SetSelectedIndex(static_cast<int>(i));
+                ApplySelectedIndex(static_cast<int>(i));
                 return;
             }
         }
-        SetSelectedIndex(-1);
+        ApplySelectedIndex(-1);
     }
 
     const std::unordered_set<int>& GetSelectedIndices() const { return m_selectedIndices; }
-    void SetItemSelected(int index, bool selected);
+    void ApplyItemSelected(int index, bool selected);
     bool IsItemSelected(int index) const;
     void SelectAll();
     void ClearSelection();
 
     int GetCaretIndex() const { return m_caretIndex; }
-    void SetCaretIndex(int index);
+    void ApplyCaretIndex(int index);
 
     // Virtual Mode (0 memory allocation for 100k/1M items)
-    void SetVirtualCount(size_t count);
+    void ApplyVirtualCount(size_t count);
     void RefreshVirtualCount(size_t count);
 
     struct ListBoxDataSource {
         virtual ~ListBoxDataSource() = default;
         virtual std::string GetItemText(size_t index) = 0;
     };
-    void SetVirtualMode(size_t count, ListBoxDataSource* dataSource);
+    void ApplyVirtualMode(size_t count, ListBoxDataSource* dataSource);
     bool IsVirtualMode() const { return m_virtualMode; }
 
     // Events
     Event<ListBox*, int, const std::string&>& OnSelectionChanged() { return m_onSelectionChangedEvent; }
     Event<ListBox*, int, const std::string&>& OnItemDoubleClicked() { return m_onItemDoubleClickedEvent; }
 
-    void SetAllowDrag(bool allow) { m_allowDrag = allow; }
+    void ApplyAllowDrag(bool allow) { m_allowDrag = allow; }
     bool GetAllowDrag() const { return m_allowDrag; }
-    void SetAllowDrop(bool allow) { m_allowDrop = allow; }
+    void ApplyAllowDrop(bool allow) { m_allowDrop = allow; }
     bool GetAllowDrop() const { return m_allowDrop; }
 
     DataPackage BeginDrag(Point pt) override;

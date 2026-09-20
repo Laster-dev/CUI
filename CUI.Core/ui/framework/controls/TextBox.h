@@ -24,7 +24,7 @@ public:
     virtual const char* GetClassName() const override { return "TextBox"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
     virtual HCURSOR GetCursor() const override;
     bool AcceptsTabFocus() const override { return true; }
 
@@ -51,7 +51,7 @@ public:
      */
     struct TextBoxIsPasswordModeProperty {
         TextBox* owner;
-        TextBoxIsPasswordModeProperty& operator=(bool p) { owner->SetIsPasswordMode(p); return *this; }
+        TextBoxIsPasswordModeProperty& operator=(bool p) { owner->ApplyIsPasswordMode(p); return *this; }
         operator bool() const { return owner->GetIsPasswordMode(); }
         bool Get() const { return owner->GetIsPasswordMode(); }
     } IsPasswordMode{this};
@@ -61,12 +61,12 @@ public:
      */
     struct TextBoxAllowDropProperty {
         TextBox* owner;
-        TextBoxAllowDropProperty& operator=(bool d) { owner->SetAllowDrop(d); return *this; }
+        TextBoxAllowDropProperty& operator=(bool d) { owner->ApplyAllowDrop(d); return *this; }
         operator bool() const { return owner->GetAllowDrop(); }
         bool Get() const { return owner->GetAllowDrop(); }
     } AllowDrop{this};
 
-    void SetCompositionString(const std::wstring& compStr);
+    void ApplyCompositionString(const std::wstring& compStr);
     std::wstring GetCompositionString() const { return m_compString; }
 
     void SelectAll();
@@ -74,14 +74,14 @@ public:
     void DeleteSelection();
 
     const std::string& GetText() const { return UIElement::GetText(); }
-    void SetText(const std::string& text);
+    void ApplyText(const std::string& text);
 
     const std::string& GetPlaceholder() const { return UIElement::GetPlaceholder(); }
-    void SetPlaceholder(const std::string& ph) { UIElement::SetPlaceholder(ph); }
+    void ApplyPlaceholder(const std::string& ph) { UIElement::ApplyPlaceholder(ph); }
 
     virtual std::wstring GetDisplayedText() const;
     bool GetIsPasswordMode() const { return m_isPasswordMode; }
-    void SetIsPasswordMode(bool isPass) {
+    void ApplyIsPasswordMode(bool isPass) {
         m_isPasswordMode = isPass;
         MarkRenderContentDirty();
     }
@@ -91,57 +91,57 @@ public:
     }
 
     bool GetIsPasswordRevealed() const { return m_isPasswordRevealed; }
-    void SetIsPasswordRevealed(bool revealed) { m_isPasswordRevealed = revealed; MarkRenderContentDirty(); }
+    void ApplyIsPasswordRevealed(bool revealed) { m_isPasswordRevealed = revealed; MarkRenderContentDirty(); }
 
     bool GetShowRevealButton() const { return m_showRevealButton; }
-    void SetShowRevealButton(bool show) {
+    void ApplyShowRevealButton(bool show) {
         m_showRevealButton = show;
         MarkRenderContentDirty();
     }
 
     bool GetIsReadOnly() const { return m_isReadOnly; }
-    void SetIsReadOnly(bool readOnly) {
+    void ApplyIsReadOnly(bool readOnly) {
         m_isReadOnly = readOnly;
         MarkRenderContentDirty();
     }
 
-    void SetAcceptsReturn(bool accepts) {
+    void ApplyAcceptsReturn(bool accepts) {
         m_acceptsReturn = accepts;
         MarkRenderContentDirty();
     }
 
-    void SetTextWrapping(bool wrap) {
+    void ApplyTextWrapping(bool wrap) {
         m_textWrapping = wrap;
         MarkRenderContentDirty();
     }
 
     float GetLineSpacing() const { return m_lineSpacing; }
-    void SetLineSpacing(float spacing) {
+    void ApplyLineSpacing(float spacing) {
         m_lineSpacing = spacing;
         MarkRenderContentDirty();
     }
 
     float GetLineHeight() const { return m_lineHeight; }
-    void SetLineHeight(float height) {
+    void ApplyLineHeight(float height) {
         m_lineHeight = height;
         MarkRenderContentDirty();
     }
 
     int GetCaretBlinkRate() const { return m_caretBlinkRate; }
-    void SetCaretBlinkRate(int ms) {
+    void ApplyCaretBlinkRate(int ms) {
         m_caretBlinkRate = ms;
         MarkRenderContentDirty();
     }
 
     float GetCaretWidth() const { return m_caretWidth; }
-    void SetCaretWidth(float width) {
+    void ApplyCaretWidth(float width) {
         m_caretWidth = width;
         MarkRenderContentDirty();
     }
 
     Event<TextBox*, const std::string&>& OnTextChanged() { return m_onTextChangedEvent; }
 
-    void SetAllowDrop(bool allow) { m_allowDrop = allow; }
+    void ApplyAllowDrop(bool allow) { m_allowDrop = allow; }
     bool GetAllowDrop() const { return m_allowDrop; }
     DragDropEffects OnDragOver(Point pt, const DataPackage& data, DragDropEffects allowed) override;
     void OnDragLeave() override;

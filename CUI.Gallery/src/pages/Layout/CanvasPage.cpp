@@ -54,7 +54,7 @@ public:
     float height = 0.0f;
     std::vector<Ball> balls;
 
-    void SetViewport(float viewportWidth, float viewportHeight) {
+    void ApplyViewport(float viewportWidth, float viewportHeight) {
         width = (std::max)(0.0f, viewportWidth);
         height = (std::max)(0.0f, viewportHeight);
         for (auto& ball : balls) {
@@ -206,7 +206,7 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
         canvas.ClipToBounds(true);
 
         canvas->OnDraw().Connect([world, aim](GraphicsContext& ctx, Size size) {
-        world->SetViewport(size.width, size.height);
+        world->ApplyViewport(size.width, size.height);
         // 深色舞台背景 + 边框
         ctx.FillRoundedRect(Rect(0, 0, size.width, size.height), 6.0f, Rgb(0x16161E));
         ctx.DrawRoundedRect(Rect(0.5f, 0.5f, size.width - 1.0f, size.height - 1.0f), 6.0f, Rgb(0x3A3A4A), 1.0f);
@@ -384,9 +384,9 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     sideCircle->CanvasTop = 92.0f;
     canvasSide->AddChild(sideCircle);
 
-    auto flowColumn = Column(8).Padding(12)
+    auto flowColumn =Column(8).Padding(12)
         .MinHeight(150.0f);
-        flowColumn->SetBackgroundToken(ThemeTokenId::CardBackground);
+        flowColumn.BackgroundToken(ThemeTokenId::CardBackground);
     CUI::Widgets::Ref flowRect = CUI::Widgets::Rectangle().Width(110).Height(46).Shared();
         flowRect.Fill(Rgb(0x007ACC, 0.45f));
         flowRect.CornerRadius(4.0f);
@@ -396,7 +396,7 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     flowColumn->AddChild(flowCircle);
 
     // —— 高性能：重力引擎 + 发射小球 ——
-    auto world = std::make_shared<PhysicsWorld>();
+    CUI::Widgets::Ref world =std::make_shared<PhysicsWorld>();
     auto aim = std::make_shared<AimState>();
     State<int> ballCount{ 0 };
 

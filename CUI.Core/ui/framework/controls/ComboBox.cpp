@@ -43,37 +43,37 @@ bool ComboBox::HasProperty(PropertyId id) const {
 
 ComboBox::ComboBox() {
     SelectedIndex.Initialize(*this);
-        this->SetPlaceholder("Select option...");
-    this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->SetBorderToken(ThemeTokenId::InputBorder);
-    this->SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    this->SetDropdownBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetSelectedItemBackgroundToken(ThemeTokenId::SelectedBackground);
-    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
-    this->SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
-    this->SetBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
-    this->SetBorderThickness(1.0f);
-    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    this->SetFontSize(12.0f);
-    this->SetFontFamily("微软雅黑");
-    this->SetPadding(Thickness(10.0f, 6.0f, 10.0f, 6.0f));
-    this->SetCornerRadius(3.0f);
-    this->SetWidth(200.0f);
-    this->SetHeight(32.0f);
+        this->ApplyPlaceholder("Select option...");
+    this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->ApplyBorderToken(ThemeTokenId::InputBorder);
+    this->ApplyFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    this->ApplyDropdownBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplySelectedItemBackgroundToken(ThemeTokenId::SelectedBackground);
+    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->ApplyHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
+    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->ApplyFontSize(12.0f);
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyPadding(Thickness(10.0f, 6.0f, 10.0f, 6.0f));
+    this->ApplyCornerRadius(3.0f);
+    this->ApplyWidth(200.0f);
+    this->ApplyHeight(32.0f);
 }
 
-void ComboBox::SetProperty(PropertyId id, const Value& val) {
-    if (id == PropertyId::Items) { SetItems(val.AsString("")); return; }
+void ComboBox::ApplyProperty(PropertyId id, const Value& val) {
+    if (id == PropertyId::Items) { ApplyItems(val.AsString("")); return; }
     if (id == PropertyId::SelectedIndex) {
-        SetSelectedIndex(static_cast<int>(val.AsFloat(0.0f)));
+        ApplySelectedIndex(static_cast<int>(val.AsFloat(0.0f)));
         return;
     }
-    Control::SetProperty(id, val);
+    Control::ApplyProperty(id, val);
 }
 
-void ComboBox::SetItems(const std::string& itemsCsv) {
+void ComboBox::ApplyItems(const std::string& itemsCsv) {
     ClearItems();
     std::stringstream ss(itemsCsv);
     std::string item;
@@ -85,7 +85,7 @@ void ComboBox::SetItems(const std::string& itemsCsv) {
 void ComboBox::AddItem(const std::string& item) {
     m_items.push_back(item);
     if (m_selectedIndex == -1) {
-        SetSelectedIndex(0);
+        ApplySelectedIndex(0);
     }
 }
 
@@ -94,7 +94,7 @@ void ComboBox::ClearItems() {
     m_selectedIndex = -1;
 }
 
-void ComboBox::SetSelectedIndex(int index) {
+void ComboBox::ApplySelectedIndex(int index) {
     if (index >= 0 && index < static_cast<int>(m_items.size())) {
         if (m_selectedIndex != index) {
             m_selectedIndex = index;
@@ -301,10 +301,10 @@ bool ComboBox::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
     const AnimationSpec spec = PopupReveal::kSpec;
 
-    m_popupAnim.SetTarget(m_isDropDownOpen ? 1.0f : 0.0f);
+    m_popupAnim.ApplyTarget(m_isDropDownOpen ? 1.0f : 0.0f);
     bool animating = m_popupAnim.Tick(dt, spec);
 
-    m_arrowAnim.SetTarget(m_isDropDownOpen ? 1.0f : 0.0f);
+    m_arrowAnim.ApplyTarget(m_isDropDownOpen ? 1.0f : 0.0f);
     if (m_arrowAnim.Tick(dt, spec)) animating = true;
 
     if (m_scrollbarAutoHide.Tick(dt)) {
@@ -365,14 +365,14 @@ bool ComboBox::OnKeyDown(int vkCode) {
     const bool altDown = (GetKeyState(VK_MENU) & 0x8000) != 0;
     if (vkCode == VK_ESCAPE) {
         if (m_isDropDownOpen) {
-            SetDropDownOpen(false);
+            ApplyDropDownOpen(false);
             return true;
         }
         return false;
     }
     if (vkCode == VK_F4 || (vkCode == VK_DOWN && altDown) || (vkCode == VK_DOWN && !m_isDropDownOpen)
         || ((vkCode == VK_SPACE || vkCode == VK_RETURN) && !m_isDropDownOpen)) {
-        SetDropDownOpen(true);
+        ApplyDropDownOpen(true);
         return true;
     }
     if (m_isDropDownOpen && !m_items.empty()) {
@@ -382,24 +382,24 @@ bool ComboBox::OnKeyDown(int vkCode) {
         }
         if (vkCode == VK_DOWN) {
             idx = (std::min)(static_cast<int>(m_items.size()) - 1, idx + 1);
-            SetSelectedIndex(idx);
+            ApplySelectedIndex(idx);
             return true;
         }
         if (vkCode == VK_UP) {
             idx = (std::max)(0, idx - 1);
-            SetSelectedIndex(idx);
+            ApplySelectedIndex(idx);
             return true;
         }
         if (vkCode == VK_HOME) {
-            SetSelectedIndex(0);
+            ApplySelectedIndex(0);
             return true;
         }
         if (vkCode == VK_END) {
-            SetSelectedIndex(static_cast<int>(m_items.size()) - 1);
+            ApplySelectedIndex(static_cast<int>(m_items.size()) - 1);
             return true;
         }
         if (vkCode == VK_RETURN || vkCode == VK_SPACE) {
-            SetDropDownOpen(false);
+            ApplyDropDownOpen(false);
             return true;
         }
     }
@@ -439,21 +439,21 @@ void ComboBox::OnMouseDown(Point pt) {
             const float localY = (pt.y - (menuRect.y + 2.0f) + m_scrollOffset);
             int clickedIdx = static_cast<int>(localY / itemHeight);
             if (clickedIdx >= 0 && clickedIdx < static_cast<int>(m_items.size())) {
-                SetSelectedIndex(clickedIdx);
+                ApplySelectedIndex(clickedIdx);
             }
         }
-        SetDropDownOpen(false);
+        ApplyDropDownOpen(false);
     } else {
-        SetDropDownOpen(true);
+        ApplyDropDownOpen(true);
     }
 }
 
 void ComboBox::OnBlur() {
     Control::OnBlur();
-    SetDropDownOpen(false);
+    ApplyDropDownOpen(false);
 }
 
-void ComboBox::SetDropDownOpen(bool open) {
+void ComboBox::ApplyDropDownOpen(bool open) {
     if (m_isDropDownOpen == open) return;
     m_isDropDownOpen = open;
     if (open) {

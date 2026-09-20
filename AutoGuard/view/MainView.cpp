@@ -34,7 +34,7 @@ std::shared_ptr<UIElement> MainView::Build() {
     auto statusBar = BuildStatusBar();
 
     m_toastCenter = std::make_shared<ToastCenter>();
-        m_toastCenter->SetId("toastCenter");
+        m_toastCenter.Id("toastCenter");
 
     auto root = Column(0.0f, {
         titleBar,
@@ -54,17 +54,17 @@ std::shared_ptr<UIElement> MainView::Build() {
 }
 
 std::shared_ptr<NavigationView> MainView::BuildNavigationView() {
-    auto nav = std::make_shared<NavigationView>();
-        nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Left);
-        nav->SetOpenPaneLength(200.0f);
-        nav->SetCompactPaneLength(44.0f);
-        nav->SetIsSettingsVisible(false);
-        nav->SetAlign(Alignment::Stretch);
-        nav->SetFlexGrow(1.0f);
+    CUI::Widgets::Ref nav =std::make_shared<NavigationView>();
+        nav.PaneDisplayMode(NavigationViewPaneDisplayMode::Left);
+        nav.OpenPaneLength(200.0f);
+        nav.CompactPaneLength(44.0f);
+        nav.IsSettingsVisible(false);
+        nav.Align(Alignment::Stretch);
+        nav.FlexGrow(1.0f);
 
     auto addNavItem = [nav](const std::string& title, const std::string& icon, const std::string& tag) {
-        auto item = std::make_shared<NavigationViewItem>(title, icon);
-        item->SetTag(tag);
+        CUI::Widgets::Ref item =std::make_shared<NavigationViewItem>(title, icon);
+        item.Tag(tag);
         nav->AddMenuItem(item);
         return item;
     };
@@ -82,8 +82,8 @@ std::shared_ptr<NavigationView> MainView::BuildNavigationView() {
     addNavItem("Winsock & 网络", "🔌", "network");
     addNavItem("WMI 永久订阅", "◈", "wmi");
 
-    auto settingsItem = std::make_shared<NavigationViewItem>("设置与关于", "⚙");
-    settingsItem->SetTag("settings");
+    CUI::Widgets::Ref settingsItem =std::make_shared<NavigationViewItem>("设置与关于", "⚙");
+    settingsItem.Tag("settings");
     nav->AddFooterMenuItem(settingsItem);
 
     nav->OnItemInvoked().Connect([this](NavigationView*, const NavigationViewItemInvokedEventArgs& args) {
@@ -109,12 +109,12 @@ void MainView::RefreshContent() {
             m_currentNavTag = tag;
             RefreshContent();
         });
-        m_navView->SetContent(overview.Build());
+        m_navView.Content(overview.Build());
     } else if (m_currentNavTag == "settings") {
         SettingsView settings(m_window, [this](const std::string& msg) {
             ShowToast(msg);
         });
-        m_navView->SetContent(settings.Build());
+        m_navView.Content(settings.Build());
     } else {
         StartupCategory cat = StartupCategory::All;
         std::string title = "全部启动项";
@@ -162,7 +162,7 @@ void MainView::RefreshContent() {
             desc = "Windows Management Instrumentation 永久事件过滤器与使用者绑定。";
         }
 
-        m_viewModel->SetCategory(cat);
+        m_viewModel.Category(cat);
 
         TreeCategoryView categoryView(
             m_viewModel,
@@ -180,7 +180,7 @@ void MainView::RefreshContent() {
                 UpdateDetailPanel();
             }
         );
-        m_navView->SetContent(categoryView.Build(title, desc));
+        m_navView.Content(categoryView.Build(title, desc));
     }
 }
 

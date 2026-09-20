@@ -27,8 +27,8 @@ float EaseIn(float t) { t = Clamp01(t); return t * t * t; }
 } // namespace
 
 BinaryValueDialog::BinaryValueDialog() {
-        this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
 
     m_title = std::make_shared<TextBlock>("编辑二进制数值");
         m_title.FontSize(16.0f);
@@ -53,17 +53,17 @@ BinaryValueDialog::BinaryValueDialog() {
     m_dataLabel.ColorToken(ThemeTokenId::TextPrimary);
 
     m_hex = std::make_shared<HexEditor>();
-        m_hex->SetBytesPerRow(8);
+        m_hex.BytesPerRow(8);
 
     auto styleSecondary = [](const std::shared_ptr<Button>& btn) {
-        btn->SetBackgroundToken(ThemeTokenId::CardBackground);
-        btn->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-        btn->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-        btn->SetBorderToken(ThemeTokenId::CardBorder);
-        btn->SetBorderThickness(1.0f);
-        btn->SetColorToken(ThemeTokenId::TextPrimary);
-        btn->SetFontFamily("微软雅黑");
-        btn->SetPadding(Thickness(16.0f, 6.0f, 16.0f, 6.0f));
+        btn->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+        btn->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+        btn->ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
+        btn->ApplyBorderToken(ThemeTokenId::CardBorder);
+        btn->ApplyBorderThickness(1.0f);
+        btn->ApplyColorToken(ThemeTokenId::TextPrimary);
+        btn->ApplyFontFamily("微软雅黑");
+        btn->Padding(Thickness(16.0f, 6.0f, 16.0f, 6.0f));
     };
 
     m_ok = std::make_shared<Button>("确定");
@@ -110,14 +110,14 @@ void BinaryValueDialog::Show(UIElement* root, const std::wstring& valueName,
     if (m_nameBox) {
         m_nameBox.Text(WideToUtf8(valueName));
     }
-    if (m_hex) m_hex->SetBytes(std::move(data));
+    if (m_hex) m_hex.Bytes(std::move(data));
 
     m_isOpen = true;
     m_animState = 1;
     m_animStart = std::chrono::steady_clock::now();
     m_animProgress = 0.0f;
     InvalidateCard();
-    m_cardLayer.SetCacheable(true);
+    m_cardLayer.ApplyCacheable(true);
 
     root->AddChildQuiet(std::static_pointer_cast<UIElement>(shared_from_this()));
     const Rect rootBounds = root->GetBounds();
@@ -244,8 +244,8 @@ void BinaryValueDialog::LayoutChildren() {
     const float btnArea = 56.0f;
     const float hexH = (std::max)(120.0f, m_dialogBounds.y + m_dialogBounds.height - btnArea - y);
     if (m_hex) {
-                m_hex->SetWidth(w);
-                m_hex->SetHeight(hexH);
+                m_hex.Width(w);
+                m_hex.Height(hexH);
         m_hex->Measure(Size(w, hexH));
         m_hex->Arrange(Rect(x, y, w, hexH));
     }
@@ -285,7 +285,7 @@ void BinaryValueDialog::OnRenderOverlay(GraphicsContext& ctx) {
 
     LayoutChildren();
 
-    m_cardLayer.SetCacheable(true);
+    m_cardLayer.ApplyCacheable(true);
     const bool needRaster = !m_cardCacheValid
         || m_cardLayer.NeedsContentRaster()
         || !m_cardLayer.GetCacheBitmap()
@@ -296,7 +296,7 @@ void BinaryValueDialog::OnRenderOverlay(GraphicsContext& ctx) {
         if (ctx.PushLayerTarget(m_cardLayer, Size(cardW, cardH), Rect(0, 0, cardW, cardH),
                                 D2D1::ColorF(0, 0, 0, 0), true)) {
             const Rect saved = ctx.GetPaintBounds();
-            ctx.SetPaintBounds(Rect());
+            ctx.ApplyPaintBounds(Rect());
             ctx.PushTransform(D2D1::Matrix3x2F::Translation(-cardX, -cardY));
 
             D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
@@ -313,7 +313,7 @@ void BinaryValueDialog::OnRenderOverlay(GraphicsContext& ctx) {
             if (m_cancel) m_cancel->Render(ctx);
 
             ctx.PopTransform();
-            ctx.SetPaintBounds(saved);
+            ctx.ApplyPaintBounds(saved);
             ctx.PopLayerTarget(m_cardLayer);
             m_cardLayer.Validate();
             m_cardCacheValid = true;

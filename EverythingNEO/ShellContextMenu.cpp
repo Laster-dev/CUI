@@ -373,28 +373,28 @@ void AddShellItem(CUI::ContextMenu& menu, HMENU hMenu, int index,
         // an early init is often incomplete and DestroyMenu would free the handle.
         const HMENU hSub = mii.hSubMenu;
         const int subIndex = index;
-        auto item = menu.AddSubMenuItem(label.empty() ? "..." : label);
-        if (icon) item->SetNativeIcon(icon, true);
+        CUI::Widgets::Ref item =menu.AddSubMenuItem(label.empty() ? "..." : label);
+        if (icon) item.NativeIcon(icon, true);
         if (disabled) {
-            item->SetIsEnabled(false);
+            item.IsEnabled(false);
         }
-        if (checked) item->SetChecked(true);
-        auto sub = item->GetSubMenu();
-        sub->SetLazyPopulate([session, hSub, subIndex, idCmdFirst](CUI::ContextMenu& dest) {
+        if (checked) item.Checked(true);
+        CUI::Widgets::Ref sub =item->GetSubMenu();
+        sub.LazyPopulate([session, hSub, subIndex, idCmdFirst](CUI::ContextMenu& dest) {
             if (session) session->InitCascade(hSub, subIndex);
             PopulateMenuFromHMenu(dest, hSub, session, idCmdFirst);
         });
         return;
     }
 
-    auto item = menu.AddItem(label.empty() ? "..." : label, [session, menuId]() {
+    CUI::Widgets::Ref item =menu.AddItem(label.empty() ? "..." : label, [session, menuId]() {
         if (session) session->Invoke(menuId);
     });
-    if (icon) item->SetNativeIcon(icon, true);
+    if (icon) item.NativeIcon(icon, true);
     if (disabled) {
-        item->SetIsEnabled(false);
+        item.IsEnabled(false);
     }
-    if (checked) item->SetChecked(true);
+    if (checked) item.Checked(true);
 }
 
 void PopulateMenuFromHMenu(CUI::ContextMenu& menu, HMENU hMenu,
@@ -505,16 +505,16 @@ std::shared_ptr<CUI::ContextMenu> BuildShellContextMenu(
         if (injected) return;
         injected = true;
         if (actions.showOpenPath && actions.openPath) {
-            auto item = menu->AddItem("打开文件所在位置", actions.openPath);
-            if (HICON ic = LoadStockIcon(SIID_FOLDEROPEN)) item->SetNativeIcon(ic, true);
+            CUI::Widgets::Ref item =menu->AddItem("打开文件所在位置", actions.openPath);
+            if (HICON ic = LoadStockIcon(SIID_FOLDEROPEN)) item.NativeIcon(ic, true);
         }
         if (actions.showCopyFullPath && actions.copyFullPath) {
-            auto item = menu->AddItem("复制完整路径(C)", actions.copyFullPath);
-            if (HICON ic = LoadStockIcon(SIID_DOCASSOC)) item->SetNativeIcon(ic, true);
+            CUI::Widgets::Ref item =menu->AddItem("复制完整路径(C)", actions.copyFullPath);
+            if (HICON ic = LoadStockIcon(SIID_DOCASSOC)) item.NativeIcon(ic, true);
         }
         if (actions.showRename && actions.rename) {
-            auto item = menu->AddItem("重命名(M)", actions.rename);
-            if (HICON ic = LoadStockIcon(SIID_RENAME)) item->SetNativeIcon(ic, true);
+            CUI::Widgets::Ref item =menu->AddItem("重命名(M)", actions.rename);
+            if (HICON ic = LoadStockIcon(SIID_RENAME)) item.NativeIcon(ic, true);
         }
     };
 

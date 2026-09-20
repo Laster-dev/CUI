@@ -34,7 +34,7 @@ void BufferLine::Fill(const CellData& cell, int start, int end) {
         end = static_cast<int>(m_cells.size());
     }
     for (int i = start; i < end; ++i) {
-        m_cells[static_cast<size_t>(i)].SetFrom(cell);
+        m_cells[static_cast<size_t>(i)].ApplyFrom(cell);
     }
     m_isDirty = true;
 }

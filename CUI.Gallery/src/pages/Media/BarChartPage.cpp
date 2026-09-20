@@ -29,19 +29,20 @@ std::string FormatHover(ChartBase* chart, int index, int series) {
     return s;
 }
 
-void ApplySales(ChartBase& chart, bool quarterly) {
+template<class T>
+void ApplySales(const CUI::Widgets::Ref<T>& chart, bool quarterly) {
     if (quarterly) {
-                chart.SetCategories({ "Q1", "Q2", "Q3", "Q4" });
+                chart.Categories({ "Q1", "Q2", "Q3", "Q4" });
         ChartSeries a;
         a.name = "华北";
         a.values = { 82.0f, 91.0f, 76.0f, 104.0f };
         ChartSeries b;
         b.name = "华东";
         b.values = { 64.0f, 70.0f, 88.0f, 95.0f };
-                chart.SetSeries({ std::move(a), std::move(b) });
+                chart.Series({ std::move(a), std::move(b) });
         return;
     }
-        chart.SetCategories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
+        chart.Categories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
     ChartSeries a;
     a.name = "华北";
     a.values = { 12.0f, 18.0f, 15.0f, 22.0f, 28.0f, 24.0f, 31.0f };
@@ -51,11 +52,12 @@ void ApplySales(ChartBase& chart, bool quarterly) {
     ChartSeries c;
     c.name = "华南";
     c.values = { 6.0f, 9.0f, 13.0f, 11.0f, 17.0f, 15.0f, 19.0f };
-        chart.SetSeries({ std::move(a), std::move(b), std::move(c) });
+        chart.Series({ std::move(a), std::move(b), std::move(c) });
 }
 
-void ApplyRandom(ChartBase& chart) {
-        chart.SetCategories({ "A组", "B组", "C组", "D组", "E组", "F组" });
+template<class T>
+void ApplyRandom(const CUI::Widgets::Ref<T>& chart) {
+        chart.Categories({ "A组", "B组", "C组", "D组", "E组", "F组" });
     std::mt19937 rng(20260815);
     ChartSeries a;
     a.name = "CPU";
@@ -68,7 +70,7 @@ void ApplyRandom(ChartBase& chart) {
         b.values.push_back(std::uniform_real_distribution<float>(12.0f, 60.0f)(rng));
         c.values.push_back(std::uniform_real_distribution<float>(5.0f, 30.0f)(rng));
     }
-        chart.SetSeries({ std::move(a), std::move(b), std::move(c) });
+        chart.Series({ std::move(a), std::move(b), std::move(c) });
 }
 
 } // anonymous namespace
@@ -78,15 +80,15 @@ Element BuildBarChartPage() {
     CUI::Widgets::Ref bar = CUI::Widgets::BarChart().Shared();
         bar.Text("柱状图 · 月度销量对比");
         bar.Height(320.0f);
-    ApplySales(*bar, false);
+    ApplySales(bar, false);
 
-    auto status1 = MakeStatus("悬停柱体或按 ← → 方向键读值");
+    CUI::Widgets::Ref status1 =MakeStatus("悬停柱体或按 ← → 方向键读值");
     bar->OnHoverChanged().Connect([status1](ChartBase* sender, int index, int series) {
-                status1->SetText(FormatHover(sender, index, series));
+                status1.Text(FormatHover(sender, index, series));
     });
 
-    auto btnMonth = ElevatedButton("月度数据", [bar](UIElement*) { ApplySales(*bar, false); }).Build();
-    auto btnQuarter = ElevatedButton("季度数据", [bar](UIElement*) { ApplySales(*bar, true); }).Build();
+    auto btnMonth = ElevatedButton("月度数据", [bar](UIElement*) { ApplySales(bar, false); }).Build();
+    auto btnQuarter = ElevatedButton("季度数据", [bar](UIElement*) { ApplySales(bar, true); }).Build();
     auto btnReveal = ElevatedButton("重放入场动画", [bar](UIElement*) { bar->PlayReveal(); }).Build();
 
     // ---------- 2. 自定义颜色系列 ----------
@@ -118,11 +120,11 @@ Element BuildBarChartPage() {
     CUI::Widgets::Ref dyn = CUI::Widgets::BarChart().Shared();
         dyn.Text("动态数据 · 三资源负载（随机）");
         dyn.Height(280.0f);
-    ApplyRandom(*dyn);
+    ApplyRandom(dyn);
 
     auto status3 = MakeStatus("点击“随机重掷”生成新数据并重放入场生长动画。");
     auto btnShuffle = ElevatedButton("随机重掷", [dyn, status3](UIElement*) {
-        ApplyRandom(*dyn);
+        ApplyRandom(dyn);
         status3->Text = "已生成新的随机数据（自底向上生长动画）。";
     }).Build();
     auto btnReveal3 = ElevatedButton("重放入场动画", [dyn](UIElement*) { dyn->PlayReveal(); }).Build();

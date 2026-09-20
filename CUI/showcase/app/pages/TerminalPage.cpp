@@ -4,9 +4,9 @@
 #include "framework/controls/TerminalControl.h"
 
 ShowcasePage BuildTerminalPage(const ShowcaseContext& ctx) {
-    auto target = std::make_shared<CUI::TerminalControl>("cmd.exe");
-        target->SetWidth(680.0f);
-        target->SetHeight(420.0f);
+    CUI::Widgets::Ref target =std::make_shared<CUI::TerminalControl>("cmd.exe");
+        target.Width(680.0f);
+        target.Height(420.0f);
 
     return { "Terminal 终端", CreatePage(
         "ConPty 高性能 ANSI/VT100 终端模拟器",

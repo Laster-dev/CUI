@@ -17,7 +17,7 @@ SettingsView::SettingsView(Window* window, std::function<void(const std::string&
 }
 
 std::shared_ptr<UIElement> SettingsView::Build() {
-    auto window = m_window;
+    auto window =m_window;
     auto onShowToast = m_onShowToast;
 
     auto makeSettingCard = [](const std::string& t, const std::string& d, const std::shared_ptr<UIElement>& r) {
@@ -39,7 +39,7 @@ std::shared_ptr<UIElement> SettingsView::Build() {
         btnDark.Height(28.0f);
     btnDark->OnClick().Connect([window](UIElement*) {
         if (window) {
-            window->SetThemeMode(ThemeMode::Dark);
+            window->ApplyThemeMode(ThemeMode::Dark);
         }
     });
 
@@ -47,7 +47,7 @@ std::shared_ptr<UIElement> SettingsView::Build() {
         btnLight.Height(28.0f);
     btnLight->OnClick().Connect([window](UIElement*) {
         if (window) {
-            window->SetThemeMode(ThemeMode::Light);
+            window->ApplyThemeMode(ThemeMode::Light);
         }
     });
 
@@ -58,7 +58,7 @@ std::shared_ptr<UIElement> SettingsView::Build() {
     if (window) lowPerfSwitch.IsOn(window->IsLowPerformanceMode());
     lowPerfSwitch->OnToggled().Connect([window, onShowToast](ToggleSwitch*, bool on) {
         if (window) {
-                        window->SetLowPerformanceMode(on);
+                        window->ApplyLowPerformanceMode(on);
             if (onShowToast) onShowToast(on ? "已开启低功耗渲染模式。" : "已关闭低功耗模式。");
         }
     });

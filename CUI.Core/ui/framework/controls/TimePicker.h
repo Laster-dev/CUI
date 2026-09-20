@@ -17,7 +17,7 @@ public:
     virtual const char* GetClassName() const override { return "TimePicker"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取悬浮交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 测算时间输入框的理想自适应尺寸
@@ -36,13 +36,13 @@ public:
     virtual bool HitDismissExempt(float x, float y) const override; // 判定该点击位置是否免于强制消退收起
     virtual UIElement* HitTestPopup(float x, float y) override { return OnHitTestOverlay(x, y); } // 弹窗穿透命中定位
     virtual void RenderPopup(GraphicsContext& ctx) override; // 绘制具体的时、分滚动轮数字列表及选中遮罩
-    virtual void OnLightDismiss() override { SetPopupOpen(false); } // 点击背景空白消退时触发关闭收起弹出层
+    virtual void OnLightDismiss() override { ApplyPopupOpen(false); } // 点击背景空白消退时触发关闭收起弹出层
 
-    void SetPopupOpen(bool open); // 打开或折叠关闭时间滚轮大面板
+    void ApplyPopupOpen(bool open); // 打开或折叠关闭时间滚轮大面板
 
     int GetHour() const { return m_hour; } // 获取当前选中的小时数 (0-23)
     int GetMinute() const { return m_minute; } // 获取当前选中的分钟数 (0-59)
-    void SetTime(int hour, int minute); // 设定具体的时、分值并平移滚轮位置
+    void ApplyTime(int hour, int minute); // 设定具体的时、分值并平移滚轮位置
     struct TimePickerFormattedTimeProperty {
         TimePicker* owner = nullptr;
         TimePickerFormattedTimeProperty() = default;

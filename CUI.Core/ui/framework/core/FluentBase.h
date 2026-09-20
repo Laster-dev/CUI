@@ -43,22 +43,22 @@ public:
     const Derived& self() const { return static_cast<const Derived&>(*this); }
 
     // ------------------------------------------------------------------ 尺寸
-    Derived& Width(float v) { this->SetWidth(v); return self(); }
-    Derived& Height(float v) { this->SetHeight(v); return self(); }
-    Derived& MinWidth(float v) { this->SetMinWidth(v); return self(); }
-    Derived& MinHeight(float v) { this->SetMinHeight(v); return self(); }
-    Derived& MaxWidth(float v) { this->SetMaxWidth(v); return self(); }
-    Derived& MaxHeight(float v) { this->SetMaxHeight(v); return self(); }
+    Derived& Width(float v) { this->ApplyWidth(v); return self(); }
+    Derived& Height(float v) { this->ApplyHeight(v); return self(); }
+    Derived& MinWidth(float v) { this->ApplyMinWidth(v); return self(); }
+    Derived& MinHeight(float v) { this->ApplyMinHeight(v); return self(); }
+    Derived& MaxWidth(float v) { this->ApplyMaxWidth(v); return self(); }
+    Derived& MaxHeight(float v) { this->ApplyMaxHeight(v); return self(); }
     /// 注意：不可命名为 Size —— Size 是布局结构体类型名，同名方法会遮蔽它，
     /// 导致 virtual Size Measure(Size) 等声明无法解析。
-    Derived& SetSize(float w, float h) { this->SetWidth(w); this->SetHeight(h); return self(); }
+    Derived& ApplySize(float w, float h) { this->ApplyWidth(w); this->ApplyHeight(h); return self(); }
 
     // -------------------------------------------------------------- 边距与填充
-    Derived& Margin(const Thickness& v) { this->SetMargin(v); return self(); }
-    Derived& Padding(const Thickness& v) { this->SetPadding(v); return self(); }
+    Derived& Margin(const Thickness& v) { this->ApplyMargin(v); return self(); }
+    Derived& Padding(const Thickness& v) { this->ApplyPadding(v); return self(); }
 
     // ------------------------------------------------------------------ 内容
-    Derived& Text(const std::string& v) { this->SetText(v); return self(); }
+    Derived& Text(const std::string& v) { this->ApplyText(v); return self(); }
 
     // ------------------------------------------------------------------ 事件
     /**

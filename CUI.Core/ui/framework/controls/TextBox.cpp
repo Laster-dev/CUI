@@ -42,20 +42,20 @@ bool TextBox::HasProperty(PropertyId id) const {
     }
 }
 
-void TextBox::SetProperty(PropertyId id, const Value& val) {
+void TextBox::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::LineSpacing: SetLineSpacing(val.AsFloat()); return;
-    case PropertyId::LineHeight: SetLineHeight(val.AsFloat()); return;
-    case PropertyId::CaretWidth: SetCaretWidth(val.AsFloat()); return;
-    case PropertyId::CaretBlinkRate: SetCaretBlinkRate(val.AsInt()); return;
+    case PropertyId::LineSpacing: ApplyLineSpacing(val.AsFloat()); return;
+    case PropertyId::LineHeight: ApplyLineHeight(val.AsFloat()); return;
+    case PropertyId::CaretWidth: ApplyCaretWidth(val.AsFloat()); return;
+    case PropertyId::CaretBlinkRate: ApplyCaretBlinkRate(val.AsInt()); return;
     case PropertyId::TextWrapping: {
         const std::string s = val.AsString("NoWrap");
-        SetTextWrapping(s == "Wrap" || s == "true" || val.AsBool());
+        ApplyTextWrapping(s == "Wrap" || s == "true" || val.AsBool());
         return;
     }
-    case PropertyId::AcceptsReturn: SetAcceptsReturn(val.AsBool()); return;
-    case PropertyId::IsReadOnly: SetIsReadOnly(val.AsBool()); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::AcceptsReturn: ApplyAcceptsReturn(val.AsBool()); return;
+    case PropertyId::IsReadOnly: ApplyIsReadOnly(val.AsBool()); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
@@ -70,27 +70,27 @@ std::wstring BuildDisplayText(const std::wstring& wtext, int cursorPos, const st
 } // namespace
 
 TextBox::TextBox() {
-    this->SetText("");
-    this->SetPlaceholder("");
-    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetBorderBrush(D2D1::ColorF(0, 0, 0, 0));
-    this->SetBorderThickness(0.0f);
-    this->SetUnderlineColorToken(ThemeTokenId::InputBorder);
-    this->SetActiveUnderlineColorToken(ThemeTokenId::AccentColor);
-    this->SetCaretColorToken(ThemeTokenId::AccentColor);
-    this->SetColorToken(ThemeTokenId::TextPrimary);
-    this->SetPlaceholderColorToken(ThemeTokenId::TextMuted);
-    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    this->SetFontFamily("微软雅黑");
-    this->SetFontSize(12.0f);
-    this->SetPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
-    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    this->SetMinHeight(32.0f);
+    this->ApplyText("");
+    this->ApplyPlaceholder("");
+    this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyBorderBrush(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyBorderThickness(0.0f);
+    this->ApplyUnderlineColorToken(ThemeTokenId::InputBorder);
+    this->ApplyActiveUnderlineColorToken(ThemeTokenId::AccentColor);
+    this->ApplyCaretColorToken(ThemeTokenId::AccentColor);
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
+    this->ApplyPlaceholderColorToken(ThemeTokenId::TextMuted);
+    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyFontSize(12.0f);
+    this->ApplyPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
+    this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->ApplyMinHeight(32.0f);
 }
 
 TextBox::TextBox(const std::string& placeholder) : TextBox() {
-    SetPlaceholder(placeholder);
+    ApplyPlaceholder(placeholder);
 }
 
 TextBox::~TextBox() {
@@ -139,17 +139,17 @@ bool TextBox::OnDrop(Point pt, DataPackage& data, DragDropEffects effect) {
             }
             oss << data.GetFiles()[i];
         }
-        SetText(oss.str());
+        ApplyText(oss.str());
         return true;
     }
     if (data.HasText()) {
-        SetText(data.GetText());
+        ApplyText(data.GetText());
         return true;
     }
     return false;
 }
 
-void TextBox::SetCompositionString(const std::wstring& compStr) {
+void TextBox::ApplyCompositionString(const std::wstring& compStr) {
     if (m_compString == compStr) {
         return;
     }
@@ -158,11 +158,11 @@ void TextBox::SetCompositionString(const std::wstring& compStr) {
     MarkRenderContentDirty();
 }
 
-void TextBox::SetText(const std::string& text) {
+void TextBox::ApplyText(const std::string& text) {
     if (GetText() == text) {
         return;
     }
-    UIElement::SetText(text);
+    UIElement::ApplyText(text);
     m_textLayoutCache.Clear();
     const int len = static_cast<int>(Utf8ToUtf16(text).length());
     if (m_cursorPos > len) m_cursorPos = len;
@@ -384,7 +384,7 @@ void TextBox::InsertText(const std::wstring& text) {
     m_cursorPos += static_cast<int>(text.size());
     m_selectionStart = m_cursorPos;
     m_selectionEnd = m_cursorPos;
-    SetText(Utf16ToUtf8(wtext));
+    ApplyText(Utf16ToUtf8(wtext));
 
     GraphicsContext ctx;
     EnsureCaretVisible(ctx);
@@ -431,7 +431,7 @@ void TextBox::Undo() {
     m_undoStack.pop_back();
 
     m_undoing = true;
-    SetText(prev.text);
+    ApplyText(prev.text);
     m_undoing = false;
     m_cursorPos = prev.cursorPos;
     m_selectionStart = prev.selectionStart;
@@ -453,7 +453,7 @@ void TextBox::Redo() {
     m_redoStack.pop_back();
 
     m_undoing = true;
-    SetText(next.text);
+    ApplyText(next.text);
     m_undoing = false;
     m_cursorPos = next.cursorPos;
     m_selectionStart = next.selectionStart;
@@ -498,8 +498,8 @@ bool TextBox::OnAnimationTick() {
     bool shouldFloat = hasFloatingLabel && (m_isFocused || !GetText().empty() || !m_compString.empty());
     float target = shouldFloat ? 1.0f : 0.0f;
     float focusTarget = m_isFocused ? 1.0f : 0.0f;
-    m_labelAnim.SetTarget(target);
-    m_focusLineAnim.SetTarget(focusTarget);
+    m_labelAnim.ApplyTarget(target);
+    m_focusLineAnim.ApplyTarget(focusTarget);
 
     bool animating = m_labelAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.34f, 0.01f });
     animating = m_focusLineAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.28f, 0.01f }) || animating;
@@ -592,7 +592,7 @@ void TextBox::DeleteSelection() {
         m_cursorPos = selMin;
         m_selectionStart = selMin;
         m_selectionEnd = selMin;
-        SetText(Utf16ToUtf8(wtext));
+        ApplyText(Utf16ToUtf8(wtext));
     }
 }
 
@@ -820,7 +820,7 @@ void TextBox::OnFocus() {
     m_isFocused = true;
     m_lastCaretBlinkPhase = true;
     m_caretBlinkDirty = true;
-    m_focusLineAnim.SetTarget(1.0f);
+    m_focusLineAnim.ApplyTarget(1.0f);
     RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds);
     NotifyHostOverlayDirty();
@@ -830,7 +830,7 @@ void TextBox::OnBlur() {
     UIElement::OnBlur();
     m_isFocused = false;
     m_caretBlinkDirty = false;
-    m_focusLineAnim.SetTarget(0.0f);
+    m_focusLineAnim.ApplyTarget(0.0f);
     if (AnimationManager* mgr = AnimationManager::Current()) {
         mgr->CancelWake(this);
     }
@@ -861,7 +861,7 @@ void TextBox::OnMouseDown(Point pt) {
     }
     Control::OnMouseDown(pt);
     if (m_isPasswordMode && !m_isReadOnly && m_showRevealButton && GetRevealButtonRect().Contains(pt.x, pt.y)) {
-        SetIsPasswordRevealed(!m_isPasswordRevealed);
+        ApplyIsPasswordRevealed(!m_isPasswordRevealed);
         return;
     }
     OnFocus();
@@ -954,7 +954,7 @@ void TextBox::OnMouseRightClick(Point pt) {
             menu->AddSeparator();
         }
         menu->AddItem("全选 (Select All)", "Ctrl+A", [this]() { SelectAll(); });
-        SetContextMenu(menu);
+        ApplyContextMenu(menu);
     }
 }
 
@@ -1154,7 +1154,7 @@ bool TextBox::OnKeyDown(int vkCode) {
             m_cursorPos--;
             m_selectionStart = m_cursorPos;
             m_selectionEnd = m_cursorPos;
-            SetText(Utf16ToUtf8(wtext));
+            ApplyText(Utf16ToUtf8(wtext));
         }
         GraphicsContext ctx;
         EnsureCaretVisible(ctx);
@@ -1169,7 +1169,7 @@ bool TextBox::OnKeyDown(int vkCode) {
             wtext.erase(m_cursorPos, 1);
             m_selectionStart = m_cursorPos;
             m_selectionEnd = m_cursorPos;
-            SetText(Utf16ToUtf8(wtext));
+            ApplyText(Utf16ToUtf8(wtext));
         }
         GraphicsContext ctx;
         EnsureCaretVisible(ctx);

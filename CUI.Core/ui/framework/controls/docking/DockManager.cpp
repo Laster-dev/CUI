@@ -40,10 +40,10 @@ AnimationSpec GuideSpec() {
 } // namespace
 
 DockManager::DockManager() {
-    this->SetBackgroundToken(ThemeTokenId::WindowBackground);
-    this->SetClipToBounds(true);
-    this->SetMinWidth(320.0f);
-    this->SetMinHeight(240.0f);
+    this->ApplyBackgroundToken(ThemeTokenId::WindowBackground);
+    this->ApplyClipToBounds(true);
+    this->ApplyMinWidth(320.0f);
+    this->ApplyMinHeight(240.0f);
 }
 
 DockManager::~DockManager() {
@@ -141,7 +141,7 @@ bool DockManager::CompleteFloatRedock(Point screenDip) {
     DockPane(pane, landed);
     BeginContentFade(landed);
     m_dropPulse.Reset(1.0f);
-    m_dropPulse.SetTarget(0.0f);
+    m_dropPulse.ApplyTarget(0.0f);
     RequestAnimationTicks();
     ApplyContentFadeOpacities();
     InvalidateOwner();
@@ -209,7 +209,7 @@ const DockManager::SlotGeom* DockManager::SlotGeomFor(DockSide side) const {
     }
 }
 
-void DockManager::SetSideSize(DockSide side, float size) {
+void DockManager::ApplySideSize(DockSide side, float size) {
     size = (std::max)(kMinSide, size);
     switch (side) {
     case DockSide::Left: m_leftSize = size; break;
@@ -262,7 +262,7 @@ void DockManager::BeginContentFade(DockSide side) {
     auto& anim = SideAnim(side);
     if (AreAnimationsEnabled()) {
         anim.contentFade.Reset(0.15f);
-        anim.contentFade.SetTarget(1.0f);
+        anim.contentFade.ApplyTarget(1.0f);
         RequestAnimationTicks();
     } else {
         anim.contentFade.Reset(1.0f);
@@ -280,7 +280,7 @@ void DockManager::ApplyContentFadeOpacities() {
             }
             if (idx == sel) {
                 m_panes[idx].content->PromoteLayer(true);
-                m_panes[idx].content->SetComposeOpacity(std::clamp(t, 0.0f, 1.0f));
+                m_panes[idx].content->ApplyComposeOpacity(std::clamp(t, 0.0f, 1.0f));
             }
         }
     };
@@ -309,8 +309,8 @@ void DockManager::SyncSideUnderline(DockSide side, bool jump) {
         anim.underlineW.Reset(w);
         anim.underlineInited = true;
     } else {
-        anim.underlineX.SetTarget(x);
-        anim.underlineW.SetTarget(w);
+        anim.underlineX.ApplyTarget(x);
+        anim.underlineW.ApplyTarget(w);
         anim.underlineInited = true;
         RequestAnimationTicks();
     }
@@ -699,7 +699,7 @@ void DockManager::RelayoutContents() {
         if (!m_panes[i].content || isFloated(i)) {
             continue;
         }
-        m_panes[i].content->SetVisibility(Visibility::Collapsed);
+        m_panes[i].content->ApplyVisibility(Visibility::Collapsed);
     }
 
     m_geom = ComputeGeom(m_bounds);
@@ -719,7 +719,7 @@ void DockManager::RelayoutContents() {
                 continue;
             }
             if (idx == sel && g.visible && g.content.height > 1.0f && g.content.width > 1.0f) {
-                content->SetVisibility(Visibility::Visible);
+                content->ApplyVisibility(Visibility::Visible);
                 content->Measure(Size(g.content.width, g.content.height));
                 content->Arrange(g.content);
             }
@@ -737,7 +737,7 @@ void DockManager::RelayoutContents() {
         const SlotGeom peek = MakePeekGeom();
         if (peek.visible && peek.content.width > 1.0f && peek.content.height > 1.0f) {
             auto& content = m_panes[m_peekPane].content;
-            content->SetVisibility(Visibility::Visible);
+            content->ApplyVisibility(Visibility::Visible);
             content->Measure(Size(peek.content.width, peek.content.height));
             content->Arrange(peek.content);
             RemoveChildQuiet(content);
@@ -856,7 +856,7 @@ void DockManager::DockPane(int paneIndex, DockSide side) {
     ApplyLayoutNow();
 }
 
-void DockManager::SetPaneAutoHide(int paneIndex, bool autoHide) {
+void DockManager::ApplyPaneAutoHide(int paneIndex, bool autoHide) {
     if (paneIndex < 0 || paneIndex >= static_cast<int>(m_panes.size())) {
         return;
     }
@@ -916,7 +916,7 @@ void DockManager::FloatPane(int paneIndex, Point screenDipTopLeft) {
     }
 
     auto flt = std::make_unique<DockFloatWindow>();
-    flt->SetCloseCallback([this](DockFloatWindow* wnd) { NotifyFloatClosed(wnd); });
+    flt->ApplyCloseCallback([this](DockFloatWindow* wnd) { NotifyFloatClosed(wnd); });
     if (!flt->Show(this, paneIndex, owner, screenDipTopLeft, floatSize)) {
         AddPaneToSlot(paneIndex, DockSide::Left, true);
         return;
@@ -1072,7 +1072,7 @@ void DockManager::Arrange(Rect finalRect) {
         finalRect.y + margin.top,
         (std::max)(0.0f, finalRect.width - margin.left - margin.right),
         (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
-    SetBounds(arranged);
+    ApplyBounds(arranged);
     RelayoutContents();
     JumpAllUnderlines();
     m_arrangeDirty = false;
@@ -1274,7 +1274,7 @@ void DockManager::OnMouseDown(Point pt) {
         return;
     }
     if (hr.part == HitPart::Pin && isValidPane(hr.paneIndex)) {
-        SetPaneAutoHide(hr.paneIndex, !m_panes[hr.paneIndex].autoHide);
+        ApplyPaneAutoHide(hr.paneIndex, !m_panes[hr.paneIndex].autoHide);
         return;
     }
     if (hr.part == HitPart::AutoHide && isValidPane(hr.paneIndex)) {
@@ -1336,7 +1336,7 @@ void DockManager::BeginDrag(int paneIndex, Point pt) {
     m_dragPane = paneIndex;
     m_dragPt = pt;
     m_guideOpacity.Reset(0.0f);
-    m_guideOpacity.SetTarget(1.0f);
+    m_guideOpacity.ApplyTarget(1.0f);
     m_dropHighlight = HitTestDrop(pt.x, pt.y);
     RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds);
@@ -1354,7 +1354,7 @@ void DockManager::CancelDrag() {
     m_dragArmed = false;
     m_dragPane = -1;
     m_dropHighlight = DockDropKind::None;
-    m_guideOpacity.SetTarget(0.0f);
+    m_guideOpacity.ApplyTarget(0.0f);
     RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds);
 }
@@ -1386,7 +1386,7 @@ void DockManager::EndDrag(Point pt) {
     if (landed != DockSide::None) {
         BeginContentFade(landed);
         m_dropPulse.Reset(1.0f);
-        m_dropPulse.SetTarget(0.0f);
+        m_dropPulse.ApplyTarget(0.0f);
         RequestAnimationTicks();
         ApplyContentFadeOpacities();
         MarkRenderRectDirty(m_bounds);
@@ -1465,10 +1465,10 @@ void DockManager::OnMouseMove(Point pt) {
     const bool closeHot = (m_hover.part == HitPart::Close);
     const bool scrollL = (m_hover.part == HitPart::TabScrollLeft);
     const bool scrollR = (m_hover.part == HitPart::TabScrollRight);
-    m_hoverPin.SetTarget(pinHot ? 1.0f : 0.0f);
-    m_hoverClose.SetTarget(closeHot ? 1.0f : 0.0f);
-    m_hoverScrollL.SetTarget(scrollL ? 1.0f : 0.0f);
-    m_hoverScrollR.SetTarget(scrollR ? 1.0f : 0.0f);
+    m_hoverPin.ApplyTarget(pinHot ? 1.0f : 0.0f);
+    m_hoverClose.ApplyTarget(closeHot ? 1.0f : 0.0f);
+    m_hoverScrollL.ApplyTarget(scrollL ? 1.0f : 0.0f);
+    m_hoverScrollR.ApplyTarget(scrollR ? 1.0f : 0.0f);
     if (!AreAnimationsEnabled()) {
         m_hoverPin.Reset(pinHot ? 1.0f : 0.0f);
         m_hoverClose.Reset(closeHot ? 1.0f : 0.0f);
@@ -1500,10 +1500,10 @@ void DockManager::OnMouseLeave() {
         m_hover = {};
         MarkRenderContentDirty();
     }
-    m_hoverPin.SetTarget(0.0f);
-    m_hoverClose.SetTarget(0.0f);
-    m_hoverScrollL.SetTarget(0.0f);
-    m_hoverScrollR.SetTarget(0.0f);
+    m_hoverPin.ApplyTarget(0.0f);
+    m_hoverClose.ApplyTarget(0.0f);
+    m_hoverScrollL.ApplyTarget(0.0f);
+    m_hoverScrollR.ApplyTarget(0.0f);
     if (hadHover) {
         RequestAnimationTicks();
     }
@@ -1542,7 +1542,7 @@ bool DockManager::OnAnimationTick() {
     bool any = UIElement::OnAnimationTick();
     const float dt = GetAnimationDeltaSeconds();
 
-    m_guideOpacity.SetTarget(m_dragging ? 1.0f : 0.0f);
+    m_guideOpacity.ApplyTarget(m_dragging ? 1.0f : 0.0f);
     any = m_guideOpacity.Tick(dt, GuideSpec()) || any;
     any = m_dropPulse.Tick(dt, FadeSpec()) || any;
     any = m_hoverPin.Tick(dt, HoverSpec()) || any;

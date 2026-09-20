@@ -19,11 +19,11 @@ std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::
     }
     ThemeTokenId id = ThemeTokenIdFromName(tokenName);
     if (tokenProp == "theme.backgroundToken") {
-                element->SetBackgroundToken(id);
-                element->SetBackground(ThemeManager::Instance().GetColor(tokenName));
+                element->ApplyBackgroundToken(id);
+                element->ApplyBackground(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.borderToken") {
-                element->SetBorderToken(id);
-                element->SetBorderBrush(ThemeManager::Instance().GetColor(tokenName));
+                element->ApplyBorderToken(id);
+                element->ApplyBorderBrush(ThemeManager::Instance().GetColor(tokenName));
     } else if (tokenProp == "theme.colorToken") {
         
     }

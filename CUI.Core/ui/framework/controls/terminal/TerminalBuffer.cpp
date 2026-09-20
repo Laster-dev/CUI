@@ -168,19 +168,19 @@ void TerminalBuffer::Reflow(int newCols) {
             const int w = (std::max)(1, cell.GetWidth());
             if (row == nullptr || col + w > newCols) {
                 if (row != nullptr) {
-                    row->SetIsWrapped(true);
+                    row->ApplyIsWrapped(true);
                 }
                 m_lines.push_back(MakeLine());
                 row = m_lines.back().get();
                 col = 0;
             }
 
-            (*row)[col].SetFrom(cell);
+            (*row)[col].ApplyFrom(cell);
             for (int t = 1; t < w && col + t < newCols; ++t) {
                 CellData trail = cell;
-                trail.SetCodePoint(0);
+                trail.ApplyCodePoint(0);
                 trail.Width(0);
-                (*row)[col + t].SetFrom(trail);
+                (*row)[col + t].ApplyFrom(trail);
             }
             col += w;
         }
@@ -237,7 +237,7 @@ void TerminalBuffer::PrintChar(int codePoint, int width) {
         if (!Wraparound) {
             CursorX = m_cols - 1;
         } else {
-            GetCursorLine().SetIsWrapped(true);
+            GetCursorLine().ApplyIsWrapped(true);
             CursorX = 0;
             LineFeed();
         }
@@ -249,17 +249,17 @@ void TerminalBuffer::PrintChar(int codePoint, int width) {
     }
 
     CellData cell = CurAttr;
-    cell.SetCodePoint(codePoint);
+    cell.ApplyCodePoint(codePoint);
     cell.Width(width);
     cell.LinkId = ActiveLinkId;
-    line[CursorX].SetFrom(cell);
+    line[CursorX].ApplyFrom(cell);
 
     // Clear following cells for wide chars
     for (int i = 1; i < width && CursorX + i < m_cols; ++i) {
         CellData empty = CurAttr;
-        empty.SetCodePoint(0);
+        empty.ApplyCodePoint(0);
         empty.Width(0);
-        line[CursorX + i].SetFrom(empty);
+        line[CursorX + i].ApplyFrom(empty);
     }
 
     line.MarkDirty();
@@ -290,7 +290,7 @@ void TerminalBuffer::ScrollFullScreenBy(int n) {
             std::unique_ptr<BufferLine> recycled = std::move(m_lines.front());
             m_lines.pop_front();
             recycled->Fill(EraseCell());
-            recycled->SetIsWrapped(false);
+            recycled->ApplyIsWrapped(false);
             recycled->MarkDirty();
             m_lines.push_back(std::move(recycled));
         } else {
@@ -390,9 +390,9 @@ void TerminalBuffer::DeleteChars(int n) {
     for (int i = CursorX; i < m_cols; ++i) {
         const int src = i + n;
         if (src < m_cols) {
-            line[i].SetFrom(line[src]);
+            line[i].ApplyFrom(line[src]);
         } else {
-            line[i].SetFrom(blank);
+            line[i].ApplyFrom(blank);
         }
     }
     line.MarkDirty();
@@ -447,14 +447,14 @@ void TerminalBuffer::RestoreCursor() {
     CursorY = std::clamp(SavedCursorY, 0, m_rows - 1);
 }
 
-void TerminalBuffer::SetCursor(int x, int y) {
+void TerminalBuffer::ApplyCursor(int x, int y) {
     CursorX = std::clamp(x, 0, m_cols - 1);
     const int minY = OriginMode ? ScrollTop : 0;
     const int maxY = OriginMode ? ScrollBottom : m_rows - 1;
     CursorY = std::clamp(y, minY, (std::max)(minY, maxY));
 }
 
-void TerminalBuffer::SetScrollRegion(int top, int bottom) {
+void TerminalBuffer::ApplyScrollRegion(int top, int bottom) {
     top = std::clamp(top, 0, m_rows - 1);
     bottom = std::clamp(bottom, 0, m_rows - 1);
     if (bottom < top) {
@@ -511,7 +511,7 @@ std::wstring TerminalBuffer::GetSelectedText(int startCol, int startRow, int end
 void TerminalBuffer::InsertCells(int n) {
     BufferLine& line = GetCursorLine();
     for (int i = m_cols - 1; i >= CursorX + n; --i) {
-        line[i].SetFrom(line[i - n]);
+        line[i].ApplyFrom(line[i - n]);
     }
     const CellData blank = EraseCell();
     const int end = (std::min)(m_cols, CursorX + n);
@@ -520,7 +520,7 @@ void TerminalBuffer::InsertCells(int n) {
 
 CellData TerminalBuffer::EraseCell() const {
     CellData cell = CurAttr;
-    cell.SetCodePoint(' ');
+    cell.ApplyCodePoint(' ');
     cell.Width(1);
     // Erase uses current bg typically; keep attrs minimal
     cell.Attrs = 0;

@@ -8,7 +8,7 @@
 namespace CUI {
 
 ToastCenter::ToastCenter() {
-    this->SetVisibility(Visibility::Visible);
+    this->ApplyVisibility(Visibility::Visible);
 }
 
 Size ToastCenter::Measure(Size availableSize) {
@@ -108,7 +108,7 @@ void ToastCenter::ScheduleAutoCloseWake() {
 
 std::shared_ptr<Toast> ToastCenter::AddToast(const std::shared_ptr<Toast>& toast) {
     if (!toast) return nullptr;
-    toast->SetHost(this);
+    toast->ApplyHost(this);
     toast->Show();
     m_toasts.push_back(toast);
     NotifyToastChanged();
@@ -140,7 +140,7 @@ std::shared_ptr<Toast> ToastCenter::ShowToast(const std::string& title, const st
         .Corner(corner)
         .DurationMs(durationMs)
         .Shared();
-    toast->SetType(AutoDetectTypeFromTitle(title, type));
+    toast->ApplyType(AutoDetectTypeFromTitle(title, type));
     return AddToast(toast);
 }
 
@@ -155,8 +155,8 @@ std::shared_ptr<Toast> ToastCenter::ShowFromTemplate(const UIElement* toastTempl
     if (toastTemplate) {
         toast->ApplyFrom(toastTemplate);
     }
-    if (!titleOverride.empty()) toast->SetTitle(titleOverride);
-    if (!messageOverride.empty()) toast->SetMessage(messageOverride);
+    if (!titleOverride.empty()) toast->ApplyTitle(titleOverride);
+    if (!messageOverride.empty()) toast->ApplyMessage(messageOverride);
     return AddToast(toast);
 }
 
@@ -182,13 +182,13 @@ std::shared_ptr<ToastCenter> ToastCenter::Ensure(UIElement* root) {
 
     for (const auto& child : root->GetChildren()) {
         if (auto center = std::dynamic_pointer_cast<ToastCenter>(child)) {
-            if (center->GetId().empty()) center->SetId("toastCenter");
+            if (center->GetId().empty()) center->ApplyId("toastCenter");
             return center;
         }
     }
 
     auto center = std::make_shared<ToastCenter>();
-    center->SetId("toastCenter");
+    center->ApplyId("toastCenter");
     root->AddChild(center);
     return center;
 }

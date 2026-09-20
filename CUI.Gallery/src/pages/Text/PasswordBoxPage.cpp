@@ -49,7 +49,7 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
         },
         {
             "配置项",
-            "SetShowRevealButton(false) 隐藏明文切换按钮；SetPassword 可预置初始密码；支持禁用态。",
+            "ApplyShowRevealButton(false) 隐藏明文切换按钮；SetPassword 可预置初始密码；支持禁用态。",
             Column(12, {
                 noReveal,
                 prefilled,

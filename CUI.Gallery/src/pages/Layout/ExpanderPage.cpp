@@ -58,7 +58,7 @@ Element BuildExpanderPage() {
     }));
 
     CUI::Widgets::Ref upExpander = Widgets::Expander("向上展开（嵌套示例）").Shared();
-        upExpander.Subtitle("SetExpandDirection(Up) 后从底部向上展开");
+        upExpander.Subtitle("ApplyExpandDirection(Up) 后从底部向上展开");
         upExpander.ExpandDirection(ExpandDirection::Up);
         upExpander.Content(nestedInner);
 
@@ -76,7 +76,7 @@ Element BuildExpanderPage() {
         },
         {
             "默认展开与状态事件",
-            "SetIsExpanded(true) 默认展开；OnExpandedChanged 在每次状态切换时触发。",
+            "ApplyIsExpanded(true) 默认展开；OnExpandedChanged 在每次状态切换时触发。",
             Column(12, {
                 eventExpander,
                 stateStatus,
@@ -84,7 +84,7 @@ Element BuildExpanderPage() {
         },
         {
             "向上展开与嵌套",
-            "SetExpandDirection(ExpandDirection::Up) 使内容从底部向上展开；内容区支持继续嵌套折叠面板。",
+            "ApplyExpandDirection(ExpandDirection::Up) 使内容从底部向上展开；内容区支持继续嵌套折叠面板。",
             Column(12, {
                 upExpander,
                 MakeStatus("外层向上展开，内层向下展开，两者动画互不干扰。"),
@@ -92,8 +92,8 @@ Element BuildExpanderPage() {
         },
     };
     spec.source =
-        "auto expander = Widgets::Expander(\"账号设置\");\n"
-        "        expander->SetSubtitle(\"点击头部展开或折叠内容\");\n"
+        "CUI::Widgets::Ref expander =Widgets::Expander(\"账号设置\");\n"
+        "        expander.Subtitle(\"点击头部展开或折叠内容\");\n"
         "expander.Content(formContent);\n"
         "\n"
         "// 默认展开 + 事件监听\n"

@@ -25,7 +25,7 @@ int main() {
         .FontSize(24.0f)
         .AlignHorizontal(Alignment::Center)
         .ForegroundToken(ThemeTokenId::TextSecondary)
-        .FontWeight(FontWeight::SemiBold);
+        .FontWeight(FontWeight::SemiBold).Shared();
 
     CUI::Widgets::Ref clickButton = Widgets::Button("Click Me!")
         .FontSize(16.0f)
@@ -34,7 +34,7 @@ int main() {
         .AlignHorizontal(Alignment::Center)
         .OnClick([counterLabel, &clickCount](UIElement*) {
         clickCount++;
-        counterLabel.Shared()->SetText("Click count: " + std::to_string(clickCount));
+        counterLabel->ApplyText("Click count: " + std::to_string(clickCount));
             }).Shared();
 
     CUI::Widgets::Ref resetButton = Widgets::Button("Reset")
@@ -47,7 +47,7 @@ int main() {
         .AlignHorizontal(Alignment::Center)
         .OnClick([counterLabel, &clickCount](UIElement*) {
         clickCount = 0;
-        counterLabel.Shared()->SetText("Click count: 0");
+        counterLabel->ApplyText("Click count: 0");
             }).Shared();
     CUI::Widgets::Ref ThemeModeRange = Widgets::SegmentedControl()
         .Width(120.0f)
@@ -58,7 +58,7 @@ int main() {
     ThemeModeRange->AddItem("Light");
     ThemeModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
         if (auto* window = Window::Current()) {
-            window->SetThemeMode(item == "Dark" ? ThemeMode::Dark : ThemeMode::Light);
+            window->ApplyThemeMode(item == "Dark" ? ThemeMode::Dark : ThemeMode::Light);
         }
     });
     // Layout

@@ -54,41 +54,41 @@ public:
     virtual void OnLightDismiss() override { CloseSuggestions(); }
 
     const std::string& GetText() const { return UIElement::GetText(); }
-    void SetText(const std::string& text);
-    void SetPlaceholder(const std::string& text);
+    void ApplyText(const std::string& text);
+    void ApplyPlaceholder(const std::string& text);
 
     struct AutoSuggestItemsProperty {
         AutoSuggestBox* owner;
-        AutoSuggestItemsProperty& operator=(const std::vector<std::string>& items) { owner->SetSuggestionItems(items); return *this; }
+        AutoSuggestItemsProperty& operator=(const std::vector<std::string>& items) { owner->ApplySuggestionItems(items); return *this; }
         operator const std::vector<std::string>&() const { return owner->GetSuggestionItems(); }
     } SuggestionItems{this};
 
     struct AutoSuggestProviderProperty {
         AutoSuggestBox* owner;
-        AutoSuggestProviderProperty& operator=(SuggestionProviderFn provider) { owner->SetSuggestionProvider(std::move(provider)); return *this; }
+        AutoSuggestProviderProperty& operator=(SuggestionProviderFn provider) { owner->ApplySuggestionProvider(std::move(provider)); return *this; }
     } SuggestionProvider{this};
 
     struct AutoSuggestMaxVisibleProperty {
         AutoSuggestBox* owner;
-        AutoSuggestMaxVisibleProperty& operator=(int n) { owner->SetMaxVisibleSuggestions(n); return *this; }
+        AutoSuggestMaxVisibleProperty& operator=(int n) { owner->ApplyMaxVisibleSuggestions(n); return *this; }
         operator int() const { return owner->GetMaxVisibleSuggestions(); }
         int Get() const { return owner->GetMaxVisibleSuggestions(); }
     } MaxVisibleSuggestions{this};
 
     // Full catalog; filtered with case-insensitive substring match unless a provider is set.
-    void SetSuggestionItems(const std::vector<std::string>& items);
+    void ApplySuggestionItems(const std::vector<std::string>& items);
     void ClearSuggestionItems();
     const std::vector<std::string>& GetSuggestionItems() const { return m_catalog; }
     const std::vector<std::string>& GetFilteredSuggestions() const { return m_filtered; }
 
     // Optional custom provider; when set, catalog filter is skipped.
-    void SetSuggestionProvider(SuggestionProviderFn provider);
+    void ApplySuggestionProvider(SuggestionProviderFn provider);
 
     float GetSuggestionItemHeight() const { return m_suggestionItemHeight; }
-    void SetSuggestionItemHeight(float h) { m_suggestionItemHeight = h; }
+    void ApplySuggestionItemHeight(float h) { m_suggestionItemHeight = h; }
 
     int GetMaxVisibleSuggestions() const { return m_maxVisibleSuggestions; }
-    void SetMaxVisibleSuggestions(int n) { m_maxVisibleSuggestions = (std::max)(1, n); }
+    void ApplyMaxVisibleSuggestions(int n) { m_maxVisibleSuggestions = (std::max)(1, n); }
 
     Event<AutoSuggestBox*, const std::string&>& OnTextChanged() { return m_onTextChanged; }
     Event<AutoSuggestBox*, const std::string&>& OnSuggestionChosen() { return m_onSuggestionChosen; }
@@ -107,7 +107,7 @@ private:
     void NotifyFieldBlur();
     void FlushPendingClose();
 
-    void SetTextInternal(const std::string& text, bool fireChanged, bool scheduleSuggest);
+    void ApplyTextInternal(const std::string& text, bool fireChanged, bool scheduleSuggest);
 
     void ScheduleSuggestRefresh();
     void RefreshSuggestionsNow();

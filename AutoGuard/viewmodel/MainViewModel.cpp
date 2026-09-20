@@ -32,17 +32,17 @@ void MainViewModel::StartScan(std::function<void()> onCompleted) {
     if (onCompleted) onCompleted();
 }
 
-void MainViewModel::SetCategory(StartupCategory category) {
+void MainViewModel::ApplyCategory(StartupCategory category) {
     m_activeCategory = category;
     m_selectedId.clear();
 }
 
-void MainViewModel::SetFilterText(const std::string& filter) {
+void MainViewModel::ApplyFilterText(const std::string& filter) {
     m_filterText = filter;
     m_selectedId.clear();
 }
 
-void MainViewModel::SetSelectedId(const std::string& id) {
+void MainViewModel::ApplySelectedId(const std::string& id) {
     m_selectedId = id;
 }
 

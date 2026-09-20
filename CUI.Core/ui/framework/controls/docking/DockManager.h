@@ -28,7 +28,7 @@ public:
 
     const char* GetClassName() const override { return "DockManager"; } // 获取类名
 
-    void SetOwnerWindow(Window* window) { m_ownerWindow = window; } // 注册所归属的主容器窗口
+    void ApplyOwnerWindow(Window* window) { m_ownerWindow = window; } // 注册所归属的主容器窗口
     Window* GetOwnerWindow() const { return m_ownerWindow; } // 获取所归属的主容器窗口
 
     int AddToolPane(const std::string& title, std::shared_ptr<UIElement> content, DockSide side); // 注入一个新的工具侧边栏卡片并指定初始停靠方位，返回唯一索引
@@ -36,13 +36,13 @@ public:
     void ClosePane(int paneIndex); // 彻底关闭销毁指定索引号的窗体卡片
     void FloatPane(int paneIndex, Point screenDipTopLeft = Point()); // 将指定卡片从排版树剥离，直接提升创建为一块原生悬浮子窗体
     void DockPane(int paneIndex, DockSide side); // 将特定卡片强制重新停靠收拢到指定侧沿
-    void SetPaneAutoHide(int paneIndex, bool autoHide); // 设置是否让特定卡片在失去焦点后自动以缩折方式隐藏至边缘窄条
+    void ApplyPaneAutoHide(int paneIndex, bool autoHide); // 设置是否让特定卡片在失去焦点后自动以缩折方式隐藏至边缘窄条
 
     int FindPaneIndexByTitle(const std::string& title) const; // 通过标题文本查找对应窗体卡片的队列索引位置（找不到返回-1）
     const DockPaneData* GetPane(int index) const; // 获得指定索引号对应的原始卡片状态数据明细
     int GetPaneCount() const { return static_cast<int>(m_panes.size()); } // 获取当前受托管理的总面板数
 
-    void SetSideSize(DockSide side, float size); // 强制变更指定方位（左、右、顶、底）侧栏所分得的初始物理像素尺寸大小
+    void ApplySideSize(DockSide side, float size); // 强制变更指定方位（左、右、顶、底）侧栏所分得的初始物理像素尺寸大小
     float GetSideSize(DockSide side) const; // 查询指定方位的侧栏物理占位像素尺寸大小
 
     bool SaveLayout(const std::wstring& path) const; // 将当前的停靠、折叠及悬浮分栏布局结构序列化保存至本地 XML 配置文件

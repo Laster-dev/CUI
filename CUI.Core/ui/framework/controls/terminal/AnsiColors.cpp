@@ -15,7 +15,7 @@ TermColor AnsiColors::SelectionForeground() const {
     return ContrastingForeground(SelectionBackground());
 }
 
-void AnsiColors::SetTheme(const TerminalTheme& theme) {
+void AnsiColors::ApplyTheme(const TerminalTheme& theme) {
     m_theme = theme;
     RebuildTable();
 }
@@ -47,7 +47,7 @@ TermColor AnsiColors::Palette(int index) const {
     return m_table256[index];
 }
 
-void AnsiColors::SetPalette(int index, TermColor color) {
+void AnsiColors::ApplyPalette(int index, TermColor color) {
     if (index < 0 || index > 255) {
         return;
     }

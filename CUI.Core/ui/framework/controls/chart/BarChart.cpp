@@ -9,7 +9,7 @@
 namespace CUI {
 
 BarChart::BarChart() {
-    this->SetText("柱状图");
+    this->ApplyText("柱状图");
 }
 
 bool BarChart::BarRect(const Rect& plot, int category, int series, Rect& out) const {
@@ -51,13 +51,13 @@ void BarChart::BindHoverMotion(const Rect& plot) {
     ChartBase::BindHoverMotion(plot);
     Rect bar;
     if (m_hoverIndex >= 0 && m_hoverSeries >= 0 && BarRect(plot, m_hoverIndex, m_hoverSeries, bar)) {
-        m_crossX.SetTarget(bar.x + bar.width * 0.5f);
-        m_crossY.SetTarget(bar.y);
+        m_crossX.ApplyTarget(bar.x + bar.width * 0.5f);
+        m_crossY.ApplyTarget(bar.y);
         return;
     }
     if (m_hoverIndex >= 0 && !m_series.empty() && BarRect(plot, m_hoverIndex, 0, bar)) {
-        m_crossX.SetTarget(bar.x + bar.width * 0.5f);
-        m_crossY.SetTarget(bar.y);
+        m_crossX.ApplyTarget(bar.x + bar.width * 0.5f);
+        m_crossY.ApplyTarget(bar.y);
     }
 }
 

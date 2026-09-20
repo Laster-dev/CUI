@@ -152,17 +152,17 @@ ShowcasePage BuildImagePage(const ShowcaseContext& ctx) {
         "C:\\Windows\\Web\\Screen\\img100.jpg",
     });
 
-    auto preview = MakePreview(280.0f, 160.0f, Stretch::Uniform);
-        preview->SetSource(wallpaper ? wallpaper : gradient);
+    CUI::Widgets::Ref preview =MakePreview(280.0f, 160.0f, Stretch::Uniform);
+        preview.Source(wallpaper ? wallpaper : gradient);
 
-    auto uniform = MakePreview(160.0f, 100.0f, Stretch::Uniform);
-        uniform->SetSource(gradient);
-    auto fill = MakePreview(160.0f, 100.0f, Stretch::Fill);
-        fill->SetSource(gradient);
-    auto none = MakePreview(160.0f, 100.0f, Stretch::None);
-        none->SetSource(checker);
-    auto cover = MakePreview(160.0f, 100.0f, Stretch::UniformToFill);
-        cover->SetSource(checker);
+    CUI::Widgets::Ref uniform =MakePreview(160.0f, 100.0f, Stretch::Uniform);
+        uniform.Source(gradient);
+    CUI::Widgets::Ref fill =MakePreview(160.0f, 100.0f, Stretch::Fill);
+        fill.Source(gradient);
+    CUI::Widgets::Ref none =MakePreview(160.0f, 100.0f, Stretch::None);
+        none.Source(checker);
+    CUI::Widgets::Ref cover =MakePreview(160.0f, 100.0f, Stretch::UniformToFill);
+        cover.Source(checker);
 
     CUI::Widgets::Ref avatar = CUI::Widgets::Image(ImageType::Avatar, "CUI").Shared();
         avatar.Width(48.0f);
@@ -174,14 +174,14 @@ ShowcasePage BuildImagePage(const ShowcaseContext& ctx) {
         badge.Width(18.0f);
         badge.Height(18.0f);
 
-    auto status = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref status =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("就绪", 12.0f, "#B5CEA8", false, "Consolas"));
 
     auto applySource = [preview, status](const std::string& path) {
-        if (preview->SetSource(path)) {
-            status->SetText("[Image] 已加载: " + path);
+        if (preview.Source(path)) {
+            status.Text("[Image] 已加载: " + path);
         } else {
-            status->SetText("[Image] 加载失败: " + preview->GetLoadError() + "  " + path);
+            status.Text("[Image] 加载失败: " + preview->GetLoadError() + "  " + path);
         }
     };
 
@@ -208,23 +208,23 @@ ShowcasePage BuildImagePage(const ShowcaseContext& ctx) {
 
     CUI::Widgets::Ref btnU = CUI::Widgets::Button("Uniform").Shared();
     btnU->OnClick().Connect([preview, status](UIElement*) {
-                preview->SetStretch(Stretch::Uniform);
-                status->SetText("[Image] Stretch = Uniform");
+                preview.Stretch(Stretch::Uniform);
+                status.Text("[Image] Stretch = Uniform");
     });
     CUI::Widgets::Ref btnF = CUI::Widgets::Button("Fill").Shared();
     btnF->OnClick().Connect([preview, status](UIElement*) {
-                preview->SetStretch(Stretch::Fill);
-                status->SetText("[Image] Stretch = Fill");
+                preview.Stretch(Stretch::Fill);
+                status.Text("[Image] Stretch = Fill");
     });
     CUI::Widgets::Ref btnN = CUI::Widgets::Button("None").Shared();
     btnN->OnClick().Connect([preview, status](UIElement*) {
-                preview->SetStretch(Stretch::None);
-                status->SetText("[Image] Stretch = None");
+                preview.Stretch(Stretch::None);
+                status.Text("[Image] Stretch = None");
     });
     CUI::Widgets::Ref btnC = CUI::Widgets::Button("UniformToFill").Shared();
     btnC->OnClick().Connect([preview, status](UIElement*) {
-                preview->SetStretch(Stretch::UniformToFill);
-                status->SetText("[Image] Stretch = UniformToFill");
+                preview.Stretch(Stretch::UniformToFill);
+                status.Text("[Image] Stretch = UniformToFill");
     });
 
     auto demo = Column(12).Children({

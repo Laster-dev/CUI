@@ -77,25 +77,25 @@ namespace Gallery {
         };
 
         std::shared_ptr<NavigationView> BuildNavigation(const std::shared_ptr<GalleryStatusBar>& statusBar) {
-            auto nav = std::make_shared<NavigationView>();
-                        nav->SetHeader(std::string());
-                        nav->SetPaneTitle("CUI Gallery");
+            CUI::Widgets::Ref nav =std::make_shared<NavigationView>();
+                        nav.Header(std::string());
+                        nav.PaneTitle("CUI Gallery");
 
-                        nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
-                        nav->SetIsSettingsVisible(true);
+                        nav.PaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
+                        nav.IsSettingsVisible(true);
             if (auto* settings = nav->SettingsItem()) {
                 settings->Content = "设置";
             }
-                        nav->SetIsPaneOpen(true);
-                        nav->SetFlexGrow(1.0f);
-                        nav->SetAlign(Alignment::Stretch);
+                        nav.IsPaneOpen(true);
+                        nav.FlexGrow(1.0f);
+                        nav.Align(Alignment::Stretch);
 
-            auto homeItem = std::make_shared<NavigationViewItem>("主页");
-                        homeItem->SetTag(kHomeTag);
+            CUI::Widgets::Ref homeItem =std::make_shared<NavigationViewItem>("主页");
+                        homeItem.Tag(kHomeTag);
             nav->AddMenuItem(homeItem);
 
-            auto conventionsItem = std::make_shared<NavigationViewItem>("全局约定");
-                        conventionsItem->SetTag(kConventionsTag);
+            CUI::Widgets::Ref conventionsItem =std::make_shared<NavigationViewItem>("全局约定");
+                        conventionsItem.Tag(kConventionsTag);
             nav->AddMenuItem(conventionsItem);
 
             for (Category category : CategoryOrder()) {
@@ -103,11 +103,11 @@ namespace Gallery {
                 if (items.empty()) {
                     continue;
                 }
-                auto folder = std::make_shared<NavigationViewItem>(CategoryDisplayName(category));
-                                folder->SetSelectsOnInvoked(false);
+                CUI::Widgets::Ref folder =std::make_shared<NavigationViewItem>(CategoryDisplayName(category));
+                                folder.SelectsOnInvoked(false);
                 for (const Entry* entry : items) {
-                    auto child = std::make_shared<NavigationViewItem>(entry->title);
-                                        child->SetTag(entry->tag);
+                    CUI::Widgets::Ref child =std::make_shared<NavigationViewItem>(entry->title);
+                                        child.Tag(entry->tag);
                     folder->AddMenuItem(child);
                 }
                 nav->AddMenuItem(folder);
@@ -126,7 +126,7 @@ namespace Gallery {
                     return SearchTitles(query);
                     });
             }
-                        nav->SetAutoSuggestBox(search);
+                        nav.AutoSuggestBox(search);
 
             auto cache = std::make_shared<PageCache>();
 
@@ -147,20 +147,20 @@ namespace Gallery {
                     pageTitle = entry->title;
                 }
                 if (statusBar) {
-                                        statusBar->SetCurrentPage(pageTitle);
+                                        statusBar->ApplyCurrentPage(pageTitle);
                 }
 
                 if (tag == kSettingsTag || tag == kConventionsTag) {
-                                        nav->SetContent(cache->Resolve(tag));
+                                        nav.Content(cache->Resolve(tag));
                     return;
                 }
                 if (cache->Contains(tag) || tag == kHomeTag) {
                     if (auto page = cache->Resolve(tag)) {
-                                                nav->SetContent(page);
+                                                nav.Content(page);
                     }
                     return;
                 }
-                                nav->SetContentFactory([cache, tag]() {
+                                nav.ContentFactory([cache, tag]() {
                     return cache->Resolve(tag);
                 });
             };
@@ -202,10 +202,10 @@ namespace Gallery {
                 navigate(tag);
                 });
 
-                        nav->SetSelectedItem(homeItem.get());
-                        nav->SetContent(cache->Resolve(kHomeTag));
+                        nav.SelectedItem(homeItem.get());
+                        nav.Content(cache->Resolve(kHomeTag));
             if (statusBar) {
-                                statusBar->SetCurrentPage("主页");
+                                statusBar->ApplyCurrentPage("主页");
             }
             return nav;
         }
@@ -228,7 +228,7 @@ namespace Gallery {
         ThemeModeRange->AddItem("Light");
         ThemeModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
             if (auto* window = Window::Current()) {
-                                window->SetThemeMode(item == "Dark" ? ThemeMode::Dark : ThemeMode::Light);
+                                window->ApplyThemeMode(item == "Dark" ? ThemeMode::Dark : ThemeMode::Light);
             }
         });
 		//构建动画|低性能模式切换控件
@@ -238,7 +238,7 @@ namespace Gallery {
 		AnimationModeRange->AddItem("动画");
 		AnimationModeRange->AddItem("低性能");
         AnimationModeRange->OnSelectionChanged().Connect([](SegmentedControl*, int, const std::string& item) {
-           UIElement::SetAnimationsEnabled(item == "动画");
+           UIElement::ApplyAnimationsEnabled(item == "动画");
 		});
 
 		//把两个控件合并为一个水平布局，然后添加
@@ -267,13 +267,13 @@ namespace Gallery {
             }
             });
 
-        auto statusBar = std::make_shared<GalleryStatusBar>();
-        auto nav = BuildNavigation(statusBar);
-        auto toastCenter = std::make_shared<ToastCenter>();
-                toastCenter->SetId("toastCenter");
+        CUI::Widgets::Ref statusBar =std::make_shared<GalleryStatusBar>();
+        CUI::Widgets::Ref nav =BuildNavigation(statusBar);
+        CUI::Widgets::Ref toastCenter =std::make_shared<ToastCenter>();
+                toastCenter.Id("toastCenter");
 
-        auto root = Column(0, { titleBar, nav, statusBar, toastCenter });
-                root->SetBackgroundToken(ThemeTokenId::WindowBackground);
+        auto root =Column(0, { titleBar, nav, statusBar, toastCenter });
+                root.BackgroundToken(ThemeTokenId::WindowBackground);
         return root;
     }
 

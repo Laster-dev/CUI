@@ -56,7 +56,7 @@ BackdropType MaterialHost::Cycle(BackdropType type) {
 
 bool MaterialHost::Apply(HWND hwnd, BackdropType type, ThemeMode theme) {
     if (!hwnd) {
-        ThemeManager::Instance().SetBackdropType(type);
+        ThemeManager::Instance().ApplyBackdropType(type);
         return false;
     }
 
@@ -67,7 +67,7 @@ bool MaterialHost::Apply(HWND hwnd, BackdropType type, ThemeMode theme) {
         effective = BackdropType::Solid;
         backdropApplied = ApplyBackdrop(hwnd, effective);
     }
-    ThemeManager::Instance().SetBackdropType(effective);
+    ThemeManager::Instance().ApplyBackdropType(effective);
     return themeApplied && backdropApplied;
 }
 

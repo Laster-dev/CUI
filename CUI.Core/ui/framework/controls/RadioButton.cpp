@@ -18,17 +18,17 @@ float EaseLine(float t) {
 }
 
 RadioButton::RadioButton() : CheckBox("RadioButton") {
-    this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetAccentColorToken(ThemeTokenId::AccentColor);
-    this->SetColorToken(ThemeTokenId::TextSecondary);
-    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyAccentColorToken(ThemeTokenId::AccentColor);
+    this->ApplyColorToken(ThemeTokenId::TextSecondary);
+    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
 }
 
 RadioButton::RadioButton(const std::string& text) : CheckBox(text) {
-    this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetAccentColorToken(ThemeTokenId::AccentColor);
-    this->SetColorToken(ThemeTokenId::TextSecondary);
-    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyAccentColorToken(ThemeTokenId::AccentColor);
+    this->ApplyColorToken(ThemeTokenId::TextSecondary);
+    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
 }
 
 Value RadioButton::GetProperty(PropertyId id) const {
@@ -40,12 +40,12 @@ bool RadioButton::HasProperty(PropertyId id) const {
     return id == PropertyId::GroupName || CheckBox::HasProperty(id);
 }
 
-void RadioButton::SetProperty(PropertyId id, const Value& val) {
+void RadioButton::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::GroupName) {
-        SetGroupName(val.AsString());
+        ApplyGroupName(val.AsString());
         return;
     }
-    CheckBox::SetProperty(id, val);
+    CheckBox::ApplyProperty(id, val);
 }
 
 void RadioButton::OnMouseDown(Point pt) {
@@ -70,7 +70,7 @@ void RadioButton::UncheckSiblingsInGroup() {
                 if (!child) continue;
                 auto* sibling = dynamic_cast<RadioButton*>(child.get());
                 if (sibling && sibling != this && sibling->GetGroupName() == myGroup) {
-                    sibling->SetChecked(false);
+                    sibling->ApplyChecked(false);
                     sibling->MarkRenderRectDirty(sibling->GetBounds());
                     foundAny = true;
                 } else {
@@ -91,7 +91,7 @@ bool RadioButton::OnKeyDown(int vkCode) {
     if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
         if (GetState() != CheckState::Checked) {
             UncheckSiblingsInGroup();
-            SetChecked(true);
+            ApplyChecked(true);
         }
         ExecuteBoundCommand();
         OnClick().Invoke(this);
@@ -141,7 +141,7 @@ bool RadioButton::OnKeyDown(int vkCode) {
             : (index <= 0 ? static_cast<int>(group.size()) - 1 : index - 1);
         RadioButton* target = group[next];
         target->UncheckSiblingsInGroup();
-        target->SetChecked(true);
+        target->ApplyChecked(true);
         if (Window* win = Window::Current()) {
             win->ApplyFocus(target, FocusState::Keyboard);
         } else {
@@ -158,7 +158,7 @@ void RadioButton::OnMouseUp(Point pt) {
         m_isPressed = false;
         if (GetState() != CheckState::Checked) {
             UncheckSiblingsInGroup();
-            SetChecked(true);
+            ApplyChecked(true);
         }
         OnClick().Invoke(this);
     } else {
@@ -168,7 +168,7 @@ void RadioButton::OnMouseUp(Point pt) {
 
 void RadioButton::OnRender(GraphicsContext& ctx) {
     float target = GetState() == CheckState::Checked ? 1.0f : 0.0f;
-    m_selectionAnim.SetTarget(target);
+    m_selectionAnim.ApplyTarget(target);
 
     if (!UIElement::AreAnimationsEnabled()) {
         m_selectionAnim.Reset(target);
@@ -223,7 +223,7 @@ bool RadioButton::OnAnimationTick() {
     bool animating = base;
 
     float target = GetState() == CheckState::Checked ? 1.0f : 0.0f;
-    m_selectionAnim.SetTarget(target);
+    m_selectionAnim.ApplyTarget(target);
     if (!UIElement::AreAnimationsEnabled()) {
         m_selectionAnim.Reset(target);
         return base;
@@ -238,18 +238,18 @@ bool RadioButton::HasSelfAnimation() const {
     return CheckBox::HasSelfAnimation() || std::abs(target - m_selectionAnim.Current()) > 0.01f;
 }
 
-void RadioButton::SetChecked(bool checked) {
+void RadioButton::ApplyChecked(bool checked) {
     const CheckState next = checked ? CheckState::Checked : CheckState::Unchecked;
     const float target = checked ? 1.0f : 0.0f;
     const bool stateChanged = GetState() != next;
     const bool animSettled = std::abs(m_selectionAnim.Current() - target) <= 0.01f
         && !m_selectionAnim.IsAnimating(0.01f);
-    SetState(next);
+    ApplyState(next);
     if (!stateChanged && animSettled) {
         m_selectionAnim.Reset(target);
         return;
     }
-    m_selectionAnim.SetTarget(target);
+    m_selectionAnim.ApplyTarget(target);
     if (!UIElement::AreAnimationsEnabled()) {
         m_selectionAnim.Reset(target);
     } else {

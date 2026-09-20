@@ -36,7 +36,7 @@ public:
     void RemapPaneIndexAfterClose(int closedIndex);
 
     using CloseCallback = std::function<void(DockFloatWindow*)>;
-    void SetCloseCallback(CloseCallback cb) { m_onClose = std::move(cb); }
+    void ApplyCloseCallback(CloseCallback cb) { m_onClose = std::move(cb); }
 
     static bool IsDockFloatHwnd(::HWND hwnd);
     static DockFloatWindow* FromHwnd(::HWND hwnd);
@@ -56,12 +56,12 @@ private:
     void HandleWheel(float delta, int x, int y);
     void TrackClientMouse();
     Point ClientPhysicalToDip(int x, int y) const;
-    void SetTitleFromPane();
+    void ApplyTitleFromPane();
     Rect TitleBarRect() const;
     Rect CaptionButtonRect(int index) const; // 0=min 1=max 2=close
     int HitCaptionButton(float x, float y) const;
     LRESULT HitTest(int screenX, int screenY) const;
-    void SetCaptionHover(int region);
+    void ApplyCaptionHover(int region);
     Point CursorScreenDip() const;
     void BeginRedockTracking();
     void UpdateRedockTracking();

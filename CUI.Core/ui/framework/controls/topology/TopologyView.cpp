@@ -30,8 +30,8 @@ TopologyView::TopologyView()
     , FlowParticles(this)
     , ReadOnly(this)
 {
-    this->SetWidth(-1.0f);
-    this->SetHeight(560.0f);
+    this->ApplyWidth(-1.0f);
+    this->ApplyHeight(560.0f);
     m_zoomAnimator.Reset(1.0f);
     m_panXAnimator.Reset(60.0f);
     m_panYAnimator.Reset(60.0f);
@@ -60,7 +60,7 @@ Size TopologyView::Measure(Size availableSize) {
 }
 
 void TopologyView::Arrange(Rect finalRect) {
-    SetBounds(finalRect);
+    ApplyBounds(finalRect);
 }
 
 void TopologyView::AddNode(std::shared_ptr<TopologyNode> node) {
@@ -92,7 +92,7 @@ void TopologyView::RemoveNode(const std::string& id) {
     const auto isRemoved = [&removedIds](const std::shared_ptr<TopologyNode>& node) {
         return !node || removedIds.contains(node->id);
     };
-    if (m_selectedNode && removedIds.contains(m_selectedNode->id)) SetSelectedItem(nullptr);
+    if (m_selectedNode && removedIds.contains(m_selectedNode->id)) ApplySelectedItem(nullptr);
     if (m_hoveredNode && removedIds.contains(m_hoveredNode->id)) m_hoveredNode = nullptr;
     if (m_draggingNode && removedIds.contains(m_draggingNode->id)) {
         m_draggingNode->isDragging = false;
@@ -124,7 +124,7 @@ void TopologyView::RemoveEdge(const std::string& fromId, const std::string& toId
     Relayout();
 }
 
-void TopologyView::SetNodes(const std::vector<std::shared_ptr<TopologyNode>>& nodes) {
+void TopologyView::ApplyNodes(const std::vector<std::shared_ptr<TopologyNode>>& nodes) {
     m_nodes = nodes;
     m_nodeMap.clear();
     for (const auto& n : m_nodes) {
@@ -133,7 +133,7 @@ void TopologyView::SetNodes(const std::vector<std::shared_ptr<TopologyNode>>& no
     Relayout();
 }
 
-void TopologyView::SetEdges(const std::vector<TopologyEdge>& edges) {
+void TopologyView::ApplyEdges(const std::vector<TopologyEdge>& edges) {
     m_edges = edges;
     Relayout();
 }
@@ -153,14 +153,14 @@ std::shared_ptr<TopologyNode> TopologyView::FindNode(const std::string& id) cons
     return (it != m_nodeMap.end()) ? it->second : nullptr;
 }
 
-void TopologyView::SetLayoutType(TopologyLayoutType type) {
+void TopologyView::ApplyLayoutType(TopologyLayoutType type) {
     if (m_layoutType != type) {
         m_layoutType = type;
         Relayout();
     }
 }
 
-void TopologyView::SetIsReadOnly(bool ro) {
+void TopologyView::ApplyIsReadOnly(bool ro) {
     if (m_isReadOnly != ro) {
         m_isReadOnly = ro;
         if (m_draggingNode) {
@@ -171,7 +171,7 @@ void TopologyView::SetIsReadOnly(bool ro) {
     }
 }
 
-void TopologyView::SetZoom(float zoom, bool animated) {
+void TopologyView::ApplyZoom(float zoom, bool animated) {
     float clamped = (std::clamp)(zoom, 0.2f, 3.5f);
     if (animated && UIElement::AreAnimationsEnabled()) {
         m_zoomAnimator.ScrollBy(clamped - m_zoomAnimator.Target(), 0.2f, 3.5f);
@@ -184,7 +184,7 @@ void TopologyView::SetZoom(float zoom, bool animated) {
     }
 }
 
-void TopologyView::SetPanOffset(Point offset, bool animated) {
+void TopologyView::ApplyPanOffset(Point offset, bool animated) {
     if (animated && UIElement::AreAnimationsEnabled()) {
         m_panXAnimator.ScrollBy(offset.x - m_panXAnimator.Target(), -50000.0f, 50000.0f);
         m_panYAnimator.ScrollBy(offset.y - m_panYAnimator.Target(), -50000.0f, 50000.0f);
@@ -200,21 +200,21 @@ void TopologyView::SetPanOffset(Point offset, bool animated) {
 
 void TopologyView::ZoomIn(bool animated) {
     float curTarget = m_zoomAnimator.Target();
-    SetZoom(curTarget * 1.25f, animated);
+    ApplyZoom(curTarget * 1.25f, animated);
 }
 
 void TopologyView::ZoomOut(bool animated) {
     float curTarget = m_zoomAnimator.Target();
-    SetZoom(curTarget / 1.25f, animated);
+    ApplyZoom(curTarget / 1.25f, animated);
 }
 
-void TopologyView::SetFlowParticlesEnabled(bool enabled) {
+void TopologyView::ApplyFlowParticlesEnabled(bool enabled) {
     m_flowParticlesEnabled = enabled;
     if (enabled) RequestAnimationTicks();
     MarkRenderContentDirty();
 }
 
-void TopologyView::SetSelectedItem(std::shared_ptr<TopologyNode> node) {
+void TopologyView::ApplySelectedItem(std::shared_ptr<TopologyNode> node) {
     if (m_selectedNode != node) {
         if (m_selectedNode) m_selectedNode->isSelected = false;
         m_selectedNode = node;
@@ -265,8 +265,8 @@ void TopologyView::CollapseAll() {
 }
 
 void TopologyView::ResetView(bool animated) {
-    SetZoom(1.0f, animated);
-    SetPanOffset(Point(60.0f, 60.0f), animated);
+    ApplyZoom(1.0f, animated);
+    ApplyPanOffset(Point(60.0f, 60.0f), animated);
     Relayout();
 }
 
@@ -302,8 +302,8 @@ void TopologyView::FitToView(bool animated) {
     float targetPanX = (viewW - (maxX + minX) * targetZoom) * 0.5f;
     float targetPanY = (viewH - (maxY + minY) * targetZoom) * 0.5f;
 
-    SetZoom(targetZoom, animated);
-    SetPanOffset(Point(targetPanX, targetPanY), animated);
+    ApplyZoom(targetZoom, animated);
+    ApplyPanOffset(Point(targetPanX, targetPanY), animated);
 }
 
 void TopologyView::CollectDescendants(const std::shared_ptr<TopologyNode>& parent, std::vector<std::shared_ptr<TopologyNode>>& outList) {
@@ -856,7 +856,7 @@ void TopologyView::OnMouseDown(Point pt) {
 
     auto hitNode = HitTestNode(pt);
     if (hitNode) {
-        SetSelectedItem(hitNode);
+        ApplySelectedItem(hitNode);
         if (!m_isReadOnly) {
             m_draggingNode = hitNode;
             m_draggingNode->isDragging = true;
@@ -864,7 +864,7 @@ void TopologyView::OnMouseDown(Point pt) {
         m_lastMousePos = pt;
         m_onNodeClicked.Invoke(this, hitNode);
     } else {
-        SetSelectedItem(nullptr);
+        ApplySelectedItem(nullptr);
         m_isPanning = true;
         m_lastMousePos = pt;
     }
@@ -951,8 +951,8 @@ void TopologyView::OnMouseWheel(float delta) {
         float targetPanX = center.x - (center.x - curPanX) * (newZoom / curTarget);
         float targetPanY = center.y - (center.y - curPanY) * (newZoom / curTarget);
 
-        SetZoom(newZoom, true);
-        SetPanOffset(Point(targetPanX, targetPanY), true);
+        ApplyZoom(newZoom, true);
+        ApplyPanOffset(Point(targetPanX, targetPanY), true);
     }
 }
 

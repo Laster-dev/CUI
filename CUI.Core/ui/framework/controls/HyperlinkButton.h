@@ -16,7 +16,7 @@ public:
     virtual const char* GetClassName() const override { return "HyperlinkButton"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 测量文字所占物理大小尺寸
@@ -25,7 +25,7 @@ public:
     virtual bool AcceptsTabFocus() const override { return true; } // 支持键盘 Tab 导航获焦
 
     const std::string& GetNavigateUri() const { return m_navigateUri; } // 获取超链接的目标网址或内部导航标签
-    void SetNavigateUri(const std::string& uri) { // 设置要跳转的目标网址
+    void ApplyNavigateUri(const std::string& uri) { // 设置要跳转的目标网址
         m_navigateUri = uri;
         MarkRenderContentDirty();
     }

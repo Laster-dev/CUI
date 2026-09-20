@@ -13,7 +13,7 @@ public:
     HexEditor();
     const char* GetClassName() const override { return "HexEditor"; }
 
-    void SetBytes(std::vector<BYTE> data);
+    void ApplyBytes(std::vector<BYTE> data);
     const std::vector<BYTE>& GetBytes() const { return m_data; }
 
     CUI::Size Measure(CUI::Size availableSize) override;
@@ -30,7 +30,7 @@ public:
     void OnFocus() override;
     void OnBlur() override;
 
-    void SetBytesPerRow(int n) { m_bytesPerRow = (std::max)(1, n); MarkRenderContentDirty(); }
+    void ApplyBytesPerRow(int n) { m_bytesPerRow = (std::max)(1, n); MarkRenderContentDirty(); }
     int GetBytesPerRow() const { return m_bytesPerRow; }
 
 private:

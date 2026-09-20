@@ -34,11 +34,11 @@ void StyleChromeButton(const std::shared_ptr<Button>& btn) {
 }
 
 NavigationView::NavigationView() {
-        this->SetBackgroundToken(ThemeTokenId::WindowBackground);
-    this->SetPaneBackgroundToken(ThemeTokenId::PaneBackground);
-    this->SetIndicatorColorToken(ThemeTokenId::AccentColor);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetSecondaryColorToken(ThemeTokenId::TextSecondary);
+        this->ApplyBackgroundToken(ThemeTokenId::WindowBackground);
+    this->ApplyPaneBackgroundToken(ThemeTokenId::PaneBackground);
+    this->ApplyIndicatorColorToken(ThemeTokenId::AccentColor);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplySecondaryColorToken(ThemeTokenId::TextSecondary);
 
     BuildChrome();
     EnsureSettingsItem();
@@ -69,14 +69,14 @@ bool NavigationView::HasProperty(PropertyId id) const {
     }
 }
 
-void NavigationView::SetProperty(PropertyId id, const Value& val) {
+void NavigationView::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::PaneTitle: SetPaneTitle(val.AsString()); return;
-    case PropertyId::Header: SetHeader(val.AsString()); return;
-    case PropertyId::OpenPaneLength: SetOpenPaneLength(val.AsFloat(m_openPaneLength)); return;
-    case PropertyId::CompactPaneLength: SetCompactPaneLength(val.AsFloat(m_compactPaneLength)); return;
-    case PropertyId::IsPaneOpen: SetIsPaneOpen(val.AsBool()); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::PaneTitle: ApplyPaneTitle(val.AsString()); return;
+    case PropertyId::Header: ApplyHeader(val.AsString()); return;
+    case PropertyId::OpenPaneLength: ApplyOpenPaneLength(val.AsFloat(m_openPaneLength)); return;
+    case PropertyId::CompactPaneLength: ApplyCompactPaneLength(val.AsFloat(m_compactPaneLength)); return;
+    case PropertyId::IsPaneOpen: ApplyIsPaneOpen(val.AsBool()); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
@@ -188,7 +188,7 @@ void NavigationView::EnsureSettingsItem() {
         return;
     }
     m_settingsItem = Widgets::NavigationViewItem("Settings", "⚙").Shared();
-    m_settingsItem->SetTag("settings");
+    m_settingsItem->ApplyTag("settings");
     WireItem(m_settingsItem, false);
 }
 
@@ -196,7 +196,7 @@ void NavigationView::WireItem(const std::shared_ptr<NavigationViewItemBase>& ite
     if (!item) {
         return;
     }
-    item->SetOwner(this);
+    item->ApplyOwner(this);
     EnsureMenuScroll();
 
     auto isChildOf = [](UIElement* parent, UIElement* child) -> bool {
@@ -319,7 +319,7 @@ void NavigationView::SyncMenuHostChildren() {
     auto walkAll = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> void {
         if (!node) return;
         const bool show = visibleSet.count(node.get()) > 0;
-        node->SetVisibility(show ? Visibility::Visible : Visibility::Collapsed);
+        node->ApplyVisibility(show ? Visibility::Visible : Visibility::Collapsed);
         if (auto* nvi = dynamic_cast<NavigationViewItem*>(node.get())) {
             for (auto& child : nvi->MenuItems()) {
                 self(self, child);
@@ -365,15 +365,15 @@ void NavigationView::SyncMenuHostChildren() {
     }
 }
 
-void NavigationView::SetIsSettingsVisible(bool visible) {
+void NavigationView::ApplyIsSettingsVisible(bool visible) {
     m_settingsVisible = visible;
     if (m_settingsItem) {
-        m_settingsItem->SetVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
+        m_settingsItem->ApplyVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
     }
     RelayoutChildren();
 }
 
-void NavigationView::SetPaneDisplayMode(NavigationViewPaneDisplayMode mode) {
+void NavigationView::ApplyPaneDisplayMode(NavigationViewPaneDisplayMode mode) {
     if (m_paneDisplayMode == mode) {
         return;
     }
@@ -383,12 +383,12 @@ void NavigationView::SetPaneDisplayMode(NavigationViewPaneDisplayMode mode) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void NavigationView::SetIsPaneOpen(bool open) {
+void NavigationView::ApplyIsPaneOpen(bool open) {
     if (m_isPaneOpen == open) {
         return;
     }
     m_isPaneOpen = open;
-    m_paneWidthAnim.SetTarget(TargetPaneWidth());
+    m_paneWidthAnim.ApplyTarget(TargetPaneWidth());
     EnsureAnimationsScheduled();
     UpdateChildCompactFlags();
     RelayoutChildren();
@@ -402,22 +402,22 @@ void NavigationView::SetIsPaneOpen(bool open) {
 }
 
 void NavigationView::TogglePane() {
-    SetIsPaneOpen(!m_isPaneOpen);
+    ApplyIsPaneOpen(!m_isPaneOpen);
 }
 
-void NavigationView::SetOpenPaneLength(float length) {
+void NavigationView::ApplyOpenPaneLength(float length) {
     m_openPaneLength = (std::max)(0.0f, length);
-    m_paneWidthAnim.SetTarget(TargetPaneWidth());
+    m_paneWidthAnim.ApplyTarget(TargetPaneWidth());
     RelayoutChildren();
 }
 
-void NavigationView::SetCompactPaneLength(float length) {
+void NavigationView::ApplyCompactPaneLength(float length) {
     m_compactPaneLength = (std::max)(0.0f, length);
-    m_paneWidthAnim.SetTarget(TargetPaneWidth());
+    m_paneWidthAnim.ApplyTarget(TargetPaneWidth());
     RelayoutChildren();
 }
 
-void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
+void NavigationView::ApplyContent(const std::shared_ptr<UIElement>& content) {
     if (!content) {
         return;
     }
@@ -438,7 +438,7 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
     const auto* effective = m_hasPendingContent ? m_pendingContent.get() : m_content.get();
     if (effective == content.get()) {
         if (m_content == content && m_content) {
-            m_content->SetOpacity(1.0f);
+            m_content->ApplyOpacity(1.0f);
         }
         return;
     }
@@ -451,7 +451,7 @@ void NavigationView::SetContent(const std::shared_ptr<UIElement>& content) {
     EnsureAnimationsScheduled();
 }
 
-void NavigationView::SetContentFactory(std::function<std::shared_ptr<UIElement>()> factory) {
+void NavigationView::ApplyContentFactory(std::function<std::shared_ptr<UIElement>()> factory) {
     if (!factory) {
         return;
     }
@@ -507,22 +507,22 @@ void NavigationView::ApplyPendingContent() {
 
     if (m_content == content) {
         if (m_content) {
-            m_content->SetOpacity(1.0f);
+            m_content->ApplyOpacity(1.0f);
         }
         return;
     }
 
     if (m_content) {
         m_content->OnNavigatedFrom();
-        m_content->SetVisibility(Visibility::Collapsed);
+        m_content->ApplyVisibility(Visibility::Collapsed);
         this->RemoveChild(m_content);
     }
     m_content = content;
     m_contentNext.reset();
     m_contentAnimating = false;
     m_contentFadeAnim.Reset(1.0f);
-    m_content->SetOpacity(1.0f);
-    m_content->SetClipToBounds(true);
+    m_content->ApplyOpacity(1.0f);
+    m_content->ApplyClipToBounds(true);
 
     bool alreadyChild = false;
     for (const auto& child : GetChildren()) {
@@ -538,7 +538,7 @@ void NavigationView::ApplyPendingContent() {
     // Content swap must NOT RelayoutChildren() — that re-measures the whole pane
     // menu tree on every navigation and freezes NavigationViewItem ripple mid-flight.
     const Rect contentRect = GetContentAreaRect();
-    m_content->SetVisibility(Visibility::Visible);
+    m_content->ApplyVisibility(Visibility::Visible);
     m_content->Measure(Size(contentRect.width, contentRect.height));
     m_content->Arrange(contentRect);
     EnsureContentZOrder();
@@ -556,7 +556,7 @@ void NavigationView::ApplyPendingContent() {
 }
 }
 
-void NavigationView::SetHeader(const std::string& header) {
+void NavigationView::ApplyHeader(const std::string& header) {
     if (m_header == header) {
         return;
     }
@@ -565,7 +565,7 @@ void NavigationView::SetHeader(const std::string& header) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void NavigationView::SetAlwaysShowHeader(bool always) {
+void NavigationView::ApplyAlwaysShowHeader(bool always) {
     if (m_alwaysShowHeader == always) {
         return;
     }
@@ -574,7 +574,7 @@ void NavigationView::SetAlwaysShowHeader(bool always) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void NavigationView::SetPaneTitle(const std::string& title) {
+void NavigationView::ApplyPaneTitle(const std::string& title) {
     if (m_paneTitle == title) {
         return;
     }
@@ -582,7 +582,7 @@ void NavigationView::SetPaneTitle(const std::string& title) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void NavigationView::SetPaneFooter(const std::shared_ptr<UIElement>& footer) {
+void NavigationView::ApplyPaneFooter(const std::shared_ptr<UIElement>& footer) {
     if (m_paneFooter == footer) {
         return;
     }
@@ -596,7 +596,7 @@ void NavigationView::SetPaneFooter(const std::shared_ptr<UIElement>& footer) {
     RelayoutChildren();
 }
 
-void NavigationView::SetAutoSuggestBox(const std::shared_ptr<UIElement>& box) {
+void NavigationView::ApplyAutoSuggestBox(const std::shared_ptr<UIElement>& box) {
     if (m_autoSuggestBox == box) {
         return;
     }
@@ -610,23 +610,23 @@ void NavigationView::SetAutoSuggestBox(const std::shared_ptr<UIElement>& box) {
     RelayoutChildren();
 }
 
-void NavigationView::SetIsBackButtonVisible(NavigationViewBackButtonVisible visible) {
+void NavigationView::ApplyIsBackButtonVisible(NavigationViewBackButtonVisible visible) {
     m_backVisible = visible;
     RelayoutChildren();
 }
 
-void NavigationView::SetIsBackEnabled(bool enabled) {
+void NavigationView::ApplyIsBackEnabled(bool enabled) {
     m_backEnabled = enabled;
     if (m_btnBack) {
-        m_btnBack->SetIsEnabled(enabled);
+        m_btnBack->ApplyIsEnabled(enabled);
     }
 }
 
 void NavigationView::UpdateBackButtonState() {
-    SetIsBackEnabled(CanGoBack());
+    ApplyIsBackEnabled(CanGoBack());
 }
 
-void NavigationView::SetSelectedItem(NavigationViewItem* item) {
+void NavigationView::ApplySelectedItem(NavigationViewItem* item) {
     // Selected child ⇒ every ancestor menu must be expanded (visibility + indicator).
     ExpandAncestorsOf(item);
 
@@ -685,7 +685,7 @@ void NavigationView::ExpandAncestorsOf(NavigationViewItem* item) {
             if (self(self, child)) {
                 if (!nvi->IsExpanded()) {
                     // Expand without OnExpandChanged → Relayout storm on the click frame.
-                    nvi->SetIsExpandedSilent(true);
+                    nvi->ApplyIsExpandedSilent(true);
                     expandedAny = true;
                 }
                 return true;
@@ -726,7 +726,7 @@ void NavigationView::OnItemExpandChanged(NavigationViewItem* folder) {
     // Manual collapse while a descendant is selected → move selection to this menu.
     if (folder && !folder->IsExpanded() && m_selectedItem
         && ContainsDescendant(folder, m_selectedItem)) {
-        SetSelectedItem(folder);
+        ApplySelectedItem(folder);
     }
     SyncMenuHostChildren();
     // Drop visual-height floor + force content-layer FULL so newly visible children
@@ -765,7 +765,7 @@ void NavigationView::StartSelectionIndicatorAnimation(NavigationViewItem* from, 
     m_selectionIndicatorFrom = from ? from : to;
     m_selectionIndicatorTo = to;
     m_selectionIndicatorAnim.Reset(0.0f);
-    m_selectionIndicatorAnim.SetTarget(1.0f);
+    m_selectionIndicatorAnim.ApplyTarget(1.0f);
     EnsureAnimationsScheduled();
 }
 
@@ -775,7 +775,7 @@ void NavigationView::SelectByTag(const std::string& tag) {
     for (auto* base : visible) {
         auto* item = dynamic_cast<NavigationViewItem*>(base);
         if (item && item->GetTag() == tag) {
-            SetSelectedItem(item);
+            ApplySelectedItem(item);
             return;
         }
     }
@@ -783,7 +783,7 @@ void NavigationView::SelectByTag(const std::string& tag) {
     auto search = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> bool {
         if (auto* item = dynamic_cast<NavigationViewItem*>(node.get())) {
             if (item->GetTag() == tag) {
-                SetSelectedItem(item);
+                ApplySelectedItem(item);
                 return true;
             }
             for (auto& child : item->MenuItems()) {
@@ -801,7 +801,7 @@ void NavigationView::SelectByTag(const std::string& tag) {
         if (search(search, item)) return;
     }
     if (m_settingsItem && m_settingsItem->GetTag() == tag) {
-        SetSelectedItem(m_settingsItem.get());
+        ApplySelectedItem(m_settingsItem.get());
     }
 }
 
@@ -859,7 +859,7 @@ void NavigationView::NotifyItemInvoked(NavigationViewItem* item) {
 
     if (item->GetSelectsOnInvoked()) {
         if (item->GetTag().empty()) {
-            SetSelectedItem(item);
+            ApplySelectedItem(item);
             ClosePaneIfOverlay();
         } else {
             NavigateTo(item->GetTag());
@@ -873,7 +873,7 @@ void NavigationView::NotifyItemInvoked(NavigationViewItem* item) {
 }
 void NavigationView::ClosePaneIfOverlay() {
     if (IsOverlayMode() && m_isPaneOpen) {
-        SetIsPaneOpen(false);
+        ApplyIsPaneOpen(false);
     }
 }
 
@@ -999,7 +999,7 @@ void NavigationView::UpdateAdaptiveLayout(float width) {
         }
     }
 
-    m_paneWidthAnim.SetTarget(TargetPaneWidth());
+    m_paneWidthAnim.ApplyTarget(TargetPaneWidth());
     UpdateChildCompactFlags();
     if (std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f) {
         EnsureAnimationsScheduled();
@@ -1022,8 +1022,8 @@ void NavigationView::UpdateChildCompactFlags() {
 
     auto apply = [&](auto&& self, const std::shared_ptr<NavigationViewItemBase>& node) -> void {
         if (auto* item = dynamic_cast<NavigationViewItem*>(node.get())) {
-            item->SetCompact(compact);
-            item->SetTopMode(top);
+            item->ApplyCompact(compact);
+            item->ApplyTopMode(top);
             for (auto& child : item->MenuItems()) {
                 self(self, child);
             }
@@ -1032,8 +1032,8 @@ void NavigationView::UpdateChildCompactFlags() {
     for (auto& item : m_menuItems) apply(apply, item);
     for (auto& item : m_footerItems) apply(apply, item);
     if (m_settingsItem) {
-        m_settingsItem->SetCompact(compact);
-        m_settingsItem->SetTopMode(top);
+        m_settingsItem->ApplyCompact(compact);
+        m_settingsItem->ApplyTopMode(top);
     }
 }
 
@@ -1049,8 +1049,8 @@ void NavigationView::UpdateSelectionVisuals() {
                 }
             }
             const bool selected = (item == m_selectedItem);
-            item->SetIsSelected(selected);
-            item->SetIsChildSelected(childSelected && !selected);
+            item->ApplyIsSelected(selected);
+            item->ApplyIsChildSelected(childSelected && !selected);
             ancestorSelected = selected || childSelected;
             return ancestorSelected;
         }
@@ -1066,8 +1066,8 @@ void NavigationView::UpdateSelectionVisuals() {
         walk(walk, item, dummy);
     }
     if (m_settingsItem) {
-        m_settingsItem->SetIsSelected(m_settingsItem.get() == m_selectedItem);
-        m_settingsItem->SetIsChildSelected(false);
+        m_settingsItem->ApplyIsSelected(m_settingsItem.get() == m_selectedItem);
+        m_settingsItem->ApplyIsChildSelected(false);
     }
 }
 
@@ -1158,7 +1158,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
 
     UpdateAdaptiveLayout(m_bounds.width);
 
-    // Do NOT hideTree+SetVisibility(Collapsed) on every item first — that was an
+    // Do NOT hideTree+ApplyVisibility(Collapsed) on every item first — that was an
     // InvalidateMeasure storm on every click/selection (same hitch class as
     // PropertyGrid full re-raster). SyncMenuHostChildren sets visibility once.
 
@@ -1167,12 +1167,12 @@ void NavigationView::RelayoutChildren(bool measureContent) {
     const bool compactList = IsCompactList();
 
     if (m_btnBack) {
-        m_btnBack->SetVisibility(showBack ? Visibility::Visible : Visibility::Collapsed);
+        m_btnBack->ApplyVisibility(showBack ? Visibility::Visible : Visibility::Collapsed);
     }
     if (m_btnToggle) {
         // Toggle hidden in Top mode and Forced Left-Expanded (optional: still show).
         const bool showToggle = !top && m_paneDisplayMode != NavigationViewPaneDisplayMode::Left;
-        m_btnToggle->SetVisibility(showToggle ? Visibility::Visible : Visibility::Collapsed);
+        m_btnToggle->ApplyVisibility(showToggle ? Visibility::Visible : Visibility::Collapsed);
     }
 
     if (top) {
@@ -1188,7 +1188,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
             m_btnToggle->Arrange(Rect(0, 0, 0, 0));
         }
         if (m_menuScroll) {
-            m_menuScroll->SetVisibility(Visibility::Collapsed);
+            m_menuScroll->ApplyVisibility(Visibility::Collapsed);
         }
 
         // Ensure menu items are direct children for Top hit-test (outside collapsed ScrollViewer).
@@ -1217,17 +1217,17 @@ void NavigationView::RelayoutChildren(bool measureContent) {
                 dynamic_cast<NavigationViewItem*>(base)
                     ? dynamic_cast<NavigationViewItem*>(base)->GetContent().size() * 8.0f
                     : 40));
-            base->SetVisibility(Visibility::Visible);
+            base->ApplyVisibility(Visibility::Visible);
             base->Measure(Size(itemW, kTopNavHeight - 8.0f));
             base->Arrange(Rect(x, yRow, itemW, kTopNavHeight - 8.0f));
             x += itemW + 4.0f;
         }
 
         if (m_autoSuggestBox) {
-            m_autoSuggestBox->SetVisibility(Visibility::Collapsed);
+            m_autoSuggestBox->ApplyVisibility(Visibility::Collapsed);
         }
         if (m_paneFooter) {
-            m_paneFooter->SetVisibility(Visibility::Collapsed);
+            m_paneFooter->ApplyVisibility(Visibility::Collapsed);
         }
     } else {
         EnsureMenuScroll();
@@ -1261,7 +1261,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
         }
 
         if (m_autoSuggestBox && !compactList && pane.width > 80.0f) {
-            m_autoSuggestBox->SetVisibility(Visibility::Visible);
+            m_autoSuggestBox->ApplyVisibility(Visibility::Visible);
             constexpr float kSuggestInset = 16.0f;
             const float availW = (std::max)(40.0f, pane.width - kSuggestInset * 2.0f);
             m_autoSuggestBox->Measure(Size(availW, 80.0f));
@@ -1269,7 +1269,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
             m_autoSuggestBox->Arrange(Rect(pane.x + kSuggestInset, y, availW, boxH));
             y += boxH + 8.0f;
         } else if (m_autoSuggestBox) {
-            m_autoSuggestBox->SetVisibility(Visibility::Collapsed);
+            m_autoSuggestBox->ApplyVisibility(Visibility::Collapsed);
         }
 
         const float itemW = (std::max)(36.0f, pane.width - 8.0f);
@@ -1277,24 +1277,24 @@ void NavigationView::RelayoutChildren(bool measureContent) {
         // Footer + settings pinned to bottom (outside scroll viewport).
         float footerY = pane.y + pane.height - 4.0f;
         if (m_paneFooter && !compactList && pane.width > 80.0f) {
-            m_paneFooter->SetVisibility(Visibility::Visible);
+            m_paneFooter->ApplyVisibility(Visibility::Visible);
             m_paneFooter->Measure(Size(pane.width - 16.0f, 40.0f));
             const float fh = m_paneFooter->GetDesiredSize().height;
             footerY -= fh;
             m_paneFooter->Arrange(Rect(pane.x + 8.0f, footerY, pane.width - 16.0f, fh));
             footerY -= 4.0f;
         } else if (m_paneFooter) {
-            m_paneFooter->SetVisibility(Visibility::Collapsed);
+            m_paneFooter->ApplyVisibility(Visibility::Collapsed);
         }
 
         if (m_settingsVisible && m_settingsItem) {
-            m_settingsItem->SetVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
+            m_settingsItem->ApplyVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
             m_settingsItem->Measure(Size(itemW, 40.0f));
             footerY -= m_settingsItem->GetDesiredSize().height;
             m_settingsItem->Arrange(Rect(pane.x + 4.0f, footerY, itemW, m_settingsItem->GetDesiredSize().height));
             footerY -= 2.0f;
         } else if (m_settingsItem) {
-            m_settingsItem->SetVisibility(Visibility::Collapsed);
+            m_settingsItem->ApplyVisibility(Visibility::Collapsed);
         }
 
         std::vector<NavigationViewItemBase*> footerVisible;
@@ -1303,7 +1303,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
         }
         for (int i = static_cast<int>(footerVisible.size()) - 1; i >= 0; --i) {
             auto* base = footerVisible[static_cast<size_t>(i)];
-            base->SetVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
+            base->ApplyVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
             base->Measure(Size(itemW, 40.0f));
             footerY -= base->GetDesiredSize().height;
             base->Arrange(Rect(pane.x + 4.0f, footerY, itemW, base->GetDesiredSize().height));
@@ -1316,7 +1316,7 @@ void NavigationView::RelayoutChildren(bool measureContent) {
         const float menuBottomY = (std::max)(menuTopY, footerY - 4.0f);
         const float menuH = (std::max)(0.0f, menuBottomY - menuTopY);
         if (m_menuScroll) {
-            m_menuScroll->SetVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
+            m_menuScroll->ApplyVisibility(pane.width > 0.5f ? Visibility::Visible : Visibility::Collapsed);
             // Use full pane width so the overlay scrollbar sits on the right edge.
             m_menuScroll->Measure(Size(pane.width, menuH));
             m_menuScroll->Arrange(Rect(pane.x, menuTopY, pane.width, menuH));
@@ -1332,14 +1332,14 @@ void NavigationView::RelayoutChildren(bool measureContent) {
             const float inv = 1.0f - t;
             const float ease = 1.0f - inv * inv * inv;
             if (m_contentNext) {
-                m_contentNext->SetOpacity(ease);
-                m_contentNext->SetVisibility(Visibility::Visible);
+                m_contentNext->ApplyOpacity(ease);
+                m_contentNext->ApplyVisibility(Visibility::Visible);
                 m_contentNext->Measure(Size(contentRect.width, contentRect.height));
                 m_contentNext->Arrange(contentRect);
             }
         } else if (m_content) {
-            m_content->SetOpacity(1.0f);
-            m_content->SetVisibility(Visibility::Visible);
+            m_content->ApplyOpacity(1.0f);
+            m_content->ApplyVisibility(Visibility::Visible);
             m_content->Measure(Size(contentRect.width, contentRect.height));
             m_content->Arrange(contentRect);
         }
@@ -1351,10 +1351,10 @@ void NavigationView::RelayoutChildren(bool measureContent) {
 void NavigationView::ArrangeContentHost() {
     const Rect contentRect = GetContentAreaRect();
     if (m_contentAnimating && m_contentNext) {
-        m_contentNext->SetVisibility(Visibility::Visible);
+        m_contentNext->ApplyVisibility(Visibility::Visible);
         m_contentNext->Arrange(contentRect);
     } else if (m_content) {
-        m_content->SetVisibility(Visibility::Visible);
+        m_content->ApplyVisibility(Visibility::Visible);
         m_content->Arrange(contentRect);
     }
 }
@@ -1365,9 +1365,9 @@ Size NavigationView::Measure(Size availableSize) {
 }
 
 void NavigationView::Arrange(Rect finalRect) {
-    SetBounds(finalRect);
+    ApplyBounds(finalRect);
     UpdateAdaptiveLayout(finalRect.width);
-    m_paneWidthAnim.SetTarget(TargetPaneWidth());
+    m_paneWidthAnim.ApplyTarget(TargetPaneWidth());
     if (!UIElement::AreAnimationsEnabled()) {
         m_paneWidthAnim.Reset(TargetPaneWidth());
     } else if (std::abs(m_paneWidthAnim.Target() - m_paneWidthAnim.Current()) > 0.001f) {
@@ -1489,7 +1489,7 @@ void NavigationView::OnMouseDown(Point pt) {
     if (IsOverlayMode() && m_isPaneOpen) {
         const Rect pane = GetPaneRect();
         if (!pane.Contains(pt.x, pt.y)) {
-            SetIsPaneOpen(false);
+            ApplyIsPaneOpen(false);
         }
     }
 }
@@ -1531,7 +1531,7 @@ bool NavigationView::OnAnimationTick() {
     // items / page content register with AnimationManager themselves; walking
     // them from here made pane ripples hitch whenever the view was animating.
     const float dt = UIElement::GetAnimationDeltaSeconds();
-    m_paneWidthAnim.SetTarget(TargetPaneWidth());
+    m_paneWidthAnim.ApplyTarget(TargetPaneWidth());
     const bool widthAnim = m_paneWidthAnim.Tick(dt, AnimationSpec{ 0.55f, 0.01f });
     const bool indicatorAnim = m_selectionIndicatorAnim.Tick(dt, AnimationSpec{ 0.65f, 0.001f });
     const bool contentAnim = m_contentAnimating && m_contentFadeAnim.Tick(dt, AnimationSpec{ 0.22f, 0.001f });
@@ -1543,7 +1543,7 @@ bool NavigationView::OnAnimationTick() {
         const float ease = 1.0f - inv * inv * inv;
         if (m_contentNext) {
             m_contentNext->PromoteLayer(true);
-            m_contentNext->SetComposeOpacity(ease);
+            m_contentNext->ApplyComposeOpacity(ease);
             // Keep layout origin stable; opacity-only entrance avoids text snap jitter.
             m_contentNext->Arrange(contentRect);
         }
@@ -1555,7 +1555,7 @@ bool NavigationView::OnAnimationTick() {
         m_contentAnimating = false;
         m_contentFadeAnim.Reset(1.0f);
         if (m_content) {
-            m_content->SetOpacity(1.0f);
+            m_content->ApplyOpacity(1.0f);
         }
         RelayoutChildren();
         EnsureContentZOrder();

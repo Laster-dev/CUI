@@ -26,15 +26,15 @@ D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float alpha) {
 } // namespace
 
 PagingControl::PagingControl() {
-    this->SetColorToken(ThemeTokenId::TextMuted);
-    this->SetBackgroundToken(ThemeTokenId::Unset);
-    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    this->SetColor(ThemeManager::Instance().GetColor("textMuted"));
-    this->SetFontFamily("Segoe UI");
-    this->SetFontSize(12.0f);
-    this->SetHeight(kHeight);
-    this->SetWidth(-1.0f);
+    this->ApplyColorToken(ThemeTokenId::TextMuted);
+    this->ApplyBackgroundToken(ThemeTokenId::Unset);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    this->ApplyColor(ThemeManager::Instance().GetColor("textMuted"));
+    this->ApplyFontFamily("Segoe UI");
+    this->ApplyFontSize(12.0f);
+    this->ApplyHeight(kHeight);
+    this->ApplyWidth(-1.0f);
     RebuildPageList();
 }
 
@@ -50,11 +50,11 @@ bool PagingControl::HasProperty(PropertyId id) const {
     return id == PropertyId::CurrentPage || id == PropertyId::TotalPages || UIElement::HasProperty(id);
 }
 
-void PagingControl::SetProperty(PropertyId id, const Value& val) {
+void PagingControl::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::CurrentPage: SetCurrentPage(val.AsInt()); return;
-    case PropertyId::TotalPages: SetTotalPages(val.AsInt()); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::CurrentPage: ApplyCurrentPage(val.AsInt()); return;
+    case PropertyId::TotalPages: ApplyTotalPages(val.AsInt()); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
@@ -174,8 +174,8 @@ void PagingControl::SyncSelectionPillTarget(bool immediate) {
         m_pillW.Reset(target.width);
         return;
     }
-    m_pillX.SetTarget(target.x);
-    m_pillW.SetTarget(target.width);
+    m_pillX.ApplyTarget(target.x);
+    m_pillW.ApplyTarget(target.width);
     RequestAnimationTicks();
 }
 
@@ -217,13 +217,13 @@ HCURSOR PagingControl::GetCursor() const {
 void PagingControl::ActivateTarget(HitTarget target) {
     if (target == HitTarget::Prev) {
         if (IsNavEnabled(true)) {
-            SetCurrentPage(m_currentPage - 1);
+            ApplyCurrentPage(m_currentPage - 1);
         }
         return;
     }
     if (target == HitTarget::Next) {
         if (IsNavEnabled(false)) {
-            SetCurrentPage(m_currentPage + 1);
+            ApplyCurrentPage(m_currentPage + 1);
         }
         return;
     }
@@ -231,7 +231,7 @@ void PagingControl::ActivateTarget(HitTarget target) {
     if (index >= 0 && index < static_cast<int>(m_pageItems.size())) {
         const PageItem& item = m_pageItems[static_cast<size_t>(index)];
         if (item.kind == ItemKind::Page) {
-            SetCurrentPage(item.page);
+            ApplyCurrentPage(item.page);
         }
     }
 }
@@ -407,11 +407,11 @@ void PagingControl::OnMouseWheel(float delta) {
     }
     if (delta > 0.0f) {
         if (IsNavEnabled(true)) {
-            SetCurrentPage(m_currentPage - 1);
+            ApplyCurrentPage(m_currentPage - 1);
         }
     } else if (delta < 0.0f) {
         if (IsNavEnabled(false)) {
-            SetCurrentPage(m_currentPage + 1);
+            ApplyCurrentPage(m_currentPage + 1);
         }
     }
 }
@@ -424,20 +424,20 @@ bool PagingControl::OnKeyDown(int vkCode) {
     case VK_LEFT:
     case VK_PRIOR:
         if (IsNavEnabled(true)) {
-            SetCurrentPage(m_currentPage - 1);
+            ApplyCurrentPage(m_currentPage - 1);
         }
         return true;
     case VK_RIGHT:
     case VK_NEXT:
         if (IsNavEnabled(false)) {
-            SetCurrentPage(m_currentPage + 1);
+            ApplyCurrentPage(m_currentPage + 1);
         }
         return true;
     case VK_HOME:
-        SetCurrentPage(1);
+        ApplyCurrentPage(1);
         return true;
     case VK_END:
-        SetCurrentPage(m_totalPages);
+        ApplyCurrentPage(m_totalPages);
         return true;
     default:
         return Control::OnKeyDown(vkCode);
@@ -463,7 +463,7 @@ bool PagingControl::HasSelfAnimation() const {
     return m_pillX.IsAnimating(0.02f) || m_pillW.IsAnimating(0.02f);
 }
 
-void PagingControl::SetCurrentPage(int page) {
+void PagingControl::ApplyCurrentPage(int page) {
     const int total = (std::max)(1, m_totalPages);
     page = std::clamp(page, 1, total);
     if (m_currentPage == page) {
@@ -478,7 +478,7 @@ void PagingControl::SetCurrentPage(int page) {
     MarkPagingDirty();
 }
 
-void PagingControl::SetTotalPages(int total) {
+void PagingControl::ApplyTotalPages(int total) {
     const int validTotal = (std::max)(1, total);
     if (m_totalPages == validTotal) {
         return;
@@ -486,7 +486,7 @@ void PagingControl::SetTotalPages(int total) {
     m_totalPages = validTotal;
     NotifyFieldChanged(PropertyId::TotalPages, Value(validTotal));
     if (m_currentPage > validTotal) {
-        SetCurrentPage(validTotal);
+        ApplyCurrentPage(validTotal);
     } else {
         RebuildPageList();
         UpdateLayout();

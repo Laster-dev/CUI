@@ -18,18 +18,18 @@ constexpr const char* kEllipsis = "...";
 
 BreadcrumbBar::BreadcrumbBar() {
     m_pathNodes = { "Home", "Controls", "BreadcrumbBar" };
-        this->SetBackgroundToken(ThemeTokenId::PaneBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetActiveColorToken(ThemeTokenId::TextPrimary);
-    this->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
-    this->SetBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
-    this->SetBorderThickness(1.0f);
-    this->SetColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
-    this->SetCornerRadius(0.0f);
-    this->SetFontFamily("微软雅黑");
-    this->SetFontSize(12.0f);
-    this->SetWidth(-1.0f);
-    this->SetHeight(34.0f);
+        this->ApplyBackgroundToken(ThemeTokenId::PaneBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyActiveColorToken(ThemeTokenId::TextPrimary);
+    this->ApplyBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+    this->ApplyBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
+    this->ApplyCornerRadius(0.0f);
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyFontSize(12.0f);
+    this->ApplyWidth(-1.0f);
+    this->ApplyHeight(34.0f);
 }
 
 Size BreadcrumbBar::Measure(Size availableSize) {
@@ -45,7 +45,7 @@ Size BreadcrumbBar::Measure(Size availableSize) {
     return m_desiredSize;
 }
 
-void BreadcrumbBar::SetPath(const std::vector<std::string>& pathNodes) {
+void BreadcrumbBar::ApplyPath(const std::vector<std::string>& pathNodes) {
     m_pathNodes = pathNodes;
     DismissOverflowMenu();
     m_slots.clear();

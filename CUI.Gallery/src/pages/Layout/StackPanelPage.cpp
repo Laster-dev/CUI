@@ -13,9 +13,9 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<CUI::Button> MakeChip(const std::string& text, D2D1_COLOR_F color, float flexGrow = 0.0f) {
-    auto b = ElevatedButton(text).Background(color).Padding(14, 8, 14, 8).Build();
+    CUI::Widgets::Ref b =ElevatedButton(text).Background(color).Padding(14, 8, 14, 8).Build();
     if (flexGrow > 0.0f) {
-                b->SetFlexGrow(flexGrow);
+                b.FlexGrow(flexGrow);
     }
     return b;
 }
@@ -24,22 +24,22 @@ std::shared_ptr<CUI::Button> MakeChip(const std::string& text, D2D1_COLOR_F colo
 
 std::shared_ptr<UIElement> BuildStackPanelPage() {
     // —— 水平排列 ——
-    auto row = Row(12).Padding(12).Build();
-        row->SetBackgroundToken(ThemeTokenId::CardBackground);
-        row->SetBorderToken(ThemeTokenId::CardBorder);
-        row->SetBorderThickness(1.0f);
-        row->SetCornerRadius(6.0f);
+    CUI::Widgets::Ref row =Row(12).Padding(12).Build();
+        row.BackgroundToken(ThemeTokenId::CardBackground);
+        row.BorderToken(ThemeTokenId::CardBorder);
+        row.BorderThickness(1.0f);
+        row.CornerRadius(6.0f);
         row->AddChild(MakeChip("按钮 1", Rgb(0x007ACC)));
         row->AddChild(MakeChip("按钮 2", Rgb(0x10B981)));
         row->AddChild(MakeChip("弹性填充", Rgb(0x845EF7), 1.0f));
         row->AddChild(MakeChip("按钮 4", Rgb(0xD13438)));
 
     // —— 垂直排列 ——
-    auto col = Column(10).Padding(12).Build();
-        col->SetBackgroundToken(ThemeTokenId::CardBackground);
-        col->SetBorderToken(ThemeTokenId::CardBorder);
-        col->SetBorderThickness(1.0f);
-        col->SetCornerRadius(6.0f);
+    CUI::Widgets::Ref col =Column(10).Padding(12).Build();
+        col.BackgroundToken(ThemeTokenId::CardBackground);
+        col.BorderToken(ThemeTokenId::CardBorder);
+        col.BorderThickness(1.0f);
+        col.CornerRadius(6.0f);
         col->AddChild(MakeLabel("标题一", 14.0f, ThemeTokenId::TextPrimary, true));
         col->AddChild(MakeLabel("说明文字：StackPanel 按添加顺序自上而下堆叠，每个子元素独占一行。", 12.0f, ThemeTokenId::TextMuted, false));
         col->AddChild(Widgets::TextBox().Text("输入框也按顺序排列").Shared());
@@ -49,11 +49,11 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
     ).Shared());
 
     // —— 方向与间距（实时调节）——
-    auto livePanel = Column(12).Padding(12).Build();
-        livePanel->SetBackgroundToken(ThemeTokenId::CardBackground);
-        livePanel->SetBorderToken(ThemeTokenId::CardBorder);
-        livePanel->SetBorderThickness(1.0f);
-        livePanel->SetCornerRadius(6.0f);
+    CUI::Widgets::Ref livePanel =Column(12).Padding(12).Build();
+        livePanel.BackgroundToken(ThemeTokenId::CardBackground);
+        livePanel.BorderToken(ThemeTokenId::CardBorder);
+        livePanel.BorderThickness(1.0f);
+        livePanel.CornerRadius(6.0f);
         livePanel->AddChild(MakeChip("元素 A", Rgb(0x007ACC)));
         livePanel->AddChild(MakeChip("元素 B", Rgb(0x10B981)));
         livePanel->AddChild(MakeChip("元素 C", Rgb(0x845EF7)));
@@ -116,10 +116,10 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
         },
     };
     spec.source =
-        "auto row = Row(12).Build();            // 水平 StackPanel，间距 12px\n"
+        "CUI::Widgets::Ref row =Row(12).Build();            // 水平 StackPanel，间距 12px\n"
         "row->AddChild(ElevatedButton(\"A\").Build());\n"
         "\n"
-        "auto col = Column(10).Build();         // 垂直 StackPanel，间距 10px\n"
+        "CUI::Widgets::Ref col =Column(10).Build();         // 垂直 StackPanel，间距 10px\n"
         "col->AddChild(Text(\"标题\").Build());\n"
         "\n"
         "// 运行时切换方向与间距：状态经转换器驱动属性，无需事件\n"

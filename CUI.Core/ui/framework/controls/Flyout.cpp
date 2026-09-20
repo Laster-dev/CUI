@@ -23,14 +23,14 @@ void CollectSubtreeElements(UIElement* el, std::vector<UIElement*>& out) {
 // ---------------- FlyoutPresenter ----------------
 
 FlyoutPresenter::FlyoutPresenter() {
-        this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetBorderThickness(1.0f);
-    this->SetCornerRadius(8.0f);
-    this->SetPadding(14.0f);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyCornerRadius(8.0f);
+    this->ApplyPadding(14.0f);
 }
 
-void FlyoutPresenter::SetContent(std::shared_ptr<UIElement> content) {
+void FlyoutPresenter::ApplyContent(std::shared_ptr<UIElement> content) {
     if (m_content) {
         this->RemoveChild(m_content);
     }
@@ -58,7 +58,7 @@ Size FlyoutPresenter::Measure(Size availableSize) {
 }
 
 void FlyoutPresenter::Arrange(Rect finalRect) {
-    SetBounds(finalRect);
+    ApplyBounds(finalRect);
     Thickness pad = GetPadding();
     Rect contentRect(
         finalRect.x + pad.left,
@@ -93,17 +93,17 @@ Flyout::Flyout() {
     // Presenter is overlay-only — not a layout child (avoids eating Column space
     // and having Arrange overwrite ShowAt coordinates on every Relayout).
     m_presenter = std::make_shared<FlyoutPresenter>();
-    this->SetVisibility(Visibility::Visible);
-    this->SetClipToBounds(false);
+    this->ApplyVisibility(Visibility::Visible);
+    this->ApplyClipToBounds(false);
 }
 
 Flyout::Flyout(std::shared_ptr<UIElement> content) : Flyout() {
-    SetContent(content);
+    ApplyContent(content);
 }
 
-void Flyout::SetContent(std::shared_ptr<UIElement> content) {
+void Flyout::ApplyContent(std::shared_ptr<UIElement> content) {
     if (m_presenter) {
-        m_presenter->SetContent(content);
+        m_presenter->ApplyContent(content);
     }
 }
 
@@ -117,7 +117,7 @@ Size Flyout::Measure(Size availableSize) {
 void Flyout::Arrange(Rect finalRect) {
     // Keep a 0x0 bounds at the flow position so HitTest does not claim space,
     // but never re-layout the presenter here (ShowAt owns that).
-    SetBounds(Rect(finalRect.x, finalRect.y, 0.0f, 0.0f));
+    ApplyBounds(Rect(finalRect.x, finalRect.y, 0.0f, 0.0f));
 }
 
 void Flyout::ShowAt(UIElement* target) {
@@ -126,13 +126,13 @@ void Flyout::ShowAt(UIElement* target) {
     // Anchor chain keeps IsInLiveTree true even when the caller did not
     // AddChild this overlay control first — otherwise AnimationManager drops
     // the tick registration and the reveal never progresses past opacity 0.
-    SetAnimationHost(target);
+    ApplyAnimationHost(target);
     if (m_presenter) {
         // The presenter and its content subtree are popup-hosted visuals with no
         // layout parent. Register them to the same anchor so inner controls
         // (Button ripples, TextBox caret, indeterminate ProgressBar, ...) can
         // RequestAnimationTicks while the flyout is open.
-        m_presenter->SetAnimationHost(target);
+        m_presenter->ApplyAnimationHost(target);
     }
     Rect targetBounds = target->GetBounds();
 
@@ -200,7 +200,7 @@ void Flyout::ShowAt(Point pt) {
         m_presenter->Arrange(Rect(pt.x, pt.y, m_popupSize.width, m_popupSize.height));
     }
     m_isOpen = true;
-    m_popupAnim.SetTarget(1.0f);
+    m_popupAnim.ApplyTarget(1.0f);
     if (!UIElement::AreAnimationsEnabled()) {
         m_popupAnim.Reset(1.0f);
     }
@@ -214,7 +214,7 @@ void Flyout::ShowAt(Point pt) {
 void Flyout::Hide() {
     if (!m_isOpen && m_popupAnim.Current() <= 0.001f) return;
     m_isOpen = false;
-    m_popupAnim.SetTarget(0.0f);
+    m_popupAnim.ApplyTarget(0.0f);
     if (!UIElement::AreAnimationsEnabled()) {
         m_popupAnim.Reset(0.0f);
     }
@@ -276,7 +276,7 @@ UIElement* Flyout::HitTestOverlay(float x, float y) {
 
 bool Flyout::OnAnimationTick() {
     float dt = UIElement::GetAnimationDeltaSeconds();
-    m_popupAnim.SetTarget(m_isOpen ? 1.0f : 0.0f);
+    m_popupAnim.ApplyTarget(m_isOpen ? 1.0f : 0.0f);
     bool animating = m_popupAnim.Tick(dt, PopupReveal::kSpec);
     if (m_presenter) {
         animating = m_presenter->OnAnimationTick() || animating;

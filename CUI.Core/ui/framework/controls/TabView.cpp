@@ -12,16 +12,16 @@ namespace {}
 
 TabView::TabView() {
     const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
-    this->SetBackgroundToken(ThemeTokenId::WindowBackground);
-    this->SetHeaderBackgroundToken(ThemeTokenId::PaneBackground);
-    this->SetActiveTabBackgroundToken(ThemeTokenId::WindowBackground);
-    this->SetInactiveTabBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetUnderlineColorToken(ThemeTokenId::CardBorder);
-    this->SetActiveUnderlineColorToken(ThemeTokenId::AccentColor);
-    this->SetBackground(tokens.windowBackground);
-    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
-    m_headerLayer.SetCacheable(true);
-    m_contentLayer.SetCacheable(true);
+    this->ApplyBackgroundToken(ThemeTokenId::WindowBackground);
+    this->ApplyHeaderBackgroundToken(ThemeTokenId::PaneBackground);
+    this->ApplyActiveTabBackgroundToken(ThemeTokenId::WindowBackground);
+    this->ApplyInactiveTabBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyUnderlineColorToken(ThemeTokenId::CardBorder);
+    this->ApplyActiveUnderlineColorToken(ThemeTokenId::AccentColor);
+    this->ApplyBackground(tokens.windowBackground);
+    this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
+    m_headerLayer.ApplyCacheable(true);
+    m_contentLayer.ApplyCacheable(true);
     OnPropertyIdChanged().Connect([this](PropertyId, const Value&) {
         MarkHeaderDirty();
         MarkContentDirty();
@@ -42,12 +42,12 @@ bool TabView::HasProperty(PropertyId id) const {
         || id == PropertyId::SelectedIndex || UIElement::HasProperty(id);
 }
 
-void TabView::SetProperty(PropertyId id, const Value& val) {
+void TabView::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::MinTabWidth: SetMinTabWidth(val.AsFloat(m_minTabWidth)); return;
-    case PropertyId::MaxTabWidth: SetMaxTabWidth(val.AsFloat(m_maxTabWidth)); return;
-    case PropertyId::SelectedIndex: SetSelectedIndex(static_cast<int>(val.AsFloat(0.0f))); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::MinTabWidth: ApplyMinTabWidth(val.AsFloat(m_minTabWidth)); return;
+    case PropertyId::MaxTabWidth: ApplyMaxTabWidth(val.AsFloat(m_maxTabWidth)); return;
+    case PropertyId::SelectedIndex: ApplySelectedIndex(static_cast<int>(val.AsFloat(0.0f))); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
@@ -62,7 +62,7 @@ void TabView::AddTab(const std::string& title, std::shared_ptr<UIElement> conten
         this->AddChild(content);
         int addedIndex = static_cast<int>(m_tabs.size());
         if (addedIndex != m_selectedIndex) {
-            content->SetVisibility(Visibility::Collapsed);
+            content->ApplyVisibility(Visibility::Collapsed);
         }
     }
 
@@ -71,7 +71,7 @@ void TabView::AddTab(const std::string& title, std::shared_ptr<UIElement> conten
     MarkContentDirty();
 
     if (m_tabs.size() == 1) {
-        SetSelectedIndex(0);
+        ApplySelectedIndex(0);
     } else {
         EnsureSelectedTabVisible();
     }
@@ -104,12 +104,12 @@ void TabView::RemoveTab(int index) {
     // 重置并强制重新激活目标 Tab 的可见性
     int targetIndex = m_selectedIndex;
     m_selectedIndex = -1; // 强制 SetSelectedIndex 不被 early-return 拦截
-    SetSelectedIndex(targetIndex);
+    ApplySelectedIndex(targetIndex);
 
     m_tabClosedEvent.Invoke(this, index);
 }
 
-void TabView::SetSelectedIndex(int index) {
+void TabView::ApplySelectedIndex(int index) {
     if (index < 0 || index >= static_cast<int>(m_tabs.size())) return;
     if (m_selectedIndex == index && m_tabs.size() > 1) return;
 
@@ -123,11 +123,11 @@ void TabView::SetSelectedIndex(int index) {
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         if (m_tabs[i].content) {
             if (static_cast<int>(i) == m_selectedIndex) {
-                m_tabs[i].content->SetVisibility(Visibility::Visible);
+                m_tabs[i].content->ApplyVisibility(Visibility::Visible);
                 m_tabs[i].content->Measure(contentAvail);
                 m_tabs[i].content->Arrange(contentRect);
             } else {
-                m_tabs[i].content->SetVisibility(Visibility::Collapsed);
+                m_tabs[i].content->ApplyVisibility(Visibility::Collapsed);
             }
         }
     }
@@ -137,7 +137,7 @@ void TabView::SetSelectedIndex(int index) {
     // was removed — TabView must register itself or the top indicator never moves.
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         const float target = (static_cast<int>(i) == m_selectedIndex) ? 1.0f : 0.0f;
-        m_tabs[i].accentAnim.SetTarget(target);
+        m_tabs[i].accentAnim.ApplyTarget(target);
         if (!UIElement::AreAnimationsEnabled()) {
             m_tabs[i].accentAnim.Reset(target);
         }
@@ -163,7 +163,7 @@ Size TabView::Measure(Size availableSize) {
 }
 
 void TabView::Arrange(Rect finalRect) {
-    SetBounds(finalRect);
+    ApplyBounds(finalRect);
     float headerH = GetHeaderHeight();
     Rect contentRect(finalRect.x, finalRect.y + headerH, finalRect.width, (std::max)(0.0f, finalRect.height - headerH));
     Size contentAvail(contentRect.width, contentRect.height);
@@ -179,8 +179,8 @@ void TabView::Arrange(Rect finalRect) {
     float maxScroll = (std::max)(0.0f, GetTotalTabsWidth(ctx) - (std::max)(0.0f, m_bounds.width - 8.0f));
     m_scrollTargetX = std::clamp(m_scrollTargetX, 0.0f, maxScroll);
     m_scrollOffsetXAnim.Reset(std::clamp(m_scrollOffsetXAnim.Current(), 0.0f, maxScroll));
-    m_headerLayer.SetBounds(GetHeaderRect());
-    m_contentLayer.SetBounds(GetContentRect());
+    m_headerLayer.ApplyBounds(GetHeaderRect());
+    m_contentLayer.ApplyBounds(GetContentRect());
     MarkHeaderDirty();
     MarkContentDirty();
 }
@@ -560,22 +560,22 @@ bool TabView::OnKeyDown(int vkCode) {
         int next = (m_selectedIndex <= 0)
             ? static_cast<int>(m_tabs.size()) - 1
             : m_selectedIndex - 1;
-        SetSelectedIndex(next);
+        ApplySelectedIndex(next);
         return true;
     }
     if (vkCode == VK_RIGHT || vkCode == VK_DOWN) {
         int next = (m_selectedIndex + 1 >= static_cast<int>(m_tabs.size()))
             ? 0
             : m_selectedIndex + 1;
-        SetSelectedIndex(next);
+        ApplySelectedIndex(next);
         return true;
     }
     if (vkCode == VK_HOME) {
-        SetSelectedIndex(0);
+        ApplySelectedIndex(0);
         return true;
     }
     if (vkCode == VK_END) {
-        SetSelectedIndex(static_cast<int>(m_tabs.size()) - 1);
+        ApplySelectedIndex(static_cast<int>(m_tabs.size()) - 1);
         return true;
     }
     return UIElement::OnKeyDown(vkCode);
@@ -605,7 +605,7 @@ void TabView::OnMouseDown(Point pt) {
                     }
                 }
 
-                SetSelectedIndex(static_cast<int>(i));
+                ApplySelectedIndex(static_cast<int>(i));
                 MarkHeaderDirty();
                 break;
             }
@@ -626,7 +626,7 @@ bool TabView::OnAnimationTick() {
         }
     }
 
-    m_scrollOffsetXAnim.SetTarget(m_scrollTargetX);
+    m_scrollOffsetXAnim.ApplyTarget(m_scrollTargetX);
     const float scrollBefore = m_scrollOffsetXAnim.Current();
     if (m_scrollOffsetXAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.22f, 0.10f })) {
         MarkHeaderDirty();
@@ -638,7 +638,7 @@ bool TabView::OnAnimationTick() {
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         float target = (static_cast<int>(i) == m_selectedIndex) ? 1.0f : 0.0f;
-        m_tabs[i].accentAnim.SetTarget(target);
+        m_tabs[i].accentAnim.ApplyTarget(target);
         const float before = m_tabs[i].accentAnim.Current();
         if (m_tabs[i].accentAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.18f, 0.01f })) {
             MarkHeaderDirty();
@@ -671,8 +671,8 @@ bool TabView::HasSelfAnimation() const {
 
 void TabView::SyncRenderState() {
     UIElement::SyncRenderState();
-    m_headerLayer.SetBounds(GetHeaderRect());
-    m_contentLayer.SetBounds(GetContentRect());
+    m_headerLayer.ApplyBounds(GetHeaderRect());
+    m_contentLayer.ApplyBounds(GetContentRect());
     m_headerLayer.Validate();
     m_contentLayer.Validate();
     m_headerDirty.Clear();

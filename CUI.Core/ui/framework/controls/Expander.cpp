@@ -28,17 +28,17 @@ D2D1_COLOR_F MixColor(D2D1_COLOR_F a, D2D1_COLOR_F b, float t) {
 }
 
 Expander::Expander() {
-        this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetCornerRadius(kCornerRadius);
-    this->SetBorderThickness(1.0f);
-    this->SetPadding(0.0f);
-    this->SetFontFamily("Segoe UI");
-    this->SetFontSize(12.0f);
-    this->SetAlign(Alignment::Stretch);
-    this->SetClipToBounds(false);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyCornerRadius(kCornerRadius);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyPadding(0.0f);
+    this->ApplyFontFamily("Segoe UI");
+    this->ApplyFontSize(12.0f);
+    this->ApplyAlign(Alignment::Stretch);
+    this->ApplyClipToBounds(false);
     m_expandAnim.Reset(0.0f);
 }
 
@@ -70,16 +70,16 @@ bool Expander::HasProperty(PropertyId id) const {
     }
 }
 
-void Expander::SetProperty(PropertyId id, const Value& val) {
+void Expander::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::Header: SetHeader(val.AsString()); return;
-    case PropertyId::Subtitle: SetSubtitle(val.AsString()); return;
-    case PropertyId::IsExpanded: SetIsExpanded(val.AsBool()); return;
+    case PropertyId::Header: ApplyHeader(val.AsString()); return;
+    case PropertyId::Subtitle: ApplySubtitle(val.AsString()); return;
+    case PropertyId::IsExpanded: ApplyIsExpanded(val.AsBool()); return;
     case PropertyId::ExpandDirection:
-        SetExpandDirection(val.AsString() == "Up" ? ExpandDirection::Up : ExpandDirection::Down);
+        ApplyExpandDirection(val.AsString() == "Up" ? ExpandDirection::Up : ExpandDirection::Down);
         return;
     default:
-        Control::SetProperty(id, val);
+        Control::ApplyProperty(id, val);
         return;
     }
 }
@@ -88,7 +88,7 @@ HCURSOR Expander::GetCursor() const {
     return (IsEnabled() && m_headerHovered) ? LoadCursor(nullptr, IDC_HAND) : nullptr;
 }
 
-void Expander::SetHeader(const std::string& header) {
+void Expander::ApplyHeader(const std::string& header) {
     if (m_header == header) {
         return;
     }
@@ -96,7 +96,7 @@ void Expander::SetHeader(const std::string& header) {
     InvalidateExpanderLayout();
 }
 
-void Expander::SetSubtitle(const std::string& subtitle) {
+void Expander::ApplySubtitle(const std::string& subtitle) {
     if (m_subtitle == subtitle) {
         return;
     }
@@ -104,7 +104,7 @@ void Expander::SetSubtitle(const std::string& subtitle) {
     InvalidateExpanderLayout();
 }
 
-void Expander::SetIsExpanded(bool expanded) {
+void Expander::ApplyIsExpanded(bool expanded) {
     if (m_isExpanded == expanded) {
         ProgressBarDiag::Log("[EXP] SetIsExpanded skip this=%p header=%s expanded=%d",
             (void*)this, m_header.c_str(), expanded ? 1 : 0);
@@ -123,7 +123,7 @@ void Expander::SetIsExpanded(bool expanded) {
 
     if (UIElement::AreAnimationsEnabled()) {
         // Animate from the current progress — do not snap to 1.0 on expand.
-        m_expandAnim.SetTarget(expanded ? 1.0f : 0.0f);
+        m_expandAnim.ApplyTarget(expanded ? 1.0f : 0.0f);
         RequestAnimationTicks();
     } else {
         m_expandAnim.Reset(expanded ? 1.0f : 0.0f);
@@ -133,7 +133,7 @@ void Expander::SetIsExpanded(bool expanded) {
     InvalidateExpanderLayout();
 }
 
-void Expander::SetExpandDirection(CUI::ExpandDirection direction) {
+void Expander::ApplyExpandDirection(CUI::ExpandDirection direction) {
     if (m_expandDirection == direction) {
         return;
     }
@@ -141,7 +141,7 @@ void Expander::SetExpandDirection(CUI::ExpandDirection direction) {
     InvalidateExpanderLayout();
 }
 
-void Expander::SetContent(std::shared_ptr<UIElement> content) {
+void Expander::ApplyContent(std::shared_ptr<UIElement> content) {
     if (m_content == content) {
         return;
     }
@@ -173,13 +173,13 @@ float Expander::MeasureBodyHeight(float width) {
     // root, so a collapsed Expander keeps the tree dirty forever (mouse-move
     // FlushLayout storm at display refresh).
     if (previousVisibility == Visibility::Collapsed) {
-        m_content->SetVisibilityForMeasureProbe(Visibility::Visible);
+        m_content->ApplyVisibilityForMeasureProbe(Visibility::Visible);
     }
 
     const Size bodySize = m_content->Measure(Size(innerWidth, (std::numeric_limits<float>::max)()));
 
     if (previousVisibility == Visibility::Collapsed) {
-        m_content->SetVisibilityForMeasureProbe(previousVisibility);
+        m_content->ApplyVisibilityForMeasureProbe(previousVisibility);
     }
 
     return (std::max)(0.0f, bodySize.height + kBodyPadding * 2.0f);
@@ -283,7 +283,7 @@ void Expander::UpdateContentVisibility() {
         ProgressBarDiag::Log("[EXP] UpdateContentVisibility this=%p header=%s keepVisible=%d target=%.3f current=%.3f",
             (void*)this, m_header.c_str(), keepVisible ? 1 : 0, m_expandAnim.Target(), m_expandAnim.Current());
     }
-    m_content->SetVisibility(next);
+    m_content->ApplyVisibility(next);
 }
 
 void Expander::InvalidateExpanderLayout() {
@@ -347,7 +347,7 @@ Size Expander::Measure(Size availableSize) {
 }
 
 void Expander::Arrange(Rect finalRect) {
-    SetBounds(finalRect);
+    ApplyBounds(finalRect);
 
     const float width = finalRect.width;
     m_headerHeight = MeasureHeaderHeight(width);
@@ -435,7 +435,7 @@ void Expander::OnMouseUp(Point pt) {
         IsPointInHeader(pt) ? 1 : 0, pt.x, pt.y);
     m_headerPressed = false;
     if (shouldToggle) {
-        SetIsExpanded(!m_isExpanded);
+        ApplyIsExpanded(!m_isExpanded);
     } else {
         InvalidateExpanderVisual();
     }
@@ -449,18 +449,18 @@ bool Expander::OnKeyDown(int vkCode) {
     switch (vkCode) {
     case VK_SPACE:
     case VK_RETURN:
-        SetIsExpanded(!m_isExpanded);
+        ApplyIsExpanded(!m_isExpanded);
         return true;
     case VK_LEFT:
     case VK_UP:
         if (m_isExpanded) {
-            SetIsExpanded(false);
+            ApplyIsExpanded(false);
         }
         return true;
     case VK_RIGHT:
     case VK_DOWN:
         if (!m_isExpanded) {
-            SetIsExpanded(true);
+            ApplyIsExpanded(true);
         }
         return true;
     default:
@@ -479,7 +479,7 @@ bool Expander::OnAnimationTick() {
     }
 
     // Keep target in sync with expanded flag (in case of interrupted toggles).
-    m_expandAnim.SetTarget(m_isExpanded ? 1.0f : 0.0f);
+    m_expandAnim.ApplyTarget(m_isExpanded ? 1.0f : 0.0f);
     const bool stillAnimating = m_expandAnim.Tick(
         UIElement::GetAnimationDeltaSeconds(),
         AnimationSpec{ 0.22f, 0.01f, 0.28f });

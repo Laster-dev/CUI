@@ -51,7 +51,7 @@ public:
     // OSC 52 剪贴板访问策略。
     // 读（应答 "?"）会把用户剪贴板内容回传给终端里的程序——任何在终端中运行的
     // 脚本都能借此静默外传剪贴板，因此默认关闭；宿主可按需显式开启。
-    void SetClipboardPolicy(bool allowWrite, bool allowRead) {
+    void ApplyClipboardPolicy(bool allowWrite, bool allowRead) {
         m_clipboardWriteAllowed = allowWrite;
         m_clipboardReadAllowed = allowRead;
     }
@@ -79,7 +79,7 @@ private:
     void DeviceAttributes(char priv);
     void DeviceStatusReport(const Params& p, char priv);
     void WindowOps(const Params& p);
-    void SetMode(const Params& p, char priv, bool set);
+    void ApplyMode(const Params& p, char priv, bool set);
     void CharAttributes(const Params& p);
     static int ParseExtendedColor(const Params& p, int i, CellData& attr, bool foreground);
 
@@ -87,7 +87,7 @@ private:
     void ParseClipboard(const std::string& data);
 
     void ResetTabs(int cols);
-    void SetTabStop(int col);
+    void ApplyTabStop(int col);
     void ClearTabs(int mode);
     void AdvanceTab();
 

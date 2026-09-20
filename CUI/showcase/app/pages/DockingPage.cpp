@@ -106,13 +106,13 @@ ShowcasePage BuildDockingPage(const ShowcaseContext& ctx) {
         toolbar
     }).Build();
 
-    auto page = Column(0).FlexGrow(1.0f).Children({
+    CUI::Widgets::Ref page =Column(0).FlexGrow(1.0f).Children({
         header,
         dock
     }).Build();
-        page->SetBackgroundToken(ThemeTokenId::WindowBackground);
-        page->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
-        page->SetAlign(Alignment::Stretch);
+        page.BackgroundToken(ThemeTokenId::WindowBackground);
+        page.Background(ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground));
+        page.Align(Alignment::Stretch);
 
     return { "Docking 停靠布局", page };
 }

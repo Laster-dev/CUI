@@ -18,14 +18,14 @@ public:
     AnimatedPopupBox() {
         m_opacityScalar.Reset(0.0f);
         m_offsetScalar.Reset(-16.0f);
-                this->SetHeight(70.0f);
+                this->ApplyHeight(70.0f);
     }
 
     void TriggerReveal(float durationSec, EasingType easing, float startOffset) {
         m_opacityScalar.Reset(0.0f);
         m_offsetScalar.Reset(-startOffset);
  
-        m_offsetScalar.SetTarget(0.0f);
+        m_offsetScalar.ApplyTarget(0.0f);
         m_duration = durationSec;
         m_easing = easing;
         m_running = true;
@@ -43,8 +43,8 @@ public:
         const bool opMoving = m_opacityScalar.Tick(dt, spec);
         const bool offMoving = m_offsetScalar.Tick(dt, spec);
 
-        SetComposeOpacity(m_opacityScalar.Current());
-        SetComposeOffset(0.0f, m_offsetScalar.Current());
+        ApplyComposeOpacity(m_opacityScalar.Current());
+        ApplyComposeOffset(0.0f, m_offsetScalar.Current());
         MarkRenderContentDirty();
 
         m_running = opMoving || offMoving;
@@ -125,7 +125,7 @@ Element BuildPopupRevealPage() {
     menu->AddSeparator();
     menu->AddItem("系统偏好设定 (Preferences)", "Ctrl+,", [status]() { status->Text = "已执行：偏好设置"; });
 
-    auto btnContextMenu = Button("呼出 ContextMenu 级联菜单")
+    auto btnContextMenu =Button("呼出 ContextMenu 级联菜单")
         .BackgroundToken(ThemeTokenId::CardBackground)
         .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
@@ -136,13 +136,13 @@ Element BuildPopupRevealPage() {
                 ::GetCursorPos(&pt);
                 ::ScreenToClient(win->GetHWND(), &pt);
                 Point logicalPt = win->ClientPointToLogical(pt.x, pt.y);
-                                win->SetActiveContextMenu(menu);
+                                win->ApplyActiveContextMenu(menu);
                 menu->ShowAt(logicalPt.x, logicalPt.y);
                 status->Text = "已呼出 ContextMenu 级联菜单。";
             }
         });
 
-        btnContextMenu->SetContextMenu(menu);
+        btnContextMenu.ContextMenu(menu);
 
     // 4. ContentDialog 模态对话框
     auto btnDialog = Button("弹出模态对话框 (ContentDialog)")
@@ -172,8 +172,8 @@ Element BuildPopupRevealPage() {
         combo.SelectedIndex(0);
 
     // 6. 缓动参数微调模拟台
-    auto animatedTestBox = std::make_shared<AnimatedPopupBox>();
-        animatedTestBox->SetWidth(440.0f);
+    CUI::Widgets::Ref animatedTestBox =std::make_shared<AnimatedPopupBox>();
+        animatedTestBox.Width(440.0f);
 
     CUI::Widgets::Ref sliderDuration = Widgets::Slider().Shared();
     sliderDuration.Minimum(80.0f);

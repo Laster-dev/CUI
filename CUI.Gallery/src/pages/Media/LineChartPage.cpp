@@ -37,26 +37,27 @@ std::string FormatHover(ChartBase* chart, int index, int series) {
     return s;
 }
 
-void ApplySales(ChartBase& chart, bool quarterly) {
+template<class T>
+void ApplySales(const CUI::Widgets::Ref<T>& chart, bool quarterly) {
     if (quarterly) {
-                chart.SetCategories({ "Q1", "Q2", "Q3", "Q4" });
+                chart.Categories({ "Q1", "Q2", "Q3", "Q4" });
         ChartSeries a;
         a.name = "华北";
         a.values = { 82.0f, 91.0f, 76.0f, 104.0f };
         ChartSeries b;
         b.name = "华东";
         b.values = { 64.0f, 70.0f, 88.0f, 95.0f };
-                chart.SetSeries({ std::move(a), std::move(b) });
+                chart.Series({ std::move(a), std::move(b) });
         return;
     }
-        chart.SetCategories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
+        chart.Categories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
     ChartSeries a;
     a.name = "华北";
     a.values = { 12.0f, 18.0f, 15.0f, 22.0f, 28.0f, 24.0f, 31.0f };
     ChartSeries b;
     b.name = "华东";
     b.values = { 9.0f, 14.0f, 19.0f, 16.0f, 21.0f, 27.0f, 25.0f };
-        chart.SetSeries({ std::move(a), std::move(b) });
+        chart.Series({ std::move(a), std::move(b) });
 }
 
 // ---------- 实时数据泵：正弦波 + 噪声，250ms 一帧 ----------
@@ -72,7 +73,7 @@ public:
         return m_desiredSize;
     }
     virtual void Arrange(Rect finalRect) override {
-        SetBounds(Rect(finalRect.x, finalRect.y, 0.0f, 0.0f));
+        ApplyBounds(Rect(finalRect.x, finalRect.y, 0.0f, 0.0f));
     }
     virtual void OnRender(GraphicsContext& ctx) override {
         (void)ctx;
@@ -94,7 +95,7 @@ public:
     virtual bool HasSelfAnimation() const override { return false; }
 
     bool IsRunning() const { return m_running; }
-    void SetRunning(bool on) { m_running = on; }
+    void ApplyRunning(bool on) { m_running = on; }
 
 private:
     void PushSample() {
@@ -117,16 +118,16 @@ private:
         ChartSeries s2;
         s2.name = "余弦 cos";
         s2.values.assign(m_cos.begin(), m_cos.end());
-                m_chart->SetLiveData(std::move(cats), { std::move(s1), std::move(s2) }, false);
+                m_chart->ApplyLiveData(std::move(cats), { std::move(s1), std::move(s2) }, false);
 
         if (m_status) {
-                        m_status->SetText(std::format("实时流运行中 · 窗口 {} 个采样点 · 最新: sin {:.1f} / cos {:.1f}",
+                        m_status.Text(std::format("实时流运行中 · 窗口 {} 个采样点 · 最新: sin {:.1f} / cos {:.1f}",
                                           m_sin.size(), m_sin.back(), m_cos.back()));
         }
     }
 
-    std::shared_ptr<LineChart> m_chart;
-    std::shared_ptr<TextBlock> m_status;
+    CUI::Widgets::Ref<::CUI::LineChart> m_chart;
+    CUI::Widgets::Ref<::CUI::TextBlock> m_status;
     std::deque<float> m_sin;
     std::deque<float> m_cos;
     bool m_started = false;
@@ -140,15 +141,15 @@ Element BuildLineChartPage() {
     CUI::Widgets::Ref line = CUI::Widgets::LineChart().Shared();
         line.Text("折线图 · 月度销量趋势");
         line.Height(320.0f);
-    ApplySales(*line, false);
+    ApplySales(line, false);
 
-    auto status1 = MakeStatus("悬停图线或按 ← → 方向键读值");
+    CUI::Widgets::Ref status1 =MakeStatus("悬停图线或按 ← → 方向键读值");
     line->OnHoverChanged().Connect([status1](ChartBase* sender, int index, int series) {
-                status1->SetText(FormatHover(sender, index, series));
+                status1.Text(FormatHover(sender, index, series));
     });
 
-    auto btnMonth = ElevatedButton("月度数据", [line](UIElement*) { ApplySales(*line, false); }).Build();
-    auto btnQuarter = ElevatedButton("季度数据", [line](UIElement*) { ApplySales(*line, true); }).Build();
+    auto btnMonth = ElevatedButton("月度数据", [line](UIElement*) { ApplySales(line, false); }).Build();
+    auto btnQuarter = ElevatedButton("季度数据", [line](UIElement*) { ApplySales(line, true); }).Build();
     auto btnReveal = ElevatedButton("重放入场动画", [line](UIElement*) { line->PlayReveal(); }).Build();
 
     // ---------- 2. 实时数据流 ----------
@@ -157,11 +158,11 @@ Element BuildLineChartPage() {
         live.Height(260.0f);
 
     auto liveStatus = MakeStatus("等待数据泵启动...");
-    auto pump = std::make_shared<SineStreamPump>(live, liveStatus);
+    CUI::Widgets::Ref pump =std::make_shared<SineStreamPump>(live, liveStatus);
     CUI::Widgets::Ref btnRun = Widgets::ToggleButton("⏸ 暂停实时流").Shared();
     btnRun->OnClick().Connect([pump, btnRun](UIElement*) {
         const bool on = !pump->IsRunning();
-                pump->SetRunning(on);
+                pump.Running(on);
                 btnRun.Text(on ? "⏸ 暂停实时流" : "▶ 启动实时流");
     });
 
@@ -169,7 +170,7 @@ Element BuildLineChartPage() {
     CUI::Widgets::Ref optChart = CUI::Widgets::LineChart().Shared();
         optChart.Text("显示选项 · 网格 / 图例 / 悬停提示");
         optChart.Height(260.0f);
-    ApplySales(*optChart, true);
+    ApplySales(optChart, true);
 
     auto status3 = MakeStatus("网格、图例、悬停提示均可独立开关。");
 

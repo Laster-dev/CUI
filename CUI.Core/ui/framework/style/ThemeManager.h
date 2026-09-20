@@ -69,16 +69,16 @@ public:
     static ThemeMode DetectSystemThemeMode(); // 静态调用读取 Win32 注册表以检测系统当前实际处于深色还是浅色模式
 
     ThemeSource GetThemeSource() const { return m_source; } // 查询当前使用的主题来源方式
-    void SetThemeSource(ThemeSource source); // 设定主题来源（若设定为 System 则会立刻发起一次系统深浅检测）
+    void ApplyThemeSource(ThemeSource source); // 设定主题来源（若设定为 System 则会立刻发起一次系统深浅检测）
 
     ThemeMode GetThemeMode() const { return m_mode; } // 获取当前生效的主题类型 (Light / Dark)
-    void SetThemeMode(ThemeMode mode); // 手动设定主题模式，此操作将使得主题来源 ThemeSource 强制变更为 Light 或 Dark 锁定
+    void ApplyThemeMode(ThemeMode mode); // 手动设定主题模式，此操作将使得主题来源 ThemeSource 强制变更为 Light 或 Dark 锁定
 
     bool CheckAndUpdateSystemTheme(); // 响应 WM_SETTINGCHANGE，检测系统主题是否发生过物理改变并刷新，有改变返回 true
 
     bool IsBackdropActive() const { return m_backdropActive; } // 查询窗口云母/亚克力半透明特效当前是否被激活
-    void SetBackdropActive(bool active); // 设定是否启用半透明特效（在启用时会适当弱化 windowBackground 的 alpha 权重）
-    void SetBackdropType(BackdropType type); // 更改窗口毛玻璃的后置背景合成材质
+    void ApplyBackdropActive(bool active); // 设定是否启用半透明特效（在启用时会适当弱化 windowBackground 的 alpha 权重）
+    void ApplyBackdropType(BackdropType type); // 更改窗口毛玻璃的后置背景合成材质
     BackdropType GetBackdropType() const { return m_backdropType; } // 获取后置背景材质类型
 
     const ThemeTokens& GetTokens() const { return m_tokens; } // 获得解构后的明细色盘结构

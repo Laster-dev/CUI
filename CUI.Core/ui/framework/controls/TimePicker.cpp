@@ -50,15 +50,15 @@ TimePicker::TimePicker() : FormattedTime(this) {
     m_hour = tmVal.tm_hour;
     m_minute = tmVal.tm_min;
 
-        this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetBorderToken(ThemeTokenId::InputBorder);
-    this->SetBackground(tokens.inputBackground);
-    this->SetBorderBrush(tokens.inputBorder);
-    this->SetBorderThickness(1.0f);
-    this->SetColor(tokens.textPrimary);
-    this->SetCornerRadius(4.0f);
-    this->SetWidth(140.0f);
-    this->SetHeight(30.0f);
+        this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyBorderToken(ThemeTokenId::InputBorder);
+    this->ApplyBackground(tokens.inputBackground);
+    this->ApplyBorderBrush(tokens.inputBorder);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyColor(tokens.textPrimary);
+    this->ApplyCornerRadius(4.0f);
+    this->ApplyWidth(140.0f);
+    this->ApplyHeight(30.0f);
 
     m_hourPosition = static_cast<float>(m_hour);
     m_minutePosition = static_cast<float>(m_minute);
@@ -75,15 +75,15 @@ bool TimePicker::HasProperty(PropertyId id) const {
     return id == PropertyId::TimeStr || UIElement::HasProperty(id);
 }
 
-void TimePicker::SetProperty(PropertyId id, const Value& val) {
+void TimePicker::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::TimeStr) {
         int h = 0, m = 0;
         if (sscanf_s(val.AsString().c_str(), "%d:%d", &h, &m) == 2) {
-            SetTime(h, m);
+            ApplyTime(h, m);
         }
         return;
     }
-    UIElement::SetProperty(id, val);
+    UIElement::ApplyProperty(id, val);
 }
 
 Size TimePicker::Measure(Size availableSize) {
@@ -101,7 +101,7 @@ std::string TimePicker::GetFormattedTime() const {
     return ss.str();
 }
 
-void TimePicker::SetTime(int h, int m) {
+void TimePicker::ApplyTime(int h, int m) {
     int nextHour = std::clamp(h, 0, 23);
     int nextMinute = std::clamp(m, 0, 59);
     bool changed = (nextHour != m_hour) || (nextMinute != m_minute);
@@ -148,10 +148,10 @@ int TimePicker::HitTestColumn(float x, float y) const {
 void TimePicker::NudgeColumn(int column, int delta) {
     if (column == 0) {
         m_hourTarget = WrapPosition(m_hourTarget + static_cast<float>(delta), 24);
-        SetTime(WrapIndex(static_cast<int>(std::round(m_hourTarget)), 24), m_minute);
+        ApplyTime(WrapIndex(static_cast<int>(std::round(m_hourTarget)), 24), m_minute);
     } else if (column == 1) {
         m_minuteTarget = WrapPosition(m_minuteTarget + static_cast<float>(delta), 60);
-        SetTime(m_hour, WrapIndex(static_cast<int>(std::round(m_minuteTarget)), 60));
+        ApplyTime(m_hour, WrapIndex(static_cast<int>(std::round(m_minuteTarget)), 60));
     }
     RequestAnimationTicks();
     MarkRenderContentDirty();
@@ -165,7 +165,7 @@ void TimePicker::SnapTargetsToSelection() {
 void TimePicker::ApplyAnimatedSelection() {
     int hourSelection = WrapIndex(static_cast<int>(std::round(m_hourTarget)), 24);
     int minuteSelection = WrapIndex(static_cast<int>(std::round(m_minuteTarget)), 60);
-    SetTime(hourSelection, minuteSelection);
+    ApplyTime(hourSelection, minuteSelection);
 }
 
 UIElement* TimePicker::OnHitTestOverlay(float x, float y) {
@@ -205,7 +205,7 @@ void TimePicker::OnMouseDown(Point pt) {
 
     if (!m_isPopupOpen) {
         if (m_bounds.Contains(pt.x, pt.y)) {
-            SetPopupOpen(true);
+            ApplyPopupOpen(true);
             SnapTargetsToSelection();
             m_hourPosition = m_hourTarget;
             m_minutePosition = m_minuteTarget;
@@ -215,13 +215,13 @@ void TimePicker::OnMouseDown(Point pt) {
 
     Rect popup = GetPopupRect();
     if (!popup.Contains(pt.x, pt.y)) {
-        SetPopupOpen(false);
+        ApplyPopupOpen(false);
         return;
     }
 
     Rect doneRect(popup.x + 12.0f, popup.y + popup.height - 36.0f, popup.width - 24.0f, 30.0f);
     if (doneRect.Contains(pt.x, pt.y)) {
-        SetPopupOpen(false);
+        ApplyPopupOpen(false);
         return;
     }
 
@@ -274,7 +274,7 @@ bool TimePicker::OnAnimationTick() {
     bool hourAnimating = animateAxis(m_hourPosition, m_hourTarget, 24);
     bool minuteAnimating = animateAxis(m_minutePosition, m_minuteTarget, 60);
 
-    m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
+    m_popupAnim.ApplyTarget(m_isPopupOpen ? 1.0f : 0.0f);
     bool popupAnimating = m_popupAnim.Tick(deltaSeconds, PopupReveal::kSpec);
 
     ApplyAnimatedSelection();
@@ -322,7 +322,7 @@ void TimePicker::OnRender(GraphicsContext& ctx) {
     );
 }
 
-void TimePicker::SetPopupOpen(bool open) {
+void TimePicker::ApplyPopupOpen(bool open) {
     if (m_isPopupOpen == open) return;
     m_isPopupOpen = open;
     if (PopupHost* host = PopupHost::Current()) {

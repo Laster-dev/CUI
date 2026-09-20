@@ -38,7 +38,7 @@ public:
     virtual const char* GetClassName() const override { return "TreeView"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
     virtual HCURSOR GetCursor() const override;
 
     virtual Size Measure(Size availableSize) override;
@@ -62,7 +62,7 @@ public:
      */
     struct TreeViewItemsProperty {
         TreeView* owner;
-        TreeViewItemsProperty& operator=(const std::vector<std::shared_ptr<TreeViewItem>>& items) { owner->SetItems(items); return *this; }
+        TreeViewItemsProperty& operator=(const std::vector<std::shared_ptr<TreeViewItem>>& items) { owner->ApplyItems(items); return *this; }
         operator const std::vector<std::shared_ptr<TreeViewItem>>&() const { return owner->GetItems(); }
         const std::vector<std::shared_ptr<TreeViewItem>>& Get() const { return owner->GetItems(); }
         const std::vector<std::shared_ptr<TreeViewItem>>* operator->() const { return &owner->GetItems(); }
@@ -80,7 +80,7 @@ public:
      */
     struct TreeViewSelectedItemProperty {
         TreeView* owner;
-        TreeViewSelectedItemProperty& operator=(std::shared_ptr<TreeViewItem> item) { owner->SetSelectedItem(std::move(item)); return *this; }
+        TreeViewSelectedItemProperty& operator=(std::shared_ptr<TreeViewItem> item) { owner->ApplySelectedItem(std::move(item)); return *this; }
         operator std::shared_ptr<TreeViewItem>() const { return owner->GetSelectedItem(); }
         std::shared_ptr<TreeViewItem> Get() const { return owner->GetSelectedItem(); }
         std::shared_ptr<TreeViewItem> operator->() const { return owner->GetSelectedItem(); }
@@ -94,7 +94,7 @@ public:
      */
     struct TreeViewIndentWidthProperty {
         TreeView* owner;
-        TreeViewIndentWidthProperty& operator=(float w) { owner->SetIndentWidth(w); return *this; }
+        TreeViewIndentWidthProperty& operator=(float w) { owner->ApplyIndentWidth(w); return *this; }
         operator float() const { return owner->GetIndentWidth(); }
         float Get() const { return owner->GetIndentWidth(); }
     } IndentWidth{this};
@@ -102,20 +102,20 @@ public:
     void ClearItems();
     void AddItem(std::shared_ptr<TreeViewItem> item);
     std::shared_ptr<TreeViewItem> AddItem(const std::string& header, bool expanded = false);
-    void SetItems(const std::vector<std::shared_ptr<TreeViewItem>>& items);
+    void ApplyItems(const std::vector<std::shared_ptr<TreeViewItem>>& items);
 
     const std::vector<std::shared_ptr<TreeViewItem>>& GetItems() const { return m_items; }
     std::shared_ptr<TreeViewItem> GetSelectedItem() const { return m_selectedItem; }
-    void SetSelectedItem(std::shared_ptr<TreeViewItem> item);
+    void ApplySelectedItem(std::shared_ptr<TreeViewItem> item);
 
     // Expand / collapse a branch (no-op if item has no children).
-    void SetItemExpanded(std::shared_ptr<TreeViewItem> item, bool expanded);
-    void ExpandItem(std::shared_ptr<TreeViewItem> item) { SetItemExpanded(item, true); }
-    void CollapseItem(std::shared_ptr<TreeViewItem> item) { SetItemExpanded(item, false); }
+    void ApplyItemExpanded(std::shared_ptr<TreeViewItem> item, bool expanded);
+    void ExpandItem(std::shared_ptr<TreeViewItem> item) { ApplyItemExpanded(item, true); }
+    void CollapseItem(std::shared_ptr<TreeViewItem> item) { ApplyItemExpanded(item, false); }
     void ToggleExpanded(std::shared_ptr<TreeViewItem> item);
 
     float GetIndentWidth() const { return m_indentWidth; }
-    void SetIndentWidth(float w) {
+    void ApplyIndentWidth(float w) {
         m_indentWidth = w;
         MarkRenderContentDirty();
     }
@@ -158,7 +158,7 @@ private:
     Rect GetToggleRect(const VisibleItem& visibleItem, const Rect& rowRect) const;
     Rect GetToggleHitRect(const VisibleItem& visibleItem, const Rect& rowRect) const;
     void ToggleItem(std::shared_ptr<TreeViewItem> item);
-    void SetParentRecursive(const std::shared_ptr<TreeViewItem>& item, TreeViewItem* parent);
+    void ApplyParentRecursive(const std::shared_ptr<TreeViewItem>& item, TreeViewItem* parent);
     std::shared_ptr<TreeViewItem> FindFirstVisibleSelectable(int startIndex, int direction) const;
     bool TickExpandAnims(const std::vector<std::shared_ptr<TreeViewItem>>& list, float dt);
     void StartSelectRipple(const std::shared_ptr<TreeViewItem>& item, Point pt);

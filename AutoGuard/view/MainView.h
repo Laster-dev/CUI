@@ -30,13 +30,13 @@ private:
     std::shared_ptr<CUI::UIElement> BuildStatusBar();
 
 private:
-    std::shared_ptr<MainViewModel> m_viewModel;
+    CUI::Widgets::Ref<MainViewModel> m_viewModel;
     CUI::Window* m_window = nullptr;
 
-    std::shared_ptr<CUI::NavigationView> m_navView;
+    CUI::Widgets::Ref<::CUI::NavigationView> m_navView;
     std::shared_ptr<DetailStripView> m_detailStripView;
     CUI::Widgets::Ref<::CUI::StatusBar> m_statusBar;
-    std::shared_ptr<CUI::ToastCenter> m_toastCenter;
+    CUI::Widgets::Ref<::CUI::ToastCenter> m_toastCenter;
 
     std::string m_currentNavTag = "overview";
 

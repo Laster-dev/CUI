@@ -21,7 +21,7 @@ public:
     ConPtyBackend(const ConPtyBackend&) = delete;
     ConPtyBackend& operator=(const ConPtyBackend&) = delete;
 
-    void SetOutputCallback(OutputCallback callback) override { m_onOutput = std::move(callback); }
+    void ApplyOutputCallback(OutputCallback callback) override { m_onOutput = std::move(callback); }
 
     bool Start(int cols, int rows) override;
     void Write(const char* data, size_t length) override;

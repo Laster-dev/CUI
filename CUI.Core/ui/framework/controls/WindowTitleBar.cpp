@@ -44,12 +44,12 @@ std::string DefaultIconTextFromTitle(const std::string& title) {
 } // namespace
 
 WindowTitleBar::WindowTitleBar() : RightContent(this), MenuBar(this) {
-    this->SetHeight(36.0f);
-    this->SetBackgroundToken(ThemeTokenId::PaneBackground);
-    this->SetHoverBackgroundToken(ThemeTokenId::PaneBackground);
-    this->SetPressedBackgroundToken(ThemeTokenId::PaneBackground);
-    this->SetColorToken(ThemeTokenId::TextPrimary);
-    this->SetTitle("CUI Application");
+    this->ApplyHeight(36.0f);
+    this->ApplyBackgroundToken(ThemeTokenId::PaneBackground);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::PaneBackground);
+    this->ApplyPressedBackgroundToken(ThemeTokenId::PaneBackground);
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
+    this->ApplyTitle("CUI Application");
     m_menuBar = std::make_shared<CUI::MenuBar>();
     this->AddChild(m_menuBar);
 }
@@ -61,7 +61,7 @@ WindowTitleBar::~WindowTitleBar() {
     }
 }
 
-void WindowTitleBar::SetTitle(const std::string& title) {
+void WindowTitleBar::ApplyTitle(const std::string& title) {
     m_title = title;
     if (m_iconText.empty()) {
         m_iconText = DefaultIconTextFromTitle(title);
@@ -69,12 +69,12 @@ void WindowTitleBar::SetTitle(const std::string& title) {
     MarkRenderContentDirty();
 }
 
-void WindowTitleBar::SetIconText(const std::string& iconText) {
+void WindowTitleBar::ApplyIconText(const std::string& iconText) {
     m_iconText = iconText.empty() ? DefaultIconTextFromTitle(m_title) : iconText;
     MarkRenderContentDirty();
 }
 
-void WindowTitleBar::SetNativeIcon(HICON icon, bool takeOwnership) {
+void WindowTitleBar::ApplyNativeIcon(HICON icon, bool takeOwnership) {
     if (m_ownsNativeIcon && m_nativeIcon && m_nativeIcon != icon) {
         DestroyIcon(m_nativeIcon);
     }
@@ -193,7 +193,7 @@ float WindowTitleBar::GetCaptionButtonsLeft() const {
     return right - totalW;
 }
 
-void WindowTitleBar::SetRightContent(const std::shared_ptr<UIElement>& content) {
+void WindowTitleBar::ApplyRightContent(const std::shared_ptr<UIElement>& content) {
     if (m_rightContent == content) {
         return;
     }
@@ -239,9 +239,9 @@ void WindowTitleBar::SyncCaptionHoverTargets() {
     const float minT = (m_hoverRegion == 1) ? 1.0f : 0.0f;
     const float maxT = (m_hoverRegion == 2) ? 1.0f : 0.0f;
     const float closeT = (m_hoverRegion == 3) ? 1.0f : 0.0f;
-    m_minHoverAnim.SetTarget(minT);
-    m_maxHoverAnim.SetTarget(maxT);
-    m_closeHoverAnim.SetTarget(closeT);
+    m_minHoverAnim.ApplyTarget(minT);
+    m_maxHoverAnim.ApplyTarget(maxT);
+    m_closeHoverAnim.ApplyTarget(closeT);
     if (!AreAnimationsEnabled()) {
         m_minHoverAnim.Reset(minT);
         m_maxHoverAnim.Reset(maxT);

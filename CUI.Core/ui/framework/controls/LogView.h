@@ -32,7 +32,7 @@ public:
     virtual const char* GetClassName() const override { return "LogView"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
     virtual HCURSOR GetCursor() const override;
     bool AcceptsTabFocus() const override { return false; }
 
@@ -58,28 +58,28 @@ public:
     size_t GetVisibleCount() const;
     uint32_t GetLevelCount(LogLevel level) const;
 
-    void SetExpanded(bool expanded);
+    void ApplyExpanded(bool expanded);
     bool IsExpanded() const { return m_expanded; }
     float GetExpandedHeight() const { return m_expandedHeight; }
 
-    void SetMaxEntries(uint32_t capacity);
+    void ApplyMaxEntries(uint32_t capacity);
     uint32_t GetMaxEntries() const { return m_cap; }
 
-    void SetPersistEnabled(bool enabled);
+    void ApplyPersistEnabled(bool enabled);
     bool GetPersistEnabled() const { return m_persistEnabled; }
-    void SetPersistPath(std::string path);
+    void ApplyPersistPath(std::string path);
     const std::string& GetPersistPath() const { return m_persistPath; }
     void FlushPersist();
 
-    void SetLevelEnabled(LogLevel level, bool enabled);
+    void ApplyLevelEnabled(LogLevel level, bool enabled);
     bool GetLevelEnabled(LogLevel level) const;
-    void SetLevelMask(uint8_t mask);
+    void ApplyLevelMask(uint8_t mask);
     uint8_t GetLevelMask() const { return m_levelMask; }
 
-    void SetFilterText(const std::string& text);
+    void ApplyFilterText(const std::string& text);
     std::string GetFilterText() const;
 
-    void SetFollowTail(bool follow);
+    void ApplyFollowTail(bool follow);
     bool GetFollowTail() const { return m_follow; }
 
     bool CopySelection() const;
@@ -121,7 +121,7 @@ private:
     void DropOldestIfFull();
     void ScrollToTail();
     void ClampScroll();
-    void SetScrollTarget(float y, bool animate);
+    void ApplyScrollTarget(float y, bool animate);
     void StopSmoothScroll();
     bool AdvanceSmoothScroll();
     void EnsurePersistPath();
@@ -139,12 +139,12 @@ private:
     Rect ScrollbarThumb() const;
     Part HitPart(Point pt, int* index) const;
     int RowIndexFromY(float y) const;
-    void SetSelection(int a, int b);
+    void ApplySelection(int a, int b);
     std::string FormatRecord(const Record& rec) const;
     std::string CollectRows(bool selectedOnly) const;
     void DirtyHeader();
     void DirtyBody();
-    void SetFollowFlag(bool follow);
+    void ApplyFollowFlag(bool follow);
     void NotifyChanged();
     D2D1_COLOR_F LevelColor(LogLevel level) const;
     const char* LevelTag(LogLevel level) const;

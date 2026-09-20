@@ -88,7 +88,7 @@ D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
 bool Control::OnAnimationTick() {
     bool childAnimating = UIElement::OnAnimationTick();
     UpdateVisualStateTarget();
-    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    m_visualStateAnim.ApplyTarget(m_visualStateTarget);
     const float prev = m_visualStateAnim.Current();
     // Finite maxDuration (~CSS transition) + larger epsilon — browser-like.
     const bool selfAnimating = m_visualStateAnim.Tick(
@@ -159,7 +159,7 @@ void Control::OnMouseDown(Point pt) {
     if (!IsEnabled()) return;
     UIElement::OnMouseDown(pt);
     UpdateVisualStateTarget();
-    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    m_visualStateAnim.ApplyTarget(m_visualStateTarget);
     MarkRenderRectDirty(m_bounds);
     RequestAnimationTicks();
 }
@@ -167,7 +167,7 @@ void Control::OnMouseDown(Point pt) {
 void Control::OnMouseUp(Point pt) {
     UIElement::OnMouseUp(pt);
     UpdateVisualStateTarget();
-    m_visualStateAnim.SetTarget(m_visualStateTarget);
+    m_visualStateAnim.ApplyTarget(m_visualStateTarget);
     MarkRenderRectDirty(m_bounds);
     RequestAnimationTicks();
 }

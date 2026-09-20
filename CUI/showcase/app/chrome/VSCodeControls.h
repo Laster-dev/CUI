@@ -45,7 +45,7 @@ public:
     Rect GetCloseButtonRect() const;
     int HitTestHoverRegion(float x, float y) const;
 
-    void SetTitle(const std::string& title) { m_title = title; }
+    void ApplyTitle(const std::string& title) { m_title = title; }
     const std::string& GetTitle() const { return m_title; }
 
     Event<TitleBar*>& OnToggleLowPerformance() { return m_onToggleLowPerformance; }
@@ -76,7 +76,7 @@ public:
     virtual void OnMouseDown(Point pt) override;
 
     int GetSelectedIndex() const { return m_selectedIndex; }
-    void SetSelectedIndex(int index) { m_selectedIndex = index; }
+    void ApplySelectedIndex(int index) { m_selectedIndex = index; }
 
 private:
     std::vector<Item> m_items;
@@ -100,7 +100,7 @@ public:
     virtual void OnRender(GraphicsContext& ctx) override;
     virtual void OnMouseDown(Point pt) override;
 
-    void SetTitle(const std::string& title) { m_title = title; }
+    void ApplyTitle(const std::string& title) { m_title = title; }
     const std::string& GetTitle() const { return m_title; }
 
 private:

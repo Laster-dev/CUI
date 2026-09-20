@@ -22,15 +22,15 @@ float FluentEaseOut(float t) {
 ToggleSwitch::ToggleSwitch() {
     IsOn.Initialize(*this);
     auto& theme = ThemeManager::Instance();
-    this->SetOnColorToken(ThemeTokenId::AccentColor);
-    this->SetOffColorToken(ThemeTokenId::InputBorder);
-    this->SetKnobColorToken(ThemeTokenId::AccentForeground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetBorderBrush(theme.GetColor("cardBorder"));
-    this->SetColor(theme.GetColor("textSecondary"));
-    this->SetBorderThickness(0.0f);
-    this->SetWidth(170.0f);
-    this->SetHeight(28.0f);
+    this->ApplyOnColorToken(ThemeTokenId::AccentColor);
+    this->ApplyOffColorToken(ThemeTokenId::InputBorder);
+    this->ApplyKnobColorToken(ThemeTokenId::AccentForeground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyBorderBrush(theme.GetColor("cardBorder"));
+    this->ApplyColor(theme.GetColor("textSecondary"));
+    this->ApplyBorderThickness(0.0f);
+    this->ApplyWidth(170.0f);
+    this->ApplyHeight(28.0f);
     m_knobPosAnim.Reset(0.0f);
 }
 
@@ -46,11 +46,11 @@ bool ToggleSwitch::HasProperty(PropertyId id) const {
     return id == PropertyId::Header || id == PropertyId::IsOn || UIElement::HasProperty(id);
 }
 
-void ToggleSwitch::SetProperty(PropertyId id, const Value& val) {
+void ToggleSwitch::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::Header: SetHeader(val.AsString()); return;
-    case PropertyId::IsOn: SetIsOn(val.AsBool()); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::Header: ApplyHeader(val.AsString()); return;
+    case PropertyId::IsOn: ApplyIsOn(val.AsBool()); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
@@ -62,14 +62,14 @@ Size ToggleSwitch::Measure(Size availableSize) {
     return m_desiredSize;
 }
 
-void ToggleSwitch::SetIsOn(bool on) {
+void ToggleSwitch::ApplyIsOn(bool on) {
     if (m_isOn == on) {
         return;
     }
     m_isOn = on;
     NotifyFieldChanged(PropertyId::IsOn, Value(on));
     m_onToggledEvent.Invoke(this, on);
-    m_knobPosAnim.SetTarget(on ? 1.0f : 0.0f);
+    m_knobPosAnim.ApplyTarget(on ? 1.0f : 0.0f);
     if (!UIElement::AreAnimationsEnabled()) {
         m_knobPosAnim.Reset(on ? 1.0f : 0.0f);
     } else {
@@ -96,7 +96,7 @@ bool ToggleSwitch::OnAnimationTick() {
         current = (std::max)(target, current - step);
     }
     m_knobPosAnim.Reset(current);
-    m_knobPosAnim.SetTarget(target);
+    m_knobPosAnim.ApplyTarget(target);
 
     const bool moving = std::abs(current - target) > 0.001f;
     if (moving) {
@@ -117,7 +117,7 @@ void ToggleSwitch::OnMouseUp(Point pt) {
     }
     Control::OnMouseUp(pt);
     if (m_bounds.Contains(pt.x, pt.y)) {
-        SetIsOn(!GetIsOn());
+        ApplyIsOn(!GetIsOn());
     }
 }
 
@@ -126,7 +126,7 @@ bool ToggleSwitch::OnKeyDown(int vkCode) {
         return false;
     }
     if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
-        SetIsOn(!GetIsOn());
+        ApplyIsOn(!GetIsOn());
         ExecuteBoundCommand();
         OnClick().Invoke(this);
         return true;

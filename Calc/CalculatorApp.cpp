@@ -43,10 +43,10 @@ int CalculatorApp::Run() {
 }
 
 std::shared_ptr<UIElement> CalculatorApp::BuildRoot() {
-    auto root = Column(0)
+    CUI::Widgets::Ref root =Column(0)
         .BackgroundToken(ThemeTokenId::WindowBackground)
         .Build();
-    root->SetColorToken(ThemeTokenId::TextPrimary);
+    root.ColorToken(ThemeTokenId::TextPrimary);
 
     CUI::Widgets::Ref titleBar = Widgets::WindowTitleBar().Title("计算器").Shared();
     //titleBar.IconText("C");
@@ -68,10 +68,10 @@ std::shared_ptr<UIElement> CalculatorApp::BuildRoot() {
     //auto helpMenu = titleBar->GetMenuBar().AddMenu("Help");
     //helpMenu->AddItem("About Calc");
 
-    auto content = Column(16)
+    CUI::Widgets::Ref content =Column(16)
         .Padding(18)
         .Build();
-    content->SetFlexGrow(1.0f);
+    content.FlexGrow(1.0f);
 
     auto title = Text("Calculator")
         .FontSize(28.0f)
@@ -112,8 +112,8 @@ std::shared_ptr<UIElement> CalculatorApp::BuildDisplayPanel() {
         .Padding(18)
         .Build();
 
-    auto column = Column(8).Build();
-    column->SetMinHeight(130.0f);
+    CUI::Widgets::Ref column =Column(8).Build();
+    column.MinHeight(130.0f);
 
     m_historyText = Text("")
         .FontSize(14.0f)
@@ -140,7 +140,7 @@ std::shared_ptr<Button> CalculatorApp::CreateButton(const std::string& text,
                                                     ThemeTokenId backgroundToken,
                                                     ThemeTokenId textToken,
                                                     float minHeight) {
-    auto button = ElevatedButton(text)
+    CUI::Widgets::Ref button =ElevatedButton(text)
         .BackgroundToken(backgroundToken)
         .ForegroundToken(textToken)
         .BorderToken(ThemeTokenId::CardBorder)
@@ -176,11 +176,11 @@ void CalculatorApp::BuildButtons(Grid& grid) {
     };
 
     for (const ButtonSpec& spec : specs) {
-        auto button = CreateButton(spec.text, spec.backgroundToken, spec.textToken, 64.0f);
-        button->SetGridRow(spec.row);
-        button->SetGridColumn(spec.column);
-        button->SetGridColumnSpan(spec.columnSpan);
-        button->SetMargin(5.0f);
+        CUI::Widgets::Ref button =CreateButton(spec.text, spec.backgroundToken, spec.textToken, 64.0f);
+        button.GridRow(spec.row);
+        button.GridColumn(spec.column);
+        button.GridColumnSpan(spec.columnSpan);
+        button.Margin(5.0f);
         const std::string label = spec.text;
         button->OnClick().Connect([this, label](UIElement*) {
             if (label == "C") {

@@ -27,10 +27,10 @@ ShowcasePage BuildRatingPage(const ShowcaseContext& ctx) {
         interactive.IsClearEnabled(true);
         interactive.ToolTip("拖动或点击星星评分，支持半星；同一星再点或左侧 × 清除。");
 
-    auto valueLabel = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref valueLabel =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText(FormatRating(interactive->GetValue(), interactive->GetMaxRating()), 13.0f, "textPrimary", true));
     interactive->OnValueChanged().Connect([valueLabel, interactive](RatingControl*, float v) {
-                valueLabel->SetText(FormatRating(v, interactive->GetMaxRating()));
+                valueLabel.Text(FormatRating(v, interactive->GetMaxRating()));
     });
 
     CUI::Widgets::Ref btn0 = CUI::Widgets::Button("清除 0").Shared();
@@ -61,10 +61,10 @@ ShowcasePage BuildRatingPage(const ShowcaseContext& ctx) {
         ten.Value(7.0f);
         ten.IsClearEnabled(true);
 
-    auto tenLabel = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref tenLabel =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText(FormatRating(ten->GetValue(), ten->GetMaxRating()), 12.0f, "textSecondary", false));
     ten->OnValueChanged().Connect([tenLabel, ten](RatingControl*, float v) {
-                tenLabel->SetText(FormatRating(v, ten->GetMaxRating()));
+                tenLabel.Text(FormatRating(v, ten->GetMaxRating()));
     });
 
     auto demo = Column(12).Children({

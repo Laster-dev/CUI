@@ -29,20 +29,20 @@ Point LerpPoint(const Point& a, const Point& b, float t) {
 CheckBox::CheckBox() {
     Checked.Initialize(*this);
     State.Initialize(*this);
-    this->SetText("CheckBox");
-    this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetCheckedBackgroundToken(ThemeTokenId::AccentColor);
-    this->SetColorToken(ThemeTokenId::TextPrimary);
-    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
-    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    this->SetFontSize(12.0f);
-    this->SetFontFamily("微软雅黑");
-    this->SetPadding(4.0f);
-    this->SetCornerRadius(3.0f);
+    this->ApplyText("CheckBox");
+    this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyCheckedBackgroundToken(ThemeTokenId::AccentColor);
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
+    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->ApplyFontSize(12.0f);
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyPadding(4.0f);
+    this->ApplyCornerRadius(3.0f);
 }
 
 CheckBox::CheckBox(const std::string& text) : CheckBox() {
-    this->SetText(text);
+    this->ApplyText(text);
 }
 
 CheckBox::~CheckBox() {
@@ -65,21 +65,21 @@ bool CheckBox::HasProperty(PropertyId id) const {
     return id == PropertyId::CheckState || id == PropertyId::ControlValue || id == PropertyId::IsThreeState || Control::HasProperty(id);
 }
 
-void CheckBox::SetProperty(PropertyId id, const Value& val) {
+void CheckBox::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
     case PropertyId::CheckState: {
         const std::string s = val.AsString("Unchecked");
-        SetState(s == "Checked" ? CheckState::Checked
+        ApplyState(s == "Checked" ? CheckState::Checked
             : (s == "Indeterminate" ? CheckState::Indeterminate : CheckState::Unchecked));
         return;
     }
-    case PropertyId::ControlValue: SetState(val.AsBool() ? CheckState::Checked : CheckState::Unchecked); return;
-    case PropertyId::IsThreeState: SetIsThreeState(val.AsBool()); return;
-    default: Control::SetProperty(id, val); return;
+    case PropertyId::ControlValue: ApplyState(val.AsBool() ? CheckState::Checked : CheckState::Unchecked); return;
+    case PropertyId::IsThreeState: ApplyIsThreeState(val.AsBool()); return;
+    default: Control::ApplyProperty(id, val); return;
     }
 }
 
-void CheckBox::SetState(CheckState state) {
+void CheckBox::ApplyState(CheckState state) {
     if (m_state == state) {
         return;
     }
@@ -144,9 +144,9 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     float fillTarget = state == CheckState::Unchecked ? 0.0f : 1.0f;
     float checkTarget = state == CheckState::Checked ? 1.0f : 0.0f;
     float indeterminateTarget = state == CheckState::Indeterminate ? 1.0f : 0.0f;
-    m_fillAnim.SetTarget(fillTarget);
-    m_checkAnim.SetTarget(checkTarget);
-    m_indeterminateAnim.SetTarget(indeterminateTarget);
+    m_fillAnim.ApplyTarget(fillTarget);
+    m_checkAnim.ApplyTarget(checkTarget);
+    m_indeterminateAnim.ApplyTarget(indeterminateTarget);
 
     if (!UIElement::AreAnimationsEnabled()) {
         m_fillAnim.Reset(fillTarget);
@@ -239,7 +239,7 @@ void CheckBox::CycleState() {
         newState = CheckState::Unchecked;
     }
 
-    SetState(newState);
+    ApplyState(newState);
 }
 
 void CheckBox::OnMouseDown(Point pt) {
@@ -272,9 +272,9 @@ bool CheckBox::OnAnimationTick() {
     float checkTarget = state == CheckState::Checked ? 1.0f : 0.0f;
     float indeterminateTarget = state == CheckState::Indeterminate ? 1.0f : 0.0f;
 
-    m_fillAnim.SetTarget(fillTarget);
-    m_checkAnim.SetTarget(checkTarget);
-    m_indeterminateAnim.SetTarget(indeterminateTarget);
+    m_fillAnim.ApplyTarget(fillTarget);
+    m_checkAnim.ApplyTarget(checkTarget);
+    m_indeterminateAnim.ApplyTarget(indeterminateTarget);
     animating = m_fillAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.24f, 0.01f }) || animating;
     animating = m_checkAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.20f, 0.01f }) || animating;
     animating = m_indeterminateAnim.Tick(UIElement::GetAnimationDeltaSeconds(), AnimationSpec{ 0.20f, 0.01f }) || animating;

@@ -36,22 +36,22 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
     virtual void OnThemeChanged() override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
 
     /**
      * @brief Markdown 视图原始文档字符串内容属性代理。
      */
     struct MarkdownViewMarkdownProperty {
         MarkdownView* owner;
-        MarkdownViewMarkdownProperty& operator=(const std::string& md) { owner->SetMarkdown(md); return *this; }
+        MarkdownViewMarkdownProperty& operator=(const std::string& md) { owner->ApplyMarkdown(md); return *this; }
         operator const std::string&() const { return owner->GetMarkdown(); }
         const std::string& Get() const { return owner->GetMarkdown(); }
     } Markdown{this};
 
-    void SetMarkdown(const std::string& markdown);
+    void ApplyMarkdown(const std::string& markdown);
     const std::string& GetMarkdown() const { return UIElement::GetText(); }
 
-    void SetShowCodeLineNumbers(bool show);
+    void ApplyShowCodeLineNumbers(bool show);
     bool GetShowCodeLineNumbers() const { return m_showLineNumbers; }
 
     std::string GetSelectedText() const;
@@ -72,7 +72,7 @@ private:
     Point ToDoc(Point pt) const;
     int HitChar(Point docPt) const;
     const MdRun* HitRun(Point docPt) const;
-    void SetSelection(int a, int b);
+    void ApplySelection(int a, int b);
     Rect ScrollbarTrack() const;
     Rect ScrollbarThumb() const;
     void OpenLink(const std::string& href);

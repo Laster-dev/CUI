@@ -101,7 +101,7 @@ auto btn = Button("保存")
     .OnClick([](UIElement*) { /* .. */ });
 
 // 2. 在任意 UIElement 实例上动态设置
-element->SetToolTip("多行提示说明：\n- 第一点\n- 第二点");
+element->ToolTip("多行提示说明：\n- 第一点\n- 第二点");
 )cpp";
 
     return BuildSamplePage(spec);

@@ -5,17 +5,17 @@
 namespace CUI {
 
 HyperlinkButton::HyperlinkButton() {
-    this->SetText("HyperlinkButton");
-    this->SetColorToken(ThemeTokenId::AccentColor);
-    this->SetColor(ThemeManager::Instance().GetColor("accentColor"));
-    this->SetFontSize(12.0f);
-    this->SetFontFamily("微软雅黑");
-    this->SetPadding(Thickness(2.0f, 2.0f, 2.0f, 2.0f));
+    this->ApplyText("HyperlinkButton");
+    this->ApplyColorToken(ThemeTokenId::AccentColor);
+    this->ApplyColor(ThemeManager::Instance().GetColor("accentColor"));
+    this->ApplyFontSize(12.0f);
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyPadding(Thickness(2.0f, 2.0f, 2.0f, 2.0f));
 }
 
 HyperlinkButton::HyperlinkButton(const std::string& text, const std::string& uri) : HyperlinkButton() {
-    this->SetText(text);
-    this->SetNavigateUri(uri);
+    this->ApplyText(text);
+    this->ApplyNavigateUri(uri);
 }
 
 Value HyperlinkButton::GetProperty(PropertyId id) const {
@@ -29,12 +29,12 @@ bool HyperlinkButton::HasProperty(PropertyId id) const {
     return id == PropertyId::NavigateUri || Control::HasProperty(id);
 }
 
-void HyperlinkButton::SetProperty(PropertyId id, const Value& val) {
+void HyperlinkButton::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::NavigateUri) {
-        SetNavigateUri(val.AsString());
+        ApplyNavigateUri(val.AsString());
         return;
     }
-    Control::SetProperty(id, val);
+    Control::ApplyProperty(id, val);
 }
 
 Size HyperlinkButton::Measure(Size availableSize) {

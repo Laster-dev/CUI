@@ -15,7 +15,7 @@ public:
     virtual const char* GetClassName() const override { return "Slider"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
     virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取悬浮交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 测算滑轨和手柄的默认自适应尺寸
@@ -35,7 +35,7 @@ public:
      */
     struct SliderMinimumProperty {
         Slider* owner;
-        SliderMinimumProperty& operator=(float m) { owner->SetMinimum(m); return *this; }
+        SliderMinimumProperty& operator=(float m) { owner->ApplyMinimum(m); return *this; }
         operator float() const { return owner->GetMinimum(); }
         float Get() const { return owner->GetMinimum(); }
     } Minimum{this};
@@ -45,7 +45,7 @@ public:
      */
     struct SliderMaximumProperty {
         Slider* owner;
-        SliderMaximumProperty& operator=(float m) { owner->SetMaximum(m); return *this; }
+        SliderMaximumProperty& operator=(float m) { owner->ApplyMaximum(m); return *this; }
         operator float() const { return owner->GetMaximum(); }
         float Get() const { return owner->GetMaximum(); }
     } Maximum{this};
@@ -55,28 +55,28 @@ public:
      */
     struct SliderStepProperty {
         Slider* owner;
-        SliderStepProperty& operator=(float s) { owner->SetStep(s); return *this; }
+        SliderStepProperty& operator=(float s) { owner->ApplyStep(s); return *this; }
         operator float() const { return owner->GetStep(); }
         float Get() const { return owner->GetStep(); }
     } Step{this};
 
     float GetValue() const { return m_value; } // 获取滑块当前数值
-    void SetValue(float val); // 设置滑块当前数值
+    void ApplyValue(float val); // 设置滑块当前数值
 
     float GetMinimum() const { return m_minimum; } // 获取滑动范围的最小值
-    void SetMinimum(float minVal) { // 设置滑动范围的最小值
+    void ApplyMinimum(float minVal) { // 设置滑动范围的最小值
         m_minimum = minVal;
         NotifyFieldChanged(PropertyId::Minimum, CUI::Value(minVal));
     }
 
     float GetMaximum() const { return m_maximum; } // 获取滑动范围的最大值
-    void SetMaximum(float maxVal) { // 设置滑动范围的最大值
+    void ApplyMaximum(float maxVal) { // 设置滑动范围的最大值
         m_maximum = maxVal;
         NotifyFieldChanged(PropertyId::Maximum, CUI::Value(maxVal));
     }
 
     float GetStep() const { return m_step; } // 获取滑动微调精度步长
-    void SetStep(float s) { // 设置滑动微调精度步长
+    void ApplyStep(float s) { // 设置滑动微调精度步长
         m_step = s;
         NotifyFieldChanged(PropertyId::Step, CUI::Value(s));
     }

@@ -24,35 +24,35 @@ public:
     virtual const char* GetClassName() const override { return "TeachingTip"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
 
     struct TeachingTipIsModalProperty {
         TeachingTip* owner;
-        TeachingTipIsModalProperty& operator=(bool m) { owner->SetIsModal(m); return *this; }
+        TeachingTipIsModalProperty& operator=(bool m) { owner->ApplyIsModal(m); return *this; }
         operator bool() const { return owner->GetIsModal(); }
         bool Get() const { return owner->GetIsModal(); }
     } IsModal{this};
 
     struct TeachingTipPreferredPlacementProperty {
         TeachingTip* owner;
-        TeachingTipPreferredPlacementProperty& operator=(BubblePlacement p) { owner->SetPreferredPlacement(p); return *this; }
+        TeachingTipPreferredPlacementProperty& operator=(BubblePlacement p) { owner->ApplyPreferredPlacement(p); return *this; }
         operator BubblePlacement() const { return owner->GetPreferredPlacement(); }
         BubblePlacement Get() const { return owner->GetPreferredPlacement(); }
     } PreferredPlacement{this};
 
-    void SetTitle(const std::string& title); // 设置提示气泡的标题文本
+    void ApplyTitle(const std::string& title); // 设置提示气泡的标题文本
     const std::string& GetTitle() const { return m_title; } // 获取标题文本
-    void SetMessage(const std::string& message); // 设置提示气泡的详细说明正文文本
+    void ApplyMessage(const std::string& message); // 设置提示气泡的详细说明正文文本
     const std::string& GetMessage() const { return m_message; } // 获取正文文本
-    void SetActionText(const std::string& text); // 设置操作/执行动作按钮（如“我知道了”）的提示字
+    void ApplyActionText(const std::string& text); // 设置操作/执行动作按钮（如“我知道了”）的提示字
     const std::string& GetActionText() const { return m_actionText; } // 获取操作按钮文本
-    void SetIsCloseVisible(bool visible); // 设定右上角小关闭叉叉是否显示
+    void ApplyIsCloseVisible(bool visible); // 设定右上角小关闭叉叉是否显示
     bool GetIsCloseVisible() const { return m_closeVisible; } // 获取关闭按钮可见性
-    void SetIsModal(bool modal); // 设定是否启用模态（如果启用，会阻断其它主视口的点击响应）
+    void ApplyIsModal(bool modal); // 设定是否启用模态（如果启用，会阻断其它主视口的点击响应）
     bool GetIsModal() const { return m_isModal; } // 获得是否为模态
-    void SetPreferredPlacement(BubblePlacement placement); // 更改箭头停靠定位的方位（如Auto、Left、Top等）
+    void ApplyPreferredPlacement(BubblePlacement placement); // 更改箭头停靠定位的方位（如Auto、Left、Top等）
     BubblePlacement GetPreferredPlacement() const { return m_preferredPlacement; } // 获取停靠放置方位
-    void SetMaxWidth(float width); // 限制气泡卡片允许拉伸的最大像素宽度
+    void ApplyMaxWidth(float width); // 限制气泡卡片允许拉伸的最大像素宽度
     float GetMaxWidth() const { return m_maxWidth; } // 获得最大像素宽度
 
     void ShowAround(UIElement* target); // 围绕并在指定目标控件外围弹开指引气泡

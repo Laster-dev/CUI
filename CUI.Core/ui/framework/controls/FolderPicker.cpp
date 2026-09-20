@@ -17,35 +17,35 @@ constexpr float kDefaultH = 32.0f;
 } // namespace
 
 FolderPicker::FolderPicker() {
-        this->SetPlaceholder("未选择文件夹...");
-    this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    this->SetBorderToken(ThemeTokenId::InputBorder);
-    this->SetFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    this->SetBackground(ThemeManager::Instance().GetColor("inputBackground"));
-    this->SetBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
-    this->SetBorderThickness(1.0f);
-    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    this->SetFontFamily("Segoe UI");
-    this->SetFontSize(12.0f);
-    this->SetPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
-    this->SetCornerRadius(4.0f);
-    this->SetHeight(kDefaultH);
+        this->ApplyPlaceholder("未选择文件夹...");
+    this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    this->ApplyBorderToken(ThemeTokenId::InputBorder);
+    this->ApplyFocusedBorderToken(ThemeTokenId::FocusedBorder);
+    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->ApplyFontFamily("Segoe UI");
+    this->ApplyFontSize(12.0f);
+    this->ApplyPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
+    this->ApplyCornerRadius(4.0f);
+    this->ApplyHeight(kDefaultH);
 
     m_breadcrumbHost.AttachTo(this);
     m_treeHost.AttachTo(this);
 
-    m_breadcrumbHost.SetNavigateHandler([this](const std::string& path) {
-        m_browser.SetCurrentPath(path);
+    m_breadcrumbHost.ApplyNavigateHandler([this](const std::string& path) {
+        m_browser.ApplyCurrentPath(path);
         m_treeHost.NavigateTo(path, m_browser);
         SyncBrowserChrome();
         MarkPickerDirty();
         RequestAnimationTicks();
     });
 
-    m_treeHost.SetPathChangedHandler([this](const std::string& path) {
-        m_browser.SetCurrentPath(path);
+    m_treeHost.ApplyPathChangedHandler([this](const std::string& path) {
+        m_browser.ApplyCurrentPath(path);
         SyncBrowserChrome();
         MarkPickerDirty();
     });
@@ -66,11 +66,11 @@ float FolderPicker::PopupProgress() const {
     return m_popupAnim.Current();
 }
 
-void FolderPicker::SetPath(const std::string& path) {
+void FolderPicker::ApplyPath(const std::string& path) {
     if (GetText() == path) {
         return;
     }
-    SetText(path);
+    ApplyText(path);
     NotifyFieldChanged(PropertyId::Text, Value(path));
     m_onPathChangedEvent.Invoke(this, path);
     MarkPickerDirty();
@@ -142,7 +142,7 @@ void FolderPicker::MarkPickerDirty() {
     }
 }
 
-void FolderPicker::SetPopupOpen(bool open) {
+void FolderPicker::ApplyPopupOpen(bool open) {
     if (m_isPopupOpen == open) {
         return;
     }
@@ -231,14 +231,14 @@ bool FolderPicker::HandleBrowserClick(Point pt) {
         return true;
     }
     if (m_browser.CancelButtonRect(pop).Contains(pt.x, pt.y)) {
-        SetPopupOpen(false);
+        ApplyPopupOpen(false);
         return true;
     }
     if (m_browser.ConfirmButtonRect(pop).Contains(pt.x, pt.y)) {
         std::string path;
         if (m_treeHost.TryConfirm(m_browser, path)) {
-            SetPath(path);
-            SetPopupOpen(false);
+            ApplyPath(path);
+            ApplyPopupOpen(false);
         }
         return true;
     }
@@ -355,7 +355,7 @@ void FolderPicker::OnMouseDown(Point pt) {
             HandleBrowserClick(pt);
             return;
         }
-        SetPopupOpen(false);
+        ApplyPopupOpen(false);
         return;
     }
 
@@ -367,7 +367,7 @@ void FolderPicker::OnMouseUp(Point pt) {
     const HitPart pressed = m_pressed;
     m_pressed = HitPart::None;
     if (!m_isPopupOpen && pressed != HitPart::None && HitTestPart(pt) == pressed) {
-        SetPopupOpen(true);
+        ApplyPopupOpen(true);
     }
     MarkPickerDirty();
 }
@@ -402,14 +402,14 @@ bool FolderPicker::OnKeyDown(int vkCode) {
     }
     if (m_isPopupOpen) {
         if (vkCode == VK_ESCAPE) {
-            SetPopupOpen(false);
+            ApplyPopupOpen(false);
             return true;
         }
         if (vkCode == VK_RETURN) {
             std::string path;
             if (m_treeHost.TryConfirm(m_browser, path)) {
-                SetPath(path);
-                SetPopupOpen(false);
+                ApplyPath(path);
+                ApplyPopupOpen(false);
             }
             return true;
         }
@@ -423,7 +423,7 @@ bool FolderPicker::OnKeyDown(int vkCode) {
         return true;
     }
     if (vkCode == VK_RETURN || vkCode == VK_SPACE) {
-        SetPopupOpen(true);
+        ApplyPopupOpen(true);
         return true;
     }
     return Control::OnKeyDown(vkCode);
@@ -431,7 +431,7 @@ bool FolderPicker::OnKeyDown(int vkCode) {
 
 bool FolderPicker::OnAnimationTick() {
     const float dt = UIElement::GetAnimationDeltaSeconds();
-    m_popupAnim.SetTarget(m_isPopupOpen ? 1.0f : 0.0f);
+    m_popupAnim.ApplyTarget(m_isPopupOpen ? 1.0f : 0.0f);
     bool animating = m_popupAnim.Tick(dt, PopupReveal::kSpec);
     // Popup open/close only. TreeView registers via AnimationHost(this).
     if (animating || m_isPopupOpen || PopupProgress() > 0.001f) {

@@ -29,7 +29,7 @@ public:
     ~GraphicsContext();
 
     bool Initialize(HWND hwnd);
-    void SetRequirePerPixelAlpha(bool enabled);
+    void ApplyRequirePerPixelAlpha(bool enabled);
     bool RequiresPerPixelAlpha() const { return m_requirePerPixelAlpha; }
     void Resize(UINT width, UINT height);
     void ReleaseDeviceResources();
@@ -208,10 +208,10 @@ public:
                                        const Point& origin, std::vector<D2D1_RECT_F>& rects);
 
     float GetDpiScale() const { return m_dpiScale; }
-    void SetPaintBounds(const Rect& rect) { m_paintBounds = rect; }
+    void ApplyPaintBounds(const Rect& rect) { m_paintBounds = rect; }
     const Rect& GetPaintBounds() const { return m_paintBounds; }
     bool IntersectsPaintBounds(const Rect& rect) const { return m_paintBounds.IsEmpty() || rect.Intersects(m_paintBounds); }
-    void SetCompositionContext(CompositionContext* context) { m_compositionContext = context; }
+    void ApplyCompositionContext(CompositionContext* context) { m_compositionContext = context; }
     CompositionContext* GetCompositionContext() const { return m_compositionContext; }
 
 private:

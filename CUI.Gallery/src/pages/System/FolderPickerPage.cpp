@@ -15,7 +15,7 @@ namespace Gallery {
  * 遵循 Fluent 规范，全弹性流式布局，不硬编码固定宽度。
  */
 Element BuildFolderPickerPage() {
-    auto statusLabel = MakeStatus("提示：点击输入框右侧的 📂 浏览按钮可直接呼出内置的目录树选择弹窗。");
+    CUI::Widgets::Ref statusLabel =MakeStatus("提示：点击输入框右侧的 📂 浏览按钮可直接呼出内置的目录树选择弹窗。");
 
     // ==========================================
     // 1. 基础文件夹目录选择器
@@ -26,7 +26,7 @@ Element BuildFolderPickerPage() {
         folderPicker.DialogTitle("选择工程根目录");
 
     folderPicker->OnPathChanged().Connect([statusLabel](FolderPicker*, const std::string& path) {
-                statusLabel->SetText(std::format("已选择目标文件夹路径：【{}】", path));
+                statusLabel.Text(std::format("已选择目标文件夹路径：【{}】", path));
     });
 
     // ==========================================
@@ -35,19 +35,19 @@ Element BuildFolderPickerPage() {
     auto btnCoreDir = Button("选择 CUI.Core 框架源码目录")
         .OnClick([folderPicker, statusLabel](UIElement*) {
                         folderPicker.Path("E:\\C++project\\CUI\\CUI.Core\\ui\\framework");
-                        statusLabel->SetText("已重定向目标目录至：【CUI.Core 框架源码】");
+                        statusLabel.Text("已重定向目标目录至：【CUI.Core 框架源码】");
         });
 
     auto btnBuildDir = Button("选择构建输出目录 (Build Artifacts)")
         .OnClick([folderPicker, statusLabel](UIElement*) {
                         folderPicker.Path("E:\\C++project\\CUI\\x64\\Debug");
-                        statusLabel->SetText("已重定向目标目录至：【构建输出目录 (x64\\Debug)】");
+                        statusLabel.Text("已重定向目标目录至：【构建输出目录 (x64\\Debug)】");
         });
 
     auto btnAssetsDir = Button("选择素材资源目录 (Assets)")
         .OnClick([folderPicker, statusLabel](UIElement*) {
                         folderPicker.Path("E:\\C++project\\CUI\\CUI.Gallery\\assets");
-                        statusLabel->SetText("已重定向目标目录至：【素材资源目录 (assets)】");
+                        statusLabel.Text("已重定向目标目录至：【素材资源目录 (assets)】");
         });
 
     SamplePageSpec spec;

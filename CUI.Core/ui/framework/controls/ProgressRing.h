@@ -11,7 +11,7 @@ public:
     virtual const char* GetClassName() const override { return "ProgressRing"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;
@@ -20,16 +20,16 @@ public:
     virtual void OnNavigatedTo() override;
 
     float GetValue() const { return m_value; }
-    void SetValue(float val);
+    void ApplyValue(float val);
 
     float GetMinimum() const { return m_minimum; }
-    void SetMinimum(float minVal);
+    void ApplyMinimum(float minVal);
 
     float GetMaximum() const { return m_maximum; }
-    void SetMaximum(float maxVal);
+    void ApplyMaximum(float maxVal);
 
     bool IsIndeterminate() const { return m_isIndeterminate; }
-    void SetIsIndeterminate(bool ind);
+    void ApplyIsIndeterminate(bool ind);
 
 private:
     void DrawRingArc(

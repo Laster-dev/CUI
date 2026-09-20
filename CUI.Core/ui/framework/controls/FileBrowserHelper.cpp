@@ -207,14 +207,14 @@ void FileBrowserSession::Configure(
     m_currentPath = ResolveStartDirectory(startPath);
 }
 
-void FileBrowserSession::SetFilterIndex(int index) {
+void FileBrowserSession::ApplyFilterIndex(int index) {
     if (m_filters.empty()) {
         return;
     }
     m_filterIndex = std::clamp(index, 0, static_cast<int>(m_filters.size()) - 1);
 }
 
-void FileBrowserSession::SetCurrentPath(const std::string& path) {
+void FileBrowserSession::ApplyCurrentPath(const std::string& path) {
     m_currentPath = NormalizeDirPath(path);
 }
 
@@ -477,21 +477,21 @@ void FileBrowserBreadcrumbHost::AttachTo(UIElement* owner) {
     if (!owner || !m_bar) {
         return;
     }
-    m_bar->SetOverlayComposed(true);
+    m_bar->ApplyOverlayComposed(true);
     owner->AddChildQuiet(m_bar);
 }
 
-void FileBrowserBreadcrumbHost::SetNavigateHandler(NavigateCallback handler) {
+void FileBrowserBreadcrumbHost::ApplyNavigateHandler(NavigateCallback handler) {
     m_onNavigate = std::move(handler);
 }
 
 void FileBrowserBreadcrumbHost::Sync(const std::string& currentPath) {
-    m_bar->SetPath(BuildFileBrowserBreadcrumb(currentPath));
+    m_bar->ApplyPath(BuildFileBrowserBreadcrumb(currentPath));
 }
 
 void FileBrowserBreadcrumbHost::Layout(const FileBrowserSession& session, const Rect& pop) {
     m_bounds = session.BreadcrumbRect(pop);
-    m_bar->SetBounds(m_bounds);
+    m_bar->ApplyBounds(m_bounds);
 }
 
 void FileBrowserBreadcrumbHost::Render(GraphicsContext& ctx) {
@@ -578,7 +578,7 @@ void FileBrowserTreeHost::AttachTo(UIElement* owner) {
     if (!owner || !m_tree) {
         return;
     }
-    m_tree->SetOverlayComposed(true);
+    m_tree->ApplyOverlayComposed(true);
     owner->AddChildQuiet(m_tree);
 }
 
@@ -588,11 +588,11 @@ FileBrowserSession FileBrowserTreeHost::MakeSession(const std::string& pathHint)
     return session;
 }
 
-void FileBrowserTreeHost::SetPathChangedHandler(PathChangedCallback handler) {
+void FileBrowserTreeHost::ApplyPathChangedHandler(PathChangedCallback handler) {
     m_onPathChanged = std::move(handler);
 }
 
-void FileBrowserTreeHost::SetConfirmHandler(ConfirmCallback handler) {
+void FileBrowserTreeHost::ApplyConfirmHandler(ConfirmCallback handler) {
     m_onConfirm = std::move(handler);
 }
 
@@ -748,7 +748,7 @@ void FileBrowserTreeHost::ExpandToPath(const std::string& path, const FileBrowse
     if (path.empty()) {
         auto roots = m_tree->GetItems();
         if (!roots.empty()) {
-            m_tree->SetSelectedItem(roots[0]);
+            m_tree->ApplySelectedItem(roots[0]);
         }
         return;
     }
@@ -802,7 +802,7 @@ void FileBrowserTreeHost::ExpandToPath(const std::string& path, const FileBrowse
         current->isExpanded = true;
         current->expandAnim.Reset(1.0f);
         m_tree->InvalidateVisibleItems();
-        m_tree->SetSelectedItem(current);
+        m_tree->ApplySelectedItem(current);
     }
 }
 
@@ -854,9 +854,9 @@ void FileBrowserTreeHost::GoUp(const FileBrowserSession& session) {
 }
 
 void FileBrowserTreeHost::Layout(const Rect& listRect) {
-    m_tree->SetBounds(listRect);
-    m_tree->SetWidth(listRect.width);
-    m_tree->SetHeight(listRect.height);
+    m_tree->ApplyBounds(listRect);
+    m_tree->ApplyWidth(listRect.width);
+    m_tree->ApplyHeight(listRect.height);
 }
 
 void FileBrowserTreeHost::Render(GraphicsContext& ctx) {

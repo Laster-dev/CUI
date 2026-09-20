@@ -37,20 +37,20 @@ std::string JoinCodeLines(const std::vector<std::string>& lines) {
 }
 
 void StyleCopyButton(Button& btn) {
-    btn.SetText("");
-    btn.SetIcon(kSvgCopy);
-    btn.SetToolTip("复制");
-    btn.SetWidth(kCopyBtn);
-    btn.SetHeight(kCopyBtn);
-    btn.SetFontSize(16.0f);
-    btn.SetPadding(5.0f);
-    btn.SetCornerRadius(4.0f);
-    btn.SetBorderThickness(0.0f);
-    btn.SetBackgroundToken(ThemeTokenId::Unset);
-    btn.SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    btn.SetPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    btn.SetBackground(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
-    btn.SetColorToken(ThemeTokenId::AccentColor);
+    btn.ApplyText("");
+    btn.ApplyIcon(kSvgCopy);
+    btn.ApplyToolTip("复制");
+    btn.ApplyWidth(kCopyBtn);
+    btn.ApplyHeight(kCopyBtn);
+    btn.ApplyFontSize(16.0f);
+    btn.ApplyPadding(5.0f);
+    btn.ApplyCornerRadius(4.0f);
+    btn.ApplyBorderThickness(0.0f);
+    btn.ApplyBackgroundToken(ThemeTokenId::Unset);
+    btn.ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    btn.ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
+    btn.ApplyBackground(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+    btn.ApplyColorToken(ThemeTokenId::AccentColor);
 }
 
 bool CopyUtf8(const std::string& text) {
@@ -84,16 +84,16 @@ bool IsWordChar(unsigned char c) {
 } // namespace
 
 MarkdownView::MarkdownView() {
-        this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetBorderThickness(1.0f);
-    this->SetCornerRadius(6.0f);
-    this->SetWidth(-1.0f);
-    this->SetHeight(420.0f);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyCornerRadius(6.0f);
+    this->ApplyWidth(-1.0f);
+    this->ApplyHeight(420.0f);
 }
 
 MarkdownView::MarkdownView(const std::string& markdown) : MarkdownView() {
-    this->SetText(markdown);
+    this->ApplyText(markdown);
 }
 
 Value MarkdownView::GetProperty(PropertyId id) const {
@@ -110,23 +110,23 @@ bool MarkdownView::HasProperty(PropertyId id) const {
     return id == PropertyId::ShowLineNumbers || Control::HasProperty(id);
 }
 
-void MarkdownView::SetProperty(PropertyId id, const Value& val) {
+void MarkdownView::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::Text) {
-        SetMarkdown(val.AsString(""));
+        ApplyMarkdown(val.AsString(""));
         return;
     }
     if (id == PropertyId::ShowLineNumbers) {
-        SetShowCodeLineNumbers(val.AsBool());
+        ApplyShowCodeLineNumbers(val.AsBool());
         return;
     }
-    Control::SetProperty(id, val);
+    Control::ApplyProperty(id, val);
 }
 
-void MarkdownView::SetMarkdown(const std::string& markdown) {
+void MarkdownView::ApplyMarkdown(const std::string& markdown) {
     if (GetText() == markdown && !m_blocks.empty()) {
         return;
     }
-    UIElement::SetText(markdown);
+    UIElement::ApplyText(markdown);
     m_blocks = ParseMarkdown(markdown);
     m_layoutDirty = true;
     m_selA = m_selB = 0;
@@ -136,7 +136,7 @@ void MarkdownView::SetMarkdown(const std::string& markdown) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void MarkdownView::SetShowCodeLineNumbers(bool show) {
+void MarkdownView::ApplyShowCodeLineNumbers(bool show) {
     if (m_showLineNumbers == show) {
         return;
     }
@@ -180,7 +180,7 @@ void MarkdownView::EnsureLayout(GraphicsContext& ctx) {
 
 void MarkdownView::Arrange(Rect finalRect) {
     if (GetVisibility() == Visibility::Collapsed) {
-        SetBounds(Rect());
+        ApplyBounds(Rect());
         m_arrangeDirty = false;
         return;
     }
@@ -190,7 +190,7 @@ void MarkdownView::Arrange(Rect finalRect) {
         finalRect.y + margin.top,
         (std::max)(0.0f, finalRect.width - margin.left - margin.right),
         (std::max)(0.0f, finalRect.height - margin.top - margin.bottom));
-    SetBounds(arranged);
+    ApplyBounds(arranged);
     LayoutCopyButtons();
     m_arrangeDirty = false;
 }
@@ -235,7 +235,7 @@ void MarkdownView::LayoutCopyButtons() {
         const bool visible = world.y + kCopyBtn + kCopyInset > m_bounds.y
             && world.y < m_bounds.y + m_bounds.height
             && world.width > kCopyBtn + kCopyInset * 2.0f;
-        btn->SetVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
+        btn->ApplyVisibility(visible ? Visibility::Visible : Visibility::Collapsed);
         if (visible) {
             const Rect slot(
                 world.x + world.width - kCopyBtn - kCopyInset,
@@ -329,7 +329,7 @@ int MarkdownView::HitChar(Point docPt) const {
     return std::clamp(best, run->plainStart, run->plainEnd);
 }
 
-void MarkdownView::SetSelection(int a, int b) {
+void MarkdownView::ApplySelection(int a, int b) {
     a = std::clamp(a, 0, static_cast<int>(m_layout.plain.size()));
     b = std::clamp(b, 0, static_cast<int>(m_layout.plain.size()));
     if (a == m_selA && b == m_selB) {
@@ -350,7 +350,7 @@ std::string MarkdownView::GetSelectedText() const {
 }
 
 void MarkdownView::SelectAll() {
-    SetSelection(0, static_cast<int>(m_layout.plain.size()));
+    ApplySelection(0, static_cast<int>(m_layout.plain.size()));
 }
 
 bool MarkdownView::ScrollToHeading(const std::string& heading) {
@@ -373,7 +373,7 @@ bool MarkdownView::ScrollToHeading(const std::string& heading) {
 
         m_targetScrollY = block.bounds.y;
         ClampScroll();
-        m_scrollYAnim.SetTarget(m_targetScrollY);
+        m_scrollYAnim.ApplyTarget(m_targetScrollY);
         if (!UIElement::AreAnimationsEnabled()) {
             m_scrollY = m_targetScrollY;
             m_scrollYAnim.Reset(m_scrollY);
@@ -572,7 +572,7 @@ void MarkdownView::OnMouseDown(Point pt) {
     Control::OnMouseDown(pt);
     if (m_maxScrollY > 0.0f && ScrollbarTrack().Contains(pt.x, pt.y)) {
         m_draggingScrollbar = true;
-        m_scrollbarAutoHide.SetDragging(true, this);
+        m_scrollbarAutoHide.ApplyDragging(true, this);
         m_scrollbarAutoHide.NotifyActivity(this);
         m_dragStartY = pt.y;
         m_dragStartScroll = m_scrollY;
@@ -585,13 +585,13 @@ void MarkdownView::OnMouseDown(Point pt) {
     }
     m_selecting = true;
     const int idx = HitChar(doc);
-    SetSelection(idx, idx);
+    ApplySelection(idx, idx);
 }
 
 void MarkdownView::OnMouseMove(Point pt) {
     Control::OnMouseMove(pt);
     const bool overBar = m_maxScrollY > 0.0f && pt.x >= m_bounds.x + m_bounds.width - kSb;
-    m_scrollbarAutoHide.SetPointerOver(overBar, this);
+    m_scrollbarAutoHide.ApplyPointerOver(overBar, this);
     if (overBar) {
         RequestAnimationTicks();
     }
@@ -622,7 +622,7 @@ void MarkdownView::OnMouseMove(Point pt) {
         MarkRenderRectDirty(m_bounds);
     }
     if (m_selecting && m_isPressed) {
-        SetSelection(m_selA, HitChar(doc));
+        ApplySelection(m_selA, HitChar(doc));
     }
 }
 
@@ -633,7 +633,7 @@ void MarkdownView::OnMouseUp(Point pt) {
     Control::OnMouseUp(pt);
     m_draggingScrollbar = false;
     m_selecting = false;
-    m_scrollbarAutoHide.SetDragging(false, this);
+    m_scrollbarAutoHide.ApplyDragging(false, this);
     if (wasSelecting && hi == lo && !m_hoverHref.empty()) {
         OpenLink(m_hoverHref);
     }
@@ -643,7 +643,7 @@ void MarkdownView::OnMouseUp(Point pt) {
 void MarkdownView::OnMouseLeave() {
     Control::OnMouseLeave();
     m_hoverHref.clear();
-    m_scrollbarAutoHide.SetPointerOver(false, this);
+    m_scrollbarAutoHide.ApplyPointerOver(false, this);
     RequestAnimationTicks();
 }
 
@@ -659,7 +659,7 @@ void MarkdownView::OnMouseDblClick(Point pt) {
     while (b < static_cast<int>(s.size()) && IsWordChar(static_cast<unsigned char>(s[static_cast<size_t>(b)]))) {
         ++b;
     }
-    SetSelection(a, b);
+    ApplySelection(a, b);
 }
 
 void MarkdownView::OnMouseWheel(float delta) {
@@ -674,7 +674,7 @@ void MarkdownView::OnMouseWheel(float delta) {
         UIElement::OnMouseWheel(delta);
         return;
     }
-    m_scrollYAnim.SetTarget(m_targetScrollY);
+    m_scrollYAnim.ApplyTarget(m_targetScrollY);
     if (!UIElement::AreAnimationsEnabled()) {
         m_scrollY = m_targetScrollY;
         m_scrollYAnim.Reset(m_scrollY);
@@ -699,7 +699,7 @@ bool MarkdownView::OnKeyDown(int vkCode) {
     if (vkCode == VK_HOME) {
         m_targetScrollY = 0.0f;
         ClampScroll();
-        m_scrollYAnim.SetTarget(m_targetScrollY);
+        m_scrollYAnim.ApplyTarget(m_targetScrollY);
         LayoutCopyButtons();
         RequestAnimationTicks();
         MarkRenderRectDirty(m_bounds);
@@ -708,7 +708,7 @@ bool MarkdownView::OnKeyDown(int vkCode) {
     if (vkCode == VK_END) {
         m_targetScrollY = m_maxScrollY;
         ClampScroll();
-        m_scrollYAnim.SetTarget(m_targetScrollY);
+        m_scrollYAnim.ApplyTarget(m_targetScrollY);
         LayoutCopyButtons();
         RequestAnimationTicks();
         MarkRenderRectDirty(m_bounds);

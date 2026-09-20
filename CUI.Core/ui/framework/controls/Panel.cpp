@@ -5,7 +5,7 @@
 namespace CUI {
 
 Panel::Panel() {
-    this->SetBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
 }
 
 Size Panel::MeasureOverride(Size availableSize) {
@@ -17,12 +17,12 @@ void Panel::ArrangeOverride(Rect finalRect) {
 }
 
 StackPanel::StackPanel() {
-    this->SetOrientation(Orientation::Vertical);
-    this->SetGap(0.0f);
+    this->ApplyOrientation(Orientation::Vertical);
+    this->ApplyGap(0.0f);
 }
 
 StackPanel::StackPanel(CUI::Orientation orientation) : StackPanel() {
-    this->SetOrientation(orientation);
+    this->ApplyOrientation(orientation);
 }
 
 Size StackPanel::MeasureOverride(Size availableSize) {
@@ -47,7 +47,7 @@ void Canvas::ArrangeOverride(Rect finalRect) {
 Grid::Grid() {
 }
 
-void Grid::SetColumnDefinitions(const std::string& colDefsStr) {
+void Grid::ApplyColumnDefinitions(const std::string& colDefsStr) {
     m_columns.clear();
     std::stringstream ss(colDefsStr);
     std::string token;
@@ -61,7 +61,7 @@ void Grid::SetColumnDefinitions(const std::string& colDefsStr) {
     InvalidateMeasure();
 }
 
-void Grid::SetRowDefinitions(const std::string& rowDefsStr) {
+void Grid::ApplyRowDefinitions(const std::string& rowDefsStr) {
     m_rows.clear();
     std::stringstream ss(rowDefsStr);
     std::string token;
@@ -83,13 +83,13 @@ void Grid::ArrangeOverride(Rect finalRect) {
 }
 
 WrapPanel::WrapPanel() {
-    this->SetOrientation(Orientation::Horizontal);
-    SetItemWidth(-1.0f);
-    SetItemHeight(-1.0f);
+    this->ApplyOrientation(Orientation::Horizontal);
+    ApplyItemWidth(-1.0f);
+    ApplyItemHeight(-1.0f);
 }
 
 WrapPanel::WrapPanel(CUI::Orientation orientation) : WrapPanel() {
-    this->SetOrientation(orientation);
+    this->ApplyOrientation(orientation);
 }
 
 Size WrapPanel::MeasureOverride(Size availableSize) {
@@ -101,7 +101,7 @@ void WrapPanel::ArrangeOverride(Rect finalRect) {
 }
 
 DockPanel::DockPanel() {
-    this->SetLastChildFill(true);
+    this->ApplyLastChildFill(true);
 }
 
 Size DockPanel::MeasureOverride(Size availableSize) {
@@ -113,13 +113,13 @@ void DockPanel::ArrangeOverride(Rect finalRect) {
 }
 
 UniformGrid::UniformGrid() {
-    SetRows(0);
-    this->SetColumns(0);
+    ApplyRows(0);
+    this->ApplyColumns(0);
 }
 
 UniformGrid::UniformGrid(int rows, int cols) : UniformGrid() {
-    SetRows(rows);
-    this->SetColumns(cols);
+    ApplyRows(rows);
+    this->ApplyColumns(cols);
 }
 
 Size UniformGrid::MeasureOverride(Size availableSize) {

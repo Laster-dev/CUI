@@ -65,10 +65,10 @@ public:
     // 1. 全局动画策略与开关
     // ==========================================
     bool AreAnimationsEnabled() const;
-    void SetAnimationsEnabled(bool enabled);
+    void ApplyAnimationsEnabled(bool enabled);
 
     float GetDeltaSeconds() const { return m_deltaSeconds; }
-    void SetDeltaSeconds(float dt) { m_deltaSeconds = std::clamp(dt, 1.0f / 240.0f, 0.05f); }
+    void ApplyDeltaSeconds(float dt) { m_deltaSeconds = std::clamp(dt, 1.0f / 240.0f, 0.05f); }
 
     // ==========================================
     // 2. 动画数学算法库与步进器 (Animation Math & Easing Suite)
@@ -99,7 +99,7 @@ public:
     bool Tick(clock::time_point now);
 
     // 唤醒帧调度回调注册（由 Window 系统接入）
-    void SetFrameWakeCallback(std::function<void()> callback) { m_frameWakeCallback = std::move(callback); }
+    void ApplyFrameWakeCallback(std::function<void()> callback) { m_frameWakeCallback = std::move(callback); }
     void WakeFrame();
 
 private:

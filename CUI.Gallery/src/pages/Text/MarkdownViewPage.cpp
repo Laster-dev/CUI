@@ -4,7 +4,7 @@ using namespace CUI;
 namespace Gallery {
 
 Element BuildMarkdownViewPage() {
-    auto markdown = std::make_shared<MarkdownView>(R"markdown(
+    CUI::Widgets::Ref markdown =std::make_shared<MarkdownView>(R"markdown(
 # MarkdownView
 
 支持 **粗体**、*斜体*、`行内代码`、~~删除线~~ 和 [链接](https://example.com)。
@@ -47,7 +47,7 @@ if (RetryCount > 0) {
 }
 ```
 )markdown");
-        markdown->SetHeight(560.0f);
+        markdown.Height(560.0f);
 
     SamplePageSpec spec;
     spec.title = "MarkdownView(Markdown 视图)";
@@ -56,7 +56,7 @@ if (RetryCount > 0) {
         { "渲染预览", "单击链接、滚动、选择文本与复制代码均可直接体验。", markdown },
     };
     spec.source =
-        "auto markdown = std::make_shared<MarkdownView>(R\"markdown(.. )markdown\");\n"
+        "CUI::Widgets::Ref markdown =std::make_shared<MarkdownView>(R\"markdown(.. )markdown\");\n"
         "markdown->Height = 560.0f;\n";
     return BuildSamplePage(spec);
 }

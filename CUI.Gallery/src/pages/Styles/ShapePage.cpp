@@ -83,7 +83,7 @@ Element BuildShapePage() {
     spec.sections = {
         {
             "圆角矩形",
-            "Rectangle 通过 SetCornerRadius 控制四角圆角半径。",
+            "Rectangle 通过 ApplyCornerRadius 控制四角圆角半径。",
             radiusRow,
         },
         {

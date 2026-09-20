@@ -70,7 +70,7 @@ bool GetClipboardUnicode(std::wstring& out) {
 class TerminalControl::FindBox : public TextBox {
 public:
     explicit FindBox(TerminalControl* owner) : m_owner(owner) {
-        SetPlaceholder("Find");
+        ApplyPlaceholder("Find");
     }
 
     const char* GetClassName() const override { return "TerminalFindBox"; }
@@ -162,13 +162,13 @@ void TerminalControl::InitTerminal(const std::string& shellPath) {
         return true;
     };
 
-        this->SetFontFamily(Term::TerminalOptions::DefaultFontFamily());
-    this->SetFontSize(m_terminal->Options().FontSize);
-    this->SetBackground(m_terminal->Options().Theme.Background.ToD2D());
-    this->SetColor(m_terminal->Options().Theme.Foreground.ToD2D());
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetBorderThickness(1.0f);
-    this->SetCornerRadius(4.0f);
+        this->ApplyFontFamily(Term::TerminalOptions::DefaultFontFamily());
+    this->ApplyFontSize(m_terminal->Options().FontSize);
+    this->ApplyBackground(m_terminal->Options().Theme.Background.ToD2D());
+    this->ApplyColor(m_terminal->Options().Theme.Foreground.ToD2D());
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyCornerRadius(4.0f);
     // 不显式设置 Width/Height：显式尺寸会阻止 FlexPanel 的 Stretch/FlexGrow 拉伸，
     // 保持 -1（自适应）让父容器通过 Align(Stretch) + FlexGrow 铺满剩余空间。
 
@@ -187,12 +187,12 @@ bool TerminalControl::HasProperty(PropertyId id) const {
     return id == PropertyId::Shell || Control::HasProperty(id);
 }
 
-void TerminalControl::SetProperty(PropertyId id, const Value& val) {
+void TerminalControl::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::Shell) {
-        SetShell(val.AsString());
+        ApplyShell(val.AsString());
         return;
     }
-    Control::SetProperty(id, val);
+    Control::ApplyProperty(id, val);
     if ((id == PropertyId::FontSize || id == PropertyId::FontFamily) && m_terminal && m_renderer) {
         auto& options = m_terminal->Options();
         options.FontFamily = GetFontFamily();
@@ -214,9 +214,9 @@ HCURSOR TerminalControl::GetCursor() const {
 
 void TerminalControl::BuildFindBar() {
     m_findBox = std::make_shared<FindBox>(this);
-    m_findBox->SetVisibility(Visibility::Collapsed);
-    m_findBox->SetWidth(220.0f);
-    m_findBox->SetHeight(26.0f);
+    m_findBox->ApplyVisibility(Visibility::Collapsed);
+    m_findBox->ApplyWidth(220.0f);
+    m_findBox->ApplyHeight(26.0f);
     this->AddChild(m_findBox);
 }
 
@@ -231,7 +231,7 @@ void TerminalControl::BuildContextMenu() {
         MarkViewportDirty();
     });
     menu->AddItem("Find...", "Ctrl+F", [this]() { ShowFind(true); });
-    SetContextMenu(menu);
+    ApplyContextMenu(menu);
 }
 
 void TerminalControl::AttachBackend(Term::ITerminalBackend* backend) {
@@ -276,8 +276,8 @@ void TerminalControl::WriteInput(const std::string& text) {
 void TerminalControl::ApplyTheme(const Term::TerminalTheme& theme) {
     m_terminal->Options().Theme = theme;
     m_renderer->ApplyTheme(theme);
-    this->SetBackground(theme.Background.ToD2D());
-    this->SetColor(theme.Foreground.ToD2D());
+    this->ApplyBackground(theme.Background.ToD2D());
+    this->ApplyColor(theme.Foreground.ToD2D());
     MarkViewportDirty();
 }
 
@@ -289,7 +289,7 @@ void TerminalControl::Zoom(int deltaSteps) {
         return;
     }
     options.FontSize = next;
-    SetFontSize(next);
+    ApplyFontSize(next);
     m_renderer->UpdateFont(options.FontFamily, options.FontSize);
     m_lastCols = -1;
     m_lastRows = -1;
@@ -299,7 +299,7 @@ void TerminalControl::Zoom(int deltaSteps) {
 void TerminalControl::ShowFind(bool show) {
     m_findVisible = show;
     if (m_findBox) {
-        m_findBox->SetVisibility(show ? Visibility::Visible : Visibility::Collapsed);
+        m_findBox->ApplyVisibility(show ? Visibility::Visible : Visibility::Collapsed);
         if (show) {
             m_findBox->SelectAll();
         }
@@ -369,7 +369,7 @@ Size TerminalControl::Measure(Size availableSize) {
 }
 
 void TerminalControl::Arrange(Rect finalRect) {
-    SetBounds(finalRect);
+    ApplyBounds(finalRect);
 
     if (m_findBox) {
         if (m_findVisible) {
@@ -478,7 +478,7 @@ void TerminalControl::MarkViewportDirty() {
     }
     auto& buf = m_terminal->Buffers().Active();
     for (int row = 0; row < m_terminal->Rows(); ++row) {
-        buf.GetViewportLine(row).SetIsDirty(true);
+        buf.GetViewportLine(row).ApplyIsDirty(true);
     }
     std::fill(m_boundLines.begin(), m_boundLines.end(), nullptr);
     MarkRenderContentDirty();
@@ -612,7 +612,7 @@ bool TerminalControl::OnAnimationTick() {
 void TerminalControl::OnRender(GraphicsContext& ctx) {
     m_hwnd = ctx.GetHwnd();
     m_dpiScale = ctx.GetDpiScale();
-    m_renderer->SetDpi(ctx.GetDpiScale());
+    m_renderer->ApplyDpi(ctx.GetDpiScale());
     m_renderer->EnsureMetrics(ctx);
     RecalculateSize(ctx);
 
@@ -689,7 +689,7 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
         Term::BufferLine& line = buf.GetViewportLine(row);
         ctx.FillRect(rowRect, bg);
         m_renderer->PaintRow(ctx, line, cols, surface.x, rowRect.y);
-        line.SetIsDirty(false);
+        line.ApplyIsDirty(false);
         m_boundLines[static_cast<size_t>(row)] = &line;
     }
 
@@ -843,7 +843,7 @@ void TerminalControl::OnMouseDown(Point pt) {
     const Rect thumb = GetScrollThumbRect();
     if (!thumb.IsEmpty() && GetScrollBarRect().Contains(pt.x, pt.y)) {
         m_draggingScrollbar = true;
-        m_scrollbarAutoHide.SetDragging(true, this);
+        m_scrollbarAutoHide.ApplyDragging(true, this);
         m_scrollbarAutoHide.NotifyActivity(this);
         RequestAnimationTicks();
         m_scrollGrabOffset = thumb.Contains(pt.x, pt.y) ? (pt.y - thumb.y) : thumb.height * 0.5f;
@@ -925,7 +925,7 @@ void TerminalControl::OnMouseMove(Point pt) {
     m_lastMousePos = pt;
 
     const bool overBar = !GetScrollThumbRect().IsEmpty() && GetScrollBarRect().Contains(pt.x, pt.y);
-    m_scrollbarAutoHide.SetPointerOver(overBar, this);
+    m_scrollbarAutoHide.ApplyPointerOver(overBar, this);
     if (overBar) {
         RequestAnimationTicks();
         MarkRenderRectDirty(GetScrollBarRect());
@@ -982,7 +982,7 @@ void TerminalControl::OnMouseUp(Point pt) {
 
     if (m_draggingScrollbar) {
         m_draggingScrollbar = false;
-        m_scrollbarAutoHide.SetDragging(false, this);
+        m_scrollbarAutoHide.ApplyDragging(false, this);
         Control::OnMouseUp(pt);
         MarkRenderRectDirty(GetScrollBarRect());
         RequestAnimationTicks();
@@ -1046,7 +1046,7 @@ void TerminalControl::OnMouseWheel(float delta) {
 
 void TerminalControl::OnMouseLeave() {
     Control::OnMouseLeave();
-    m_scrollbarAutoHide.SetPointerOver(false, this);
+    m_scrollbarAutoHide.ApplyPointerOver(false, this);
     RequestAnimationTicks();
     if (m_hoveredFindButton != -1) {
         m_hoveredFindButton = -1;
@@ -1081,7 +1081,7 @@ void TerminalControl::SyncScrollFromThumb(float y) {
     }
     const float span = (std::max)(1.0f, track.height - thumb.height);
     const float t = std::clamp((y - track.y - m_scrollGrabOffset) / span, 0.0f, 1.0f);
-    m_terminal->SetScrollDisp(static_cast<int>(std::lround((1.0f - t) * max)));
+    m_terminal->ApplyScrollDisp(static_cast<int>(std::lround((1.0f - t) * max)));
     MarkViewportDirty();
 }
 

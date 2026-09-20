@@ -61,7 +61,7 @@ public:
     PePatcher(LogCallback logger = nullptr);
     ~PePatcher() = default;
 
-    void SetLogger(LogCallback logger) { m_logger = std::move(logger); }
+    void ApplyLogger(LogCallback logger) { m_logger = std::move(logger); }
 
     // 检查并解析 PE 文件信息
     bool InspectPe(const std::wstring& pePath, PeFileInfo& outInfo);

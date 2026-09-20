@@ -19,25 +19,25 @@ bool TextBlock::HasProperty(PropertyId id) const {
     return id == PropertyId::LineSpacing || id == PropertyId::LineHeight || UIElement::HasProperty(id);
 }
 
-void TextBlock::SetProperty(PropertyId id, const Value& val) {
+void TextBlock::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::LineSpacing: SetLineSpacing(val.AsFloat()); return;
-    case PropertyId::LineHeight: SetLineHeight(val.AsFloat()); return;
-    default: UIElement::SetProperty(id, val); return;
+    case PropertyId::LineSpacing: ApplyLineSpacing(val.AsFloat()); return;
+    case PropertyId::LineHeight: ApplyLineHeight(val.AsFloat()); return;
+    default: UIElement::ApplyProperty(id, val); return;
     }
 }
 
 TextBlock::TextBlock() {
-    this->SetText("");
-    this->SetColorToken(ThemeTokenId::TextSecondary);
-    this->SetColor(ThemeManager::Instance().GetColor("textSecondary"));
-    this->SetFontFamily("微软雅黑");
-    this->SetFontSize(12.0f);
-    this->SetFontWeight(CUI::FontWeight::Normal);
+    this->ApplyText("");
+    this->ApplyColorToken(ThemeTokenId::TextSecondary);
+    this->ApplyColor(ThemeManager::Instance().GetColor("textSecondary"));
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyFontSize(12.0f);
+    this->ApplyFontWeight(CUI::FontWeight::Normal);
 }
 
 TextBlock::TextBlock(const std::string& text) : TextBlock() {
-    this->SetText(text);
+    this->ApplyText(text);
 }
 
 Size TextBlock::Measure(Size availableSize) {

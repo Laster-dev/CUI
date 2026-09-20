@@ -15,15 +15,15 @@ using namespace CUI;
 namespace RegeditPlus {
 
 HexEditor::HexEditor() {
-        this->SetBackgroundToken(ThemeTokenId::InputBackground);
-    this->SetBorderToken(ThemeTokenId::InputBorder);
-    this->SetBorderThickness(1.0f);
-    this->SetFontFamily("Consolas");
-    this->SetFontSize(13.0f);
-    this->SetColorToken(ThemeTokenId::TextPrimary);
+        this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyBorderToken(ThemeTokenId::InputBorder);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyFontFamily("Consolas");
+    this->ApplyFontSize(13.0f);
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
 }
 
-void HexEditor::SetBytes(std::vector<BYTE> data) {
+void HexEditor::ApplyBytes(std::vector<BYTE> data) {
     m_data = std::move(data);
     m_caretNibble = 0;
     m_selAnchorNibble = 0;

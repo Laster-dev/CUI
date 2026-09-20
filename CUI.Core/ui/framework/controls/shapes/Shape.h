@@ -21,7 +21,7 @@ public:
         Shape* owner = nullptr;
         ShapeFillProperty() = default;
         explicit ShapeFillProperty(Shape* o) : owner(o) {}
-        ShapeFillProperty& operator=(D2D1_COLOR_F fill) { if (owner) owner->SetFill(fill); return *this; }
+        ShapeFillProperty& operator=(D2D1_COLOR_F fill) { if (owner) owner->ApplyFill(fill); return *this; }
         operator D2D1_COLOR_F() const { return owner ? owner->GetFill() : D2D1_COLOR_F{}; }
         D2D1_COLOR_F Get() const { return owner ? owner->GetFill() : D2D1_COLOR_F{}; }
     } Fill;
@@ -33,7 +33,7 @@ public:
         Shape* owner = nullptr;
         ShapeStrokeProperty() = default;
         explicit ShapeStrokeProperty(Shape* o) : owner(o) {}
-        ShapeStrokeProperty& operator=(D2D1_COLOR_F stroke) { if (owner) owner->SetStroke(stroke); return *this; }
+        ShapeStrokeProperty& operator=(D2D1_COLOR_F stroke) { if (owner) owner->ApplyStroke(stroke); return *this; }
         operator D2D1_COLOR_F() const { return owner ? owner->GetStroke() : D2D1_COLOR_F{}; }
         D2D1_COLOR_F Get() const { return owner ? owner->GetStroke() : D2D1_COLOR_F{}; }
     } Stroke;
@@ -45,22 +45,22 @@ public:
         Shape* owner = nullptr;
         ShapeStrokeThicknessProperty() = default;
         explicit ShapeStrokeThicknessProperty(Shape* o) : owner(o) {}
-        ShapeStrokeThicknessProperty& operator=(float t) { if (owner) owner->SetStrokeThickness(t); return *this; }
+        ShapeStrokeThicknessProperty& operator=(float t) { if (owner) owner->ApplyStrokeThickness(t); return *this; }
         operator float() const { return owner ? owner->GetStrokeThickness() : 1.0f; }
         float Get() const { return owner ? owner->GetStrokeThickness() : 1.0f; }
     } StrokeThickness;
 
     D2D1_COLOR_F GetFill() const { return m_fill; }
-    void SetFill(D2D1_COLOR_F fill) { m_fill = fill; Invalidate(); }
+    void ApplyFill(D2D1_COLOR_F fill) { m_fill = fill; Invalidate(); }
 
     D2D1_COLOR_F GetStroke() const { return m_stroke; }
-    void SetStroke(D2D1_COLOR_F stroke) { m_stroke = stroke; Invalidate(); }
+    void ApplyStroke(D2D1_COLOR_F stroke) { m_stroke = stroke; Invalidate(); }
 
     float GetStrokeThickness() const { return m_strokeThickness; }
-    void SetStrokeThickness(float thickness) { m_strokeThickness = thickness; Invalidate(); }
+    void ApplyStrokeThickness(float thickness) { m_strokeThickness = thickness; Invalidate(); }
 
     Stretch GetStretch() const { return m_stretch; }
-    void SetStretch(Stretch stretch) { m_stretch = stretch; Invalidate(); }
+    void ApplyStretch(Stretch stretch) { m_stretch = stretch; Invalidate(); }
 
     void Invalidate() { InvalidateMeasure(); InvalidateArrange(); }
     virtual void OnRender(GraphicsContext& ctx) override = 0;

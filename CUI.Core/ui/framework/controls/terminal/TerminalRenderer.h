@@ -22,7 +22,7 @@ public:
     AnsiColors& Colors() { return m_colors; }
     const AnsiColors& Colors() const { return m_colors; }
 
-    void SetDpi(float pixelsPerDip);
+    void ApplyDpi(float pixelsPerDip);
     void UpdateFont(const std::string& familyList, float size);
     void ApplyTheme(const TerminalTheme& theme);
 

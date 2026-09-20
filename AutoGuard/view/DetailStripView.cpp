@@ -10,7 +10,7 @@ namespace AutoGuard {
 
 class HIconElement : public UIElement {
 public:
-    void SetIcon(HICON hIcon) {
+    void ApplyIcon(HICON hIcon) {
         if (m_hIcon != hIcon) {
             m_hIcon = hIcon;
             MarkRenderContentDirty();
@@ -42,9 +42,9 @@ DetailStripView::~DetailStripView() = default;
 std::shared_ptr<UIElement> DetailStripView::Build() {
     // 1. 32x32 Icon Container
     m_iconElement = std::make_shared<HIconElement>();
-        m_iconElement->SetWidth(36.0f);
-    m_iconElement->SetHeight(36.0f);
-    m_iconElement->SetMargin(Thickness(2, 4, 12, 4));
+        m_iconElement.Width(36.0f);
+    m_iconElement.Height(36.0f);
+    m_iconElement.Margin(Thickness(2, 4, 12, 4));
 
     // 2. Left Main Section (Title, Description, Command/Path, Status Reason)
     m_titleName = Text("").FontSize(13.0f).FontWeight(FontWeight::SemiBold).ForegroundToken(ThemeTokenId::TextPrimary).Build();
@@ -102,13 +102,13 @@ void DetailStripView::Update() {
 
     const auto* entry = m_viewModel->GetSelectedEntry();
     if (!entry) {
-                m_root->SetHeight(0.0f);
-                m_root->SetVisibility(Visibility::Collapsed);
+                m_root->ApplyHeight(0.0f);
+                m_root->ApplyVisibility(Visibility::Collapsed);
         return;
     }
 
-        m_root->SetHeight(90.0f);
-        m_root->SetVisibility(Visibility::Visible);
+        m_root->ApplyHeight(90.0f);
+        m_root->ApplyVisibility(Visibility::Visible);
 
     // 1. Update 32x32 Native Icon
     std::string iconPath = entry->executablePath.empty() ? entry->command : entry->executablePath;
@@ -119,7 +119,7 @@ void DetailStripView::Update() {
     if (!hLargeIcon) {
         hLargeIcon = IconHelper::Instance().GetDefaultExeIcon(false);
     }
-    m_iconElement->SetIcon(hLargeIcon);
+    m_iconElement->ApplyIcon(hLargeIcon);
 
     // 2. Title & Badges
         m_titleName.Text(entry->name.empty() ? "(未命名条目)" : entry->name);

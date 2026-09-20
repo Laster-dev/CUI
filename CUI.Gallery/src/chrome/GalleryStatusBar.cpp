@@ -117,13 +117,13 @@ float SampleGpuUsage01(ID3D11Device* device) {
 } // namespace
 
 GalleryStatusBar::GalleryStatusBar() {
-    SetHeight(24.0f);
-    SetWidth(-1.0f);
-    SetBackgroundToken(CUI::ThemeTokenId::PaneBackground);
-    SetBorderToken(CUI::ThemeTokenId::CardBorder);
-    SetBorderThickness(1.0f);
-    SetFontFamily("微软雅黑");
-    SetFontSize(11.0f);
+    ApplyHeight(24.0f);
+    ApplyWidth(-1.0f);
+    ApplyBackgroundToken(CUI::ThemeTokenId::PaneBackground);
+    ApplyBorderToken(CUI::ThemeTokenId::CardBorder);
+    ApplyBorderThickness(1.0f);
+    ApplyFontFamily("微软雅黑");
+    ApplyFontSize(11.0f);
     EnsureItems();
 }
 
@@ -162,11 +162,11 @@ void GalleryStatusBar::EnsureItems() {
     m_itemsReady = true;
 }
 
-void GalleryStatusBar::SetCurrentPage(const std::string& pageTitle) {
+void GalleryStatusBar::ApplyCurrentPage(const std::string& pageTitle) {
     m_currentPage = pageTitle;
     char buf[128];
     std::snprintf(buf, sizeof(buf), "📍 页面: %s (就绪)", m_currentPage.c_str());
-    SetItemText(m_pageId, buf);
+    ApplyItemText(m_pageId, buf);
 }
 
 ResourceSnapshot GalleryStatusBar::SampleSnapshot() {
@@ -263,25 +263,25 @@ void GalleryStatusBar::RefreshMetrics() {
 
     // 页面状态
     std::snprintf(buf, sizeof(buf), "📍 页面: %s (就绪)", m_currentPage.c_str());
-    SetItemText(m_pageId, buf);
+    ApplyItemText(m_pageId, buf);
 
     // 图形后端
     if (snap.isDComp) {
-        SetItemText(m_backendId, "⚡ Direct2D / DComp");
+        ApplyItemText(m_backendId, "⚡ Direct2D / DComp");
     } else {
-        SetItemText(m_backendId, "🎨 Direct2D 1.1 / D3D11");
+        ApplyItemText(m_backendId, "🎨 Direct2D 1.1 / D3D11");
     }
 
     // 动画 / 低性能模式
-    SetItemText(m_modeId, snap.animationsEnabled ? "✨ 动画开启" : "⚡ 低性能模式");
+    ApplyItemText(m_modeId, snap.animationsEnabled ? "✨ 动画开启" : "⚡ 低性能模式");
 
     // DPI 缩放
     std::snprintf(buf, sizeof(buf), "DPI %d (%d%%)", snap.dpi, snap.zoomPct);
-    SetItemText(m_dpiId, buf);
+    ApplyItemText(m_dpiId, buf);
 
     // 句柄与线程
     std::snprintf(buf, sizeof(buf), "句柄 %u · 线程 %u", snap.handleCount, snap.threadCount);
-    SetItemText(m_handlesId, buf);
+    ApplyItemText(m_handlesId, buf);
 
     // GPU
     if (snap.gpuPct >= 0.0f) {
@@ -289,15 +289,15 @@ void GalleryStatusBar::RefreshMetrics() {
     } else {
         std::snprintf(buf, sizeof(buf), "GPU —");
     }
-    SetItemText(m_gpuId, buf);
+    ApplyItemText(m_gpuId, buf);
 
     // CPU
     std::snprintf(buf, sizeof(buf), "CPU %.1f%%", snap.cpuPct);
-    SetItemText(m_cpuId, buf);
+    ApplyItemText(m_cpuId, buf);
 
     // 内存
     std::snprintf(buf, sizeof(buf), "内存: 私有%.0fMB / 完整%.0fMB", snap.privateMb, snap.workingSetMb);
-    SetItemText(m_memId, buf);
+    ApplyItemText(m_memId, buf);
 
     // FPS
     if (snap.fps > 0.5f) {
@@ -305,7 +305,7 @@ void GalleryStatusBar::RefreshMetrics() {
     } else {
         std::snprintf(buf, sizeof(buf), "— FPS");
     }
-    SetItemText(m_fpsId, buf);
+    ApplyItemText(m_fpsId, buf);
 }
 
 void GalleryStatusBar::ScheduleNextSample() {

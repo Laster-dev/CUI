@@ -53,7 +53,7 @@ public:
     virtual HCURSOR GetCursor() const override;
 
     // 反射式属性存取（供 PropertyRef 绑定系统使用）
-    virtual void SetProperty(PropertyId id, const Value& val) override;
+    virtual void ApplyProperty(PropertyId id, const Value& val) override;
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
 
@@ -96,7 +96,7 @@ public:
      */
     struct ListViewCaretIndexProperty {
         ListView* owner;
-        ListViewCaretIndexProperty& operator=(int idx) { owner->SetCaretIndex(idx); return *this; }
+        ListViewCaretIndexProperty& operator=(int idx) { owner->ApplyCaretIndex(idx); return *this; }
         operator int() const { return owner->GetCaretIndex(); }
         int Get() const { return owner->GetCaretIndex(); }
     } CaretIndex{this};
@@ -105,18 +105,18 @@ public:
     void AddColumn(const std::string& header, float width = 120.0f);
     void ClearColumns();
     const std::vector<ListViewColumn>& GetColumns() const { return m_columns; }
-    void SetColumnVisible(int columnIndex, bool visible);
+    void ApplyColumnVisible(int columnIndex, bool visible);
     bool IsColumnVisible(int columnIndex) const;
     int GetSortColumn() const { return m_sortColumn; }
     bool IsSortAscending() const { return m_sortAscending; }
 
     using ShellContextMenuHandler = std::function<bool(Point clientPt, const std::vector<int>& rows)>;
-    void SetShellContextMenuHandler(ShellContextMenuHandler handler) { m_shellContextMenuHandler = std::move(handler); }
+    void ApplyShellContextMenuHandler(ShellContextMenuHandler handler) { m_shellContextMenuHandler = std::move(handler); }
 
     struct ListViewRowsProperty {
         ListView* owner;
-        ListViewRowsProperty& operator=(const std::vector<std::vector<std::string>>& rowsData) { owner->SetRows(rowsData); return *this; }
-        ListViewRowsProperty& operator=(const std::vector<std::vector<ListViewCellData>>& rowsData) { owner->SetRows(rowsData); return *this; }
+        ListViewRowsProperty& operator=(const std::vector<std::vector<std::string>>& rowsData) { owner->ApplyRows(rowsData); return *this; }
+        ListViewRowsProperty& operator=(const std::vector<std::vector<ListViewCellData>>& rowsData) { owner->ApplyRows(rowsData); return *this; }
         size_t size() const { return owner->GetRowCount(); }
     } Rows{this};
 
@@ -124,21 +124,21 @@ public:
 
     struct ListViewShowGridLinesProperty {
         ListView* owner;
-        ListViewShowGridLinesProperty& operator=(bool show) { owner->SetShowGridLines(show); return *this; }
+        ListViewShowGridLinesProperty& operator=(bool show) { owner->ApplyShowGridLines(show); return *this; }
         operator bool() const { return owner->GetShowGridLines(); }
         bool Get() const { return owner->GetShowGridLines(); }
     } ShowGridLines{this};
 
     struct ListViewRowHeightProperty {
         ListView* owner;
-        ListViewRowHeightProperty& operator=(float h) { owner->SetRowHeight(h); return *this; }
+        ListViewRowHeightProperty& operator=(float h) { owner->ApplyRowHeight(h); return *this; }
         operator float() const { return owner->GetRowHeight(); }
         float Get() const { return owner->GetRowHeight(); }
     } RowHeight{this};
 
     struct ListViewSelectionModeProperty {
         ListView* owner;
-        ListViewSelectionModeProperty& operator=(ListViewSelectionMode mode) { owner->SetSelectionMode(mode); return *this; }
+        ListViewSelectionModeProperty& operator=(ListViewSelectionMode mode) { owner->ApplySelectionMode(mode); return *this; }
         operator ListViewSelectionMode() const { return owner->GetSelectionMode(); }
         ListViewSelectionMode Get() const { return owner->GetSelectionMode(); }
     } SelectionMode{this};
@@ -146,50 +146,50 @@ public:
     // In-Memory Data Rows Management
     void AddRow(const std::vector<std::string>& rowData);
     void AddRow(const std::vector<ListViewCellData>& rowData);
-    void SetRows(const std::vector<std::vector<std::string>>& rowsData);
-    void SetRows(const std::vector<std::vector<ListViewCellData>>& rowsData);
+    void ApplyRows(const std::vector<std::vector<std::string>>& rowsData);
+    void ApplyRows(const std::vector<std::vector<ListViewCellData>>& rowsData);
     void ClearRows();
     size_t GetRowCount() const;
 
     // Optional per-row icons drawn in column 0 (non-owning HICONs).
-    void SetRowIcons(const std::vector<HICON>& icons);
+    void ApplyRowIcons(const std::vector<HICON>& icons);
     void ClearRowIcons();
 
     // Optional per-row tags (string identifiers for items)
-    void SetRowTags(const std::vector<std::string>& tags);
+    void ApplyRowTags(const std::vector<std::string>& tags);
     void ClearRowTags();
     const std::vector<std::string>& GetRowTags() const { return m_rowTags; }
     std::string GetRowTag(int rowIndex) const;
 
     // Virtual Mode
-    void SetVirtualMode(int rowCount, ListViewDataSource* dataSource);
-    void SetVirtualRowCount(int rowCount);
+    void ApplyVirtualMode(int rowCount, ListViewDataSource* dataSource);
+    void ApplyVirtualRowCount(int rowCount);
     bool IsVirtualMode() const { return m_virtualMode; }
     void RefreshRows();
     // Row Height
     float GetRowHeight() const { return m_rowHeight; }
-    void SetRowHeight(float h) { m_rowHeight = h; }
+    void ApplyRowHeight(float h) { m_rowHeight = h; }
 
     // Scrollbars
-    void SetShowScrollBars(bool show) { m_showScrollBars = show; InvalidateRowsLayer(); }
+    void ApplyShowScrollBars(bool show) { m_showScrollBars = show; InvalidateRowsLayer(); }
     bool GetShowScrollBars() const { return m_showScrollBars; }
 
     // Content area column/row separators (Everything-style lists usually hide these).
-    void SetShowGridLines(bool show) { m_showGridLines = show; InvalidateRowsLayer(); }
+    void ApplyShowGridLines(bool show) { m_showGridLines = show; InvalidateRowsLayer(); }
     bool GetShowGridLines() const { return m_showGridLines; }
 
     // Selection Management
     ListViewSelectionMode GetSelectionMode() const { return m_selectionMode; }
-    void SetSelectionMode(ListViewSelectionMode mode) { m_selectionMode = mode; }
+    void ApplySelectionMode(ListViewSelectionMode mode) { m_selectionMode = mode; }
 
     const std::unordered_set<int>& GetSelectedIndices() const { return m_selectedIndices; }
     void SelectAll();
     void ClearSelection();
-    void SetRowSelected(int rowIndex, bool selected);
+    void ApplyRowSelected(int rowIndex, bool selected);
     bool IsRowSelected(int rowIndex) const;
 
     int GetCaretIndex() const { return m_caretIndex; }
-    void SetCaretIndex(int index);
+    void ApplyCaretIndex(int index);
     void EnsureVisible(int rowIndex);
     void SortByColumn(int col, bool ascending);
 

@@ -79,7 +79,7 @@ std::shared_ptr<UIElement> MainView::Build() {
 
 
     // 连接核心日志引擎
-    m_pePatcher->SetLogger([this](LogLevel level, const std::string& tag, const std::string& message) {
+    m_pePatcher->ApplyLogger([this](LogLevel level, const std::string& tag, const std::string& message) {
         if (m_logView) {
             m_logView->Append(level, tag, message);
         }
@@ -90,7 +90,7 @@ std::shared_ptr<UIElement> MainView::Build() {
     // 禁止日志栏折叠：用户点击 Header 时强制恢复展开状态
     m_logView->OnExpandedChanged().Connect([](LogView* lv) {
         if (!lv->IsExpanded()) {
-            lv->SetExpanded(true);
+            lv->ApplyExpanded(true);
         }
     });
 
@@ -260,7 +260,7 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
             .ForegroundToken(ThemeTokenId::TextPrimary),
         m_asbDllFunc
     }).Align(Alignment::Start).Build();
-    m_dllFuncArea->SetVisibility(Visibility::Collapsed);
+    m_dllFuncArea->ApplyVisibility(Visibility::Collapsed);
 
     m_targetTypeRow = Row(12.0f, {
         Text("目标类型:")
@@ -382,7 +382,7 @@ void MainView::UpdateModeAvailability() {
     const bool dllTarget = IsDllTarget();
 
     // DLL 目标: 目标类型行右侧显示“覆盖函数”输入框；EXE 目标隐藏
-    if (m_dllFuncArea) m_dllFuncArea->SetVisibility(dllTarget ? Visibility::Visible : Visibility::Collapsed);
+    if (m_dllFuncArea) m_dllFuncArea->ApplyVisibility(dllTarget ? Visibility::Visible : Visibility::Collapsed);
 
     if (dllTarget != m_lastTargetDll) {
         m_lastTargetDll = dllTarget;

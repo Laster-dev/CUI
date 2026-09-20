@@ -143,27 +143,27 @@ public:
 
 
     ElementBuilder& Id(const std::string& id) { // 设定控件检索 ID
-        m_ptr->SetId(id);
+        m_ptr->ApplyId(id);
         return *this;
     }
 
     ElementBuilder& Width(float w) { // 设定显式排版宽度
-        m_ptr->SetWidth(w);
+        m_ptr->ApplyWidth(w);
         return *this;
     }
 
     ElementBuilder& Height(float h) { // 设定显式排版高度
-        m_ptr->SetHeight(h);
+        m_ptr->ApplyHeight(h);
         return *this;
     }
 
     ElementBuilder& MinWidth(float w) { // 设定布局最小限制宽度
-        m_ptr->SetMinWidth(w);
+        m_ptr->ApplyMinWidth(w);
         return *this;
     }
 
     ElementBuilder& MinHeight(float h) { // 设定布局最小限制高度
-        m_ptr->SetMinHeight(h);
+        m_ptr->ApplyMinHeight(h);
         return *this;
     }
 
@@ -173,7 +173,7 @@ public:
      * @return 返回当前 ElementBuilder 引用，支持链式调用
      */
     ElementBuilder& MaxWidth(float w) {
-        m_ptr->SetMaxWidth(w);
+        m_ptr->ApplyMaxWidth(w);
         return *this;
     }
 
@@ -183,7 +183,7 @@ public:
      * @return 返回当前 ElementBuilder 引用，支持链式调用
      */
     ElementBuilder& MaxHeight(float h) {
-        m_ptr->SetMaxHeight(h);
+        m_ptr->ApplyMaxHeight(h);
         return *this;
     }
 
@@ -194,8 +194,8 @@ public:
      * @return 返回当前 ElementBuilder 引用，支持链式调用
      */
     ElementBuilder& Size(float w, float h) {
-        m_ptr->SetWidth(w);
-        m_ptr->SetHeight(h);
+        m_ptr->ApplyWidth(w);
+        m_ptr->ApplyHeight(h);
         return *this;
     }
 
@@ -206,7 +206,7 @@ public:
      * @return 返回当前 ElementBuilder 引用，支持链式调用
      */
     ElementBuilder& Align(CUI::Alignment a) {
-        m_ptr->SetAlign(a);
+        m_ptr->ApplyAlign(a);
         return *this;
     }
 
@@ -216,7 +216,7 @@ public:
      * @return 返回当前 ElementBuilder 引用，支持链式调用
      */
     ElementBuilder& AlignHorizontal(CUI::Alignment a) {
-        m_ptr->SetAlignHorizontal(a);
+        m_ptr->ApplyAlignHorizontal(a);
         return *this;
     }
 
@@ -226,92 +226,92 @@ public:
      * @return 返回当前 ElementBuilder 引用，支持链式调用
      */
     ElementBuilder& AlignVertical(CUI::Alignment a) {
-        m_ptr->SetAlignVertical(a);
+        m_ptr->ApplyAlignVertical(a);
         return *this;
     }
 
 
     ElementBuilder& Margin(float all) { // 设定四向均匀外边距
-        m_ptr->SetMargin(Thickness(all));
+        m_ptr->ApplyMargin(Thickness(all));
         return *this;
     }
 
     ElementBuilder& Margin(float l, float t, float r, float b) { // 设定具体外边距数值
-        m_ptr->SetMargin(Thickness(l, t, r, b));
+        m_ptr->ApplyMargin(Thickness(l, t, r, b));
         return *this;
     }
 
     ElementBuilder& Margin(const Thickness& margin) {
-        m_ptr->SetMargin(margin);
+        m_ptr->ApplyMargin(margin);
         return *this;
     }
 
     ElementBuilder& Padding(float all) { // 设定四向均匀内边距
-        m_ptr->SetPadding(Thickness(all));
+        m_ptr->ApplyPadding(Thickness(all));
         return *this;
     }
 
     ElementBuilder& Padding(float l, float t, float r, float b) { // 设定具体内边距数值
-        m_ptr->SetPadding(Thickness(l, t, r, b));
+        m_ptr->ApplyPadding(Thickness(l, t, r, b));
         return *this;
     }
 
     ElementBuilder& Padding(const Thickness& padding) {
-        m_ptr->SetPadding(padding);
+        m_ptr->ApplyPadding(padding);
         return *this;
     }
 
     ElementBuilder& FlexGrow(float flex) { // 设定弹性伸展权重
-        m_ptr->SetFlexGrow(flex);
+        m_ptr->ApplyFlexGrow(flex);
         return *this;
     }
 
     ElementBuilder& ZIndex(int zIndex) { // 设定 Canvas 子项的绘制与命中层级
-        m_ptr->SetZIndex(zIndex);
+        m_ptr->ApplyZIndex(zIndex);
         return *this;
     }
 
-    ElementBuilder& TitleColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetTitleColorToken(id); }) m_ptr->SetTitleColorToken(id); return *this; }
-    ElementBuilder& MessageColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetMessageColorToken(id); }) m_ptr->SetMessageColorToken(id); return *this; }
-    ElementBuilder& AccentColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetAccentColorToken(id); }) m_ptr->SetAccentColorToken(id); return *this; }
-    ElementBuilder& PaneBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetPaneBackgroundToken(id); }) m_ptr->SetPaneBackgroundToken(id); return *this; }
-    ElementBuilder& IndicatorColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetIndicatorColorToken(id); }) m_ptr->SetIndicatorColorToken(id); return *this; }
-    ElementBuilder& SecondaryColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetSecondaryColorToken(id); }) m_ptr->SetSecondaryColorToken(id); return *this; }
-    ElementBuilder& DisabledBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetDisabledBackgroundToken(id); }) m_ptr->SetDisabledBackgroundToken(id); return *this; }
+    ElementBuilder& TitleColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyTitleColorToken(id); }) m_ptr->ApplyTitleColorToken(id); return *this; }
+    ElementBuilder& MessageColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyMessageColorToken(id); }) m_ptr->ApplyMessageColorToken(id); return *this; }
+    ElementBuilder& AccentColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyAccentColorToken(id); }) m_ptr->ApplyAccentColorToken(id); return *this; }
+    ElementBuilder& PaneBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyPaneBackgroundToken(id); }) m_ptr->ApplyPaneBackgroundToken(id); return *this; }
+    ElementBuilder& IndicatorColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyIndicatorColorToken(id); }) m_ptr->ApplyIndicatorColorToken(id); return *this; }
+    ElementBuilder& SecondaryColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplySecondaryColorToken(id); }) m_ptr->ApplySecondaryColorToken(id); return *this; }
+    ElementBuilder& DisabledBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyDisabledBackgroundToken(id); }) m_ptr->ApplyDisabledBackgroundToken(id); return *this; }
     ElementBuilder& ColorToken(ThemeTokenId id) { return ForegroundToken(id); }
-    ElementBuilder& ClipToBounds(bool value) { if constexpr (requires { m_ptr->SetClipToBounds(value); }) m_ptr->SetClipToBounds(value); return *this; }
-    ElementBuilder& KeyboardNavigationMode(CUI::KeyboardNavigationMode mode) { if constexpr (requires { m_ptr->SetKeyboardNavigationMode(mode); }) m_ptr->SetKeyboardNavigationMode(mode); return *this; }
-    ElementBuilder& OverlayScrollbar(bool value) { if constexpr (requires { m_ptr->SetOverlayScrollbar(value); }) m_ptr->SetOverlayScrollbar(value); return *this; }
-    ElementBuilder& FillColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetFillColorToken(id); }) m_ptr->SetFillColorToken(id); return *this; }
-    ElementBuilder& TrackColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetTrackColorToken(id); }) m_ptr->SetTrackColorToken(id); return *this; }
-    ElementBuilder& ActiveTrackColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetActiveTrackColorToken(id); }) m_ptr->SetActiveTrackColorToken(id); return *this; }
-    ElementBuilder& RowHeight(float value) { if constexpr (requires { m_ptr->SetRowHeight(value); }) m_ptr->SetRowHeight(value); return *this; }
-    ElementBuilder& BytesPerRow(int value) { if constexpr (requires { m_ptr->SetBytesPerRow(value); }) m_ptr->SetBytesPerRow(value); return *this; }
-    ElementBuilder& GridLineBrushToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetGridLineBrushToken(id); }) m_ptr->SetGridLineBrushToken(id); return *this; }
-    ElementBuilder& ThumbColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetThumbColorToken(id); }) m_ptr->SetThumbColorToken(id); return *this; }
-    ElementBuilder& PlaceholderColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetPlaceholderColorToken(id); }) m_ptr->SetPlaceholderColorToken(id); return *this; }
-    ElementBuilder& DropdownBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetDropdownBackgroundToken(id); }) m_ptr->SetDropdownBackgroundToken(id); return *this; }
-    ElementBuilder& SelectedItemBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetSelectedItemBackgroundToken(id); }) m_ptr->SetSelectedItemBackgroundToken(id); return *this; }
-    ElementBuilder& UnderlineColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetUnderlineColorToken(id); }) m_ptr->SetUnderlineColorToken(id); return *this; }
-    ElementBuilder& ActiveUnderlineColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetActiveUnderlineColorToken(id); }) m_ptr->SetActiveUnderlineColorToken(id); return *this; }
-    ElementBuilder& CaretColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetCaretColorToken(id); }) m_ptr->SetCaretColorToken(id); return *this; }
-    ElementBuilder& OnColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetOnColorToken(id); }) m_ptr->SetOnColorToken(id); return *this; }
-    ElementBuilder& OffColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetOffColorToken(id); }) m_ptr->SetOffColorToken(id); return *this; }
-    ElementBuilder& KnobColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetKnobColorToken(id); }) m_ptr->SetKnobColorToken(id); return *this; }
-    ElementBuilder& HeaderBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetHeaderBackgroundToken(id); }) m_ptr->SetHeaderBackgroundToken(id); return *this; }
-    ElementBuilder& ActiveTabBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetActiveTabBackgroundToken(id); }) m_ptr->SetActiveTabBackgroundToken(id); return *this; }
-    ElementBuilder& InactiveTabBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetInactiveTabBackgroundToken(id); }) m_ptr->SetInactiveTabBackgroundToken(id); return *this; }
-    ElementBuilder& LastChildFill(bool value) { if constexpr (requires { m_ptr->SetLastChildFill(value); }) m_ptr->SetLastChildFill(value); return *this; }
-    ElementBuilder& ItemHeight(float value) { if constexpr (requires { m_ptr->SetItemHeight(value); }) m_ptr->SetItemHeight(value); return *this; }
-    ElementBuilder& ActiveColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetActiveColorToken(id); }) m_ptr->SetActiveColorToken(id); return *this; }
-    ElementBuilder& CheckedBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetCheckedBackgroundToken(id); }) m_ptr->SetCheckedBackgroundToken(id); return *this; }
+    ElementBuilder& ClipToBounds(bool value) { if constexpr (requires { m_ptr->ApplyClipToBounds(value); }) m_ptr->ApplyClipToBounds(value); return *this; }
+    ElementBuilder& KeyboardNavigationMode(CUI::KeyboardNavigationMode mode) { if constexpr (requires { m_ptr->ApplyKeyboardNavigationMode(mode); }) m_ptr->ApplyKeyboardNavigationMode(mode); return *this; }
+    ElementBuilder& OverlayScrollbar(bool value) { if constexpr (requires { m_ptr->ApplyOverlayScrollbar(value); }) m_ptr->ApplyOverlayScrollbar(value); return *this; }
+    ElementBuilder& FillColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyFillColorToken(id); }) m_ptr->ApplyFillColorToken(id); return *this; }
+    ElementBuilder& TrackColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyTrackColorToken(id); }) m_ptr->ApplyTrackColorToken(id); return *this; }
+    ElementBuilder& ActiveTrackColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyActiveTrackColorToken(id); }) m_ptr->ApplyActiveTrackColorToken(id); return *this; }
+    ElementBuilder& RowHeight(float value) { if constexpr (requires { m_ptr->ApplyRowHeight(value); }) m_ptr->ApplyRowHeight(value); return *this; }
+    ElementBuilder& BytesPerRow(int value) { if constexpr (requires { m_ptr->ApplyBytesPerRow(value); }) m_ptr->ApplyBytesPerRow(value); return *this; }
+    ElementBuilder& GridLineBrushToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyGridLineBrushToken(id); }) m_ptr->ApplyGridLineBrushToken(id); return *this; }
+    ElementBuilder& ThumbColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyThumbColorToken(id); }) m_ptr->ApplyThumbColorToken(id); return *this; }
+    ElementBuilder& PlaceholderColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyPlaceholderColorToken(id); }) m_ptr->ApplyPlaceholderColorToken(id); return *this; }
+    ElementBuilder& DropdownBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyDropdownBackgroundToken(id); }) m_ptr->ApplyDropdownBackgroundToken(id); return *this; }
+    ElementBuilder& SelectedItemBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplySelectedItemBackgroundToken(id); }) m_ptr->ApplySelectedItemBackgroundToken(id); return *this; }
+    ElementBuilder& UnderlineColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyUnderlineColorToken(id); }) m_ptr->ApplyUnderlineColorToken(id); return *this; }
+    ElementBuilder& ActiveUnderlineColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyActiveUnderlineColorToken(id); }) m_ptr->ApplyActiveUnderlineColorToken(id); return *this; }
+    ElementBuilder& CaretColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyCaretColorToken(id); }) m_ptr->ApplyCaretColorToken(id); return *this; }
+    ElementBuilder& OnColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyOnColorToken(id); }) m_ptr->ApplyOnColorToken(id); return *this; }
+    ElementBuilder& OffColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyOffColorToken(id); }) m_ptr->ApplyOffColorToken(id); return *this; }
+    ElementBuilder& KnobColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyKnobColorToken(id); }) m_ptr->ApplyKnobColorToken(id); return *this; }
+    ElementBuilder& HeaderBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyHeaderBackgroundToken(id); }) m_ptr->ApplyHeaderBackgroundToken(id); return *this; }
+    ElementBuilder& ActiveTabBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyActiveTabBackgroundToken(id); }) m_ptr->ApplyActiveTabBackgroundToken(id); return *this; }
+    ElementBuilder& InactiveTabBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyInactiveTabBackgroundToken(id); }) m_ptr->ApplyInactiveTabBackgroundToken(id); return *this; }
+    ElementBuilder& LastChildFill(bool value) { if constexpr (requires { m_ptr->ApplyLastChildFill(value); }) m_ptr->ApplyLastChildFill(value); return *this; }
+    ElementBuilder& ItemHeight(float value) { if constexpr (requires { m_ptr->ApplyItemHeight(value); }) m_ptr->ApplyItemHeight(value); return *this; }
+    ElementBuilder& ActiveColorToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyActiveColorToken(id); }) m_ptr->ApplyActiveColorToken(id); return *this; }
+    ElementBuilder& CheckedBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplyCheckedBackgroundToken(id); }) m_ptr->ApplyCheckedBackgroundToken(id); return *this; }
     ElementBuilder& BackgroundToken(ThemeTokenId id) { // 绑定背景色主题 Token
-        m_ptr->SetBackgroundToken(id);
+        m_ptr->ApplyBackgroundToken(id);
         return *this;
     }
 
     ElementBuilder& Background(D2D1_COLOR_F color) { // 设定硬编码背景颜色
-        if constexpr (requires { m_ptr->SetBackground(color); }) m_ptr->SetBackground(color);
+        if constexpr (requires { m_ptr->ApplyBackground(color); }) m_ptr->ApplyBackground(color);
         return *this;
     }
 
@@ -320,12 +320,12 @@ public:
     }
 
     ElementBuilder& HoverBackgroundToken(ThemeTokenId id) { // 绑定悬浮背景色主题 Token
-        m_ptr->SetHoverBackgroundToken(id);
+        m_ptr->ApplyHoverBackgroundToken(id);
         return *this;
     }
 
     ElementBuilder& HoverBackground(D2D1_COLOR_F color) { // 设定硬编码悬浮背景颜色
-        if constexpr (requires { m_ptr->SetHoverBackground(color); }) m_ptr->SetHoverBackground(color);
+        if constexpr (requires { m_ptr->ApplyHoverBackground(color); }) m_ptr->ApplyHoverBackground(color);
         return *this;
     }
     ElementBuilder& HoverBackground(const std::string& color) {
@@ -334,12 +334,12 @@ public:
 
 
     ElementBuilder& PressedBackgroundToken(ThemeTokenId id) { // 绑定按下背景色主题 Token
-        m_ptr->SetPressedBackgroundToken(id);
+        m_ptr->ApplyPressedBackgroundToken(id);
         return *this;
     }
 
     ElementBuilder& PressedBackground(D2D1_COLOR_F color) { // 设定硬编码按下背景颜色
-        if constexpr (requires { m_ptr->SetPressedBackground(color); }) m_ptr->SetPressedBackground(color);
+        if constexpr (requires { m_ptr->ApplyPressedBackground(color); }) m_ptr->ApplyPressedBackground(color);
         return *this;
     }
     ElementBuilder& PressedBackground(const std::string& color) {
@@ -348,94 +348,94 @@ public:
 
 
     ElementBuilder& FocusedBorderToken(ThemeTokenId id) {
-        if constexpr (requires { m_ptr->SetFocusedBorderToken(id); }) m_ptr->SetFocusedBorderToken(id);
+        if constexpr (requires { m_ptr->ApplyFocusedBorderToken(id); }) m_ptr->ApplyFocusedBorderToken(id);
         return *this;
     }
     ElementBuilder& ForegroundToken(ThemeTokenId id) { // 绑定字元前景主题 Token
-        m_ptr->SetColorToken(id);
+        m_ptr->ApplyColorToken(id);
         return *this;
     }
 
     ElementBuilder& Color(D2D1_COLOR_F color) { return Foreground(color); }
 
     ElementBuilder& Foreground(D2D1_COLOR_F color) {
-        if constexpr (requires { m_ptr->SetColor(color); }) m_ptr->SetColor(color);
+        if constexpr (requires { m_ptr->ApplyColor(color); }) m_ptr->ApplyColor(color);
         return *this;
     }
 
     ElementBuilder& FontSize(float size) { // 设定字体大小 (px)
-        m_ptr->SetFontSize(size);
+        m_ptr->ApplyFontSize(size);
         return *this;
     }
 
     ElementBuilder& FontFamily(const std::string& family) { // 指定渲染字体族名称
-        m_ptr->SetFontFamily(family);
+        m_ptr->ApplyFontFamily(family);
         return *this;
     }
 
     ElementBuilder& FontWeight(CUI::FontWeight weight) { // 设置文本字重粗细
-        m_ptr->SetFontWeight(weight);
+        m_ptr->ApplyFontWeight(weight);
         return *this;
     }
 
     ElementBuilder& FontStyle(CUI::FontStyle style) { // 设置文本字形直立/倾斜
-        m_ptr->SetFontStyle(style);
+        m_ptr->ApplyFontStyle(style);
         return *this;
     }
 
-    ElementBuilder& LineSpacing(float value) { if constexpr (requires { m_ptr->SetLineSpacing(value); }) m_ptr->SetLineSpacing(value); return *this; }
+    ElementBuilder& LineSpacing(float value) { if constexpr (requires { m_ptr->ApplyLineSpacing(value); }) m_ptr->ApplyLineSpacing(value); return *this; }
     ElementBuilder& FontStretch(CUI::FontStretch stretch) { // 设置字体拉伸方向
-        m_ptr->SetFontStretch(stretch);
+        m_ptr->ApplyFontStretch(stretch);
         return *this;
     }
 
     ElementBuilder& Underline(bool underline = true) { // 设定是否增加下划线修饰
-        m_ptr->SetIsUnderline(underline);
+        m_ptr->ApplyIsUnderline(underline);
         return *this;
     }
 
     ElementBuilder& Strikethrough(bool strikethrough = true) { // 设定是否增加删除线修饰
-        m_ptr->SetIsStrikethrough(strikethrough);
+        m_ptr->ApplyIsStrikethrough(strikethrough);
         return *this;
     }
 
     ElementBuilder& CornerRadius(float r) { // 设定矩形边角圆角像素半径
-        m_ptr->SetCornerRadius(r);
+        m_ptr->ApplyCornerRadius(r);
         return *this;
     }
 
     ElementBuilder& BorderToken(ThemeTokenId id, float thickness = 1.0f) { // 设定边框主题颜色和粗细
-        m_ptr->SetBorderToken(id);
-        m_ptr->SetBorderThickness(thickness);
+        m_ptr->ApplyBorderToken(id);
+        m_ptr->ApplyBorderThickness(thickness);
         return *this;
     }
 
-    ElementBuilder& BorderBrush(D2D1_COLOR_F color) { if constexpr (requires { m_ptr->SetBorderBrush(color); }) m_ptr->SetBorderBrush(color); return *this; }
+    ElementBuilder& BorderBrush(D2D1_COLOR_F color) { if constexpr (requires { m_ptr->ApplyBorderBrush(color); }) m_ptr->ApplyBorderBrush(color); return *this; }
     ElementBuilder& Border(D2D1_COLOR_F color, float thickness = 1.0f) { // 设定硬编码边框颜色和粗细
-        m_ptr->SetBorderBrush(color);
-        m_ptr->SetBorderThickness(thickness);
+        m_ptr->ApplyBorderBrush(color);
+        m_ptr->ApplyBorderThickness(thickness);
         return *this;
     }
 
-    ElementBuilder& IsUnderline(bool value) { if constexpr (requires { m_ptr->SetIsUnderline(value); }) m_ptr->SetIsUnderline(value); return *this; }
-    ElementBuilder& IsStrikethrough(bool value) { if constexpr (requires { m_ptr->SetIsStrikethrough(value); }) m_ptr->SetIsStrikethrough(value); return *this; }
-    ElementBuilder& ItemWidth(float value) { if constexpr (requires { m_ptr->SetItemWidth(value); }) m_ptr->SetItemWidth(value); return *this; }
-    ElementBuilder& JustifyLines(bool value) { if constexpr (requires { m_ptr->SetJustifyLines(value); }) m_ptr->SetJustifyLines(value); return *this; }
-    ElementBuilder& CanvasLeft(float value) { if constexpr (requires { m_ptr->SetCanvasLeft(value); }) m_ptr->SetCanvasLeft(value); return *this; }
-    ElementBuilder& CanvasTop(float value) { if constexpr (requires { m_ptr->SetCanvasTop(value); }) m_ptr->SetCanvasTop(value); return *this; }
-    ElementBuilder& CanvasRight(float value) { if constexpr (requires { m_ptr->SetCanvasRight(value); }) m_ptr->SetCanvasRight(value); return *this; }
-    ElementBuilder& CanvasBottom(float value) { if constexpr (requires { m_ptr->SetCanvasBottom(value); }) m_ptr->SetCanvasBottom(value); return *this; }
-    ElementBuilder& Dock(CUI::Dock value) { if constexpr (requires { m_ptr->SetDock(value); }) m_ptr->SetDock(value); return *this; }
+    ElementBuilder& IsUnderline(bool value) { if constexpr (requires { m_ptr->ApplyIsUnderline(value); }) m_ptr->ApplyIsUnderline(value); return *this; }
+    ElementBuilder& IsStrikethrough(bool value) { if constexpr (requires { m_ptr->ApplyIsStrikethrough(value); }) m_ptr->ApplyIsStrikethrough(value); return *this; }
+    ElementBuilder& ItemWidth(float value) { if constexpr (requires { m_ptr->ApplyItemWidth(value); }) m_ptr->ApplyItemWidth(value); return *this; }
+    ElementBuilder& JustifyLines(bool value) { if constexpr (requires { m_ptr->ApplyJustifyLines(value); }) m_ptr->ApplyJustifyLines(value); return *this; }
+    ElementBuilder& CanvasLeft(float value) { if constexpr (requires { m_ptr->ApplyCanvasLeft(value); }) m_ptr->ApplyCanvasLeft(value); return *this; }
+    ElementBuilder& CanvasTop(float value) { if constexpr (requires { m_ptr->ApplyCanvasTop(value); }) m_ptr->ApplyCanvasTop(value); return *this; }
+    ElementBuilder& CanvasRight(float value) { if constexpr (requires { m_ptr->ApplyCanvasRight(value); }) m_ptr->ApplyCanvasRight(value); return *this; }
+    ElementBuilder& CanvasBottom(float value) { if constexpr (requires { m_ptr->ApplyCanvasBottom(value); }) m_ptr->ApplyCanvasBottom(value); return *this; }
+    ElementBuilder& Dock(CUI::Dock value) { if constexpr (requires { m_ptr->ApplyDock(value); }) m_ptr->ApplyDock(value); return *this; }
     ElementBuilder& IsEnabled(bool enabled) { // 设定控件交互可用状态
-        m_ptr->SetIsEnabled(enabled);
+        m_ptr->ApplyIsEnabled(enabled);
         return *this;
     }
 
-    ElementBuilder& Visibility(CUI::Visibility value) { m_ptr->SetVisibility(value); return *this; }
+    ElementBuilder& Visibility(CUI::Visibility value) { m_ptr->ApplyVisibility(value); return *this; }
     ElementBuilder& Visibility(const std::string& vis) { // 设定控件的可见性模式
-        if (vis == "Hidden") m_ptr->SetVisibility(CUI::Visibility::Hidden);
-        else if (vis == "Collapsed") m_ptr->SetVisibility(CUI::Visibility::Collapsed);
-        else m_ptr->SetVisibility(CUI::Visibility::Visible);
+        if (vis == "Hidden") m_ptr->ApplyVisibility(CUI::Visibility::Hidden);
+        else if (vis == "Collapsed") m_ptr->ApplyVisibility(CUI::Visibility::Collapsed);
+        else m_ptr->ApplyVisibility(CUI::Visibility::Visible);
         return *this;
     }
 
@@ -447,7 +447,7 @@ public:
         return *this;
     }
 
-    ElementBuilder& OverlayComposed(bool value) { if constexpr (requires { m_ptr->SetOverlayComposed(value); }) m_ptr->SetOverlayComposed(value); return *this; }
+    ElementBuilder& OverlayComposed(bool value) { if constexpr (requires { m_ptr->ApplyOverlayComposed(value); }) m_ptr->ApplyOverlayComposed(value); return *this; }
     ElementBuilder& ClearChildren() { if constexpr (requires { m_ptr->ClearChildren(); }) m_ptr->ClearChildren(); return *this; }
     template<typename ChildT>
     ElementBuilder& AddChild(const std::shared_ptr<ChildT>& child) {
@@ -474,64 +474,64 @@ public:
 
 
     ElementBuilder& Text(const std::string& text) { // 设定核心文字展示信息
-        m_ptr->SetText(text);
+        m_ptr->ApplyText(text);
         return *this;
     }
 
     ElementBuilder& ToolTip(const std::string& tip) { // 设定鼠标停留信息气泡内容
-        m_ptr->SetToolTip(tip);
+        m_ptr->ApplyToolTip(tip);
         return *this;
     }
 
     ElementBuilder& Icon(const std::string& icon) { // 赋予图标特征
-        m_ptr->SetIcon(icon);
+        m_ptr->ApplyIcon(icon);
         return *this;
     }
     ElementBuilder& IconText(const std::string& icon) {
-        if constexpr (requires { m_ptr->SetIconText(icon); }) m_ptr->SetIconText(icon);
+        if constexpr (requires { m_ptr->ApplyIconText(icon); }) m_ptr->ApplyIconText(icon);
         return *this;
     }
 
     ElementBuilder& Subtitle(const std::string& subtitle) { // 设定 Expander 副标题文本
         auto expander = std::dynamic_pointer_cast<Expander>(m_ptr);
         if (expander) {
-            expander->SetSubtitle(subtitle);
+            expander->ApplySubtitle(subtitle);
         }
         return *this;
     }
 
     ElementBuilder& Orientation(const std::string& orient) { // 设定布局的分布朝向
         if (orient == "Horizontal" || orient == "Row") {
-            m_ptr->SetOrientation(CUI::Orientation::Horizontal);
+            m_ptr->ApplyOrientation(CUI::Orientation::Horizontal);
         } else {
-            m_ptr->SetOrientation(CUI::Orientation::Vertical);
+            m_ptr->ApplyOrientation(CUI::Orientation::Vertical);
         }
         return *this;
     }
 
     ElementBuilder& Gap(float gap) { // 设定子控件之间分隔的像素间距
-        m_ptr->SetGap(gap);
+        m_ptr->ApplyGap(gap);
         return *this;
     }
-    ElementBuilder& GridRow(int value) { m_ptr->SetGridRow(value); return *this; }
-    ElementBuilder& GridColumn(int value) { m_ptr->SetGridColumn(value); return *this; }
-    ElementBuilder& GridColumnSpan(int value) { m_ptr->SetGridColumnSpan(value); return *this; }
-    ElementBuilder& GridRowSpan(int value) { m_ptr->SetGridRowSpan(value); return *this; }
+    ElementBuilder& GridRow(int value) { m_ptr->ApplyGridRow(value); return *this; }
+    ElementBuilder& GridColumn(int value) { m_ptr->ApplyGridColumn(value); return *this; }
+    ElementBuilder& GridColumnSpan(int value) { m_ptr->ApplyGridColumnSpan(value); return *this; }
+    ElementBuilder& GridRowSpan(int value) { m_ptr->ApplyGridRowSpan(value); return *this; }
 
     ElementBuilder& TextAlign(TextAlignment value) {
-        if constexpr (requires { m_ptr->SetTextAlign(value); }) m_ptr->SetTextAlign(value);
+        if constexpr (requires { m_ptr->ApplyTextAlign(value); }) m_ptr->ApplyTextAlign(value);
         return *this;
     }
 
     ElementBuilder& VerticalAlign(TextVerticalAlignment value) {
-        if constexpr (requires { m_ptr->SetVerticalAlign(value); }) m_ptr->SetVerticalAlign(value);
+        if constexpr (requires { m_ptr->ApplyVerticalAlign(value); }) m_ptr->ApplyVerticalAlign(value);
         return *this;
     }
 
-    ElementBuilder& Justified(bool enabled = true) { m_ptr->SetJustifyLines(enabled); return *this; }
-    ElementBuilder& FillLastLine(bool enabled = true) { m_ptr->SetFillLastLine(enabled); return *this; }
+    ElementBuilder& Justified(bool enabled = true) { m_ptr->ApplyJustifyLines(enabled); return *this; }
+    ElementBuilder& FillLastLine(bool enabled = true) { m_ptr->ApplyFillLastLine(enabled); return *this; }
 
-    ElementBuilder& ClosedCallback(std::function<void()> handler) { if constexpr (requires { m_ptr->SetClosedCallback(std::move(handler)); }) m_ptr->SetClosedCallback(std::move(handler)); return *this; }
+    ElementBuilder& ClosedCallback(std::function<void()> handler) { if constexpr (requires { m_ptr->ApplyClosedCallback(std::move(handler)); }) m_ptr->ApplyClosedCallback(std::move(handler)); return *this; }
     ElementBuilder& OnClick(std::function<void(UIElement*)> handler) { // 连接 Click 单击事件回调
         if constexpr (std::is_base_of_v<Control, T> || std::is_same_v<CUI::Button, T> || std::is_same_v<HyperlinkButton, T>) {
             m_ptr->OnClick.Connect(handler);
@@ -540,7 +540,7 @@ public:
     }
 
     ElementBuilder& Command(std::shared_ptr<CUI::Command> command) { // 绑定触发执行的 Action 命令
-        m_ptr->SetCommand(std::move(command));
+        m_ptr->ApplyCommand(std::move(command));
         return *this;
     }
 
@@ -575,17 +575,17 @@ public:
         return *this;
     }
 
-    ElementBuilder& SelectedBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->SetSelectedBackgroundToken(id); }) m_ptr->SetSelectedBackgroundToken(id); return *this; }
+    ElementBuilder& SelectedBackgroundToken(ThemeTokenId id) { if constexpr (requires { m_ptr->ApplySelectedBackgroundToken(id); }) m_ptr->ApplySelectedBackgroundToken(id); return *this; }
 
-    ElementBuilder& IndentWidth(float value) { if constexpr (requires { m_ptr->SetIndentWidth(value); }) m_ptr->SetIndentWidth(value); return *this; }
+    ElementBuilder& IndentWidth(float value) { if constexpr (requires { m_ptr->ApplyIndentWidth(value); }) m_ptr->ApplyIndentWidth(value); return *this; }
     ElementBuilder& OnSelectionChanged(std::function<void(TreeView*, std::shared_ptr<TreeViewItem>)> handler) { if constexpr (requires { m_ptr->OnSelectionChanged(); }) m_ptr->OnSelectionChanged().Connect(std::move(handler)); return *this; }
     ElementBuilder& OnItemToggled(std::function<void(TreeView*, std::shared_ptr<TreeViewItem>)> handler) { if constexpr (requires { m_ptr->OnItemToggled(); }) m_ptr->OnItemToggled().Connect(std::move(handler)); return *this; }
     ElementBuilder& OnItemDoubleClicked(std::function<void(TreeView*, std::shared_ptr<TreeViewItem>)> handler) { if constexpr (requires { m_ptr->OnItemDoubleClicked(); }) m_ptr->OnItemDoubleClicked().Connect(std::move(handler)); return *this; }
     ElementBuilder& OnBreadcrumbItemClicked(std::function<void(BreadcrumbBar*, int, const std::string&)> handler) { if constexpr (requires { m_ptr->OnItemClicked(); }) m_ptr->OnItemClicked().Connect(std::move(handler)); return *this; }
     ElementBuilder& ClearItems() { if constexpr (requires { m_ptr->ClearItems(); }) m_ptr->ClearItems(); return *this; }
     ElementBuilder& AddTreeItem(std::shared_ptr<TreeViewItem> item) { if constexpr (requires { m_ptr->AddItem(item); }) m_ptr->AddItem(std::move(item)); return *this; }
-    ElementBuilder& SelectedTreeItem(std::shared_ptr<TreeViewItem> item) { if constexpr (requires { m_ptr->SetSelectedItem(item); }) m_ptr->SetSelectedItem(std::move(item)); return *this; }
-    ElementBuilder& PathNodes(const std::vector<std::string>& value) { if constexpr (requires { m_ptr->SetPath(value); }) m_ptr->SetPath(value); return *this; }    ElementBuilder& OnSelectionChanged(std::function<void(ComboBox*, int, const std::string&)> handler) {
+    ElementBuilder& SelectedTreeItem(std::shared_ptr<TreeViewItem> item) { if constexpr (requires { m_ptr->ApplySelectedItem(item); }) m_ptr->ApplySelectedItem(std::move(item)); return *this; }
+    ElementBuilder& PathNodes(const std::vector<std::string>& value) { if constexpr (requires { m_ptr->ApplyPath(value); }) m_ptr->ApplyPath(value); return *this; }    ElementBuilder& OnSelectionChanged(std::function<void(ComboBox*, int, const std::string&)> handler) {
         if constexpr (std::is_same_v<ComboBox, T>) m_ptr->OnSelectionChanged().Connect(std::move(handler));
         return *this;
     }    ElementBuilder& OnSelectionChanged(std::function<void(SegmentedControl*, int, const std::string&)> handler) {
@@ -619,10 +619,10 @@ public:
         if constexpr (requires { m_ptr->AddItem(item, shortcut, handler); }) m_ptr->AddItem(item, shortcut, std::move(handler));
         return *this;
     }
-    ElementBuilder& ParentContextMenu(ContextMenu* value) { if constexpr (requires { m_ptr->SetParentContextMenu(value); }) m_ptr->SetParentContextMenu(value); return *this; }
-    ElementBuilder& SubMenu(std::shared_ptr<ContextMenu> value) { if constexpr (requires { m_ptr->SetSubMenu(value); }) m_ptr->SetSubMenu(std::move(value)); return *this; }
-    ElementBuilder& ShortcutText(const std::string& value) { if constexpr (requires { m_ptr->SetShortcutText(value); }) m_ptr->SetShortcutText(value); return *this; }
-    ElementBuilder& IsSeparator(bool value = true) { if constexpr (requires { m_ptr->SetIsSeparator(value); }) m_ptr->SetIsSeparator(value); return *this; }    ElementBuilder& Checked(bool value = true) { if constexpr (requires { m_ptr->SetChecked(value); }) m_ptr->SetChecked(value); return *this; }    ElementBuilder& AddItem(const std::string& item, std::function<void()> handler) {
+    ElementBuilder& ParentContextMenu(ContextMenu* value) { if constexpr (requires { m_ptr->ApplyParentContextMenu(value); }) m_ptr->ApplyParentContextMenu(value); return *this; }
+    ElementBuilder& SubMenu(std::shared_ptr<ContextMenu> value) { if constexpr (requires { m_ptr->ApplySubMenu(value); }) m_ptr->ApplySubMenu(std::move(value)); return *this; }
+    ElementBuilder& ShortcutText(const std::string& value) { if constexpr (requires { m_ptr->ApplyShortcutText(value); }) m_ptr->ApplyShortcutText(value); return *this; }
+    ElementBuilder& IsSeparator(bool value = true) { if constexpr (requires { m_ptr->ApplyIsSeparator(value); }) m_ptr->ApplyIsSeparator(value); return *this; }    ElementBuilder& Checked(bool value = true) { if constexpr (requires { m_ptr->ApplyChecked(value); }) m_ptr->ApplyChecked(value); return *this; }    ElementBuilder& AddItem(const std::string& item, std::function<void()> handler) {
         if constexpr (requires { m_ptr->AddItem(item, handler); }) m_ptr->AddItem(item, std::move(handler));
         return *this;
     }
@@ -634,23 +634,23 @@ public:
 
 
     ElementBuilder& BorderThickness(float thickness) {
-        m_ptr->SetBorderThickness(thickness);
+        m_ptr->ApplyBorderThickness(thickness);
         return *this;
     }
 
     ElementBuilder& Orientation(CUI::Orientation o) {
-        m_ptr->SetOrientation(o);
+        m_ptr->ApplyOrientation(o);
         return *this;
     }
 
-    ElementBuilder& Items(const std::vector<std::shared_ptr<CUI::TreeViewItem>>& items) { if constexpr (requires { m_ptr->SetItems(items); }) m_ptr->SetItems(items); return *this; }
+    ElementBuilder& Items(const std::vector<std::shared_ptr<CUI::TreeViewItem>>& items) { if constexpr (requires { m_ptr->ApplyItems(items); }) m_ptr->ApplyItems(items); return *this; }
 
     template<typename ItemsT>
     ElementBuilder& Items(ItemsT&& items) {
         if constexpr (requires { m_ptr->Items = std::forward<ItemsT>(items); }) {
             m_ptr->Items = std::forward<ItemsT>(items);
-        } else if constexpr (requires { m_ptr->SetItems(std::forward<ItemsT>(items)); }) {
-            m_ptr->SetItems(std::forward<ItemsT>(items));
+        } else if constexpr (requires { m_ptr->ApplyItems(std::forward<ItemsT>(items)); }) {
+            m_ptr->ApplyItems(std::forward<ItemsT>(items));
         }
         return *this;
     }
@@ -658,8 +658,8 @@ public:
     ElementBuilder& Items(std::initializer_list<std::string> items) {
         if constexpr (requires { m_ptr->Items = items; }) {
             m_ptr->Items = items;
-        } else if constexpr (requires { m_ptr->SetItems(items); }) {
-            m_ptr->SetItems(items);
+        } else if constexpr (requires { m_ptr->ApplyItems(items); }) {
+            m_ptr->ApplyItems(items);
         }
         return *this;
     }
@@ -668,8 +668,8 @@ public:
     ElementBuilder& Value(V&& v) {
         if constexpr (requires { m_ptr->Value = std::forward<V>(v); }) {
             m_ptr->Value = std::forward<V>(v);
-        } else if constexpr (requires { m_ptr->SetValue(std::forward<V>(v)); }) {
-            m_ptr->SetValue(std::forward<V>(v));
+        } else if constexpr (requires { m_ptr->ApplyValue(std::forward<V>(v)); }) {
+            m_ptr->ApplyValue(std::forward<V>(v));
         }
         return *this;
     }
@@ -677,8 +677,8 @@ public:
     ElementBuilder& Minimum(float minVal) {
         if constexpr (requires { m_ptr->Minimum = minVal; }) {
             m_ptr->Minimum = minVal;
-        } else if constexpr (requires { m_ptr->SetMinimum(minVal); }) {
-            m_ptr->SetMinimum(minVal);
+        } else if constexpr (requires { m_ptr->ApplyMinimum(minVal); }) {
+            m_ptr->ApplyMinimum(minVal);
         }
         return *this;
     }
@@ -686,8 +686,8 @@ public:
     ElementBuilder& Maximum(float maxVal) {
         if constexpr (requires { m_ptr->Maximum = maxVal; }) {
             m_ptr->Maximum = maxVal;
-        } else if constexpr (requires { m_ptr->SetMaximum(maxVal); }) {
-            m_ptr->SetMaximum(maxVal);
+        } else if constexpr (requires { m_ptr->ApplyMaximum(maxVal); }) {
+            m_ptr->ApplyMaximum(maxVal);
         }
         return *this;
     }
@@ -695,8 +695,8 @@ public:
     ElementBuilder& Step(float s) {
         if constexpr (requires { m_ptr->Step = s; }) {
             m_ptr->Step = s;
-        } else if constexpr (requires { m_ptr->SetStep(s); }) {
-            m_ptr->SetStep(s);
+        } else if constexpr (requires { m_ptr->ApplyStep(s); }) {
+            m_ptr->ApplyStep(s);
         }
         return *this;
     }
@@ -704,8 +704,8 @@ public:
     ElementBuilder& IsReadOnly(bool ro) {
         if constexpr (requires { m_ptr->IsReadOnly = ro; }) {
             m_ptr->IsReadOnly = ro;
-        } else if constexpr (requires { m_ptr->SetIsReadOnly(ro); }) {
-            m_ptr->SetIsReadOnly(ro);
+        } else if constexpr (requires { m_ptr->ApplyIsReadOnly(ro); }) {
+            m_ptr->ApplyIsReadOnly(ro);
         }
         return *this;
     }
@@ -713,8 +713,8 @@ public:
     ElementBuilder& IsExpanded(bool exp) {
         if constexpr (requires { m_ptr->IsExpanded = exp; }) {
             m_ptr->IsExpanded = exp;
-        } else if constexpr (requires { m_ptr->SetIsExpanded(exp); }) {
-            m_ptr->SetIsExpanded(exp);
+        } else if constexpr (requires { m_ptr->ApplyIsExpanded(exp); }) {
+            m_ptr->ApplyIsExpanded(exp);
         }
         return *this;
     }
@@ -722,8 +722,8 @@ public:
     ElementBuilder& ColumnDefinitions(const std::string& defs) {
         if constexpr (requires { m_ptr->ColumnDefinitions = defs; }) {
             m_ptr->ColumnDefinitions = defs;
-        } else if constexpr (requires { m_ptr->SetColumnDefinitions(defs); }) {
-            m_ptr->SetColumnDefinitions(defs);
+        } else if constexpr (requires { m_ptr->ApplyColumnDefinitions(defs); }) {
+            m_ptr->ApplyColumnDefinitions(defs);
         }
         return *this;
     }
@@ -731,39 +731,39 @@ public:
     ElementBuilder& RowDefinitions(const std::string& defs) {
         if constexpr (requires { m_ptr->RowDefinitions = defs; }) {
             m_ptr->RowDefinitions = defs;
-        } else if constexpr (requires { m_ptr->SetRowDefinitions(defs); }) {
-            m_ptr->SetRowDefinitions(defs);
+        } else if constexpr (requires { m_ptr->ApplyRowDefinitions(defs); }) {
+            m_ptr->ApplyRowDefinitions(defs);
         }
         return *this;
     }
 
-    ElementBuilder& SelectedIndex(int value) { if constexpr (requires { m_ptr->SetSelectedIndex(value); }) m_ptr->SetSelectedIndex(value); return *this; }
-    ElementBuilder& SelectionMode(ListBoxSelectionMode value) { if constexpr (requires { m_ptr->SetSelectionMode(value); }) m_ptr->SetSelectionMode(value); return *this; }
-    ElementBuilder& SelectionMode(ListViewSelectionMode value) { if constexpr (requires { m_ptr->SetSelectionMode(value); }) m_ptr->SetSelectionMode(value); return *this; }
-    ElementBuilder& ShowScrollBars(bool value) { if constexpr (requires { m_ptr->SetShowScrollBars(value); }) m_ptr->SetShowScrollBars(value); return *this; }
-    ElementBuilder& VirtualCount(size_t count) { if constexpr (requires { m_ptr->SetVirtualCount(count); }) m_ptr->SetVirtualCount(count); return *this; }
-    template<typename DataSourceT> ElementBuilder& VirtualMode(int count, DataSourceT* source) { if constexpr (requires { m_ptr->SetVirtualMode(count, source); }) m_ptr->SetVirtualMode(count, source); return *this; }
-    ElementBuilder& ExpandDirection(ExpandDirection value) { if constexpr (requires { m_ptr->SetExpandDirection(value); }) m_ptr->SetExpandDirection(value); return *this; }
-    ElementBuilder& Placement(FlyoutPlacement value) { if constexpr (requires { m_ptr->SetPlacement(value); }) m_ptr->SetPlacement(value); return *this; }
-    ElementBuilder& IsCloseVisible(bool value) { if constexpr (requires { m_ptr->SetIsCloseVisible(value); }) m_ptr->SetIsCloseVisible(value); return *this; }
-    ElementBuilder& IsModal(bool value) { if constexpr (requires { m_ptr->SetIsModal(value); }) m_ptr->SetIsModal(value); return *this; }
-    ElementBuilder& PreferredPlacement(BubblePlacement value) { if constexpr (requires { m_ptr->SetPreferredPlacement(value); }) m_ptr->SetPreferredPlacement(value); return *this; }
-    ElementBuilder& TintColor(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->SetTintColor(value); }) m_ptr->SetTintColor(value); return *this; }
-    template<typename ItemT> ElementBuilder& ItemExpanded(const std::shared_ptr<ItemT>& item, bool value) { if constexpr (requires { m_ptr->SetItemExpanded(item, value); }) m_ptr->SetItemExpanded(item, value); return *this; }
-    ElementBuilder& State(CheckState value) { if constexpr (requires { m_ptr->SetState(value); }) m_ptr->SetState(value); return *this; }    ElementBuilder& IsPasswordMode(bool value) { if constexpr (requires { m_ptr->SetIsPasswordMode(value); }) m_ptr->SetIsPasswordMode(value); return *this; }
-    ElementBuilder& ShowRevealButton(bool value) { if constexpr (requires { m_ptr->SetShowRevealButton(value); }) m_ptr->SetShowRevealButton(value); return *this; }
-    ElementBuilder& AcceptsReturn(bool value) { if constexpr (requires { m_ptr->SetAcceptsReturn(value); }) m_ptr->SetAcceptsReturn(value); return *this; }
-    ElementBuilder& TextWrapping(bool value) { if constexpr (requires { m_ptr->SetTextWrapping(value); }) m_ptr->SetTextWrapping(value); return *this; }
-    ElementBuilder& AllowDrag(bool value) { if constexpr (requires { m_ptr->SetAllowDrag(value); }) m_ptr->SetAllowDrag(value); return *this; }
-    ElementBuilder& AllowDrop(bool value) { if constexpr (requires { m_ptr->SetAllowDrop(value); }) m_ptr->SetAllowDrop(value); return *this; }
-    ElementBuilder& AcceptsTab(bool value) { if constexpr (requires { m_ptr->SetAcceptsTab(value); }) m_ptr->SetAcceptsTab(value); return *this; }
-    ElementBuilder& ToolTipMaxWidth(float value) { if constexpr (requires { m_ptr->SetToolTipMaxWidth(value); }) m_ptr->SetToolTipMaxWidth(value); return *this; }
-    ElementBuilder& ToolTipAutoHideMs(int value) { if constexpr (requires { m_ptr->SetToolTipAutoHideMs(value); }) m_ptr->SetToolTipAutoHideMs(value); return *this; }
+    ElementBuilder& SelectedIndex(int value) { if constexpr (requires { m_ptr->ApplySelectedIndex(value); }) m_ptr->ApplySelectedIndex(value); return *this; }
+    ElementBuilder& SelectionMode(ListBoxSelectionMode value) { if constexpr (requires { m_ptr->ApplySelectionMode(value); }) m_ptr->ApplySelectionMode(value); return *this; }
+    ElementBuilder& SelectionMode(ListViewSelectionMode value) { if constexpr (requires { m_ptr->ApplySelectionMode(value); }) m_ptr->ApplySelectionMode(value); return *this; }
+    ElementBuilder& ShowScrollBars(bool value) { if constexpr (requires { m_ptr->ApplyShowScrollBars(value); }) m_ptr->ApplyShowScrollBars(value); return *this; }
+    ElementBuilder& VirtualCount(size_t count) { if constexpr (requires { m_ptr->ApplyVirtualCount(count); }) m_ptr->ApplyVirtualCount(count); return *this; }
+    template<typename DataSourceT> ElementBuilder& VirtualMode(int count, DataSourceT* source) { if constexpr (requires { m_ptr->ApplyVirtualMode(count, source); }) m_ptr->ApplyVirtualMode(count, source); return *this; }
+    ElementBuilder& ExpandDirection(ExpandDirection value) { if constexpr (requires { m_ptr->ApplyExpandDirection(value); }) m_ptr->ApplyExpandDirection(value); return *this; }
+    ElementBuilder& Placement(FlyoutPlacement value) { if constexpr (requires { m_ptr->ApplyPlacement(value); }) m_ptr->ApplyPlacement(value); return *this; }
+    ElementBuilder& IsCloseVisible(bool value) { if constexpr (requires { m_ptr->ApplyIsCloseVisible(value); }) m_ptr->ApplyIsCloseVisible(value); return *this; }
+    ElementBuilder& IsModal(bool value) { if constexpr (requires { m_ptr->ApplyIsModal(value); }) m_ptr->ApplyIsModal(value); return *this; }
+    ElementBuilder& PreferredPlacement(BubblePlacement value) { if constexpr (requires { m_ptr->ApplyPreferredPlacement(value); }) m_ptr->ApplyPreferredPlacement(value); return *this; }
+    ElementBuilder& TintColor(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->ApplyTintColor(value); }) m_ptr->ApplyTintColor(value); return *this; }
+    template<typename ItemT> ElementBuilder& ItemExpanded(const std::shared_ptr<ItemT>& item, bool value) { if constexpr (requires { m_ptr->ApplyItemExpanded(item, value); }) m_ptr->ApplyItemExpanded(item, value); return *this; }
+    ElementBuilder& State(CheckState value) { if constexpr (requires { m_ptr->ApplyState(value); }) m_ptr->ApplyState(value); return *this; }    ElementBuilder& IsPasswordMode(bool value) { if constexpr (requires { m_ptr->ApplyIsPasswordMode(value); }) m_ptr->ApplyIsPasswordMode(value); return *this; }
+    ElementBuilder& ShowRevealButton(bool value) { if constexpr (requires { m_ptr->ApplyShowRevealButton(value); }) m_ptr->ApplyShowRevealButton(value); return *this; }
+    ElementBuilder& AcceptsReturn(bool value) { if constexpr (requires { m_ptr->ApplyAcceptsReturn(value); }) m_ptr->ApplyAcceptsReturn(value); return *this; }
+    ElementBuilder& TextWrapping(bool value) { if constexpr (requires { m_ptr->ApplyTextWrapping(value); }) m_ptr->ApplyTextWrapping(value); return *this; }
+    ElementBuilder& AllowDrag(bool value) { if constexpr (requires { m_ptr->ApplyAllowDrag(value); }) m_ptr->ApplyAllowDrag(value); return *this; }
+    ElementBuilder& AllowDrop(bool value) { if constexpr (requires { m_ptr->ApplyAllowDrop(value); }) m_ptr->ApplyAllowDrop(value); return *this; }
+    ElementBuilder& AcceptsTab(bool value) { if constexpr (requires { m_ptr->ApplyAcceptsTab(value); }) m_ptr->ApplyAcceptsTab(value); return *this; }
+    ElementBuilder& ToolTipMaxWidth(float value) { if constexpr (requires { m_ptr->ApplyToolTipMaxWidth(value); }) m_ptr->ApplyToolTipMaxWidth(value); return *this; }
+    ElementBuilder& ToolTipAutoHideMs(int value) { if constexpr (requires { m_ptr->ApplyToolTipAutoHideMs(value); }) m_ptr->ApplyToolTipAutoHideMs(value); return *this; }
     ElementBuilder& SelectAll() { if constexpr (requires { m_ptr->SelectAll(); }) m_ptr->SelectAll(); return *this; }    ElementBuilder& Placeholder(const std::string& text) {
         if constexpr (requires { m_ptr->Placeholder = text; }) {
             m_ptr->Placeholder = text;
-        } else if constexpr (requires { m_ptr->SetPlaceholder(text); }) {
-            m_ptr->SetPlaceholder(text);
+        } else if constexpr (requires { m_ptr->ApplyPlaceholder(text); }) {
+            m_ptr->ApplyPlaceholder(text);
         }
         return *this;
     }
@@ -771,8 +771,8 @@ public:
     ElementBuilder& Title(const std::string& t) {
         if constexpr (requires { m_ptr->Title = t; }) {
             m_ptr->Title = t;
-        } else if constexpr (requires { m_ptr->SetTitle(t); }) {
-            m_ptr->SetTitle(t);
+        } else if constexpr (requires { m_ptr->ApplyTitle(t); }) {
+            m_ptr->ApplyTitle(t);
         }
         return *this;
     }
@@ -780,8 +780,8 @@ public:
     ElementBuilder& Message(const std::string& m) {
         if constexpr (requires { m_ptr->Message = m; }) {
             m_ptr->Message = m;
-        } else if constexpr (requires { m_ptr->SetMessage(m); }) {
-            m_ptr->SetMessage(m);
+        } else if constexpr (requires { m_ptr->ApplyMessage(m); }) {
+            m_ptr->ApplyMessage(m);
         }
         return *this;
     }
@@ -789,8 +789,8 @@ public:
     ElementBuilder& Nodes(const std::vector<std::shared_ptr<TopologyNode>>& nodes) {
         if constexpr (requires { m_ptr->Nodes = nodes; }) {
             m_ptr->Nodes = nodes;
-        } else if constexpr (requires { m_ptr->SetNodes(nodes); }) {
-            m_ptr->SetNodes(nodes);
+        } else if constexpr (requires { m_ptr->ApplyNodes(nodes); }) {
+            m_ptr->ApplyNodes(nodes);
         }
         return *this;
     }
@@ -798,8 +798,8 @@ public:
     ElementBuilder& Edges(const std::vector<TopologyEdge>& edges) {
         if constexpr (requires { m_ptr->Edges = edges; }) {
             m_ptr->Edges = edges;
-        } else if constexpr (requires { m_ptr->SetEdges(edges); }) {
-            m_ptr->SetEdges(edges);
+        } else if constexpr (requires { m_ptr->ApplyEdges(edges); }) {
+            m_ptr->ApplyEdges(edges);
         }
         return *this;
     }
@@ -807,8 +807,8 @@ public:
     ElementBuilder& LayoutType(TopologyLayoutType t) {
         if constexpr (requires { m_ptr->LayoutType = t; }) {
             m_ptr->LayoutType = t;
-        } else if constexpr (requires { m_ptr->SetLayoutType(t); }) {
-            m_ptr->SetLayoutType(t);
+        } else if constexpr (requires { m_ptr->ApplyLayoutType(t); }) {
+            m_ptr->ApplyLayoutType(t);
         }
         return *this;
     }
@@ -816,20 +816,20 @@ public:
     ElementBuilder& FlowParticles(bool enabled = true) {
         if constexpr (requires { m_ptr->FlowParticles = enabled; }) {
             m_ptr->FlowParticles = enabled;
-        } else if constexpr (requires { m_ptr->SetFlowParticlesEnabled(enabled); }) {
-            m_ptr->SetFlowParticlesEnabled(enabled);
+        } else if constexpr (requires { m_ptr->ApplyFlowParticlesEnabled(enabled); }) {
+            m_ptr->ApplyFlowParticlesEnabled(enabled);
         }
         return *this;
     }
     template<typename RowsT>
     ElementBuilder& Rows(RowsT&& value) {
         if constexpr (requires { m_ptr->Rows = std::forward<RowsT>(value); }) m_ptr->Rows = std::forward<RowsT>(value);
-        else if constexpr (requires { m_ptr->SetRows(std::forward<RowsT>(value)); }) m_ptr->SetRows(std::forward<RowsT>(value));
+        else if constexpr (requires { m_ptr->ApplyRows(std::forward<RowsT>(value)); }) m_ptr->ApplyRows(std::forward<RowsT>(value));
         return *this;
     }
 
     ElementBuilder& Columns(int value) {
-        if constexpr (requires { m_ptr->SetColumns(value); }) m_ptr->SetColumns(value);
+        if constexpr (requires { m_ptr->ApplyColumns(value); }) m_ptr->ApplyColumns(value);
         return *this;
     }
 
@@ -846,198 +846,198 @@ public:
     }
 
     ElementBuilder& Range(float lower, float upper) {
-        if constexpr (requires { m_ptr->SetRange(lower, upper); }) m_ptr->SetRange(lower, upper);
+        if constexpr (requires { m_ptr->ApplyRange(lower, upper); }) m_ptr->ApplyRange(lower, upper);
         return *this;
     }
 
     ElementBuilder& IsIndeterminate(bool value) {
-        if constexpr (requires { m_ptr->SetIsIndeterminate(value); }) m_ptr->SetIsIndeterminate(value);
+        if constexpr (requires { m_ptr->ApplyIsIndeterminate(value); }) m_ptr->ApplyIsIndeterminate(value);
         return *this;
     }
 
     ElementBuilder& MaxRating(int value) {
-        if constexpr (requires { m_ptr->SetMaxRating(value); }) m_ptr->SetMaxRating(value);
+        if constexpr (requires { m_ptr->ApplyMaxRating(value); }) m_ptr->ApplyMaxRating(value);
         return *this;
     }
 
     ElementBuilder& GroupName(const std::string& value) {
-        if constexpr (requires { m_ptr->SetGroupName(value); }) m_ptr->SetGroupName(value);
+        if constexpr (requires { m_ptr->ApplyGroupName(value); }) m_ptr->ApplyGroupName(value);
         return *this;
     }
 
-    ElementBuilder& IsChecked(bool value) { if constexpr (requires { m_ptr->SetIsChecked(value); }) m_ptr->SetIsChecked(value); return *this; }
+    ElementBuilder& IsChecked(bool value) { if constexpr (requires { m_ptr->ApplyIsChecked(value); }) m_ptr->ApplyIsChecked(value); return *this; }
     ElementBuilder& IsOn(bool value) {
-        if constexpr (requires { m_ptr->SetIsOn(value); }) m_ptr->SetIsOn(value);
+        if constexpr (requires { m_ptr->ApplyIsOn(value); }) m_ptr->ApplyIsOn(value);
         return *this;
     }
 
     ElementBuilder& TotalPages(int value) {
-        if constexpr (requires { m_ptr->SetTotalPages(value); }) m_ptr->SetTotalPages(value);
+        if constexpr (requires { m_ptr->ApplyTotalPages(value); }) m_ptr->ApplyTotalPages(value);
         return *this;
     }
 
     ElementBuilder& CurrentPage(int value) {
-        if constexpr (requires { m_ptr->SetCurrentPage(value); }) m_ptr->SetCurrentPage(value);
+        if constexpr (requires { m_ptr->ApplyCurrentPage(value); }) m_ptr->ApplyCurrentPage(value);
         return *this;
     }
-    ElementBuilder& CurrentPage(const std::string& value) { if constexpr (requires { m_ptr->SetCurrentPage(value); }) m_ptr->SetCurrentPage(value); return *this; }
+    ElementBuilder& CurrentPage(const std::string& value) { if constexpr (requires { m_ptr->ApplyCurrentPage(value); }) m_ptr->ApplyCurrentPage(value); return *this; }
 
 
     ElementBuilder& Header(const std::string& value) {
-        if constexpr (requires { m_ptr->SetHeader(value); }) m_ptr->SetHeader(value);
+        if constexpr (requires { m_ptr->ApplyHeader(value); }) m_ptr->ApplyHeader(value);
         return *this;
     }
 
     ElementBuilder& NavigateUri(const std::string& value) {
-        if constexpr (requires { m_ptr->SetNavigateUri(value); }) m_ptr->SetNavigateUri(value);
+        if constexpr (requires { m_ptr->ApplyNavigateUri(value); }) m_ptr->ApplyNavigateUri(value);
         return *this;
     }
 
-    ElementBuilder& Path(const std::vector<std::string>& value) { if constexpr (requires { m_ptr->SetPath(value); }) m_ptr->SetPath(value); return *this; }
+    ElementBuilder& Path(const std::vector<std::string>& value) { if constexpr (requires { m_ptr->ApplyPath(value); }) m_ptr->ApplyPath(value); return *this; }
     ElementBuilder& Path(const std::string& value) {
-        if constexpr (requires { m_ptr->SetPath(value); }) m_ptr->SetPath(value);
+        if constexpr (requires { m_ptr->ApplyPath(value); }) m_ptr->ApplyPath(value);
         return *this;
     }
 
     ElementBuilder& Data(const std::string& value) {
-        if constexpr (requires { m_ptr->SetData(value); }) m_ptr->SetData(value);
+        if constexpr (requires { m_ptr->ApplyData(value); }) m_ptr->ApplyData(value);
         return *this;
     }
 
-    ElementBuilder& Stretch(CUI::Stretch value) { if constexpr (requires { m_ptr->SetStretch(value); }) m_ptr->SetStretch(value); return *this; }
-    ElementBuilder& StretchMode(CUI::Stretch value) { if constexpr (requires { m_ptr->SetStretch(value); }) m_ptr->SetStretch(value); return *this; }
-    ElementBuilder& BadgeText(const std::string& value) { if constexpr (requires { m_ptr->SetBadgeText(value); }) m_ptr->SetBadgeText(value); return *this; }
-    ElementBuilder& BadgeColor(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->SetBadgeColor(value); }) m_ptr->SetBadgeColor(value); return *this; }    ElementBuilder& Source(const std::string& value) {
-        if constexpr (requires { m_ptr->SetSource(value); }) m_ptr->SetSource(value);
+    ElementBuilder& Stretch(CUI::Stretch value) { if constexpr (requires { m_ptr->ApplyStretch(value); }) m_ptr->ApplyStretch(value); return *this; }
+    ElementBuilder& StretchMode(CUI::Stretch value) { if constexpr (requires { m_ptr->ApplyStretch(value); }) m_ptr->ApplyStretch(value); return *this; }
+    ElementBuilder& BadgeText(const std::string& value) { if constexpr (requires { m_ptr->ApplyBadgeText(value); }) m_ptr->ApplyBadgeText(value); return *this; }
+    ElementBuilder& BadgeColor(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->ApplyBadgeColor(value); }) m_ptr->ApplyBadgeColor(value); return *this; }    ElementBuilder& Source(const std::string& value) {
+        if constexpr (requires { m_ptr->ApplySource(value); }) m_ptr->ApplySource(value);
         return *this;
     }
 
-    ElementBuilder& X1(float value) { if constexpr (requires { m_ptr->SetX1(value); }) m_ptr->SetX1(value); return *this; }
-    ElementBuilder& Y1(float value) { if constexpr (requires { m_ptr->SetY1(value); }) m_ptr->SetY1(value); return *this; }
-    ElementBuilder& X2(float value) { if constexpr (requires { m_ptr->SetX2(value); }) m_ptr->SetX2(value); return *this; }
-    ElementBuilder& Y2(float value) { if constexpr (requires { m_ptr->SetY2(value); }) m_ptr->SetY2(value); return *this; }
+    ElementBuilder& X1(float value) { if constexpr (requires { m_ptr->ApplyX1(value); }) m_ptr->ApplyX1(value); return *this; }
+    ElementBuilder& Y1(float value) { if constexpr (requires { m_ptr->ApplyY1(value); }) m_ptr->ApplyY1(value); return *this; }
+    ElementBuilder& X2(float value) { if constexpr (requires { m_ptr->ApplyX2(value); }) m_ptr->ApplyX2(value); return *this; }
+    ElementBuilder& Y2(float value) { if constexpr (requires { m_ptr->ApplyY2(value); }) m_ptr->ApplyY2(value); return *this; }
 
-    ElementBuilder& PaneTitle(const std::string& value) { if constexpr (requires { m_ptr->SetPaneTitle(value); }) m_ptr->SetPaneTitle(value); return *this; }
-    ElementBuilder& PaneDisplayMode(NavigationViewPaneDisplayMode value) { if constexpr (requires { m_ptr->SetPaneDisplayMode(value); }) m_ptr->SetPaneDisplayMode(value); return *this; }
-    ElementBuilder& IsPaneOpen(bool value) { if constexpr (requires { m_ptr->SetIsPaneOpen(value); }) m_ptr->SetIsPaneOpen(value); return *this; }
-    ElementBuilder& OpenPaneLength(float value) { if constexpr (requires { m_ptr->SetOpenPaneLength(value); }) m_ptr->SetOpenPaneLength(value); return *this; }
-    ElementBuilder& CompactPaneLength(float value) { if constexpr (requires { m_ptr->SetCompactPaneLength(value); }) m_ptr->SetCompactPaneLength(value); return *this; }
-    ElementBuilder& CompactModeThresholdWidth(float value) { if constexpr (requires { m_ptr->SetCompactModeThresholdWidth(value); }) m_ptr->SetCompactModeThresholdWidth(value); return *this; }
-    ElementBuilder& ExpandedModeThresholdWidth(float value) { if constexpr (requires { m_ptr->SetExpandedModeThresholdWidth(value); }) m_ptr->SetExpandedModeThresholdWidth(value); return *this; }
-    ElementBuilder& AlwaysShowHeader(bool value) { if constexpr (requires { m_ptr->SetAlwaysShowHeader(value); }) m_ptr->SetAlwaysShowHeader(value); return *this; }
-    ElementBuilder& IsSettingsVisible(bool value) { if constexpr (requires { m_ptr->SetIsSettingsVisible(value); }) m_ptr->SetIsSettingsVisible(value); return *this; }
-    ElementBuilder& Content(std::shared_ptr<UIElement> value) { if constexpr (requires { m_ptr->SetContent(value); }) m_ptr->SetContent(std::move(value)); return *this; }
-    ElementBuilder& ContentFactory(std::function<std::shared_ptr<UIElement>()> value) { if constexpr (requires { m_ptr->SetContentFactory(std::move(value)); }) m_ptr->SetContentFactory(std::move(value)); return *this; }
-    ElementBuilder& AutoSuggestBox(std::shared_ptr<UIElement> value) { if constexpr (requires { m_ptr->SetAutoSuggestBox(value); }) m_ptr->SetAutoSuggestBox(std::move(value)); return *this; }
-    ElementBuilder& IsBackButtonVisible(NavigationViewBackButtonVisible value) { if constexpr (requires { m_ptr->SetIsBackButtonVisible(value); }) m_ptr->SetIsBackButtonVisible(value); return *this; }
-    ElementBuilder& IsBackEnabled(bool value) { if constexpr (requires { m_ptr->SetIsBackEnabled(value); }) m_ptr->SetIsBackEnabled(value); return *this; }
-    ElementBuilder& SelectedItem(NavigationViewItem* value) { if constexpr (requires { m_ptr->SetSelectedItem(value); }) m_ptr->SetSelectedItem(value); return *this; }
-    template<typename ItemT> ElementBuilder& SelectedItem(const std::shared_ptr<ItemT>& value) { if constexpr (requires { m_ptr->SetSelectedItem(value); }) m_ptr->SetSelectedItem(value); return *this; }
-    ElementBuilder& Severity(InfoBarSeverity value) { if constexpr (requires { m_ptr->SetSeverity(value); }) m_ptr->SetSeverity(value); return *this; }
-    ElementBuilder& IsClosable(bool value) { if constexpr (requires { m_ptr->SetIsClosable(value); }) m_ptr->SetIsClosable(value); return *this; }
-    ElementBuilder& ActionText(const std::string& value) { if constexpr (requires { m_ptr->SetActionText(value); }) m_ptr->SetActionText(value); return *this; }
-    ElementBuilder& IsOpen(bool value) { if constexpr (requires { m_ptr->SetIsOpen(value); }) m_ptr->SetIsOpen(value); return *this; }
+    ElementBuilder& PaneTitle(const std::string& value) { if constexpr (requires { m_ptr->ApplyPaneTitle(value); }) m_ptr->ApplyPaneTitle(value); return *this; }
+    ElementBuilder& PaneDisplayMode(NavigationViewPaneDisplayMode value) { if constexpr (requires { m_ptr->ApplyPaneDisplayMode(value); }) m_ptr->ApplyPaneDisplayMode(value); return *this; }
+    ElementBuilder& IsPaneOpen(bool value) { if constexpr (requires { m_ptr->ApplyIsPaneOpen(value); }) m_ptr->ApplyIsPaneOpen(value); return *this; }
+    ElementBuilder& OpenPaneLength(float value) { if constexpr (requires { m_ptr->ApplyOpenPaneLength(value); }) m_ptr->ApplyOpenPaneLength(value); return *this; }
+    ElementBuilder& CompactPaneLength(float value) { if constexpr (requires { m_ptr->ApplyCompactPaneLength(value); }) m_ptr->ApplyCompactPaneLength(value); return *this; }
+    ElementBuilder& CompactModeThresholdWidth(float value) { if constexpr (requires { m_ptr->ApplyCompactModeThresholdWidth(value); }) m_ptr->ApplyCompactModeThresholdWidth(value); return *this; }
+    ElementBuilder& ExpandedModeThresholdWidth(float value) { if constexpr (requires { m_ptr->ApplyExpandedModeThresholdWidth(value); }) m_ptr->ApplyExpandedModeThresholdWidth(value); return *this; }
+    ElementBuilder& AlwaysShowHeader(bool value) { if constexpr (requires { m_ptr->ApplyAlwaysShowHeader(value); }) m_ptr->ApplyAlwaysShowHeader(value); return *this; }
+    ElementBuilder& IsSettingsVisible(bool value) { if constexpr (requires { m_ptr->ApplyIsSettingsVisible(value); }) m_ptr->ApplyIsSettingsVisible(value); return *this; }
+    ElementBuilder& Content(std::shared_ptr<UIElement> value) { if constexpr (requires { m_ptr->ApplyContent(value); }) m_ptr->ApplyContent(std::move(value)); return *this; }
+    ElementBuilder& ContentFactory(std::function<std::shared_ptr<UIElement>()> value) { if constexpr (requires { m_ptr->ApplyContentFactory(std::move(value)); }) m_ptr->ApplyContentFactory(std::move(value)); return *this; }
+    ElementBuilder& AutoSuggestBox(std::shared_ptr<UIElement> value) { if constexpr (requires { m_ptr->ApplyAutoSuggestBox(value); }) m_ptr->ApplyAutoSuggestBox(std::move(value)); return *this; }
+    ElementBuilder& IsBackButtonVisible(NavigationViewBackButtonVisible value) { if constexpr (requires { m_ptr->ApplyIsBackButtonVisible(value); }) m_ptr->ApplyIsBackButtonVisible(value); return *this; }
+    ElementBuilder& IsBackEnabled(bool value) { if constexpr (requires { m_ptr->ApplyIsBackEnabled(value); }) m_ptr->ApplyIsBackEnabled(value); return *this; }
+    ElementBuilder& SelectedItem(NavigationViewItem* value) { if constexpr (requires { m_ptr->ApplySelectedItem(value); }) m_ptr->ApplySelectedItem(value); return *this; }
+    template<typename ItemT> ElementBuilder& SelectedItem(const std::shared_ptr<ItemT>& value) { if constexpr (requires { m_ptr->ApplySelectedItem(value); }) m_ptr->ApplySelectedItem(value); return *this; }
+    ElementBuilder& Severity(InfoBarSeverity value) { if constexpr (requires { m_ptr->ApplySeverity(value); }) m_ptr->ApplySeverity(value); return *this; }
+    ElementBuilder& IsClosable(bool value) { if constexpr (requires { m_ptr->ApplyIsClosable(value); }) m_ptr->ApplyIsClosable(value); return *this; }
+    ElementBuilder& ActionText(const std::string& value) { if constexpr (requires { m_ptr->ApplyActionText(value); }) m_ptr->ApplyActionText(value); return *this; }
+    ElementBuilder& IsOpen(bool value) { if constexpr (requires { m_ptr->ApplyIsOpen(value); }) m_ptr->ApplyIsOpen(value); return *this; }
     ElementBuilder& AddMenuItem(std::shared_ptr<NavigationViewItemBase> value) { if constexpr (requires { m_ptr->AddMenuItem(value); }) m_ptr->AddMenuItem(std::move(value)); return *this; }
     ElementBuilder& AddFooterMenuItem(std::shared_ptr<NavigationViewItemBase> value) { if constexpr (requires { m_ptr->AddFooterMenuItem(value); }) m_ptr->AddFooterMenuItem(std::move(value)); return *this; }
-    ElementBuilder& Tag(const std::string& value) { if constexpr (requires { m_ptr->SetTag(value); }) m_ptr->SetTag(value); return *this; }
-    ElementBuilder& SelectsOnInvoked(bool value) { if constexpr (requires { m_ptr->SetSelectsOnInvoked(value); }) m_ptr->SetSelectsOnInvoked(value); return *this; }
+    ElementBuilder& Tag(const std::string& value) { if constexpr (requires { m_ptr->ApplyTag(value); }) m_ptr->ApplyTag(value); return *this; }
+    ElementBuilder& SelectsOnInvoked(bool value) { if constexpr (requires { m_ptr->ApplySelectsOnInvoked(value); }) m_ptr->ApplySelectsOnInvoked(value); return *this; }
     ElementBuilder& AddNestedItem(std::shared_ptr<NavigationViewItemBase> value) { if constexpr (requires { m_ptr->AddMenuItem(value); }) m_ptr->AddMenuItem(std::move(value)); return *this; }
-    ElementBuilder& Owner(NavigationView* value) { if constexpr (requires { m_ptr->SetOwner(value); }) m_ptr->SetOwner(value); return *this; }
-    ElementBuilder& Compact(bool value) { if constexpr (requires { m_ptr->SetCompact(value); }) m_ptr->SetCompact(value); return *this; }
-    ElementBuilder& TopMode(bool value) { if constexpr (requires { m_ptr->SetTopMode(value); }) m_ptr->SetTopMode(value); return *this; }
-    ElementBuilder& IsSelected(bool value) { if constexpr (requires { m_ptr->SetIsSelected(value); }) m_ptr->SetIsSelected(value); return *this; }
-    ElementBuilder& IsChildSelected(bool value) { if constexpr (requires { m_ptr->SetIsChildSelected(value); }) m_ptr->SetIsChildSelected(value); return *this; }
-    ElementBuilder& IsExpandedSilent(bool value) { if constexpr (requires { m_ptr->SetIsExpandedSilent(value); }) m_ptr->SetIsExpandedSilent(value); return *this; }
-    ElementBuilder& Opacity(float value) { if constexpr (requires { m_ptr->SetOpacity(value); }) m_ptr->SetOpacity(value); return *this; }
-    ElementBuilder& ComposeOpacity(float value) { if constexpr (requires { m_ptr->SetComposeOpacity(value); }) m_ptr->SetComposeOpacity(value); return *this; }
+    ElementBuilder& Owner(NavigationView* value) { if constexpr (requires { m_ptr->ApplyOwner(value); }) m_ptr->ApplyOwner(value); return *this; }
+    ElementBuilder& Compact(bool value) { if constexpr (requires { m_ptr->ApplyCompact(value); }) m_ptr->ApplyCompact(value); return *this; }
+    ElementBuilder& TopMode(bool value) { if constexpr (requires { m_ptr->ApplyTopMode(value); }) m_ptr->ApplyTopMode(value); return *this; }
+    ElementBuilder& IsSelected(bool value) { if constexpr (requires { m_ptr->ApplyIsSelected(value); }) m_ptr->ApplyIsSelected(value); return *this; }
+    ElementBuilder& IsChildSelected(bool value) { if constexpr (requires { m_ptr->ApplyIsChildSelected(value); }) m_ptr->ApplyIsChildSelected(value); return *this; }
+    ElementBuilder& IsExpandedSilent(bool value) { if constexpr (requires { m_ptr->ApplyIsExpandedSilent(value); }) m_ptr->ApplyIsExpandedSilent(value); return *this; }
+    ElementBuilder& Opacity(float value) { if constexpr (requires { m_ptr->ApplyOpacity(value); }) m_ptr->ApplyOpacity(value); return *this; }
+    ElementBuilder& ComposeOpacity(float value) { if constexpr (requires { m_ptr->ApplyComposeOpacity(value); }) m_ptr->ApplyComposeOpacity(value); return *this; }
     ElementBuilder& OnInvoked(std::function<void(NavigationViewItem*)> handler) { if constexpr (requires { m_ptr->OnInvoked(); }) m_ptr->OnInvoked().Connect(std::move(handler)); return *this; }
     ElementBuilder& OnExpandChanged(std::function<void(NavigationViewItem*)> handler) { if constexpr (requires { m_ptr->OnExpandChanged(); }) m_ptr->OnExpandChanged().Connect(std::move(handler)); return *this; }    ElementBuilder& OnNavigationItemInvoked(std::function<void(NavigationView*, const NavigationViewItemInvokedEventArgs&)> handler) { if constexpr (requires { m_ptr->OnItemInvoked(); }) m_ptr->OnItemInvoked().Connect(std::move(handler)); return *this; }
     ElementBuilder& OnNavigationBackRequested(std::function<void(NavigationView*)> handler) { if constexpr (requires { m_ptr->OnBackRequested(); }) m_ptr->OnBackRequested().Connect(std::move(handler)); return *this; }
-    ElementBuilder& Filter(const std::string& name, const std::string& spec) { if constexpr (requires { m_ptr->SetFilter(name, spec); }) m_ptr->SetFilter(name, spec); return *this; }
-    ElementBuilder& ToastTypeValue(ToastType value) { if constexpr (requires { m_ptr->SetType(value); }) m_ptr->SetType(value); return *this; }
-    ElementBuilder& Corner(ToastCorner value) { if constexpr (requires { m_ptr->SetCorner(value); }) m_ptr->SetCorner(value); return *this; }
-    ElementBuilder& DurationMs(int value) { if constexpr (requires { m_ptr->SetDurationMs(value); }) m_ptr->SetDurationMs(value); return *this; }
-    ElementBuilder& AutoClose(bool value) { if constexpr (requires { m_ptr->SetAutoClose(value); }) m_ptr->SetAutoClose(value); return *this; }
-    ElementBuilder& Closeable(bool value) { if constexpr (requires { m_ptr->SetCloseable(value); }) m_ptr->SetCloseable(value); return *this; }
-    ElementBuilder& Accent(const std::string& value) { if constexpr (requires { m_ptr->SetAccent(value); }) m_ptr->SetAccent(value); return *this; }
-    ElementBuilder& TitleColor(const std::string& value) { if constexpr (requires { m_ptr->SetTitleColor(value); }) m_ptr->SetTitleColor(value); return *this; }
-    ElementBuilder& MessageColor(const std::string& value) { if constexpr (requires { m_ptr->SetMessageColor(value); }) m_ptr->SetMessageColor(value); return *this; }
-    ElementBuilder& OffsetX(float value) { if constexpr (requires { m_ptr->SetOffsetX(value); }) m_ptr->SetOffsetX(value); return *this; }
-    ElementBuilder& OffsetY(float value) { if constexpr (requires { m_ptr->SetOffsetY(value); }) m_ptr->SetOffsetY(value); return *this; }
-    ElementBuilder& Spacing(float value) { if constexpr (requires { m_ptr->SetSpacing(value); }) m_ptr->SetSpacing(value); return *this; }    ElementBuilder& PrimaryButtonText(const std::string& value) { if constexpr (requires { m_ptr->SetPrimaryButtonText(value); }) m_ptr->SetPrimaryButtonText(value); return *this; }
-    ElementBuilder& SecondaryButtonText(const std::string& value) { if constexpr (requires { m_ptr->SetSecondaryButtonText(value); }) m_ptr->SetSecondaryButtonText(value); return *this; }
-    ElementBuilder& CloseButtonText(const std::string& value) { if constexpr (requires { m_ptr->SetCloseButtonText(value); }) m_ptr->SetCloseButtonText(value); return *this; }
-    ElementBuilder& InputEnabled(bool value, bool multiline = false) { if constexpr (requires { m_ptr->SetInputEnabled(value, multiline); }) m_ptr->SetInputEnabled(value, multiline); return *this; }
-    ElementBuilder& InputText(const std::string& value) { if constexpr (requires { m_ptr->SetInputText(value); }) m_ptr->SetInputText(value); return *this; }    ElementBuilder& DialogTitle(const std::string& value) { if constexpr (requires { m_ptr->SetDialogTitle(value); }) m_ptr->SetDialogTitle(value); return *this; }
+    ElementBuilder& Filter(const std::string& name, const std::string& spec) { if constexpr (requires { m_ptr->ApplyFilter(name, spec); }) m_ptr->ApplyFilter(name, spec); return *this; }
+    ElementBuilder& ToastTypeValue(ToastType value) { if constexpr (requires { m_ptr->ApplyType(value); }) m_ptr->ApplyType(value); return *this; }
+    ElementBuilder& Corner(ToastCorner value) { if constexpr (requires { m_ptr->ApplyCorner(value); }) m_ptr->ApplyCorner(value); return *this; }
+    ElementBuilder& DurationMs(int value) { if constexpr (requires { m_ptr->ApplyDurationMs(value); }) m_ptr->ApplyDurationMs(value); return *this; }
+    ElementBuilder& AutoClose(bool value) { if constexpr (requires { m_ptr->ApplyAutoClose(value); }) m_ptr->ApplyAutoClose(value); return *this; }
+    ElementBuilder& Closeable(bool value) { if constexpr (requires { m_ptr->ApplyCloseable(value); }) m_ptr->ApplyCloseable(value); return *this; }
+    ElementBuilder& Accent(const std::string& value) { if constexpr (requires { m_ptr->ApplyAccent(value); }) m_ptr->ApplyAccent(value); return *this; }
+    ElementBuilder& TitleColor(const std::string& value) { if constexpr (requires { m_ptr->ApplyTitleColor(value); }) m_ptr->ApplyTitleColor(value); return *this; }
+    ElementBuilder& MessageColor(const std::string& value) { if constexpr (requires { m_ptr->ApplyMessageColor(value); }) m_ptr->ApplyMessageColor(value); return *this; }
+    ElementBuilder& OffsetX(float value) { if constexpr (requires { m_ptr->ApplyOffsetX(value); }) m_ptr->ApplyOffsetX(value); return *this; }
+    ElementBuilder& OffsetY(float value) { if constexpr (requires { m_ptr->ApplyOffsetY(value); }) m_ptr->ApplyOffsetY(value); return *this; }
+    ElementBuilder& Spacing(float value) { if constexpr (requires { m_ptr->ApplySpacing(value); }) m_ptr->ApplySpacing(value); return *this; }    ElementBuilder& PrimaryButtonText(const std::string& value) { if constexpr (requires { m_ptr->ApplyPrimaryButtonText(value); }) m_ptr->ApplyPrimaryButtonText(value); return *this; }
+    ElementBuilder& SecondaryButtonText(const std::string& value) { if constexpr (requires { m_ptr->ApplySecondaryButtonText(value); }) m_ptr->ApplySecondaryButtonText(value); return *this; }
+    ElementBuilder& CloseButtonText(const std::string& value) { if constexpr (requires { m_ptr->ApplyCloseButtonText(value); }) m_ptr->ApplyCloseButtonText(value); return *this; }
+    ElementBuilder& InputEnabled(bool value, bool multiline = false) { if constexpr (requires { m_ptr->ApplyInputEnabled(value, multiline); }) m_ptr->ApplyInputEnabled(value, multiline); return *this; }
+    ElementBuilder& InputText(const std::string& value) { if constexpr (requires { m_ptr->ApplyInputText(value); }) m_ptr->ApplyInputText(value); return *this; }    ElementBuilder& DialogTitle(const std::string& value) { if constexpr (requires { m_ptr->ApplyDialogTitle(value); }) m_ptr->ApplyDialogTitle(value); return *this; }
     ElementBuilder& OnPathChanged(std::function<void(FilePicker*, const std::string&)> handler) { if constexpr (requires { m_ptr->OnPathChanged(); }) m_ptr->OnPathChanged().Connect(std::move(handler)); return *this; }    ElementBuilder& OnNavigationDisplayModeChanged(std::function<void(NavigationView*, const NavigationViewDisplayModeChangedEventArgs&)> handler) { if constexpr (requires { m_ptr->OnDisplayModeChanged(); }) m_ptr->OnDisplayModeChanged().Connect(std::move(handler)); return *this; }
 
-    ElementBuilder& ActiveContextMenu(std::shared_ptr<CUI::ContextMenu> value) { if constexpr (requires { m_ptr->SetActiveContextMenu(value); }) m_ptr->SetActiveContextMenu(std::move(value)); return *this; }
-    ElementBuilder& BackdropType(CUI::BackdropType value) { if constexpr (requires { m_ptr->SetBackdropType(value); }) m_ptr->SetBackdropType(value); return *this; }
-    ElementBuilder& RenderStatsOverlayVisible(bool value) { if constexpr (requires { m_ptr->SetRenderStatsOverlayVisible(value); }) m_ptr->SetRenderStatsOverlayVisible(value); return *this; }
-    ElementBuilder& ThemeMode(CUI::ThemeMode value) { if constexpr (requires { m_ptr->SetThemeMode(value); }) m_ptr->SetThemeMode(value); return *this; }
-    ElementBuilder& ThemeModeWithRipple(CUI::ThemeMode value, Point origin) { if constexpr (requires { m_ptr->SetThemeModeWithRipple(value, origin); }) m_ptr->SetThemeModeWithRipple(value, origin); return *this; }
-    ElementBuilder& ContextMenu(std::shared_ptr<CUI::ContextMenu> value) { if constexpr (requires { m_ptr->SetContextMenu(value); }) m_ptr->SetContextMenu(std::move(value)); return *this; }
-    ElementBuilder& RightContent(std::shared_ptr<UIElement> value) { if constexpr (requires { m_ptr->SetRightContent(value); }) m_ptr->SetRightContent(std::move(value)); return *this; }
-    ElementBuilder& CaretIndex(int value) { if constexpr (requires { m_ptr->SetCaretIndex(value); }) m_ptr->SetCaretIndex(value); return *this; }
-    ElementBuilder& ColumnVisible(int index, bool value) { if constexpr (requires { m_ptr->SetColumnVisible(index, value); }) m_ptr->SetColumnVisible(index, value); return *this; }
-    ElementBuilder& RowSelected(int index, bool value) { if constexpr (requires { m_ptr->SetRowSelected(index, value); }) m_ptr->SetRowSelected(index, value); return *this; }
-    ElementBuilder& Date(int year, int month, int day) { if constexpr (requires { m_ptr->SetDate(year, month, day); }) m_ptr->SetDate(year, month, day); return *this; }
-    ElementBuilder& Time(int hour, int minute) { if constexpr (requires { m_ptr->SetTime(hour, minute); }) m_ptr->SetTime(hour, minute); return *this; }
-    ElementBuilder& Fill(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->SetFill(value); }) m_ptr->SetFill(value); return *this; }
-    ElementBuilder& Stroke(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->SetStroke(value); }) m_ptr->SetStroke(value); return *this; }
-    ElementBuilder& StrokeThickness(float value) { if constexpr (requires { m_ptr->SetStrokeThickness(value); }) m_ptr->SetStrokeThickness(value); return *this; }
-    ElementBuilder& Damping(float value) { if constexpr (requires { m_ptr->SetDamping(value); }) m_ptr->SetDamping(value); return *this; }
-    ElementBuilder& Stiffness(float value) { if constexpr (requires { m_ptr->SetStiffness(value); }) m_ptr->SetStiffness(value); return *this; }
-    ElementBuilder& Running(bool value) { if constexpr (requires { m_ptr->SetRunning(value); }) m_ptr->SetRunning(value); return *this; }
-    ElementBuilder& Viewport(float width, float height) { if constexpr (requires { m_ptr->SetViewport(width, height); }) m_ptr->SetViewport(width, height); return *this; }
-    ElementBuilder& ScrollOffsetY(float value) { if constexpr (requires { m_ptr->SetScrollOffsetY(value); }) m_ptr->SetScrollOffsetY(value); return *this; }
-    ElementBuilder& PaneAutoHide(int index, bool value) { if constexpr (requires { m_ptr->SetPaneAutoHide(index, value); }) m_ptr->SetPaneAutoHide(index, value); return *this; }
-    ElementBuilder& SideSize(CUI::DockSide side, float value) { if constexpr (requires { m_ptr->SetSideSize(side, value); }) m_ptr->SetSideSize(side, value); return *this; }
-    ElementBuilder& Label(const std::string& value) { if constexpr (requires { m_ptr->SetLabel(value); }) m_ptr->SetLabel(value); return *this; }
-    ElementBuilder& LabelPosition(CUI::CommandBarLabelPosition value) { if constexpr (requires { m_ptr->SetLabelPosition(value); }) m_ptr->SetLabelPosition(value); return *this; }
-    ElementBuilder& Markdown(const std::string& value) { if constexpr (requires { m_ptr->SetMarkdown(value); }) m_ptr->SetMarkdown(value); return *this; }
-    ElementBuilder& Password(const std::string& value) { if constexpr (requires { m_ptr->SetPassword(value); }) m_ptr->SetPassword(value); return *this; }
-    ElementBuilder& IsThreeState(bool value) { if constexpr (requires { m_ptr->SetIsThreeState(value); }) m_ptr->SetIsThreeState(value); return *this; }
-    ElementBuilder& MaxTabWidth(float value) { if constexpr (requires { m_ptr->SetMaxTabWidth(value); }) m_ptr->SetMaxTabWidth(value); return *this; }
-    ElementBuilder& MinTabWidth(float value) { if constexpr (requires { m_ptr->SetMinTabWidth(value); }) m_ptr->SetMinTabWidth(value); return *this; }
-    ElementBuilder& ShowGrid(bool value) { if constexpr (requires { m_ptr->SetShowGrid(value); }) m_ptr->SetShowGrid(value); return *this; }
-    ElementBuilder& ShowGridLines(bool value) { if constexpr (requires { m_ptr->SetShowGridLines(value); }) m_ptr->SetShowGridLines(value); return *this; }
-    ElementBuilder& ShowLegend(bool value) { if constexpr (requires { m_ptr->SetShowLegend(value); }) m_ptr->SetShowLegend(value); return *this; }
-    ElementBuilder& ShowTooltip(bool value) { if constexpr (requires { m_ptr->SetShowTooltip(value); }) m_ptr->SetShowTooltip(value); return *this; }
-    ElementBuilder& Categories(std::vector<std::string> value) { if constexpr (requires { m_ptr->SetCategories(std::move(value)); }) m_ptr->SetCategories(std::move(value)); return *this; }
-    ElementBuilder& Series(std::vector<CUI::ChartSeries> value) { if constexpr (requires { m_ptr->SetSeries(std::move(value)); }) m_ptr->SetSeries(std::move(value)); return *this; }
-    ElementBuilder& LiveData(std::vector<std::string> categories, std::vector<CUI::ChartSeries> series, bool replay = false) { if constexpr (requires { m_ptr->SetLiveData(std::move(categories), std::move(series), replay); }) m_ptr->SetLiveData(std::move(categories), std::move(series), replay); return *this; }
-    ElementBuilder& ItemText(int id, const std::string& value) { if constexpr (requires { m_ptr->SetItemText(id, value); }) m_ptr->SetItemText(id, value); return *this; }
-    ElementBuilder& ItemProgress(int id, float value) { if constexpr (requires { m_ptr->SetItemProgress(id, value); }) m_ptr->SetItemProgress(id, value); return *this; }
-    ElementBuilder& SuggestionItems(std::vector<std::string> value) { if constexpr (requires { m_ptr->SetSuggestionItems(value); }) m_ptr->SetSuggestionItems(value); return *this; }
-    template<typename F> ElementBuilder& SuggestionProvider(F&& value) { if constexpr (requires { m_ptr->SetSuggestionProvider(std::forward<F>(value)); }) m_ptr->SetSuggestionProvider(std::forward<F>(value)); return *this; }
-    template<typename F> ElementBuilder& OnDraw(F&& value) { if constexpr (requires { m_ptr->SetOnDraw(std::forward<F>(value)); }) m_ptr->SetOnDraw(std::forward<F>(value)); return *this; }
-    template<typename F> ElementBuilder& OnCanvasMouseDown(F&& value) { if constexpr (requires { m_ptr->SetOnCanvasMouseDown(std::forward<F>(value)); }) m_ptr->SetOnCanvasMouseDown(std::forward<F>(value)); return *this; }
-    template<typename F> ElementBuilder& OnCanvasMouseMove(F&& value) { if constexpr (requires { m_ptr->SetOnCanvasMouseMove(std::forward<F>(value)); }) m_ptr->SetOnCanvasMouseMove(std::forward<F>(value)); return *this; }
-    template<typename F> ElementBuilder& OnCanvasMouseUp(F&& value) { if constexpr (requires { m_ptr->SetOnCanvasMouseUp(std::forward<F>(value)); }) m_ptr->SetOnCanvasMouseUp(std::forward<F>(value)); return *this; }
-    template<typename F> ElementBuilder& OnTick(F&& value) { if constexpr (requires { m_ptr->SetOnTick(std::forward<F>(value)); }) m_ptr->SetOnTick(std::forward<F>(value)); return *this; }
-    template<typename F> ElementBuilder& StatusHandler(F&& value) { if constexpr (requires { m_ptr->SetStatusHandler(std::forward<F>(value)); }) m_ptr->SetStatusHandler(std::forward<F>(value)); return *this; }
-    ElementBuilder& LowPerformanceMode(bool value) { if constexpr (requires { m_ptr->SetLowPerformanceMode(value); }) m_ptr->SetLowPerformanceMode(value); return *this; }
-    ElementBuilder& ImageType(CUI::ImageType value) { if constexpr (requires { m_ptr->SetImageType(value); }) m_ptr->SetImageType(value); return *this; }
-    ElementBuilder& OwnerWindow(CUI::Window* value) { if constexpr (requires { m_ptr->SetOwnerWindow(value); }) m_ptr->SetOwnerWindow(value); return *this; }
-    ElementBuilder& ActionCommand(std::shared_ptr<CUI::Command> value) { if constexpr (requires { m_ptr->SetActionCommand(value); }) m_ptr->SetActionCommand(std::move(value)); return *this; }
-    ElementBuilder& MaxEntries(uint32_t value) { if constexpr (requires { m_ptr->SetMaxEntries(value); }) m_ptr->SetMaxEntries(value); return *this; }
-    ElementBuilder& Expanded(bool value) { if constexpr (requires { m_ptr->SetExpanded(value); }) m_ptr->SetExpanded(value); return *this; }
-    ElementBuilder& PersistEnabled(bool value) { if constexpr (requires { m_ptr->SetPersistEnabled(value); }) m_ptr->SetPersistEnabled(value); return *this; }
-    ElementBuilder& ShowCodeLineNumbers(bool value) { if constexpr (requires { m_ptr->SetShowCodeLineNumbers(value); }) m_ptr->SetShowCodeLineNumbers(value); return *this; }
-    ElementBuilder& MinimumRange(float value) { if constexpr (requires { m_ptr->SetMinimumRange(value); }) m_ptr->SetMinimumRange(value); return *this; }
-    ElementBuilder& IsClearEnabled(bool value) { if constexpr (requires { m_ptr->SetIsClearEnabled(value); }) m_ptr->SetIsClearEnabled(value); return *this; }
-    ElementBuilder& ItemIcon(int id, const std::string& value) { if constexpr (requires { m_ptr->SetItemIcon(id, value); }) m_ptr->SetItemIcon(id, value); return *this; }
-    ElementBuilder& CanSave(bool value) { if constexpr (requires { m_ptr->SetCanSave(value); }) m_ptr->SetCanSave(value); return *this; }
-    ElementBuilder& MaxVisibleSuggestions(int value) { if constexpr (requires { m_ptr->SetMaxVisibleSuggestions(value); }) m_ptr->SetMaxVisibleSuggestions(value); return *this; }
-    ElementBuilder& FlowParticlesEnabled(bool value) { if constexpr (requires { m_ptr->SetFlowParticlesEnabled(value); }) m_ptr->SetFlowParticlesEnabled(value); return *this; }
-    ElementBuilder& Gesture(const std::string& value) { if constexpr (requires { m_ptr->SetGesture(value); }) m_ptr->SetGesture(value); return *this; }
-    ElementBuilder& IsMinimizeButtonVisible(bool value) { if constexpr (requires { m_ptr->SetIsMinimizeButtonVisible(value); }) m_ptr->SetIsMinimizeButtonVisible(value); return *this; }
-    ElementBuilder& IsMaximizeButtonVisible(bool value) { if constexpr (requires { m_ptr->SetIsMaximizeButtonVisible(value); }) m_ptr->SetIsMaximizeButtonVisible(value); return *this; }
-    ElementBuilder& IsCloseButtonVisible(bool value) { if constexpr (requires { m_ptr->SetIsCloseButtonVisible(value); }) m_ptr->SetIsCloseButtonVisible(value); return *this; }
-    ElementBuilder& IsMinimizeButtonEnabled(bool value) { if constexpr (requires { m_ptr->SetIsMinimizeButtonEnabled(value); }) m_ptr->SetIsMinimizeButtonEnabled(value); return *this; }
-    ElementBuilder& IsMaximizeButtonEnabled(bool value) { if constexpr (requires { m_ptr->SetIsMaximizeButtonEnabled(value); }) m_ptr->SetIsMaximizeButtonEnabled(value); return *this; }
-    ElementBuilder& IsCloseButtonEnabled(bool value) { if constexpr (requires { m_ptr->SetIsCloseButtonEnabled(value); }) m_ptr->SetIsCloseButtonEnabled(value); return *this; }
+    ElementBuilder& ActiveContextMenu(std::shared_ptr<CUI::ContextMenu> value) { if constexpr (requires { m_ptr->ApplyActiveContextMenu(value); }) m_ptr->ApplyActiveContextMenu(std::move(value)); return *this; }
+    ElementBuilder& BackdropType(CUI::BackdropType value) { if constexpr (requires { m_ptr->ApplyBackdropType(value); }) m_ptr->ApplyBackdropType(value); return *this; }
+    ElementBuilder& RenderStatsOverlayVisible(bool value) { if constexpr (requires { m_ptr->ApplyRenderStatsOverlayVisible(value); }) m_ptr->ApplyRenderStatsOverlayVisible(value); return *this; }
+    ElementBuilder& ThemeMode(CUI::ThemeMode value) { if constexpr (requires { m_ptr->ApplyThemeMode(value); }) m_ptr->ApplyThemeMode(value); return *this; }
+    ElementBuilder& ThemeModeWithRipple(CUI::ThemeMode value, Point origin) { if constexpr (requires { m_ptr->ApplyThemeModeWithRipple(value, origin); }) m_ptr->ApplyThemeModeWithRipple(value, origin); return *this; }
+    ElementBuilder& ContextMenu(std::shared_ptr<CUI::ContextMenu> value) { if constexpr (requires { m_ptr->ApplyContextMenu(value); }) m_ptr->ApplyContextMenu(std::move(value)); return *this; }
+    ElementBuilder& RightContent(std::shared_ptr<UIElement> value) { if constexpr (requires { m_ptr->ApplyRightContent(value); }) m_ptr->ApplyRightContent(std::move(value)); return *this; }
+    ElementBuilder& CaretIndex(int value) { if constexpr (requires { m_ptr->ApplyCaretIndex(value); }) m_ptr->ApplyCaretIndex(value); return *this; }
+    ElementBuilder& ColumnVisible(int index, bool value) { if constexpr (requires { m_ptr->ApplyColumnVisible(index, value); }) m_ptr->ApplyColumnVisible(index, value); return *this; }
+    ElementBuilder& RowSelected(int index, bool value) { if constexpr (requires { m_ptr->ApplyRowSelected(index, value); }) m_ptr->ApplyRowSelected(index, value); return *this; }
+    ElementBuilder& Date(int year, int month, int day) { if constexpr (requires { m_ptr->ApplyDate(year, month, day); }) m_ptr->ApplyDate(year, month, day); return *this; }
+    ElementBuilder& Time(int hour, int minute) { if constexpr (requires { m_ptr->ApplyTime(hour, minute); }) m_ptr->ApplyTime(hour, minute); return *this; }
+    ElementBuilder& Fill(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->ApplyFill(value); }) m_ptr->ApplyFill(value); return *this; }
+    ElementBuilder& Stroke(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->ApplyStroke(value); }) m_ptr->ApplyStroke(value); return *this; }
+    ElementBuilder& StrokeThickness(float value) { if constexpr (requires { m_ptr->ApplyStrokeThickness(value); }) m_ptr->ApplyStrokeThickness(value); return *this; }
+    ElementBuilder& Damping(float value) { if constexpr (requires { m_ptr->ApplyDamping(value); }) m_ptr->ApplyDamping(value); return *this; }
+    ElementBuilder& Stiffness(float value) { if constexpr (requires { m_ptr->ApplyStiffness(value); }) m_ptr->ApplyStiffness(value); return *this; }
+    ElementBuilder& Running(bool value) { if constexpr (requires { m_ptr->ApplyRunning(value); }) m_ptr->ApplyRunning(value); return *this; }
+    ElementBuilder& Viewport(float width, float height) { if constexpr (requires { m_ptr->ApplyViewport(width, height); }) m_ptr->ApplyViewport(width, height); return *this; }
+    ElementBuilder& ScrollOffsetY(float value) { if constexpr (requires { m_ptr->ApplyScrollOffsetY(value); }) m_ptr->ApplyScrollOffsetY(value); return *this; }
+    ElementBuilder& PaneAutoHide(int index, bool value) { if constexpr (requires { m_ptr->ApplyPaneAutoHide(index, value); }) m_ptr->ApplyPaneAutoHide(index, value); return *this; }
+    ElementBuilder& SideSize(CUI::DockSide side, float value) { if constexpr (requires { m_ptr->ApplySideSize(side, value); }) m_ptr->ApplySideSize(side, value); return *this; }
+    ElementBuilder& Label(const std::string& value) { if constexpr (requires { m_ptr->ApplyLabel(value); }) m_ptr->ApplyLabel(value); return *this; }
+    ElementBuilder& LabelPosition(CUI::CommandBarLabelPosition value) { if constexpr (requires { m_ptr->ApplyLabelPosition(value); }) m_ptr->ApplyLabelPosition(value); return *this; }
+    ElementBuilder& Markdown(const std::string& value) { if constexpr (requires { m_ptr->ApplyMarkdown(value); }) m_ptr->ApplyMarkdown(value); return *this; }
+    ElementBuilder& Password(const std::string& value) { if constexpr (requires { m_ptr->ApplyPassword(value); }) m_ptr->ApplyPassword(value); return *this; }
+    ElementBuilder& IsThreeState(bool value) { if constexpr (requires { m_ptr->ApplyIsThreeState(value); }) m_ptr->ApplyIsThreeState(value); return *this; }
+    ElementBuilder& MaxTabWidth(float value) { if constexpr (requires { m_ptr->ApplyMaxTabWidth(value); }) m_ptr->ApplyMaxTabWidth(value); return *this; }
+    ElementBuilder& MinTabWidth(float value) { if constexpr (requires { m_ptr->ApplyMinTabWidth(value); }) m_ptr->ApplyMinTabWidth(value); return *this; }
+    ElementBuilder& ShowGrid(bool value) { if constexpr (requires { m_ptr->ApplyShowGrid(value); }) m_ptr->ApplyShowGrid(value); return *this; }
+    ElementBuilder& ShowGridLines(bool value) { if constexpr (requires { m_ptr->ApplyShowGridLines(value); }) m_ptr->ApplyShowGridLines(value); return *this; }
+    ElementBuilder& ShowLegend(bool value) { if constexpr (requires { m_ptr->ApplyShowLegend(value); }) m_ptr->ApplyShowLegend(value); return *this; }
+    ElementBuilder& ShowTooltip(bool value) { if constexpr (requires { m_ptr->ApplyShowTooltip(value); }) m_ptr->ApplyShowTooltip(value); return *this; }
+    ElementBuilder& Categories(std::vector<std::string> value) { if constexpr (requires { m_ptr->ApplyCategories(std::move(value)); }) m_ptr->ApplyCategories(std::move(value)); return *this; }
+    ElementBuilder& Series(std::vector<CUI::ChartSeries> value) { if constexpr (requires { m_ptr->ApplySeries(std::move(value)); }) m_ptr->ApplySeries(std::move(value)); return *this; }
+    ElementBuilder& LiveData(std::vector<std::string> categories, std::vector<CUI::ChartSeries> series, bool replay = false) { if constexpr (requires { m_ptr->ApplyLiveData(std::move(categories), std::move(series), replay); }) m_ptr->ApplyLiveData(std::move(categories), std::move(series), replay); return *this; }
+    ElementBuilder& ItemText(int id, const std::string& value) { if constexpr (requires { m_ptr->ApplyItemText(id, value); }) m_ptr->ApplyItemText(id, value); return *this; }
+    ElementBuilder& ItemProgress(int id, float value) { if constexpr (requires { m_ptr->ApplyItemProgress(id, value); }) m_ptr->ApplyItemProgress(id, value); return *this; }
+    ElementBuilder& SuggestionItems(std::vector<std::string> value) { if constexpr (requires { m_ptr->ApplySuggestionItems(value); }) m_ptr->ApplySuggestionItems(value); return *this; }
+    template<typename F> ElementBuilder& SuggestionProvider(F&& value) { if constexpr (requires { m_ptr->ApplySuggestionProvider(std::forward<F>(value)); }) m_ptr->ApplySuggestionProvider(std::forward<F>(value)); return *this; }
+    template<typename F> ElementBuilder& OnDraw(F&& value) { if constexpr (requires { m_ptr->ApplyOnDraw(std::forward<F>(value)); }) m_ptr->ApplyOnDraw(std::forward<F>(value)); return *this; }
+    template<typename F> ElementBuilder& OnCanvasMouseDown(F&& value) { if constexpr (requires { m_ptr->ApplyOnCanvasMouseDown(std::forward<F>(value)); }) m_ptr->ApplyOnCanvasMouseDown(std::forward<F>(value)); return *this; }
+    template<typename F> ElementBuilder& OnCanvasMouseMove(F&& value) { if constexpr (requires { m_ptr->ApplyOnCanvasMouseMove(std::forward<F>(value)); }) m_ptr->ApplyOnCanvasMouseMove(std::forward<F>(value)); return *this; }
+    template<typename F> ElementBuilder& OnCanvasMouseUp(F&& value) { if constexpr (requires { m_ptr->ApplyOnCanvasMouseUp(std::forward<F>(value)); }) m_ptr->ApplyOnCanvasMouseUp(std::forward<F>(value)); return *this; }
+    template<typename F> ElementBuilder& OnTick(F&& value) { if constexpr (requires { m_ptr->ApplyOnTick(std::forward<F>(value)); }) m_ptr->ApplyOnTick(std::forward<F>(value)); return *this; }
+    template<typename F> ElementBuilder& StatusHandler(F&& value) { if constexpr (requires { m_ptr->ApplyStatusHandler(std::forward<F>(value)); }) m_ptr->ApplyStatusHandler(std::forward<F>(value)); return *this; }
+    ElementBuilder& LowPerformanceMode(bool value) { if constexpr (requires { m_ptr->ApplyLowPerformanceMode(value); }) m_ptr->ApplyLowPerformanceMode(value); return *this; }
+    ElementBuilder& ImageType(CUI::ImageType value) { if constexpr (requires { m_ptr->ApplyImageType(value); }) m_ptr->ApplyImageType(value); return *this; }
+    ElementBuilder& OwnerWindow(CUI::Window* value) { if constexpr (requires { m_ptr->ApplyOwnerWindow(value); }) m_ptr->ApplyOwnerWindow(value); return *this; }
+    ElementBuilder& ActionCommand(std::shared_ptr<CUI::Command> value) { if constexpr (requires { m_ptr->ApplyActionCommand(value); }) m_ptr->ApplyActionCommand(std::move(value)); return *this; }
+    ElementBuilder& MaxEntries(uint32_t value) { if constexpr (requires { m_ptr->ApplyMaxEntries(value); }) m_ptr->ApplyMaxEntries(value); return *this; }
+    ElementBuilder& Expanded(bool value) { if constexpr (requires { m_ptr->ApplyExpanded(value); }) m_ptr->ApplyExpanded(value); return *this; }
+    ElementBuilder& PersistEnabled(bool value) { if constexpr (requires { m_ptr->ApplyPersistEnabled(value); }) m_ptr->ApplyPersistEnabled(value); return *this; }
+    ElementBuilder& ShowCodeLineNumbers(bool value) { if constexpr (requires { m_ptr->ApplyShowCodeLineNumbers(value); }) m_ptr->ApplyShowCodeLineNumbers(value); return *this; }
+    ElementBuilder& MinimumRange(float value) { if constexpr (requires { m_ptr->ApplyMinimumRange(value); }) m_ptr->ApplyMinimumRange(value); return *this; }
+    ElementBuilder& IsClearEnabled(bool value) { if constexpr (requires { m_ptr->ApplyIsClearEnabled(value); }) m_ptr->ApplyIsClearEnabled(value); return *this; }
+    ElementBuilder& ItemIcon(int id, const std::string& value) { if constexpr (requires { m_ptr->ApplyItemIcon(id, value); }) m_ptr->ApplyItemIcon(id, value); return *this; }
+    ElementBuilder& CanSave(bool value) { if constexpr (requires { m_ptr->ApplyCanSave(value); }) m_ptr->ApplyCanSave(value); return *this; }
+    ElementBuilder& MaxVisibleSuggestions(int value) { if constexpr (requires { m_ptr->ApplyMaxVisibleSuggestions(value); }) m_ptr->ApplyMaxVisibleSuggestions(value); return *this; }
+    ElementBuilder& FlowParticlesEnabled(bool value) { if constexpr (requires { m_ptr->ApplyFlowParticlesEnabled(value); }) m_ptr->ApplyFlowParticlesEnabled(value); return *this; }
+    ElementBuilder& Gesture(const std::string& value) { if constexpr (requires { m_ptr->ApplyGesture(value); }) m_ptr->ApplyGesture(value); return *this; }
+    ElementBuilder& IsMinimizeButtonVisible(bool value) { if constexpr (requires { m_ptr->ApplyIsMinimizeButtonVisible(value); }) m_ptr->ApplyIsMinimizeButtonVisible(value); return *this; }
+    ElementBuilder& IsMaximizeButtonVisible(bool value) { if constexpr (requires { m_ptr->ApplyIsMaximizeButtonVisible(value); }) m_ptr->ApplyIsMaximizeButtonVisible(value); return *this; }
+    ElementBuilder& IsCloseButtonVisible(bool value) { if constexpr (requires { m_ptr->ApplyIsCloseButtonVisible(value); }) m_ptr->ApplyIsCloseButtonVisible(value); return *this; }
+    ElementBuilder& IsMinimizeButtonEnabled(bool value) { if constexpr (requires { m_ptr->ApplyIsMinimizeButtonEnabled(value); }) m_ptr->ApplyIsMinimizeButtonEnabled(value); return *this; }
+    ElementBuilder& IsMaximizeButtonEnabled(bool value) { if constexpr (requires { m_ptr->ApplyIsMaximizeButtonEnabled(value); }) m_ptr->ApplyIsMaximizeButtonEnabled(value); return *this; }
+    ElementBuilder& IsCloseButtonEnabled(bool value) { if constexpr (requires { m_ptr->ApplyIsCloseButtonEnabled(value); }) m_ptr->ApplyIsCloseButtonEnabled(value); return *this; }
 
 };
 
@@ -1116,7 +1116,7 @@ inline ElementBuilder<Panel> Expanded(std::shared_ptr<UIElement> child, float fl
     auto p = ElementBuilder<Panel>();
     p.FlexGrow(flex);
     if (child) {
-        child->SetFlexGrow(1.0f);
+        child->ApplyFlexGrow(1.0f);
         p.AddChild(child);
     }
     return p;
@@ -1160,7 +1160,7 @@ public:
     explicit StatelessWidget(BuildContext context) : m_context(context) {}
     virtual ~StatelessWidget() = default;
 
-    void SetBuildContext(const BuildContext& context) { m_context = context; } // 注册组件上下文
+    void ApplyBuildContext(const BuildContext& context) { m_context = context; } // 注册组件上下文
     BuildContext& GetBuildContext() { return m_context; }
     const BuildContext& GetBuildContext() const { return m_context; }
 

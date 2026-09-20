@@ -27,11 +27,11 @@ public:
     virtual const char* GetClassName() const override { return "TabView"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
 
     void AddTab(const std::string& title, std::shared_ptr<UIElement> content, const std::string& icon = "", bool isClosable = true);
     void RemoveTab(int index);
-    void SetSelectedIndex(int index);
+    void ApplySelectedIndex(int index);
     int GetSelectedIndex() const { return m_selectedIndex; }
     size_t GetTabCount() const { return m_tabs.size(); }
     bool IsEmpty() const { return m_tabs.empty(); }
@@ -56,13 +56,13 @@ public:
     Event<TabView*, int>& OnTabClosed() { return m_tabClosedEvent; }
 
     float GetMinTabWidth() const { return m_minTabWidth; }
-    void SetMinTabWidth(float w) {
+    void ApplyMinTabWidth(float w) {
         m_minTabWidth = w;
         MarkRenderContentDirty();
     }
 
     float GetMaxTabWidth() const { return m_maxTabWidth; }
-    void SetMaxTabWidth(float w) {
+    void ApplyMaxTabWidth(float w) {
         m_maxTabWidth = w;
         MarkRenderContentDirty();
     }

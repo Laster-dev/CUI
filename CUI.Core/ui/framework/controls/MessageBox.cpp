@@ -85,37 +85,37 @@ ContentDialog::ContentDialog() {
     this->AddChild(m_btnClose);
 }
 
-void ContentDialog::SetTitle(const std::string& title) {
+void ContentDialog::ApplyTitle(const std::string& title) {
     m_titleText = title;
     if (m_txtTitle) DSL::ElementBuilder<TextBlock>(m_txtTitle).Text(title);
     InvalidateCard();
 }
 
-void ContentDialog::SetMessage(const std::string& message) {
+void ContentDialog::ApplyMessage(const std::string& message) {
     m_messageText = message;
     if (m_txtMessage) DSL::ElementBuilder<TextBlock>(m_txtMessage).Text(message);
     InvalidateCard();
 }
 
-void ContentDialog::SetPrimaryButtonText(const std::string& text) {
+void ContentDialog::ApplyPrimaryButtonText(const std::string& text) {
     m_primaryText = text;
     if (m_btnPrimary) DSL::ElementBuilder<Button>(m_btnPrimary).Text(text);
     InvalidateCard();
 }
 
-void ContentDialog::SetSecondaryButtonText(const std::string& text) {
+void ContentDialog::ApplySecondaryButtonText(const std::string& text) {
     m_secondaryText = text;
     if (m_btnSecondary) DSL::ElementBuilder<Button>(m_btnSecondary).Text(text);
     InvalidateCard();
 }
 
-void ContentDialog::SetCloseButtonText(const std::string& text) {
+void ContentDialog::ApplyCloseButtonText(const std::string& text) {
     m_closeText = text;
     if (m_btnClose) DSL::ElementBuilder<Button>(m_btnClose).Text(text);
     InvalidateCard();
 }
 
-void ContentDialog::SetInputEnabled(bool enabled, bool multiline) {
+void ContentDialog::ApplyInputEnabled(bool enabled, bool multiline) {
     m_inputEnabled = enabled;
     m_inputMultiline = multiline;
     if (m_inputBox) {
@@ -127,7 +127,7 @@ void ContentDialog::SetInputEnabled(bool enabled, bool multiline) {
     InvalidateCard();
 }
 
-void ContentDialog::SetInputText(const std::string& text) {
+void ContentDialog::ApplyInputText(const std::string& text) {
     if (m_inputBox) {
         DSL::ElementBuilder<TextBox>(m_inputBox).Text(text);
         DSL::ElementBuilder<TextBox>(m_inputBox).SelectAll();
@@ -166,7 +166,7 @@ void ContentDialog::Show(std::function<void(DialogResult)> callback) {
     m_animStartTime = std::chrono::steady_clock::now();
     m_animProgress = 0.0f;
     InvalidateCard();
-    m_cardLayer.SetCacheable(true);
+    m_cardLayer.ApplyCacheable(true);
     if (!UIElement::AreAnimationsEnabled()) {
         m_animState = 2;
         m_animProgress = 1.0f;
@@ -393,7 +393,7 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
 
     // Cache chrome; for input dialogs still allow cache but invalidate on caret /
     // selection / text changes via InvalidateCard() — never every vsync.
-    m_cardLayer.SetCacheable(true);
+    m_cardLayer.ApplyCacheable(true);
     const bool needRaster = !m_cardCacheValid
         || m_cardLayer.NeedsContentRaster()
         || !m_cardLayer.GetCacheBitmap()
@@ -408,7 +408,7 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
                 D2D1::ColorF(0, 0, 0, 0),
                 true)) {
             const Rect savedPaintBounds = ctx.GetPaintBounds();
-            ctx.SetPaintBounds(Rect());
+            ctx.ApplyPaintBounds(Rect());
             ctx.PushTransform(D2D1::Matrix3x2F::Translation(-cardX, -cardY));
 
             D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
@@ -424,7 +424,7 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
             if (!m_primaryText.empty() && m_btnPrimary) m_btnPrimary->Render(ctx);
 
             ctx.PopTransform();
-            ctx.SetPaintBounds(savedPaintBounds);
+            ctx.ApplyPaintBounds(savedPaintBounds);
             ctx.PopLayerTarget(m_cardLayer);
             m_cardLayer.Validate();
             m_cardCacheValid = true;

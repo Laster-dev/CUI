@@ -62,8 +62,8 @@ public:
 
     void SaveCursor();
     void RestoreCursor();
-    void SetCursor(int x, int y);
-    void SetScrollRegion(int top, int bottom);
+    void ApplyCursor(int x, int y);
+    void ApplyScrollRegion(int top, int bottom);
 
     // rows are absolute buffer indices
     std::wstring GetSelectedText(int startCol, int startRow, int endCol, int endRow) const;

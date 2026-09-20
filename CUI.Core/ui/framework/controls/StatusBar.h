@@ -50,11 +50,11 @@ public:
         float fixedWidth = 120.0f);
     int AddSeparator(StatusBarItemAlignment align = StatusBarItemAlignment::Right);
 
-    void SetItemText(int id, const std::string& text);
-    void SetItemIcon(int id, const std::string& icon);
-    void SetItemProgress(int id, float progress01);
-    void SetItemVisible(int id, bool visible);
-    void SetItemFixedWidth(int id, float width);
+    void ApplyItemText(int id, const std::string& text);
+    void ApplyItemIcon(int id, const std::string& icon);
+    void ApplyItemProgress(int id, float progress01);
+    void ApplyItemVisible(int id, bool visible);
+    void ApplyItemFixedWidth(int id, float width);
     void ClearItems();
 
     const std::vector<StatusBarItem>& GetItems() const { return m_items; }

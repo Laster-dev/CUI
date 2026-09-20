@@ -53,7 +53,7 @@ void FillCatalog(ListBox& list, float lo, float hi) {
     if (rows.empty()) {
         rows.emplace_back("（当前区间没有商品）");
     }
-        list.SetItems(rows);
+        list.ApplyItems(rows);
 }
 } // namespace
 
@@ -68,7 +68,7 @@ ShowcasePage BuildRangeSliderPage(const ShowcaseContext& ctx) {
         price.Height(48.0f);
         price.ToolTip("拖任一端筛选价格；两滑块不可交叉。");
 
-    auto priceLabel = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref priceLabel =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText(FormatPriceRange(price->GetLowerValue(), price->GetUpperValue()), 14.0f, "textPrimary", true));
 
     CUI::Widgets::Ref catalog = CUI::Widgets::ListBox().Shared();
@@ -77,7 +77,7 @@ ShowcasePage BuildRangeSliderPage(const ShowcaseContext& ctx) {
     FillCatalog(*catalog, price->GetLowerValue(), price->GetUpperValue());
 
     price->OnValueChanged().Connect([priceLabel, catalog](RangeSlider*, float lo, float hi) {
-                priceLabel->SetText(FormatPriceRange(lo, hi));
+                priceLabel.Text(FormatPriceRange(lo, hi));
         FillCatalog(*catalog, lo, hi);
     });
 
@@ -98,10 +98,10 @@ ShowcasePage BuildRangeSliderPage(const ShowcaseContext& ctx) {
         vertical.Width(80.0f);
         vertical.Height(200.0f);
 
-    auto vertLabel = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref vertLabel =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText(FormatPlainRange(20.0f, 80.0f, "%"), 13.0f, "textPrimary", true));
     vertical->OnValueChanged().Connect([vertLabel](RangeSlider*, float lo, float hi) {
-                vertLabel->SetText(FormatPlainRange(lo, hi, "%"));
+                vertLabel.Text(FormatPlainRange(lo, hi, "%"));
     });
 
     CUI::Widgets::Ref gapSlider = CUI::Widgets::RangeSlider().Shared();
@@ -113,10 +113,10 @@ ShowcasePage BuildRangeSliderPage(const ShowcaseContext& ctx) {
         gapSlider.Width(320.0f);
         gapSlider.Height(48.0f);
 
-    auto gapLabel = std::static_pointer_cast<TextBlock>(
+    CUI::Widgets::Ref gapLabel =std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("跨度至少 20  ·  " + FormatPlainRange(25.0f, 70.0f, ""), 12.0f, "textSecondary", false));
     gapSlider->OnValueChanged().Connect([gapLabel](RangeSlider*, float lo, float hi) {
-                gapLabel->SetText("跨度至少 20  ·  " + FormatPlainRange(lo, hi, ""));
+                gapLabel.Text("跨度至少 20  ·  " + FormatPlainRange(lo, hi, ""));
     });
 
     auto demo = Column(12).Children({

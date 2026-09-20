@@ -175,7 +175,7 @@ void InputHandler::SoftReset() {
     Buf().OriginMode = false;
     Buf().Wraparound = true;
     Buf().InsertMode = false;
-    Buf().SetScrollRegion(0, Buf().Rows() - 1);
+    Buf().ApplyScrollRegion(0, Buf().Rows() - 1);
     Buf().CurAttr = CellData::Empty();
     m_lastPrinted = -1;
     m_gl = 0;
@@ -264,7 +264,7 @@ void InputHandler::Esc(uint8_t final, int collect) {
     case '8': Buf().RestoreCursor(); Buf().CurAttr = m_savedAttr; break;
     case 'D': Buf().Index(); break;
     case 'E': Buf().CarriageReturn(); Buf().LineFeed(); break;
-    case 'H': SetTabStop(Buf().CursorX); break;
+    case 'H': ApplyTabStop(Buf().CursorX); break;
     case 'M': Buf().ReverseIndex(); break;
     case 'c': m_buffers.Reset(); Reset(); break;
     case '=': m_applicationKeypad = true; break;
@@ -294,7 +294,7 @@ void InputHandler::Csi(uint8_t final, const Params& p, int collect) {
     case 'G':
     case '`': Buf().CursorX = std::clamp(p.GetNonZero(0) - 1, 0, Buf().Cols() - 1); break;
     case 'H':
-    case 'f': Buf().SetCursor(p.GetNonZero(1) - 1, p.GetNonZero(0) - 1); break;
+    case 'f': Buf().ApplyCursor(p.GetNonZero(1) - 1, p.GetNonZero(0) - 1); break;
     case 'J': Buf().EraseInDisplay(p.Get(0)); break;
     case 'K': Buf().EraseInLine(p.Get(0)); break;
     case 'L': Buf().InsertLines(p.GetNonZero(0)); break;
@@ -307,7 +307,7 @@ void InputHandler::Csi(uint8_t final, const Params& p, int collect) {
     case 'a': CursorForward(p.GetNonZero(0)); break;
     case 'b': RepeatLast(p.GetNonZero(0)); break;
     case 'c': DeviceAttributes(priv); break;
-    case 'd': Buf().SetCursor(Buf().CursorX, p.GetNonZero(0) - 1); break;
+    case 'd': Buf().ApplyCursor(Buf().CursorX, p.GetNonZero(0) - 1); break;
     case 'e': CursorDown(p.GetNonZero(0)); break;
     case 'g': ClearTabs(p.Get(0)); break;
     case 'm':
@@ -330,13 +330,13 @@ void InputHandler::Csi(uint8_t final, const Params& p, int collect) {
         break;
     case 'r':
         if (priv == '\0') {
-            Buf().SetScrollRegion(p.GetNonZero(0) - 1, p.Get(1, Buf().Rows()) - 1);
+            Buf().ApplyScrollRegion(p.GetNonZero(0) - 1, p.Get(1, Buf().Rows()) - 1);
         }
         break;
     case 's': Buf().SaveCursor(); m_savedAttr = Buf().CurAttr; break;
     case 'u': Buf().RestoreCursor(); Buf().CurAttr = m_savedAttr; break;
-    case 'h': SetMode(p, priv, true); break;
-    case 'l': SetMode(p, priv, false); break;
+    case 'h': ApplyMode(p, priv, true); break;
+    case 'l': ApplyMode(p, priv, false); break;
     case 't': WindowOps(p); break;
     default: break;
     }
@@ -351,8 +351,8 @@ void InputHandler::Csi(uint8_t final, const Params& p, int collect) {
     }
 }
 
-void InputHandler::CursorUp(int n) { Buf().SetCursor(Buf().CursorX, Buf().CursorY - n); }
-void InputHandler::CursorDown(int n) { Buf().SetCursor(Buf().CursorX, Buf().CursorY + n); }
+void InputHandler::CursorUp(int n) { Buf().ApplyCursor(Buf().CursorX, Buf().CursorY - n); }
+void InputHandler::CursorDown(int n) { Buf().ApplyCursor(Buf().CursorX, Buf().CursorY + n); }
 void InputHandler::CursorForward(int n) { Buf().CursorX = (std::min)(Buf().Cols() - 1, Buf().CursorX + n); }
 void InputHandler::CursorBackward(int n) { Buf().CursorX = (std::max)(0, Buf().CursorX - n); }
 
@@ -439,7 +439,7 @@ void InputHandler::WindowOps(const Params& p) {
     }
 }
 
-void InputHandler::SetMode(const Params& p, char priv, bool set) {
+void InputHandler::ApplyMode(const Params& p, char priv, bool set) {
     const int count = (std::max)(1, p.Length());
     for (int i = 0; i < count; ++i) {
         const int mode = p.Length() == 0 ? 0 : p.Get(i);
@@ -450,7 +450,7 @@ void InputHandler::SetMode(const Params& p, char priv, bool set) {
                 break;
             case 6:
                 Buf().OriginMode = set;
-                Buf().SetCursor(0, set ? Buf().ScrollTop : 0);
+                Buf().ApplyCursor(0, set ? Buf().ScrollTop : 0);
                 break;
             case 7:
                 Buf().Wraparound = set;
@@ -605,7 +605,7 @@ void InputHandler::CharAttributes(const Params& p) {
         }
     }
     if (attr.GetCodePoint() == 0) {
-        attr.SetCodePoint(' ');
+        attr.ApplyCodePoint(' ');
         attr.Width(1);
     }
     attr.LinkId = m_links.ActiveId();
@@ -742,7 +742,7 @@ void InputHandler::ResetTabs(int cols) {
     }
 }
 
-void InputHandler::SetTabStop(int col) {
+void InputHandler::ApplyTabStop(int col) {
     if (col >= 0 && col < static_cast<int>(m_tabs.size())) {
         m_tabs[static_cast<size_t>(col)] = true;
     }

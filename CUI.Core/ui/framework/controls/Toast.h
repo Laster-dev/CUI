@@ -31,28 +31,28 @@ public:
     virtual const char* GetClassName() const override { return "Toast"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
 
-    void SetHost(ToastCenter* host) { m_host = host; }
+    void ApplyHost(ToastCenter* host) { m_host = host; }
     ToastCenter* GetHost() const { return m_host; }
     void RequestHostTicks();
 
-    void SetTitle(const std::string& title);
-    void SetMessage(const std::string& message);
-    void SetType(ToastType type);
+    void ApplyTitle(const std::string& title);
+    void ApplyMessage(const std::string& message);
+    void ApplyType(ToastType type);
     ToastType GetType() const { return m_type; }
-    void SetCorner(ToastCorner corner);
-    void SetDurationMs(int durationMs);
-    void SetWidth(float width);
-    void SetAutoClose(bool enabled);
-    void SetBackground(const std::string& color);
-    void SetAccent(const std::string& color);
-    void SetTitleColor(const std::string& color);
-    void SetMessageColor(const std::string& color);
-    void SetOffsetX(float offsetX);
-    void SetOffsetY(float offsetY);
-    void SetSpacing(float spacing);
-    void SetCloseable(bool closeable);
+    void ApplyCorner(ToastCorner corner);
+    void ApplyDurationMs(int durationMs);
+    void ApplyWidth(float width);
+    void ApplyAutoClose(bool enabled);
+    void ApplyBackground(const std::string& color);
+    void ApplyAccent(const std::string& color);
+    void ApplyTitleColor(const std::string& color);
+    void ApplyMessageColor(const std::string& color);
+    void ApplyOffsetX(float offsetX);
+    void ApplyOffsetY(float offsetY);
+    void ApplySpacing(float spacing);
+    void ApplyCloseable(bool closeable);
 
     // Copy XML/runtime properties from another element (e.g. <Toast> template).
     void ApplyFrom(const UIElement* source);

@@ -45,23 +45,23 @@ const char* FileNameOf(const std::string& path) {
 
 Image::Image() {
     m_badgeColor = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
-    this->SetWidth(24.0f);
-    this->SetHeight(24.0f);
-    this->SetClipToBounds(true);
+    this->ApplyWidth(24.0f);
+    this->ApplyHeight(24.0f);
+    this->ApplyClipToBounds(true);
 }
 
 Image::Image(ImageType type, const std::string& text)
     : m_imageType(type), m_badgeText(text), m_badgeColor(ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor)) {
-    this->SetWidth(24.0f);
-    this->SetHeight(24.0f);
-    this->SetClipToBounds(true);
+    this->ApplyWidth(24.0f);
+    this->ApplyHeight(24.0f);
+    this->ApplyClipToBounds(true);
 }
 
 Image::Image(ImageType type, const std::string& text, D2D1_COLOR_F color)
     : m_imageType(type), m_badgeText(text), m_badgeColor(color) {
-    this->SetWidth(24.0f);
-    this->SetHeight(24.0f);
-    this->SetClipToBounds(true);
+    this->ApplyWidth(24.0f);
+    this->ApplyHeight(24.0f);
+    this->ApplyClipToBounds(true);
 }
 
 namespace {
@@ -100,22 +100,22 @@ bool Image::HasProperty(PropertyId id) const {
     return id == PropertyId::Source || id == PropertyId::Stretch || UIElement::HasProperty(id);
 }
 
-void Image::SetProperty(PropertyId id, const Value& val) {
+void Image::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
     case PropertyId::Source:
     case PropertyId::Text:
-        SetSource(val.AsString());
+        ApplySource(val.AsString());
         return;
     case PropertyId::Stretch:
-        SetStretch(ParseStretch(val.AsString("Uniform")));
+        ApplyStretch(ParseStretch(val.AsString("Uniform")));
         return;
     default:
-        UIElement::SetProperty(id, val);
+        UIElement::ApplyProperty(id, val);
         return;
     }
 }
 
-void Image::SetImageType(ImageType type) {
+void Image::ApplyImageType(ImageType type) {
     if (m_imageType == type) {
         return;
     }
@@ -128,7 +128,7 @@ void Image::SetImageType(ImageType type) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void Image::SetStretch(Stretch stretch) {
+void Image::ApplyStretch(Stretch stretch) {
     if (m_stretch == stretch) {
         return;
     }
@@ -136,7 +136,7 @@ void Image::SetStretch(Stretch stretch) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void Image::SetBitmap(ID2D1Bitmap1* bitmap) {
+void Image::ApplyBitmap(ID2D1Bitmap1* bitmap) {
     ReleaseDecoded();
     m_d2dBitmap = bitmap;
     m_imageType = ImageType::DynamicBitmap;
@@ -242,7 +242,7 @@ bool Image::DecodeFrame(IWICBitmapDecoder* decoder) {
     return true;
 }
 
-bool Image::SetSource(const std::string& path) {
+bool Image::ApplySource(const std::string& path) {
     m_sourcePath = path;
     m_loadError.clear();
     ReleaseDecoded();

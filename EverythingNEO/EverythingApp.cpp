@@ -474,18 +474,18 @@ int EverythingApp::Run() {
     return 0;
 }
 std::shared_ptr<UIElement> EverythingApp::BuildRoot() {
-    auto root = Column(0).BackgroundToken(ThemeTokenId::WindowBackground).Build();
-        root->SetColorToken(ThemeTokenId::TextPrimary);
+    CUI::Widgets::Ref root =Column(0).BackgroundToken(ThemeTokenId::WindowBackground).Build();
+        root.ColorToken(ThemeTokenId::TextPrimary);
 
     m_titleBar = std::make_shared<WindowTitleBar>();
     m_titleBar.Title("Everything");
     BuildMenus();
 
-    auto searchRow = Row(0).Build();
-        searchRow->SetHeight(40.0f);
-        searchRow->SetPadding(Thickness(6, 4, 6, 4));
-        searchRow->SetBackgroundToken(ThemeTokenId::PaneBackground);
-        searchRow->SetBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
+    CUI::Widgets::Ref searchRow =Row(0).Build();
+        searchRow.Height(40.0f);
+        searchRow.Padding(Thickness(6, 4, 6, 4));
+        searchRow.BackgroundToken(ThemeTokenId::PaneBackground);
+        searchRow.Background(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
 
     m_searchBox = std::make_shared<TextBox>();
         m_searchBox.Placeholder("");
@@ -655,7 +655,7 @@ void EverythingApp::BuildMenus() {
         }
         RefreshSearchMenuChecks();
     });
-    m_menuStatusBar->SetChecked(m_statusBarVisible);
+    m_menuStatusBar.Checked(m_statusBarVisible);
     viewMenu->AddItem("切换主题(T)", [this]() { ToggleTheme(); });
 
     auto toolsMenu = menuBar.AddMenu("工具(T)");
@@ -707,11 +707,11 @@ void EverythingApp::ToggleSearchOption(bool SearchOptions::* flag, const char* /
 }
 
 void EverythingApp::RefreshSearchMenuChecks() {
-    if (m_menuRegex) m_menuRegex->SetChecked(m_searchOptions.use_regex);
-    if (m_menuMatchPath) m_menuMatchPath->SetChecked(m_searchOptions.match_path);
-    if (m_menuWholeWord) m_menuWholeWord->SetChecked(m_searchOptions.match_whole_word);
-    if (m_menuMatchCase) m_menuMatchCase->SetChecked(m_searchOptions.match_case);
-    if (m_menuStatusBar) m_menuStatusBar->SetChecked(m_statusBarVisible);
+    if (m_menuRegex) m_menuRegex.Checked(m_searchOptions.use_regex);
+    if (m_menuMatchPath) m_menuMatchPath.Checked(m_searchOptions.match_path);
+    if (m_menuWholeWord) m_menuWholeWord.Checked(m_searchOptions.match_whole_word);
+    if (m_menuMatchCase) m_menuMatchCase.Checked(m_searchOptions.match_case);
+    if (m_menuStatusBar) m_menuStatusBar.Checked(m_statusBarVisible);
 }
 
 void EverythingApp::SortResults(int column, bool ascending) {
@@ -1129,7 +1129,7 @@ void EverythingApp::CopyFullPath() {
 void EverythingApp::ToggleTheme() {
     ThemeMode currentMode = ThemeManager::Instance().GetThemeMode();
     ThemeMode nextMode = (currentMode == ThemeMode::Dark) ? ThemeMode::Light : ThemeMode::Dark;
-    ThemeManager::Instance().SetThemeSource(nextMode == ThemeMode::Dark ? ThemeSource::Dark : ThemeSource::Light);
+    ThemeManager::Instance().ApplyThemeSource(nextMode == ThemeMode::Dark ? ThemeSource::Dark : ThemeSource::Light);
 
     Point clickPt(500.0f, 30.0f); // Default top-right area
     if (HWND hwnd = m_window.GetHWND()) {
@@ -1139,7 +1139,7 @@ void EverythingApp::ToggleTheme() {
         }
     }
 
-    m_window.SetThemeModeWithRipple(nextMode, clickPt);
+    m_window.ApplyThemeModeWithRipple(nextMode, clickPt);
     ApplyChromeColors();
 }
 

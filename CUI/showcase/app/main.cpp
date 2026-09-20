@@ -42,7 +42,7 @@ public:
         : StatelessWidget(buildContext), m_ctx(ctx) {}
 
     std::shared_ptr<UIElement> build(BuildContext& context) override {
-        auto win = context.window ? context.window : m_ctx.windowRef;
+        auto win =context.window ? context.window : m_ctx.windowRef;
 
         struct SampleEntry {
             std::string tag;
@@ -123,10 +123,10 @@ public:
             CUI::Widgets::Ref btnDark = CUI::Widgets::Button("Dark Theme").Shared();
             CUI::Widgets::Ref btnLight = CUI::Widgets::Button("Light Theme").Shared();
             btnDark->OnClick().Connect([win](UIElement*) {
-                                win->SetThemeMode(ThemeMode::Dark);
+                                win->ApplyThemeMode(ThemeMode::Dark);
             });
             btnLight->OnClick().Connect([win](UIElement*) {
-                                win->SetThemeMode(ThemeMode::Light);
+                                win->ApplyThemeMode(ThemeMode::Light);
             });
 
             auto demo = Column(12).Children({
@@ -138,13 +138,13 @@ public:
             settingsContent = CreateShowcaseText("Settings", 18.0f, "textPrimary", true);
         }
 
-        auto nav = std::make_shared<NavigationView>();
-                nav->SetHeader(std::string());
-                nav->SetPaneTitle("CUI Control Gallery");
-                nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
-                nav->SetIsBackButtonVisible(NavigationViewBackButtonVisible::Collapsed);
-                nav->SetIsSettingsVisible(true);
-                nav->SetIsPaneOpen(true);
+        CUI::Widgets::Ref nav =std::make_shared<NavigationView>();
+                nav.Header(std::string());
+                nav.PaneTitle("CUI Control Gallery");
+                nav.PaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
+                nav.IsBackButtonVisible(NavigationViewBackButtonVisible::Collapsed);
+                nav.IsSettingsVisible(true);
+                nav.IsPaneOpen(true);
 
         // Sidebar control search (AutoSuggestBox slot on NavigationView).
         CUI::Widgets::Ref search = CUI::Widgets::AutoSuggestBox().Shared();
@@ -180,7 +180,7 @@ public:
                 return out;
             });
         }
-                nav->SetAutoSuggestBox(search);
+                nav.AutoSuggestBox(search);
 
         struct PageCache {
             std::unordered_map<std::string, std::shared_ptr<UIElement>> content;
@@ -275,12 +275,12 @@ public:
             if (it == buckets.end()) continue;
             if (it->second.items.empty()) continue;
 
-            auto catItem = std::make_shared<NavigationViewItem>(catName);
-                        catItem->SetSelectsOnInvoked(false);
+            CUI::Widgets::Ref catItem =std::make_shared<NavigationViewItem>(catName);
+                        catItem.SelectsOnInvoked(false);
 
             for (const auto* s : it->second.items) {
-                auto child = std::make_shared<NavigationViewItem>(s->label);
-                                child->SetTag(s->tag);
+                CUI::Widgets::Ref child =std::make_shared<NavigationViewItem>(s->label);
+                                child.Tag(s->tag);
                 catItem->AddMenuItem(child);
 
                 if (!firstItem && !initialTag.empty() && s->tag == initialTag) {
@@ -311,12 +311,12 @@ public:
 
         if (!initialTag.empty()) {
             if (auto content = pageCache->Resolve(initialTag)) {
-                                nav->SetContent(content);
+                                nav.Content(content);
             }
         } else if (!samples.empty()) {
             initialTag = samples.front().tag;
             if (auto content = pageCache->Resolve(initialTag)) {
-                                nav->SetContent(content);
+                                nav.Content(content);
             }
         }
 
@@ -324,7 +324,7 @@ public:
         if (!firstItem && !initialTag.empty()) {
             nav->SelectByTag(initialTag);
         } else if (firstItem) {
-                        nav->SetSelectedItem(firstItem.get());
+                        nav.SelectedItem(firstItem.get());
         }
 
         // Navigate to a sample by tag (shared by sidebar click + search).
@@ -337,10 +337,10 @@ public:
                 tag.c_str(), pageCache->Contains(tag) ? 1 : 0);
             if (pageCache->Contains(tag)) {
                 if (auto content = pageCache->Resolve(tag)) {
-                                        nav->SetContent(content);
+                                        nav.Content(content);
                 }
             } else {
-                                nav->SetContentFactory([pageCache, tag]() {
+                                nav.ContentFactory([pageCache, tag]() {
                     CUI::ProgressBarDiag::Log("[PB] gallery factory Resolve(%s)", tag.c_str());
                     return pageCache->Resolve(tag);
                 });
@@ -400,7 +400,7 @@ public:
                                          NavigationView*, const NavigationViewItemInvokedEventArgs& args) mutable {
             if (args.IsSettingsInvoked) {
                 if (win) StopStreamingThread();
-                                nav->SetContent(settingsContent);
+                                nav.Content(settingsContent);
                 return;
             }
             if (!args.InvokedItem) return;
@@ -420,11 +420,11 @@ public:
         : StatelessWidget(buildContext), m_ctx(ctx) {}
 
     std::shared_ptr<UIElement> build(BuildContext& context) override {
-        auto titleBar = std::make_shared<TitleBar>();
-                titleBar->SetTitle("CUI Control Gallery | Flutter 风格 C++ 声明式 Widget Showcase");
+        CUI::Widgets::Ref titleBar =std::make_shared<TitleBar>();
+                titleBar.Title("CUI Control Gallery | Flutter 风格 C++ 声明式 Widget Showcase");
 
-        auto toastCenter = std::make_shared<ToastCenter>();
-                toastCenter->SetId("toastCenter");
+        CUI::Widgets::Ref toastCenter =std::make_shared<ToastCenter>();
+                toastCenter.Id("toastCenter");
 
         auto effectiveContext = m_ctx;
         if (context.window) {
@@ -433,10 +433,10 @@ public:
 
         if (effectiveContext.windowRef) {
             titleBar->OnToggleLowPerformance().Connect([win = effectiveContext.windowRef](TitleBar*) {
-                                win->SetLowPerformanceMode(!win->IsLowPerformanceMode());
+                                win->ApplyLowPerformanceMode(!win->IsLowPerformanceMode());
             });
             titleBar->OnToggleTheme().Connect([win = effectiveContext.windowRef](TitleBar*) {
-                                win->SetThemeMode(win->GetThemeMode() == ThemeMode::Dark ? ThemeMode::Light : ThemeMode::Dark);
+                                win->ApplyThemeMode(win->GetThemeMode() == ThemeMode::Dark ? ThemeMode::Light : ThemeMode::Dark);
             });
         }
 

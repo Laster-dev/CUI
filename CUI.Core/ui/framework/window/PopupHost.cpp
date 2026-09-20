@@ -10,7 +10,7 @@ PopupHost* PopupHost::Current() {
     return s_current;
 }
 
-void PopupHost::SetCurrent(PopupHost* host) {
+void PopupHost::ApplyCurrent(PopupHost* host) {
     s_current = host;
 }
 

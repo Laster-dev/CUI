@@ -40,18 +40,18 @@ float EaseOutCubic(float t) {
 } // namespace
 
 ChartBase::ChartBase() {
-        this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetBorderThickness(1.0f);
-    this->SetCornerRadius(6.0f);
-    this->SetTitleColorToken(ThemeTokenId::TextPrimary);
-    this->SetHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetPressedBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->SetWidth(-1.0f);
-    this->SetHeight(260.0f);
-    this->SetClipToBounds(true);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyCornerRadius(6.0f);
+    this->ApplyTitleColorToken(ThemeTokenId::TextPrimary);
+    this->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyPressedBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyWidth(-1.0f);
+    this->ApplyHeight(260.0f);
+    this->ApplyClipToBounds(true);
     m_reveal.Reset(0.0f);
-    m_reveal.SetTarget(1.0f);
+    m_reveal.ApplyTarget(1.0f);
 }
 
 Value ChartBase::GetProperty(PropertyId id) const {
@@ -68,16 +68,16 @@ bool ChartBase::HasProperty(PropertyId id) const {
         || id == PropertyId::ShowTooltip || Control::HasProperty(id);
 }
 
-void ChartBase::SetProperty(PropertyId id, const Value& val) {
+void ChartBase::ApplyProperty(PropertyId id, const Value& val) {
     switch (id) {
-    case PropertyId::ShowGrid: SetShowGrid(val.AsBool()); return;
-    case PropertyId::ShowLegend: SetShowLegend(val.AsBool()); return;
-    case PropertyId::ShowTooltip: SetShowTooltip(val.AsBool()); return;
-    default: Control::SetProperty(id, val); return;
+    case PropertyId::ShowGrid: ApplyShowGrid(val.AsBool()); return;
+    case PropertyId::ShowLegend: ApplyShowLegend(val.AsBool()); return;
+    case PropertyId::ShowTooltip: ApplyShowTooltip(val.AsBool()); return;
+    default: Control::ApplyProperty(id, val); return;
     }
 }
 
-void ChartBase::SetCategories(std::vector<std::string> categories, bool replayReveal) {
+void ChartBase::ApplyCategories(std::vector<std::string> categories, bool replayReveal) {
     if (m_categories == categories) {
         return;
     }
@@ -86,25 +86,25 @@ void ChartBase::SetCategories(std::vector<std::string> categories, bool replayRe
         NotifyDataChanged();
     } else {
         if (m_hoverIndex >= SeriesValueCount()) {
-            SetHover(-1, -1);
+            ApplyHover(-1, -1);
         }
         MarkRenderRectDirty(m_bounds);
     }
 }
 
-void ChartBase::SetSeries(std::vector<ChartSeries> series, bool replayReveal) {
+void ChartBase::ApplySeries(std::vector<ChartSeries> series, bool replayReveal) {
     m_series = std::move(series);
     if (replayReveal) {
         NotifyDataChanged();
     } else {
         if (m_hoverIndex >= SeriesValueCount()) {
-            SetHover(-1, -1);
+            ApplyHover(-1, -1);
         }
         MarkRenderRectDirty(m_bounds);
     }
 }
 
-void ChartBase::SetLiveData(std::vector<std::string> categories, std::vector<ChartSeries> series, bool replayReveal) {
+void ChartBase::ApplyLiveData(std::vector<std::string> categories, std::vector<ChartSeries> series, bool replayReveal) {
     m_categories = std::move(categories);
     m_series = std::move(series);
     if (replayReveal) {
@@ -114,7 +114,7 @@ void ChartBase::SetLiveData(std::vector<std::string> categories, std::vector<Cha
     if (m_hoverIndex >= SeriesValueCount()) {
         m_hoverIndex = -1;
         m_hoverSeries = -1;
-        m_hoverAmount.SetTarget(0.0f);
+        m_hoverAmount.ApplyTarget(0.0f);
     }
     MarkRenderRectDirty(m_bounds);
 }
@@ -132,7 +132,7 @@ void ChartBase::ClearSeries() {
     NotifyDataChanged();
 }
 
-void ChartBase::SetShowGrid(bool show) {
+void ChartBase::ApplyShowGrid(bool show) {
     if (m_showGrid == show) {
         return;
     }
@@ -140,7 +140,7 @@ void ChartBase::SetShowGrid(bool show) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void ChartBase::SetShowLegend(bool show) {
+void ChartBase::ApplyShowLegend(bool show) {
     if (m_showLegend == show) {
         return;
     }
@@ -148,7 +148,7 @@ void ChartBase::SetShowLegend(bool show) {
     MarkRenderRectDirty(m_bounds);
 }
 
-void ChartBase::SetShowTooltip(bool show) {
+void ChartBase::ApplyShowTooltip(bool show) {
     if (m_showTooltip == show) {
         return;
     }
@@ -159,7 +159,7 @@ void ChartBase::SetShowTooltip(bool show) {
 void ChartBase::NotifyDataChanged() {
     m_hoverIndex = -1;
     m_hoverSeries = -1;
-    m_hoverAmount.SetTarget(0.0f);
+    m_hoverAmount.ApplyTarget(0.0f);
     PlayReveal();
 }
 
@@ -170,7 +170,7 @@ void ChartBase::PlayReveal() {
         return;
     }
     m_reveal.Reset(0.0f);
-    m_reveal.SetTarget(1.0f);
+    m_reveal.ApplyTarget(1.0f);
     RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds);
 }
@@ -530,20 +530,20 @@ void ChartBase::BindHoverMotion(const Rect& plot) {
     if (m_hoverIndex < 0 || count <= 0 || plot.IsEmpty()) {
         return;
     }
-    m_crossX.SetTarget(MapX(plot, m_hoverIndex, count));
-    m_crossY.SetTarget(plot.y + plot.height * 0.35f);
+    m_crossX.ApplyTarget(MapX(plot, m_hoverIndex, count));
+    m_crossY.ApplyTarget(plot.y + plot.height * 0.35f);
     const Point tip = TooltipAnchor();
-    m_tipX.SetTarget(tip.x);
-    m_tipY.SetTarget(tip.y);
+    m_tipX.ApplyTarget(tip.x);
+    m_tipY.ApplyTarget(tip.y);
 }
 
-void ChartBase::SetHover(int index, int series) {
+void ChartBase::ApplyHover(int index, int series) {
     if (m_hoverIndex == index && m_hoverSeries == series) {
         return;
     }
     m_hoverIndex = index;
     m_hoverSeries = series;
-    m_hoverAmount.SetTarget(index >= 0 ? 1.0f : 0.0f);
+    m_hoverAmount.ApplyTarget(index >= 0 ? 1.0f : 0.0f);
     if (index >= 0 && m_hoverAmount.Current() < 0.05f) {
         const Rect plot = PlotRect();
         BindHoverMotion(plot);
@@ -562,12 +562,12 @@ void ChartBase::OnMouseMove(Point pt) {
     int index = -1;
     int series = -1;
     HitTestHover(pt, index, series);
-    SetHover(index, series);
+    ApplyHover(index, series);
 }
 
 void ChartBase::OnMouseLeave() {
     Control::OnMouseLeave();
-    SetHover(-1, -1);
+    ApplyHover(-1, -1);
 }
 
 bool ChartBase::OnKeyDown(int vkCode) {
@@ -593,7 +593,7 @@ bool ChartBase::OnKeyDown(int vkCode) {
     } else {
         return false;
     }
-    SetHover(next, -1);
+    ApplyHover(next, -1);
     return true;
 }
 

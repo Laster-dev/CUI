@@ -9,11 +9,11 @@
 namespace CUI {
 
 SplitButton::SplitButton() {
-    this->SetText("Split");
+    this->ApplyText("Split");
 }
 
 SplitButton::SplitButton(const std::string& text) : SplitButton() {
-    this->SetText(text);
+    this->ApplyText(text);
 }
 
 Rect SplitButton::PrimaryRect() const {
@@ -49,9 +49,9 @@ void SplitButton::OnMouseDown(Point pt) {
     m_pressInChevron = ChevronRect().Contains(pt.x, pt.y);
     Button::OnMouseDown(pt);
     if (m_pressInChevron) {
-        SetDropDownOpen(!IsDropDownOpen());
+        ApplyDropDownOpen(!IsDropDownOpen());
     } else if (IsDropDownOpen()) {
-        SetDropDownOpen(false);
+        ApplyDropDownOpen(false);
     }
 }
 
@@ -71,11 +71,11 @@ bool SplitButton::OnKeyDown(int vkCode) {
     }
     const bool altDown = (GetKeyState(VK_MENU) & 0x8000) != 0;
     if (vkCode == VK_ESCAPE) {
-        SetDropDownOpen(false);
+        ApplyDropDownOpen(false);
         return true;
     }
     if ((vkCode == VK_DOWN && altDown) || vkCode == VK_F4) {
-        SetDropDownOpen(true);
+        ApplyDropDownOpen(true);
         return true;
     }
     if (IsDropDownOpen()) {

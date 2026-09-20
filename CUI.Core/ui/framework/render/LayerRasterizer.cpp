@@ -18,7 +18,7 @@ void LayerRasterizer::BindDevice(ID2D1Device* device) {
     }
 }
 
-void LayerRasterizer::SetAsyncEnabled(bool enabled) {
+void LayerRasterizer::ApplyAsyncEnabled(bool enabled) {
     m_asyncEnabled = enabled;
     if (enabled) {
         EnsureWorker();

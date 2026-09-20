@@ -30,23 +30,23 @@ constexpr float kTreeSelectPillRadius = 4.0f;
 } // namespace
 
 TreeView::TreeView() {
-        this->SetBackgroundToken(ThemeTokenId::CardBackground);
-    this->SetBorderToken(ThemeTokenId::CardBorder);
-    this->SetSelectedBackgroundToken(ThemeTokenId::SelectedBackground);
-    this->SetHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->SetBackground(ThemeManager::Instance().GetColor("cardBackground"));
-    this->SetBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
-    this->SetBorderThickness(1.0f);
-    this->SetColor(ThemeManager::Instance().GetColor("textPrimary"));
-    this->SetHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
-    this->SetFontSize(12.0f);
-    this->SetFontFamily("微软雅黑");
-    this->SetKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    this->SetFontWeight(CUI::FontWeight::Normal);
-    this->SetItemHeight(28.0f);
-    this->SetCornerRadius(4.0f);
-    this->SetWidth(-1.0f);
-    this->SetHeight(-1.0f);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBorderToken(ThemeTokenId::CardBorder);
+    this->ApplySelectedBackgroundToken(ThemeTokenId::SelectedBackground);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
+    this->ApplyBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
+    this->ApplyBorderThickness(1.0f);
+    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
+    this->ApplyHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
+    this->ApplyFontSize(12.0f);
+    this->ApplyFontFamily("微软雅黑");
+    this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Contained);
+    this->ApplyFontWeight(CUI::FontWeight::Normal);
+    this->ApplyItemHeight(28.0f);
+    this->ApplyCornerRadius(4.0f);
+    this->ApplyWidth(-1.0f);
+    this->ApplyHeight(-1.0f);
     m_scrollAnimator.Reset(0.0f);
 }
 
@@ -61,23 +61,23 @@ bool TreeView::HasProperty(PropertyId id) const {
     return id == PropertyId::IndentWidth || UIElement::HasProperty(id);
 }
 
-void TreeView::SetProperty(PropertyId id, const Value& val) {
+void TreeView::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::IndentWidth) {
-        SetIndentWidth(val.AsFloat(m_indentWidth));
+        ApplyIndentWidth(val.AsFloat(m_indentWidth));
         return;
     }
-    UIElement::SetProperty(id, val);
+    UIElement::ApplyProperty(id, val);
 }
 
 HCURSOR TreeView::GetCursor() const {
     return IsEnabled() ? LoadCursor(nullptr, IDC_ARROW) : nullptr;
 }
 
-void TreeView::SetParentRecursive(const std::shared_ptr<TreeViewItem>& item, TreeViewItem* parent) {
+void TreeView::ApplyParentRecursive(const std::shared_ptr<TreeViewItem>& item, TreeViewItem* parent) {
     if (!item) return;
     item->parent = parent;
     for (auto& child : item->children) {
-        SetParentRecursive(child, item.get());
+        ApplyParentRecursive(child, item.get());
     }
 }
 
@@ -94,7 +94,7 @@ void TreeView::ClearItems() {
 
 void TreeView::AddItem(std::shared_ptr<TreeViewItem> item) {
     if (item) {
-        SetParentRecursive(item, nullptr);
+        ApplyParentRecursive(item, nullptr);
         m_items.push_back(item);
         m_visibleDirty = true;
     }
@@ -109,10 +109,10 @@ std::shared_ptr<TreeViewItem> TreeView::AddItem(const std::string& header, bool 
     return item;
 }
 
-void TreeView::SetItems(const std::vector<std::shared_ptr<TreeViewItem>>& items) {
+void TreeView::ApplyItems(const std::vector<std::shared_ptr<TreeViewItem>>& items) {
     m_items = items;
     for (auto& item : m_items) {
-        SetParentRecursive(item, nullptr);
+        ApplyParentRecursive(item, nullptr);
     }
     m_selectedItem = nullptr;
     m_visibleDirty = true;
@@ -366,7 +366,7 @@ Rect TreeView::GetToggleHitRect(const VisibleItem& visibleItem, const Rect& rowR
 void TreeView::ToggleItem(std::shared_ptr<TreeViewItem> item) {
     if (!item || item->children.empty()) return;
     item->isExpanded = !item->isExpanded;
-    item->expandAnim.SetTarget(item->isExpanded ? 1.0f : 0.0f);
+    item->expandAnim.ApplyTarget(item->isExpanded ? 1.0f : 0.0f);
     if (!UIElement::AreAnimationsEnabled()) {
         item->expandAnim.Reset(item->isExpanded ? 1.0f : 0.0f);
         m_expandAnimActive = false;
@@ -386,7 +386,7 @@ void TreeView::ToggleItem(std::shared_ptr<TreeViewItem> item) {
     m_onItemToggledEvent.Invoke(this, item);
 }
 
-void TreeView::SetItemExpanded(std::shared_ptr<TreeViewItem> item, bool expanded) {
+void TreeView::ApplyItemExpanded(std::shared_ptr<TreeViewItem> item, bool expanded) {
     if (!item || item->children.empty()) {
         return;
     }
@@ -400,7 +400,7 @@ void TreeView::ToggleExpanded(std::shared_ptr<TreeViewItem> item) {
     ToggleItem(item);
 }
 
-void TreeView::SetSelectedItem(std::shared_ptr<TreeViewItem> item) {
+void TreeView::ApplySelectedItem(std::shared_ptr<TreeViewItem> item) {
     if (m_selectedItem != item) {
         if (m_selectedItem) m_selectedItem->isSelected = false;
         m_selectedItem = item;
@@ -623,7 +623,7 @@ void TreeView::OnMouseDown(Point pt) {
         if (thumb.Contains(pt.x, pt.y)) {
             StopSmoothScroll();
             m_isDraggingThumb = true;
-            m_scrollbarAutoHide.SetDragging(true, this);
+            m_scrollbarAutoHide.ApplyDragging(true, this);
             m_dragStartY = pt.y;
             m_dragStartScrollY = m_scrollY;
             return;
@@ -667,7 +667,7 @@ void TreeView::OnMouseDown(Point pt) {
 
         // Row click: select; collapsed branches also expand (Explorer / WinUI-like).
         m_pressedVisibleIndex = idx;
-        SetSelectedItem(item);
+        ApplySelectedItem(item);
         StartSelectRipple(item, pt);
         if (canExpand && !item->isExpanded) {
             ToggleItem(item);
@@ -683,7 +683,7 @@ void TreeView::OnMouseMove(Point pt) {
 
     bool wasBarHover = m_scrollbarHovered;
     m_scrollbarHovered = GetMaxScroll() > 0.0f && GetScrollbarTrackRect().Contains(pt.x, pt.y);
-    m_scrollbarAutoHide.SetPointerOver(m_scrollbarHovered, this);
+    m_scrollbarAutoHide.ApplyPointerOver(m_scrollbarHovered, this);
     if (wasBarHover != m_scrollbarHovered) {
         RequestAnimationTicks();
         MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
@@ -718,7 +718,7 @@ void TreeView::OnMouseUp(Point pt) {
         RequestAnimationTicks();
     }
     m_isDraggingThumb = false;
-    m_scrollbarAutoHide.SetDragging(false, this);
+    m_scrollbarAutoHide.ApplyDragging(false, this);
 }
 
 void TreeView::OnMouseDblClick(Point pt) {
@@ -740,7 +740,7 @@ void TreeView::OnMouseLeave() {
         m_scrollbarHovered = false;
         MarkRenderRectDirty(GetScrollbarTrackRect().Inflate(2.0f));
     }
-    m_scrollbarAutoHide.SetPointerOver(false, this);
+    m_scrollbarAutoHide.ApplyPointerOver(false, this);
     RequestAnimationTicks();
 }
 
@@ -748,7 +748,7 @@ void TreeView::OnMouseRightClick(Point pt) {
     Control::OnMouseRightClick(pt);
     int idx = GetVisibleIndexFromY(pt.y);
     if (idx >= 0 && idx < static_cast<int>(m_visibleItems.size())) {
-        SetSelectedItem(m_visibleItems[idx].item);
+        ApplySelectedItem(m_visibleItems[idx].item);
         StartSelectRipple(m_visibleItems[idx].item, pt);
         MarkRenderContentDirty();
     }
@@ -813,13 +813,13 @@ bool TreeView::OnKeyDown(int vkCode) {
     switch (vkCode) {
     case VK_UP: {
         int nextIdx = (currIdx > 0) ? currIdx - 1 : 0;
-        SetSelectedItem(m_visibleItems[nextIdx].item);
+        ApplySelectedItem(m_visibleItems[nextIdx].item);
         startRippleAtSelection();
         break;
     }
     case VK_DOWN: {
         int nextIdx = (currIdx < static_cast<int>(m_visibleItems.size()) - 1) ? currIdx + 1 : static_cast<int>(m_visibleItems.size()) - 1;
-        SetSelectedItem(m_visibleItems[nextIdx].item);
+        ApplySelectedItem(m_visibleItems[nextIdx].item);
         startRippleAtSelection();
         break;
     }
@@ -829,7 +829,7 @@ bool TreeView::OnKeyDown(int vkCode) {
                 if (!m_selectedItem->isExpanded) {
                     ToggleItem(m_selectedItem);
                 } else if (!m_selectedItem->children.empty()) {
-                    SetSelectedItem(m_selectedItem->children[0]);
+                    ApplySelectedItem(m_selectedItem->children[0]);
                     startRippleAtSelection();
                 }
             }
@@ -843,7 +843,7 @@ bool TreeView::OnKeyDown(int vkCode) {
             } else if (m_selectedItem->parent) {
                 for (const auto& vis : m_visibleItems) {
                     if (vis.item.get() == m_selectedItem->parent) {
-                        SetSelectedItem(vis.item);
+                        ApplySelectedItem(vis.item);
                         startRippleAtSelection();
                         break;
                     }
@@ -862,7 +862,7 @@ bool TreeView::TickExpandAnims(const std::vector<std::shared_ptr<TreeViewItem>>&
     bool any = false;
     for (const auto& item : list) {
         if (!item) continue;
-        item->expandAnim.SetTarget(item->isExpanded ? 1.0f : 0.0f);
+        item->expandAnim.ApplyTarget(item->isExpanded ? 1.0f : 0.0f);
         // Fixed 100ms expand/collapse for every node — duration does NOT scale
         // with child count. Virtualization keeps large trees cheap to paint.
         constexpr AnimationSpec kExpandSpec{ 0.35f, 0.001f, 0.10f };

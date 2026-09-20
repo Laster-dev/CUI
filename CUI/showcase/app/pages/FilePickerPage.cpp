@@ -19,17 +19,17 @@ ShowcasePage BuildFilePickerPage(const ShowcaseContext& ctx) {
 
     CUI::Widgets::Ref folderPicker = Widgets::FolderPicker().Width(360).Shared();
 
-    auto pathLabel = std::static_pointer_cast<CUI::TextBlock>(CreateShowcaseText("未选择文件", 12.0f, "textMuted"));
+    CUI::Widgets::Ref pathLabel =std::static_pointer_cast<CUI::TextBlock>(CreateShowcaseText("未选择文件", 12.0f, "textMuted"));
     filePicker->OnPathChanged().Connect([pathLabel](CUI::FilePicker*, const std::string& path) {
         if (pathLabel) {
-                        pathLabel->SetText(path.empty() ? "未选择文件" : ("已选文件: " + path));
+                        pathLabel.Text(path.empty() ? "未选择文件" : ("已选文件: " + path));
         }
     });
 
-    auto folderLabel = std::static_pointer_cast<CUI::TextBlock>(CreateShowcaseText("未选择文件夹", 12.0f, "textMuted"));
+    CUI::Widgets::Ref folderLabel =std::static_pointer_cast<CUI::TextBlock>(CreateShowcaseText("未选择文件夹", 12.0f, "textMuted"));
     folderPicker->OnPathChanged().Connect([folderLabel](CUI::FolderPicker*, const std::string& path) {
         if (folderLabel) {
-                        folderLabel->SetText(path.empty() ? "未选择文件夹" : ("已选文件夹: " + path));
+                        folderLabel.Text(path.empty() ? "未选择文件夹" : ("已选文件夹: " + path));
         }
     });
 

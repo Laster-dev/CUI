@@ -30,11 +30,11 @@ Element BuildTeachingTipPage() {
             });
 
     // ── 2. 无操作按钮、仅关闭叉 ────────────────────────────────────────
-    auto btnCloseOnly = Button("仅关闭按钮");
-        btnCloseOnly->SetBackgroundToken(ThemeTokenId::CardBackground);
+    auto btnCloseOnly =Button("仅关闭按钮");
+        btnCloseOnly.BackgroundToken(ThemeTokenId::CardBackground);
     
-        btnCloseOnly->SetBorderToken(ThemeTokenId::CardBorder);
-        btnCloseOnly->SetBorderThickness(1.0f);
+        btnCloseOnly.BorderToken(ThemeTokenId::CardBorder);
+        btnCloseOnly.BorderThickness(1.0f);
     btnCloseOnly->OnClick().Connect([status](UIElement* src) {
         CUI::Widgets::Ref tip = CUI::Widgets::TeachingTip().Shared();
         tip.Title("提示");
@@ -48,15 +48,15 @@ Element BuildTeachingTipPage() {
     });
 
     // ── 3. 不同停靠方向 ─────────────────────────────────────────────────
-    auto btnPlacementTop    = Button("↑ Top");
-    auto btnPlacementBottom = Button("↓ Bottom");
-    auto btnPlacementLeft   = Button("← Left");
-    auto btnPlacementRight  = Button("→ Right");
+    auto btnPlacementTop =Button("↑ Top");
+    auto btnPlacementBottom =Button("↓ Bottom");
+    auto btnPlacementLeft =Button("← Left");
+    auto btnPlacementRight =Button("→ Right");
 
-        btnPlacementTop->SetWidth(90.0f);
-        btnPlacementBottom->SetWidth(90.0f);
-        btnPlacementLeft->SetWidth(90.0f);
-        btnPlacementRight->SetWidth(90.0f);
+        btnPlacementTop.Width(90.0f);
+        btnPlacementBottom.Width(90.0f);
+        btnPlacementLeft.Width(90.0f);
+        btnPlacementRight.Width(90.0f);
 
     auto makeDirectionTip = [](UIElement* src, BubblePlacement p, const std::string& label) {
         CUI::Widgets::Ref tip = CUI::Widgets::TeachingTip().Shared();
@@ -107,11 +107,11 @@ Element BuildTeachingTipPage() {
             });
 
     // ── 5. 自动停靠（Auto） ─────────────────────────────────────────────
-    auto btnAuto = Button("自动停靠（Auto）");
-        btnAuto->SetBackgroundToken(ThemeTokenId::CardBackground);
+    auto btnAuto =Button("自动停靠（Auto）");
+        btnAuto.BackgroundToken(ThemeTokenId::CardBackground);
     
-        btnAuto->SetBorderToken(ThemeTokenId::CardBorder);
-        btnAuto->SetBorderThickness(1.0f);
+        btnAuto.BorderToken(ThemeTokenId::CardBorder);
+        btnAuto.BorderThickness(1.0f);
     btnAuto->OnClick().Connect([status](UIElement* src) {
         CUI::Widgets::Ref tip = CUI::Widgets::TeachingTip().Shared();
         tip.Title("自动方位（Auto）");

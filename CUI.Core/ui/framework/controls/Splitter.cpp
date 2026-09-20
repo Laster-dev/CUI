@@ -14,14 +14,14 @@ constexpr float kHitPad = 5.0f;
 }
 
 Splitter::Splitter() {
-    this->SetOrientation(Orientation::Vertical);
-    this->SetBackgroundToken(ThemeTokenId::CardBorder);
-    this->SetHoverBackgroundToken(ThemeTokenId::AccentColor);
-    this->SetBackground(ThemeManager::Instance().GetColor("cardBorder"));
-    this->SetHoverBackground(ThemeManager::Instance().GetColor("accentColor"));
-    this->SetWidth(kDefaultThickness);
-    this->SetHeight(-1.0f);
-    this->SetAlign(Alignment::Stretch);
+    this->ApplyOrientation(Orientation::Vertical);
+    this->ApplyBackgroundToken(ThemeTokenId::CardBorder);
+    this->ApplyHoverBackgroundToken(ThemeTokenId::AccentColor);
+    this->ApplyBackground(ThemeManager::Instance().GetColor("cardBorder"));
+    this->ApplyHoverBackground(ThemeManager::Instance().GetColor("accentColor"));
+    this->ApplyWidth(kDefaultThickness);
+    this->ApplyHeight(-1.0f);
+    this->ApplyAlign(Alignment::Stretch);
 }
 
 HCURSOR Splitter::GetCursor() const {
@@ -29,17 +29,17 @@ HCURSOR Splitter::GetCursor() const {
     return LoadCursor(nullptr, IsVerticalSplitter() ? IDC_SIZEWE : IDC_SIZENS);
 }
 
-void Splitter::SetOrientation(CUI::Orientation orientation) {
+void Splitter::ApplyOrientation(CUI::Orientation orientation) {
     const bool vertical = (orientation == Orientation::Vertical);
-    UIElement::SetOrientation(orientation);
+    UIElement::ApplyOrientation(orientation);
     if (vertical) {
-        SetWidth(kDefaultThickness);
-        SetHeight(-1.0f);
+        ApplyWidth(kDefaultThickness);
+        ApplyHeight(-1.0f);
     } else {
-        SetWidth(-1.0f);
-        SetHeight(kDefaultThickness);
+        ApplyWidth(-1.0f);
+        ApplyHeight(kDefaultThickness);
     }
-    SetAlign(Alignment::Stretch);
+    ApplyAlign(Alignment::Stretch);
 }
 
 Size Splitter::Measure(Size availableSize) {
@@ -135,8 +135,8 @@ void Splitter::OnMouseMove(Point pt) {
                     }
                     float appliedDelta = std::clamp(delta, minDelta, maxDelta);
                     if (std::abs(appliedDelta) > 0.001f) {
-                        prevElem->SetWidth(prevWidth + appliedDelta);
-                        nextElem->SetWidth(nextWidth - appliedDelta);
+                        prevElem->ApplyWidth(prevWidth + appliedDelta);
+                        nextElem->ApplyWidth(nextWidth - appliedDelta);
                     }
                 } else {
                     float prevMin = std::max(40.0f, prevElem->GetMinHeight());
@@ -151,17 +151,17 @@ void Splitter::OnMouseMove(Point pt) {
                     }
                     float appliedDelta = std::clamp(delta, minDelta, maxDelta);
                     if (std::abs(appliedDelta) > 0.001f) {
-                        prevElem->SetHeight(prevHeight + appliedDelta);
-                        nextElem->SetHeight(nextHeight - appliedDelta);
+                        prevElem->ApplyHeight(prevHeight + appliedDelta);
+                        nextElem->ApplyHeight(nextHeight - appliedDelta);
                     }
                 }
             } else if (prevElem) {
                 if (vertical) {
                     float newW = std::max(40.0f, prevElem->GetBounds().width + delta);
-                    prevElem->SetWidth(newW);
+                    prevElem->ApplyWidth(newW);
                 } else {
                     float newH = std::max(40.0f, prevElem->GetBounds().height + delta);
-                    prevElem->SetHeight(newH);
+                    prevElem->ApplyHeight(newH);
                 }
             }
             break;

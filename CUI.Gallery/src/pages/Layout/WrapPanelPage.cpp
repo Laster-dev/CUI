@@ -61,10 +61,10 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
     justified.Orientation(Orientation::Horizontal);
     const char* labels[] = { "Auto", "布局", "最小 72", "最大 180", "FlexGrow", "自动回流", "填满整行", "约束" };
     for (int i = 0; i < 8; ++i) {
-        auto chip = ElevatedButton(labels[i]).Background(colors[i % 8]).Padding(14, 8, 14, 8)
+        auto chip =ElevatedButton(labels[i]).Background(colors[i % 8]).Padding(14, 8, 14, 8)
             .MinWidth(72.0f)
             .MaxWidth(180.0f);
-                chip->SetFlexGrow(i % 3 == 0 ? 2.0f : 1.0f);
+                chip.FlexGrow(i % 3 == 0 ? 2.0f : 1.0f);
                 justified->AddChild(chip);
     }
 

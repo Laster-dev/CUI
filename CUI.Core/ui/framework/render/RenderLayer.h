@@ -52,18 +52,18 @@ public:
         StructureDirty = 1 << 5
     };
 
-    void SetCacheable(bool cacheable) { m_cacheable = cacheable; }
+    void ApplyCacheable(bool cacheable) { m_cacheable = cacheable; }
     bool IsCacheable() const { return m_cacheable; }
 
-    void SetBounds(const Rect& bounds) { m_bounds = bounds; }
+    void ApplyBounds(const Rect& bounds) { m_bounds = bounds; }
     const Rect& GetBounds() const { return m_bounds; }
-    void SetTranslation(float x, float y) { m_translationX = x; m_translationY = y; }
+    void ApplyTranslation(float x, float y) { m_translationX = x; m_translationY = y; }
     float GetTranslationX() const { return m_translationX; }
     float GetTranslationY() const { return m_translationY; }
 
-    void SetLastRenderedBounds(const Rect& bounds) { m_lastRenderedBounds = bounds; }
+    void ApplyLastRenderedBounds(const Rect& bounds) { m_lastRenderedBounds = bounds; }
     const Rect& GetLastRenderedBounds() const { return m_lastRenderedBounds; }
-    void SetCacheSurfaceSize(const Size& size) { m_cacheSurfaceSize = size; }
+    void ApplyCacheSurfaceSize(const Size& size) { m_cacheSurfaceSize = size; }
     const Size& GetCacheSurfaceSize() const { return m_cacheSurfaceSize; }
     ID2D1DeviceContext* GetCacheContext() const { return m_cacheContext.Get(); }
     ID2D1Bitmap1* GetCacheBitmap() const { return m_cacheBitmap.Get(); }
@@ -76,7 +76,7 @@ public:
 
     // 缓存版本戳：光栅化完成后记录当前帧上下文，供 Window 逐帧校验。
     const RenderCacheStamp& GetStamp() const { return m_stamp; }
-    void SetStamp(const RenderCacheStamp& stamp) { m_stamp = stamp; }
+    void ApplyStamp(const RenderCacheStamp& stamp) { m_stamp = stamp; }
     bool StampMatches(const RenderCacheStamp& stamp) const { return m_stamp == stamp; }
 
     bool IsValid() const { return m_valid; }

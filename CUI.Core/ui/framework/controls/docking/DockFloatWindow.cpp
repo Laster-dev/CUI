@@ -151,7 +151,7 @@ bool DockFloatWindow::EnsureWindow(HWND owner) {
     return m_deviceReady;
 }
 
-void DockFloatWindow::SetTitleFromPane() {
+void DockFloatWindow::ApplyTitleFromPane() {
     if (m_manager) {
         if (const DockPaneData* p = m_manager->GetPane(m_paneIndex)) {
             m_titleUtf8 = p->title;
@@ -183,16 +183,16 @@ bool DockFloatWindow::Show(DockManager* manager,
     m_content = pane->content;
     if (m_content) {
         // Stay parented under DockManager so AnimationManager::IsInLiveTree succeeds.
-        m_content->SetPresentsOnOwnerWindow(false);
-        m_content->SetVisibility(Visibility::Visible);
-        m_content->SetAlign(Alignment::Stretch);
-        m_content->SetWidth(-1.0f);
-        m_content->SetHeight(-1.0f);
+        m_content->ApplyPresentsOnOwnerWindow(false);
+        m_content->ApplyVisibility(Visibility::Visible);
+        m_content->ApplyAlign(Alignment::Stretch);
+        m_content->ApplyWidth(-1.0f);
+        m_content->ApplyHeight(-1.0f);
         if (m_content->HasSelfAnimation()) {
             m_content->RequestAnimationTicks();
         }
     }
-    SetTitleFromPane();
+    ApplyTitleFromPane();
 
     m_dpiScale = GetDpiScaleForWindow(m_hwnd);
     const int px = static_cast<int>(std::lround(screenDipTopLeft.x * m_dpiScale));
@@ -212,7 +212,7 @@ bool DockFloatWindow::Show(DockManager* manager,
 
 void DockFloatWindow::DetachContent() {
     if (m_content) {
-        m_content->SetPresentsOnOwnerWindow(true);
+        m_content->ApplyPresentsOnOwnerWindow(true);
         if (m_manager) {
             bool found = false;
             for (const auto& ch : m_manager->GetChildren()) {
@@ -323,7 +323,7 @@ LRESULT DockFloatWindow::HitTest(int screenX, int screenY) const {
     return HTCLIENT;
 }
 
-void DockFloatWindow::SetCaptionHover(int region) {
+void DockFloatWindow::ApplyCaptionHover(int region) {
     if (m_captionHover == region) {
         return;
     }
@@ -425,7 +425,7 @@ void DockFloatWindow::Relayout() {
     const float ch = static_cast<float>(crc.bottom) / m_dpiScale;
     const float bodyH = (std::max)(0.0f, ch - m_titleH);
     const Rect content(0.0f, m_titleH, cw, bodyH);
-    m_content->SetVisibility(Visibility::Visible);
+    m_content->ApplyVisibility(Visibility::Visible);
     m_content->Measure(Size(content.width, content.height));
     m_content->Arrange(content);
 }
@@ -619,7 +619,7 @@ LRESULT CALLBACK DockFloatWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LP
         POINT pt{ GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         ScreenToClient(hwnd, &pt);
         const Point dip = self->ClientPhysicalToDip(pt.x, pt.y);
-        self->SetCaptionHover(self->HitCaptionButton(dip.x, dip.y));
+        self->ApplyCaptionHover(self->HitCaptionButton(dip.x, dip.y));
         TRACKMOUSEEVENT tme{};
         tme.cbSize = sizeof(tme);
         tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
@@ -628,7 +628,7 @@ LRESULT CALLBACK DockFloatWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LP
         return 0;
     }
     case WM_NCMOUSELEAVE:
-        self->SetCaptionHover(-1);
+        self->ApplyCaptionHover(-1);
         return 0;
     case WM_PAINT: {
         PAINTSTRUCT ps{};

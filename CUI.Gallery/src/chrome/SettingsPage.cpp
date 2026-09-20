@@ -45,12 +45,12 @@ Element BuildSettingsPage() {
     CUI::Widgets::Ref btnLight = CUI::Widgets::Button("浅色").Shared();
     btnDark->OnClick().Connect([window](UIElement*) {
         if (window) {
-                        window->SetThemeMode(ThemeMode::Dark);
+                        window->ApplyThemeMode(ThemeMode::Dark);
         }
     });
     btnLight->OnClick().Connect([window](UIElement*) {
         if (window) {
-                        window->SetThemeMode(ThemeMode::Light);
+                        window->ApplyThemeMode(ThemeMode::Light);
         }
     });
 
@@ -68,7 +68,7 @@ Element BuildSettingsPage() {
     }
     backdrop->OnSelectionChanged().Connect([window](ComboBox*, int index, const std::string&) {
         if (window) {
-                        window->SetBackdropType(BackdropFromIndex(index));
+                        window->ApplyBackdropType(BackdropFromIndex(index));
         }
     });
 
@@ -76,7 +76,7 @@ Element BuildSettingsPage() {
         anim.Header("动效");
         anim.IsOn(UIElement::AreAnimationsEnabled());
     anim->OnToggled().Connect([](ToggleSwitch*, bool on) {
-        UIElement::SetAnimationsEnabled(on);
+        UIElement::ApplyAnimationsEnabled(on);
     });
 
     CUI::Widgets::Ref stats = CUI::Widgets::CheckBox("显示渲染统计叠加层").Shared();
@@ -85,11 +85,11 @@ Element BuildSettingsPage() {
     }
     stats->OnCheckStateChanged().Connect([window](CheckBox*, CheckState state) {
         if (window) {
-                        window->SetRenderStatsOverlayVisible(state == CheckState::Checked);
+                        window->ApplyRenderStatsOverlayVisible(state == CheckState::Checked);
         }
     });
 
-    auto body = Column(20, {
+    CUI::Widgets::Ref body =Column(20, {
         Column(6, {
             MakeLabel("设置", 28.0f, ThemeTokenId::TextPrimary, true),
             MakeLabel("主题、窗口背景、动效与诊断。", 14.0f, ThemeTokenId::TextMuted, false),
@@ -109,7 +109,7 @@ Element BuildSettingsPage() {
             stats,
         }, 12.0f),
     }).Build();
-        body->SetBackgroundToken(ThemeTokenId::WindowBackground);
+        body.BackgroundToken(ThemeTokenId::WindowBackground);
 
     CUI::Widgets::Ref scroll = CUI::Widgets::ScrollViewer().Shared();
         scroll.Align(Alignment::Stretch);

@@ -13,7 +13,7 @@ public:
     virtual const char* GetClassName() const override { return "PagingControl"; }
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
-    void SetProperty(PropertyId id, const Value& val) override;
+    void ApplyProperty(PropertyId id, const Value& val) override;
     virtual HCURSOR GetCursor() const override;
 
     virtual Size Measure(Size availableSize) override;
@@ -29,10 +29,10 @@ public:
     virtual bool HasSelfAnimation() const override;
 
     int GetCurrentPage() const { return m_currentPage; }
-    void SetCurrentPage(int page);
+    void ApplyCurrentPage(int page);
 
     int GetTotalPages() const { return m_totalPages; }
-    void SetTotalPages(int total);
+    void ApplyTotalPages(int total);
 
     Event<PagingControl*, int>& OnPageChanged() { return m_onPageChangedEvent; }
 

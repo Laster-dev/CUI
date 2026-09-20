@@ -9,9 +9,9 @@ ShowcasePage BuildDockPage(const ShowcaseContext&) {
     CUI::Widgets::Ref target = CUI::Widgets::DockPanel().Shared();
         target.Width(420.0f);
         target.Height(240.0f);
-    auto top = ElevatedButton("Top 顶部").Background(Rgb(0x007ACC)).Height(36).Build();     top->SetDock(Dock::Top);
-    auto bottom = ElevatedButton("Bottom 底部").Background(Rgb(0x10B981)).Height(32).Build();     bottom->SetDock(Dock::Bottom);
-    auto left = ElevatedButton("Left 左侧").Background(Rgb(0x8E44AD)).Width(100).Build();     left->SetDock(Dock::Left);
+    CUI::Widgets::Ref top =ElevatedButton("Top 顶部").Background(Rgb(0x007ACC)).Height(36).Build();     top.Dock(Dock::Top);
+    CUI::Widgets::Ref bottom =ElevatedButton("Bottom 底部").Background(Rgb(0x10B981)).Height(32).Build();     bottom.Dock(Dock::Bottom);
+    CUI::Widgets::Ref left =ElevatedButton("Left 左侧").Background(Rgb(0x8E44AD)).Width(100).Build();     left.Dock(Dock::Left);
     auto center = ElevatedButton("Center 中央填充").Background(Rgb(0xD13438)).Build();
         target->AddChild(top); target->AddChild(bottom); target->AddChild(left); target->AddChild(center);
     return { "DockPanel 侧边停靠", CreatePage(

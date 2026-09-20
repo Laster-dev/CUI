@@ -58,7 +58,7 @@ public:
     virtual const char* GetClassName() const override { return "Image"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    void SetProperty(PropertyId id, const Value& val) override; // 反射设定属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
 
     virtual Size Measure(Size availableSize) override; // 测算图片包络或首选尺寸大小
     virtual void OnRender(GraphicsContext& ctx) override; // 绘制图片位图（根据拉伸规则）或绘制占位头像、徽章及文件占位块
@@ -66,17 +66,17 @@ public:
     virtual bool OnAnimationTick() override; // 驱动动态视频流淡入或缩放动画步进
     virtual bool HasSelfAnimation() const override; // 检查是否正处于图片过渡动画中
 
-    void SetImageType(ImageType type); // 更改图片渲染模式并触发重绘
+    void ApplyImageType(ImageType type); // 更改图片渲染模式并触发重绘
     ImageType GetImageType() const { return m_imageType; } // 获取图片渲染模式
-    void SetBadgeText(const std::string& text) { m_badgeText = text; } // 设定状态徽章内部显示的文字符号
-    void SetBadgeColor(D2D1_COLOR_F color) { m_badgeColor = color; } // 设定状态徽章的填充背景色
+    void ApplyBadgeText(const std::string& text) { m_badgeText = text; } // 设定状态徽章内部显示的文字符号
+    void ApplyBadgeColor(D2D1_COLOR_F color) { m_badgeColor = color; } // 设定状态徽章的填充背景色
 
-    bool SetSource(const std::string& path); // 传入 UTF-8 编码的磁盘物理路径以异步加载解码图像（支持 SVG / PNG / BMP 等）
+    bool ApplySource(const std::string& path); // 传入 UTF-8 编码的磁盘物理路径以异步加载解码图像（支持 SVG / PNG / BMP 等）
     const std::string& GetSource() const { return m_sourcePath; } // 获取加载的文件路径
     bool LoadFromMemory(const void* bytes, size_t size); // 从内存二进制字节数据中同步解码并建立位图
     void ClearSource(); // 清空当前绑定的图像源并标记重绘
 
-    void SetStretch(Stretch stretch); // 更改长宽比拉伸填充规则
+    void ApplyStretch(Stretch stretch); // 更改长宽比拉伸填充规则
     Stretch GetStretch() const { return m_stretch; } // 获取拉伸规则
 
     int GetPixelWidth() const { return static_cast<int>(m_bmpWidth); } // 获取已解码图像的实际物理像素宽度 (px)
@@ -86,7 +86,7 @@ public:
 
     bool InitDynamicBitmap(ID2D1DeviceContext* ctx, UINT width, UINT height); // 初始化并开辟硬件动态 BGRA 纹理缓冲区以作高频更新流
     void UpdatePixelBuffer(const uint32_t* bgraPixelData, UINT width, UINT height, UINT pitch = 0); // 线程安全地直接向硬件位图写入新的物理图像像素流
-    void SetBitmap(ID2D1Bitmap1* bitmap); // 直接共享并绑定一个外部已经实例化的 ID2D1Bitmap1 纹理指针
+    void ApplyBitmap(ID2D1Bitmap1* bitmap); // 直接共享并绑定一个外部已经实例化的 ID2D1Bitmap1 纹理指针
 
 private:
     IWICImagingFactory2* EnsureWicFactory(); // 确保 WIC 解码工厂初始化就绪

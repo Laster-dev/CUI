@@ -31,7 +31,7 @@ public:
      * @brief 设置矩形四个角的圆角半径（像素），并重绘。
      * @param radius 圆角半径值。
      */
-    void SetCornerRadius(float radius) { m_cornerRadius = radius; Invalidate(); }
+    void ApplyCornerRadius(float radius) { m_cornerRadius = radius; Invalidate(); }
 
     /**
      * @brief 渲染矩形/圆角矩形几何图形。
@@ -95,22 +95,22 @@ public:
     /** @brief 获取起点 X 坐标。 */
     float GetX1() const { return m_x1; }
     /** @brief 设置起点 X 坐标，并重绘。 */
-    void SetX1(float x) { m_x1 = x; Invalidate(); }
+    void ApplyX1(float x) { m_x1 = x; Invalidate(); }
 
     /** @brief 获取起点 Y 坐标。 */
     float GetY1() const { return m_y1; }
     /** @brief 设置起点 Y 坐标，并重绘。 */
-    void SetY1(float y) { m_y1 = y; Invalidate(); }
+    void ApplyY1(float y) { m_y1 = y; Invalidate(); }
 
     /** @brief 获取终点 X 坐标。 */
     float GetX2() const { return m_x2; }
     /** @brief 设置终点 X 坐标，并重绘。 */
-    void SetX2(float x) { m_x2 = x; Invalidate(); }
+    void ApplyX2(float x) { m_x2 = x; Invalidate(); }
 
     /** @brief 获取终点 Y 坐标。 */
     float GetY2() const { return m_y2; }
     /** @brief 设置终点 Y 坐标，并重绘。 */
-    void SetY2(float y) { m_y2 = y; Invalidate(); }
+    void ApplyY2(float y) { m_y2 = y; Invalidate(); }
 
     /**
      * @brief 渲染平滑抗锯齿直线段。
@@ -150,7 +150,7 @@ public:
     /** @brief 获取当前路径的数据字符串。 */
     std::string GetData() const { return m_data; }
     /** @brief 设置 SVG Path 数据字符串，并重绘。 */
-    void SetData(const std::string& data) { m_data = data; Invalidate(); }
+    void ApplyData(const std::string& data) { m_data = data; Invalidate(); }
 
     /**
      * @brief 渲染 SVG 矢量路径。
@@ -190,12 +190,12 @@ public:
     /** @brief 获取 SVG 源码或路径。 */
     std::string GetSource() const { return m_source; }
     /** @brief 设置 SVG 源码或路径，并重绘。 */
-    void SetSource(const std::string& source) { m_source = source; Invalidate(); }
+    void ApplySource(const std::string& source) { m_source = source; Invalidate(); }
 
     /** @brief 获取着色覆盖颜色。 */
     D2D1_COLOR_F GetTintColor() const { return m_tintColor; }
     /** @brief 设置单色着色覆盖颜色 (TintColor)，用于适应主题配色。 */
-    void SetTintColor(D2D1_COLOR_F color) { m_tintColor = color; m_useTint = true; Invalidate(); }
+    void ApplyTintColor(D2D1_COLOR_F color) { m_tintColor = color; m_useTint = true; Invalidate(); }
     /** @brief 清除着色覆盖，还原 SVG 本身的原始 Fill/Stroke 颜色。 */
     void ClearTintColor() { m_useTint = false; Invalidate(); }
 

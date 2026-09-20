@@ -12,12 +12,12 @@ namespace CUI {
 
 DropDownButton::DropDownButton() {
     SelectedIndex.Initialize(*this);
-    this->SetText("DropDown");
-    this->SetPadding(Thickness(10.0f, 4.0f, 4.0f, 4.0f));
+    this->ApplyText("DropDown");
+    this->ApplyPadding(Thickness(10.0f, 4.0f, 4.0f, 4.0f));
 }
 
 DropDownButton::DropDownButton(const std::string& text) : DropDownButton() {
-    this->SetText(text);
+    this->ApplyText(text);
 }
 
 Value DropDownButton::GetProperty(PropertyId id) const {
@@ -29,12 +29,12 @@ bool DropDownButton::HasProperty(PropertyId id) const {
     return id == PropertyId::SelectedIndex || Button::HasProperty(id);
 }
 
-void DropDownButton::SetProperty(PropertyId id, const Value& val) {
+void DropDownButton::ApplyProperty(PropertyId id, const Value& val) {
     if (id == PropertyId::SelectedIndex) {
-        SetSelectedIndex(static_cast<int>(val.AsFloat(-1.0f)));
+        ApplySelectedIndex(static_cast<int>(val.AsFloat(-1.0f)));
         return;
     }
-    Button::SetProperty(id, val);
+    Button::ApplyProperty(id, val);
 }
 DropDownButton::~DropDownButton() {
     SelectedIndex.Unbind();
@@ -135,13 +135,13 @@ void DropDownButton::AddSeparator() {
 void DropDownButton::ClearItems() {
     m_items.clear();
     m_hoverIndex = -1;
-    SetSelectedIndex(-1);
+    ApplySelectedIndex(-1);
     if (m_isDropDownOpen) {
         MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
     }
 }
 
-void DropDownButton::SetSelectedIndex(int index) {
+void DropDownButton::ApplySelectedIndex(int index) {
     if (index < -1 || index >= static_cast<int>(m_items.size()) || m_selectedIndex == index) {
         return;
     }
@@ -155,7 +155,7 @@ std::string DropDownButton::GetSelectedItem() const {
         ? m_items[m_selectedIndex].text
         : std::string{};
 }
-void DropDownButton::SetDropDownOpen(bool open) {
+void DropDownButton::ApplyDropDownOpen(bool open) {
     if (m_isDropDownOpen == open) {
         return;
     }
@@ -185,7 +185,7 @@ void DropDownButton::EndPressWithoutClick() {
     if (m_isPressed) {
         m_isPressed = false;
         UpdateVisualStateTarget();
-        m_visualStateAnim.SetTarget(m_visualStateTarget);
+        m_visualStateAnim.ApplyTarget(m_visualStateTarget);
         MarkRenderRectDirty(m_bounds);
     }
 }
@@ -204,9 +204,9 @@ bool DropDownButton::HandleMenuMouseDown(Point pt) {
     if (m_items[idx].onClick) {
         m_items[idx].onClick();
     }
-    SetSelectedIndex(idx);
+    ApplySelectedIndex(idx);
     m_onItemChosenEvent.Invoke(this, idx, m_items[idx].text);
-    SetDropDownOpen(false);
+    ApplyDropDownOpen(false);
     return true;
 }
 
@@ -243,9 +243,9 @@ void DropDownButton::ActivateHighlighted() {
     if (item.onClick) {
         item.onClick();
     }
-    SetSelectedIndex(m_hoverIndex);
+    ApplySelectedIndex(m_hoverIndex);
     m_onItemChosenEvent.Invoke(this, m_hoverIndex, item.text);
-    SetDropDownOpen(false);
+    ApplyDropDownOpen(false);
 }
 
 void DropDownButton::OnMouseDown(Point pt) {
@@ -258,7 +258,7 @@ void DropDownButton::OnMouseDown(Point pt) {
     }
     Button::OnMouseDown(pt);
     if (OpensOnPrimaryPress()) {
-        SetDropDownOpen(!m_isDropDownOpen);
+        ApplyDropDownOpen(!m_isDropDownOpen);
     }
 }
 
@@ -291,11 +291,11 @@ bool DropDownButton::OnKeyDown(int vkCode) {
     }
     const bool altDown = (GetKeyState(VK_MENU) & 0x8000) != 0;
     if (vkCode == VK_ESCAPE) {
-        SetDropDownOpen(false);
+        ApplyDropDownOpen(false);
         return true;
     }
     if (vkCode == VK_DOWN && (altDown || !m_isDropDownOpen)) {
-        SetDropDownOpen(true);
+        ApplyDropDownOpen(true);
         return true;
     }
     if (m_isDropDownOpen) {
@@ -309,7 +309,7 @@ bool DropDownButton::OnKeyDown(int vkCode) {
         return true;
     }
     if (vkCode == VK_SPACE || vkCode == VK_RETURN) {
-        SetDropDownOpen(true);
+        ApplyDropDownOpen(true);
         return true;
     }
     return Button::OnKeyDown(vkCode);
@@ -317,11 +317,11 @@ bool DropDownButton::OnKeyDown(int vkCode) {
 
 void DropDownButton::OnBlur() {
     Button::OnBlur();
-    SetDropDownOpen(false);
+    ApplyDropDownOpen(false);
 }
 
 void DropDownButton::OnNavigatedFrom() {
-    SetDropDownOpen(false);
+    ApplyDropDownOpen(false);
     Button::OnNavigatedFrom();
 }
 
@@ -329,11 +329,11 @@ bool DropDownButton::OnAnimationTick() {
     bool any = Button::OnAnimationTick();
     const float dt = UIElement::GetAnimationDeltaSeconds();
     const AnimationSpec spec = PopupReveal::kSpec;
-    m_popupAnim.SetTarget(m_isDropDownOpen ? 1.0f : 0.0f);
+    m_popupAnim.ApplyTarget(m_isDropDownOpen ? 1.0f : 0.0f);
     if (m_popupAnim.Tick(dt, spec)) {
         any = true;
     }
-    m_arrowAnim.SetTarget(m_isDropDownOpen ? 1.0f : 0.0f);
+    m_arrowAnim.ApplyTarget(m_isDropDownOpen ? 1.0f : 0.0f);
     if (m_arrowAnim.Tick(dt, spec)) {
         any = true;
     }

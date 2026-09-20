@@ -34,13 +34,13 @@ Element BuildHomePage() {
                 wrap.Align(Alignment::Stretch);
 
         for (const Entry* entry : items) {
-            auto card = Column(6, {
+            CUI::Widgets::Ref card =Column(6, {
                 MakeLabel(entry->title, 15.0f, ThemeTokenId::TextPrimary, true),
                 MakeLabel(entry->subtitle, 12.0f, ThemeTokenId::TextMuted, false),
             }).MinWidth(180).Padding(16).CornerRadius(6).Build();
-                        card->SetBackgroundToken(ThemeTokenId::CardBackground);
-                        card->SetBorderToken(ThemeTokenId::CardBorder);
-                        card->SetBorderThickness(1.0f);
+                        card.BackgroundToken(ThemeTokenId::CardBackground);
+                        card.BorderToken(ThemeTokenId::CardBorder);
+                        card.BorderThickness(1.0f);
             const std::string tag = entry->tag;
             auto go = [tag](UIElement*) {
                 Host::Instance().Navigate(tag);
@@ -60,8 +60,8 @@ Element BuildHomePage() {
         }));
     }
 
-    auto column = body.Build();
-        column->SetBackgroundToken(ThemeTokenId::WindowBackground);
+    CUI::Widgets::Ref column =body.Build();
+        column.BackgroundToken(ThemeTokenId::WindowBackground);
 
     CUI::Widgets::Ref scroll = CUI::Widgets::ScrollViewer().Shared();
         scroll.Align(Alignment::Stretch);

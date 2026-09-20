@@ -37,28 +37,29 @@ std::string FormatPieHover(ChartBase* chart, int index) {
     return std::format("{}  ·  {}  ({:.1f}%)", cat, FormatChartNumber(value), pct);
 }
 
-void ApplyMonthly(ChartBase& chart) {
-        chart.SetCategories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
+template<class T>
+void ApplyMonthly(const CUI::Widgets::Ref<T>& chart) {
+        chart.Categories({ "1月", "2月", "3月", "4月", "5月", "6月", "7月" });
     ChartSeries s;
     s.name = "华北";
     s.values = { 12.0f, 18.0f, 15.0f, 22.0f, 28.0f, 24.0f, 31.0f };
-        chart.SetSeries({ std::move(s) });
+        chart.Series({ std::move(s) });
 }
 
 void ApplyQuarterly(ChartBase& chart) {
-        chart.SetCategories({ "Q1", "Q2", "Q3", "Q4" });
+        chart.ApplyCategories({ "Q1", "Q2", "Q3", "Q4" });
     ChartSeries s;
     s.name = "华北";
     s.values = { 82.0f, 91.0f, 76.0f, 104.0f };
-        chart.SetSeries({ std::move(s) });
+        chart.ApplySeries({ std::move(s) });
 }
 
 void ApplyCustom(ChartBase& chart) {
-        chart.SetCategories({ "操作系统", "数据库", "中间件", "缓存", "消息队列", "其他" });
+        chart.ApplyCategories({ "操作系统", "数据库", "中间件", "缓存", "消息队列", "其他" });
     ChartSeries s;
     s.name = "资源占比";
     s.values = { 34.0f, 22.0f, 15.0f, 12.0f, 9.0f, 8.0f };
-        chart.SetSeries({ std::move(s) });
+        chart.ApplySeries({ std::move(s) });
 }
 
 } // anonymous namespace
@@ -68,14 +69,14 @@ Element BuildPieChartPage() {
     CUI::Widgets::Ref pie = CUI::Widgets::PieChart().Shared();
         pie.Text("饼图 · 华北月度销量占比");
         pie.Height(320.0f);
-    ApplyMonthly(*pie);
+    ApplyMonthly(pie);
 
-    auto status1 = MakeStatus("悬停扇区读值，扇区平滑向外凸出高亮");
+    CUI::Widgets::Ref status1 =MakeStatus("悬停扇区读值，扇区平滑向外凸出高亮");
     pie->OnHoverChanged().Connect([status1](ChartBase* sender, int index, int) {
-                status1->SetText(FormatPieHover(sender, index));
+                status1.Text(FormatPieHover(sender, index));
     });
 
-    auto btnMonth = ElevatedButton("月度数据", [pie](UIElement*) { ApplyMonthly(*pie); }).Build();
+    auto btnMonth = ElevatedButton("月度数据", [pie](UIElement*) { ApplyMonthly(pie); }).Build();
     auto btnQuarter = ElevatedButton("季度数据", [pie](UIElement*) { ApplyQuarterly(*pie); }).Build();
     auto btnCustom = ElevatedButton("资源占比", [pie](UIElement*) { ApplyCustom(*pie); }).Build();
     auto btnReveal = ElevatedButton("重放入场动画", [pie](UIElement*) { pie->PlayReveal(); }).Build();

@@ -404,30 +404,30 @@ public:
 
     // 常规属性的属性封装层与手动 Getter / Setter
     float GetWidth() const { return m_width; }          // 获取显式设置的布局宽度数值
-    void SetWidth(float v);                             // 显式设置布局宽度，并触发 InvalidateMeasure 重新测算
+    void ApplyWidth(float v);                             // 显式设置布局宽度，并触发 InvalidateMeasure 重新测算
     float GetHeight() const { return m_height; }        // 获取显式设置的布局高度数值
-    void SetHeight(float v);                            // 显式设置布局高度，并触发 InvalidateMeasure 重新测算
+    void ApplyHeight(float v);                            // 显式设置布局高度，并触发 InvalidateMeasure 重新测算
     float GetMinWidth() const { return m_minWidth; }    // 获取布局约束的最小宽度值
-    void SetMinWidth(float v);                          // 设置布局约束的最小宽度值，并使测量变脏
+    void ApplyMinWidth(float v);                          // 设置布局约束的最小宽度值，并使测量变脏
     float GetMinHeight() const { return m_minHeight; }  // 获取布局约束的最小高度值
-    void SetMinHeight(float v);                         // 设置布局约束的最小高度值，并使测量变脏
+    void ApplyMinHeight(float v);                         // 设置布局约束的最小高度值，并使测量变脏
     float GetMaxWidth() const { return m_maxWidth; }
-    void SetMaxWidth(float v);
+    void ApplyMaxWidth(float v);
     float GetMaxHeight() const { return m_maxHeight; }
-    void SetMaxHeight(float v);
+    void ApplyMaxHeight(float v);
     Thickness GetMargin() const { return m_margin; }    // 获取控件外边距边缘厚度
-    void SetMargin(const Thickness& margin);            // 设置控件外边距边缘厚度，并触发父容器重新排列
+    void ApplyMargin(const Thickness& margin);            // 设置控件外边距边缘厚度，并触发父容器重新排列
     Thickness GetPadding() const { return m_padding; }  // 获取控件内边距填充厚度
-    void SetPadding(const Thickness& padding);          // 设置控件内边距填充厚度，并触发内部元素重新测算
+    void ApplyPadding(const Thickness& padding);          // 设置控件内边距填充厚度，并触发内部元素重新测算
 
     Visibility GetVisibility() const { return m_visibility; } // 获取当前控件的可见性状态
-    void SetVisibility(Visibility v);                          // 设置控件的可见性状态，控制隐藏或彻底折叠排版占位
+    void ApplyVisibility(Visibility v);                          // 设置控件的可见性状态，控制隐藏或彻底折叠排版占位
     
     /**
      * @brief 用于测量探针的快速可见性赋值（不会触发 InvalidateMeasure 重新布局与属性通知）。
      * 例如在 Expander 测量折叠部分折拢时的高度。
      */
-    void SetVisibilityForMeasureProbe(Visibility v) { m_visibility = v; } // 静默式设定控件内部排版所用的临时可见性
+    void ApplyVisibilityForMeasureProbe(Visibility v) { m_visibility = v; } // 静默式设定控件内部排版所用的临时可见性
     
     /**
      * @brief 检查节点自身及其所有父辈树是否全被启用。
@@ -440,141 +440,141 @@ public:
         }
         return true;
     }
-    void SetIsEnabled(bool enabled); // 设置控件的交互启用状态，控制激活与灰色不可用样式切换
+    void ApplyIsEnabled(bool enabled); // 设置控件的交互启用状态，控制激活与灰色不可用样式切换
 
     float GetOpacity() const { return m_opacity; }       // 获取渲染透明度数值
-    void SetOpacity(float v);                            // 设置渲染透明度，范围 0.0f - 1.0f
+    void ApplyOpacity(float v);                            // 设置渲染透明度，范围 0.0f - 1.0f
     float GetCornerRadius() const { return m_cornerRadius; } // 获取矩形圆角半径像素值
-    void SetCornerRadius(float v);                       // 设置矩形圆角半径，触发重绘
+    void ApplyCornerRadius(float v);                       // 设置矩形圆角半径，触发重绘
     float GetBorderThickness() const { return m_borderThickness; } // 获取外包围边框线条粗细
-    void SetBorderThickness(float v);                    // 设置外包围边框线条粗细，触发重新测算
+    void ApplyBorderThickness(float v);                    // 设置外包围边框线条粗细，触发重新测算
     float GetFlexGrow() const { return m_flexGrow; }    // 获取在弹性容器中拉伸拉伸填充所占用的空间权重比例
-    void SetFlexGrow(float v);                           // 设置在弹性容器中拉伸拉伸填充所占用的空间权重比例
+    void ApplyFlexGrow(float v);                           // 设置在弹性容器中拉伸拉伸填充所占用的空间权重比例
 
     // 对齐属性管理
     Alignment GetAlign() const { return m_align; }                          // 获取常规排版对齐模式
-    void SetAlign(Alignment a);                                             // 设置常规排版对齐模式
+    void ApplyAlign(Alignment a);                                             // 设置常规排版对齐模式
     Alignment GetAlignHorizontal() const { return m_alignHorizontal; }      // 获取水平排列对齐模式
-    void SetAlignHorizontal(Alignment a);                                    // 设置水平排列对齐模式
+    void ApplyAlignHorizontal(Alignment a);                                    // 设置水平排列对齐模式
     Alignment GetAlignVertical() const { return m_alignVertical; }          // 获取垂直排列对齐模式
-    void SetAlignVertical(Alignment a);                                      // 设置垂直排列对齐模式
+    void ApplyAlignVertical(Alignment a);                                      // 设置垂直排列对齐模式
 
     // 布局特定属性
     CUI::Orientation GetOrientation() const { return m_orientation; }            // 获取 Stack 等布局的方向朝向
-    void SetOrientation(CUI::Orientation o);                                     // 设置 Stack 等布局的方向朝向
+    void ApplyOrientation(CUI::Orientation o);                                     // 设置 Stack 等布局的方向朝向
     float GetGap() const { return m_gap; }                                  // 获取子元素排列分布的间距像素值
-    void SetGap(float v);                                                   // 设置子元素排列分布的间距像素值
+    void ApplyGap(float v);                                                   // 设置子元素排列分布的间距像素值
     float GetItemWidth() const { return m_itemWidth; }                      // 获取网格或容器内部子项单元的最大限定宽度
-    void SetItemWidth(float v);                                             // 设置网格或容器内部子项单元的最大限定宽度
+    void ApplyItemWidth(float v);                                             // 设置网格或容器内部子项单元的最大限定宽度
     float GetItemHeight() const { return m_itemHeight; }                    // 获取网格或容器内部子项单元的最大限定高度
-    void SetItemHeight(float v);                                             // 设置网格或容器内部子项单元的最大限定高度
+    void ApplyItemHeight(float v);                                             // 设置网格或容器内部子项单元的最大限定高度
     bool GetLastChildFill() const { return m_lastChildFill; }              // 停靠或弹性容器中是否让最后一个子控件强制拉伸填满剩余区域
-    void SetLastChildFill(bool v);                                          // 设定停靠或弹性容器中是否让最后一个子控件强制拉伸填满剩余区域
+    void ApplyLastChildFill(bool v);                                          // 设定停靠或弹性容器中是否让最后一个子控件强制拉伸填满剩余区域
     bool GetJustifyLines() const { return m_justifyLines; }
-    void SetJustifyLines(bool v);
+    void ApplyJustifyLines(bool v);
     bool GetFillLastLine() const { return m_fillLastLine; }
-    void SetFillLastLine(bool v);
+    void ApplyFillLastLine(bool v);
     int GetRows() const { return m_rows; }                                  // 获取网格容器预设的行数
-    void SetRows(int v);                                                    // 设置网格容器预设的行数
+    void ApplyRows(int v);                                                    // 设置网格容器预设的行数
     int GetColumns() const { return m_columns; }                            // 获取网格容器预设的列数
-    void SetColumns(int v);                                                 // 设置网格容器预设的列数
+    void ApplyColumns(int v);                                                 // 设置网格容器预设的列数
 
     bool GetClipToBounds() const { return m_clipToBounds; }                // 判定是否裁剪超出控件几何范围的内容
-    void SetClipToBounds(bool v);                                           // 设定是否裁剪超出控件几何范围的内容
+    void ApplyClipToBounds(bool v);                                           // 设定是否裁剪超出控件几何范围的内容
 
     // 附加定位依赖属性 (Canvas 面板坐标定位)
     float GetCanvasLeft() const { return m_canvasLeft; }                    // 获取画布绝对坐标系中的 X 左边缘像素值
-    void SetCanvasLeft(float v);                                            // 设置画布绝对坐标系中的 X 左边缘像素值
+    void ApplyCanvasLeft(float v);                                            // 设置画布绝对坐标系中的 X 左边缘像素值
     float GetCanvasTop() const { return m_canvasTop; }                      // 获取画布绝对坐标系中的 Y 顶边缘像素值
-    void SetCanvasTop(float v);                                             // 设置画布绝对坐标系中的 Y 顶边缘像素值
+    void ApplyCanvasTop(float v);                                             // 设置画布绝对坐标系中的 Y 顶边缘像素值
     float GetCanvasRight() const { return m_canvasRight; }                  // 获取画布绝对坐标系中的 X 右边缘参考像素值
-    void SetCanvasRight(float v);                                           // 设置画布绝对坐标系中的 X 右边缘参考像素值
+    void ApplyCanvasRight(float v);                                           // 设置画布绝对坐标系中的 X 右边缘参考像素值
     float GetCanvasBottom() const { return m_canvasBottom; }                // 获取画布绝对坐标系中的 Y 底边缘参考像素值
-    void SetCanvasBottom(float v);                                          // 设置画布绝对坐标系中的 Y 底边缘参考像素值
+    void ApplyCanvasBottom(float v);                                          // 设置画布绝对坐标系中的 Y 底边缘参考像素值
     int GetZIndex() const { return m_zIndex; }                                // 获取 Canvas 中的绘制与命中层级
-    void SetZIndex(int v);                                                    // 设置 Canvas 中的绘制与命中层级
+    void ApplyZIndex(int v);                                                    // 设置 Canvas 中的绘制与命中层级
     
     // Grid 布局定位参数
     int GetGridColumn() const { return m_gridColumn; }                      // 获取被编排在 Grid 布局中的目标列索引号
-    void SetGridColumn(int v);                                              // 设置被编排在 Grid 布局中的目标列索引号
+    void ApplyGridColumn(int v);                                              // 设置被编排在 Grid 布局中的目标列索引号
     int GetGridRow() const { return m_gridRow; }                            // 获取被编排在 Grid 布局中的目标行索引号
-    void SetGridRow(int v);                                                 // 设置被编排在 Grid 布局中的目标行索引号
+    void ApplyGridRow(int v);                                                 // 设置被编排在 Grid 布局中的目标行索引号
     int GetGridColumnSpan() const { return m_gridColumnSpan; }              // 获取在网格中跨越合并的列数
-    void SetGridColumnSpan(int v);                                          // 设置在网格中跨越合并的列数
+    void ApplyGridColumnSpan(int v);                                          // 设置在网格中跨越合并的列数
     int GetGridRowSpan() const { return m_gridRowSpan; }                    // 获取在网格中跨越合并的行数
-    void SetGridRowSpan(int v);                                             // 设置在网格中跨越合并的行数
+    void ApplyGridRowSpan(int v);                                             // 设置在网格中跨越合并的行数
     
     // DockPanel 停靠位置
     Dock GetDock() const { return m_dock; }                                  // 获取子元素在 DockPanel 中的停靠方位边沿
-    void SetDock(Dock d);                                                   // 设定子元素在 DockPanel 中的停靠方位边沿
+    void ApplyDock(Dock d);                                                   // 设定子元素在 DockPanel 中的停靠方位边沿
 
     // 主题色彩 Token 手动分配与解析接口
     ThemeTokenId GetBackgroundToken() const { return m_backgroundToken; }   // 获取背景颜色所关联的主题样式 Token
-    void SetBackgroundToken(ThemeTokenId id);                               // 设置背景颜色所关联的主题样式 Token
+    void ApplyBackgroundToken(ThemeTokenId id);                               // 设置背景颜色所关联的主题样式 Token
     ThemeTokenId GetHoverBackgroundToken() const { return m_hoverBackgroundToken; } // 获取鼠标悬浮时的背景主题 Token
-    void SetHoverBackgroundToken(ThemeTokenId id);                          // 设置鼠标悬浮时的背景主题 Token
+    void ApplyHoverBackgroundToken(ThemeTokenId id);                          // 设置鼠标悬浮时的背景主题 Token
     ThemeTokenId GetPressedBackgroundToken() const { return m_pressedBackgroundToken; } // 获取按下状态的背景主题 Token
-    void SetPressedBackgroundToken(ThemeTokenId id);                        // 设置按下状态的背景主题 Token
+    void ApplyPressedBackgroundToken(ThemeTokenId id);                        // 设置按下状态的背景主题 Token
     ThemeTokenId GetDisabledBackgroundToken() const { return m_disabledBackgroundToken; } // 获取不可交互时的灰色背景主题 Token
-    void SetDisabledBackgroundToken(ThemeTokenId id);                       // 设置不可交互时的灰色背景主题 Token
+    void ApplyDisabledBackgroundToken(ThemeTokenId id);                       // 设置不可交互时的灰色背景主题 Token
     ThemeTokenId GetBorderToken() const { return m_borderToken; }           // 获取静态边框的主题色彩 Token
-    void SetBorderToken(ThemeTokenId id);                                   // 设置静态边框的主题色彩 Token
+    void ApplyBorderToken(ThemeTokenId id);                                   // 设置静态边框的主题色彩 Token
     ThemeTokenId GetFocusedBorderToken() const { return m_focusedBorderToken; } // 获取选中聚焦时的高亮边框主题 Token
-    void SetFocusedBorderToken(ThemeTokenId id);                            // 设置选中聚焦时的高亮边框主题 Token
+    void ApplyFocusedBorderToken(ThemeTokenId id);                            // 设置选中聚焦时的高亮边框主题 Token
     ThemeTokenId GetColorToken() const { return m_colorToken; }              // 获取文字前景字元的主题 Token
-    void SetColorToken(ThemeTokenId id);                                    // 设置文字前景字元的主题 Token
+    void ApplyColorToken(ThemeTokenId id);                                    // 设置文字前景字元的主题 Token
     ThemeTokenId GetSecondaryColorToken() const { return m_secondaryColorToken; } // 获取次要辅助信息文本主题 Token
-    void SetSecondaryColorToken(ThemeTokenId id);                           // 设置次要辅助信息文本主题 Token
+    void ApplySecondaryColorToken(ThemeTokenId id);                           // 设置次要辅助信息文本主题 Token
     ThemeTokenId GetPlaceholderColorToken() const { return m_placeholderColorToken; } // 获取水印占位文本主题 Token
-    void SetPlaceholderColorToken(ThemeTokenId id);                         // 设置水印占位文本主题 Token
+    void ApplyPlaceholderColorToken(ThemeTokenId id);                         // 设置水印占位文本主题 Token
     ThemeTokenId GetSelectedBackgroundToken() const { return m_selectedBackgroundToken; } // 获取被选择项的背景主题 Token
-    void SetSelectedBackgroundToken(ThemeTokenId id);                       // 设置被选择项的背景主题 Token
+    void ApplySelectedBackgroundToken(ThemeTokenId id);                       // 设置被选择项的背景主题 Token
     ThemeTokenId GetHeaderBackgroundToken() const { return m_headerBackgroundToken; } // 获取标题头部装饰的主题 Token
-    void SetHeaderBackgroundToken(ThemeTokenId id);                         // 设置标题头部装饰的主题 Token
+    void ApplyHeaderBackgroundToken(ThemeTokenId id);                         // 设置标题头部装饰的主题 Token
     ThemeTokenId GetPaneBackgroundToken() const { return m_paneBackgroundToken; } // 获取抽屉、侧边栏专用的底色主题 Token
-    void SetPaneBackgroundToken(ThemeTokenId id);                           // 设置抽屉、侧边栏专用的底色主题 Token
+    void ApplyPaneBackgroundToken(ThemeTokenId id);                           // 设置抽屉、侧边栏专用的底色主题 Token
     ThemeTokenId GetIndicatorColorToken() const { return m_indicatorColorToken; } // 获取焦点浮动游标、滚动条指示点主题 Token
-    void SetIndicatorColorToken(ThemeTokenId id);                           // 设置焦点浮动游标、滚动条指示点主题 Token
+    void ApplyIndicatorColorToken(ThemeTokenId id);                           // 设置焦点浮动游标、滚动条指示点主题 Token
     ThemeTokenId GetDropdownBackgroundToken() const { return m_dropdownBackgroundToken; } // 获取下拉弹出菜单背景板主题 Token
-    void SetDropdownBackgroundToken(ThemeTokenId id);                       // 设置下拉弹出菜单背景板主题 Token
+    void ApplyDropdownBackgroundToken(ThemeTokenId id);                       // 设置下拉弹出菜单背景板主题 Token
     ThemeTokenId GetSelectedItemBackgroundToken() const { return m_selectedItemBackgroundToken; } // 获取列表中已被选项的底盘主题 Token
-    void SetSelectedItemBackgroundToken(ThemeTokenId id);                   // 设置列表中已被选项的底盘主题 Token
+    void ApplySelectedItemBackgroundToken(ThemeTokenId id);                   // 设置列表中已被选项的底盘主题 Token
     ThemeTokenId GetFillColorToken() const { return m_fillColorToken; }      // 获取一般性几何实心填充色主题 Token
-    void SetFillColorToken(ThemeTokenId id);                                // 设置一般性几何实心填充色主题 Token
+    void ApplyFillColorToken(ThemeTokenId id);                                // 设置一般性几何实心填充色主题 Token
     ThemeTokenId GetTrackColorToken() const { return m_trackColorToken; }    // 获取滑道静止底槽的颜色主题 Token
-    void SetTrackColorToken(ThemeTokenId id);                               // 设置滑道静止底槽的颜色主题 Token
+    void ApplyTrackColorToken(ThemeTokenId id);                               // 设置滑道静止底槽的颜色主题 Token
     ThemeTokenId GetActiveTrackColorToken() const { return m_activeTrackColorToken; } // 获取滑块左侧填充的高亮进度色主题 Token
-    void SetActiveTrackColorToken(ThemeTokenId id);                         // 设置滑块左侧填充的高亮进度色主题 Token
+    void ApplyActiveTrackColorToken(ThemeTokenId id);                         // 设置滑块左侧填充的高亮进度色主题 Token
     ThemeTokenId GetThumbColorToken() const { return m_thumbColorToken; }    // 获取拖动小纽扣外饰颜色主题 Token
-    void SetThumbColorToken(ThemeTokenId id);                               // 设置拖动小纽扣外饰颜色主题 Token
+    void ApplyThumbColorToken(ThemeTokenId id);                               // 设置拖动小纽扣外饰颜色主题 Token
     ThemeTokenId GetOnColorToken() const { return m_onColorToken; }          // 获取 ToggleSwitch 开启状态下的滑槽主题 Token
-    void SetOnColorToken(ThemeTokenId id);                                  // 设置 ToggleSwitch 开启状态下的滑槽主题 Token
+    void ApplyOnColorToken(ThemeTokenId id);                                  // 设置 ToggleSwitch 开启状态下的滑槽主题 Token
     ThemeTokenId GetOffColorToken() const { return m_offColorToken; }        // 获取 ToggleSwitch 关闭状态下的滑槽主题 Token
-    void SetOffColorToken(ThemeTokenId id);                                 // 设置 ToggleSwitch 关闭状态下的滑槽主题 Token
+    void ApplyOffColorToken(ThemeTokenId id);                                 // 设置 ToggleSwitch 关闭状态下的滑槽主题 Token
     ThemeTokenId GetKnobColorToken() const { return m_knobColorToken; }      // 获取 ToggleSwitch 纽扣触点填充主题 Token
-    void SetKnobColorToken(ThemeTokenId id);                                // 设置 ToggleSwitch 纽扣触点填充主题 Token
+    void ApplyKnobColorToken(ThemeTokenId id);                                // 设置 ToggleSwitch 纽扣触点填充主题 Token
     ThemeTokenId GetCheckedBackgroundToken() const { return m_checkedBackgroundToken; } // 获取CheckBox复选框勾选底盘主题 Token
-    void SetCheckedBackgroundToken(ThemeTokenId id);                        // 设置CheckBox复选框勾选底盘主题 Token
+    void ApplyCheckedBackgroundToken(ThemeTokenId id);                        // 设置CheckBox复选框勾选底盘主题 Token
     ThemeTokenId GetAccentColorToken() const { return m_accentColorToken; }  // 获取系统全局强调色/品牌特征高亮色 Token
-    void SetAccentColorToken(ThemeTokenId id);                              // 设置系统全局强调色/品牌特征高亮色 Token
+    void ApplyAccentColorToken(ThemeTokenId id);                              // 设置系统全局强调色/品牌特征高亮色 Token
     ThemeTokenId GetActiveColorToken() const { return m_activeColorToken; }  // 获取选中激活状态下主要元件颜色 Token
-    void SetActiveColorToken(ThemeTokenId id);                              // 设置选中激活状态下主要元件颜色 Token
+    void ApplyActiveColorToken(ThemeTokenId id);                              // 设置选中激活状态下主要元件颜色 Token
     ThemeTokenId GetUnderlineColorToken() const { return m_underlineColorToken; } // 获取静止下划线线条色彩 Token
-    void SetUnderlineColorToken(ThemeTokenId id);                           // 设置静止下划线线条色彩 Token
+    void ApplyUnderlineColorToken(ThemeTokenId id);                           // 设置静止下划线线条色彩 Token
     ThemeTokenId GetActiveUnderlineColorToken() const { return m_activeUnderlineColorToken; } // 获取激活/Hover下划线线条色彩 Token
-    void SetActiveUnderlineColorToken(ThemeTokenId id);                     // 设置激活/Hover下划线线条色彩 Token
+    void ApplyActiveUnderlineColorToken(ThemeTokenId id);                     // 设置激活/Hover下划线线条色彩 Token
     ThemeTokenId GetActiveTabBackgroundToken() const { return m_activeTabBackgroundToken; } // 获取活动中 Tab 标签头背景色 Token
-    void SetActiveTabBackgroundToken(ThemeTokenId id);                      // 设置活动中 Tab 标签头背景色 Token
+    void ApplyActiveTabBackgroundToken(ThemeTokenId id);                      // 设置活动中 Tab 标签头背景色 Token
     ThemeTokenId GetInactiveTabBackgroundToken() const { return m_inactiveTabBackgroundToken; } // 获取未激活 Tab 标签头背景色 Token
-    void SetInactiveTabBackgroundToken(ThemeTokenId id);                    // 设置未激活 Tab 标签头背景色 Token
+    void ApplyInactiveTabBackgroundToken(ThemeTokenId id);                    // 设置未激活 Tab 标签头背景色 Token
     ThemeTokenId GetGridLineBrushToken() const { return m_gridLineBrushToken; } // 获取网格分割线画笔颜色 Token
-    void SetGridLineBrushToken(ThemeTokenId id);                            // 设置网格分割线画笔颜色 Token
+    void ApplyGridLineBrushToken(ThemeTokenId id);                            // 设置网格分割线画笔颜色 Token
     ThemeTokenId GetTitleColorToken() const { return m_titleColorToken; }    // 获取消息框标题大文本颜色 Token
-    void SetTitleColorToken(ThemeTokenId id);                               // 设置消息框标题大文本颜色 Token
+    void ApplyTitleColorToken(ThemeTokenId id);                               // 设置消息框标题大文本颜色 Token
     ThemeTokenId GetMessageColorToken() const { return m_messageColorToken; } // 获取消息框内容文本的颜色 Token
-    void SetMessageColorToken(ThemeTokenId id);                             // 设置消息框内容文本的颜色 Token
+    void ApplyMessageColorToken(ThemeTokenId id);                             // 设置消息框内容文本的颜色 Token
     ThemeTokenId GetCaretColorToken() const { return m_caretColorToken; }    // 获取 TextBox 文本光标闪烁主题 Token
-    void SetCaretColorToken(ThemeTokenId id);                               // 设置 TextBox 文本光标闪烁主题 Token
+    void ApplyCaretColorToken(ThemeTokenId id);                               // 设置 TextBox 文本光标闪烁主题 Token
 
     /**
      * @brief 解析对应的主题色彩 Token。若该 Token 未指定，则回退解析指定的 fallback 色彩 Token。
@@ -583,67 +583,67 @@ public:
     D2D1_COLOR_F ResolveThemeColor(PropertyId tokenId, ThemeTokenId fallback) const;
 
     // 自定义具体硬编码配色重写接口
-    void SetBackground(D2D1_COLOR_F c);                 // 硬编码设置背景色（将覆盖对应的 Token 主题配置）
-    void SetBackgroundColor(D2D1_COLOR_F c) { SetBackground(c); } // 设置硬编码背景色彩值别名
+    void ApplyBackground(D2D1_COLOR_F c);                 // 硬编码设置背景色（将覆盖对应的 Token 主题配置）
+    void ApplyBackgroundColor(D2D1_COLOR_F c) { ApplyBackground(c); } // 设置硬编码背景色彩值别名
     D2D1_COLOR_F GetBackgroundColor() const { return m_backgroundColor; } // 获取重写的硬编码背景色
     bool HasBackgroundColor() const { return m_hasBackgroundColor; } // 判断当前是否启用了硬编码背景重写
-    void SetHoverBackground(D2D1_COLOR_F c);            // 硬编码设置鼠标悬浮背景色
+    void ApplyHoverBackground(D2D1_COLOR_F c);            // 硬编码设置鼠标悬浮背景色
     D2D1_COLOR_F GetHoverBackgroundColor() const { return m_hoverBackgroundColor; } // 获取硬编码悬浮背景色
     bool HasHoverBackgroundColor() const { return m_hasHoverBackgroundColor; } // 是否设置了悬停背景重写
-    void SetPressedBackground(D2D1_COLOR_F c);          // 硬编码设置鼠标按下背景色
+    void ApplyPressedBackground(D2D1_COLOR_F c);          // 硬编码设置鼠标按下背景色
     D2D1_COLOR_F GetPressedBackgroundColor() const { return m_pressedBackgroundColor; } // 获取硬编码按下背景色
     bool HasPressedBackgroundColor() const { return m_hasPressedBackgroundColor; } // 是否设置了按压背景重写
     
-    void SetBorderBrush(D2D1_COLOR_F c);                // 硬编码设置边框笔刷色彩值
+    void ApplyBorderBrush(D2D1_COLOR_F c);                // 硬编码设置边框笔刷色彩值
     D2D1_COLOR_F GetBorderBrushColor() const { return m_borderBrushColor; } // 获取硬编码设置的边框色彩值
     bool HasBorderBrushColor() const { return m_hasBorderBrushColor; } // 是否设置了边框重写色彩值
-    void SetColor(D2D1_COLOR_F c);                      // 硬编码设置前景/文本色彩值
-    void SetTextColor(D2D1_COLOR_F c) { SetColor(c); } // 设置硬编码前景/文本色彩值别名
+    void ApplyColor(D2D1_COLOR_F c);                      // 硬编码设置前景/文本色彩值
+    void ApplyTextColor(D2D1_COLOR_F c) { ApplyColor(c); } // 设置硬编码前景/文本色彩值别名
     D2D1_COLOR_F GetColorValue() const { return m_colorValue; } // 获取硬编码前景色彩值
     D2D1_COLOR_F GetTextColor() const { return m_colorValue; } // 获取硬编码文本色彩值别名
     bool HasColorValue() const { return m_hasColorValue; } // 是否存在硬编码前景色彩值
     bool HasTextColor() const { return m_hasColorValue; } // 是否存在硬编码文本色彩值别名
 
     const std::string& GetText() const { return m_text; } // 获取当前缓存的展示文字字符串
-    void SetText(const std::string& text);              // 修改展示文本，触发重新测量及重绘
+    void ApplyText(const std::string& text);              // 修改展示文本，触发重新测量及重绘
     void BindText(const std::shared_ptr<Observable<std::string>>& value); // 将文本绑定至一个 Observable 数据源上
     void UnbindText();                                  // 断开当前绑定的文本数据源链接
     const std::string& GetPlaceholder() const { return m_placeholder; } // 获取 TextBox 内部的水印文本
-    void SetPlaceholder(const std::string& placeholder); // 设置 TextBox 内部的水印提示文本
+    void ApplyPlaceholder(const std::string& placeholder); // 设置 TextBox 内部的水印提示文本
     
     // 字体相关手动接口
     const std::string& GetFontFamily() const { return m_fontFamily; } // 获取当前指定的字体族名称
-    void SetFontFamily(const std::string& font);        // 修改所采用的字体族，触发重新测算
+    void ApplyFontFamily(const std::string& font);        // 修改所采用的字体族，触发重新测算
     float GetFontSize() const { return m_fontSize; }    // 获取当前文字渲染大小 (px)
-    void SetFontSize(float size);                       // 修改渲染文字大小，触发重新测算
+    void ApplyFontSize(float size);                       // 修改渲染文字大小，触发重新测算
     CUI::FontWeight GetFontWeight() const { return m_fontWeight; } // 获取字重粗细
-    void SetFontWeight(CUI::FontWeight weight);         // 设定字重粗细，触发重新测算
+    void ApplyFontWeight(CUI::FontWeight weight);         // 设定字重粗细，触发重新测算
     DWRITE_FONT_WEIGHT ResolveFontWeight() const;       // 解析成 DWrite API 可直接认知的数值
     CUI::FontStyle GetFontStyle() const { return m_fontStyle; } // 获取字体样式（斜体/直立）
-    void SetFontStyle(CUI::FontStyle style);            // 设定字体样式，触发重新排版
+    void ApplyFontStyle(CUI::FontStyle style);            // 设定字体样式，触发重新排版
     DWRITE_FONT_STYLE ResolveFontStyle() const;         // 解析成 DWrite API 直接认知的斜体数值
     CUI::FontStretch GetFontStretch() const { return m_fontStretch; } // 获取字元水平拉伸变形度
-    void SetFontStretch(CUI::FontStretch stretch);      // 设定字元水平拉伸变形度
+    void ApplyFontStretch(CUI::FontStretch stretch);      // 设定字元水平拉伸变形度
     DWRITE_FONT_STRETCH ResolveFontStretch() const;     // 解析成 DWrite 可认知的水平变形拉伸值
     
     bool IsUnderline() const { return m_isUnderline; }  // 判断文字是否拥有下划线修饰
-    void SetIsUnderline(bool underline);                // 控制文字是否有下划线修饰
+    void ApplyIsUnderline(bool underline);                // 控制文字是否有下划线修饰
     bool IsStrikethrough() const { return m_isStrikethrough; } // 判断文字是否拥有中线删除线修饰
-    void SetIsStrikethrough(bool strikethrough);        // 控制文字是否有中线删除线修饰
+    void ApplyIsStrikethrough(bool strikethrough);        // 控制文字是否有中线删除线修饰
     
     // 工具提示 (ToolTip) 设置
     const std::string& GetToolTip() const { return m_toolTip; } // 获取当前设置的鼠标悬停信息提示字符串
-    void SetToolTip(const std::string& tip);            // 设置鼠标悬停信息提示字符串
-    void SetToolTipMaxWidth(float width);               // 指定悬停提示框内部文字折行的最长像素宽度上限
+    void ApplyToolTip(const std::string& tip);            // 设置鼠标悬停信息提示字符串
+    void ApplyToolTipMaxWidth(float width);               // 指定悬停提示框内部文字折行的最长像素宽度上限
     float GetToolTipMaxWidth() const { return m_toolTipMaxWidth; } // 获取悬停提示框内部文字折行的最长像素宽度上限
-    void SetToolTipAutoHideMs(int ms);                  // 设置显示几毫秒后将自动淡出关闭悬停框
+    void ApplyToolTipAutoHideMs(int ms);                  // 设置显示几毫秒后将自动淡出关闭悬停框
     int GetToolTipAutoHideMs() const { return m_toolTipAutoHideMs; } // 获取自动隐藏的时限 (ms)
 
     // 全局 ToolTip 静态时间参数管理
-    static void SetToolTipShowDelayMs(int ms);          // 静态设置鼠标需要在此控件悬停几毫秒后触发显示提示框
-    static void SetToolTipHideDelayMs(int ms);          // 静态设置鼠标离去后需要延迟几毫秒后再彻底折拢提示框
-    static void SetDefaultToolTipMaxWidth(float width); // 静态设置全局提示框默认换行像素宽
-    static void SetDefaultToolTipAutoHideMs(int ms);    // 静态设置全局默认多久后淡出提示框
+    static void ApplyToolTipShowDelayMs(int ms);          // 静态设置鼠标需要在此控件悬停几毫秒后触发显示提示框
+    static void ApplyToolTipHideDelayMs(int ms);          // 静态设置鼠标离去后需要延迟几毫秒后再彻底折拢提示框
+    static void ApplyDefaultToolTipMaxWidth(float width); // 静态设置全局提示框默认换行像素宽
+    static void ApplyDefaultToolTipAutoHideMs(int ms);    // 静态设置全局默认多久后淡出提示框
     static int GetToolTipShowDelayMs();                 // 获取全局弹出延迟时限
     static int GetToolTipHideDelayMs();                 // 获取全局关弹延迟时限
     static float GetDefaultToolTipMaxWidth();           // 获取全局默认换行像素宽
@@ -651,10 +651,10 @@ public:
     
     // 图标设置
     const std::string& GetIcon() const { return m_icon; } // 获取控件关联的矢量/图片图标名称
-    void SetIcon(const std::string& icon);              // 设定控件关联的图标，并使界面局部刷新
+    void ApplyIcon(const std::string& icon);              // 设定控件关联的图标，并使界面局部刷新
 
     // 反射式动态属性存取接口
-    void SetProperty(PropertyId id, const Value& val) override; // 通过运行时反射 PropertyId 强行注入通用属性值
+    void ApplyProperty(PropertyId id, const Value& val) override; // 通过运行时反射 PropertyId 强行注入通用属性值
     Value GetProperty(PropertyId id) const override;           // 根据 PropertyId 反射读取属性的通用 Variant 格式值
     bool HasProperty(PropertyId id) const override;            // 判断该控件内部属性列表是否存在某个反射标识属性
     std::vector<std::pair<PropertyId, Value>> SnapshotProperties() const override; // 生成该控件所有动态属性的内存快照
@@ -662,22 +662,22 @@ public:
     // 控件调试与标记标识
     ::HWND GetHWND() const;
     std::string GetId() const { return m_id; }          // 获取用户手动分配的控件唯一字符串 ID
-    void SetId(const std::string& id) { m_id = id; }
+    void ApplyId(const std::string& id) { m_id = id; }
     std::string GetTag() const { return m_tag; }
-    void SetTag(const std::string& tag) { m_tag = tag; }    // 分配唯一的字符串 ID 以便在层次树中检索
+    void ApplyTag(const std::string& tag) { m_tag = tag; }    // 分配唯一的字符串 ID 以便在层次树中检索
     std::string GetStyleClass() const { return m_styleClass; } // 获取样式表类名
-    void SetStyleClass(const std::string& styleClass) { m_styleClass = styleClass; } // 赋予样式表类名
+    void ApplyStyleClass(const std::string& styleClass) { m_styleClass = styleClass; } // 赋予样式表类名
 
     // 树结构层级关系存取
     UIElement* GetParent() const { return m_parent; }   // 获取指向父节点控件的原始指针
-    void SetParent(UIElement* parent);                  // 设置所属的父节点，维护树结构
+    void ApplyParent(UIElement* parent);                  // 设置所属的父节点，维护树结构
 
     /**
      * @brief 注册动画宿主。
      * 对于悬浮泡泡、弹出对话框等未真实加入排版树 (Measure/Arrange) 的视觉元素，
      * 需要绑定到活动状态的树节点以参与动画时钟 tick 步进并标记区域重绘。
      */
-    void SetAnimationHost(UIElement* host);
+    void ApplyAnimationHost(UIElement* host);
     UIElement* GetAnimationHost() const { return m_animationHost; } // 获取该 Popup 解离节点的动画挂载宿主
 
     // 子节点操作
@@ -696,7 +696,7 @@ public:
 
     // 控件外包络盒与 desiredSize 存取
     Rect GetBounds() const { return m_bounds; }         // 获取排版后的局部门口包络边界
-    void SetBounds(const Rect& bounds);                 // 强行指定控件的位置和包络盒
+    void ApplyBounds(const Rect& bounds);                 // 强行指定控件的位置和包络盒
     Size GetDesiredSize() const { return m_desiredSize; } // 获取测量测算得出的期望占位宽与高
 
     /**
@@ -770,9 +770,9 @@ public:
     virtual bool AcceptsTabFocus() const { return false; } // 表明该控件是否能够允许通过 Tab 按键获焦（默认不可聚焦）
     virtual bool ReceivesTabInput() const { return false; } // 控件是否接收 Tab / Shift+Tab 作为内容输入而非焦点导航
     KeyboardNavigationMode GetKeyboardNavigationMode() const { return m_keyboardNavigationMode; } // 获取 Tab 跳转循环规则
-    void SetKeyboardNavigationMode(KeyboardNavigationMode mode) { m_keyboardNavigationMode = mode; } // 设定 Tab 跳转循环规则
+    void ApplyKeyboardNavigationMode(KeyboardNavigationMode mode) { m_keyboardNavigationMode = mode; } // 设定 Tab 跳转循环规则
     FocusState GetFocusState() const { return m_focusState; } // 获取获焦的激活状态类型
-    void SetFocusState(FocusState state) { m_focusState = state; } // 设置获焦类型
+    void ApplyFocusState(FocusState state) { m_focusState = state; } // 设置获焦类型
     bool Focus(FocusState state = FocusState::Keyboard); // 主动申请将窗口焦点聚焦到此控件
     void Blur();                                        // 主动剥夺当前控件的窗口聚焦，释放焦点
     bool ShowsKeyboardFocusRing() const {
@@ -780,7 +780,7 @@ public:
     }
 
     // 命令绑定系统
-    void SetCommand(std::shared_ptr<Command> command);   // 为控件（如按钮）分配绑定的 Action 命令逻辑
+    void ApplyCommand(std::shared_ptr<Command> command);   // 为控件（如按钮）分配绑定的 Action 命令逻辑
     std::shared_ptr<Command> GetCommand() const { return m_command; } // 读取已绑定的 Action 命令
     bool ExecuteBoundCommand();                         // 触发执行已绑定的 Command 命令
     
@@ -806,15 +806,15 @@ public:
     bool IsAnimationTicksRegistered() const { return m_animationTicksRegistered; } // 验证是否已在动画驱动注册列表中
     
     // 跨 HWND 多窗口停靠交互属性
-    void SetPresentsOnOwnerWindow(bool enabled) { m_presentsOnOwnerWindow = enabled; } // 设定是否在主窗口完成绘制呈现
+    void ApplyPresentsOnOwnerWindow(bool enabled) { m_presentsOnOwnerWindow = enabled; } // 设定是否在主窗口完成绘制呈现
     bool PresentsOnOwnerWindow() const { return m_presentsOnOwnerWindow; } // 获取是否在主窗口完成绘制呈现
-    void SetOverlayComposed(bool enabled) { m_overlayComposed = enabled; } // 标识该控件已被强制转移绘制于悬浮图层
+    void ApplyOverlayComposed(bool enabled) { m_overlayComposed = enabled; } // 标识该控件已被强制转移绘制于悬浮图层
     bool IsOverlayComposed() const { return m_overlayComposed; } // 获取是否在悬浮层被合成
     
     // 全局静态动画开关控制
-    static void SetAnimationsEnabled(bool enabled);     // 静态配置全局过渡动画的使能总开关（关闭可显著降低资源负载）
+    static void ApplyAnimationsEnabled(bool enabled);     // 静态配置全局过渡动画的使能总开关（关闭可显著降低资源负载）
     static bool AreAnimationsEnabled();                 // 查询全局动画是否正常开启
-    static void SetAnimationDeltaSeconds(float dtSeconds); // 设置模拟时钟物理帧间隔秒数
+    static void ApplyAnimationDeltaSeconds(float dtSeconds); // 设置模拟时钟物理帧间隔秒数
     static float GetAnimationDeltaSeconds();            // 读取模拟时钟物理帧间隔秒数
     
     // 渲染污损版本计数 (以区分无效呈现优化)
@@ -844,9 +844,9 @@ public:
     // 高端合成图层属性提升相关 (Promoted Layer)
     void PromoteLayer(bool promote);                    // 将该控件的渲染分支直接提权成为一块离屏 Direct2D 图块纹理层
     bool IsLayerPromoted() const { return m_layerPromoted; } // 查询当前是否是高阶离屏合成纹理图层
-    void SetComposeOpacity(float opacity);              // 动画直接操控离屏合成层透明度（不需要重新光栅化栅格渲染）
+    void ApplyComposeOpacity(float opacity);              // 动画直接操控离屏合成层透明度（不需要重新光栅化栅格渲染）
     float GetComposeOpacity() const { return m_composeOpacity; } // 获取合成透明度
-    void SetComposeOffset(float x, float y);            // 动画直接平移合成图块
+    void ApplyComposeOffset(float x, float y);            // 动画直接平移合成图块
     float GetComposeOffsetX() const { return m_composeOffsetX; } // 获取合成层 X 轴平移距离
     float GetComposeOffsetY() const { return m_composeOffsetY; } // 获取合成层 Y 轴平移距离
     bool HasComposeDirty() const { return m_composeDirty; } // 合成属性是否脏，需要重新提交 Composition 层级树
@@ -862,7 +862,7 @@ public:
     virtual void OnRoutedEvent(RoutedEventArgs& args);  // 具有穿透和冒泡特性的 Routed 事件系统派发主通道
 
     // 上下文右键菜单管理
-    void SetContextMenu(std::shared_ptr<ContextMenu> menu) { m_contextMenu = menu; } // 为该控件关联分配一套快捷右键上下文菜单
+    void ApplyContextMenu(std::shared_ptr<ContextMenu> menu) { m_contextMenu = menu; } // 为该控件关联分配一套快捷右键上下文菜单
     std::shared_ptr<ContextMenu> GetContextMenu() const { return m_contextMenu; } // 提取当前关联的右键上下文菜单
 
     virtual void OnFocus();                             // 聚焦生命周期的具体调用入口
@@ -1085,7 +1085,7 @@ BindableProperty<T>* UIElement::GetOrCreatePropertyBinding() {
         *this,
         PropId,
         [this] { return PropertyValueTraits<T>::FromValue(GetProperty(PropId)); },
-        [this](const T& value) { SetProperty(PropId, PropertyValueTraits<T>::ToValue(value)); });
+        [this](const T& value) { ApplyProperty(PropId, PropertyValueTraits<T>::ToValue(value)); });
     auto* result = &slot->value;
     m_propertyBindings->emplace(PropId, std::move(slot));
     return result;

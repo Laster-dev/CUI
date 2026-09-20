@@ -16,10 +16,10 @@ public:
     const CellData& operator[](int index) const { return m_cells[static_cast<size_t>(index)]; }
 
     bool IsWrapped() const { return m_isWrapped; }
-    void SetIsWrapped(bool wrapped) { m_isWrapped = wrapped; }
+    void ApplyIsWrapped(bool wrapped) { m_isWrapped = wrapped; }
 
     bool IsDirty() const { return m_isDirty; }
-    void SetIsDirty(bool dirty) { m_isDirty = dirty; }
+    void ApplyIsDirty(bool dirty) { m_isDirty = dirty; }
     void MarkDirty() { m_isDirty = true; }
 
     void Resize(int cols);

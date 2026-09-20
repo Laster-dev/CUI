@@ -146,7 +146,7 @@ void Terminal::Attach(ITerminalBackend* backend) {
     }
     m_backend = backend;
     m_acceptingOutput.store(true);
-    backend->SetOutputCallback([this](const char* data, size_t length) {
+    backend->ApplyOutputCallback([this](const char* data, size_t length) {
         OnBackendOutput(data, length);
     });
     backend->Start(Cols(), Rows());
@@ -157,7 +157,7 @@ void Terminal::Detach() {
         return;
     }
     m_acceptingOutput.store(false);
-    m_backend->SetOutputCallback(nullptr);
+    m_backend->ApplyOutputCallback(nullptr);
     m_backend = nullptr;
 
     // Unblock any reader thread waiting on back-pressure and drop queued bytes.
@@ -324,7 +324,7 @@ void Terminal::ScrollToBottom() {
     RequestRedraw();
 }
 
-void Terminal::SetScrollDisp(int yDisp) {
+void Terminal::ApplyScrollDisp(int yDisp) {
     const int max = (std::max)(0, m_buffers.Active().BaseY());
     const int next = std::clamp(yDisp, 0, max);
     if (next == m_buffers.Active().YDisp) {
@@ -422,7 +422,7 @@ void Terminal::ApplyFindHit(int y, int startCol, int cellSpan) {
     model.EndCol = startCol + (std::max)(1, cellSpan) - 1;
     const int top = buf.BaseY() - buf.YDisp;
     if (y < top || y >= top + Rows()) {
-        SetScrollDisp((std::max)(0, buf.BaseY() - y));
+        ApplyScrollDisp((std::max)(0, buf.BaseY() - y));
     }
     RequestRedraw();
 }
