@@ -5,10 +5,11 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildTextBoxPage() {
-    auto basic = TextField()
+    auto basic = Widgets::TextBox()
         .Placeholder("请输入内容")
         .Width(300.0f)
-        .Height(32.0f);
+        .Height(32.0f)
+        .Shared();
 
     State<std::string> textState{ "" };
     basic->Text.Bind(textState, BindingMode::TwoWay);
@@ -27,36 +28,41 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
             basic->Text.Set("");
         });
 
-    auto multiline = TextField()
+    auto multiline = Widgets::TextBox()
         .Placeholder("多行文本：支持 Enter 换行与自动折行")
         .Width(340.0f)
-        .Height(120.0f);
+        .Height(120.0f)
+        .Shared();
         multiline->SetAcceptsReturn(true);
         multiline->SetTextWrapping(true);
 
-    auto readOnly = TextField()
+    auto readOnly = Widgets::TextBox()
         .Text("只读文本：.IsReadOnly(true)")
         .Width(300.0f)
-        .Height(32.0f);
+        .Height(32.0f)
+        .Shared();
         readOnly->SetIsReadOnly(true);
 
-    auto passwordMode = TextField()
+    auto passwordMode = Widgets::TextBox()
         .Placeholder("密码模式（带明文切换眼睛）")
         .Width(300.0f)
-        .Height(32.0f);
+        .Height(32.0f)
+        .Shared();
         passwordMode->SetIsPasswordMode(true);
         passwordMode->SetShowRevealButton(true);
 
-    auto disabled = TextField()
+    auto disabled = Widgets::TextBox()
         .Placeholder("不可用")
         .Width(300.0f)
-        .Height(32.0f);
+        .Height(32.0f)
+        .Shared();
         disabled->SetIsEnabled(false);
 
     State<std::string> boundText{ "绑定数据源：点击右侧按钮更新文本。" };
-    auto bound = TextField()
+    auto bound = Widgets::TextBox()
         .Width(300.0f)
-        .Height(32.0f);
+        .Height(32.0f)
+        .Shared();
         bound->SetIsReadOnly(true);
     bound->Text.Bind(boundText, BindingMode::OneWay);
 
@@ -67,10 +73,11 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
             boundText = "已通过 State 更新：Text.Bind(State, OneWay)。";
         });
 
-    auto drop = TextField()
+    auto drop = Widgets::TextBox()
         .Placeholder("支持拖放：拖入文本或文件路径")
         .Width(300.0f)
-        .Height(32.0f);
+        .Height(32.0f)
+        .Shared();
         drop->SetAllowDrop(true);
     drop->ToolTip = "允许从外部拖入文本或文件路径";
 
@@ -112,7 +119,7 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
         },
     };
     spec.source =
-        "auto box = TextField();\n"
+        "auto box = Widgets::TextBox().Shared();\n"
         "box->Placeholder = \"请输入内容\";\n"
         "box.AcceptsReturn(true);\n"
         "box.TextWrapping(true);\n"

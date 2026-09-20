@@ -51,7 +51,7 @@ Element BuildProgressBarPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto indeterminate = ToggleSwitchTile("不确定模式", false);
+    auto indeterminate = Widgets::ToggleSwitch().Header("不确定模式").IsOn(false).Shared();
     indeterminate->OnToggled().Connect([bar](ToggleSwitch*, bool on) {
                 bar->SetIsIndeterminate(on);
     });

@@ -42,7 +42,7 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
         col->SetCornerRadius(6.0f);
         col->AddChild(MakeLabel("标题一", 14.0f, ThemeTokenId::TextPrimary, true));
         col->AddChild(MakeLabel("说明文字：StackPanel 按添加顺序自上而下堆叠，每个子元素独占一行。", 12.0f, ThemeTokenId::TextMuted, false));
-        col->AddChild(TextField("输入框也按顺序排列").Build());
+        col->AddChild(Widgets::TextBox().Text("输入框也按顺序排列").Shared());
         col->AddChild(Widgets::WrapPanel().Gap(8).Children(
         ElevatedButton("确定").Background(Rgb(0x007ACC)).Padding(14, 8, 14, 8).Shared(),
         ElevatedButton("取消").Padding(14, 8, 14, 8).Shared()

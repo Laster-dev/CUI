@@ -54,7 +54,7 @@ Element BuildInfoBarPage() {
         }
     });
 
-    auto closable = ToggleSwitchTile("可关闭（右上角 X）", true);
+    auto closable = Widgets::ToggleSwitch().Header("可关闭（右上角 X）").IsOn(true).Shared();
     closable->OnToggled().Connect([demo](ToggleSwitch*, bool on) {
                 demo->SetIsClosable(on);
     });

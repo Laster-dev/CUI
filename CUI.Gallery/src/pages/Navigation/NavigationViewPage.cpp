@@ -13,9 +13,9 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string& body) {
-    auto check = CheckboxTile("启用示例功能").Build();
+    auto check = Widgets::CheckBox("启用示例功能").Shared();
         check->SetState(CheckState::Checked);
-    auto toggle = ToggleSwitchTile("快速设置开关", true).Build();
+    auto toggle = Widgets::ToggleSwitch().Header("快速设置开关").IsOn(true).Shared();
     return Column(12, {
         Text(title).FontSize(18.0f).FontWeight(FontWeight::SemiBold),
         Text(body),
@@ -168,7 +168,7 @@ Element BuildNavigationViewPage() {
     });
 
     auto btnToggle = ElevatedButton("Toggle Pane", [nav](UIElement*) { nav->TogglePane(); }).Build();
-    auto chkHeader = CheckboxTile("始终显示标题").Build();
+    auto chkHeader = Widgets::CheckBox("始终显示标题").Shared();
         chkHeader->SetState(CheckState::Checked);
     chkHeader->OnCheckStateChanged().Connect([nav](CheckBox*, CheckState st) {
                 nav->SetAlwaysShowHeader(st == CheckState::Checked);

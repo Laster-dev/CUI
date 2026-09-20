@@ -127,17 +127,17 @@ Element BuildBarChartPage() {
     }).Build();
     auto btnReveal3 = ElevatedButton("重放入场动画", [dyn](UIElement*) { dyn->PlayReveal(); }).Build();
 
-    auto chkGrid = CheckboxTile("显示网格").Build();
+    auto chkGrid = Widgets::CheckBox("显示网格").Shared();
         chkGrid->SetState(CheckState::Checked);
     chkGrid->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
                 dyn->SetShowGrid(st == CheckState::Checked);
     });
-    auto chkLegend = CheckboxTile("显示图例").Build();
+    auto chkLegend = Widgets::CheckBox("显示图例").Shared();
         chkLegend->SetState(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
                 dyn->SetShowLegend(st == CheckState::Checked);
     });
-    auto chkTip = CheckboxTile("悬停提示卡片").Build();
+    auto chkTip = Widgets::CheckBox("悬停提示卡片").Shared();
         chkTip->SetState(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
                 dyn->SetShowTooltip(st == CheckState::Checked);

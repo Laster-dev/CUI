@@ -62,9 +62,10 @@ Element BuildToolTipPage() {
     auto toggleAutoSave = Widgets::ToggleButton("自动同步 (Auto Sync)").Shared();
         toggleAutoSave->SetToolTip("开启后，每当文档内容发生更改时将自动写入本地缓存文件");
 
-    auto txtSample = TextField()
+    auto txtSample = Widgets::TextBox()
         .Text("鼠标悬停在输入框查看提示")
-        .ToolTip("提示：这是一个单行文本输入框，支持快捷键全选与剪贴板操作");
+        .ToolTip("提示：这是一个单行文本输入框，支持快捷键全选与剪贴板操作")
+        .Shared();
 
     SamplePageSpec spec;
     spec.title = "ToolTip (悬停提示)";

@@ -110,9 +110,9 @@ logView->Append(LogLevel::Warn, "Memory", "内存碎片预警");
 logView->Append(LogLevel::Error, "Net", "连接重置");
 
 // 3. 过滤与控制
-logView->SetFilterText("Error"); // 关键字筛选
-logView->SetFollowTail(true);    // 始终锁定滚底跟随
-logView->Clear();                // 清空记录
+logView.FilterText("Error"); // 关键字筛选
+logView.FollowTail(true);    // 始终锁定滚底跟随
+logView.Clear();             // 清空记录
 )cpp";
 
     return BuildSamplePage(spec);

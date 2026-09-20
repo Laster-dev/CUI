@@ -5,7 +5,7 @@
 using namespace CUI::DSL;
 
 ShowcasePage BuildTextBoxPage(const ShowcaseContext& ctx) {
-    auto target = TextField("在此输入多行文本...").Width(320).Height(120).Build();
+    auto target = CUI::Widgets::TextBox().Text("在此输入多行文本...").Width(320).Height(120).Shared();
         target->SetTextWrapping(true);
         target->SetAcceptsReturn(true);
     return { "TextBox 输入框", CreatePage(

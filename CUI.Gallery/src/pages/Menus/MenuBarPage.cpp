@@ -132,11 +132,12 @@ Element BuildMenuBarPage() {
     });
 
     // 模拟集成应用窗口工作区 (自适应撑满容器)
-    auto mockContent = TextField()
+    auto mockContent = Widgets::TextBox()
         .Text("这是一个集成了顶级 MenuBar 的桌面应用工作区容器。\n"
               "MenuBar 占据顶端并随窗口宽度自动拉伸，支持鼠标悬停平滑高亮切换、点击展开级联下拉、助记键聚焦与快捷键响应。")
         .Height(120.0f)
-        .Margin(12.0f);
+        .Margin(12.0f)
+        .Shared();
         mockContent->SetAcceptsReturn(true);
         mockContent->SetTextWrapping(true);
 

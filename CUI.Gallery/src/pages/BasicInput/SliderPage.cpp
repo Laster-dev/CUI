@@ -11,11 +11,12 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildSliderPage() {
-    auto volume = Widgets::Slider().Shared();
-        volume->SetMinimum(0.0f);
-        volume->SetMaximum(100.0f);
-        volume->SetStep(1.0f);
-        volume->SetWidth(280.0f);
+    auto volume = Widgets::Slider()
+        .Minimum(0.0f)
+        .Maximum(100.0f)
+        .Step(1.0f)
+        .Width(280.0f)
+        .Shared();
 
     State<float> volumeValue{ 40.0f };
     volume->ValueProperty.Bind(volumeValue);
@@ -28,11 +29,12 @@ Element BuildSliderPage() {
     volumeStatus->Text.Bind(volumeStatusValue, BindingMode::OneWay);
 
     auto vertical = Widgets::Slider()
-        .Orientation(Orientation::Vertical).Shared();
-        vertical->SetMinimum(0.0f);
-        vertical->SetMaximum(100.0f);
-        vertical->SetWidth(32.0f);
-        vertical->SetHeight(160.0f);
+        .Orientation(Orientation::Vertical)
+        .Minimum(0.0f)
+        .Maximum(100.0f)
+        .Width(32.0f)
+        .Height(160.0f)
+        .Shared();
 
     State<float> verticalValue{ 70.0f };
     vertical->ValueProperty.Bind(verticalValue);

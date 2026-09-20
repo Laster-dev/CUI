@@ -87,14 +87,14 @@ Element BuildPieChartPage() {
     ApplyCustom(*optPie);
 
     auto status2 = MakeStatus("图例与悬停提示可独立开关；饼图图例按百分比扇区自绘。");
-    auto chkLegend = CheckboxTile("显示图例").Build();
+    auto chkLegend = Widgets::CheckBox("显示图例").Shared();
         chkLegend->SetState(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([optPie, status2](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
                 optPie->SetShowLegend(on);
         status2->Text = on ? "图例已显示。" : "图例已隐藏。";
     });
-    auto chkTip = CheckboxTile("悬停提示卡片").Build();
+    auto chkTip = Widgets::CheckBox("悬停提示卡片").Shared();
         chkTip->SetState(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([optPie](CheckBox*, CheckState st) {
                 optPie->SetShowTooltip(st == CheckState::Checked);

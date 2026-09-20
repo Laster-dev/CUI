@@ -94,11 +94,12 @@ Element BuildCommandBarPage() {
     });
 
     // 模拟文档编辑展示卡片
-    auto mockEditor = TextField()
+    auto mockEditor = Widgets::TextBox()
         .Text("CommandBar（命令栏）是 Fluent 风格中用于组织页面或局部上下文核心操作的工具条。\n"
               "它能够智能感知可用宽度，当空间不足时自动将次要操作以及溢出的主要操作收纳进右侧的【更多 (…)】下拉菜单中。\n"
               "支持普通动作按钮、状态开关按钮、水平分隔线以及次要功能项。")
-        .Height(100.0f);
+        .Height(100.0f)
+        .Shared();
         mockEditor->SetAcceptsReturn(true);
         mockEditor->SetTextWrapping(true);
 

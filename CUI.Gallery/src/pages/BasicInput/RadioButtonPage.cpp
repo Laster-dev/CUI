@@ -5,9 +5,9 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildRadioButtonPage() {
-    auto light = RadioButtonTile("浅色");
-    auto dark = RadioButtonTile("深色");
-    auto system = RadioButtonTile("跟随系统");
+    auto light = Widgets::RadioButton("浅色").Shared();
+    auto dark = Widgets::RadioButton("深色").Shared();
+    auto system = Widgets::RadioButton("跟随系统").Shared();
         light->SetGroupName("theme");
         dark->SetGroupName("theme");
         system->SetGroupName("theme");
@@ -31,9 +31,9 @@ Element BuildRadioButtonPage() {
     auto themeStatus = MakeStatus("");
     themeStatus->Text.Bind(themeStatusValue, BindingMode::OneWay);
 
-    auto sizeS = RadioButtonTile("小");
-    auto sizeM = RadioButtonTile("中");
-    auto sizeL = RadioButtonTile("大");
+    auto sizeS = Widgets::RadioButton("小").Shared();
+    auto sizeM = Widgets::RadioButton("中").Shared();
+    auto sizeL = Widgets::RadioButton("大").Shared();
         sizeS->SetGroupName("size");
         sizeM->SetGroupName("size");
         sizeL->SetGroupName("size");

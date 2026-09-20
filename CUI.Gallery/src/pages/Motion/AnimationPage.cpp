@@ -241,7 +241,7 @@ private:
 Element BuildAnimationPage() {
     // 1. 全局动画开关
     const bool initialEnabled = AnimationService::Instance().AreAnimationsEnabled();
-    auto toggleAnim = ToggleSwitchTile("启用全局动效 (Animations Enabled)", initialEnabled);
+    auto toggleAnim = Widgets::ToggleSwitch().Header("启用全局动效 (Animations Enabled)").IsOn(initialEnabled).Shared();
     auto statusGlobal = MakeStatus(initialEnabled ? "当前状态：全局动画已开启（流畅过渡）" : "当前状态：全局动画已禁用（即刻吸附）");
 
     toggleAnim->OnToggled().Connect([statusGlobal](ToggleSwitch*, bool on) {

@@ -115,13 +115,14 @@ Element BuildContextMenuPage() {
         statusLabel->Text = "编辑器：【呼出智能修复与重命名提示条】";
     });
 
-    auto codeEditorArea = TextField()
+    auto codeEditorArea = Widgets::TextBox()
         .Text("// 在此代码编辑区内右键点击，呼出代码开发专属快捷菜单\n"
               "int main(int argc, char* argv[]) {\n"
               "    auto app = CUI::Application::Create();\n"
               "    return app->Run();\n"
               "}")
-        .Height(110.0f);
+        .Height(110.0f)
+        .Shared();
         codeEditorArea->SetAcceptsReturn(true);
         codeEditorArea->SetTextWrapping(true);
         codeEditorArea->SetContextMenu(codeMenu);

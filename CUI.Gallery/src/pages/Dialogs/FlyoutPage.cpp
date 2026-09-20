@@ -115,9 +115,10 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
         auto flyout = CUI::Widgets::Flyout().Shared();
         flyout->SetPlacement(FlyoutPlacement::Bottom);
 
-        auto input = TextField()
+        auto input = Widgets::TextBox()
             .Placeholder("输入新项目名称")
-            .Width(200.0f);
+            .Width(200.0f)
+            .Shared();
 
         auto applyBtn = Button("应用")
             .Width(60.0f);

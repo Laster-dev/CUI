@@ -72,7 +72,7 @@ Element BuildThemePage() {
         secondaryBtn->SetBorderThickness(1.0f);
     
 
-    auto input = TextField("输入内容");
+    auto input = Widgets::TextBox().Text("输入内容").Shared();
         input->SetWidth(240.0f);
 
     auto preview = Column(14, {

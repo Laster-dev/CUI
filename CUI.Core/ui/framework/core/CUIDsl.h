@@ -1096,82 +1096,19 @@ inline ElementBuilder<Button> ElevatedButton(const std::string& text = "", std::
     return b;
 }
 
-inline ElementBuilder<ToggleButton> ToggleButtonWidget(const std::string& text = "") { // 快速生成带按下/弹回两态切换的开关按钮
-    auto b = ElementBuilder<ToggleButton>();
-    if (!text.empty()) b.Text(text);
-    return b;
-}
 
-inline ElementBuilder<DropDownButton> DropDownButtonWidget(const std::string& text = "") { // 快速生成带向下小三角箭头的下拉弹窗按钮
-    auto b = ElementBuilder<DropDownButton>();
-    if (!text.empty()) b.Text(text);
-    return b;
-}
-
-inline ElementBuilder<SplitButton> SplitButtonWidget(const std::string& text = "") { // 快速生成拆分式下拉按钮
-    auto b = ElementBuilder<SplitButton>();
-    if (!text.empty()) b.Text(text);
-    return b;
-}
-
-inline ElementBuilder<TextBox> TextField(const std::string& text = "", std::function<void(TextBox*, const std::string&)> onChanged = nullptr) { // 快速生成普通文本输入框
-    auto t = ElementBuilder<TextBox>();
-    if (!text.empty()) t.Text(text);
-    if (onChanged) t.OnTextChanged(onChanged);
-    return t;
-}
-
-inline ElementBuilder<CheckBox> CheckboxTile(const std::string& title = "", std::function<void(CheckBox*, CheckState)> onChanged = nullptr) { // 快速生成复选卡选项组
-    auto c = ElementBuilder<CheckBox>();
-    if (!title.empty()) c.Text(title);
-    if (onChanged) c.OnCheckChanged(onChanged);
-    return c;
-}
 
 inline ElementBuilder<Panel> Container() { // 快速生成空泛的排版盒模型容器
     return ElementBuilder<Panel>();
 }
 
-inline ElementBuilder<TopologyView> TopologyWidget() {
-    return ElementBuilder<TopologyView>();
-}
 
-inline ElementBuilder<Canvas> CanvasWidget() { // 快速生成支持绝对坐标手工摆放子项的画布容器
-    return ElementBuilder<Canvas>();
-}
-
-inline ElementBuilder<Grid> GridWidget() { // 快速生成网格栅格排版定位 Grid 容器
-    return ElementBuilder<Grid>();
-}
-
-inline ElementBuilder<WrapPanel> WrapPanelWidget(const std::string& orient = "Horizontal") { // 快速生成自动溢出换行的流式布局容器
-    return ElementBuilder<WrapPanel>().Orientation(orient);
-}
-
-inline ElementBuilder<DockPanel> DockPanelWidget() { // 快速生成边缘停靠容器面板
-    return ElementBuilder<DockPanel>();
-}
-
-inline ElementBuilder<UniformGrid> UniformGridWidget(int rows = 2, int cols = 2) { // 快速生成单元格等宽等高的均分网格容器
-    auto u = ElementBuilder<UniformGrid>();
-    u.Rows(rows);
-    u.Columns(cols);
-    return u;
-}
-
-inline ElementBuilder<ComboBox> ComboBoxWidget() { return ElementBuilder<ComboBox>(); }
-inline ElementBuilder<ListBox> ListBoxWidget() { return ElementBuilder<ListBox>(); }
-inline ElementBuilder<ToggleSwitch> ToggleSwitchWidget() { return ElementBuilder<ToggleSwitch>(); }
-inline ElementBuilder<TreeView> TreeViewWidget() { return ElementBuilder<TreeView>(); }
-inline ElementBuilder<Flyout> FlyoutWidget() { return ElementBuilder<Flyout>(); }
 
 inline ElementBuilder<ScrollViewer> SingleChildScrollView() { // 快速生成单子控件滚动查看器
     return ElementBuilder<ScrollViewer>();
 }
 
-inline ElementBuilder<ScrollViewer> ScrollViewerWidget() { // 快速生成通用滚动视图
-    return ElementBuilder<ScrollViewer>();
-}
+
 
 inline ElementBuilder<Panel> Expanded(std::shared_ptr<UIElement> child, float flex = 1.0f) { // 快速生成弹性延伸填充块
     auto p = ElementBuilder<Panel>();
@@ -1183,277 +1120,19 @@ inline ElementBuilder<Panel> Expanded(std::shared_ptr<UIElement> child, float fl
     return p;
 }
 
-inline ElementBuilder<Slider> SliderWidget(float val = 0.0f, float min = 0.0f, float max = 100.0f, std::function<void(Slider*, float)> onChanged = nullptr) { // 快速生成游标滑动条
-    auto s = ElementBuilder<Slider>();
-    s.Minimum(min);
-    s.Maximum(max);
-    s.Value(val);
-    if (onChanged) s.OnValueChanged(onChanged);
-    return s;
-}
-
-inline ElementBuilder<RangeSlider> RangeSliderWidget(
-    float lower = 20.0f,
-    float upper = 80.0f,
-    float min = 0.0f,
-    float max = 100.0f,
-    std::function<void(RangeSlider*, float, float)> onChanged = nullptr) { // 快速生成双滑手柄区间段选择滑动器
-    auto s = ElementBuilder<RangeSlider>();
-    s.Minimum(min);
-    s.Maximum(max);
-    s.Range(lower, upper);
-    if (onChanged) s.OnValueChanged(onChanged);
-    return s;
-}
-
-inline ElementBuilder<ProgressBar> ProgressBarWidget(float val = 0.0f, bool isIndeterminate = false) { // 快速生成水平条形进度显示表
-    auto p = ElementBuilder<ProgressBar>();
-    p.Value(val);
-    p.IsIndeterminate(isIndeterminate);
-    return p;
-}
-
-inline ElementBuilder<ProgressRing> ProgressRingWidget(float val = 0.0f, bool isIndeterminate = true) { // 快速生成圆形旋转进度加载环
-    auto p = ElementBuilder<ProgressRing>();
-    p.Value(val);
-    p.IsIndeterminate(isIndeterminate);
-    return p;
-}
-
-inline ElementBuilder<AutoSuggestBox> AutoSuggestBoxWidget(const std::string& placeholder = "搜索…") { // 快速生成带模糊关联建议匹配的输入框
-    auto a = ElementBuilder<AutoSuggestBox>();
-    a.Placeholder(placeholder);
-    return a;
-}
-
-inline ElementBuilder<StatusBar> StatusBarWidget() { // 快速生成底部状态控制条
-    return ElementBuilder<StatusBar>();
-}
-
-inline ElementBuilder<RatingControl> RatingWidget(float value = 3.5f, int maxRating = 5) { // 快速生成五星级评分控件
-    auto r = ElementBuilder<RatingControl>();
-    r.MaxRating(maxRating);
-    r.Value(value);
-    return r;
-}
-
-inline ElementBuilder<TeachingTip> TeachingTipWidget() { // 快速生成新手气泡指引小浮框
-    return ElementBuilder<TeachingTip>();
-}
 
 
 
 
 
-inline ElementBuilder<LogView> LogViewWidget() { // 快速生成带分级着色和搜索的高频滚动日志监视窗
-    return ElementBuilder<LogView>();
-}
 
 
-inline ElementBuilder<InfoBar> InfoBarWidget() { // 快速生成用于头部提示消息的各种状态通知条
-    return ElementBuilder<InfoBar>();
-}
-
-inline ElementBuilder<CommandBar> CommandBarWidget() { // 快速生成可伸缩、带溢出点按式横条工具栏
-    return ElementBuilder<CommandBar>();
-}
-
-inline ElementBuilder<MenuBar> MenuBarWidget() { // 快速生成水平顶级菜单栏
-    return ElementBuilder<MenuBar>();
-}
-
-inline ElementBuilder<DockManager> DockManagerWidget() { // 快速生成高级停靠窗体管理器
-    return ElementBuilder<DockManager>();
-}
-
-inline ElementBuilder<WindowTitleBar> TitleBarWidget(const std::string& title = "CUI Application") { // 快速生成窗口顶部自定义标题栏
-    auto t = ElementBuilder<WindowTitleBar>();
-    t.Title(title);
-    return t;
-}
 
 
-inline ElementBuilder<FilePicker> FilePickerWidget(const std::string& path = "") { // 快速生成文件路径拾取器
-    auto f = ElementBuilder<FilePicker>();
-    if (!path.empty()) {
-        f.Path(path);
-    }
-    return f;
-}
-
-inline ElementBuilder<FolderPicker> FolderPickerWidget(const std::string& path = "") { // 快速生成文件夹目录拾取器
-    auto f = ElementBuilder<FolderPicker>();
-    if (!path.empty()) {
-        f.Path(path);
-    }
-    return f;
-}
-
-inline ElementBuilder<SegmentedControl> SegmentedWidget(std::initializer_list<const char*> items = {}) { // 快速生成 iOS 风格的左右滑动分段选择单选组
-    auto s = ElementBuilder<SegmentedControl>();
-    for (const char* item : items) {
-        if (item && *item) {
-            s.AddItem(item);
-        }
-    }
-    return s;
-}
-
-inline ElementBuilder<NumberBox> NumberBoxWidget(double val = 0.0) { // 快速生成带上下微调箭头数值框
-    auto n = ElementBuilder<NumberBox>();
-    n.Value(static_cast<float>(val));
-    return n;
-}
-
-inline ElementBuilder<PasswordBox> PasswordBoxWidget(const std::string& placeholder = "请输入密码") { // 快速生成遮罩密码安全输入框
-    auto p = ElementBuilder<PasswordBox>();
-    p.Placeholder(placeholder);
-    return p;
-}
-
-inline ElementBuilder<RadioButton> RadioButtonTile(const std::string& text = "", const std::string& group = "DefaultGroup") { // 快速生成单选按钮卡片项
-    auto r = ElementBuilder<RadioButton>();
-    if (!text.empty()) r.Text(text);
-    r.GroupName(group);
-    return r;
-}
-
-inline ElementBuilder<ToggleSwitch> ToggleSwitchTile(const std::string& header = "", bool isOn = false) { // 快速生成滑道式物理开关
-    auto t = ElementBuilder<ToggleSwitch>();
-    if (!header.empty()) t.Header(header);
-    t.IsOn(isOn);
-    return t;
-}
-
-inline ElementBuilder<DatePicker> DatePickerWidget() { // 快速生成日期年月日下拉滚轮选择器
-    return ElementBuilder<DatePicker>();
-}
-
-inline ElementBuilder<TimePicker> TimePickerWidget() { // 快速生成时间时分秒下拉滚轮选择器
-    return ElementBuilder<TimePicker>();
-}
-
-inline ElementBuilder<ColorPicker> ColorPickerWidget() { // 快速生成 HSV 环形加色板颜色选择盘
-    return ElementBuilder<ColorPicker>();
-}
 
 
-inline ElementBuilder<PagingControl> PagingControlWidget(int current = 1, int total = 10) { // 快速生成列表分页翻页控制器
-    auto p = ElementBuilder<PagingControl>();
-    p.TotalPages(total);
-    p.CurrentPage(current);
-    return p;
-}
-
-inline ElementBuilder<Splitter> SplitterWidget(Orientation orientation = Orientation::Horizontal) { // 快速生成拖拽式布局调整分割条
-    auto s = ElementBuilder<Splitter>();
-    if (orientation == Orientation::Horizontal) {
-        s.Orientation(Orientation::Horizontal);
-        s.Width(-1.0f);
-        s.Height(10.0f);
-    } else {
-        s.Orientation(Orientation::Vertical);
-        s.Width(10.0f);
-        s.Height(-1.0f);
-    }
-    s.Align(Alignment::Stretch);
-    return s;
-}
-
-inline ElementBuilder<Expander> ExpanderWidget(const std::string& title = "Expander") { // 快速生成可拉伸折拢的内容卡片 Expander
-    auto c = ElementBuilder<Expander>();
-    c.Header(title);
-    return c;
-}
 
 
-inline ElementBuilder<ListView> ListViewWidget() { // 快速生成纵向数据项目展示列表
-    return ElementBuilder<ListView>();
-}
-
-inline ElementBuilder<HyperlinkButton> HyperlinkButtonWidget(const std::string& text = "", const std::string& uri = "") { // 快速生成超链接字元按钮
-    auto h = ElementBuilder<HyperlinkButton>();
-    if (!text.empty()) h.Text(text);
-    if (!uri.empty()) h.NavigateUri(uri);
-    return h;
-}
-
-inline ElementBuilder<ContentDialog> ContentDialogWidget(const std::string& title = "Dialog", const std::string& message = "") { // 快速生成带确认取消的模态框大浮窗
-    auto d = ElementBuilder<ContentDialog>();
-    d.Title(title);
-    if (!message.empty()) d.Message(message);
-    return d;
-}
-
-/**
- * @brief 快速生成声明式矩形 Shape DOM 节点。
- * @param width 初始宽度，默认 100px。
- * @param height 初始高度，默认 50px。
- */
-inline ElementBuilder<Rectangle> RectangleWidget(float width = 100.0f, float height = 50.0f) {
-    auto r = ElementBuilder<Rectangle>();
-    r.Width(width);
-    r.Height(height);
-    return r;
-}
-
-/**
- * @brief 快速生成声明式椭圆/圆形 Shape DOM 节点。
- * @param width 初始宽度，默认 50px。
- * @param height 初始高度，默认 50px。
- */
-inline ElementBuilder<Ellipse> EllipseWidget(float width = 50.0f, float height = 50.0f) {
-    auto e = ElementBuilder<Ellipse>();
-    e.Width(width);
-    e.Height(height);
-    return e;
-}
-
-/**
- * @brief 快速生成声明式直线 Shape DOM 节点。
- * @param x1 起点 X 坐标。
- * @param y1 起点 Y 坐标。
- * @param x2 终点 X 坐标。
- * @param y2 终点 Y 坐标。
- */
-inline ElementBuilder<Line> LineWidget(float x1 = 0, float y1 = 0, float x2 = 100, float y2 = 100) {
-    auto l = ElementBuilder<Line>();
-    l.X1(x1).Y1(y1).X2(x2).Y2(y2);
-    return l;
-}
-
-/**
- * @brief 快速生成声明式 SVG Path 路径 Shape DOM 节点。
- * @param data SVG path data 描述字符串（如 "M 10 10 L 90 90 Z"）。
- */
-inline ElementBuilder<Path> PathWidget(const std::string& data = "") {
-    auto p = ElementBuilder<Path>();
-    if (!data.empty()) p.Data(data);
-    return p;
-}
-
-/**
- * @brief 快速生成声明式 SVG DOM 控件节点 (SvgIcon)。支持事件独立绑定与 TintColor 着色。
- * @param source SVG XML 内容标记或文件路径。
- */
-inline ElementBuilder<SvgIcon> SvgIconWidget(const std::string& source = "") {
-    auto s = ElementBuilder<SvgIcon>();
-    if (!source.empty()) s.Source(source);
-    return s;
-}
-
-/**
- * @brief 快速生成即时绘制模式画布控件 (CanvasControl)。
- * 适用于用 Direct2D 自绘制高性能图形，在事件闭包中手写坐标碰撞检测。
- * @param width 初始宽度，默认 300px。
- * @param height 初始高度，默认 200px。
- */
-inline ElementBuilder<CanvasControl> CanvasControlWidget(float width = 300.0f, float height = 200.0f) {
-    auto c = ElementBuilder<CanvasControl>();
-    c.Width(width);
-    c.Height(height);
-    return c;
-}
 
 struct BuildContext {
     Window* window = nullptr; // 包含当前进行构建活动的窗口宿主指针
@@ -1560,88 +1239,172 @@ inline ElementBuilder<CUI::SplitButton> SplitButton(const std::string& text = ""
 // ---------------------------------------------------------------------------
 
 inline ElementBuilder<CUI::PasswordBox> PasswordBox(const std::string& placeholder = "请输入密码") {
-    return PasswordBoxWidget(placeholder);
+    auto p = Control<CUI::PasswordBox>();
+    p.Placeholder(placeholder);
+    return p;
 }
 inline ElementBuilder<CUI::NumberBox> NumberBox(double value = 0.0) {
-    return NumberBoxWidget(value);
+    auto n = Control<CUI::NumberBox>();
+    n.Value(static_cast<float>(value));
+    return n;
 }
 inline ElementBuilder<CUI::RadioButton> RadioButton(const std::string& text = "", const std::string& group = "DefaultGroup") {
-    return RadioButtonTile(text, group);
+    auto r = Control<CUI::RadioButton>();
+    if (!text.empty()) r.Text(text);
+    r.GroupName(group);
+    return r;
 }
 inline ElementBuilder<CUI::ToggleSwitch> ToggleSwitch() {
-    return ToggleSwitchWidget();
+    return Control<CUI::ToggleSwitch>();
 }
 inline ElementBuilder<CUI::HyperlinkButton> HyperlinkButton(const std::string& text = "", const std::string& uri = "") {
-    return HyperlinkButtonWidget(text, uri);
+    auto h = Control<CUI::HyperlinkButton>();
+    if (!text.empty()) h.Text(text);
+    if (!uri.empty()) h.NavigateUri(uri);
+    return h;
 }
 inline ElementBuilder<CUI::SegmentedControl> SegmentedControl(std::initializer_list<const char*> items = {}) {
-    return SegmentedWidget(items);
+    auto s = Control<CUI::SegmentedControl>();
+    for (const char* item : items) {
+        if (item && *item) s.AddItem(item);
+    }
+    return s;
 }
-inline ElementBuilder<CUI::DatePicker> DatePicker() { return DatePickerWidget(); }
-inline ElementBuilder<CUI::TimePicker> TimePicker() { return TimePickerWidget(); }
-inline ElementBuilder<CUI::ColorPicker> ColorPicker() { return ColorPickerWidget(); }
+inline ElementBuilder<CUI::DatePicker> DatePicker() { return Control<CUI::DatePicker>(); }
+inline ElementBuilder<CUI::TimePicker> TimePicker() { return Control<CUI::TimePicker>(); }
+inline ElementBuilder<CUI::ColorPicker> ColorPicker() { return Control<CUI::ColorPicker>(); }
 inline ElementBuilder<CUI::PagingControl> PagingControl(int current = 1, int total = 10) {
-    return PagingControlWidget(current, total);
+    auto p = Control<CUI::PagingControl>();
+    p.TotalPages(total);
+    p.CurrentPage(current);
+    return p;
 }
 inline ElementBuilder<CUI::Splitter> Splitter(CUI::Orientation orientation = CUI::Orientation::Horizontal) {
-    return SplitterWidget(orientation);
+    auto s = Control<CUI::Splitter>();
+    if (orientation == CUI::Orientation::Horizontal) {
+        s.Orientation(CUI::Orientation::Horizontal);
+        s.Width(-1.0f);
+        s.Height(10.0f);
+    } else {
+        s.Orientation(CUI::Orientation::Vertical);
+        s.Width(10.0f);
+        s.Height(-1.0f);
+    }
+    s.Align(Alignment::Stretch);
+    return s;
 }
 inline ElementBuilder<CUI::Expander> Expander(const std::string& title = "Expander") {
-    return ExpanderWidget(title);
+    auto e = Control<CUI::Expander>();
+    e.Header(title);
+    return e;
 }
-inline ElementBuilder<CUI::TreeView> TreeView() { return TreeViewWidget(); }
-inline ElementBuilder<CUI::FilePicker> FilePicker(const std::string& path = "") { return FilePickerWidget(path); }
-inline ElementBuilder<CUI::FolderPicker> FolderPicker(const std::string& path = "") { return FolderPickerWidget(path); }
-inline ElementBuilder<CUI::Canvas> Canvas() { return CanvasWidget(); }
-inline ElementBuilder<CUI::WrapPanel> WrapPanel(const std::string& orient = "Horizontal") { return WrapPanelWidget(orient); }
-inline ElementBuilder<CUI::DockPanel> DockPanel() { return DockPanelWidget(); }
-inline ElementBuilder<CUI::UniformGrid> UniformGrid(int rows = 2, int cols = 2) { return UniformGridWidget(rows, cols); }
-inline ElementBuilder<CUI::ScrollViewer> ScrollViewer() { return ScrollViewerWidget(); }
-inline ElementBuilder<CUI::Flyout> Flyout() { return FlyoutWidget(); }
-inline ElementBuilder<CUI::MenuBar> MenuBar() { return MenuBarWidget(); }
-inline ElementBuilder<CUI::CommandBar> CommandBar() { return CommandBarWidget(); }
-inline ElementBuilder<CUI::InfoBar> InfoBar() { return InfoBarWidget(); }
-inline ElementBuilder<CUI::LogView> LogView() { return LogViewWidget(); }
-inline ElementBuilder<CUI::TopologyView> TopologyView() { return TopologyWidget(); }
-inline ElementBuilder<CUI::SvgIcon> SvgIcon(const std::string& source = "") { return SvgIconWidget(source); }
+inline ElementBuilder<CUI::TreeView> TreeView() { return Control<CUI::TreeView>(); }
+inline ElementBuilder<CUI::FilePicker> FilePicker(const std::string& path = "") {
+    auto f = Control<CUI::FilePicker>();
+    if (!path.empty()) f.Path(path);
+    return f;
+}
+inline ElementBuilder<CUI::FolderPicker> FolderPicker(const std::string& path = "") {
+    auto f = Control<CUI::FolderPicker>();
+    if (!path.empty()) f.Path(path);
+    return f;
+}
+inline ElementBuilder<CUI::Canvas> Canvas() { return Control<CUI::Canvas>(); }
+inline ElementBuilder<CUI::WrapPanel> WrapPanel(const std::string& orient = "Horizontal") {
+    return Control<CUI::WrapPanel>().Orientation(orient);
+}
+inline ElementBuilder<CUI::DockPanel> DockPanel() { return Control<CUI::DockPanel>(); }
+inline ElementBuilder<CUI::UniformGrid> UniformGrid(int rows = 2, int cols = 2) {
+    auto u = Control<CUI::UniformGrid>();
+    u.Rows(rows);
+    u.Columns(cols);
+    return u;
+}
+inline ElementBuilder<CUI::ScrollViewer> ScrollViewer() { return Control<CUI::ScrollViewer>(); }
+inline ElementBuilder<CUI::Flyout> Flyout() { return Control<CUI::Flyout>(); }
+inline ElementBuilder<CUI::MenuBar> MenuBar() { return Control<CUI::MenuBar>(); }
+inline ElementBuilder<CUI::CommandBar> CommandBar() { return Control<CUI::CommandBar>(); }
+inline ElementBuilder<CUI::InfoBar> InfoBar() { return Control<CUI::InfoBar>(); }
+inline ElementBuilder<CUI::LogView> LogView() { return Control<CUI::LogView>(); }
+inline ElementBuilder<CUI::TopologyView> TopologyView() { return Control<CUI::TopologyView>(); }
+inline ElementBuilder<CUI::SvgIcon> SvgIcon(const std::string& source = "") {
+    auto s = Control<CUI::SvgIcon>();
+    if (!source.empty()) s.Source(source);
+    return s;
+}
 inline ElementBuilder<CUI::CanvasControl> CanvasControl(float width = 300.0f, float height = 200.0f) {
-    return CanvasControlWidget(width, height);
+    auto c = Control<CUI::CanvasControl>();
+    c.Width(width);
+    c.Height(height);
+    return c;
 }
 inline ElementBuilder<CUI::ContentDialog> ContentDialog(const std::string& title = "Dialog", const std::string& message = "") {
-    return ContentDialogWidget(title, message);
+    auto d = Control<CUI::ContentDialog>();
+    d.Title(title);
+    if (!message.empty()) d.Message(message);
+    return d;
 }
-inline ElementBuilder<CUI::StatusBar> StatusBar() { return StatusBarWidget(); }
+inline ElementBuilder<CUI::StatusBar> StatusBar() { return Control<CUI::StatusBar>(); }
 inline ElementBuilder<CUI::RatingControl> RatingControl(float value = 3.5f, int maxRating = 5) {
-    return RatingWidget(value, maxRating);
+    auto r = Control<CUI::RatingControl>();
+    r.MaxRating(maxRating);
+    r.Value(value);
+    return r;
 }
-inline ElementBuilder<CUI::TeachingTip> TeachingTip() { return TeachingTipWidget(); }
+inline ElementBuilder<CUI::TeachingTip> TeachingTip() { return Control<CUI::TeachingTip>(); }
 inline ElementBuilder<CUI::AutoSuggestBox> AutoSuggestBox(const std::string& placeholder = "搜索…") {
-    return AutoSuggestBoxWidget(placeholder);
+    auto a = Control<CUI::AutoSuggestBox>();
+    a.Placeholder(placeholder);
+    return a;
 }
 inline ElementBuilder<CUI::ProgressBar> ProgressBar(float value = 0.0f, bool isIndeterminate = false) {
-    return ProgressBarWidget(value, isIndeterminate);
+    auto p = Control<CUI::ProgressBar>();
+    p.Value(value);
+    p.IsIndeterminate(isIndeterminate);
+    return p;
 }
 inline ElementBuilder<CUI::ProgressRing> ProgressRing(float value = 0.0f, bool isIndeterminate = true) {
-    return ProgressRingWidget(value, isIndeterminate);
+    auto p = Control<CUI::ProgressRing>();
+    p.Value(value);
+    p.IsIndeterminate(isIndeterminate);
+    return p;
 }
 inline ElementBuilder<CUI::RangeSlider> RangeSlider(float lower = 20.0f, float upper = 80.0f,
                                                     float min = 0.0f, float max = 100.0f) {
-    return RangeSliderWidget(lower, upper, min, max);
+    auto s = Control<CUI::RangeSlider>();
+    s.Minimum(min);
+    s.Maximum(max);
+    s.Range(lower, upper);
+    return s;
 }
-inline ElementBuilder<CUI::DockManager> DockManager() { return DockManagerWidget(); }
+inline ElementBuilder<CUI::DockManager> DockManager() { return Control<CUI::DockManager>(); }
 inline ElementBuilder<CUI::WindowTitleBar> WindowTitleBar(const std::string& title = "CUI Application") {
-    return TitleBarWidget(title);
+    auto t = Control<CUI::WindowTitleBar>();
+    t.Title(title);
+    return t;
 }
 inline ElementBuilder<CUI::Rectangle> Rectangle(float width = 100.0f, float height = 50.0f) {
-    return RectangleWidget(width, height);
+    auto r = Control<CUI::Rectangle>();
+    r.Width(width);
+    r.Height(height);
+    return r;
 }
 inline ElementBuilder<CUI::Ellipse> Ellipse(float width = 50.0f, float height = 50.0f) {
-    return EllipseWidget(width, height);
+    auto e = Control<CUI::Ellipse>();
+    e.Width(width);
+    e.Height(height);
+    return e;
 }
 inline ElementBuilder<CUI::Line> Line(float x1 = 0, float y1 = 0, float x2 = 100, float y2 = 100) {
-    return LineWidget(x1, y1, x2, y2);
+    auto l = Control<CUI::Line>();
+    l.X1(x1).Y1(y1).X2(x2).Y2(y2);
+    return l;
 }
-inline ElementBuilder<CUI::Path> Path(const std::string& data = "") { return PathWidget(data); }
+inline ElementBuilder<CUI::Path> Path(const std::string& data = "") {
+    auto p = Control<CUI::Path>();
+    if (!data.empty()) p.Data(data);
+    return p;
+}
 
 } // namespace Fluent
 } // namespace DSL

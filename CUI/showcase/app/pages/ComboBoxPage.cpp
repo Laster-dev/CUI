@@ -15,7 +15,7 @@ ShowcasePage BuildComboBoxPage(const ShowcaseContext& ctx) {
         target->SetSelectedIndex(0);
         target->SetWidth(240.0f);
 
-    auto input = TextField("自定义新主题").Width(280).Height(48).Build();
+    auto input = CUI::Widgets::TextBox().Text("自定义新主题").Width(280).Height(48).Shared();
     
         input->SetPlaceholderColorToken(ThemeTokenId::TextMuted);
         input->SetColor(ThemeManager::Instance().GetColor("textPrimary"));

@@ -173,19 +173,19 @@ Element BuildLineChartPage() {
 
     auto status3 = MakeStatus("网格、图例、悬停提示均可独立开关。");
 
-    auto chkGrid = CheckboxTile("显示网格").Build();
+    auto chkGrid = Widgets::CheckBox("显示网格").Shared();
         chkGrid->SetState(CheckState::Checked);
     chkGrid->OnCheckStateChanged().Connect([optChart, status3](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
                 optChart->SetShowGrid(on);
         status3->Text = on ? "网格已显示。" : "网格已隐藏。";
     });
-    auto chkLegend = CheckboxTile("显示图例").Build();
+    auto chkLegend = Widgets::CheckBox("显示图例").Shared();
         chkLegend->SetState(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([optChart](CheckBox*, CheckState st) {
                 optChart->SetShowLegend(st == CheckState::Checked);
     });
-    auto chkTip = CheckboxTile("悬停提示卡片").Build();
+    auto chkTip = Widgets::CheckBox("悬停提示卡片").Shared();
         chkTip->SetState(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([optChart](CheckBox*, CheckState st) {
                 optChart->SetShowTooltip(st == CheckState::Checked);

@@ -15,8 +15,8 @@ ShowcasePage BuildCollapsePage(const ShowcaseContext& ctx) {
         .Subtitle("包含常规同步策略与状态栏消息提醒管理")
         .Shared();
         panel1->SetContent(Column(8).Children({
-        CheckboxTile("启用自动同步云端配置文件").Build(),
-        CheckboxTile("显示系统底栏状态通知").Build(),
+        Widgets::CheckBox("启用自动同步云端配置文件").Shared(),
+        Widgets::CheckBox("显示系统底栏状态通知").Shared(),
         ElevatedButton("应用当前基础配置").Width(160).Height(28).Build()
     }).Build());
 
@@ -24,7 +24,7 @@ ShowcasePage BuildCollapsePage(const ShowcaseContext& ctx) {
         .Subtitle("调整 Direct2D 独立多线程硬件渲染与缓冲池配置")
         .Shared();
         panel2->SetContent(Column(8).Children({
-        ToggleSwitchTile("开启 Direct2D 独立多线程硬件渲染", true).Build(),
+        Widgets::ToggleSwitch().Header("开启 Direct2D 独立多线程硬件渲染").IsOn(true).Shared(),
         Widgets::Slider().Width(280).Height(24).Shared()
     }).Build());
 
@@ -32,8 +32,8 @@ ShowcasePage BuildCollapsePage(const ShowcaseContext& ctx) {
         .Subtitle("开启实时渲染帧率 overlay 与事件流调试日志")
         .Shared();
         panel3->SetContent(Column(8).Children({
-        CheckboxTile("开启 FPS 帧率渲染叠加层 (Overlay)").Build(),
-        CheckboxTile("记录详细 DirectWrite 文本度量与排版 Debug 日志").Build(),
+        Widgets::CheckBox("开启 FPS 帧率渲染叠加层 (Overlay)").Shared(),
+        Widgets::CheckBox("记录详细 DirectWrite 文本度量与排版 Debug 日志").Shared(),
         ElevatedButton("导出调试报告 (Export Diagnostics)").Width(200).Height(28).Build()
     }).Build());
 

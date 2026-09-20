@@ -62,7 +62,7 @@ Element BuildDockManagerPage() {
     // 3. 构造中央文档编辑面板 (Center Documents)
     // ==========================================
     // 3.1 C++ 源码文件文档
-    auto codeEditor = TextField()
+    auto codeEditor = Widgets::TextBox()
         .Text("#include <CUI/CUIDsl.h>\n"
               "#include <CUI/DockManager.h>\n\n"
               "int main() {\n"
@@ -71,12 +71,13 @@ Element BuildDockManagerPage() {
               "    dock->AddDocument(\"Main.cpp\", editor);\n"
               "    return 0;\n"
               "}")
-        .Height(200.0f);
+        .Height(200.0f)
+        .Shared();
         codeEditor->SetAcceptsReturn(true);
         codeEditor->SetTextWrapping(true);
 
     // 3.2 架构说明文档
-    auto archDoc = TextField()
+    auto archDoc = Widgets::TextBox()
         .Text("# CUI Docking Management Architecture\n\n"
               "1. **五大核心区域**：Left / Top / Right / Bottom / Center 文档区。\n"
               "2. **多模式支持**：\n"
@@ -84,12 +85,13 @@ Element BuildDockManagerPage() {
               "   - 独立多子窗口原生浮动 (FloatWindow)；\n"
               "   - 九宫格吸附罗盘 (Compass Guides)；\n"
               "   - 边缘窄条折叠抽屉 (AutoHide Strips)。")
-        .Height(200.0f);
+        .Height(200.0f)
+        .Shared();
         archDoc->SetAcceptsReturn(true);
         archDoc->SetTextWrapping(true);
 
-    dock->AddDocument("Main.cpp", codeEditor.Build());
-    dock->AddDocument("Architecture.md", archDoc.Build());
+    dock->AddDocument("Main.cpp", codeEditor);
+    dock->AddDocument("Architecture.md", archDoc);
 
     // ==========================================
     // 4. 构造右侧属性检查器面板 (Right Panes)
@@ -150,13 +152,14 @@ Element BuildDockManagerPage() {
     auto btnAddDoc = Button("添加中央文档")
         .OnClick([dock, statusLabel, &dynamicCount](UIElement*) {
             std::string title = std::format("Document_{}.txt", dynamicCount++);
-            auto docBox = TextField()
+            auto docBox = Widgets::TextBox()
                 .Text(std::format("// 这是动态新建的文档：{}\n// 支持在中央文档区成组并排或拖出为悬浮窗口。", title))
-                .Height(160.0f);
+                .Height(160.0f)
+                .Shared();
                         docBox->SetAcceptsReturn(true);
                         docBox->SetTextWrapping(true);
 
-            dock->AddDocument(title, docBox.Build());
+            dock->AddDocument(title, docBox);
             statusLabel->Text = std::format("已向中央文档区添加新标签页：【{}】", title);
         });
 

@@ -14,7 +14,7 @@ Element BuildExpanderPage() {
     // —— 常规用法 ——
     auto formContent = Column(10, {
         MakeLabel("昵称", 12.0f, ThemeTokenId::TextSecondary, false),
-        TextField("输入昵称").Width(280).Build(),
+        Widgets::TextBox().Text("输入昵称").Width(280).Shared(),
         Row(8, {ElevatedButton("保存").Background(Rgb(0x007ACC)).Padding(14, 8, 14, 8).Build(),
             ElevatedButton("取消").Padding(14, 8, 14, 8).Build(),
         }),

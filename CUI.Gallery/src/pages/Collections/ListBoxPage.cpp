@@ -47,10 +47,11 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
         selectionText = "双击第 " + std::to_string(index + 1) + " 项：" + text + "。";
     });
 
-    auto input = TextField()
+    auto input = Widgets::TextBox()
         .Placeholder("输入新项目名称")
         .Width(220.0f)
-        .Height(28.0f);
+        .Height(28.0f)
+        .Shared();
     State<int> generated{ 1 };
 
     auto add = Button("追加")

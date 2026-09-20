@@ -225,9 +225,9 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
     m_segUac->SetSelectedIndex(0);
 
     // 4. 开关
-    m_swRemoveSig = ToggleSwitchTile("剥离数字签名", true).Build();
-    m_swWipeTimestamp = ToggleSwitchTile("抹除时间戳", true).Build();
-    m_swDisableCfg = ToggleSwitchTile("禁用CFG", true).Build();
+    m_swRemoveSig = CUI::Widgets::ToggleSwitch().Header("剥离数字签名").IsOn(true).Shared();
+    m_swWipeTimestamp = CUI::Widgets::ToggleSwitch().Header("抹除时间戳").IsOn(true).Shared();
+    m_swDisableCfg = CUI::Widgets::ToggleSwitch().Header("禁用CFG").IsOn(true).Shared();
 
     // 5. 覆盖函数输入框: 与目标类型合并在同一行右侧，仅 DLL 目标时显示（自动识别或手动选择 DLL）
     m_asbDllFunc = Widgets::AutoSuggestBox()

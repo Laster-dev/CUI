@@ -116,9 +116,9 @@ Element BuildThemeTransitionPage() {
     sampleSlider->SetMaximum(100.0f);
     sampleSlider->SetValue(65.0f);
         sampleSlider->SetWidth(180.0f);
-    auto sampleToggle = ToggleSwitchTile("开关状态", true);
-    auto sampleCheck = CheckboxTile("记住配置 (Remember)");
-    auto sampleInput = TextField("输入测试文本..");
+    auto sampleToggle = Widgets::ToggleSwitch().Header("开关状态").IsOn(true).Shared();
+    auto sampleCheck = Widgets::CheckBox("记住配置 (Remember)").Shared();
+    auto sampleInput = Widgets::TextBox().Text("输入测试文本..").Shared();
         sampleInput->SetWidth(200.0f);
     auto sampleBar = Widgets::ProgressBar().Shared();
     sampleBar->SetValue(60.0f);

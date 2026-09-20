@@ -20,7 +20,7 @@ Element BuildStatusBarPage() {
     // ==========================================
     // 1. 经典 IDE 状态栏实例
     // ==========================================
-    auto bar = Widgets::StatusBar()
+    Widgets::Ref<StatusBar> bar = Widgets::StatusBar()
         .Height(28.0f)
         .Background(D2D1::ColorF(0x18181B, 0.9f))
         .Border(D2D1::ColorF(0x27272A, 1.0f), 1.0f)
@@ -34,7 +34,7 @@ Element BuildStatusBarPage() {
     int idChanges = bar->AddTextItem("0 错误, 0 警告", StatusBarItemAlignment::Left);
 
     int idProgress = bar->AddProgressItem("后台索引中..", StatusBarItemAlignment::Right, 130.0f);
-        bar->SetItemProgress(idProgress, 0.65f);
+        bar.ItemProgress(idProgress, 0.65f);
     bar->AddSeparator(StatusBarItemAlignment::Right);
     int idPos = bar->AddTextItem("Ln 128, Col 32", StatusBarItemAlignment::Right, 100.0f);
     bar->AddSeparator(StatusBarItemAlignment::Right);
@@ -51,12 +51,12 @@ Element BuildStatusBarPage() {
             s_prog += 0.20f;
             if (s_prog > 1.05f) {
                 s_prog = 0.0f;
-                                bar->SetItemText(idProgress, "就绪");
-                                bar->SetItemProgress(idProgress, -1.0f);
+                                bar.ItemText(idProgress, "就绪");
+                                bar.ItemProgress(idProgress, -1.0f);
                 statusLabel->Text = "后台任务已完成，进度条隐藏。";
             } else {
-                                bar->SetItemText(idProgress, std::format("构建进度 {:.0f}%", s_prog * 100.0f));
-                                bar->SetItemProgress(idProgress, s_prog);
+                                bar.ItemText(idProgress, std::format("构建进度 {:.0f}%", s_prog * 100.0f));
+                                bar.ItemProgress(idProgress, s_prog);
                 statusLabel->Text = std::format("已更新后台进度为 {:.0f}%", s_prog * 100.0f);
             }
         });
@@ -66,10 +66,10 @@ Element BuildStatusBarPage() {
         .OnClick([bar, idBranch, statusLabel](UIElement*) {
             s_branchToggle = !s_branchToggle;
             if (s_branchToggle) {
-                                bar->SetItemText(idBranch, "🔀 feature/fluent-v2");
+                                bar.ItemText(idBranch, "🔀 feature/fluent-v2");
                 statusLabel->Text = "状态栏已切换为特性分支：【feature/fluent-v2】";
             } else {
-                                bar->SetItemText(idBranch, "🌿 main*");
+                                bar.ItemText(idBranch, "🌿 main*");
                 statusLabel->Text = "状态栏已切回主干分支：【main*】";
             }
         });
@@ -90,7 +90,7 @@ Element BuildStatusBarPage() {
             "IDE 风格弹性底部状态栏",
             "状态栏自适应填充可用行宽，左侧承载状态与分支信息，右侧承载高频刷新的进度条、行列号与编码指示器。",
             Column(12, {
-                bar,
+                bar.Ptr(),
             }),
         },
         {

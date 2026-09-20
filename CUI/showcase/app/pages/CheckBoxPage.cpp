@@ -6,7 +6,7 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildCheckBoxPage(const ShowcaseContext& ctx) {
-    auto target = CheckboxTile("交互功能开关").Build();
+    auto target = Widgets::CheckBox("交互功能开关").Shared();
         target->SetState(CheckState::Checked);
 
     return { "CheckBox 复选框", CreatePage(

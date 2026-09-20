@@ -108,9 +108,10 @@ std::shared_ptr<Window> SpawnMaterialWindow(
             }
         });
 
-    auto input = TextField("在此新窗口中输入文本..")
+    auto input = Widgets::TextBox().Text("在此新窗口中输入文本..")
         .Height(32.0f)
-        .Width(320.0f);
+        .Width(320.0f)
+        .Shared();
 
     auto progress = Widgets::ProgressBar().Shared();
     progress->SetValue(70.0f);
