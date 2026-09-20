@@ -24,19 +24,19 @@ std::shared_ptr<CUI::Button> MakeChip(const std::string& text, float width) {
 
 std::shared_ptr<UIElement> BuildWrapPanelPage() {
     // —— 水平换行 ——
-    auto horizontal = Widgets::WrapPanel().Gap(10.0f).Shared();
-    horizontal->SetOrientation(Orientation::Horizontal);
+    CUI::Widgets::Ref horizontal = Widgets::WrapPanel().Gap(10.0f).Shared();
+    horizontal.Orientation(Orientation::Horizontal);
     const float widths[] = { 64, 96, 120, 76, 140, 88, 104, 128, 72, 92, 116, 84 };
     for (int i = 0; i < 12; ++i) {
                 horizontal->AddChild(MakeChip(std::format("项目 {}", i + 1), widths[i]));
     }
 
     // —— 垂直换列（统一规格）——
-    auto vertical = Widgets::WrapPanel().Shared();
-    vertical->SetOrientation(Orientation::Vertical);
-        vertical->SetItemWidth(88.0f);
-        vertical->SetItemHeight(34.0f);
-        vertical->SetGap(8.0f);
+    CUI::Widgets::Ref vertical = Widgets::WrapPanel().Shared();
+    vertical.Orientation(Orientation::Vertical);
+        vertical.ItemWidth(88.0f);
+        vertical.ItemHeight(34.0f);
+        vertical.Gap(8.0f);
     const D2D1_COLOR_F colors[] = {
         Rgb(0x007ACC), Rgb(0x0E639C), Rgb(0x10B981), Rgb(0xD13438),
         Rgb(0x845EF7), Rgb(0xF783AC), Rgb(0x22B8CF), Rgb(0xF59F00),
@@ -51,14 +51,14 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
     }
 
     // —— 宽度变化实时重排 ——
-    auto liveWrap = Widgets::WrapPanel().Gap(10.0f).Shared();
-    liveWrap->SetOrientation(Orientation::Horizontal);
+    CUI::Widgets::Ref liveWrap = Widgets::WrapPanel().Gap(10.0f).Shared();
+    liveWrap.Orientation(Orientation::Horizontal);
     for (int i = 0; i < 10; ++i) {
                 liveWrap->AddChild(MakeChip(std::format("标签 {}", i + 1), widths[i % 12]));
     }
 
-    auto justified = Widgets::WrapPanel().Gap(10).Justified().FillLastLine(true).Shared();
-    justified->SetOrientation(Orientation::Horizontal);
+    CUI::Widgets::Ref justified = Widgets::WrapPanel().Gap(10).Justified().FillLastLine(true).Shared();
+    justified.Orientation(Orientation::Horizontal);
     const char* labels[] = { "Auto", "布局", "最小 72", "最大 180", "FlexGrow", "自动回流", "填满整行", "约束" };
     for (int i = 0; i < 8; ++i) {
         auto chip = ElevatedButton(labels[i]).Background(colors[i % 8]).Padding(14, 8, 14, 8)

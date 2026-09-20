@@ -59,13 +59,13 @@ std::shared_ptr<Window> SpawnMaterialWindow(
 
     // 1. 挂载自定义窗口标题栏（若启用）
     if (options.hasTitleBar && !transparentMode) {
-        auto titleBar = Widgets::WindowTitleBar().Title(title).Shared();
-                titleBar->SetIsMinimizeButtonVisible(options.minVisible);
-                titleBar->SetIsMaximizeButtonVisible(options.maxVisible);
-                titleBar->SetIsCloseButtonVisible(options.closeVisible);
-                titleBar->SetIsMinimizeButtonEnabled(options.minEnabled);
-                titleBar->SetIsMaximizeButtonEnabled(options.maxEnabled);
-                titleBar->SetIsCloseButtonEnabled(options.closeEnabled);
+        CUI::Widgets::Ref titleBar = Widgets::WindowTitleBar().Title(title).Shared();
+                titleBar.IsMinimizeButtonVisible(options.minVisible);
+                titleBar.IsMaximizeButtonVisible(options.maxVisible);
+                titleBar.IsCloseButtonVisible(options.closeVisible);
+                titleBar.IsMinimizeButtonEnabled(options.minEnabled);
+                titleBar.IsMaximizeButtonEnabled(options.maxEnabled);
+                titleBar.IsCloseButtonEnabled(options.closeEnabled);
                 root->AddChild(titleBar);
     }
 
@@ -108,15 +108,15 @@ std::shared_ptr<Window> SpawnMaterialWindow(
             }
         });
 
-    auto input = Widgets::TextBox().Text("在此新窗口中输入文本..")
+    CUI::Widgets::Ref input = Widgets::TextBox().Text("在此新窗口中输入文本..")
         .Height(32.0f)
         .Width(320.0f)
         .Shared();
 
-    auto progress = Widgets::ProgressBar().Shared();
-    progress->SetValue(70.0f);
-        progress->SetHeight(6.0f);
-        progress->SetWidth(320.0f);
+    CUI::Widgets::Ref progress = Widgets::ProgressBar().Shared();
+    progress.Value(70.0f);
+        progress.Height(6.0f);
+        progress.Width(320.0f);
 
     auto card = Column(12, {
         titleLabel,
@@ -306,10 +306,10 @@ auto windowBuilder = win->Fluent()
     .Size(600, 400)
     .Backdrop(BackdropType::Acrylic);
 
-auto titleBar = Widgets::WindowTitleBar().Title("我的定制窗口").Shared();
+CUI::Widgets::Ref titleBar = Widgets::WindowTitleBar().Title("我的定制窗口").Shared();
 // 标题栏按钮显隐与禁用控制
-titleBar->SetIsMinimizeButtonVisible(false); // 隐藏最小化
-titleBar->SetIsCloseButtonEnabled(false);    // 禁用关闭按钮
+titleBar.IsMinimizeButtonVisible(false); // 隐藏最小化
+titleBar.IsCloseButtonEnabled(false);    // 禁用关闭按钮
 
 auto root = Column(0).Build();
 root->AddChild(titleBar);

@@ -9,7 +9,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildPasswordBoxPage() {
-    auto basic = Widgets::PasswordBox("请输入您的安全密码").Width(280).Height(28).Shared();
+    CUI::Widgets::Ref basic = Widgets::PasswordBox("请输入您的安全密码").Width(280).Height(28).Shared();
     basic->ToolTip = "点击右侧眼睛图标可切换明文 / 密文";
 
     State<std::string> passwordState{ "" };
@@ -23,17 +23,17 @@ std::shared_ptr<UIElement> BuildPasswordBoxPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto noReveal = Widgets::PasswordBox("隐藏明文切换按钮").Width(280).Height(28).Shared();
-        noReveal->SetShowRevealButton(false);
+    CUI::Widgets::Ref noReveal = Widgets::PasswordBox("隐藏明文切换按钮").Width(280).Height(28).Shared();
+        noReveal.ShowRevealButton(false);
 
-    auto prefilled = Widgets::PasswordBox().Shared();
+    CUI::Widgets::Ref prefilled = Widgets::PasswordBox().Shared();
     prefilled->Placeholder = "密码框";
-        prefilled->SetWidth(280.0f);
-        prefilled->SetHeight(28.0f);
-        prefilled->SetPassword("P@ssw0rd!123");
+        prefilled.Width(280.0f);
+        prefilled.Height(28.0f);
+        prefilled.Password("P@ssw0rd!123");
 
-    auto disabled = Widgets::PasswordBox("不可用").Width(280).Height(28).Shared();
-        disabled->SetIsEnabled(false);
+    CUI::Widgets::Ref disabled = Widgets::PasswordBox("不可用").Width(280).Height(28).Shared();
+        disabled.IsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "PasswordBox(密码框)";

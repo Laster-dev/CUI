@@ -7,11 +7,11 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildCheckBoxPage() {
-    auto wifi = Widgets::CheckBox("Wi-Fi").Shared();
-    auto bluetooth = Widgets::CheckBox("蓝牙").Shared();
-    auto airplane = Widgets::CheckBox("飞行模式").Shared();
-    auto selectAll = Widgets::CheckBox("全选").Shared();
-        selectAll->SetIsThreeState(true);
+    CUI::Widgets::Ref wifi = Widgets::CheckBox("Wi-Fi").Shared();
+    CUI::Widgets::Ref bluetooth = Widgets::CheckBox("蓝牙").Shared();
+    CUI::Widgets::Ref airplane = Widgets::CheckBox("飞行模式").Shared();
+    CUI::Widgets::Ref selectAll = Widgets::CheckBox("全选").Shared();
+        selectAll.IsThreeState(true);
 
     State<bool> wifiValue{ true };
     State<bool> bluetoothValue{ true };
@@ -62,7 +62,7 @@ std::shared_ptr<UIElement> BuildCheckBoxPage() {
             applyingSelectAll = false;
         });
 
-    auto twoState = Widgets::CheckBox("我同意条款").Shared();
+    CUI::Widgets::Ref twoState = Widgets::CheckBox("我同意条款").Shared();
     auto twoStatus = MakeStatus("未同意。");
     twoState->OnCheckStateChanged().Connect([twoStatus](CheckBox*, CheckState state) {
         twoStatus->Text = state == CheckState::Checked ? "已同意。" : "未同意。";

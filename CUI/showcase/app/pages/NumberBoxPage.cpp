@@ -11,9 +11,9 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildNumberBoxPage(const ShowcaseContext& ctx) {
-    auto target = Widgets::NumberBox().Width(140).Height(28).Shared();
-    target->SetValue(12.5);
-        target->SetStep(0.5f);
+    CUI::Widgets::Ref target = Widgets::NumberBox().Width(140).Height(28).Shared();
+    target.Value(12.5);
+        target.Step(0.5f);
     return { "NumberBox 微调框", CreatePage(
         "NumberBox 数字微调框控件",
         "自绘输入框与 ▲/▼ 微调按钮；支持 Step、滚轮、上下键、范围限制。可输入表达式（如 1+2*3、(4+5)/2），失焦或回车后求值。",

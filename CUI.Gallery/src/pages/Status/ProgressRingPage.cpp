@@ -13,11 +13,11 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<ProgressRing> MakeRing(float size, float value, bool indeterminate) {
-    auto ring = Widgets::ProgressRing().Shared();
-    ring->SetValue(value);
-    ring->SetIsIndeterminate(indeterminate);
-        ring->SetWidth(size);
-        ring->SetHeight(size);
+    CUI::Widgets::Ref ring = Widgets::ProgressRing().Shared();
+    ring.Value(value);
+    ring.IsIndeterminate(indeterminate);
+        ring.Width(size);
+        ring.Height(size);
     return ring;
 }
 
@@ -25,24 +25,24 @@ std::shared_ptr<ProgressRing> MakeRing(float size, float value, bool indetermina
 
 Element BuildProgressRingPage() {
     // 确定进度：滑块驱动弧线增长。
-    auto determinate = Widgets::ProgressRing().Shared();
-    determinate->SetValue(60.0f);
-    determinate->SetIsIndeterminate(false);
-        determinate->SetWidth(96.0f);
-        determinate->SetHeight(96.0f);
+    CUI::Widgets::Ref determinate = Widgets::ProgressRing().Shared();
+    determinate.Value(60.0f);
+    determinate.IsIndeterminate(false);
+        determinate.Width(96.0f);
+        determinate.Height(96.0f);
 
     State<float> value{ 60.0f };
-    auto slider = Widgets::Slider().Shared();
-    slider->SetMinimum(0.0f);
-    slider->SetMaximum(100.0f);
-    slider->SetValue(60.0f);
-        slider->SetStep(1.0f);
-        slider->SetWidth(280.0f);
+    CUI::Widgets::Ref slider = Widgets::Slider().Shared();
+    slider.Minimum(0.0f);
+    slider.Maximum(100.0f);
+    slider.Value(60.0f);
+        slider.Step(1.0f);
+        slider.Width(280.0f);
     slider->ValueProperty.Bind(value);
 
     auto ring = determinate;
     value.OnChanged().Connect([ring](const float& v) {
-                ring->SetValue(v);
+                ring.Value(v);
     });
 
     auto statusValue = MakeComputed<std::string>([](float v) {
@@ -51,9 +51,9 @@ Element BuildProgressRingPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto indeterminate = Widgets::ToggleSwitch().Header("不确定模式").IsOn(false).Shared();
+    CUI::Widgets::Ref indeterminate = Widgets::ToggleSwitch().Header("不确定模式").IsOn(false).Shared();
     indeterminate->OnToggled().Connect([ring](ToggleSwitch*, bool on) {
-                ring->SetIsIndeterminate(on);
+                ring.IsIndeterminate(on);
     });
 
     SamplePageSpec spec;

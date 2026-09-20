@@ -9,7 +9,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildTimePickerPage() {
-    auto picker = Widgets::TimePicker().Shared();
+    CUI::Widgets::Ref picker = Widgets::TimePicker().Shared();
     State<std::string> selectedTime{ picker->GetFormattedTime() };
     picker->SelectedTime->Bind(selectedTime);
 
@@ -32,11 +32,11 @@ Element BuildTimePickerPage() {
         .Width(200.0f)
         .OnClick([selectedTime](UIElement*) { selectedTime = "06:15"; });
 
-    auto disabled = Widgets::TimePicker().Shared();
-        disabled->SetTime(9, 0);
-        disabled->SetIsEnabled(false);
+    CUI::Widgets::Ref disabled = Widgets::TimePicker().Shared();
+        disabled.Time(9, 0);
+        disabled.IsEnabled(false);
 
-    auto second = Widgets::TimePicker().Shared();
+    CUI::Widgets::Ref second = Widgets::TimePicker().Shared();
     State<std::string> reminderTime{ "21:00" };
     second->SelectedTime->Bind(reminderTime);
     auto reminderStatusValue = MakeComputed<std::string>([](const std::string& time) {

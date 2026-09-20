@@ -120,7 +120,7 @@ Element BuildTopologyPage() {
     auto [nodes, edges] = BuildCloudArchitectureData();
 
     // 创建拓扑图核心控件 (宽度自适应撑满容器，高度设为 560px)
-    auto topoPtr = Widgets::TopologyView()
+    CUI::Widgets::Ref topoPtr = Widgets::TopologyView()
         .Height(860.0f)
         .Nodes(nodes)
         .Edges(edges)
@@ -177,38 +177,38 @@ Element BuildTopologyPage() {
             topoPtr->ResetView(true);
         });
 
-    auto btnParticles = Widgets::ToggleButton("流向粒子")
+    CUI::Widgets::Ref btnParticles = Widgets::ToggleButton("流向粒子")
         .OnClick([topoPtr](UIElement*) {
-                        topoPtr->SetFlowParticlesEnabled(!topoPtr->IsFlowParticlesEnabled());
+                        topoPtr.FlowParticlesEnabled(!topoPtr->IsFlowParticlesEnabled());
         }).Shared();
 
     // --- 2. 排版算法切换 ---
     auto btnLeftRight = Button("水平分层(子树隔离)")
         .OnClick([topoPtr](UIElement*) {
-                        topoPtr->SetLayoutType(TopologyLayoutType::HierarchicalLeftRight);
+                        topoPtr.LayoutType(TopologyLayoutType::HierarchicalLeftRight);
         });
 
     auto btnTopDown = Button("垂直树状")
         .OnClick([topoPtr](UIElement*) {
-                        topoPtr->SetLayoutType(TopologyLayoutType::HierarchicalTopDown);
+                        topoPtr.LayoutType(TopologyLayoutType::HierarchicalTopDown);
         });
 
     auto btnRadial = Button("径向同心圆")
         .OnClick([topoPtr](UIElement*) {
-                        topoPtr->SetLayoutType(TopologyLayoutType::Radial);
+                        topoPtr.LayoutType(TopologyLayoutType::Radial);
         });
 
     auto btnForce = Button("弹性力导向")
         .OnClick([topoPtr](UIElement*) {
-                        topoPtr->SetLayoutType(TopologyLayoutType::ForceDirected);
+                        topoPtr.LayoutType(TopologyLayoutType::ForceDirected);
         });
 
     // --- 3. 编辑能力 vs 只读功能切换展示 ---
     static int s_dynamicNodeCounter = 1;
-    auto btnReadOnlyToggle = Widgets::ToggleButton("只读模式 (Read-Only)")
+    CUI::Widgets::Ref btnReadOnlyToggle = Widgets::ToggleButton("只读模式 (Read-Only)")
         .OnClick([topoPtr, statusLabel](UIElement* sender) {
             bool isReadOnly = !topoPtr->IsReadOnly();
-                        topoPtr->SetIsReadOnly(isReadOnly);
+                        topoPtr.IsReadOnly(isReadOnly);
             statusLabel->Text = isReadOnly ? "当前模式：只读预览模式 (已锁定节点拖拽与编辑删除能力)" : "当前模式：可编辑模式 (支持自由拖拽排布、增删节点与连线)";
         }).Shared();
 
@@ -296,7 +296,7 @@ Element BuildTopologyPage() {
     };
 
     spec.source = R"(// 构造全宽自适应拓扑图
-auto topology = Widgets::TopologyView()
+CUI::Widgets::Ref topology = Widgets::TopologyView()
     .Height(560.0f)
     .Nodes(nodes)
     .Edges(edges)

@@ -11,9 +11,9 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildRatingControlPage() {
-    auto rating = Widgets::RatingControl().Shared();
-        rating->SetMaxRating(5);
-        rating->SetStep(0.5f);
+    CUI::Widgets::Ref rating = Widgets::RatingControl().Shared();
+        rating.MaxRating(5);
+        rating.Step(0.5f);
 
     State<float> ratingValue{ 3.5f };
     rating->ValueProperty.Bind(ratingValue);
@@ -25,10 +25,10 @@ Element BuildRatingControlPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto readOnly = Widgets::RatingControl().Shared();
-        readOnly->SetMaxRating(5);
-        readOnly->SetIsReadOnly(true);
-        readOnly->SetValue(4.0f);
+    CUI::Widgets::Ref readOnly = Widgets::RatingControl().Shared();
+        readOnly.MaxRating(5);
+        readOnly.IsReadOnly(true);
+        readOnly.Value(4.0f);
 
     SamplePageSpec spec;
     spec.title = "RatingControl(评分)";

@@ -9,16 +9,16 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleButtonPage() {
-    auto bold = Widgets::ToggleButton("粗体")
+    CUI::Widgets::Ref bold = Widgets::ToggleButton("粗体")
         .FontWeight(FontWeight::Bold).Shared();
     
-    auto italic = Widgets::ToggleButton("斜体").Shared();
-        italic->SetFontStyle(FontStyle::Italic);
+    CUI::Widgets::Ref italic = Widgets::ToggleButton("斜体").Shared();
+        italic.FontStyle(FontStyle::Italic);
     
-    auto underline = Widgets::ToggleButton("下划线").Shared();
+    CUI::Widgets::Ref underline = Widgets::ToggleButton("下划线").Shared();
     underline->Underline = true;
     
-    auto strikethrough = Widgets::ToggleButton("删除线").Shared();
+    CUI::Widgets::Ref strikethrough = Widgets::ToggleButton("删除线").Shared();
     strikethrough->Strikethrough = true;
 
     State<bool> boldChecked{ false };
@@ -53,9 +53,9 @@ std::shared_ptr<UIElement> BuildToggleButtonPage() {
     status->Underline.Bind(underlineChecked, BindingMode::OneWay);
     status->Strikethrough.Bind(strikethroughChecked, BindingMode::OneWay);
 
-    auto locked = Widgets::ToggleButton("已锁定").Shared();
-        locked->SetIsChecked(true);
-        locked->SetIsEnabled(false);
+    CUI::Widgets::Ref locked = Widgets::ToggleButton("已锁定").Shared();
+        locked.IsChecked(true);
+        locked.IsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ToggleButton(切换按钮)";

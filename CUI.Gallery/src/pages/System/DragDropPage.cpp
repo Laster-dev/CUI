@@ -259,11 +259,11 @@ Element BuildDragDropPage() {
     });
 
     // 3. 接受拖放的文本输入框
-    auto dropInput = Widgets::TextBox()
+    CUI::Widgets::Ref dropInput = Widgets::TextBox()
         .Text("可拖放文本或文件路径至此输入框..")
         .Height(36.0f)
         .Shared();
-        dropInput->SetAllowDrop(true);
+        dropInput.AllowDrop(true);
 
     SamplePageSpec spec;
     spec.title = "Drag and Drop (拖放服务)";

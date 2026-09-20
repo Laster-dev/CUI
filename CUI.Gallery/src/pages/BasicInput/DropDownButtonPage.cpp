@@ -53,7 +53,7 @@ Color TextColorForIndex(int index) {
 } // namespace
 
 std::shared_ptr<UIElement> BuildDropDownButtonPage() {
-    auto file = Widgets::DropDownButton("文件").Shared();
+    CUI::Widgets::Ref file = Widgets::DropDownButton("文件").Shared();
     file->AddItem("新建");
     file->AddItem("打开");
     file->AddSeparator();
@@ -68,11 +68,11 @@ std::shared_ptr<UIElement> BuildDropDownButtonPage() {
     auto fileStatus = MakeStatus("");
     fileStatus->Text->Bind(fileStatusValue, BindingMode::OneWay);
 
-    auto disabled = Widgets::DropDownButton("不可用").Shared();
+    CUI::Widgets::Ref disabled = Widgets::DropDownButton("不可用").Shared();
     disabled->AddItem("一项");
-        disabled->SetIsEnabled(false);
+        disabled.IsEnabled(false);
 
-    auto color = Widgets::DropDownButton("背景颜色展示").Shared();
+    CUI::Widgets::Ref color = Widgets::DropDownButton("背景颜色展示").Shared();
     color->AddItem("红色");
     color->AddItem("绿色");
     color->AddItem("蓝色");

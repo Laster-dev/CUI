@@ -13,11 +13,11 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<ProgressBar> MakeStretchBar(float height) {
-    auto bar = Widgets::ProgressBar().Shared();
-    bar->SetValue(0.0f);
-    bar->SetIsIndeterminate(true);
-        bar->SetAlign(Alignment::Stretch);
-        bar->SetHeight(height);
+    CUI::Widgets::Ref bar = Widgets::ProgressBar().Shared();
+    bar.Value(0.0f);
+    bar.IsIndeterminate(true);
+        bar.Align(Alignment::Stretch);
+        bar.Height(height);
     return bar;
 }
 
@@ -25,24 +25,24 @@ std::shared_ptr<ProgressBar> MakeStretchBar(float height) {
 
 Element BuildProgressBarPage() {
     // 确定进度：滑块驱动填充值。
-    auto determinate = Widgets::ProgressBar().Shared();
-    determinate->SetValue(40.0f);
-    determinate->SetIsIndeterminate(false);
-        determinate->SetAlign(Alignment::Stretch);
-        determinate->SetHeight(6.0f);
+    CUI::Widgets::Ref determinate = Widgets::ProgressBar().Shared();
+    determinate.Value(40.0f);
+    determinate.IsIndeterminate(false);
+        determinate.Align(Alignment::Stretch);
+        determinate.Height(6.0f);
 
     State<float> value{ 40.0f };
-    auto slider = Widgets::Slider().Shared();
-    slider->SetMinimum(0.0f);
-    slider->SetMaximum(100.0f);
-    slider->SetValue(40.0f);
-        slider->SetStep(1.0f);
-        slider->SetWidth(280.0f);
+    CUI::Widgets::Ref slider = Widgets::Slider().Shared();
+    slider.Minimum(0.0f);
+    slider.Maximum(100.0f);
+    slider.Value(40.0f);
+        slider.Step(1.0f);
+        slider.Width(280.0f);
     slider->ValueProperty.Bind(value);
 
     auto bar = determinate;
     value.OnChanged().Connect([bar](const float& v) {
-                bar->SetValue(v);
+                bar.Value(v);
     });
 
     auto statusValue = MakeComputed<std::string>([](float v) {
@@ -51,9 +51,9 @@ Element BuildProgressBarPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto indeterminate = Widgets::ToggleSwitch().Header("不确定模式").IsOn(false).Shared();
+    CUI::Widgets::Ref indeterminate = Widgets::ToggleSwitch().Header("不确定模式").IsOn(false).Shared();
     indeterminate->OnToggled().Connect([bar](ToggleSwitch*, bool on) {
-                bar->SetIsIndeterminate(on);
+                bar.IsIndeterminate(on);
     });
 
     SamplePageSpec spec;

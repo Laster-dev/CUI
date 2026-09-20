@@ -20,11 +20,11 @@ Element BuildFilePickerPage() {
     // ==========================================
     // 1. 基础文件选择器
     // ==========================================
-    auto picker1 = Widgets::FilePicker()
+    CUI::Widgets::Ref picker1 = Widgets::FilePicker()
         .Shared();
-    picker1->SetPath("E:\\C++project\\CUI\\CUI.Core\\ui\\framework\\core\\CUIDsl.h");
-        picker1->SetDialogTitle("选择目标代码源文件");
-        picker1->SetFilter("C++ 源码文件 (*.cpp;*.h;*.hpp)", "*.cpp;*.h;*.hpp");
+    picker1.Path("E:\\C++project\\CUI\\CUI.Core\\ui\\framework\\core\\CUIDsl.h");
+        picker1.DialogTitle("选择目标代码源文件");
+        picker1.Filter("C++ 源码文件 (*.cpp;*.h;*.hpp)", "*.cpp;*.h;*.hpp");
     picker1->AddFilter("JSON / 配置文件 (*.json;*.xml;*.yaml)", "*.json;*.xml;*.yaml");
     picker1->AddFilter("所有文件 (*.*)", "*.*");
 
@@ -37,22 +37,22 @@ Element BuildFilePickerPage() {
     // ==========================================
     auto btnCppFilter = Button("切换为 C++ 源码过滤")
         .OnClick([picker1, statusLabel](UIElement*) {
-                        picker1->SetFilter("C++ 源码 (*.cpp;*.h)", "*.cpp;*.h");
-                        picker1->SetPath("E:\\C++project\\CUI\\CUI.Core\\ui\\framework\\controls\\Button.cpp");
+                        picker1.Filter("C++ 源码 (*.cpp;*.h)", "*.cpp;*.h");
+                        picker1.Path("E:\\C++project\\CUI\\CUI.Core\\ui\\framework\\controls\\Button.cpp");
             statusLabel->Text = "已应用【C++ 源码】类型过滤器 (*.cpp;*.h)";
         });
 
     auto btnMediaFilter = Button("切换为图像资源过滤")
         .OnClick([picker1, statusLabel](UIElement*) {
-                        picker1->SetFilter("图像资源 (*.png;*.jpg;*.svg;*.ico)", "*.png;*.jpg;*.svg;*.ico");
-                        picker1->SetPath("E:\\C++project\\CUI\\assets\\icons\\app_logo.png");
+                        picker1.Filter("图像资源 (*.png;*.jpg;*.svg;*.ico)", "*.png;*.jpg;*.svg;*.ico");
+                        picker1.Path("E:\\C++project\\CUI\\assets\\icons\\app_logo.png");
             statusLabel->Text = "已应用【图像资源】类型过滤器 (*.png;*.jpg;*.svg)";
         });
 
     auto btnDocFilter = Button("切换为 Markdown 文档过滤")
         .OnClick([picker1, statusLabel](UIElement*) {
-                        picker1->SetFilter("Markdown 说明文档 (*.md;*.txt)", "*.md;*.txt");
-                        picker1->SetPath("E:\\C++project\\CUI\\README.md");
+                        picker1.Filter("Markdown 说明文档 (*.md;*.txt)", "*.md;*.txt");
+                        picker1.Path("E:\\C++project\\CUI\\README.md");
             statusLabel->Text = "已应用【文档】类型过滤器 (*.md;*.txt)";
         });
 
@@ -78,12 +78,12 @@ Element BuildFilePickerPage() {
     };
 
     spec.source = R"cpp(// 1. 创建 FilePicker 实例并配置初始路径
-auto picker = Widgets::FilePicker("C:\\Projects\\App\\main.cpp")
+CUI::Widgets::Ref picker = Widgets::FilePicker("C:\\Projects\\App\\main.cpp")
     .Shared();
 
 // 2. 配置对话框标题与文件类型扩展名过滤器
-picker->SetDialogTitle("选择 C++ 源文件");
-picker->SetFilter("C++ 文件 (*.cpp;*.h)", "*.cpp;*.h");
+picker.DialogTitle("选择 C++ 源文件");
+picker.Filter("C++ 文件 (*.cpp;*.h)", "*.cpp;*.h");
 picker->AddFilter("所有文件 (*.*)", "*.*");
 
 // 3. 监听文件选择完成事件

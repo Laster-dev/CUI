@@ -115,7 +115,7 @@ Element BuildContextMenuPage() {
         statusLabel->Text = "编辑器：【呼出智能修复与重命名提示条】";
     });
 
-    auto codeEditorArea = Widgets::TextBox()
+    CUI::Widgets::Ref codeEditorArea = Widgets::TextBox()
         .Text("// 在此代码编辑区内右键点击，呼出代码开发专属快捷菜单\n"
               "int main(int argc, char* argv[]) {\n"
               "    auto app = CUI::Application::Create();\n"
@@ -123,9 +123,9 @@ Element BuildContextMenuPage() {
               "}")
         .Height(110.0f)
         .Shared();
-        codeEditorArea->SetAcceptsReturn(true);
-        codeEditorArea->SetTextWrapping(true);
-        codeEditorArea->SetContextMenu(codeMenu);
+        codeEditorArea.AcceptsReturn(true);
+        codeEditorArea.TextWrapping(true);
+        codeEditorArea.ContextMenu(codeMenu);
 
     SamplePageSpec spec;
     spec.title = "ContextMenu (上下文右键菜单)";

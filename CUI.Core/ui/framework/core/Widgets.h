@@ -156,7 +156,7 @@ public: using WidgetBase::WidgetBase;
     Expander& Subtitle(const std::string& v1) const { impl_->SetSubtitle(v1); return self(); }
     Expander& IsExpanded(bool v1) const { impl_->SetIsExpanded(v1); return self(); }
     Expander& Expanded(bool v1) const { impl_->SetExpanded(v1); return self(); }
-    Expander& ExpandDirection(ExpandDirection v1) const { impl_->SetExpandDirection(v1); return self(); }
+    Expander& ExpandDirection(::CUI::ExpandDirection v1) const { impl_->SetExpandDirection(v1); return self(); }
     Expander& Content(std::shared_ptr<UIElement> v1) const { impl_->SetContent(v1); return self(); }
 };
 class FilePicker : public WidgetBase<FilePicker, ::CUI::FilePicker> {
@@ -189,7 +189,7 @@ public: using WidgetBase::WidgetBase;
 };
 class Image : public WidgetBase<Image, ::CUI::Image> {
 public: using WidgetBase::WidgetBase;
-    Image& ImageType(ImageType v1) const { impl_->SetImageType(v1); return self(); }
+    Image& ImageType(::CUI::ImageType v1) const { impl_->SetImageType(v1); return self(); }
     Image& BadgeText(const std::string& v1) const { impl_->SetBadgeText(v1); return self(); }
     Image& BadgeColor(D2D1_COLOR_F v1) const { impl_->SetBadgeColor(v1); return self(); }
     Image& Stretch(::CUI::Stretch v1) const { impl_->SetStretch(v1); return self(); }

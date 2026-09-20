@@ -20,7 +20,7 @@ Element BuildMenuBarPage() {
     // ==========================================
     // 示例 1: 桌面应用全功能菜单栏 (Full Application MenuBar)
     // ==========================================
-    auto appMenuBar = Widgets::MenuBar().Shared();
+    CUI::Widgets::Ref appMenuBar = Widgets::MenuBar().Shared();
 
     // 1. 文件 (File) 菜单
     auto fileMenu = appMenuBar->AddMenu("文件 (F)");
@@ -132,14 +132,14 @@ Element BuildMenuBarPage() {
     });
 
     // 模拟集成应用窗口工作区 (自适应撑满容器)
-    auto mockContent = Widgets::TextBox()
+    CUI::Widgets::Ref mockContent = Widgets::TextBox()
         .Text("这是一个集成了顶级 MenuBar 的桌面应用工作区容器。\n"
               "MenuBar 占据顶端并随窗口宽度自动拉伸，支持鼠标悬停平滑高亮切换、点击展开级联下拉、助记键聚焦与快捷键响应。")
         .Height(120.0f)
         .Margin(12.0f)
         .Shared();
-        mockContent->SetAcceptsReturn(true);
-        mockContent->SetTextWrapping(true);
+        mockContent.AcceptsReturn(true);
+        mockContent.TextWrapping(true);
 
     auto mockAppContainer = Column(0, { appMenuBar, mockContent })
         .Background(D2D1::ColorF(0x18181B, 0.6f))
@@ -161,7 +161,7 @@ Element BuildMenuBarPage() {
     };
 
     spec.source = R"cpp(// 1. 创建顶级菜单栏
-auto menuBar = Widgets::MenuBar().Shared();
+CUI::Widgets::Ref menuBar = Widgets::MenuBar().Shared();
 
 // 2. 添加一级菜单与动作项
 auto fileMenu = menuBar->AddMenu("文件 (F)");

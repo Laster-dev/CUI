@@ -20,9 +20,9 @@ Element BuildExpanderPage() {
         }),
     });
 
-    auto basicExpander = Widgets::Expander("账号设置").Shared();
-        basicExpander->SetSubtitle("点击头部展开或折叠内容");
-        basicExpander->SetContent(formContent);
+    CUI::Widgets::Ref basicExpander = Widgets::Expander("账号设置").Shared();
+        basicExpander.Subtitle("点击头部展开或折叠内容");
+        basicExpander.Content(formContent);
 
     // —— 默认展开 + 状态事件 ——
     State<bool> expandedState{ true };
@@ -36,10 +36,10 @@ Element BuildExpanderPage() {
             12.0f, ThemeTokenId::TextMuted, false),
     });
 
-    auto eventExpander = Widgets::Expander("使用条款").Shared();
-        eventExpander->SetSubtitle("默认处于展开状态");
-        eventExpander->SetIsExpanded(true);
-        eventExpander->SetContent(termsContent);
+    CUI::Widgets::Ref eventExpander = Widgets::Expander("使用条款").Shared();
+        eventExpander.Subtitle("默认处于展开状态");
+        eventExpander.IsExpanded(true);
+        eventExpander.Content(termsContent);
     eventExpander->OnExpandedChanged().Connect([expandedState](Expander*, bool expanded) {
         expandedState = expanded;
     });
@@ -51,16 +51,16 @@ Element BuildExpanderPage() {
     stateStatus->Text->Bind(stateValue, BindingMode::OneWay);
 
     // —— 向上展开 + 嵌套 ——
-    auto nestedInner = Widgets::Expander("内层折叠面板").Shared();
-        nestedInner->SetSubtitle("Expander 内可以继续嵌套 Expander");
-        nestedInner->SetContent(Column(8, {
+    CUI::Widgets::Ref nestedInner = Widgets::Expander("内层折叠面板").Shared();
+        nestedInner.Subtitle("Expander 内可以继续嵌套 Expander");
+        nestedInner.Content(Column(8, {
         MakeLabel("这是嵌套在最里层的内容。", 12.0f, ThemeTokenId::TextMuted, false),
     }));
 
-    auto upExpander = Widgets::Expander("向上展开（嵌套示例）").Shared();
-        upExpander->SetSubtitle("SetExpandDirection(Up) 后从底部向上展开");
-        upExpander->SetExpandDirection(ExpandDirection::Up);
-        upExpander->SetContent(nestedInner);
+    CUI::Widgets::Ref upExpander = Widgets::Expander("向上展开（嵌套示例）").Shared();
+        upExpander.Subtitle("SetExpandDirection(Up) 后从底部向上展开");
+        upExpander.ExpandDirection(ExpandDirection::Up);
+        upExpander.Content(nestedInner);
 
     SamplePageSpec spec;
     spec.title = "Expander(折叠控件)";

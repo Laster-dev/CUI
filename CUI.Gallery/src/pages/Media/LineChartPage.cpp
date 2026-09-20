@@ -158,11 +158,11 @@ Element BuildLineChartPage() {
 
     auto liveStatus = MakeStatus("等待数据泵启动...");
     auto pump = std::make_shared<SineStreamPump>(live, liveStatus);
-    auto btnRun = Widgets::ToggleButton("⏸ 暂停实时流").Shared();
+    CUI::Widgets::Ref btnRun = Widgets::ToggleButton("⏸ 暂停实时流").Shared();
     btnRun->OnClick().Connect([pump, btnRun](UIElement*) {
         const bool on = !pump->IsRunning();
                 pump->SetRunning(on);
-                btnRun->SetText(on ? "⏸ 暂停实时流" : "▶ 启动实时流");
+                btnRun.Text(on ? "⏸ 暂停实时流" : "▶ 启动实时流");
     });
 
     // ---------- 3. 显示选项 ----------
@@ -173,20 +173,20 @@ Element BuildLineChartPage() {
 
     auto status3 = MakeStatus("网格、图例、悬停提示均可独立开关。");
 
-    auto chkGrid = Widgets::CheckBox("显示网格").Shared();
-        chkGrid->SetState(CheckState::Checked);
+    CUI::Widgets::Ref chkGrid = Widgets::CheckBox("显示网格").Shared();
+        chkGrid.State(CheckState::Checked);
     chkGrid->OnCheckStateChanged().Connect([optChart, status3](CheckBox*, CheckState st) {
         const bool on = st == CheckState::Checked;
                 optChart->SetShowGrid(on);
         status3->Text = on ? "网格已显示。" : "网格已隐藏。";
     });
-    auto chkLegend = Widgets::CheckBox("显示图例").Shared();
-        chkLegend->SetState(CheckState::Checked);
+    CUI::Widgets::Ref chkLegend = Widgets::CheckBox("显示图例").Shared();
+        chkLegend.State(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([optChart](CheckBox*, CheckState st) {
                 optChart->SetShowLegend(st == CheckState::Checked);
     });
-    auto chkTip = Widgets::CheckBox("悬停提示卡片").Shared();
-        chkTip->SetState(CheckState::Checked);
+    CUI::Widgets::Ref chkTip = Widgets::CheckBox("悬停提示卡片").Shared();
+        chkTip.State(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([optChart](CheckBox*, CheckState st) {
                 optChart->SetShowTooltip(st == CheckState::Checked);
     });

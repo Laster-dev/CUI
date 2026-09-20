@@ -73,7 +73,7 @@ ShowcasePage BuildButtonPage(const ShowcaseContext& ctx) {
 
     auto toggleState = std::static_pointer_cast<TextBlock>(
         CreateShowcaseText("未选中", 12.0f, "textSecondary", false));
-    auto toggle = Widgets::ToggleButton("Bold")
+    CUI::Widgets::Ref toggle = Widgets::ToggleButton("Bold")
         .Icon("B")
         .Shared();
     toggle->OnToggled().Connect([toggleState, log](ToggleButton*, bool on) {

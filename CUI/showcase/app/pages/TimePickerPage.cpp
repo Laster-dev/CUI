@@ -11,7 +11,7 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildTimePickerPage(const ShowcaseContext& ctx) {
-    auto target = Widgets::TimePicker().Shared();
+    CUI::Widgets::Ref target = Widgets::TimePicker().Shared();
     return { "TimePicker 时间选择", CreatePage(
         "TimePicker 时间选择器控件",
         "支持 HH:mm 格式化时间、快捷微调与时间变动回调。",

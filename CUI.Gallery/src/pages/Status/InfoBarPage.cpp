@@ -11,12 +11,12 @@ namespace Gallery {
 namespace {
 
 Element MakeStaticInfoBar(const std::string& title, const std::string& message, InfoBarSeverity severity) {
-    auto bar = Widgets::InfoBar().Shared();
-        bar->SetTitle(title);
-        bar->SetMessage(message);
-        bar->SetSeverity(severity);
-        bar->SetIsClosable(false);
-        bar->SetIsOpen(true);
+    CUI::Widgets::Ref bar = Widgets::InfoBar().Shared();
+        bar.Title(title);
+        bar.Message(message);
+        bar.Severity(severity);
+        bar.IsClosable(false);
+        bar.IsOpen(true);
     return bar;
 }
 
@@ -24,12 +24,12 @@ Element MakeStaticInfoBar(const std::string& title, const std::string& message, 
 
 Element BuildInfoBarPage() {
     // 可交互示例：可切换严重级别、可关闭、带操作按钮。
-    auto demo = Widgets::InfoBar().Shared();
-        demo->SetTitle("文件已保存");
-        demo->SetMessage("你的更改已写入磁盘。撤销操作将在 30 秒后失效。");
-        demo->SetActionText("撤销");
-        demo->SetIsClosable(true);
-        demo->SetIsOpen(true);
+    CUI::Widgets::Ref demo = Widgets::InfoBar().Shared();
+        demo.Title("文件已保存");
+        demo.Message("你的更改已写入磁盘。撤销操作将在 30 秒后失效。");
+        demo.ActionText("撤销");
+        demo.IsClosable(true);
+        demo.IsOpen(true);
 
     auto actionStatus = MakeStatus("");
     demo->OnAction().Connect([actionStatus]() {
@@ -39,28 +39,28 @@ Element BuildInfoBarPage() {
         actionStatus->Text = "InfoBar 已关闭，可点击「显示」重新打开。";
     });
 
-    auto severity = CUI::Widgets::SegmentedControl().Shared();
+    CUI::Widgets::Ref severity = CUI::Widgets::SegmentedControl().Shared();
     severity->AddItem("信息");
     severity->AddItem("成功");
     severity->AddItem("警告");
     severity->AddItem("错误");
-        severity->SetSelectedIndex(0);
+        severity.SelectedIndex(0);
     severity->OnSelectionChanged().Connect([demo](SegmentedControl*, int index, const std::string&) {
         switch (index) {
-        case 1:         demo->SetSeverity(InfoBarSeverity::Success); break;
-        case 2:         demo->SetSeverity(InfoBarSeverity::Warning); break;
-        case 3:         demo->SetSeverity(InfoBarSeverity::Error); break;
-        default:         demo->SetSeverity(InfoBarSeverity::Informational); break;
+        case 1:         demo.Severity(InfoBarSeverity::Success); break;
+        case 2:         demo.Severity(InfoBarSeverity::Warning); break;
+        case 3:         demo.Severity(InfoBarSeverity::Error); break;
+        default:         demo.Severity(InfoBarSeverity::Informational); break;
         }
     });
 
-    auto closable = Widgets::ToggleSwitch().Header("可关闭（右上角 X）").IsOn(true).Shared();
+    CUI::Widgets::Ref closable = Widgets::ToggleSwitch().Header("可关闭（右上角 X）").IsOn(true).Shared();
     closable->OnToggled().Connect([demo](ToggleSwitch*, bool on) {
-                demo->SetIsClosable(on);
+                demo.IsClosable(on);
     });
 
-    auto showBtn = ElevatedButton("显示", [demo](UIElement*) {     demo->SetIsOpen(true); });
-    auto hideBtn = ElevatedButton("隐藏", [demo](UIElement*) {     demo->SetIsOpen(false); });
+    auto showBtn = ElevatedButton("显示", [demo](UIElement*) {     demo.IsOpen(true); });
+    auto hideBtn = ElevatedButton("隐藏", [demo](UIElement*) {     demo.IsOpen(false); });
 
     SamplePageSpec spec;
     spec.title = "InfoBar(消息条)";

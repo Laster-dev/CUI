@@ -31,7 +31,7 @@ std::shared_ptr<CUI::Button> MakeDockBar(
 
 std::shared_ptr<UIElement> BuildDockPanelPage() {
     // —— 常规用法：四边停靠 + 中央填充 ——
-    auto classic = Widgets::DockPanel().Width(520).Height(240).Shared();
+    CUI::Widgets::Ref classic = Widgets::DockPanel().Width(520).Height(240).Shared();
     classic->AddChild(MakeDockBar("Top 顶栏", Rgb(0x007ACC), Dock::Top, 36));
     classic->AddChild(MakeDockBar("Left 侧栏", Rgb(0x845EF7), Dock::Left, 110));
     classic->AddChild(MakeDockBar("Right 侧栏", Rgb(0xF59F00), Dock::Right, 90));
@@ -39,23 +39,23 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
     classic->AddChild(MakeDockBar("Center 填充", Rgb(0xD13438), Dock::Left));
 
     // —— 停靠顺序对结果的影响 ——
-    auto orderA = Widgets::DockPanel().Width(252).Height(200).Shared();
+    CUI::Widgets::Ref orderA = Widgets::DockPanel().Width(252).Height(200).Shared();
     orderA->AddChild(MakeDockBar("Left 先", Rgb(0x845EF7), Dock::Left, 110));
     orderA->AddChild(MakeDockBar("Top", Rgb(0x007ACC), Dock::Top, 32));
     orderA->AddChild(MakeDockBar("剩余填充", Rgb(0xD13438), Dock::Left));
 
-    auto orderB = Widgets::DockPanel().Width(252).Height(200).Shared();
+    CUI::Widgets::Ref orderB = Widgets::DockPanel().Width(252).Height(200).Shared();
     orderB->AddChild(MakeDockBar("Top 先", Rgb(0x007ACC), Dock::Top, 32));
     orderB->AddChild(MakeDockBar("Left", Rgb(0x845EF7), Dock::Left, 110));
     orderB->AddChild(MakeDockBar("剩余填充", Rgb(0xD13438), Dock::Left));
 
     // —— LastChildFill 实时开关 ——
-    auto fillDock = Widgets::DockPanel().Width(420).Height(180).Shared();
+    CUI::Widgets::Ref fillDock = Widgets::DockPanel().Width(420).Height(180).Shared();
     fillDock->AddChild(MakeDockBar("Left 侧栏", Rgb(0x845EF7), Dock::Left, 100));
     fillDock->AddChild(MakeDockBar("Right 侧栏", Rgb(0xF59F00), Dock::Right, 80));
     fillDock->AddChild(MakeDockBar("最后一项 · Bottom 36px", Rgb(0xD13438), Dock::Bottom, 36));
 
-    auto fillToggle = Widgets::ToggleSwitch().Shared();
+    CUI::Widgets::Ref fillToggle = Widgets::ToggleSwitch().Shared();
     State<bool> fillState{ true };
     fillToggle->IsOn.Bind(fillState);
     fillDock->LastChildFill.Bind(fillState, BindingMode::OneWay);
@@ -68,17 +68,17 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
     }, fillState), BindingMode::OneWay);
 
     // —— 运行时动态切换停靠方位 ——
-    auto liveDock = Widgets::DockPanel().Width(420).Height(200).Shared();
+    CUI::Widgets::Ref liveDock = Widgets::DockPanel().Width(420).Height(200).Shared();
     auto hero = MakeDockBar("主角元素", Rgb(0x007ACC), Dock::Left, 100);
     liveDock->AddChild(hero);
     liveDock->AddChild(MakeDockBar("剩余填充区", Rgb(0x2F3A46), Dock::Left));
 
-    auto dockCombo = Widgets::ComboBox().Shared();
+    CUI::Widgets::Ref dockCombo = Widgets::ComboBox().Shared();
     dockCombo->AddItem("Left（贴左，宽 100px）");
     dockCombo->AddItem("Top（贴顶，高 44px）");
     dockCombo->AddItem("Right（贴右，宽 100px）");
     dockCombo->AddItem("Bottom（贴底，高 44px）");
-        dockCombo->SetSelectedIndex(0);
+        dockCombo.SelectedIndex(0);
 
     State<int> dockIndex{ 0 };
     dockCombo->SelectedIndex.Bind(dockIndex);

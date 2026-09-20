@@ -11,11 +11,11 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildRangeSliderPage() {
-    auto price = Widgets::RangeSlider().Shared();
-        price->SetMinimum(0.0f);
-        price->SetMaximum(1000.0f);
-        price->SetStep(10.0f);
-        price->SetWidth(320.0f);
+    CUI::Widgets::Ref price = Widgets::RangeSlider().Shared();
+        price.Minimum(0.0f);
+        price.Maximum(1000.0f);
+        price.Step(10.0f);
+        price.Width(320.0f);
 
     State<float> lowerValue{ 200.0f };
     State<float> upperValue{ 800.0f };

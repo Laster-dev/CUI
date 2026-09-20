@@ -48,8 +48,8 @@ std::shared_ptr<UIElement> CalculatorApp::BuildRoot() {
         .Build();
     root->SetColorToken(ThemeTokenId::TextPrimary);
 
-    auto titleBar = Widgets::WindowTitleBar().Title("计算器").Shared();
-    //titleBar->SetIconText("C");
+    CUI::Widgets::Ref titleBar = Widgets::WindowTitleBar().Title("计算器").Shared();
+    //titleBar.IconText("C");
 
     //auto fileMenu = titleBar->GetMenuBar().AddMenu("File");
     //fileMenu->AddItem("Clear", [this]() { ClearAll(); });
@@ -87,11 +87,11 @@ std::shared_ptr<UIElement> CalculatorApp::BuildRoot() {
     content->AddChild(subtitle);
     content->AddChild(BuildDisplayPanel());
 
-    auto grid = Widgets::Grid().Shared();
-    grid->SetColumnDefinitions("1*,1*,1*,1*");
-    grid->SetRowDefinitions("1*,1*,1*,1*,1*");
-    grid->SetFlexGrow(1.0f);
-    grid->SetGap(10.0f);
+    CUI::Widgets::Ref grid = Widgets::Grid().Shared();
+    grid.ColumnDefinitions("1*,1*,1*,1*");
+    grid.RowDefinitions("1*,1*,1*,1*,1*");
+    grid.FlexGrow(1.0f);
+    grid.Gap(10.0f);
     BuildButtons(*grid);
 
     auto gridHost = Expanded(grid).Build();

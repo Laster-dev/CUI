@@ -60,7 +60,7 @@ std::vector<std::shared_ptr<TreeViewItem>> BuildProjectTree() {
 void ExpandedRecursively(TreeView* tree, const std::vector<std::shared_ptr<TreeViewItem>>& items, bool expanded) {
     for (const auto& item : items) {
         if (!item) continue;
-                tree->SetItemExpanded(item, expanded);
+        tree->SetItemExpanded(item, expanded);
         ExpandedRecursively(tree, item->children, expanded);
     }
 }
@@ -68,10 +68,10 @@ void ExpandedRecursively(TreeView* tree, const std::vector<std::shared_ptr<TreeV
 } // namespace
 
 Element BuildTreeViewPage() {
-    auto tree = CUI::Widgets::TreeView()
+    CUI::Widgets::Ref tree = CUI::Widgets::TreeView()
         .Height(330.0f)
         .Width(520.0f).Shared();
-        tree->SetItems(BuildProjectTree());
+        tree.Items(BuildProjectTree());
 
     State<std::string> treeStatusText{ "选择节点，单击箭头展开或折叠；双击节点可作为打开命令。" };
     auto treeStatus = MakeStatus("");
@@ -98,14 +98,14 @@ Element BuildTreeViewPage() {
             });
     auto selectRoot = Button("选择根节点")
         .OnClick([tree](UIElement*) {
-            if (!tree->GetItems().empty())             tree->SetSelectedItem(tree->GetItems().front());
+            if (!tree->GetItems().empty())             tree.SelectedItem(tree->GetItems().front());
             });
     auto clearSelection = Button("清除选择")
-        .OnClick([tree](UIElement*) {         tree->SetSelectedItem(nullptr); });
+        .OnClick([tree](UIElement*) {         tree.SelectedItem(nullptr); });
     auto indentCompact = Button("紧凑缩进")
-        .OnClick([tree](UIElement*) {         tree->SetIndentWidth(14.0f); });
+        .OnClick([tree](UIElement*) {         tree.IndentWidth(14.0f); });
     auto indentWide = Button("宽松缩进")
-        .OnClick([tree](UIElement*) {         tree->SetIndentWidth(28.0f); });
+        .OnClick([tree](UIElement*) {         tree.IndentWidth(28.0f); });
 
     State<int> newNodeSerial{ 1 };
     auto addRoot = Button("添加根节点")
@@ -114,7 +114,7 @@ Element BuildTreeViewPage() {
             newNodeSerial = serial + 1;
             auto item = tree->AddItem("动态根节点 " + std::to_string(serial), true);
             item->icon = "✨";
-                        tree->SetSelectedItem(item);
+                        tree.SelectedItem(item);
             treeStatusText = "已添加并选中动态根节点。";
             });
     auto addChild = Button("向选中项加载子项")
@@ -129,7 +129,7 @@ Element BuildTreeViewPage() {
             auto child = TreeItem("延迟加载子项 " + std::to_string(serial), "📄");
             child->parent = parent.get();
             parent->children.push_back(child);
-                        tree->SetItemExpanded(parent, true);
+                        tree.ItemExpanded(parent, true);
             tree->InvalidateVisibleItems();
             treeStatusText = "已为 " + parent->header + " 加载一个子项。";
             });
@@ -140,11 +140,11 @@ Element BuildTreeViewPage() {
             });
     auto resetTree = Button("替换整个数据源")
         .OnClick([tree, treeStatusText](UIElement*) {
-                        tree->SetItems(BuildProjectTree());
+                        tree.Items(BuildProjectTree());
             treeStatusText = "已通过 SetItems 替换整个树形集合。";
             });
 
-    auto lazyTree = CUI::Widgets::TreeView()
+    CUI::Widgets::Ref lazyTree = CUI::Widgets::TreeView()
         .Height(190.0f)
         .Width(520.0f).Shared();
     auto lazyRoot = TreeItem("按需加载目录", "📁", false);
@@ -163,7 +163,7 @@ Element BuildTreeViewPage() {
             for (const auto& child : lazyRoot->children) child->parent = lazyRoot.get();
             lazyTree->InvalidateVisibleItems();
             }
-                        lazyTree->SetItemExpanded(lazyRoot, true);
+                        lazyTree.ItemExpanded(lazyRoot, true);
             lazyStatusText = "延迟子项已加载；再次点击不会重复创建。";
             });
 
@@ -192,7 +192,7 @@ Element BuildTreeViewPage() {
         "auto root = TreeItem(\"CUI 工作区\", \"📁\", true);\n"
         "root->children.push_back(TreeItem(\"CUI.Core\", \"📦\"));\n"
         "tree.Items({ root });\n"
-        "        tree->SetItemExpanded(root, true);\n"
+        "        tree.ItemExpanded(root, true);\n"
         "tree->OnSelectionChanged().Connect(..);\n"
         "// 修改 children 后：tree->InvalidateVisibleItems();\n";
     return BuildSamplePage(spec);

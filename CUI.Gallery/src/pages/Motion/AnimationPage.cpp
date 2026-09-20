@@ -241,7 +241,7 @@ private:
 Element BuildAnimationPage() {
     // 1. 全局动画开关
     const bool initialEnabled = AnimationService::Instance().AreAnimationsEnabled();
-    auto toggleAnim = Widgets::ToggleSwitch().Header("启用全局动效 (Animations Enabled)").IsOn(initialEnabled).Shared();
+    CUI::Widgets::Ref toggleAnim = Widgets::ToggleSwitch().Header("启用全局动效 (Animations Enabled)").IsOn(initialEnabled).Shared();
     auto statusGlobal = MakeStatus(initialEnabled ? "当前状态：全局动画已开启（流畅过渡）" : "当前状态：全局动画已禁用（即刻吸附）");
 
     toggleAnim->OnToggled().Connect([statusGlobal](ToggleSwitch*, bool on) {
@@ -336,17 +336,17 @@ Element BuildAnimationPage() {
         .BorderThickness(1.0f)
         .OnClick([springBall](UIElement*) { springBall->TriggerImpulse(420.0f); });
 
-    auto sliderStiffness = Widgets::Slider().Shared();
-    sliderStiffness->SetMinimum(40.0f);
-    sliderStiffness->SetMaximum(400.0f);
-    sliderStiffness->SetValue(180.0f);
-        sliderStiffness->SetWidth(180.0f);
+    CUI::Widgets::Ref sliderStiffness = Widgets::Slider().Shared();
+    sliderStiffness.Minimum(40.0f);
+    sliderStiffness.Maximum(400.0f);
+    sliderStiffness.Value(180.0f);
+        sliderStiffness.Width(180.0f);
 
-    auto sliderDamping = Widgets::Slider().Shared();
-    sliderDamping->SetMinimum(4.0f);
-    sliderDamping->SetMaximum(50.0f);
-    sliderDamping->SetValue(18.0f);
-        sliderDamping->SetWidth(180.0f);
+    CUI::Widgets::Ref sliderDamping = Widgets::Slider().Shared();
+    sliderDamping.Minimum(4.0f);
+    sliderDamping.Maximum(50.0f);
+    sliderDamping.Value(18.0f);
+        sliderDamping.Width(180.0f);
 
     auto statusStiffness = MakeStatus(std::format("刚度 (Stiffness): {:.0f}", 180.0f));
     auto statusDamping = MakeStatus(std::format("阻尼 (Damping): {:.1f}", 18.0f));

@@ -17,8 +17,8 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
-    auto docs = Widgets::HyperlinkButton("打开文档", "https://learn.microsoft.com/windows/apps/design/controls/hyperlink-button").Shared();
-    auto inApp = Widgets::HyperlinkButton("打开设置页面").Shared();
+    CUI::Widgets::Ref docs = Widgets::HyperlinkButton("打开文档", "https://learn.microsoft.com/windows/apps/design/controls/hyperlink-button").Shared();
+    CUI::Widgets::Ref inApp = Widgets::HyperlinkButton("打开设置页面").Shared();
     auto status = MakeStatus("链接看起来像文本，行为像按钮。");
     
     docs->OnClick().Connect([docs](UIElement*) {
@@ -33,8 +33,8 @@ std::shared_ptr<UIElement> BuildHyperlinkButtonPage() {
         Gallery::Host::Instance().Navigate("settings");
     });
 
-    auto disabled = Widgets::HyperlinkButton("不可用链接").Shared();
-        disabled->SetIsEnabled(false);
+    CUI::Widgets::Ref disabled = Widgets::HyperlinkButton("不可用链接").Shared();
+        disabled.IsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "HyperlinkButton(超链接按钮)";

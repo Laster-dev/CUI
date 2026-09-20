@@ -5,7 +5,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildTextBoxPage() {
-    auto basic = Widgets::TextBox()
+    CUI::Widgets::Ref basic = Widgets::TextBox()
         .Placeholder("请输入内容")
         .Width(300.0f)
         .Height(32.0f)
@@ -28,42 +28,42 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
             basic->Text.Set("");
         });
 
-    auto multiline = Widgets::TextBox()
+    CUI::Widgets::Ref multiline = Widgets::TextBox()
         .Placeholder("多行文本：支持 Enter 换行与自动折行")
         .Width(340.0f)
         .Height(120.0f)
         .Shared();
-        multiline->SetAcceptsReturn(true);
-        multiline->SetTextWrapping(true);
+        multiline.AcceptsReturn(true);
+        multiline.TextWrapping(true);
 
-    auto readOnly = Widgets::TextBox()
+    CUI::Widgets::Ref readOnly = Widgets::TextBox()
         .Text("只读文本：.IsReadOnly(true)")
         .Width(300.0f)
         .Height(32.0f)
         .Shared();
-        readOnly->SetIsReadOnly(true);
+        readOnly.IsReadOnly(true);
 
-    auto passwordMode = Widgets::TextBox()
+    CUI::Widgets::Ref passwordMode = Widgets::TextBox()
         .Placeholder("密码模式（带明文切换眼睛）")
         .Width(300.0f)
         .Height(32.0f)
         .Shared();
-        passwordMode->SetIsPasswordMode(true);
-        passwordMode->SetShowRevealButton(true);
+        passwordMode.IsPasswordMode(true);
+        passwordMode.ShowRevealButton(true);
 
-    auto disabled = Widgets::TextBox()
+    CUI::Widgets::Ref disabled = Widgets::TextBox()
         .Placeholder("不可用")
         .Width(300.0f)
         .Height(32.0f)
         .Shared();
-        disabled->SetIsEnabled(false);
+        disabled.IsEnabled(false);
 
     State<std::string> boundText{ "绑定数据源：点击右侧按钮更新文本。" };
-    auto bound = Widgets::TextBox()
+    CUI::Widgets::Ref bound = Widgets::TextBox()
         .Width(300.0f)
         .Height(32.0f)
         .Shared();
-        bound->SetIsReadOnly(true);
+        bound.IsReadOnly(true);
     bound->Text.Bind(boundText, BindingMode::OneWay);
 
     auto update = Button("更新绑定")
@@ -73,12 +73,12 @@ std::shared_ptr<UIElement> BuildTextBoxPage() {
             boundText = "已通过 State 更新：Text.Bind(State, OneWay)。";
         });
 
-    auto drop = Widgets::TextBox()
+    CUI::Widgets::Ref drop = Widgets::TextBox()
         .Placeholder("支持拖放：拖入文本或文件路径")
         .Width(300.0f)
         .Height(32.0f)
         .Shared();
-        drop->SetAllowDrop(true);
+        drop.AllowDrop(true);
     drop->ToolTip = "允许从外部拖入文本或文件路径";
 
     SamplePageSpec spec;

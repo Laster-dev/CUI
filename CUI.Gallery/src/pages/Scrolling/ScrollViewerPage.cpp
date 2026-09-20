@@ -21,7 +21,7 @@ Element BuildScrollViewerPage() {
     // ==========================================
     // 示例 1: 经典长列表平滑滚动容器
     // ==========================================
-    auto scrollViewer1 = Widgets::ScrollViewer()
+    CUI::Widgets::Ref scrollViewer1 = Widgets::ScrollViewer()
         .Height(280.0f)
         .Background(D2D1::ColorF(0x141416, 0.4f))
         .Border(D2D1::ColorF(0x3F3F46, 0.5f), 1.0f)
@@ -82,27 +82,27 @@ Element BuildScrollViewerPage() {
     // 控制按钮：滚动至顶部 / 中间 / 底部
     auto btnScrollTop = Button("⬆️ 滚至顶部 (Top)")
         .OnClick([scrollViewer1, statusLabel](UIElement*) {
-                        scrollViewer1->SetScrollOffsetY(0.0f);
+                        scrollViewer1.ScrollOffsetY(0.0f);
                         statusLabel->SetText("已平滑滚动至容器【最顶部】。");
         });
 
     auto btnScrollMid = Button("↕️ 滚至中间 (50%)")
         .OnClick([scrollViewer1, statusLabel](UIElement*) {
-                        scrollViewer1->SetScrollOffsetY(400.0f);
+                        scrollViewer1.ScrollOffsetY(400.0f);
                         statusLabel->SetText("已平滑滚动至内容【中间位置】(Offset: 400px)。");
         });
 
     auto btnScrollBottom = Button("⬇️ 滚至底部 (Bottom)")
         .OnClick([scrollViewer1, statusLabel](UIElement*) {
-                        scrollViewer1->SetScrollOffsetY(2000.0f);
+                        scrollViewer1.ScrollOffsetY(2000.0f);
                         statusLabel->SetText("已平滑滚动至容器【最底部】。");
         });
 
-    auto toggleOverlay = Widgets::ToggleButton("浮层滚动条模式 (Overlay Scrollbar)").Shared();
+    CUI::Widgets::Ref toggleOverlay = Widgets::ToggleButton("浮层滚动条模式 (Overlay Scrollbar)").Shared();
     toggleOverlay->OnClick.Connect([scrollViewer1, statusLabel](UIElement* sender) {
         auto btn = dynamic_cast<ToggleButton*>(sender);
         bool isOverlay = btn && btn->IsChecked();
-                scrollViewer1->SetOverlayScrollbar(isOverlay);
+                scrollViewer1.OverlayScrollbar(isOverlay);
         statusLabel->Text = isOverlay
             ? "浮层滚动条模式已【开启】：滚动条浮在内容上方，不挤占排版宽度。"
             : "浮层滚动条模式已【关闭】：滚动条保留专属轨道空间。";
@@ -124,7 +124,7 @@ Element BuildScrollViewerPage() {
     };
 
     spec.source = R"cpp(// 1. 创建滚动视图并设定视口高度
-auto scrollViewer = Widgets::ScrollViewer()
+CUI::Widgets::Ref scrollViewer = Widgets::ScrollViewer()
     .Height(280.0f)
     .Shared();
 
@@ -138,8 +138,8 @@ for (int i = 0; i < 20; ++i) {
 scrollViewer->AddChild(content.Build());
 
 // 4. 代码控制滚动位置
-scrollViewer->SetScrollOffsetY(0.0f);      // 滚至顶部
-scrollViewer->SetOverlayScrollbar(true);    // 浮层滚动条模式
+scrollViewer.ScrollOffsetY(0.0f);      // 滚至顶部
+scrollViewer.OverlayScrollbar(true);    // 浮层滚动条模式
 )cpp";
 
     return BuildSamplePage(spec);

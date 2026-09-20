@@ -11,7 +11,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildSliderPage() {
-    auto volume = Widgets::Slider()
+    CUI::Widgets::Ref volume = Widgets::Slider()
         .Minimum(0.0f)
         .Maximum(100.0f)
         .Step(1.0f)
@@ -28,7 +28,7 @@ Element BuildSliderPage() {
     auto volumeStatus = MakeStatus("");
     volumeStatus->Text.Bind(volumeStatusValue, BindingMode::OneWay);
 
-    auto vertical = Widgets::Slider()
+    CUI::Widgets::Ref vertical = Widgets::Slider()
         .Orientation(Orientation::Vertical)
         .Minimum(0.0f)
         .Maximum(100.0f)

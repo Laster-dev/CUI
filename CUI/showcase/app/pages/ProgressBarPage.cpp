@@ -13,18 +13,18 @@ using namespace CUI::DSL;
 
 ShowcasePage BuildProgressBarPage(const ShowcaseContext& ctx) {
     CUI::ProgressBarDiag::Log("[PB] BuildProgressBarPage enter");
-    auto target = CUI::Widgets::ProgressBar().Width(280).Height(3).Shared();
-    target->SetValue(65.0f);
-    target->SetIsIndeterminate(false);
-    auto indeterminate = CUI::Widgets::ProgressBar().Width(280).Height(3).Shared();
-    indeterminate->SetValue(0.0f);
-    indeterminate->SetIsIndeterminate(true);
-    auto ringIndeterminate = CUI::Widgets::ProgressRing().Width(40).Height(40).Shared();
-    ringIndeterminate->SetValue(0.0f);
-    ringIndeterminate->SetIsIndeterminate(true);
-    auto ringDeterminate = CUI::Widgets::ProgressRing().Width(40).Height(40).Shared();
-    ringDeterminate->SetValue(65.0f);
-    ringDeterminate->SetIsIndeterminate(false);
+    CUI::Widgets::Ref target = CUI::Widgets::ProgressBar().Width(280).Height(3).Shared();
+    target.Value(65.0f);
+    target.IsIndeterminate(false);
+    CUI::Widgets::Ref indeterminate = CUI::Widgets::ProgressBar().Width(280).Height(3).Shared();
+    indeterminate.Value(0.0f);
+    indeterminate.IsIndeterminate(true);
+    CUI::Widgets::Ref ringIndeterminate = CUI::Widgets::ProgressRing().Width(40).Height(40).Shared();
+    ringIndeterminate.Value(0.0f);
+    ringIndeterminate.IsIndeterminate(true);
+    CUI::Widgets::Ref ringDeterminate = CUI::Widgets::ProgressRing().Width(40).Height(40).Shared();
+    ringDeterminate.Value(65.0f);
+    ringDeterminate.IsIndeterminate(false);
     CUI::ProgressBarDiag::Log(
         "[PB] BuildProgressBarPage done target=%p indeterminate=%p indFlag=%d",
         (void*)target.get(),

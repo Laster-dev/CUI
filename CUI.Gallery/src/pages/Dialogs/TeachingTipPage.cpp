@@ -14,10 +14,10 @@ Element BuildTeachingTipPage() {
     // ── 1. 基础气泡 ─────────────────────────────────────────────────────
     auto btnBasic = Button("显示基础 TeachingTip")
         .OnClick([status](UIElement* src) {
-            auto tip = CUI::Widgets::TeachingTip().Shared();
-            tip->SetTitle("欢迎使用 CUI 框架");
-            tip->SetMessage("这是一个 TeachingTip 气泡指引示例。它会自动停靠在目标控件旁边，并带有小三角箭头指示来源。");
-            tip->SetActionText("我知道了");
+            CUI::Widgets::Ref tip = CUI::Widgets::TeachingTip().Shared();
+            tip.Title("欢迎使用 CUI 框架");
+            tip.Message("这是一个 TeachingTip 气泡指引示例。它会自动停靠在目标控件旁边，并带有小三角箭头指示来源。");
+            tip.ActionText("我知道了");
             tip->OnAction().Connect([status, tip]() {
             status->Text = "已点击【我知道了】，气泡已关闭。";
             tip->Close();
@@ -36,10 +36,10 @@ Element BuildTeachingTipPage() {
         btnCloseOnly->SetBorderToken(ThemeTokenId::CardBorder);
         btnCloseOnly->SetBorderThickness(1.0f);
     btnCloseOnly->OnClick().Connect([status](UIElement* src) {
-        auto tip = CUI::Widgets::TeachingTip().Shared();
-        tip->SetTitle("提示");
-        tip->SetMessage("此提示没有操作按钮，只有右上角的关闭叉可以消退。");
-        tip->SetIsCloseVisible(true);
+        CUI::Widgets::Ref tip = CUI::Widgets::TeachingTip().Shared();
+        tip.Title("提示");
+        tip.Message("此提示没有操作按钮，只有右上角的关闭叉可以消退。");
+        tip.IsCloseVisible(true);
         tip->OnClosed().Connect([status]() {
             status->Text = "已通过关闭按钮消退气泡。";
         });
@@ -59,11 +59,11 @@ Element BuildTeachingTipPage() {
         btnPlacementRight->SetWidth(90.0f);
 
     auto makeDirectionTip = [](UIElement* src, BubblePlacement p, const std::string& label) {
-        auto tip = CUI::Widgets::TeachingTip().Shared();
-                tip->SetTitle(label);
-        tip->SetMessage("气泡将优先显示在此方向，边界受限时自动回退。");
-        tip->SetActionText("关闭");
-        tip->SetPreferredPlacement(p);
+        CUI::Widgets::Ref tip = CUI::Widgets::TeachingTip().Shared();
+                tip.Title(label);
+        tip.Message("气泡将优先显示在此方向，边界受限时自动回退。");
+        tip.ActionText("关闭");
+        tip.PreferredPlacement(p);
         tip->OnAction().Connect([tip]() { tip->Close(); });
                 src->AddChild(tip);
         tip->ShowAround(src);
@@ -89,12 +89,12 @@ Element BuildTeachingTipPage() {
         .PressedBackground(Color::Hex("#082C6E"))
         .Foreground(Color::White)
         .OnClick([status](UIElement* src) {
-            auto tip = CUI::Widgets::TeachingTip().Shared();
-            tip->SetTitle("新功能介绍：智能搜索");
-            tip->SetMessage("使用顶部搜索栏可快速定位任意控件或页面。\n支持拼音首字母检索，按 Ctrl+K 随时唤出。");
-            tip->SetActionText("立即体验");
-            tip->SetIsModal(true);
-            tip->SetPreferredPlacement(BubblePlacement::Auto);
+            CUI::Widgets::Ref tip = CUI::Widgets::TeachingTip().Shared();
+            tip.Title("新功能介绍：智能搜索");
+            tip.Message("使用顶部搜索栏可快速定位任意控件或页面。\n支持拼音首字母检索，按 Ctrl+K 随时唤出。");
+            tip.ActionText("立即体验");
+            tip.IsModal(true);
+            tip.PreferredPlacement(BubblePlacement::Auto);
             tip->OnAction().Connect([status, tip]() {
             status->Text = "已点击【立即体验】，功能引导完成。";
             tip->Close();
@@ -113,11 +113,11 @@ Element BuildTeachingTipPage() {
         btnAuto->SetBorderToken(ThemeTokenId::CardBorder);
         btnAuto->SetBorderThickness(1.0f);
     btnAuto->OnClick().Connect([status](UIElement* src) {
-        auto tip = CUI::Widgets::TeachingTip().Shared();
-        tip->SetTitle("自动方位（Auto）");
-        tip->SetMessage("当 PreferredPlacement 设置为 Auto 时，框架根据目标控件的位置和视口空间自动选择最优停靠方向，确保气泡始终可见。");
-        tip->SetActionText("明白了");
-        tip->SetPreferredPlacement(BubblePlacement::Auto);
+        CUI::Widgets::Ref tip = CUI::Widgets::TeachingTip().Shared();
+        tip.Title("自动方位（Auto）");
+        tip.Message("当 PreferredPlacement 设置为 Auto 时，框架根据目标控件的位置和视口空间自动选择最优停靠方向，确保气泡始终可见。");
+        tip.ActionText("明白了");
+        tip.PreferredPlacement(BubblePlacement::Auto);
         tip->OnAction().Connect([status, tip]() {
             status->Text = "Auto 停靠示例完成。";
             tip->Close();

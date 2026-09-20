@@ -119,8 +119,8 @@ public:
     Derived& LastChildFill(bool v) const { impl_->SetLastChildFill(v); return self(); }
     Derived& JustifyLines(bool v) const { impl_->SetJustifyLines(v); return self(); }
     Derived& FillLastLine(bool v) const { impl_->SetFillLastLine(v); return self(); }
-    Derived& Rows(int v) const { impl_->SetRows(v); return self(); }
-    Derived& Columns(int v) const { impl_->SetColumns(v); return self(); }
+    template<class... A> Derived& Rows(A&&... a) const { if constexpr (requires { impl_->SetRows(std::forward<A>(a)...); }) impl_->SetRows(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& Columns(A&&... a) const { if constexpr (requires { impl_->SetColumns(std::forward<A>(a)...); }) impl_->SetColumns(std::forward<A>(a)...); return self(); }
     Derived& ClipToBounds(bool v) const { impl_->SetClipToBounds(v); return self(); }
     Derived& CanvasLeft(float v) const { impl_->SetCanvasLeft(v); return self(); }
     Derived& CanvasTop(float v) const { impl_->SetCanvasTop(v); return self(); }
@@ -255,6 +255,58 @@ public:
     Derived& Size(float w, float h) const { if constexpr (requires { impl_->SetWidth(w); }) impl_->SetWidth(w); return self(); }
     Derived& Source(const std::string& value) const { if constexpr (requires { impl_->SetSource(value); }) impl_->SetSource(value); return self(); }
     template<class V> Derived& Stretch(V value) const { if constexpr (requires { impl_->SetStretch(value); }) impl_->SetStretch(value); return self(); }
+    template<class V> Derived& Value(V value) const { if constexpr (requires { impl_->SetValue(value); }) impl_->SetValue(value); return self(); }
+    template<class V> Derived& State(V value) const { if constexpr (requires { impl_->SetState(value); }) impl_->SetState(value); return self(); }
+    template<class V> Derived& Content(V value) const { if constexpr (requires { impl_->SetContent(value); }) impl_->SetContent(value); return self(); }
+    template<class V> Derived& Placement(V value) const { if constexpr (requires { impl_->SetPlacement(value); }) impl_->SetPlacement(value); return self(); }
+    template<class V> Derived& SelectionMode(V value) const { if constexpr (requires { impl_->SetSelectionMode(value); }) impl_->SetSelectionMode(value); return self(); }
+    template<class V> Derived& Subtitle(V value) const { if constexpr (requires { impl_->SetSubtitle(value); }) impl_->SetSubtitle(value); return self(); }
+
+    // ---- 页面层仍在用的其余属性入口（同上，统一走链式，避免作者级 ->SetX 调用） ----
+    template<class... A> Derived& ActiveContextMenu(A&&... a) const { if constexpr (requires { impl_->SetActiveContextMenu(std::forward<A>(a)...); }) impl_->SetActiveContextMenu(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& AntialiasMode(A&&... a) const { if constexpr (requires { impl_->SetAntialiasMode(std::forward<A>(a)...); }) impl_->SetAntialiasMode(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& BackdropType(A&&... a) const { if constexpr (requires { impl_->SetBackdropType(std::forward<A>(a)...); }) impl_->SetBackdropType(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& Bytes(A&&... a) const { if constexpr (requires { impl_->SetBytes(std::forward<A>(a)...); }) impl_->SetBytes(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& Category(A&&... a) const { if constexpr (requires { impl_->SetCategory(std::forward<A>(a)...); }) impl_->SetCategory(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& ContentFactory(A&&... a) const { if constexpr (requires { impl_->SetContentFactory(std::forward<A>(a)...); }) impl_->SetContentFactory(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& ContextMenu(A&&... a) const { if constexpr (requires { impl_->SetContextMenu(std::forward<A>(a)...); }) impl_->SetContextMenu(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& IsBackButtonVisible(A&&... a) const { if constexpr (requires { impl_->SetIsBackButtonVisible(std::forward<A>(a)...); }) impl_->SetIsBackButtonVisible(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& LazyPopulate(A&&... a) const { if constexpr (requires { impl_->SetLazyPopulate(std::forward<A>(a)...); }) impl_->SetLazyPopulate(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& Logger(A&&... a) const { if constexpr (requires { impl_->SetLogger(std::forward<A>(a)...); }) impl_->SetLogger(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& OwnerWindow(A&&... a) const { if constexpr (requires { impl_->SetOwnerWindow(std::forward<A>(a)...); }) impl_->SetOwnerWindow(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& PaneDisplayMode(A&&... a) const { if constexpr (requires { impl_->SetPaneDisplayMode(std::forward<A>(a)...); }) impl_->SetPaneDisplayMode(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& PixelFormat(A&&... a) const { if constexpr (requires { impl_->SetPixelFormat(std::forward<A>(a)...); }) impl_->SetPixelFormat(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& SelectedId(A&&... a) const { if constexpr (requires { impl_->SetSelectedId(std::forward<A>(a)...); }) impl_->SetSelectedId(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& SettingsItem(A&&... a) const { if constexpr (requires { impl_->SetSettingsItem(std::forward<A>(a)...); }) impl_->SetSettingsItem(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& StatusHandler(A&&... a) const { if constexpr (requires { impl_->SetStatusHandler(std::forward<A>(a)...); }) impl_->SetStatusHandler(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& TextAntialiasMode(A&&... a) const { if constexpr (requires { impl_->SetTextAntialiasMode(std::forward<A>(a)...); }) impl_->SetTextAntialiasMode(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& ThemeMode(A&&... a) const { if constexpr (requires { impl_->SetThemeMode(std::forward<A>(a)...); }) impl_->SetThemeMode(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& ThemeModeWithRipple(A&&... a) const { if constexpr (requires { impl_->SetThemeModeWithRipple(std::forward<A>(a)...); }) impl_->SetThemeModeWithRipple(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& LayoutType(A&&... a) const { if constexpr (requires { impl_->SetLayoutType(std::forward<A>(a)...); }) impl_->SetLayoutType(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& SideSize(A&&... a) const { if constexpr (requires { impl_->SetSideSize(std::forward<A>(a)...); }) impl_->SetSideSize(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& PreferredPlacement(A&&... a) const { if constexpr (requires { impl_->SetPreferredPlacement(std::forward<A>(a)...); }) impl_->SetPreferredPlacement(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& Items(A&&... a) const { if constexpr (requires { impl_->SetItems(std::forward<A>(a)...); }) impl_->SetItems(std::forward<A>(a)...); return self(); }
+    /// 列表项可直接写花括号：.Items({ "A", "B" })
+    template<class T> Derived& Items(std::initializer_list<T> v) const {
+        if constexpr (requires { impl_->SetItems(std::vector<T>(v)); }) impl_->SetItems(std::vector<T>(v));
+        return self();
+    }
+    template<class... A> Derived& ItemExpanded(A&&... a) const { if constexpr (requires { impl_->SetItemExpanded(std::forward<A>(a)...); }) impl_->SetItemExpanded(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& ExpandDirection(A&&... a) const { if constexpr (requires { impl_->SetExpandDirection(std::forward<A>(a)...); }) impl_->SetExpandDirection(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& LabelPosition(A&&... a) const { if constexpr (requires { impl_->SetLabelPosition(std::forward<A>(a)...); }) impl_->SetLabelPosition(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& SelectedItem(A&&... a) const { if constexpr (requires { impl_->SetSelectedItem(std::forward<A>(a)...); }) impl_->SetSelectedItem(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& Severity(A&&... a) const { if constexpr (requires { impl_->SetSeverity(std::forward<A>(a)...); }) impl_->SetSeverity(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& VirtualMode(A&&... a) const { if constexpr (requires { impl_->SetVirtualMode(std::forward<A>(a)...); }) impl_->SetVirtualMode(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& SuggestionItems(A&&... a) const { if constexpr (requires { impl_->SetSuggestionItems(std::forward<A>(a)...); }) impl_->SetSuggestionItems(std::forward<A>(a)...); return self(); }
+    /// 候选词可直接写花括号：.SuggestionItems({ "A", "B" })
+    template<class T> Derived& SuggestionItems(std::initializer_list<T> v) const {
+        if constexpr (requires { impl_->SetSuggestionItems(std::vector<T>(v)); }) impl_->SetSuggestionItems(std::vector<T>(v));
+        return self();
+    }
+    template<class... A> Derived& SuggestionProvider(A&&... a) const { if constexpr (requires { impl_->SetSuggestionProvider(std::forward<A>(a)...); }) impl_->SetSuggestionProvider(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& AutoSuggestBox(A&&... a) const { if constexpr (requires { impl_->SetAutoSuggestBox(std::forward<A>(a)...); }) impl_->SetAutoSuggestBox(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& RowIcons(A&&... a) const { if constexpr (requires { impl_->SetRowIcons(std::forward<A>(a)...); }) impl_->SetRowIcons(std::forward<A>(a)...); return self(); }
+    template<class... A> Derived& RowTags(A&&... a) const { if constexpr (requires { impl_->SetRowTags(std::forward<A>(a)...); }) impl_->SetRowTags(std::forward<A>(a)...); return self(); }
     Derived& Spacing(float value) const { if constexpr (requires { impl_->SetSpacing(value); }) impl_->SetSpacing(value); return self(); }
     Derived& Step(float s) const { if constexpr (requires { impl_->SetStep(s); }) impl_->SetStep(s); return self(); }
     Derived& Stiffness(float value) const { if constexpr (requires { impl_->SetStiffness(value); }) impl_->SetStiffness(value); return self(); }
@@ -378,11 +430,21 @@ public:
 
     /// 取出底层共享指针，用于 AddChild 等仍以 shared_ptr 交接入口的场合
     std::shared_ptr<Impl> Ptr() const { return this->impl_; }
+    /// 裸指针访问，保持与 shared_ptr 一致的手感
+    Impl* get() const { return this->impl_.get(); }
     operator std::shared_ptr<Impl>() const { return this->impl_; }
     /// 直接交给以 shared_ptr<UIElement> 收口的容器（Column/Row/Children 等）
     operator std::shared_ptr<UIElement>() const { return this->impl_; }
+    /// 交给以基类 shared_ptr 收口的入口（如 AddMenuItem(shared_ptr<NavigationViewItemBase>)）
+    template<class U> requires std::is_convertible_v<Impl*, U*>
+    operator std::shared_ptr<U>() const { return this->impl_; }
     bool Valid() const { return static_cast<bool>(this->impl_); }
+    explicit operator bool() const { return static_cast<bool>(this->impl_); }
 };
+
+/// 推导指引：Widgets::Ref x = Widgets::Foo().Shared(); 无需手写控件类型名
+template<typename Impl>
+Ref(std::shared_ptr<Impl>) -> Ref<Impl>;
 
 } // namespace Widgets
 } // namespace CUI

@@ -5,12 +5,12 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildRadioButtonPage() {
-    auto light = Widgets::RadioButton("浅色").Shared();
-    auto dark = Widgets::RadioButton("深色").Shared();
-    auto system = Widgets::RadioButton("跟随系统").Shared();
-        light->SetGroupName("theme");
-        dark->SetGroupName("theme");
-        system->SetGroupName("theme");
+    CUI::Widgets::Ref light = Widgets::RadioButton("浅色").Shared();
+    CUI::Widgets::Ref dark = Widgets::RadioButton("深色").Shared();
+    CUI::Widgets::Ref system = Widgets::RadioButton("跟随系统").Shared();
+        light.GroupName("theme");
+        dark.GroupName("theme");
+        system.GroupName("theme");
 
     State<bool> lightChecked{ true };
     State<bool> darkChecked{ false };
@@ -31,12 +31,12 @@ Element BuildRadioButtonPage() {
     auto themeStatus = MakeStatus("");
     themeStatus->Text.Bind(themeStatusValue, BindingMode::OneWay);
 
-    auto sizeS = Widgets::RadioButton("小").Shared();
-    auto sizeM = Widgets::RadioButton("中").Shared();
-    auto sizeL = Widgets::RadioButton("大").Shared();
-        sizeS->SetGroupName("size");
-        sizeM->SetGroupName("size");
-        sizeL->SetGroupName("size");
+    CUI::Widgets::Ref sizeS = Widgets::RadioButton("小").Shared();
+    CUI::Widgets::Ref sizeM = Widgets::RadioButton("中").Shared();
+    CUI::Widgets::Ref sizeL = Widgets::RadioButton("大").Shared();
+        sizeS.GroupName("size");
+        sizeM.GroupName("size");
+        sizeL.GroupName("size");
 
     State<bool> sizeSChecked{ false };
     State<bool> sizeMChecked{ true };

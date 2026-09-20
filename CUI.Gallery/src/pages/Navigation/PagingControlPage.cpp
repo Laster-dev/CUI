@@ -59,24 +59,24 @@ Element BuildPagingControlPage() {
         status3->Text = std::format("当前第 {} / {} 页。", page, sender->GetTotalPages());
     });
 
-    auto totalBox = Widgets::NumberBox().Shared();
-    totalBox->SetValue(20.0);
-        totalBox->SetWidth(140.0f);
-        totalBox->SetMinimum(1.0f);
-        totalBox->SetMaximum(200.0f);
-        totalBox->SetStep(1.0f);
+    CUI::Widgets::Ref totalBox = Widgets::NumberBox().Shared();
+    totalBox.Value(20.0);
+        totalBox.Width(140.0f);
+        totalBox.Minimum(1.0f);
+        totalBox.Maximum(200.0f);
+        totalBox.Step(1.0f);
     totalBox->OnValueChanged().Connect([paging3, status3](NumberBox* box, float value) {
         const int total = static_cast<int>(value + 0.5f);
                 paging3->SetTotalPages(total);
         status3->Text = std::format("总页数已更新为 {}（当前第 {} 页）。", total, paging3->GetCurrentPage());
     });
 
-    auto pageBox = Widgets::NumberBox().Shared();
-    pageBox->SetValue(5.0);
-        pageBox->SetWidth(140.0f);
-        pageBox->SetMinimum(1.0f);
-        pageBox->SetMaximum(200.0f);
-        pageBox->SetStep(1.0f);
+    CUI::Widgets::Ref pageBox = Widgets::NumberBox().Shared();
+    pageBox.Value(5.0);
+        pageBox.Width(140.0f);
+        pageBox.Minimum(1.0f);
+        pageBox.Maximum(200.0f);
+        pageBox.Step(1.0f);
     pageBox->OnValueChanged().Connect([paging3](NumberBox*, float value) {
                 paging3->SetCurrentPage(static_cast<int>(value + 0.5f));
     });

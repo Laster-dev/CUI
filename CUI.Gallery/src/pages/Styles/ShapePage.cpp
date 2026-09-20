@@ -19,8 +19,8 @@ Element BuildShapePage() {
     // 圆角矩形阶梯
     auto radiusRow = Row(16, {});
     for (float r : { 0.0f, 2.0f, 4.0f, 8.0f, 12.0f, 16.0f }) {
-        auto rect = CUI::Widgets::Rectangle().Width(88.0f).Height(56.0f).Shared();
-                rect->SetCornerRadius(r);
+        CUI::Widgets::Ref rect = CUI::Widgets::Rectangle().Width(88.0f).Height(56.0f).Shared();
+                rect.CornerRadius(r);
         rect->Fill = cardBg;
         rect->Stroke = cardBorder;
         rect->StrokeThickness = 1.0f;
@@ -31,51 +31,51 @@ Element BuildShapePage() {
     }
 
     // 圆形与椭圆
-    auto circle = CUI::Widgets::Ellipse().Width(56.0f).Height(56.0f).Shared();
+    CUI::Widgets::Ref circle = CUI::Widgets::Ellipse().Width(56.0f).Height(56.0f).Shared();
     circle->Fill = accent;
-    auto ellipse = CUI::Widgets::Ellipse().Width(88.0f).Height(48.0f).Shared();
+    CUI::Widgets::Ref ellipse = CUI::Widgets::Ellipse().Width(88.0f).Height(48.0f).Shared();
     ellipse->Fill = cardBg;
     ellipse->Stroke = accent;
     ellipse->StrokeThickness = 1.5f;
-    auto hollow = CUI::Widgets::Ellipse().Width(56.0f).Height(56.0f).Shared();
+    CUI::Widgets::Ref hollow = CUI::Widgets::Ellipse().Width(56.0f).Height(56.0f).Shared();
     hollow->Fill = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
     hollow->Stroke = cardBorder;
     hollow->StrokeThickness = 1.0f;
 
     // 直线与描边粗细
-    auto line1 = CUI::Widgets::Line().X1(0.0f).Y1(0.0f).X2(140.0f).Y2(0.0f).Shared();
+    CUI::Widgets::Ref line1 = CUI::Widgets::Line().X1(0.0f).Y1(0.0f).X2(140.0f).Y2(0.0f).Shared();
     line1->Stroke = accent;
     line1->StrokeThickness = 1.0f;
-        line1->SetWidth(140.0f);
-        line1->SetHeight(8.0f);
-    auto line2 = CUI::Widgets::Line().X1(0.0f).Y1(0.0f).X2(140.0f).Y2(0.0f).Shared();
+        line1.Width(140.0f);
+        line1.Height(8.0f);
+    CUI::Widgets::Ref line2 = CUI::Widgets::Line().X1(0.0f).Y1(0.0f).X2(140.0f).Y2(0.0f).Shared();
     line2->Stroke = accent;
     line2->StrokeThickness = 2.5f;
-        line2->SetWidth(140.0f);
-        line2->SetHeight(8.0f);
-    auto line3 = CUI::Widgets::Line().X1(0.0f).Y1(0.0f).X2(140.0f).Y2(0.0f).Shared();
+        line2.Width(140.0f);
+        line2.Height(8.0f);
+    CUI::Widgets::Ref line3 = CUI::Widgets::Line().X1(0.0f).Y1(0.0f).X2(140.0f).Y2(0.0f).Shared();
     line3->Stroke = accent;
     line3->StrokeThickness = 4.0f;
-        line3->SetWidth(140.0f);
-        line3->SetHeight(8.0f);
+        line3.Width(140.0f);
+        line3.Height(8.0f);
 
     // 矢量路径
-    auto triangle = CUI::Widgets::Path("M 6 30 L 30 6 L 54 30 Z").Shared();
-        triangle->SetWidth(60.0f);
-        triangle->SetHeight(36.0f);
+    CUI::Widgets::Ref triangle = CUI::Widgets::Path("M 6 30 L 30 6 L 54 30 Z").Shared();
+        triangle.Width(60.0f);
+        triangle.Height(36.0f);
     triangle->Fill = accent;
-    auto heart = CUI::Widgets::Path("M 10 28 A 18 18 0 0 1 46 28 A 18 18 0 0 1 82 28 Q 82 54 46 82 Q 10 54 10 28 Z").Shared();
-        heart->SetWidth(92.0f);
-        heart->SetHeight(88.0f);
+    CUI::Widgets::Ref heart = CUI::Widgets::Path("M 10 28 A 18 18 0 0 1 46 28 A 18 18 0 0 1 82 28 Q 82 54 46 82 Q 10 54 10 28 Z").Shared();
+        heart.Width(92.0f);
+        heart.Height(88.0f);
     heart->Fill = accent;
 
-    auto starSvg = CUI::Widgets::SvgIcon(
+    CUI::Widgets::Ref starSvg = CUI::Widgets::SvgIcon(
         "<svg viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\">"
         "<path d=\"M12 2 L15 9 L22 9.3 L16.7 14 L18.3 21 L12 17.3 L5.7 21 L7.3 14 L2 9.3 L9 9 Z\"/>"
         "</svg>").Shared();
-        starSvg->SetWidth(48.0f);
-        starSvg->SetHeight(48.0f);
-    starSvg->SetTintColor(accent);
+        starSvg.Width(48.0f);
+        starSvg.Height(48.0f);
+    starSvg.TintColor(accent);
 
     SamplePageSpec spec;
     spec.title = "Shape(形状与圆角)";

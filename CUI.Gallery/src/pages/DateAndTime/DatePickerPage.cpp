@@ -23,7 +23,7 @@ std::string TodayString() {
 } // namespace
 
 Element BuildDatePickerPage() {
-    auto picker = Widgets::DatePicker().Shared();
+    CUI::Widgets::Ref picker = Widgets::DatePicker().Shared();
     State<std::string> selectedDate{ picker->GetFormattedDate() };
     picker->SelectedDate->Bind(selectedDate);
 
@@ -42,9 +42,9 @@ Element BuildDatePickerPage() {
     auto birthday = Button("生日示例")
         .OnClick([selectedDate](UIElement*) { selectedDate = "1990-06-15"; });
 
-    auto disabled = Widgets::DatePicker().Shared();
-        disabled->SetDate(2026, 12, 31);
-        disabled->SetIsEnabled(false);
+    CUI::Widgets::Ref disabled = Widgets::DatePicker().Shared();
+        disabled.Date(2026, 12, 31);
+        disabled.IsEnabled(false);
 
     auto programmatic = Button("程序设置 2030-05-20")
         .OnClick([selectedDate](UIElement*) { selectedDate = "2030-05-20"; });

@@ -15,13 +15,13 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<Canvas> MakeStage(float minHeight) {
-    auto stage = CUI::Widgets::Canvas()
+    CUI::Widgets::Ref stage = CUI::Widgets::Canvas()
         .MinHeight(minHeight).Shared();
-        stage->SetClipToBounds(true);
-        stage->SetCornerRadius(4.0f);
-        stage->SetBackground(D2D1::ColorF(0.97f, 0.97f, 0.99f, 0.5f));
-        stage->SetBorderBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.08f));
-        stage->SetBorderThickness(1.0f);
+        stage.ClipToBounds(true);
+        stage.CornerRadius(4.0f);
+        stage.Background(D2D1::ColorF(0.97f, 0.97f, 0.99f, 0.5f));
+        stage.BorderBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.08f));
+        stage.BorderThickness(1.0f);
     return stage;
 }
 
@@ -201,9 +201,9 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
     std::shared_ptr<PhysicsWorld> world,
     std::shared_ptr<AimState> aim,
     State<int> ballCount) {
-    auto canvas = CUI::Widgets::CanvasControl().Shared();
-        canvas->SetMinHeight(340.0f);
-        canvas->SetClipToBounds(true);
+    CUI::Widgets::Ref canvas = CUI::Widgets::CanvasControl().Shared();
+        canvas.MinHeight(340.0f);
+        canvas.ClipToBounds(true);
 
         canvas->OnDraw().Connect([world, aim](GraphicsContext& ctx, Size size) {
         world->SetViewport(size.width, size.height);
@@ -301,19 +301,19 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     label->CanvasTop = 84.0f;
     stage->AddChild(label);
 
-    auto box = CUI::Widgets::Rectangle().Width(120).Height(44).Shared();
-        box->SetFill(Rgb(0x007ACC, 0.35f));
-        box->SetCornerRadius(6.0f);
+    CUI::Widgets::Ref box = CUI::Widgets::Rectangle().Width(120).Height(44).Shared();
+        box.Fill(Rgb(0x007ACC, 0.35f));
+        box.CornerRadius(6.0f);
     box->CanvasLeft = 190.0f;
     box->CanvasTop = 70.0f;
     stage->AddChild(box);
 
     State<float> circleX{ 220.0f };
     State<float> circleY{ 32.0f };
-    auto circle = CUI::Widgets::Ellipse().Width(72).Height(72).Shared();
-        circle->SetFill(Rgb(0x2BAD8E, 0.85f));
-        circle->SetStroke(Rgb(0x1B7A63));
-        circle->SetStrokeThickness(2.0f);
+    CUI::Widgets::Ref circle = CUI::Widgets::Ellipse().Width(72).Height(72).Shared();
+        circle.Fill(Rgb(0x2BAD8E, 0.85f));
+        circle.Stroke(Rgb(0x1B7A63));
+        circle.StrokeThickness(2.0f);
     circle->CanvasLeft = circleX;
     circle->CanvasTop = circleY;
     stage->AddChild(circle);
@@ -346,40 +346,40 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     // —— 叠加与层级 ——
     auto layerStage = MakeStage(190);
 
-    auto backRect = CUI::Widgets::Rectangle().Width(200).Height(110).Shared();
-        backRect->SetFill(Rgb(0x4A90D9, 0.9f));
-        backRect->SetCornerRadius(4.0f);
+    CUI::Widgets::Ref backRect = CUI::Widgets::Rectangle().Width(200).Height(110).Shared();
+        backRect.Fill(Rgb(0x4A90D9, 0.9f));
+        backRect.CornerRadius(4.0f);
     backRect->CanvasLeft = 16.0f;
     backRect->CanvasTop = 16.0f;
     backRect->ZIndex = 0;
     layerStage->AddChild(backRect);
 
-    auto frontEllipse = CUI::Widgets::Ellipse().Width(150).Height(90).Shared();
-        frontEllipse->SetFill(Rgb(0xE8833A, 0.9f));
+    CUI::Widgets::Ref frontEllipse = CUI::Widgets::Ellipse().Width(150).Height(90).Shared();
+        frontEllipse.Fill(Rgb(0xE8833A, 0.9f));
     frontEllipse->CanvasLeft = 120.0f;
-        frontEllipse->SetStroke(Rgb(0xC86A24));
-        frontEllipse->SetStrokeThickness(2.0f);
+        frontEllipse.Stroke(Rgb(0xC86A24));
+        frontEllipse.StrokeThickness(2.0f);
     frontEllipse->CanvasTop = 70.0f;
     frontEllipse->ZIndex = 1;
     layerStage->AddChild(frontEllipse);
 
-    auto slash = CUI::Widgets::Line().X1(16.0f).Y1(16.0f).X2(300.0f).Y2(150.0f).Width(320).Height(160).Shared();
-        slash->SetStroke(Rgb(0xE5484D));
-        slash->SetStrokeThickness(3.0f);
+    CUI::Widgets::Ref slash = CUI::Widgets::Line().X1(16.0f).Y1(16.0f).X2(300.0f).Y2(150.0f).Width(320).Height(160).Shared();
+        slash.Stroke(Rgb(0xE5484D));
+        slash.StrokeThickness(3.0f);
     slash->ZIndex = 2;
     layerStage->AddChild(slash);
 
     // —— 与流式布局对比 ——
     auto canvasSide = MakeStage(150);
-    auto sideRect = CUI::Widgets::Rectangle().Width(110).Height(46).Shared();
-        sideRect->SetFill(Rgb(0x007ACC, 0.45f));
-        sideRect->SetCornerRadius(4.0f);
+    CUI::Widgets::Ref sideRect = CUI::Widgets::Rectangle().Width(110).Height(46).Shared();
+        sideRect.Fill(Rgb(0x007ACC, 0.45f));
+        sideRect.CornerRadius(4.0f);
     sideRect->CanvasLeft = 20.0f;
     sideRect->CanvasTop = 24.0f;
     canvasSide->AddChild(sideRect);
 
-    auto sideCircle = CUI::Widgets::Ellipse().Width(52).Height(52).Shared();
-        sideCircle->SetFill(Rgb(0x2BAD8E, 0.9f));
+    CUI::Widgets::Ref sideCircle = CUI::Widgets::Ellipse().Width(52).Height(52).Shared();
+        sideCircle.Fill(Rgb(0x2BAD8E, 0.9f));
     sideCircle->CanvasLeft = 48.0f;
     sideCircle->CanvasTop = 92.0f;
     canvasSide->AddChild(sideCircle);
@@ -387,12 +387,12 @@ std::shared_ptr<UIElement> BuildCanvasPage() {
     auto flowColumn = Column(8).Padding(12)
         .MinHeight(150.0f);
         flowColumn->SetBackgroundToken(ThemeTokenId::CardBackground);
-    auto flowRect = CUI::Widgets::Rectangle().Width(110).Height(46).Shared();
-        flowRect->SetFill(Rgb(0x007ACC, 0.45f));
-        flowRect->SetCornerRadius(4.0f);
+    CUI::Widgets::Ref flowRect = CUI::Widgets::Rectangle().Width(110).Height(46).Shared();
+        flowRect.Fill(Rgb(0x007ACC, 0.45f));
+        flowRect.CornerRadius(4.0f);
     flowColumn->AddChild(flowRect);
-    auto flowCircle = CUI::Widgets::Ellipse().Width(52).Height(52).Shared();
-        flowCircle->SetFill(Rgb(0x2BAD8E, 0.9f));
+    CUI::Widgets::Ref flowCircle = CUI::Widgets::Ellipse().Width(52).Height(52).Shared();
+        flowCircle.Fill(Rgb(0x2BAD8E, 0.9f));
     flowColumn->AddChild(flowCircle);
 
     // —— 高性能：重力引擎 + 发射小球 ——

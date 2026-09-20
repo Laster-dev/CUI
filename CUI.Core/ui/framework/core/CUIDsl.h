@@ -1050,6 +1050,8 @@ struct ChildArgument {
     ChildArgument(Element value) : element(std::move(value)) {}
     template<typename T> ChildArgument(std::shared_ptr<T> value) : element(std::move(value)) {}
     template<typename T> ChildArgument(const ElementRef<T>& ref) : element(ref.Shared()) {}
+    /// 非拥有观察句柄（Widgets::Ref）：共享同一控件，可直接写进 Row/Column 的初始化列表
+    template<typename T> ChildArgument(const Widgets::Ref<T>& ref) : element(ref.Ptr()) {}
     template<typename T> ChildArgument(const ElementBuilder<T>& builder) : element(builder.Shared()) {}
     /// 新句柄层（Widgets::Xxx）右值：自动 Build 交出所有权，可直接写进 Row/Column 的初始化列表
     template<typename H> requires requires(H& h) { h.Build(); }

@@ -236,8 +236,8 @@ Element BuildCommandsPage() {
             console->GetCmdFind()->Execute();
         });
 
-    auto toggleCanSave = Widgets::ToggleButton("允许保存 (CanExecute = true)").Shared();
-        toggleCanSave->SetIsChecked(true);
+    CUI::Widgets::Ref toggleCanSave = Widgets::ToggleButton("允许保存 (CanExecute = true)").Shared();
+        toggleCanSave.IsChecked(true);
     toggleCanSave->OnClick.Connect([console, statusLabel](UIElement* sender) {
         auto btn = dynamic_cast<ToggleButton*>(sender);
         bool canSave = btn && btn->IsChecked();

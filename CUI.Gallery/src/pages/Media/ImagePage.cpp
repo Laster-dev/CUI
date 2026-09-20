@@ -124,13 +124,13 @@ std::string EnsureCheckerPng() {
 }
 
 std::shared_ptr<Image> MakePreview(float w, float h, Stretch stretch) {
-    auto img = Widgets::Image().Shared();
-    img->SetWidth(w);
-    img->SetHeight(h);
-    img->SetStretch(stretch);
-    img->SetCornerRadius(6.0f);
-    img->SetBorderThickness(1.0f);
-    img->SetBorderToken(ThemeTokenId::CardBorder);
+    CUI::Widgets::Ref img = Widgets::Image().Shared();
+    img.Width(w);
+    img.Height(h);
+    img.Stretch(stretch);
+    img.CornerRadius(6.0f);
+    img.BorderThickness(1.0f);
+    img.BorderToken(ThemeTokenId::CardBorder);
     return img;
 }
 
@@ -174,11 +174,11 @@ Element BuildImagePage() {
         }
     };
 
-    auto picker = Widgets::FilePicker().Shared();
-    picker->SetWidth(320.0f);
-    picker->SetHeight(32.0f);
-    picker->SetFilter("图片", "*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.ico");
-    picker->SetDialogTitle("选择图片");
+    CUI::Widgets::Ref picker = Widgets::FilePicker().Shared();
+    picker.Width(320.0f);
+    picker.Height(32.0f);
+    picker.Filter("图片", "*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.ico");
+    picker.DialogTitle("选择图片");
     picker->OnPathChanged().Connect([applySource](FilePicker*, const std::string& path) {
         applySource(path);
     });
@@ -220,41 +220,41 @@ Element BuildImagePage() {
     cover->SetSource(checker);
 
     // ---------- 3. 占位绘制模式（无需文件） ----------
-    auto avatar1 = Widgets::Image(ImageType::Avatar, "CUI", Rgb(0x007ACC)).Shared();
-    avatar1->SetWidth(56.0f);
-    avatar1->SetHeight(56.0f);
-    auto avatar2 = Widgets::Image(ImageType::Avatar, "BU", Rgb(0x13A10E)).Shared();
-    avatar2->SetWidth(56.0f);
-    avatar2->SetHeight(56.0f);
-    auto avatar3 = Widgets::Image(ImageType::Avatar, "FF", Rgb(0xD83B01)).Shared();
-    avatar3->SetWidth(56.0f);
-    avatar3->SetHeight(56.0f);
+    CUI::Widgets::Ref avatar1 = Widgets::Image(ImageType::Avatar, "CUI", Rgb(0x007ACC)).Shared();
+    avatar1.Width(56.0f);
+    avatar1.Height(56.0f);
+    CUI::Widgets::Ref avatar2 = Widgets::Image(ImageType::Avatar, "BU", Rgb(0x13A10E)).Shared();
+    avatar2.Width(56.0f);
+    avatar2.Height(56.0f);
+    CUI::Widgets::Ref avatar3 = Widgets::Image(ImageType::Avatar, "FF", Rgb(0xD83B01)).Shared();
+    avatar3.Width(56.0f);
+    avatar3.Height(56.0f);
 
-    auto iconPng = Widgets::Image(ImageType::FileIcon, "PNG").Shared();
-    iconPng->SetWidth(52.0f);
-    iconPng->SetHeight(52.0f);
-    auto iconDoc = Widgets::Image(ImageType::FileIcon, "DOC").Shared();
-    iconDoc->SetWidth(52.0f);
-    iconDoc->SetHeight(52.0f);
-    auto iconXls = Widgets::Image(ImageType::FileIcon, "XLS").Shared();
-    iconXls->SetWidth(52.0f);
-    iconXls->SetHeight(52.0f);
+    CUI::Widgets::Ref iconPng = Widgets::Image(ImageType::FileIcon, "PNG").Shared();
+    iconPng.Width(52.0f);
+    iconPng.Height(52.0f);
+    CUI::Widgets::Ref iconDoc = Widgets::Image(ImageType::FileIcon, "DOC").Shared();
+    iconDoc.Width(52.0f);
+    iconDoc.Height(52.0f);
+    CUI::Widgets::Ref iconXls = Widgets::Image(ImageType::FileIcon, "XLS").Shared();
+    iconXls.Width(52.0f);
+    iconXls.Height(52.0f);
 
-    auto badgeOnline = Widgets::Image(ImageType::StatusBadge, "").Shared();
-    badgeOnline->SetWidth(18.0f);
-    badgeOnline->SetHeight(18.0f);
-    badgeOnline->SetBadgeColor(Rgb(0x13A10E));
-    badgeOnline->SetBadgeText("●");
-    auto badgeWarn = Widgets::Image(ImageType::StatusBadge, "").Shared();
-    badgeWarn->SetWidth(18.0f);
-    badgeWarn->SetHeight(18.0f);
-    badgeWarn->SetBadgeColor(Rgb(0xFFB900));
-    badgeWarn->SetBadgeText("!");
-    auto badgeErr = Widgets::Image(ImageType::StatusBadge, "").Shared();
-    badgeErr->SetWidth(18.0f);
-    badgeErr->SetHeight(18.0f);
-    badgeErr->SetBadgeColor(Rgb(0xE74856));
-    badgeErr->SetBadgeText("✕");
+    CUI::Widgets::Ref badgeOnline = Widgets::Image(ImageType::StatusBadge, "").Shared();
+    badgeOnline.Width(18.0f);
+    badgeOnline.Height(18.0f);
+    badgeOnline.BadgeColor(Rgb(0x13A10E));
+    badgeOnline.BadgeText("●");
+    CUI::Widgets::Ref badgeWarn = Widgets::Image(ImageType::StatusBadge, "").Shared();
+    badgeWarn.Width(18.0f);
+    badgeWarn.Height(18.0f);
+    badgeWarn.BadgeColor(Rgb(0xFFB900));
+    badgeWarn.BadgeText("!");
+    CUI::Widgets::Ref badgeErr = Widgets::Image(ImageType::StatusBadge, "").Shared();
+    badgeErr.Width(18.0f);
+    badgeErr.Height(18.0f);
+    badgeErr.BadgeColor(Rgb(0xE74856));
+    badgeErr.BadgeText("✕");
 
     SamplePageSpec spec;
     spec.title = "Image (图像)";
@@ -299,16 +299,16 @@ Element BuildImagePage() {
 
     spec.source = R"(
 // 1) 加载磁盘图片文件（WIC 异步解码）
-auto image = Widgets::Image()\n    .Width(300.0f)\n    .Height(170.0f)\n    .StretchMode(Stretch::Uniform)\n    .Source("C:\\path\\to\\photo.png")\n    .Shared();
+CUI::Widgets::Ref image = Widgets::Image()\n    .Width(300.0f)\n    .Height(170.0f)\n    .StretchMode(Stretch::Uniform)\n    .Source("C:\\path\\to\\photo.png")\n    .Shared();
 // Source 已在 Fluent Builder 中配置。
 
 // 2) 内建占位绘制（无需文件）
-auto avatar = Widgets::Image(ImageType::Avatar, "CUI", Rgb(0x007ACC)).Shared();
-auto icon   = Widgets::Image(ImageType::FileIcon, "PNG").Shared();
-auto badge  = Widgets::Image(ImageType::StatusBadge, "").Shared();
+CUI::Widgets::Ref avatar = Widgets::Image(ImageType::Avatar, "CUI", Rgb(0x007ACC)).Shared();
+CUI::Widgets::Ref icon   = Widgets::Image(ImageType::FileIcon, "PNG").Shared();
+CUI::Widgets::Ref badge  = Widgets::Image(ImageType::StatusBadge, "").Shared();
 
 // 3) 拉伸规则
-image->SetStretch(Stretch::Fill); // None / Fill / Uniform / UniformToFill
+image.Stretch(Stretch::Fill); // None / Fill / Uniform / UniformToFill
 
 // 4) 像素信息与错误查询
 int w = image->GetPixelWidth();

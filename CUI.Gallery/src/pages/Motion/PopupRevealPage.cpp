@@ -87,13 +87,13 @@ Element BuildPopupRevealPage() {
     // 1. Flyout 气泡弹出层
     auto btnFlyout = Button("弹出 Flyout 气泡")
         .OnClick([status](UIElement* src) {
-            auto flyout = Widgets::Flyout().Shared();
-                        flyout->SetPlacement(FlyoutPlacement::Bottom);
+            CUI::Widgets::Ref flyout = Widgets::Flyout().Shared();
+                        flyout.Placement(FlyoutPlacement::Bottom);
             auto content = Column(8, {
                 MakeLabel("Fluent 220ms Flyout", 14.0f, ThemeTokenId::TextPrimary, true),
                 MakeLabel("采用 EaseOutCubic 曲线展开，带有轻微 Y 轴滑入与阴影合成。", 12.0f, ThemeTokenId::TextSecondary, false),
             });
-                        flyout->SetContent(content.Build());
+                        flyout.Content(content.Build());
                         src->AddChild(flyout);
             flyout->ShowAt(src);
             status->Text = "已呼出 Flyout 气泡层。";
@@ -102,10 +102,10 @@ Element BuildPopupRevealPage() {
     // 2. TeachingTip 教学提示气泡
     auto btnTeachingTip = Button("弹出 TeachingTip 引导")
         .OnClick([status](UIElement* src) {
-            auto tip = Widgets::TeachingTip().Shared();
-                        tip->SetTitle("智能引导提示 (TeachingTip)");
-                        tip->SetMessage("由 AnimationService 自动调度浮层生命周期。小三角气泡锚定于宿主四周展开。");
-                        tip->SetActionText("我知道了");
+            CUI::Widgets::Ref tip = Widgets::TeachingTip().Shared();
+                        tip.Title("智能引导提示 (TeachingTip)");
+                        tip.Message("由 AnimationService 自动调度浮层生命周期。小三角气泡锚定于宿主四周展开。");
+                        tip.ActionText("我知道了");
             tip->OnAction().Connect([status, tip]() {
                 status->Text = "已点击【我知道了】，提示气泡已消退。";
                 tip->Close();
@@ -151,11 +151,11 @@ Element BuildPopupRevealPage() {
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f)
         .OnClick([status](UIElement* src) {
-            auto dlg = Widgets::ContentDialog().Shared();
-                        dlg->SetTitle("模态弹窗过渡动效");
-                        dlg->SetMessage("观察背景半透明遮罩的平滑渐显，以及卡片从 95% 轻微缩放展开至 100% 的质感过渡。");
-                        dlg->SetPrimaryButtonText("确定");
-                        dlg->SetCloseButtonText("取消");
+            CUI::Widgets::Ref dlg = Widgets::ContentDialog().Shared();
+                        dlg.Title("模态弹窗过渡动效");
+                        dlg.Message("观察背景半透明遮罩的平滑渐显，以及卡片从 95% 轻微缩放展开至 100% 的质感过渡。");
+                        dlg.PrimaryButtonText("确定");
+                        dlg.CloseButtonText("取消");
                         src->AddChild(dlg);
             dlg->Show([status, dlg](DialogResult r) {
                 status->Text = (r == DialogResult::Primary) ? "对话框已确认 (Primary)" : "对话框已取消 (Close)";
@@ -163,29 +163,29 @@ Element BuildPopupRevealPage() {
         });
 
     // 5. 下拉列表 ComboBox
-    auto combo = Widgets::ComboBox()
+    CUI::Widgets::Ref combo = Widgets::ComboBox()
         .Width(240.0f).Shared();
     combo->AddItem("Fluent 220ms 标准缓出");
     combo->AddItem("Spring 欠阻尼弹性展开");
     combo->AddItem("Linear 匀速展开");
     combo->AddItem("EaseOutBack 过冲展开");
-        combo->SetSelectedIndex(0);
+        combo.SelectedIndex(0);
 
     // 6. 缓动参数微调模拟台
     auto animatedTestBox = std::make_shared<AnimatedPopupBox>();
         animatedTestBox->SetWidth(440.0f);
 
-    auto sliderDuration = Widgets::Slider().Shared();
-    sliderDuration->SetMinimum(80.0f);
-    sliderDuration->SetMaximum(600.0f);
-    sliderDuration->SetValue(220.0f);
-        sliderDuration->SetWidth(180.0f);
+    CUI::Widgets::Ref sliderDuration = Widgets::Slider().Shared();
+    sliderDuration.Minimum(80.0f);
+    sliderDuration.Maximum(600.0f);
+    sliderDuration.Value(220.0f);
+        sliderDuration.Width(180.0f);
 
-    auto sliderOffset = Widgets::Slider().Shared();
-    sliderOffset->SetMinimum(0.0f);
-    sliderOffset->SetMaximum(40.0f);
-    sliderOffset->SetValue(16.0f);
-        sliderOffset->SetWidth(180.0f);
+    CUI::Widgets::Ref sliderOffset = Widgets::Slider().Shared();
+    sliderOffset.Minimum(0.0f);
+    sliderOffset.Maximum(40.0f);
+    sliderOffset.Value(16.0f);
+        sliderOffset.Width(180.0f);
 
     auto statusDuration = MakeStatus(std::format("展开时长 (Duration): {:.0f} ms", 220.0f));
     auto statusOffset = MakeStatus(std::format("位移偏移量 (Slide Offset): {:.0f} px", 16.0f));

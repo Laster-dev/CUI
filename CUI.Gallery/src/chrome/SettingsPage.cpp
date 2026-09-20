@@ -41,8 +41,8 @@ BackdropType BackdropFromIndex(int index) {
 Element BuildSettingsPage() {
     Window* window = Window::Current();
 
-    auto btnDark = CUI::Widgets::Button("深色").Shared();
-    auto btnLight = CUI::Widgets::Button("浅色").Shared();
+    CUI::Widgets::Ref btnDark = CUI::Widgets::Button("深色").Shared();
+    CUI::Widgets::Ref btnLight = CUI::Widgets::Button("浅色").Shared();
     btnDark->OnClick().Connect([window](UIElement*) {
         if (window) {
                         window->SetThemeMode(ThemeMode::Dark);

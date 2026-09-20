@@ -11,27 +11,27 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildCollapsePage(const ShowcaseContext& ctx) {
-    auto panel1 = Widgets::Expander("1. 基础视图配置 (Basic Settings)")
+    CUI::Widgets::Ref panel1 = Widgets::Expander("1. 基础视图配置 (Basic Settings)")
         .Subtitle("包含常规同步策略与状态栏消息提醒管理")
         .Shared();
-        panel1->SetContent(Column(8).Children({
+        panel1.Content(Column(8).Children({
         Widgets::CheckBox("启用自动同步云端配置文件").Shared(),
         Widgets::CheckBox("显示系统底栏状态通知").Shared(),
         ElevatedButton("应用当前基础配置").Width(160).Height(28).Build()
     }).Build());
 
-    auto panel2 = Widgets::Expander("2. 高级硬件加速选项 (Advanced Options)")
+    CUI::Widgets::Ref panel2 = Widgets::Expander("2. 高级硬件加速选项 (Advanced Options)")
         .Subtitle("调整 Direct2D 独立多线程硬件渲染与缓冲池配置")
         .Shared();
-        panel2->SetContent(Column(8).Children({
+        panel2.Content(Column(8).Children({
         Widgets::ToggleSwitch().Header("开启 Direct2D 独立多线程硬件渲染").IsOn(true).Shared(),
         Widgets::Slider().Width(280).Height(24).Shared()
     }).Build());
 
-    auto panel3 = Widgets::Expander("3. 开发者调试与日志 (Developer Logs)")
+    CUI::Widgets::Ref panel3 = Widgets::Expander("3. 开发者调试与日志 (Developer Logs)")
         .Subtitle("开启实时渲染帧率 overlay 与事件流调试日志")
         .Shared();
-        panel3->SetContent(Column(8).Children({
+        panel3.Content(Column(8).Children({
         Widgets::CheckBox("开启 FPS 帧率渲染叠加层 (Overlay)").Shared(),
         Widgets::CheckBox("记录详细 DirectWrite 文本度量与排版 Debug 日志").Shared(),
         ElevatedButton("导出调试报告 (Export Diagnostics)").Width(200).Height(28).Build()

@@ -24,7 +24,7 @@ std::string ColorHex(Color c) {
 } // namespace
 
 Element BuildColorPickerPage() {
-    auto picker = Widgets::ColorPicker().Shared();
+    CUI::Widgets::Ref picker = Widgets::ColorPicker().Shared();
     auto chip = Text()
         .Width(48.0f)
         .Height(24.0f)

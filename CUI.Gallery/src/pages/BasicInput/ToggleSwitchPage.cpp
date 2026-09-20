@@ -9,8 +9,8 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildToggleSwitchPage() {
-    auto notify = Widgets::ToggleSwitch().Shared();
-        notify->SetHeader("通知");
+    CUI::Widgets::Ref notify = Widgets::ToggleSwitch().Shared();
+        notify.Header("通知");
     
     State<bool> notifyOn{ false };
     notify->IsOn.Bind(notifyOn);
@@ -22,13 +22,13 @@ std::shared_ptr<UIElement> BuildToggleSwitchPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto wifi = Widgets::ToggleSwitch().Shared();
-        wifi->SetHeader("Wi-Fi");
-        wifi->SetIsOn(true);
+    CUI::Widgets::Ref wifi = Widgets::ToggleSwitch().Shared();
+        wifi.Header("Wi-Fi");
+        wifi.IsOn(true);
 
-    auto locked = Widgets::ToggleSwitch().Shared();
-        locked->SetHeader("飞行模式");
-        locked->SetIsEnabled(false);
+    CUI::Widgets::Ref locked = Widgets::ToggleSwitch().Shared();
+        locked.Header("飞行模式");
+        locked.IsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ToggleSwitch(开关)";

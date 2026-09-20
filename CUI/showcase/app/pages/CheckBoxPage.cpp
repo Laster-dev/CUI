@@ -6,8 +6,8 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildCheckBoxPage(const ShowcaseContext& ctx) {
-    auto target = Widgets::CheckBox("交互功能开关").Shared();
-        target->SetState(CheckState::Checked);
+    CUI::Widgets::Ref target = Widgets::CheckBox("交互功能开关").Shared();
+        target.State(CheckState::Checked);
 
     return { "CheckBox 复选框", CreatePage(
         "CheckBox 复选框全属性控制台",

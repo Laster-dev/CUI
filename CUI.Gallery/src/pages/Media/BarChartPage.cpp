@@ -127,18 +127,18 @@ Element BuildBarChartPage() {
     }).Build();
     auto btnReveal3 = ElevatedButton("重放入场动画", [dyn](UIElement*) { dyn->PlayReveal(); }).Build();
 
-    auto chkGrid = Widgets::CheckBox("显示网格").Shared();
-        chkGrid->SetState(CheckState::Checked);
+    CUI::Widgets::Ref chkGrid = Widgets::CheckBox("显示网格").Shared();
+        chkGrid.State(CheckState::Checked);
     chkGrid->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
                 dyn->SetShowGrid(st == CheckState::Checked);
     });
-    auto chkLegend = Widgets::CheckBox("显示图例").Shared();
-        chkLegend->SetState(CheckState::Checked);
+    CUI::Widgets::Ref chkLegend = Widgets::CheckBox("显示图例").Shared();
+        chkLegend.State(CheckState::Checked);
     chkLegend->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
                 dyn->SetShowLegend(st == CheckState::Checked);
     });
-    auto chkTip = Widgets::CheckBox("悬停提示卡片").Shared();
-        chkTip->SetState(CheckState::Checked);
+    CUI::Widgets::Ref chkTip = Widgets::CheckBox("悬停提示卡片").Shared();
+        chkTip.State(CheckState::Checked);
     chkTip->OnCheckStateChanged().Connect([dyn](CheckBox*, CheckState st) {
                 dyn->SetShowTooltip(st == CheckState::Checked);
     });

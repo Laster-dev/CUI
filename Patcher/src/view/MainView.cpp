@@ -119,7 +119,7 @@ std::shared_ptr<UIElement> MainView::Build() {
 }
 
 std::shared_ptr<UIElement> MainView::BuildHeader() {
-    auto titleBar = Widgets::WindowTitleBar()
+    CUI::Widgets::Ref titleBar = Widgets::WindowTitleBar()
         .Title("PE Patch 工具")
         .Height(32.0f)
         .Shared();
@@ -303,7 +303,7 @@ std::shared_ptr<UIElement> MainView::BuildOptionsArea() {
 
 std::shared_ptr<UIElement> MainView::BuildActionsArea() {
     // 圆形纯图标按钮（36x36，圆角 18，内部居中绘制 SVG 图标，无文字）
-    auto btnRun = Widgets::Button("")
+    CUI::Widgets::Ref btnRun = Widgets::Button("")
         .Icon(kSvgPlay)
         .ToolTip("开始执行")
         .BackgroundToken(ThemeTokenId::AccentColor)
@@ -315,7 +315,7 @@ std::shared_ptr<UIElement> MainView::BuildActionsArea() {
         .FontSize(18.0f)
         .OnClick([this](UIElement*) { RunPatch(); }).Shared();
 
-    auto btnOpenDir = Widgets::Button("")
+    CUI::Widgets::Ref btnOpenDir = Widgets::Button("")
         .Icon(kSvgFolderOpen)
         .ToolTip("打开输出目录")
         .Height(36.0f)
@@ -325,7 +325,7 @@ std::shared_ptr<UIElement> MainView::BuildActionsArea() {
         .FontSize(18.0f)
         .OnClick([this](UIElement*) { OpenOutputDir(); }).Shared();
 
-    auto btnReset = Widgets::Button("")
+    CUI::Widgets::Ref btnReset = Widgets::Button("")
         .Icon(kSvgReset)
         .ToolTip("重置")
         .Height(36.0f)

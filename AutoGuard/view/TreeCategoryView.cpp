@@ -390,8 +390,8 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
     } else if (groups.size() == 1) {
         // Single group: no Expander needed! Render full-page table directly!
         const auto& grp = groups[0];
-        auto listView = Widgets::ListView().Columns(6).RowHeight(24.0f).Align(Alignment::Stretch).FlexGrow(1.0f).Shared();
-        listView->SetSelectionMode(ListViewSelectionMode::Single);
+        CUI::Widgets::Ref listView = Widgets::ListView().Columns(6).RowHeight(24.0f).Align(Alignment::Stretch).FlexGrow(1.0f).Shared();
+        listView.SelectionMode(ListViewSelectionMode::Single);
         listView->AddColumn("自动运行条目", 190.0f);
         listView->AddColumn("状态", 65.0f);
         listView->AddColumn("描述", 160.0f);
@@ -465,9 +465,9 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
             rowIcons.push_back(hIcon);
             rowTags.push_back(e.id);
         }
-        listView->SetRows(tableRows);
-        listView->SetRowIcons(rowIcons);
-        listView->SetRowTags(rowTags);
+        listView.Rows(tableRows);
+        listView.RowIcons(rowIcons);
+        listView.RowTags(rowTags);
 
         listView->OnSelectionChanged().Connect([viewModel, listView, onSelectionChanged](ListView*, int idx) {
             if (idx >= 0) {
@@ -488,7 +488,7 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
             }
         });
 
-        listView->SetContextMenu(BuildSpecializedContextMenu(grp.location, viewModel, window, onShowToast, onRefresh));
+        listView.ContextMenu(BuildSpecializedContextMenu(grp.location, viewModel, window, onShowToast, onRefresh));
         contentArea = listView;
     } else {
         // Multiple groups: Use collapsible Expander cards!
@@ -507,8 +507,8 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
             float itemHeight = 36.0f + static_cast<float>(grp.items.size()) * 24.0f;
             float listHeight = (std::min)(340.0f, (std::max)(60.0f, itemHeight));
 
-            auto listView = Widgets::ListView().Columns(6).RowHeight(24.0f).Height(listHeight).Align(Alignment::Stretch).ShowScrollBars(true).Shared();
-            listView->SetSelectionMode(ListViewSelectionMode::Single);
+            CUI::Widgets::Ref listView = Widgets::ListView().Columns(6).RowHeight(24.0f).Height(listHeight).Align(Alignment::Stretch).ShowScrollBars(true).Shared();
+            listView.SelectionMode(ListViewSelectionMode::Single);
             listView->AddColumn("自动运行条目", 190.0f);
             listView->AddColumn("状态", 65.0f);
             listView->AddColumn("描述", 160.0f);
@@ -582,9 +582,9 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
                 rowIcons.push_back(hIcon);
                 rowTags.push_back(e.id);
             }
-            listView->SetRows(tableRows);
-            listView->SetRowIcons(rowIcons);
-            listView->SetRowTags(rowTags);
+            listView.Rows(tableRows);
+            listView.RowIcons(rowIcons);
+            listView.RowTags(rowTags);
 
             listView->OnSelectionChanged().Connect([viewModel, listView, onSelectionChanged](ListView*, int idx) {
                 if (idx >= 0) {
@@ -605,7 +605,7 @@ std::shared_ptr<UIElement> TreeCategoryView::Build(const std::string& title, con
                 }
             });
 
-            listView->SetContextMenu(BuildSpecializedContextMenu(grp.location, viewModel, window, onShowToast, onRefresh));
+            listView.ContextMenu(BuildSpecializedContextMenu(grp.location, viewModel, window, onShowToast, onRefresh));
 
                         expander->SetContent(listView);
             groupListColumn->AddChild(expander);

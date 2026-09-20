@@ -12,7 +12,7 @@ using namespace CUI::DSL;
 int main() {
     CUI::Window window;
     int clickCount = 0;
-    auto titleBar = Widgets::WindowTitleBar().Title("demo").Shared();
+    CUI::Widgets::Ref titleBar = Widgets::WindowTitleBar().Title("demo").Shared();
     constexpr const char* kSvgStar = R"svg(
 <svg t="1787033108092" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1334">
   <path d="M0 0m0 0l1024 0q0 0 0 0l0 1024q0 0 0 0l-1024 0q0 0 0 0l0-1024q0 0 0 0Z" fill="#E5E5E5" fill-opacity="0" p-id="1335"></path>
@@ -20,14 +20,14 @@ int main() {
 </svg>
 )svg";
 
-    titleBar->SetIconText(kSvgStar);
+    titleBar.IconText(kSvgStar);
     auto counterLabel = Text("Click count: 0")
         .FontSize(24.0f)
         .AlignHorizontal(Alignment::Center)
         .ForegroundToken(ThemeTokenId::TextSecondary)
         .FontWeight(FontWeight::SemiBold);
 
-    auto clickButton = Widgets::Button("Click Me!")
+    CUI::Widgets::Ref clickButton = Widgets::Button("Click Me!")
         .FontSize(16.0f)
         .Width(160.0f)
         .Height(48.0f)
@@ -37,7 +37,7 @@ int main() {
         counterLabel.Shared()->SetText("Click count: " + std::to_string(clickCount));
             }).Shared();
 
-    auto resetButton = Widgets::Button("Reset")
+    CUI::Widgets::Ref resetButton = Widgets::Button("Reset")
         .FontSize(14.0f)
         .Width(120.0f)
         .Background(Value::ParseColor("#E53935"))
@@ -49,7 +49,7 @@ int main() {
         clickCount = 0;
         counterLabel.Shared()->SetText("Click count: 0");
             }).Shared();
-    auto ThemeModeRange = Widgets::SegmentedControl()
+    CUI::Widgets::Ref ThemeModeRange = Widgets::SegmentedControl()
         .Width(120.0f)
         .Margin(2, 2, 10, 2)
         .AlignHorizontal(Alignment::Center)

@@ -11,9 +11,9 @@ namespace Gallery {
 Element BuildTokensPage() {
     ThemeManager& tm = ThemeManager::Instance();
 
-    auto grid = CUI::Widgets::WrapPanel().Shared();
-    grid->SetOrientation(Orientation::Horizontal);
-    grid->SetGap(16.0f);
+    CUI::Widgets::Ref grid = CUI::Widgets::WrapPanel().Shared();
+    grid.Orientation(Orientation::Horizontal);
+    grid.Gap(16.0f);
 
     for (const auto& name : tm.GetTokenNames()) {
         const D2D1_COLOR_F color = tm.GetFlatColor(name);

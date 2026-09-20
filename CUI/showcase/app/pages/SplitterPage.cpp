@@ -32,10 +32,10 @@ std::shared_ptr<T> BindThemeToken(const std::shared_ptr<T>& element, const std::
 }
 
 ShowcasePage BuildSplitterPage(const ShowcaseContext& ctx) {
-    auto splitterLR = Widgets::Splitter().Shared();
-    splitterLR->SetOrientation(Orientation::Vertical);
-    auto splitterTB = Widgets::Splitter().Shared();
-    splitterTB->SetOrientation(Orientation::Horizontal);
+    CUI::Widgets::Ref splitterLR = Widgets::Splitter().Shared();
+    splitterLR.Orientation(Orientation::Vertical);
+    CUI::Widgets::Ref splitterTB = Widgets::Splitter().Shared();
+    splitterTB.Orientation(Orientation::Horizontal);
 
     auto leftPane = Column(6).Width(140).MinWidth(72).Padding(10).Children({
         CreateShowcaseText("导航", 12.0f, "", true),

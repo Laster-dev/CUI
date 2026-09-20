@@ -11,10 +11,10 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildSliderPage(const ShowcaseContext& ctx) {
-    auto target = Widgets::Slider().Width(280).Height(24).Shared();
-    target->SetMinimum(0.0f);
-    target->SetMaximum(100.0f);
-    target->SetValue(45.0f);
+    CUI::Widgets::Ref target = Widgets::Slider().Width(280).Height(24).Shared();
+    target.Minimum(0.0f);
+    target.Maximum(100.0f);
+    target.Value(45.0f);
     return { "Slider 滑块", CreatePage(
         "Slider 滑块控件",
         "支持水平与垂直方向、Step 步长约束、键盘上下左右微调与数值变动事件。",

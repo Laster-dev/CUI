@@ -9,7 +9,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildComboBoxPage() {
-    auto combo = Widgets::ComboBox()
+    CUI::Widgets::Ref combo = Widgets::ComboBox()
         .Width(220.0f).Shared();
     combo->AddItem("苹果");
     combo->AddItem("香蕉");
@@ -32,11 +32,11 @@ Element BuildComboBoxPage() {
     auto status = MakeStatus("");
     status->Text.Bind(statusValue, BindingMode::OneWay);
 
-    auto disabled = Widgets::ComboBox()
+    CUI::Widgets::Ref disabled = Widgets::ComboBox()
         .Width(220.0f).Shared();
     disabled->AddItem("不可用");
-        disabled->SetSelectedIndex(0);
-        disabled->SetIsEnabled(false);
+        disabled.SelectedIndex(0);
+        disabled.IsEnabled(false);
 
     SamplePageSpec spec;
     spec.title = "ComboBox(组合框)";

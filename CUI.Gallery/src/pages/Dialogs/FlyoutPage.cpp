@@ -14,14 +14,14 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
     // ── 1. 简单文本浮出层 ────────────────────────────────────────────────
     auto btnSimple = Button("简单文本浮出层")
         .OnClick([](UIElement* src) {
-            auto flyout = CUI::Widgets::Flyout().Shared();
-            flyout->SetPlacement(FlyoutPlacement::Bottom);
+            CUI::Widgets::Ref flyout = CUI::Widgets::Flyout().Shared();
+            flyout.Placement(FlyoutPlacement::Bottom);
             
             auto content = Column(8, {
             MakeLabel("这是一个 Flyout 浮出层", 13.0f, ThemeTokenId::TextPrimary, true),
             MakeLabel("点击此区域外的任意位置即可关闭。", 12.0f, ThemeTokenId::TextSecondary),
             });
-                        flyout->SetContent(content);
+                        flyout.Content(content);
                         src->AddChild(flyout);
             flyout->ShowAt(src);
             });
@@ -38,13 +38,13 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
         btnRight->SetWidth(90.0f);
 
     auto makePlacementFlyout = [](UIElement* src, FlyoutPlacement p, const std::string& label) {
-        auto flyout = CUI::Widgets::Flyout().Shared();
-        flyout->SetPlacement(p);
+        CUI::Widgets::Ref flyout = CUI::Widgets::Flyout().Shared();
+        flyout.Placement(p);
         auto content = Column(6, {
             MakeLabel(label, 12.0f, ThemeTokenId::TextPrimary),
             MakeLabel("Placement 演示内容。", 12.0f, ThemeTokenId::TextSecondary),
         });
-                flyout->SetContent(content);
+                flyout.Content(content);
                 src->AddChild(flyout);
         flyout->ShowAt(src);
     };
@@ -69,8 +69,8 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
         btnAction->SetBorderToken(ThemeTokenId::CardBorder);
         btnAction->SetBorderThickness(1.0f);
     btnAction->OnClick().Connect([status](UIElement* src) {
-        auto flyout = CUI::Widgets::Flyout().Shared();
-        flyout->SetPlacement(FlyoutPlacement::Bottom);
+        CUI::Widgets::Ref flyout = CUI::Widgets::Flyout().Shared();
+        flyout.Placement(FlyoutPlacement::Bottom);
 
         auto confirmBtn = Button("删除")
             .Background(Color::Hex("#C62828"))
@@ -90,7 +90,7 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
             MakeLabel("此操作将永久移除所选项目。", 12.0f, ThemeTokenId::TextSecondary),
             Row(8, {confirmBtn, cancelBtn }),
         });
-                flyout->SetContent(content);
+                flyout.Content(content);
 
         confirmBtn->OnClick().Connect([status, flyout](UIElement*) {
             status->Text = "已确认删除操作。";
@@ -112,10 +112,10 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
         btnInputFlyout->SetBorderToken(ThemeTokenId::CardBorder);
         btnInputFlyout->SetBorderThickness(1.0f);
     btnInputFlyout->OnClick().Connect([status](UIElement* src) {
-        auto flyout = CUI::Widgets::Flyout().Shared();
-        flyout->SetPlacement(FlyoutPlacement::Bottom);
+        CUI::Widgets::Ref flyout = CUI::Widgets::Flyout().Shared();
+        flyout.Placement(FlyoutPlacement::Bottom);
 
-        auto input = Widgets::TextBox()
+        CUI::Widgets::Ref input = Widgets::TextBox()
             .Placeholder("输入新项目名称")
             .Width(200.0f)
             .Shared();
@@ -128,7 +128,7 @@ std::shared_ptr<UIElement> BuildFlyoutPage() {
             input,
             applyBtn,
         });
-                flyout->SetContent(content);
+                flyout.Content(content);
 
         applyBtn->OnClick().Connect([status, flyout, input](UIElement*) {
             std::string name = input->GetText();

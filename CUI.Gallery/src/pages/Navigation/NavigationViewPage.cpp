@@ -13,9 +13,9 @@ namespace Gallery {
 namespace {
 
 std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string& body) {
-    auto check = Widgets::CheckBox("启用示例功能").Shared();
-        check->SetState(CheckState::Checked);
-    auto toggle = Widgets::ToggleSwitch().Header("快速设置开关").IsOn(true).Shared();
+    CUI::Widgets::Ref check = Widgets::CheckBox("启用示例功能").Shared();
+        check.State(CheckState::Checked);
+    CUI::Widgets::Ref toggle = Widgets::ToggleSwitch().Header("快速设置开关").IsOn(true).Shared();
     return Column(12, {
         Text(title).FontSize(18.0f).FontWeight(FontWeight::SemiBold),
         Text(body),
@@ -145,15 +145,15 @@ Element BuildNavigationViewPage() {
         }
     });
 
-    auto modeBox = Widgets::ComboBox().Shared();
+    CUI::Widgets::Ref modeBox = Widgets::ComboBox().Shared();
     modeBox->AddItem("Auto（自适应）");
     modeBox->AddItem("Left（固定左侧）");
     modeBox->AddItem("LeftCompact（紧凑图标栏）");
     modeBox->AddItem("LeftMinimal（极简汉堡）");
     modeBox->AddItem("Top（顶部导航）");
-        modeBox->SetSelectedIndex(0);
-        modeBox->SetWidth(260.0f);
-        modeBox->SetHeight(32.0f);
+        modeBox.SelectedIndex(0);
+        modeBox.Width(260.0f);
+        modeBox.Height(32.0f);
     modeBox->OnSelectionChanged().Connect([nav](ComboBox*, int index, const std::string&) {
         static const NavigationViewPaneDisplayMode kModes[] = {
             NavigationViewPaneDisplayMode::Auto,
@@ -168,8 +168,8 @@ Element BuildNavigationViewPage() {
     });
 
     auto btnToggle = ElevatedButton("Toggle Pane", [nav](UIElement*) { nav->TogglePane(); }).Build();
-    auto chkHeader = Widgets::CheckBox("始终显示标题").Shared();
-        chkHeader->SetState(CheckState::Checked);
+    CUI::Widgets::Ref chkHeader = Widgets::CheckBox("始终显示标题").Shared();
+        chkHeader.State(CheckState::Checked);
     chkHeader->OnCheckStateChanged().Connect([nav](CheckBox*, CheckState st) {
                 nav->SetAlwaysShowHeader(st == CheckState::Checked);
     });

@@ -58,10 +58,10 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
         livePanel->AddChild(MakeChip("元素 B", Rgb(0x10B981)));
         livePanel->AddChild(MakeChip("元素 C", Rgb(0x845EF7)));
 
-    auto dirCombo = Widgets::ComboBox().Shared();
+    CUI::Widgets::Ref dirCombo = Widgets::ComboBox().Shared();
     dirCombo->AddItem("Vertical(垂直)");
     dirCombo->AddItem("Horizontal(水平)");
-        dirCombo->SetSelectedIndex(0);
+        dirCombo.SelectedIndex(0);
 
     State<int> dirIndex{ 0 };
     dirCombo->SelectedIndex.Bind(dirIndex);
@@ -72,11 +72,11 @@ std::shared_ptr<UIElement> BuildStackPanelPage() {
         }),
         BindingMode::OneWay);
 
-    auto gapSlider = Widgets::Slider().Shared();
-    gapSlider->SetMinimum(0.0f);
-    gapSlider->SetMaximum(40.0f);
-    gapSlider->SetValue(12.0f);
-        gapSlider->SetFlexGrow(1.0f);
+    CUI::Widgets::Ref gapSlider = Widgets::Slider().Shared();
+    gapSlider.Minimum(0.0f);
+    gapSlider.Maximum(40.0f);
+    gapSlider.Value(12.0f);
+        gapSlider.FlexGrow(1.0f);
     State<float> gapValue{ 12.0f };
     gapSlider->ValueProperty.Bind(gapValue);
     // 滑块值直接同步到容器的 Gap 属性，双向绑定双向联通。

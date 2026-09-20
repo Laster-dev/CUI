@@ -20,7 +20,7 @@ Element BuildLogViewPage() {
     // ==========================================
     // 1. 初始化 LogView 实例
     // ==========================================
-    auto logView = Widgets::LogView()
+    CUI::Widgets::Ref logView = Widgets::LogView()
         .Height(300.0f)
         .CornerRadius(6.0f)
         .Shared();
@@ -100,7 +100,7 @@ Element BuildLogViewPage() {
     };
 
     spec.source = R"cpp(// 1. 创建 LogView 实例
-auto logView = Widgets::LogView()
+CUI::Widgets::Ref logView = Widgets::LogView()
     .Height(300.0f)
     .Shared();
 

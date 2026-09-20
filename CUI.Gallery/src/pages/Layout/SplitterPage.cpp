@@ -53,8 +53,8 @@ std::shared_ptr<UIElement> BuildSplitterPage() {
         rightPane->AddChild(MakeLabel("内容区", 12.0f, ThemeTokenId::TextPrimary, true));
         rightPane->AddChild(MakeLabel("拖拽中间的分隔条调整左右宽度。", 11.0f, ThemeTokenId::TextSecondary, false));
 
-    auto splitLR = Widgets::Splitter().Shared();
-    splitLR->SetOrientation(Orientation::Vertical);
+    CUI::Widgets::Ref splitLR = Widgets::Splitter().Shared();
+    splitLR.Orientation(Orientation::Vertical);
 
     auto rowSplit = Row(0).Height(170).CornerRadius(6).Children({ leftPane, splitLR, rightPane }).Build();
     StyleContainer(rowSplit);
@@ -70,8 +70,8 @@ std::shared_ptr<UIElement> BuildSplitterPage() {
         bottomPane->AddChild(MakeLabel("输出", 12.0f, ThemeTokenId::TextPrimary, true));
         bottomPane->AddChild(MakeLabel("构建成功。", 11.0f, ThemeTokenId::TextSecondary, false));
 
-    auto splitTB = Widgets::Splitter().Shared();
-    splitTB->SetOrientation(Orientation::Horizontal);
+    CUI::Widgets::Ref splitTB = Widgets::Splitter().Shared();
+    splitTB.Orientation(Orientation::Horizontal);
 
     auto colSplit = Column(0).Height(210).CornerRadius(6).Children({ topPane, splitTB, bottomPane }).Build();
     StyleContainer(colSplit);
@@ -86,10 +86,10 @@ std::shared_ptr<UIElement> BuildSplitterPage() {
         p3->SetWidth(130.0f);
         p3->SetBackgroundToken(ThemeTokenId::PaneBackground);
 
-    auto s1 = Widgets::Splitter().Shared();
-    s1->SetOrientation(Orientation::Vertical);
-    auto s2 = Widgets::Splitter().Shared();
-    s2->SetOrientation(Orientation::Vertical);
+    CUI::Widgets::Ref s1 = Widgets::Splitter().Shared();
+    s1.Orientation(Orientation::Vertical);
+    CUI::Widgets::Ref s2 = Widgets::Splitter().Shared();
+    s2.Orientation(Orientation::Vertical);
 
     auto threeCol = Row(0).Height(150).CornerRadius(6).Children({ p1, s1, p2, s2, p3 }).Build();
     StyleContainer(threeCol);

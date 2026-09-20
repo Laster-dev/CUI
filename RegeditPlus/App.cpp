@@ -359,7 +359,7 @@ std::shared_ptr<UIElement> RegeditPlusApp::BuildRoot() {
     m_tree->SetContextMenu(BuildTreeContextMenu());
         treePane->AddChild(m_tree);
 
-    auto splitter = Widgets::Splitter().Orientation(CUI::Orientation::Vertical).Width(10.0f).Height(-1.0f).Align(CUI::Alignment::Stretch).Shared();
+    CUI::Widgets::Ref splitter = Widgets::Splitter().Orientation(CUI::Orientation::Vertical).Width(10.0f).Height(-1.0f).Align(CUI::Alignment::Stretch).Shared();
 
     // Right: list pane
     auto listPane = Column(0).Build();

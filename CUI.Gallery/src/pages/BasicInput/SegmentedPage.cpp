@@ -9,8 +9,8 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 Element BuildSegmentedControlPage() {
-    auto range = Widgets::SegmentedControl().Shared();
-        range->SetWidth(280.0f);
+    CUI::Widgets::Ref range = Widgets::SegmentedControl().Shared();
+        range.Width(280.0f);
     range->AddItem("日");
     range->AddItem("周");
     range->AddItem("月");

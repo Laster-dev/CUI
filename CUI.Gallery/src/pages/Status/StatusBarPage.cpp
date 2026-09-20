@@ -20,7 +20,7 @@ Element BuildStatusBarPage() {
     // ==========================================
     // 1. 经典 IDE 状态栏实例
     // ==========================================
-    Widgets::Ref<StatusBar> bar = Widgets::StatusBar()
+    CUI::Widgets::Ref bar = Widgets::StatusBar()
         .Height(28.0f)
         .Background(D2D1::ColorF(0x18181B, 0.9f))
         .Border(D2D1::ColorF(0x27272A, 1.0f), 1.0f)
@@ -78,7 +78,7 @@ Element BuildStatusBarPage() {
     auto btnCursor = Button("模拟光标移动")
         .OnClick([bar, idPos, statusLabel](UIElement*) {
             s_lineNum += 15;
-                        bar->SetItemText(idPos, std::format("Ln {}, Col 12", s_lineNum));
+                        bar.ItemText(idPos, std::format("Ln {}, Col 12", s_lineNum));
             statusLabel->Text = std::format("已更新当前编辑光标坐标：Ln {}, Col 12", s_lineNum);
         });
 
@@ -104,7 +104,7 @@ Element BuildStatusBarPage() {
     };
 
     spec.source = R"cpp(// 1. 创建状态栏控件
-auto bar = Widgets::StatusBar()
+CUI::Widgets::Ref bar = Widgets::StatusBar()
     .Height(28.0f)
     .Shared();
 
@@ -114,7 +114,7 @@ int idBranch = bar->AddTextItem("🌿 main*", StatusBarItemAlignment::Left);
 
 // 3. 添加右侧进度条与编码
 int idProgress = bar->AddProgressItem("同步中..", StatusBarItemAlignment::Right, 120.0f);
-bar->SetItemProgress(idProgress, 0.75f);
+bar.ItemProgress(idProgress, 0.75f);
 int idEncoding = bar->AddTextItem("UTF-8", StatusBarItemAlignment::Right, 60.0f);
 )cpp";
 

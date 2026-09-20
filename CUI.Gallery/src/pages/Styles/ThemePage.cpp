@@ -48,11 +48,11 @@ Element BuildThemePage() {
 
     auto status = MakeStatus(DescribeTheme(tm, tm.GetThemeSource()));
 
-    auto mode = CUI::Widgets::SegmentedControl().Shared();
+    CUI::Widgets::Ref mode = CUI::Widgets::SegmentedControl().Shared();
     mode->AddItem("跟随系统");
     mode->AddItem("浅色");
     mode->AddItem("深色");
-        mode->SetSelectedIndex(IndexForThemeSource(tm.GetThemeSource()));
+        mode.SelectedIndex(IndexForThemeSource(tm.GetThemeSource()));
     mode->OnSelectionChanged().Connect([window, &tm, status](SegmentedControl*, int index, const std::string&) {
         const ThemeSource source = ThemeSourceFromIndex(index);
         if (source == ThemeSource::System) {
@@ -72,8 +72,8 @@ Element BuildThemePage() {
         secondaryBtn->SetBorderThickness(1.0f);
     
 
-    auto input = Widgets::TextBox().Text("输入内容").Shared();
-        input->SetWidth(240.0f);
+    CUI::Widgets::Ref input = Widgets::TextBox().Text("输入内容").Shared();
+        input.Width(240.0f);
 
     auto preview = Column(14, {
         MakeLabel("主题预览", 18.0f, ThemeTokenId::TextPrimary, true),

@@ -12,12 +12,12 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildFilePickerPage(const ShowcaseContext& ctx) {
-    auto filePicker = Widgets::FilePicker().Width(360).Shared();
+    CUI::Widgets::Ref filePicker = Widgets::FilePicker().Width(360).Shared();
     filePicker->ClearFilters();
     filePicker->AddFilter("文本文件", "*.txt");
     filePicker->AddFilter("所有文件", "*.*");
 
-    auto folderPicker = Widgets::FolderPicker().Width(360).Shared();
+    CUI::Widgets::Ref folderPicker = Widgets::FolderPicker().Width(360).Shared();
 
     auto pathLabel = std::static_pointer_cast<CUI::TextBlock>(CreateShowcaseText("未选择文件", 12.0f, "textMuted"));
     filePicker->OnPathChanged().Connect([pathLabel](CUI::FilePicker*, const std::string& path) {

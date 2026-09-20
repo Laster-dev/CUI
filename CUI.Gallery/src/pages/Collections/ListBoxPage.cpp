@@ -26,13 +26,13 @@ std::string SelectionSummary(ListBox* list, int index, const std::string& text) 
 } // namespace
 
 std::shared_ptr<UIElement> BuildListBoxPage() {
-    auto list = CUI::Widgets::ListBox()
+    CUI::Widgets::Ref list = CUI::Widgets::ListBox()
         .Height(220.0f)
         .Width(360.0f).Shared();
-        list->SetSelectionMode(ListBoxSelectionMode::Extended);
-    list->SetAllowDrag(true);
-        list->SetAllowDrop(true);
-        list->SetItems({ "收件箱", "今天", "本周", "已完成", "已归档", "垃圾箱" });
+        list.SelectionMode(ListBoxSelectionMode::Extended);
+    list.AllowDrag(true);
+        list.AllowDrop(true);
+        list.Items({ "收件箱", "今天", "本周", "已完成", "已归档", "垃圾箱" });
 
     State<std::string> selectionText{ "选择一个项目；扩展模式支持 Ctrl / Shift 和 Ctrl+A。" };
     State<int> selectedIndex{ -1 };
@@ -47,7 +47,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
         selectionText = "双击第 " + std::to_string(index + 1) + " 项：" + text + "。";
     });
 
-    auto input = Widgets::TextBox()
+    CUI::Widgets::Ref input = Widgets::TextBox()
         .Placeholder("输入新项目名称")
         .Width(220.0f)
         .Height(28.0f)
@@ -60,7 +60,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
             if (text.empty()) text = "新项目 " + std::to_string(generated.Get());
             generated = generated.Get() + 1;
             list->AddItem(text);
-                        input->SetText("");
+                        input.Text("");
             selectionText = "已在末尾追加：" + text + "。";
             });
     auto insert = Button("插入首项")
@@ -84,7 +84,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
             });
     auto reset = Button("重置数据")
         .OnClick([list, selectionText](UIElement*) {
-                        list->SetItems({ "收件箱", "今天", "本周", "已完成", "已归档", "垃圾箱" });
+                        list.Items({ "收件箱", "今天", "本周", "已完成", "已归档", "垃圾箱" });
             list->ClearSelection();
             selectionText = "已重置为 6 个内存项目。";
             });
@@ -97,19 +97,19 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
 
     auto single = Button("单选")
         .OnClick([list, selectionText](UIElement*) {
-                        list->SetSelectionMode(ListBoxSelectionMode::Single);
+                        list.SelectionMode(ListBoxSelectionMode::Single);
             list->ClearSelection();
             selectionText = "已切换为单选模式。";
             });
     auto multiple = Button("多选")
         .OnClick([list, selectionText](UIElement*) {
-                        list->SetSelectionMode(ListBoxSelectionMode::Multiple);
+                        list.SelectionMode(ListBoxSelectionMode::Multiple);
             list->ClearSelection();
             selectionText = "已切换为多选模式；单击可逐项切换。";
             });
     auto extended = Button("扩展选择")
         .OnClick([list, selectionText](UIElement*) {
-                        list->SetSelectionMode(ListBoxSelectionMode::Extended);
+                        list.SelectionMode(ListBoxSelectionMode::Extended);
             list->ClearSelection();
             selectionText = "已切换为扩展选择模式；支持 Ctrl / Shift。";
             });
@@ -121,7 +121,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     // 直接写 State 即可联动控件：SelectedIndex 为双向绑定。
     pickThird->OnClick().Connect([selectedIndex](UIElement*) { selectedIndex = 2; });
 
-    auto custom = CUI::Widgets::ListBox()
+    CUI::Widgets::Ref custom = CUI::Widgets::ListBox()
         .Height(132.0f)
         .Width(360.0f).Shared();
     auto important = Text("★ 需要今天处理的自定义 UIElement")
@@ -133,11 +133,11 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     custom->AddItem("普通字符串项目仍可混用");
 
     static DemoListBoxDataSource virtualSource;
-    auto virtualList = CUI::Widgets::ListBox()
+    CUI::Widgets::Ref virtualList = CUI::Widgets::ListBox()
         .Height(180.0f)
         .Width(360.0f).Shared();
-    virtualList->SetVirtualMode(10000, &virtualSource);
-    virtualList->SetSelectionMode(ListBoxSelectionMode::Single);
+    virtualList.VirtualMode(10000, &virtualSource);
+    virtualList.SelectionMode(ListBoxSelectionMode::Single);
     State<std::string> virtualStatusText{ "虚拟模式仅按需索引文本；可滚动、选择和键盘导航。" };
     auto virtualStatus = MakeStatus("");
     virtualStatus->Text.Bind(virtualStatusText, BindingMode::OneWay);
@@ -145,7 +145,7 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
         virtualStatusText = "虚拟项目：第 " + std::to_string(index + 1) + " 项：" + text + "。";
     });
     auto jump = Button("定位到第 5000 项")
-        .OnClick([virtualList](UIElement*) {         virtualList->SetSelectedIndex(4999); });
+        .OnClick([virtualList](UIElement*) {         virtualList.SelectedIndex(4999); });
 
     SamplePageSpec spec;
     spec.title = "ListBox(列表框)";
@@ -175,8 +175,8 @@ std::shared_ptr<UIElement> BuildListBoxPage() {
     };
     spec.source =
         "auto list = CUI::Widgets::ListBox().Shared();\n"
-        "        list->SetItems({ \"收件箱\", \"今天\", \"本周\" });\n"
-        "        list->SetSelectionMode(ListBoxSelectionMode::Extended);\n"
+        "        list.Items({ \"收件箱\", \"今天\", \"本周\" });\n"
+        "        list.SelectionMode(ListBoxSelectionMode::Extended);\n"
         "list->OnSelectionChanged().Connect(..);\n"
         "list->AddItem(\"新项目\");\n"
         "list.VirtualMode(10000, &dataSource);\n";

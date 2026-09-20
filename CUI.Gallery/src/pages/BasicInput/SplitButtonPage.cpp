@@ -9,7 +9,7 @@ using namespace CUI::DSL;
 namespace Gallery {
 
 std::shared_ptr<UIElement> BuildSplitButtonPage() {
-    auto save = Widgets::SplitButton("保存")
+    CUI::Widgets::Ref save = Widgets::SplitButton("保存")
         .Width(120.0f).Shared();
     auto status = MakeStatus("单击主区域保存，或单击箭头选择其他格式。");
     
@@ -22,19 +22,19 @@ std::shared_ptr<UIElement> BuildSplitButtonPage() {
     save->AddSeparator();
     save->AddItem("保存副本", [status] { status->Text = "已保存副本。"; });
 
-    auto color = Widgets::SplitButton("红色").Shared();
+    CUI::Widgets::Ref color = Widgets::SplitButton("红色").Shared();
     color->OnClick().Connect([status, color](UIElement*) {
         color->Background = Color::Red; status->Text = "已选择红色。"; color->Blur();
     });
     
-        color->SetBackground(Color::Red);
-        color->SetHoverBackground(Color::Red);
+        color.Background(Color::Red);
+        color.HoverBackground(Color::Red);
     
     color->AddItem("红色", [status, color] { color->Background = Color::Red; color->HoverBackground = Color::Red; status->Text = "已选择红色。"; color->Blur(); });
     color->AddItem("绿色", [status, color] { color->Background = Color::Green; color->HoverBackground = Color::Green; status->Text = "已选择绿色。"; color->Blur(); });
     color->AddItem("蓝色", [status, color] { color->Background = Color::Blue; color->HoverBackground = Color::Blue; status->Text = "已选择蓝色。"; color->Blur(); });
     color->AddItem("黄色", [status, color] { color->Background = Color::Yellow; color->HoverBackground = Color::Yellow; status->Text = "已选择黄色。"; color->Blur(); });
-        color->SetWidth(120.0f);
+        color.Width(120.0f);
 
     SamplePageSpec spec;
     spec.title = "SplitButton(拆分按钮)";

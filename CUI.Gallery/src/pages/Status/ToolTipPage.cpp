@@ -59,10 +59,10 @@ Element BuildToolTipPage() {
     // ==========================================
     // 3. 多种控件的通用 ToolTip 挂载
     // ==========================================
-    auto toggleAutoSave = Widgets::ToggleButton("自动同步 (Auto Sync)").Shared();
-        toggleAutoSave->SetToolTip("开启后，每当文档内容发生更改时将自动写入本地缓存文件");
+    CUI::Widgets::Ref toggleAutoSave = Widgets::ToggleButton("自动同步 (Auto Sync)").Shared();
+        toggleAutoSave.ToolTip("开启后，每当文档内容发生更改时将自动写入本地缓存文件");
 
-    auto txtSample = Widgets::TextBox()
+    CUI::Widgets::Ref txtSample = Widgets::TextBox()
         .Text("鼠标悬停在输入框查看提示")
         .ToolTip("提示：这是一个单行文本输入框，支持快捷键全选与剪贴板操作")
         .Shared();

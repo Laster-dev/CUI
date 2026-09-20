@@ -111,20 +111,20 @@ Element BuildThemeTransitionPage() {
         .ForegroundToken(ThemeTokenId::TextPrimary)
         .BorderToken(ThemeTokenId::CardBorder)
         .BorderThickness(1.0f);
-    auto sampleSlider = Widgets::Slider().Shared();
-    sampleSlider->SetMinimum(0.0f);
-    sampleSlider->SetMaximum(100.0f);
-    sampleSlider->SetValue(65.0f);
-        sampleSlider->SetWidth(180.0f);
-    auto sampleToggle = Widgets::ToggleSwitch().Header("开关状态").IsOn(true).Shared();
-    auto sampleCheck = Widgets::CheckBox("记住配置 (Remember)").Shared();
-    auto sampleInput = Widgets::TextBox().Text("输入测试文本..").Shared();
-        sampleInput->SetWidth(200.0f);
-    auto sampleBar = Widgets::ProgressBar().Shared();
-    sampleBar->SetValue(60.0f);
-    sampleBar->SetIsIndeterminate(false);
-        sampleBar->SetHeight(6.0f);
-        sampleBar->SetAlign(Alignment::Stretch);
+    CUI::Widgets::Ref sampleSlider = Widgets::Slider().Shared();
+    sampleSlider.Minimum(0.0f);
+    sampleSlider.Maximum(100.0f);
+    sampleSlider.Value(65.0f);
+        sampleSlider.Width(180.0f);
+    CUI::Widgets::Ref sampleToggle = Widgets::ToggleSwitch().Header("开关状态").IsOn(true).Shared();
+    CUI::Widgets::Ref sampleCheck = Widgets::CheckBox("记住配置 (Remember)").Shared();
+    CUI::Widgets::Ref sampleInput = Widgets::TextBox().Text("输入测试文本..").Shared();
+        sampleInput.Width(200.0f);
+    CUI::Widgets::Ref sampleBar = Widgets::ProgressBar().Shared();
+    sampleBar.Value(60.0f);
+    sampleBar.IsIndeterminate(false);
+        sampleBar.Height(6.0f);
+        sampleBar.Align(Alignment::Stretch);
 
     auto sandboxCard = Container().Padding(16.0f).CornerRadius(12.0f);
         sandboxCard->SetBackgroundToken(ThemeTokenId::CardBackground);

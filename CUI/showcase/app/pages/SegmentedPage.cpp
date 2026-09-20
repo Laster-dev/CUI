@@ -12,7 +12,7 @@ using namespace CUI;
 using namespace CUI::DSL;
 
 ShowcasePage BuildSegmentedPage(const ShowcaseContext& ctx) {
-    auto target = CUI::Widgets::SegmentedControl().Width(280).Height(32).Shared();
+    CUI::Widgets::Ref target = CUI::Widgets::SegmentedControl().Width(280).Height(32).Shared();
     target->AddItem("规则");
     target->AddItem("全局");
     target->AddItem("直连");
@@ -24,12 +24,12 @@ ShowcasePage BuildSegmentedPage(const ShowcaseContext& ctx) {
         Toast::Show(window->GetRootElement().get(), "SegmentedControl", item, ToastCorner::BottomRight, 1400);
     });
 
-    auto compact = CUI::Widgets::SegmentedControl().Width(240).Height(28).Shared();
+    CUI::Widgets::Ref compact = CUI::Widgets::SegmentedControl().Width(240).Height(28).Shared();
     compact->AddItem("日");
     compact->AddItem("周");
     compact->AddItem("月");
     compact->AddItem("年");
-        compact->SetSelectedIndex(1);
+        compact.SelectedIndex(1);
 
     auto demo = Column(12).Children({
         CreateDemoSurface({

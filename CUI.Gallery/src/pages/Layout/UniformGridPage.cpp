@@ -26,40 +26,40 @@ std::shared_ptr<CUI::Button> MakeCell(const std::string& text, int index) {
 
 std::shared_ptr<UIElement> BuildUniformGridPage() {
     // —— 固定行列 ——
-    auto fixed = Widgets::UniformGrid(2, 3).Width(520).Height(180).Shared();
+    CUI::Widgets::Ref fixed = Widgets::UniformGrid(2, 3).Width(520).Height(180).Shared();
     for (int i = 0; i < 6; ++i) {
                 fixed->AddChild(MakeCell(std::format("格 {}", i + 1), i));
     }
 
     // —— 自动计算行列 ——
-    auto autoGrid = Widgets::UniformGrid(0, 0).Width(520).Height(180).Shared();
+    CUI::Widgets::Ref autoGrid = Widgets::UniformGrid(0, 0).Width(520).Height(180).Shared();
     for (int i = 0; i < 7; ++i) {
                 autoGrid->AddChild(MakeCell(std::format("自动 {}", i + 1), i));
     }
 
     // —— 只指定列数 ——
-    auto colsOnly = Widgets::UniformGrid(0, 4).Width(520).Height(150).Shared();
+    CUI::Widgets::Ref colsOnly = Widgets::UniformGrid(0, 4).Width(520).Height(150).Shared();
     for (int i = 0; i < 8; ++i) {
                 colsOnly->AddChild(MakeCell(std::format("项 {}", i + 1), i));
     }
 
     // —— 运行时调整行列 ——
-    auto liveGrid = Widgets::UniformGrid(2, 3).Width(520).Height(220).Shared();
-        liveGrid->SetClipToBounds(true);
+    CUI::Widgets::Ref liveGrid = Widgets::UniformGrid(2, 3).Width(520).Height(220).Shared();
+        liveGrid.ClipToBounds(true);
     for (int i = 0; i < 8; ++i) {
                 liveGrid->AddChild(MakeCell(std::format("格 {}", i + 1), i));
     }
 
-    auto rowsSlider = Widgets::Slider().Shared();
-    rowsSlider->SetMinimum(1.0f);
-    rowsSlider->SetMaximum(4.0f);
-    rowsSlider->SetValue(2.0f);
-        rowsSlider->SetFlexGrow(1.0f);
-    auto colsSlider = Widgets::Slider().Shared();
-    colsSlider->SetMinimum(1.0f);
-    colsSlider->SetMaximum(5.0f);
-    colsSlider->SetValue(3.0f);
-        colsSlider->SetFlexGrow(1.0f);
+    CUI::Widgets::Ref rowsSlider = Widgets::Slider().Shared();
+    rowsSlider.Minimum(1.0f);
+    rowsSlider.Maximum(4.0f);
+    rowsSlider.Value(2.0f);
+        rowsSlider.FlexGrow(1.0f);
+    CUI::Widgets::Ref colsSlider = Widgets::Slider().Shared();
+    colsSlider.Minimum(1.0f);
+    colsSlider.Maximum(5.0f);
+    colsSlider.Value(3.0f);
+        colsSlider.FlexGrow(1.0f);
 
     State<float> rowsValue{ 2.0f };
     State<float> colsValue{ 3.0f };

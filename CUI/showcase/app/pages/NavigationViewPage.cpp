@@ -21,20 +21,20 @@ using namespace CUI::DSL;
 namespace {
 
 std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string& body, int variant) {
-    auto chk = CUI::Widgets::CheckBox().Shared();
-    chk->SetState((variant % 2 == 0) ? CheckState::Checked : CheckState::Unchecked);
+    CUI::Widgets::Ref chk = CUI::Widgets::CheckBox().Shared();
+    chk.State((variant % 2 == 0) ? CheckState::Checked : CheckState::Unchecked);
 
-    auto toggle = CUI::Widgets::ToggleSwitch().Shared();
-    toggle->SetHeader(variant % 2 == 0 ? "ToggleSwitch" : "Quick Toggle");
-    toggle->SetIsOn(variant % 2 == 0);
+    CUI::Widgets::Ref toggle = CUI::Widgets::ToggleSwitch().Shared();
+    toggle.Header(variant % 2 == 0 ? "ToggleSwitch" : "Quick Toggle");
+    toggle.IsOn(variant % 2 == 0);
 
-    auto combo = CUI::Widgets::ComboBox().Shared();
-    combo->SetWidth(240.0f);
-    combo->SetHeight(32.0f);
+    CUI::Widgets::Ref combo = CUI::Widgets::ComboBox().Shared();
+    combo.Width(240.0f);
+    combo.Height(32.0f);
     combo->AddItem(variant % 2 == 0 ? "WinUI-like" : "CUI-custom");
     combo->AddItem("Dark/Light");
     combo->AddItem("Accent");
-    combo->SetSelectedIndex(variant % 3);
+    combo.SelectedIndex(variant % 3);
 
     auto list = std::make_shared<ListBox>();
     list->SetHeight(120.0f);
@@ -62,12 +62,12 @@ std::shared_ptr<UIElement> MakePage(const std::string& title, const std::string&
 } // namespace
 
 ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
-    auto nav = CUI::Widgets::NavigationView().Shared();
-    nav->SetPaneTitle("CUI");
-    nav->SetHeader("Home");
-    nav->SetAlwaysShowHeader(true);
-    nav->SetPaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
-    nav->SetIsSettingsVisible(true);
+    CUI::Widgets::Ref nav = CUI::Widgets::NavigationView().Shared();
+    nav.PaneTitle("CUI");
+    nav.Header("Home");
+    nav.AlwaysShowHeader(true);
+    nav.PaneDisplayMode(NavigationViewPaneDisplayMode::Auto);
+    nav.IsSettingsVisible(true);
 
     auto pageHome = MakePage("Home", "WinUI 3 NavigationView: PaneDisplayMode / DisplayMode / IsPaneOpen 三者分离。", 0);
     auto pageApps = MakePage("Apps", "MenuItems + FooterMenuItems + SettingsItem 共用单一选中模型。", 1);
@@ -75,49 +75,49 @@ ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
     auto pageMusic = MakePage("Music", "LeftCompact / LeftMinimal 下 IsPaneOpen 控制 overlay/inline 行为。", 3);
     auto pageSettings = MakePage("Settings", "内置 SettingsItem；ItemInvoked → SelectionChanged。", 4);
 
-    nav->SetContent(pageHome);
+    nav.Content(pageHome);
 
     // MenuItems
-    auto home = CUI::Widgets::NavigationViewItem("Home", "🏠").Shared();
-    home->SetTag("home");
+    CUI::Widgets::Ref home = CUI::Widgets::NavigationViewItem("Home", "🏠").Shared();
+    home.Tag("home");
     nav->AddMenuItem(home);
 
     nav->AddMenuItem(CUI::Widgets::NavigationViewItemHeader("Library").Shared());
 
-    auto apps = CUI::Widgets::NavigationViewItem("Apps", "⚡").Shared();
-    apps->SetTag("apps");
+    CUI::Widgets::Ref apps = CUI::Widgets::NavigationViewItem("Apps", "⚡").Shared();
+    apps.Tag("apps");
     nav->AddMenuItem(apps);
 
-    auto docs = CUI::Widgets::NavigationViewItem("Documents", "📄").Shared();
-    docs->SetTag("docs");
+    CUI::Widgets::Ref docs = CUI::Widgets::NavigationViewItem("Documents", "📄").Shared();
+    docs.Tag("docs");
     // Hierarchy: parent does not select; expands children.
-    docs->SetSelectsOnInvoked(false);
-    auto docsAll = CUI::Widgets::NavigationViewItem("All files", "📁").Shared();
-    docsAll->SetTag("docs-all");
-    auto docsRecent = CUI::Widgets::NavigationViewItem("Recent", "🕒").Shared();
-    docsRecent->SetTag("docs-recent");
+    docs.SelectsOnInvoked(false);
+    CUI::Widgets::Ref docsAll = CUI::Widgets::NavigationViewItem("All files", "📁").Shared();
+    docsAll.Tag("docs-all");
+    CUI::Widgets::Ref docsRecent = CUI::Widgets::NavigationViewItem("Recent", "🕒").Shared();
+    docsRecent.Tag("docs-recent");
     docs->AddMenuItem(docsAll);
     docs->AddMenuItem(docsRecent);
     nav->AddMenuItem(docs);
 
     nav->AddMenuItem(CUI::Widgets::NavigationViewItemSeparator().Shared());
 
-    auto music = CUI::Widgets::NavigationViewItem("Music", "🎵").Shared();
-    music->SetTag("music");
+    CUI::Widgets::Ref music = CUI::Widgets::NavigationViewItem("Music", "🎵").Shared();
+    music.Tag("music");
     nav->AddMenuItem(music);
 
     // Footer
-    auto account = CUI::Widgets::NavigationViewItem("Account", "👤").Shared();
-    account->SetTag("account");
+    CUI::Widgets::Ref account = CUI::Widgets::NavigationViewItem("Account", "👤").Shared();
+    account.Tag("account");
     nav->AddFooterMenuItem(account);
 
     // AutoSuggest slot
-    auto search = CUI::Widgets::TextBox().Shared();
-    search->SetPlaceholder("Search");
-        search->SetHeight(32.0f);
-    nav->SetAutoSuggestBox(search);
+    CUI::Widgets::Ref search = CUI::Widgets::TextBox().Shared();
+    search.Placeholder("Search");
+        search.Height(32.0f);
+    nav.AutoSuggestBox(search);
 
-    nav->SetSelectedItem(home.get());
+    nav.SelectedItem(home.get());
 
     nav->OnItemInvoked().Connect([nav, pageHome, pageApps, pageDocs, pageMusic, pageSettings,
                                   docsAll, docsRecent](NavigationView*, const NavigationViewItemInvokedEventArgs& args) {
@@ -125,39 +125,39 @@ ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
             return;
         }
         if (args.IsSettingsInvoked) {
-            nav->SetHeader("Settings");
-            nav->SetContent(pageSettings);
+            nav.Header("Settings");
+            nav.Content(pageSettings);
             return;
         }
         const std::string& tag = args.InvokedItem->GetTag();
         if (tag == "home") {
-            nav->SetHeader("Home");
-            nav->SetContent(pageHome);
+            nav.Header("Home");
+            nav.Content(pageHome);
         } else if (tag == "apps") {
-            nav->SetHeader("Apps");
-            nav->SetContent(pageApps);
+            nav.Header("Apps");
+            nav.Content(pageApps);
         } else if (tag == "docs" || tag == "docs-all" || tag == "docs-recent") {
-            nav->SetHeader("Documents");
-            nav->SetContent(pageDocs);
+            nav.Header("Documents");
+            nav.Content(pageDocs);
         } else if (tag == "music") {
-            nav->SetHeader("Music");
-            nav->SetContent(pageMusic);
+            nav.Header("Music");
+            nav.Content(pageMusic);
         } else if (tag == "account") {
-            nav->SetHeader("Account");
-            nav->SetContent(MakePage("Account", "FooterMenuItems 与 MenuItems 共享选中。", 5));
+            nav.Header("Account");
+            nav.Content(MakePage("Account", "FooterMenuItems 与 MenuItems 共享选中。", 5));
         }
         (void)docsAll;
         (void)docsRecent;
     });
 
     // PaneDisplayMode switcher
-    auto modeBox = CUI::Widgets::ComboBox().Shared();
+    CUI::Widgets::Ref modeBox = CUI::Widgets::ComboBox().Shared();
     modeBox->AddItem("Auto");
     modeBox->AddItem("Left");
     modeBox->AddItem("LeftCompact");
     modeBox->AddItem("LeftMinimal");
     modeBox->AddItem("Top");
-        modeBox->SetSelectedIndex(0);
+        modeBox.SelectedIndex(0);
     modeBox->OnSelectionChanged().Connect([nav](ComboBox* box, int index, const std::string&) {
         static const NavigationViewPaneDisplayMode kModes[] = {
             NavigationViewPaneDisplayMode::Auto,
@@ -167,25 +167,25 @@ ShowcasePage BuildNavigationViewPage(const ShowcaseContext& ctx) {
             NavigationViewPaneDisplayMode::Top
         };
         if (index >= 0 && index < 5) {
-            nav->SetPaneDisplayMode(kModes[index]);
+            nav.PaneDisplayMode(kModes[index]);
         }
         (void)box;
     });
 
-    auto chkHeader = CUI::Widgets::CheckBox("AlwaysShowHeader").Shared();
-        chkHeader->SetState(CheckState::Checked);
+    CUI::Widgets::Ref chkHeader = CUI::Widgets::CheckBox("AlwaysShowHeader").Shared();
+        chkHeader.State(CheckState::Checked);
     chkHeader->OnCheckStateChanged().Connect([nav](CheckBox*, CheckState state) {
-        nav->SetAlwaysShowHeader(state == CheckState::Checked);
+        nav.AlwaysShowHeader(state == CheckState::Checked);
     });
 
-    auto btnToggle = CUI::Widgets::Button("Toggle Pane").Shared();
+    CUI::Widgets::Ref btnToggle = CUI::Widgets::Button("Toggle Pane").Shared();
     btnToggle->OnClick().Connect([nav](UIElement*) {
         nav->TogglePane();
     });
 
-    auto modeLabel = CUI::Widgets::TextBlock("PaneDisplayMode").Shared();
-    nav->SetWidth(860.0f);
-    nav->SetHeight(420.0f);
+    CUI::Widgets::Ref modeLabel = CUI::Widgets::TextBlock("PaneDisplayMode").Shared();
+    nav.Width(860.0f);
+    nav.Height(420.0f);
 
     auto demo = Column(12).Children({
         Row(12).Children({ modeLabel, modeBox, btnToggle, chkHeader }).Build(),
