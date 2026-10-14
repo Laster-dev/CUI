@@ -168,7 +168,19 @@ bool ColorPicker::OnAnimationTick() {
 }
 
 bool ColorPicker::HasSelfAnimation() const {
-    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f;
+    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f
+        || (m_popupAnim.Current() > 0.001f && !m_isPopupOpen);
+}
+
+void ColorPicker::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    UIElement::CollectSelfAnimationBounds(dirtyRect, hasDirty);
+    if (m_isPopupOpen || m_popupAnim.Current() > 0.001f || HasSelfAnimation()) {
+        Rect b = GetPopupBounds().Inflate(6.0f);
+        if (!b.IsEmpty()) {
+            dirtyRect = hasDirty ? dirtyRect.Union(b) : b;
+            hasDirty = true;
+        }
+    }
 }
 
 void ColorPicker::OnMouseDown(Point pt) {
@@ -236,9 +248,14 @@ void ColorPicker::OnRender(GraphicsContext& ctx) {
 
 void ColorPicker::ApplyPopupOpen(bool open) {
     if (m_isPopupOpen == open) return;
+    const Rect oldBounds = GetPopupBounds().Inflate(6.0f);
     m_isPopupOpen = open;
     if (!open) {
         m_dragPart = PopupPart::None;
+    }
+    m_popupAnim.ApplyTarget(open ? 1.0f : 0.0f);
+    if (!open || !UIElement::AreAnimationsEnabled()) {
+        m_popupAnim.Reset(open ? 1.0f : 0.0f);
     }
     if (PopupHost* host = PopupHost::Current()) {
         if (open) {
@@ -248,6 +265,8 @@ void ColorPicker::ApplyPopupOpen(bool open) {
         }
     }
     RequestAnimationTicks();
+    MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+    MarkRenderRectDirty(oldBounds);
     MarkPopupDirty();
 }
 
@@ -264,6 +283,8 @@ bool ColorPicker::HitDismissExempt(float x, float y) const {
 
 void ColorPicker::OnRenderOverlay(GraphicsContext& ctx) {
     if (PopupHost::Current() && m_isPopupOpen) return;
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
+    if (progress <= 0.001f) return;
     RenderPopup(ctx);
 }
 

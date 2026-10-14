@@ -253,10 +253,13 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
 void ComboBox::OnRenderOverlay(GraphicsContext& ctx) {
     // When open, PopupHost owns paint; keep tree path for close-animation frames.
     if (PopupHost::Current() && m_isDropDownOpen) return;
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isDropDownOpen ? 1.0f : 0.0f);
+    if (progress <= 0.001f) return;
     RenderPopup(ctx);
 }
 
 UIElement* ComboBox::HitTestOverlay(float x, float y) {
+    if (!m_isDropDownOpen) return nullptr;
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isDropDownOpen ? 1.0f : 0.0f);
     if (progress <= 0.2f || m_items.empty()) return nullptr;
 
@@ -319,6 +322,7 @@ bool ComboBox::OnAnimationTick() {
 bool ComboBox::HasSelfAnimation() const {
     return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f ||
            std::abs(m_arrowAnim.Target() - m_arrowAnim.Current()) > 0.001f ||
+           (m_popupAnim.Current() > 0.001f && !m_isDropDownOpen) ||
            m_scrollbarAutoHide.NeedsTicks();
 }
 
@@ -450,9 +454,16 @@ void ComboBox::OnBlur() {
 
 void ComboBox::ApplyDropDownOpen(bool open) {
     if (m_isDropDownOpen == open) return;
+    const Rect oldBounds = GetPopupBounds().Inflate(6.0f);
     m_isDropDownOpen = open;
     if (open) {
         m_scrollOffset = 0.0f;
+    }
+    m_popupAnim.ApplyTarget(open ? 1.0f : 0.0f);
+    m_arrowAnim.ApplyTarget(open ? 1.0f : 0.0f);
+    if (!open || !UIElement::AreAnimationsEnabled()) {
+        m_popupAnim.Reset(open ? 1.0f : 0.0f);
+        m_arrowAnim.Reset(open ? 1.0f : 0.0f);
     }
     if (PopupHost* host = PopupHost::Current()) {
         if (open) {
@@ -462,6 +473,8 @@ void ComboBox::ApplyDropDownOpen(bool open) {
         }
     }
     RequestAnimationTicks();
+    MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+    MarkRenderRectDirty(oldBounds);
     MarkRenderContentDirty();
 }
 

@@ -320,6 +320,10 @@ void AutoSuggestBox::OpenSuggestions() {
     }
     if (!m_suggestionsOpen) {
         m_suggestionsOpen = true;
+        m_popupAnim.ApplyTarget(1.0f);
+        if (!UIElement::AreAnimationsEnabled()) {
+            m_popupAnim.Reset(1.0f);
+        }
         if (PopupHost* host = PopupHost::Current()) {
             host->Open(this);
         }
@@ -334,13 +338,20 @@ void AutoSuggestBox::CloseSuggestions() {
         m_highlightedIndex = -1;
         return;
     }
+    const Rect oldBounds = GetPopupBounds().Inflate(6.0f);
     m_suggestionsOpen = false;
     m_highlightedIndex = -1;
     m_keyboardNavActive = false;
+    m_popupAnim.ApplyTarget(0.0f);
+    if (!UIElement::AreAnimationsEnabled()) {
+        m_popupAnim.Reset(0.0f);
+    }
     if (PopupHost* host = PopupHost::Current()) {
         host->Close(this);
     }
     RequestAnimationTicks();
+    MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+    MarkRenderRectDirty(oldBounds);
     MarkRenderContentDirty();
 }
 
@@ -449,6 +460,9 @@ UIElement* AutoSuggestBox::HitTest(float x, float y) {
 }
 
 UIElement* AutoSuggestBox::HitTestOverlay(float x, float y) {
+    if (!m_suggestionsOpen) {
+        return nullptr;
+    }
     const float progress = PopupProgress();
     if (progress <= 0.2f || m_filtered.empty()) {
         return nullptr;
@@ -522,6 +536,9 @@ void AutoSuggestBox::RenderPopup(GraphicsContext& ctx) {
 
 void AutoSuggestBox::OnRenderOverlay(GraphicsContext& ctx) {
     if (PopupHost::Current() && m_suggestionsOpen) {
+        return;
+    }
+    if (PopupProgress() <= 0.001f) {
         return;
     }
     RenderPopup(ctx);
@@ -704,6 +721,7 @@ bool AutoSuggestBox::HasSelfAnimation() const {
         || m_pendingClose
         || m_debounceLeft >= 0.0f
         || std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f
+        || (m_popupAnim.Current() > 0.001f && !m_suggestionsOpen)
         || m_scrollbarAutoHide.NeedsTicks();
 }
 

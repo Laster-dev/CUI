@@ -29,6 +29,7 @@ public:
     virtual void OnMouseWheel(float delta) override; // 响应滚轮，可对当前聚焦列的时间数据进行滚动平移微调
     virtual bool OnAnimationTick() override; // 驱动时间滚轮平滑滚动回弹以及弹出层折展淡入动画
     virtual bool HasSelfAnimation() const override; // 检查时间滚轮或弹出层是否仍有动画正在播放
+    virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override; // 收集弹出层动画造成的重绘脏矩形区域
 
     // IPopup 弹出层接口实现
     virtual bool IsPopupOpen() const override { return m_isPopupOpen; } // 获取弹出层是否已展开

@@ -31,6 +31,7 @@ public:
     virtual void OnMouseUp(Point pt) override; // 鼠标抬起释放调节捕获
     virtual bool OnAnimationTick() override; // 驱动弹出层缩放淡入淡出过渡动画
     virtual bool HasSelfAnimation() const override; // 检查是否依然处于弹出过渡动画中
+    virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override; // 收集弹出层动画造成的重绘脏矩形区域
 
     // IPopup 弹出层接口实现
     virtual bool IsPopupOpen() const override { return m_isPopupOpen; } // 获取弹出层是否已展开

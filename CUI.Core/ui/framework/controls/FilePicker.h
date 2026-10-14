@@ -30,6 +30,7 @@ public:
     virtual bool OnKeyDown(int vkCode) override;
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
+    virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
 
     virtual bool IsPopupOpen() const override { return m_isPopupOpen; }
     virtual Rect GetPopupBounds() const override;

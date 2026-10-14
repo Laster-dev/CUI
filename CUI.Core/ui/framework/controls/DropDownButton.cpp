@@ -111,6 +111,9 @@ int DropDownButton::HitTestMenuItem(Point pt) const {
 }
 
 UIElement* DropDownButton::HitTestOverlay(float x, float y) {
+    if (!m_isDropDownOpen) {
+        return nullptr;
+    }
     const float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isDropDownOpen ? 1.0f : 0.0f);
     if (progress <= 0.2f) {
         return nullptr;
@@ -159,6 +162,7 @@ void DropDownButton::ApplyDropDownOpen(bool open) {
     if (m_isDropDownOpen == open) {
         return;
     }
+    const Rect oldBounds = GetPopupBounds().Inflate(6.0f);
     m_isDropDownOpen = open;
     if (open) {
         m_hoverIndex = -1;
@@ -169,6 +173,12 @@ void DropDownButton::ApplyDropDownOpen(bool open) {
             }
         }
     }
+    m_popupAnim.ApplyTarget(open ? 1.0f : 0.0f);
+    m_arrowAnim.ApplyTarget(open ? 1.0f : 0.0f);
+    if (!open || !UIElement::AreAnimationsEnabled()) {
+        m_popupAnim.Reset(open ? 1.0f : 0.0f);
+        m_arrowAnim.Reset(open ? 1.0f : 0.0f);
+    }
     if (PopupHost* host = PopupHost::Current()) {
         if (open) {
             host->Open(this);
@@ -178,7 +188,7 @@ void DropDownButton::ApplyDropDownOpen(bool open) {
     }
     RequestAnimationTicks();
     MarkRenderRectDirty(m_bounds.Inflate(2.0f));
-    MarkRenderRectDirty(GetPopupBounds().Inflate(6.0f));
+    MarkRenderRectDirty(oldBounds);
 }
 
 void DropDownButton::EndPressWithoutClick() {
@@ -350,7 +360,8 @@ bool DropDownButton::OnAnimationTick() {
 bool DropDownButton::HasSelfAnimation() const {
     return Button::HasSelfAnimation()
         || std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f
-        || std::abs(m_arrowAnim.Target() - m_arrowAnim.Current()) > 0.001f;
+        || std::abs(m_arrowAnim.Target() - m_arrowAnim.Current()) > 0.001f
+        || (m_popupAnim.Current() > 0.001f && !m_isDropDownOpen);
 }
 
 void DropDownButton::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
@@ -415,6 +426,10 @@ void DropDownButton::RenderPopup(GraphicsContext& ctx) {
 
 void DropDownButton::OnRenderOverlay(GraphicsContext& ctx) {
     if (PopupHost::Current() && m_isDropDownOpen) {
+        return;
+    }
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isDropDownOpen ? 1.0f : 0.0f);
+    if (progress <= 0.001f) {
         return;
     }
     RenderPopup(ctx);

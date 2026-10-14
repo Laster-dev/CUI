@@ -544,6 +544,7 @@ private:
     mutable float m_overlayFps = 0.0f;                                  // 性能面板展示的当前 FPS 缓存数值
     bool m_animationActive = false;                                     // 标记窗口当前是否有活跃运行中的过渡动画
     bool m_wasAnimationActive = false;                                  // 上一帧是否包含运行中的过渡动画
+    bool m_justLightDismissed = false;                                  // 上一次点击是否为浮出层消退（用于吞噬事件与防双击击穿）
 };
 
 } // namespace CUI

@@ -296,9 +296,21 @@ bool TimePicker::HasSelfAnimation() const {
     };
 
     return Control::HasSelfAnimation()
-        || (std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.01f)
+        || (std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f)
+        || (m_popupAnim.Current() > 0.001f && !m_isPopupOpen)
         || (UIElement::AreAnimationsEnabled() && axisAnimating(m_hourPosition, m_hourTarget, 24))
         || (UIElement::AreAnimationsEnabled() && axisAnimating(m_minutePosition, m_minuteTarget, 60));
+}
+
+void TimePicker::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    UIElement::CollectSelfAnimationBounds(dirtyRect, hasDirty);
+    if (m_isPopupOpen || m_popupAnim.Current() > 0.001f || HasSelfAnimation()) {
+        Rect b = GetPopupBounds().Inflate(6.0f);
+        if (!b.IsEmpty()) {
+            dirtyRect = hasDirty ? dirtyRect.Union(b) : b;
+            hasDirty = true;
+        }
+    }
 }
 
 void TimePicker::OnRender(GraphicsContext& ctx) {
@@ -321,7 +333,12 @@ void TimePicker::OnRender(GraphicsContext& ctx) {
 
 void TimePicker::ApplyPopupOpen(bool open) {
     if (m_isPopupOpen == open) return;
+    const Rect oldBounds = GetPopupBounds().Inflate(6.0f);
     m_isPopupOpen = open;
+    m_popupAnim.ApplyTarget(open ? 1.0f : 0.0f);
+    if (!open || !UIElement::AreAnimationsEnabled()) {
+        m_popupAnim.Reset(open ? 1.0f : 0.0f);
+    }
     if (PopupHost* host = PopupHost::Current()) {
         if (open) {
             host->Open(this);
@@ -329,6 +346,9 @@ void TimePicker::ApplyPopupOpen(bool open) {
             host->Close(this);
         }
     }
+    RequestAnimationTicks();
+    MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+    MarkRenderRectDirty(oldBounds);
     MarkRenderContentDirty();
 }
 
@@ -343,6 +363,8 @@ bool TimePicker::HitDismissExempt(float x, float y) const {
 
 void TimePicker::OnRenderOverlay(GraphicsContext& ctx) {
     if (PopupHost::Current() && m_isPopupOpen) return;
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
+    if (progress <= 0.001f) return;
     RenderPopup(ctx);
 }
 

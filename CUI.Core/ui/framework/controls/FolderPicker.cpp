@@ -144,6 +144,7 @@ void FolderPicker::ApplyPopupOpen(bool open) {
     if (m_isPopupOpen == open) {
         return;
     }
+    const Rect oldBounds = GetPopupBounds().Inflate(6.0f);
     m_isPopupOpen = open;
     if (open) {
         m_browser.Configure(FileBrowserMode::OpenFolder, GetText(), {}, 0);
@@ -151,6 +152,10 @@ void FolderPicker::ApplyPopupOpen(bool open) {
         SyncBrowserChrome();
     } else {
         m_breadcrumbHost.DismissOverflowMenu();
+    }
+    m_popupAnim.ApplyTarget(open ? 1.0f : 0.0f);
+    if (!open || !UIElement::AreAnimationsEnabled()) {
+        m_popupAnim.Reset(open ? 1.0f : 0.0f);
     }
     if (PopupHost* host = PopupHost::Current()) {
         if (open) {
@@ -160,6 +165,8 @@ void FolderPicker::ApplyPopupOpen(bool open) {
         }
     }
     RequestAnimationTicks();
+    MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+    MarkRenderRectDirty(oldBounds);
     MarkPickerDirty();
 }
 
@@ -185,6 +192,9 @@ bool FolderPicker::HitDismissExempt(float x, float y) const {
 }
 
 UIElement* FolderPicker::OnHitTestOverlay(float x, float y) {
+    if (!m_isPopupOpen) {
+        return nullptr;
+    }
     const float progress = PopupProgress();
     if (progress <= 0.2f) {
         return nullptr;
@@ -441,7 +451,19 @@ bool FolderPicker::OnAnimationTick() {
 }
 
 bool FolderPicker::HasSelfAnimation() const {
-    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f;
+    return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f
+        || (m_popupAnim.Current() > 0.001f && !m_isPopupOpen);
+}
+
+void FolderPicker::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    UIElement::CollectSelfAnimationBounds(dirtyRect, hasDirty);
+    if (m_isPopupOpen || m_popupAnim.Current() > 0.001f || HasSelfAnimation()) {
+        Rect b = GetPopupBounds().Inflate(6.0f);
+        if (!b.IsEmpty()) {
+            dirtyRect = hasDirty ? dirtyRect.Union(b) : b;
+            hasDirty = true;
+        }
+    }
 }
 
 } // namespace CUI

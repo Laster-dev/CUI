@@ -42,6 +42,7 @@ public:
     virtual void OnMouseWheel(float delta) override; // 响应鼠标滚轮，快速翻动月度/年度列表
     virtual bool OnAnimationTick() override; // 驱动弹出面板的缩放展开折叠动画
     virtual bool HasSelfAnimation() const override; // 检查是否依然处于过渡动画中
+    virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override; // 收集弹出层动画造成的重绘脏矩形区域
 
     // IPopup 弹出层接口实现
     virtual bool IsPopupOpen() const override { return m_isPopupOpen; } // 获取弹出层是否已展开

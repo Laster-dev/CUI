@@ -91,6 +91,7 @@ void DatePicker::ApplyDate(int y, int m, int d) {
 }
 
 UIElement* DatePicker::OnHitTestOverlay(float x, float y) {
+    if (!m_isPopupOpen) return nullptr;
     float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
     if (progress <= 0.2f) return nullptr;
     Rect popRect = GetPopupBounds();
@@ -119,7 +120,19 @@ bool DatePicker::OnAnimationTick() {
 
 bool DatePicker::HasSelfAnimation() const {
     return std::abs(m_popupAnim.Target() - m_popupAnim.Current()) > 0.001f
+        || (m_popupAnim.Current() > 0.001f && !m_isPopupOpen)
         || m_scrollbarAutoHide.NeedsTicks();
+}
+
+void DatePicker::CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const {
+    UIElement::CollectSelfAnimationBounds(dirtyRect, hasDirty);
+    if (m_isPopupOpen || m_popupAnim.Current() > 0.001f || HasSelfAnimation()) {
+        Rect b = GetPopupBounds().Inflate(6.0f);
+        if (!b.IsEmpty()) {
+            dirtyRect = hasDirty ? dirtyRect.Union(b) : b;
+            hasDirty = true;
+        }
+    }
 }
 
 void DatePicker::OnMouseDown(Point pt) {
@@ -330,9 +343,14 @@ void DatePicker::OnRender(GraphicsContext& ctx) {
 
 void DatePicker::ApplyPopupOpen(bool open) {
     if (m_isPopupOpen == open) return;
+    const Rect oldBounds = GetPopupBounds().Inflate(6.0f);
     m_isPopupOpen = open;
     if (open) {
         m_scrollOffset = 0.0f;
+    }
+    m_popupAnim.ApplyTarget(open ? 1.0f : 0.0f);
+    if (!open || !UIElement::AreAnimationsEnabled()) {
+        m_popupAnim.Reset(open ? 1.0f : 0.0f);
     }
     if (PopupHost* host = PopupHost::Current()) {
         if (open) {
@@ -341,6 +359,9 @@ void DatePicker::ApplyPopupOpen(bool open) {
             host->Close(this);
         }
     }
+    RequestAnimationTicks();
+    MarkRenderRectDirty(m_bounds.Inflate(4.0f));
+    MarkRenderRectDirty(oldBounds);
     MarkRenderContentDirty();
 }
 
@@ -542,6 +563,8 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
 
 void DatePicker::OnRenderOverlay(GraphicsContext& ctx) {
     if (PopupHost::Current() && m_isPopupOpen) return;
+    float progress = UIElement::AreAnimationsEnabled() ? m_popupAnim.Current() : (m_isPopupOpen ? 1.0f : 0.0f);
+    if (progress <= 0.001f) return;
     RenderPopup(ctx);
 }
 

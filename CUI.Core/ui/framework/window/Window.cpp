@@ -2320,6 +2320,9 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
         // Same hit order as mouse move/click: popup → overlay → tree.
         UIElement* target = m_popupHost.HitTest(logicalPt.x, logicalPt.y);
+        if (!target && m_popupHost.HasOpenPopups()) {
+            DismissPopups();
+        }
         if (!target && m_rootElement) {
             target = m_rootElement->HitTestOverlay(logicalPt.x, logicalPt.y);
             if (!target) {
@@ -3159,21 +3162,35 @@ bool Window::OnLButtonDown(int x, int y) {
     }
 
     // 2. Light-dismiss any open popup when the click is outside.
+    std::vector<Rect> oldPopupBounds;
+    for (IPopup* p : m_popupHost.GetOpenPopups()) {
+        if (p && p->IsPopupOpen()) {
+            oldPopupBounds.push_back(p->GetPopupBounds());
+        }
+    }
     if (m_popupHost.DismissIfOutside(fx, fy)) {
+        m_justLightDismissed = true;
+        for (const Rect& b : oldPopupBounds) {
+            if (!b.IsEmpty()) {
+                m_pendingDirtyRegion.AddRect(b.Inflate(8.0f));
+            }
+        }
         if (hadContextMenu && (!m_activeContextMenu || !m_activeContextMenu->IsOpen())) {
             m_activeContextMenu = nullptr;
             if (!oldMenuBounds.IsEmpty()) {
                 m_pendingDirtyRegion.AddRect(oldMenuBounds.Inflate(4.0f));
             }
-            // Clear MenuBar active highlight state when context menu is dismissed
-            ClearMenuBarInteractionState();
-            if (auto hovered = LockElement(m_hoveredElement)) {
-                hovered->OnMouseLeave();
-            }
-            m_hoveredElement.reset();
-            m_hoveredRaw = nullptr;
         }
+        // Clear MenuBar active highlight state when any popup is dismissed
+        ClearMenuBarInteractionState();
+        if (auto hovered = LockElement(m_hoveredElement)) {
+            hovered->OnMouseLeave();
+        }
+        m_hoveredElement.reset();
+        m_hoveredRaw = nullptr;
+        return true;
     }
+    m_justLightDismissed = false;
 
     // 3. Chrome / TitleBar band (toggles handled inside TitleBar::OnMouseDown).
     if (UIElement* chromeHit = HitTestChrome(fx, fy)) {
@@ -3203,6 +3220,11 @@ bool Window::OnLButtonDown(int x, int y) {
 }
 
 void Window::OnLButtonDblClick(int x, int y) {
+    if (m_justLightDismissed) {
+        m_justLightDismissed = false;
+        return;
+    }
+
     Point logicalPt = ClientPointToLogical(x, y);
     float fx = logicalPt.x;
     float fy = logicalPt.y;
@@ -3223,6 +3245,7 @@ void Window::OnLButtonDblClick(int x, int y) {
 }
 
 bool Window::OnLButtonUp(int x, int y) {
+    m_justLightDismissed = false;
     Point logicalPt = ClientPointToLogical(x, y);
     float fx = logicalPt.x;
     float fy = logicalPt.y;
@@ -3296,7 +3319,11 @@ void Window::OnRButtonDown(int x, int y) {
     float fx = logicalPt.x;
     float fy = logicalPt.y;
 
+    const bool hadPopups = m_popupHost.HasOpenPopups() || (m_activeContextMenu && m_activeContextMenu->IsOpen());
     DismissPopups();
+    if (hadPopups) {
+        return;
+    }
 
     m_pendingContextMenuTarget = nullptr;
     m_pendingContextMenu.reset();
