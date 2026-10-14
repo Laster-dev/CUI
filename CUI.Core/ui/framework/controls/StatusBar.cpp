@@ -19,12 +19,10 @@ constexpr float kProgressMinW = 56.0f;
 } // namespace
 
 StatusBar::StatusBar() {
-        this->ApplyBackgroundToken(ThemeTokenId::PaneBackground);
+    this->ApplyBackgroundToken(ThemeTokenId::PaneBackground);
     this->ApplyBorderToken(ThemeTokenId::CardBorder);
-    this->ApplyBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
-    this->ApplyBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
+    this->ApplyColorToken(ThemeTokenId::TextSecondary);
     this->ApplyBorderThickness(1.0f);
-    this->ApplyColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
     this->ApplyFontFamily("Segoe UI");
     this->ApplyFontSize(11.0f);
     this->ApplyHeight(kBarH);

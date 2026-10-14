@@ -18,13 +18,11 @@ constexpr const char* kEllipsis = "...";
 
 BreadcrumbBar::BreadcrumbBar() {
     m_pathNodes = { "Home", "Controls", "BreadcrumbBar" };
-        this->ApplyBackgroundToken(ThemeTokenId::PaneBackground);
+    this->ApplyBackgroundToken(ThemeTokenId::PaneBackground);
     this->ApplyBorderToken(ThemeTokenId::CardBorder);
     this->ApplyActiveColorToken(ThemeTokenId::TextPrimary);
-    this->ApplyBackground(ThemeManager::Instance().GetColor(ThemeTokenId::PaneBackground));
-    this->ApplyBorderBrush(ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder));
+    this->ApplyColorToken(ThemeTokenId::TextSecondary);
     this->ApplyBorderThickness(1.0f);
-    this->ApplyColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary));
     this->ApplyCornerRadius(0.0f);
     this->ApplyFontFamily("微软雅黑");
     this->ApplyFontSize(12.0f);

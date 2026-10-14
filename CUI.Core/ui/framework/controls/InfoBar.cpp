@@ -186,7 +186,6 @@ void InfoBar::SyncChrome() {
     m_actionBtn->ApplyHoverBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::White), 0.12f));
     m_actionBtn->ApplyPressedBackground(Mix(pal.accent, D2D1::ColorF(D2D1::ColorF::Black), 0.12f));
     m_actionBtn->ApplyColorToken(ThemeTokenId::AccentForeground);
-    m_actionBtn->ApplyColor(ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground));
 }
 
 void InfoBar::ApplyTitle(const std::string& title) {

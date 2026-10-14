@@ -142,8 +142,9 @@ Element BuildMenuBarPage() {
         mockContent.TextWrapping(true);
 
     auto mockAppContainer = Column(0, { appMenuBar, mockContent })
-        .Background(Rgb(0x18181B, 0.6f))
-        .Border(Rgb(0x3F3F46, 0.5f), 1.0f)
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderThickness(1.0f)
         .CornerRadius(8.0f);
 
     SamplePageSpec spec;

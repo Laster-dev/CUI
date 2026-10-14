@@ -43,19 +43,16 @@ bool ComboBox::HasProperty(PropertyId id) const {
 
 ComboBox::ComboBox() {
     SelectedIndex.Initialize(*this);
-        this->ApplyPlaceholder("Select option...");
+    this->ApplyPlaceholder("Select option...");
     this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
     this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
     this->ApplyBorderToken(ThemeTokenId::InputBorder);
     this->ApplyFocusedBorderToken(ThemeTokenId::FocusedBorder);
     this->ApplyDropdownBackgroundToken(ThemeTokenId::CardBackground);
     this->ApplySelectedItemBackgroundToken(ThemeTokenId::SelectedBackground);
-    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
-    this->ApplyHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
-    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
     this->ApplyBorderThickness(1.0f);
     this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Contained);
-    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
     this->ApplyFontSize(12.0f);
     this->ApplyFontFamily("微软雅黑");
     this->ApplyPadding(Thickness(10.0f, 6.0f, 10.0f, 6.0f));

@@ -43,19 +43,16 @@ float WrapPosition(float value, int count) {
 
 TimePicker::TimePicker() : FormattedTime(this) {
     SelectedTime.Initialize(*this);
-    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     time_t t = time(nullptr);
     tm tmVal = {};
     localtime_s(&tmVal, &t);
     m_hour = tmVal.tm_hour;
     m_minute = tmVal.tm_min;
 
-        this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
     this->ApplyBorderToken(ThemeTokenId::InputBorder);
-    this->ApplyBackground(tokens.inputBackground);
-    this->ApplyBorderBrush(tokens.inputBorder);
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
     this->ApplyBorderThickness(1.0f);
-    this->ApplyColor(tokens.textPrimary);
     this->ApplyCornerRadius(4.0f);
     this->ApplyWidth(140.0f);
     this->ApplyHeight(30.0f);

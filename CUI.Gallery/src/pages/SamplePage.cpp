@@ -9,10 +9,11 @@ Element MakeLabel(
     float size,
     ThemeTokenId token,
     bool bold) {
-    CUI::Widgets::Ref label =Text(text).AlignVertical(Alignment::Center).FontSize(size).Build();
+    CUI::Widgets::Ref label = Text(text).AlignVertical(Alignment::Center).FontSize(size).Build();
+    label.ColorToken(token);
     
     if (bold) {
-                label.FontWeight(FontWeight::Bold);
+        label.FontWeight(FontWeight::Bold);
     }
     return label;
 }

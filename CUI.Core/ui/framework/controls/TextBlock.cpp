@@ -29,8 +29,7 @@ void TextBlock::ApplyProperty(PropertyId id, const Value& val) {
 
 TextBlock::TextBlock() {
     this->ApplyText("");
-    this->ApplyColorToken(ThemeTokenId::TextSecondary);
-    this->ApplyColor(ThemeManager::Instance().GetColor("textSecondary"));
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
     this->ApplyFontFamily("微软雅黑");
     this->ApplyFontSize(12.0f);
     this->ApplyFontWeight(CUI::FontWeight::Normal);
@@ -89,7 +88,7 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
 
     Color color = m_hasColorValue
         ? m_colorValue
-        : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+        : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
     CUI::FontWeight weight = GetFontWeight();

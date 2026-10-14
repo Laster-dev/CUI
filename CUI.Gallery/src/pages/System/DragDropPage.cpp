@@ -275,11 +275,11 @@ Element BuildDragDropPage() {
             Column(12, {
                 Row(12, {
                     Column(4, {
-                        Text("📁 源码工程列表 (List A)").FontSize(12.0f).Foreground(Rgb(0x94A3B8)),
+                        Text("📁 源码工程列表 (List A)").FontSize(12.0f).ColorToken(ThemeTokenId::TextSecondary),
                         listA,
                     }),
                     Column(4, {
-                        Text("📦 输出资产列表 (List B)").FontSize(12.0f).Foreground(Rgb(0x94A3B8)),
+                        Text("📦 输出资产列表 (List B)").FontSize(12.0f).ColorToken(ThemeTokenId::TextSecondary),
                         listB,
                     }),
                 }),

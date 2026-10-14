@@ -29,7 +29,6 @@ PagingControl::PagingControl() {
     this->ApplyBackgroundToken(ThemeTokenId::Unset);
     this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
     this->ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
-    this->ApplyColor(ThemeManager::Instance().GetColor("textMuted"));
     this->ApplyFontFamily("Segoe UI");
     this->ApplyFontSize(12.0f);
     this->ApplyHeight(kHeight);

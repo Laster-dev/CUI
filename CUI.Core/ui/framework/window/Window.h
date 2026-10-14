@@ -59,10 +59,10 @@ Window();
         FluentBuilder& Root(std::shared_ptr<UIElement> root) { m_root = std::move(root); return *this; }
         FluentBuilder& Apply() {
             if (m_window.GetHWND()) {
+                if (m_root) m_window.ApplyRootElement(std::move(m_root));
                 m_window.ApplyThemeMode(m_theme);
                 m_window.ApplyBackdropType(m_backdrop);
                 m_window.ApplyRenderStatsOverlayVisible(m_renderStats);
-                if (m_root) m_window.ApplyRootElement(std::move(m_root));
             }
             return *this;
         }
@@ -73,12 +73,14 @@ Window();
                 }
                 m_built = m_window.Create(m_title, m_width, m_height, m_transparent);
                 if (m_built) {
+                    if (m_root) m_window.ApplyRootElement(std::move(m_root));
                     m_window.ApplyThemeMode(m_theme);
                     m_window.ApplyBackdropType(m_backdrop);
                     m_window.ApplyRenderStatsOverlayVisible(m_renderStats);
                 }
+            } else if (m_root) {
+                m_window.ApplyRootElement(std::move(m_root));
             }
-            if (m_built && m_root) m_window.ApplyRootElement(std::move(m_root));
             return *this;
         }
         explicit operator bool() const { return m_built; }

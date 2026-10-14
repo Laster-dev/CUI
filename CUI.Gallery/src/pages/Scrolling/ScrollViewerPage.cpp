@@ -23,8 +23,9 @@ Element BuildScrollViewerPage() {
     // ==========================================
     CUI::Widgets::Ref scrollViewer1 = Widgets::ScrollViewer()
         .Height(280.0f)
-        .Background(Rgb(0x141416, 0.4f))
-        .Border(Rgb(0x3F3F46, 0.5f), 1.0f)
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderThickness(1.0f)
         .CornerRadius(8.0f)
         .Shared();
 
@@ -66,12 +67,13 @@ Element BuildScrollViewerPage() {
                     Text(std::format("{}. {}", i + 1, c.title)).FontWeight(FontWeight::SemiBold).FontSize(12.0f),
                     Text(std::format("[{}]", c.tag)).FontSize(10.0f).Foreground(Rgb(0x38BDF8)),
                 }),
-                Text(c.desc).FontSize(11.0f).Foreground(Rgb(0x94A3B8)),
+                Text(c.desc).FontSize(11.0f).ColorToken(ThemeTokenId::TextSecondary),
             }),
         })
         .Padding(8.0f)
-        .Background(Rgb(0x1F1F23, 0.6f))
-        .Border(Rgb(0x333338, 0.4f), 1.0f)
+        .BackgroundToken(ThemeTokenId::CardBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderThickness(1.0f)
         .CornerRadius(6.0f);
 
                 listContent->AddChild(itemCard.Build());

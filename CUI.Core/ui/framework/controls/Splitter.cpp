@@ -17,8 +17,6 @@ Splitter::Splitter() {
     this->ApplyOrientation(Orientation::Vertical);
     this->ApplyBackgroundToken(ThemeTokenId::CardBorder);
     this->ApplyHoverBackgroundToken(ThemeTokenId::AccentColor);
-    this->ApplyBackground(ThemeManager::Instance().GetColor("cardBorder"));
-    this->ApplyHoverBackground(ThemeManager::Instance().GetColor("accentColor"));
     this->ApplyWidth(kDefaultThickness);
     this->ApplyHeight(-1.0f);
     this->ApplyAlign(Alignment::Stretch);

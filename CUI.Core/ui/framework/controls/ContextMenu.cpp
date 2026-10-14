@@ -15,8 +15,7 @@ constexpr AnimationSpec kMenuHoverSpec{ 0.05f, 0.001f, 0.05f }; // snappy hover 
 
 MenuItem::MenuItem() {
     this->ApplyText("");
-    this->ApplyColorToken(ThemeTokenId::TextSecondary);
-    this->ApplyColor(ThemeManager::Instance().GetColor("textSecondary"));
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
     this->ApplyFontSize(12.0f);
     this->ApplyFontFamily("微软雅黑");
     this->ApplyFontWeight(CUI::FontWeight::Normal);
@@ -251,10 +250,8 @@ void MenuItem::ExecuteCommand() {
 // ---------------- ContextMenu ----------------
 
 ContextMenu::ContextMenu() {
-        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
-    this->ApplyBackground(ThemeManager::Instance().GetColor("cardBackground"));
+    this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
     this->ApplyBorderToken(ThemeTokenId::CardBorder);
-    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
     this->ApplyBorderThickness(1.0f);
     this->ApplyCornerRadius(8.0f);
 }

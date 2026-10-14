@@ -7,7 +7,6 @@ namespace CUI {
 HyperlinkButton::HyperlinkButton() {
     this->ApplyText("HyperlinkButton");
     this->ApplyColorToken(ThemeTokenId::AccentColor);
-    this->ApplyColor(ThemeManager::Instance().GetColor("accentColor"));
     this->ApplyFontSize(12.0f);
     this->ApplyFontFamily("微软雅黑");
     this->ApplyPadding(Thickness(2.0f, 2.0f, 2.0f, 2.0f));

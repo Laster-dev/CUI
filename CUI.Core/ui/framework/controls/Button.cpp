@@ -18,17 +18,13 @@ float FrameBlend(float factorAt60Hz) {
 }
 
 Button::Button() {
-        this->ApplyText("Button");
+    this->ApplyText("Button");
     this->ApplyBackgroundToken(ThemeTokenId::AccentColor);
     this->ApplyHoverBackgroundToken(ThemeTokenId::AccentColor);
     this->ApplyPressedBackgroundToken(ThemeTokenId::AccentColor);
     this->ApplyBorderToken(ThemeTokenId::AccentColor);
     this->ApplyFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    this->ApplyBackground(ThemeManager::Instance().GetColor("accentColor"));
-    this->ApplyHoverBackground(ThemeManager::Instance().GetColor("accentColor"));
-    this->ApplyPressedBackground(ThemeManager::Instance().GetColor("accentColor"));
-    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("accentColor"));
-    this->ApplyColor(ThemeManager::Instance().GetColor("accentForeground"));
+    this->ApplyColorToken(ThemeTokenId::AccentForeground);
     this->ApplyFontSize(12.0f);
     this->ApplyFontFamily("微软雅黑");
     this->ApplyPadding(Thickness(8.0f, 4.0f, 8.0f, 4.0f));

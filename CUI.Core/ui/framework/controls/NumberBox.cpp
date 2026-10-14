@@ -239,8 +239,7 @@ void NumberBox::Field::OnBlur() {
 }
 
 NumberBox::NumberBox() {
-    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
-        this->ApplyWidth(120.0f);
+    this->ApplyWidth(120.0f);
     this->ApplyHeight(28.0f);
     this->ApplyPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));
     this->ApplyCornerRadius(3.0f);
@@ -250,9 +249,7 @@ NumberBox::NumberBox() {
     this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
     this->ApplyBorderToken(ThemeTokenId::InputBorder);
     this->ApplyFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    this->ApplyBackground(tokens.inputBackground);
-    this->ApplyBorderBrush(tokens.inputBorder);
-    this->ApplyColor(tokens.textPrimary);
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
     this->ApplyBorderThickness(1.0f);
 
     ValueProperty.Initialize(*this);

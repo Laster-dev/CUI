@@ -11,14 +11,12 @@ namespace CUI {
 namespace {}
 
 TabView::TabView() {
-    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     this->ApplyBackgroundToken(ThemeTokenId::WindowBackground);
     this->ApplyHeaderBackgroundToken(ThemeTokenId::PaneBackground);
     this->ApplyActiveTabBackgroundToken(ThemeTokenId::WindowBackground);
     this->ApplyInactiveTabBackgroundToken(ThemeTokenId::CardBackground);
     this->ApplyUnderlineColorToken(ThemeTokenId::CardBorder);
     this->ApplyActiveUnderlineColorToken(ThemeTokenId::AccentColor);
-    this->ApplyBackground(tokens.windowBackground);
     this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Cycle);
     m_headerLayer.ApplyCacheable(true);
     m_contentLayer.ApplyCacheable(true);

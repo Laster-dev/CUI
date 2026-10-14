@@ -21,13 +21,11 @@ float FluentEaseOut(float t) {
 
 ToggleSwitch::ToggleSwitch() {
     IsOn.Initialize(*this);
-    auto& theme = ThemeManager::Instance();
     this->ApplyOnColorToken(ThemeTokenId::AccentColor);
     this->ApplyOffColorToken(ThemeTokenId::InputBorder);
     this->ApplyKnobColorToken(ThemeTokenId::AccentForeground);
     this->ApplyBorderToken(ThemeTokenId::CardBorder);
-    this->ApplyBorderBrush(theme.GetColor("cardBorder"));
-    this->ApplyColor(theme.GetColor("textSecondary"));
+    this->ApplyColorToken(ThemeTokenId::TextSecondary);
     this->ApplyBorderThickness(0.0f);
     this->ApplyWidth(170.0f);
     this->ApplyHeight(28.0f);

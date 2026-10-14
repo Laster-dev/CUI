@@ -17,16 +17,14 @@ constexpr float kDefaultH = 32.0f;
 } // namespace
 
 FolderPicker::FolderPicker() {
-        this->ApplyPlaceholder("未选择文件夹...");
+    this->ApplyPlaceholder("未选择文件夹...");
     this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
     this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
     this->ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
     this->ApplyBorderToken(ThemeTokenId::InputBorder);
     this->ApplyFocusedBorderToken(ThemeTokenId::FocusedBorder);
-    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
-    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("inputBorder"));
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
     this->ApplyBorderThickness(1.0f);
-    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
     this->ApplyFontFamily("Segoe UI");
     this->ApplyFontSize(12.0f);
     this->ApplyPadding(Thickness(8.0f, 4.0f, 4.0f, 4.0f));

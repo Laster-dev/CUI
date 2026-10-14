@@ -79,12 +79,13 @@ Element BuildContextMenuPage() {
 
     auto wsHint = Text("支持右键展开多级级联子菜单（新建、查看）、快捷键提示、勾选状态项以及分隔线。")
         .FontSize(12.0f)
-        .Foreground(Rgb(0x94A3B8));
+        .ColorToken(ThemeTokenId::TextSecondary);
 
-    auto workspaceArea =Column(6, { wsTitle, wsHint })
+    auto workspaceArea = Column(6, { wsTitle, wsHint })
         .Height(120.0f)
-        .Background(Rgb(0x202024, 0.4f))
-        .Border(Rgb(0x3B82F6, 0.4f), 1.5f)
+        .BackgroundToken(ThemeTokenId::InputBackground)
+        .BorderToken(ThemeTokenId::AccentColor)
+        .BorderThickness(1.5f)
         .CornerRadius(8.0f)
         .Padding(16.0f);
 

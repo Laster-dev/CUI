@@ -12,7 +12,6 @@ namespace CUI {
 
 DatePicker::DatePicker() : FormattedDate(this) {
     SelectedDate.Initialize(*this);
-    const ThemeTokens& tokens = ThemeManager::Instance().GetTokens();
     time_t t = time(nullptr);
     tm tmVal = {};
     localtime_s(&tmVal, &t);
@@ -20,12 +19,10 @@ DatePicker::DatePicker() : FormattedDate(this) {
     m_month = tmVal.tm_mon + 1;
     m_day = tmVal.tm_mday;
 
-        this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
+    this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
     this->ApplyBorderToken(ThemeTokenId::InputBorder);
-    this->ApplyBackground(tokens.inputBackground);
-    this->ApplyBorderBrush(tokens.inputBorder);
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
     this->ApplyBorderThickness(1.0f);
-    this->ApplyColor(tokens.textPrimary);
     this->ApplyCornerRadius(4.0f);
     this->ApplyWidth(160.0f);
     this->ApplyHeight(30.0f);

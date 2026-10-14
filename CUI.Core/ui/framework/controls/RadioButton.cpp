@@ -20,15 +20,13 @@ float EaseLine(float t) {
 RadioButton::RadioButton() : CheckBox("RadioButton") {
     this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
     this->ApplyAccentColorToken(ThemeTokenId::AccentColor);
-    this->ApplyColorToken(ThemeTokenId::TextSecondary);
-    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
 }
 
 RadioButton::RadioButton(const std::string& text) : CheckBox(text) {
     this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
     this->ApplyAccentColorToken(ThemeTokenId::AccentColor);
-    this->ApplyColorToken(ThemeTokenId::TextSecondary);
-    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
 }
 
 Value RadioButton::GetProperty(PropertyId id) const {

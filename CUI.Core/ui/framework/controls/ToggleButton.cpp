@@ -40,28 +40,19 @@ void ToggleButton::ApplyProperty(PropertyId id, const Value& val) {
 }
 
 void ToggleButton::ApplyCheckedChrome() {
-    ThemeManager& theme = ThemeManager::Instance();
     if (m_isChecked) {
-                this->ApplyBackgroundToken(ThemeTokenId::AccentColor);
+        this->ApplyBackgroundToken(ThemeTokenId::AccentColor);
         this->ApplyHoverBackgroundToken(ThemeTokenId::AccentColor);
         this->ApplyPressedBackgroundToken(ThemeTokenId::AccentColor);
         this->ApplyBorderToken(ThemeTokenId::AccentColor);
-        this->ApplyBackground(theme.GetColor("accentColor"));
-        this->ApplyHoverBackground(theme.GetColor("accentColor"));
-        this->ApplyPressedBackground(theme.GetColor("accentColor"));
-        this->ApplyBorderBrush(theme.GetColor("accentColor"));
-        this->ApplyColor(theme.GetColor("accentForeground"));
+        this->ApplyColorToken(ThemeTokenId::AccentForeground);
         this->ApplyBorderThickness(0.0f);
     } else {
-                this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
         this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
         this->ApplyPressedBackgroundToken(ThemeTokenId::PressedBackground);
         this->ApplyBorderToken(ThemeTokenId::CardBorder);
-        this->ApplyBackground(theme.GetColor("cardBackground"));
-        this->ApplyHoverBackground(theme.GetColor("hoverBackground"));
-        this->ApplyPressedBackground(theme.GetColor("pressedBackground"));
-        this->ApplyBorderBrush(theme.GetColor("cardBorder"));
-        this->ApplyColor(theme.GetColor("textPrimary"));
+        this->ApplyColorToken(ThemeTokenId::TextPrimary);
         this->ApplyBorderThickness(1.0f);
     }
 }

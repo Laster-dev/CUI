@@ -22,8 +22,9 @@ Element BuildStatusBarPage() {
     // ==========================================
     CUI::Widgets::Ref bar = Widgets::StatusBar()
         .Height(28.0f)
-        .Background(Rgb(0x18181B, 0.9f))
-        .Border(Rgb(0x27272A), 1.0f)
+        .BackgroundToken(ThemeTokenId::PaneBackground)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderThickness(1.0f)
         .CornerRadius(4.0f)
         .Shared();
 

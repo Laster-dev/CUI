@@ -81,7 +81,6 @@ TextBox::TextBox() {
     this->ApplyCaretColorToken(ThemeTokenId::AccentColor);
     this->ApplyColorToken(ThemeTokenId::TextPrimary);
     this->ApplyPlaceholderColorToken(ThemeTokenId::TextMuted);
-    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
     this->ApplyFontFamily("微软雅黑");
     this->ApplyFontSize(12.0f);
     this->ApplyPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));

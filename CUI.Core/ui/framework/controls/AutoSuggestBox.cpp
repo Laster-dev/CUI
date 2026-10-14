@@ -78,9 +78,8 @@ AutoSuggestBox::AutoSuggestBox() {
     this->ApplyPlaceholderColorToken(ThemeTokenId::TextMuted);
     this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
     this->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->ApplyBorderBrush(D2D1::ColorF(0, 0, 0, 0));
     this->ApplyBorderThickness(0.0f);
-    this->ApplyColor(ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary));
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
     this->ApplyFontFamily("微软雅黑");
     this->ApplyFontSize(12.0f);
     this->ApplyPadding(0.0f);

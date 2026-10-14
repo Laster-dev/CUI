@@ -33,8 +33,6 @@ CheckBox::CheckBox() {
     this->ApplyBackgroundToken(ThemeTokenId::InputBackground);
     this->ApplyCheckedBackgroundToken(ThemeTokenId::AccentColor);
     this->ApplyColorToken(ThemeTokenId::TextPrimary);
-    this->ApplyBackground(ThemeManager::Instance().GetColor("inputBackground"));
-    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
     this->ApplyFontSize(12.0f);
     this->ApplyFontFamily("微软雅黑");
     this->ApplyPadding(4.0f);

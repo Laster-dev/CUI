@@ -13,15 +13,12 @@
 namespace CUI {
 
 ListBox::ListBox() {
-        this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
+    this->ApplyBackgroundToken(ThemeTokenId::CardBackground);
     this->ApplyBorderToken(ThemeTokenId::CardBorder);
     this->ApplySelectedBackgroundToken(ThemeTokenId::SelectedBackground);
     this->ApplyHoverBackgroundToken(ThemeTokenId::HoverBackground);
-    this->ApplyBackground(ThemeManager::Instance().GetColor("cardBackground"));
-    this->ApplyBorderBrush(ThemeManager::Instance().GetColor("cardBorder"));
+    this->ApplyColorToken(ThemeTokenId::TextPrimary);
     this->ApplyBorderThickness(1.0f);
-    this->ApplyColor(ThemeManager::Instance().GetColor("textPrimary"));
-    this->ApplyHoverBackground(ThemeManager::Instance().GetColor("hoverBackground"));
     this->ApplyFontSize(12.0f);
     this->ApplyFontFamily("微软雅黑");
     this->ApplyKeyboardNavigationMode(KeyboardNavigationMode::Contained);
