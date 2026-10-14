@@ -124,28 +124,60 @@ void TerminalRenderer::Measure(GraphicsContext& ctx) {
         m_resolvedFamily = PickFontFamily(ctx, m_fontFamilyList);
     }
 
-    // Measuring a long run and dividing keeps the per-cell advance exact, so a
-    // batched DrawText run lands on the same grid the backgrounds use.
-    const int sampleCount = 64;
-    const std::string sample(static_cast<size_t>(sampleCount), 'W');
-    const Size runSize = ctx.MeasureText(sample, m_resolvedFamily, m_fontSize);
-    const Size lineSize = ctx.MeasureText("Wgy", m_resolvedFamily, m_fontSize);
+    auto factory = GraphicsContext::GetSharedWriteFactory();
+    const float snappedFontSize = SnapFontSizeToDevicePixels(m_fontSize, m_pixelsPerDip);
 
-    if (runSize.width > 0.0f) {
-        m_cellWidth = runSize.width / static_cast<float>(sampleCount);
-    } else {
-        m_cellWidth = m_fontSize * 0.6f;
+    if (factory) {
+        std::wstring wFont = Utf16FromUtf8(m_resolvedFamily);
+        if (wFont.empty()) {
+            wFont = L"Consolas";
+        }
+        ComPtr<IDWriteTextFormat> format;
+        if (SUCCEEDED(factory->CreateTextFormat(
+                wFont.c_str(),
+                nullptr,
+                DWRITE_FONT_WEIGHT_NORMAL,
+                DWRITE_FONT_STYLE_NORMAL,
+                DWRITE_FONT_STRETCH_NORMAL,
+                snappedFontSize,
+                L"zh-CN",
+                &format)) && format) {
+            format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+
+            const int sampleCount = 64;
+            const std::wstring sample(static_cast<size_t>(sampleCount), L'W');
+            ComPtr<IDWriteTextLayout> layout;
+            if (SUCCEEDED(factory->CreateTextLayout(
+                    sample.c_str(),
+                    static_cast<UINT32>(sampleCount),
+                    format.Get(),
+                    100000.0f,
+                    100000.0f,
+                    &layout)) && layout) {
+                DWRITE_TEXT_METRICS metrics{};
+                if (SUCCEEDED(layout->GetMetrics(&metrics))) {
+                    const float exactWidth = (std::max)(metrics.widthIncludingTrailingWhitespace, metrics.width);
+                    if (exactWidth > 0.0f) {
+                        m_cellWidth = exactWidth / static_cast<float>(sampleCount);
+                    }
+                    if (metrics.height > 0.0f) {
+                        m_cellHeight = std::ceil(metrics.height * m_pixelsPerDip) / m_pixelsPerDip;
+                    }
+                }
+            }
+        }
     }
 
-    float height = (std::max)(lineSize.height, runSize.height);
-    if (height <= 0.0f) {
-        height = m_fontSize * 1.35f;
+    if (m_cellWidth <= 0.0f) {
+        m_cellWidth = snappedFontSize * 0.6f;
     }
-    m_cellHeight = std::ceil(height * m_pixelsPerDip) / m_pixelsPerDip;
+    if (m_cellHeight <= 0.0f) {
+        m_cellHeight = snappedFontSize * 1.35f;
+    }
 
     m_cellWidth = (std::max)(1.0f, m_cellWidth);
     m_cellHeight = (std::max)(1.0f, m_cellHeight);
-    m_metricsValid = m_cellWidth > 0.0f && m_cellHeight > 0.0f && runSize.width > 0.0f;
+    m_metricsValid = m_cellWidth > 0.0f && m_cellHeight > 0.0f;
 }
 
 void TerminalRenderer::PaintBackground(GraphicsContext& ctx, const Rect& area) {
@@ -177,10 +209,10 @@ void TerminalRenderer::FlushBatch(GraphicsContext& ctx, GlyphRunBatch& batch, fl
         ? DWRITE_FONT_WEIGHT_BOLD
         : DWRITE_FONT_WEIGHT_NORMAL;
 
-    // A tiny horizontal slack keeps DirectWrite from clipping the final glyph of
-    // the run when its ink extends past the advance (italic-ish faces, powerline).
+    // A horizontal slack keeps DirectWrite from clipping the final glyph of
+    // the run when its ink extends past the advance or due to subpixel rasterization.
     const Rect rect(batch.originX, originY,
-                    batch.cells * m_cellWidth + m_cellWidth * 0.5f,
+                    batch.cells * m_cellWidth + m_cellWidth * 2.0f,
                     m_cellHeight);
     ctx.DrawText(batch.text, rect, batch.fg.ToD2D(), m_resolvedFamily, m_fontSize,
                  DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight);
@@ -202,7 +234,7 @@ void TerminalRenderer::AppendBatch(GraphicsContext& ctx, GlyphRunBatch& batch, f
             : DWRITE_FONT_WEIGHT_NORMAL;
         std::string utf8;
         AppendUtf8CodePoint(utf8, codePoint);
-        ctx.DrawText(utf8, Rect(x, originY, cellSpan * m_cellWidth, m_cellHeight),
+        ctx.DrawText(utf8, Rect(x, originY, cellSpan * m_cellWidth + 1.0f, m_cellHeight),
                      fg.ToD2D(), m_resolvedFamily, m_fontSize,
                      DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight);
         return;

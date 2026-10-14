@@ -987,9 +987,7 @@ Window::~Window() {
     }
     m_popupHost.CloseAll();
     RevokeShellDropTarget();
-    if (m_hwnd) {
-        DestroyWindow(m_hwnd);
-    }
+    Destroy();   // 内部会先摘除 userdata 再销毁 HWND，避免销毁期间消息回流到本对象
     m_gfxContext.Shutdown();
     if (m_needOleUninit) {
         OleUninitialize();
@@ -1085,16 +1083,21 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
         workArea.right = workArea.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
         workArea.bottom = workArea.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
     }
-    RECT windowRect{};
-    GetWindowRect(m_hwnd, &windowRect);
-    const int windowWidth = windowRect.right - windowRect.left;
-    const int windowHeight = windowRect.bottom - windowRect.top;
+
+    UINT winDpi = GetDpiForWindow(m_hwnd);
+    if (winDpi == 0) {
+        winDpi = dpi;
+    }
+    const int realPhysWidth = MulDiv((std::max)(1, width), static_cast<int>(winDpi), 96);
+    const int realPhysHeight = MulDiv((std::max)(1, height), static_cast<int>(winDpi), 96);
+
     const int workWidth = workArea.right - workArea.left;
     const int workHeight = workArea.bottom - workArea.top;
     SetWindowPos(m_hwnd, nullptr,
-        workArea.left + (workWidth - windowWidth) / 2,
-        workArea.top + (workHeight - windowHeight) / 2,
-        0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+        workArea.left + (workWidth - realPhysWidth) / 2,
+        workArea.top + (workHeight - realPhysHeight) / 2,
+        realPhysWidth, realPhysHeight,
+        SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 
     m_dpiScale = GetDpiScaleForWindow(m_hwnd);
     if (m_minWindowWidth > 0 || m_minWindowHeight > 0) {
@@ -1150,6 +1153,39 @@ bool Window::Create(const std::string& title, int width, int height, bool transp
     }
     RegisterShellDropTarget();
     return true;
+}
+
+void Window::SetLogicalSize(int widthDips, int heightDips, bool center) {
+    if (!m_hwnd) return;
+    UINT dpi = GetDpiForWindow(m_hwnd);
+    if (dpi == 0) dpi = 96;
+    const int physWidth = MulDiv((std::max)(1, widthDips), static_cast<int>(dpi), 96);
+    const int physHeight = MulDiv((std::max)(1, heightDips), static_cast<int>(dpi), 96);
+
+    if (center) {
+        RECT workArea{};
+        HMONITOR monitor = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO monitorInfo{};
+        monitorInfo.cbSize = sizeof(monitorInfo);
+        if (monitor && GetMonitorInfo(monitor, &monitorInfo)) {
+            workArea = monitorInfo.rcWork;
+        } else {
+            workArea.left = GetSystemMetrics(SM_XVIRTUALSCREEN);
+            workArea.top = GetSystemMetrics(SM_YVIRTUALSCREEN);
+            workArea.right = workArea.left + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+            workArea.bottom = workArea.top + GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        }
+        const int workWidth = workArea.right - workArea.left;
+        const int workHeight = workArea.bottom - workArea.top;
+        SetWindowPos(m_hwnd, nullptr,
+            workArea.left + (workWidth - physWidth) / 2,
+            workArea.top + (workHeight - physHeight) / 2,
+            physWidth, physHeight,
+            SWP_NOZORDER | SWP_FRAMECHANGED);
+    } else {
+        SetWindowPos(m_hwnd, nullptr, 0, 0, physWidth, physHeight,
+            SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
+    }
 }
 
 void Window::ApplyBackdropType(CUI::BackdropType type) {
@@ -1398,6 +1434,19 @@ void Window::Close() {
     }
 }
 
+void Window::Destroy() {
+    ::HWND hwnd = m_hwnd;
+    if (!hwnd) return;
+    m_hwnd = nullptr;
+    if (IsWindow(hwnd)) {
+        // 必须先摘除 GWLP_USERDATA：DestroyWindow 会同步派发 WM_DESTROY / WM_NCDESTROY，
+        // 而调用方（析构函数 / 延迟销毁回调）此刻可能已处于对象析构流程中，
+        // 再把这些消息路由回 HandleMessage 就是 use-after-free。
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, 0);
+        DestroyWindow(hwnd);
+    }
+}
+
 void Window::Hide() {
     if (m_hwnd && IsWindow(m_hwnd)) {
         ShowWindow(m_hwnd, SW_HIDE);
@@ -1519,6 +1568,13 @@ bool Window::PumpFrameStep(std::chrono::steady_clock::time_point now) {
 void Window::RunMessageLoop() {
     MSG msg = {};
     using clock = std::chrono::steady_clock;
+
+    // 标记本窗口为消息循环宿主：只有它销毁时才 PostQuitMessage。
+    struct LoopOwnerGuard {
+        Window* w;
+        ~LoopOwnerGuard() { w->m_ownsMessageLoop = false; }
+    } loopGuard{this};
+    m_ownsMessageLoop = true;
 
     for (;;) {
         // Drain pending input messages (keyboard, mouse, IME) before frame work.
@@ -1654,13 +1710,7 @@ void Window::ApplyRootElement(std::shared_ptr<UIElement> root) {
         focused->OnBlur();
     }
     m_focusedElement.reset();
-    if (m_activeContextMenu) {
-        m_activeContextMenu->Hide();
-        m_activeContextMenu = nullptr;
-    }
-    m_pendingContextMenu = nullptr;
-    m_pendingContextMenuTarget = nullptr;
-    m_popupHost.CloseAll();
+    DismissPopups();
     m_commands.Clear();
     m_trackingMouse = false;
 
@@ -1781,6 +1831,13 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     //    and Windows never sees a maximize button under the cursor.
     // 4. DwmDefWindowProc can still participate narrowly in non-client mouse
     //    movement, but it must not own the whole non-client message pipeline.
+
+    // 关闭请求优先交给业务层：默认流程会 DestroyWindow → 对象虽存活但 HWND 已废，
+    // 业务层可借此实现"关闭即销毁"（连同对象一起释放）。
+    if (uMsg == WM_CLOSE && CloseRequested && CloseRequested(this)) {
+        return 0;
+    }
+
     switch (uMsg) {
     case WM_NCCALCSIZE:
         if (wParam == TRUE) {
@@ -1815,12 +1872,19 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
             PostMessageW(m_hwnd, WM_CUI_CLOSE_POPUPS, 0, 0);
         }
         break;
+    case WM_KILLFOCUS: {
+        ::HWND other = reinterpret_cast<::HWND>(wParam);
+        if (!MenuPopupWindow::IsMenuPopupHwnd(other)) {
+            DismissPopups();
+        }
+        break;
+    }
     case WM_CUI_CLOSE_POPUPS: {
         ::HWND fore = GetForegroundWindow();
         if (MenuPopupWindow::IsMenuPopupHwnd(fore)) {
             break;
         }
-        m_popupHost.CloseAll();
+        DismissPopups();
         break;
     }
     case WM_NCACTIVATE:
@@ -1829,7 +1893,25 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     case WM_NCPAINT:
         return 0;
 
+    case WM_ENTERSIZEMOVE:
+        DismissPopups();
+        break;
+
+    case WM_WINDOWPOSCHANGING: {
+        auto* pos = reinterpret_cast<WINDOWPOS*>(lParam);
+        if (pos && !(pos->flags & SWP_NOMOVE)) {
+            DismissPopups();
+        }
+        break;
+    }
+
+    case WM_MOVE:
+    case WM_MOVING:
+        DismissPopups();
+        break;
+
     case WM_SYSCOMMAND:
+        DismissPopups();
         // Handle window system commands with native animations
         if ((wParam & 0xFFF0) == SC_MINIMIZE) {
             ShowWindow(m_hwnd, SW_MINIMIZE);
@@ -1928,6 +2010,7 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_NCLBUTTONDOWN: {
+        DismissPopups();
         LRESULT res = DefWindowProc(m_hwnd, uMsg, wParam, lParam);
         if (wParam == HTCLOSE) {
             PostMessage(m_hwnd, WM_CLOSE, 0, 0);
@@ -1945,6 +2028,11 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         }
         return res;
     }
+
+    case WM_NCRBUTTONDOWN:
+    case WM_NCMBUTTONDOWN:
+        DismissPopups();
+        break;
 
     case WM_PAINT:
         OnPaint();
@@ -2339,7 +2427,12 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         return 0;
 
     case WM_DESTROY:
-        PostQuitMessage(0);
+        // 只有正在跑消息循环的那个窗口才有权结束循环。
+        // 原先无条件 PostQuitMessage，导致销毁任意一个子窗口就会退出整个程序
+        // （这也是业务代码只能用 ShowWindow(SW_HIDE) "隐藏而非销毁" 的原因）。
+        if (m_ownsMessageLoop) {
+            PostQuitMessage(0);
+        }
         return 0;
     }
 
@@ -3071,6 +3164,21 @@ bool Window::OnLButtonUp(int x, int y) {
     return dirty;
 }
 
+void Window::DismissPopups() {
+    const bool hadPopups = m_popupHost.HasOpenPopups() || (m_activeContextMenu && m_activeContextMenu->IsOpen()) || m_pendingContextMenu != nullptr;
+    if (hadPopups) {
+        m_popupHost.CloseAll();
+        if (m_activeContextMenu) {
+            m_activeContextMenu->Hide();
+            m_activeContextMenu = nullptr;
+        }
+        m_pendingContextMenu = nullptr;
+        m_pendingContextMenuTarget = nullptr;
+        ClearMenuBarInteractionState();
+        InvalidatePendingRenderRegions(false);
+    }
+}
+
 void Window::ClearMenuBarInteractionState() {
     if (IWindowChrome* chrome = FindWindowChrome(m_rootElement.get())) {
         chrome->ResetMenuInteraction();
@@ -3093,11 +3201,7 @@ void Window::OnRButtonDown(int x, int y) {
     float fx = logicalPt.x;
     float fy = logicalPt.y;
 
-    if (m_activeContextMenu && m_activeContextMenu->IsOpen()) {
-        m_activeContextMenu->Hide();
-        m_activeContextMenu = nullptr;
-        ClearMenuBarInteractionState();
-    }
+    DismissPopups();
 
     m_pendingContextMenuTarget = nullptr;
     m_pendingContextMenu.reset();

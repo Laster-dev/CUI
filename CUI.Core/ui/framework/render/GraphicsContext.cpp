@@ -694,11 +694,6 @@ Rect SnapTextRect(const Rect& rect, float dpiScale) {
     );
 }
 
-float SnapFontSizeToDevicePixels(float fontSizeDips, float dpiScale) {
-    const float scale = (dpiScale > 0.001f) ? dpiScale : 1.0f;
-    return std::round(fontSizeDips * scale) / scale;
-}
-
 D2D1_RECT_F SnapRectForStroke(const Rect& rect, float strokeWidth, float dpiScale) {
     const float scale = (dpiScale > 0.001f) ? dpiScale : 1.0f;
     const float snappedStroke = (std::max)(1.0f / scale, std::round(strokeWidth * scale) / scale);
@@ -721,6 +716,11 @@ D2D1_RECT_F SnapRectForFill(const Rect& rect, float dpiScale) {
 }
 
 } // namespace
+
+float SnapFontSizeToDevicePixels(float fontSizeDips, float dpiScale) {
+    const float scale = (dpiScale > 0.001f) ? dpiScale : 1.0f;
+    return std::round(fontSizeDips * scale) / scale;
+}
 
 inline float SnapPixel(float val) {
     return std::floor(val + 0.5f);
@@ -2257,6 +2257,7 @@ Size GraphicsContext::MeasureText(const std::string& text, const std::string& fo
         stretch = inherited.stretch;
     }
 
+    const float snappedFontSize = SnapFontSizeToDevicePixels(fontSize, m_dpiScale);
     ComPtr<IDWriteFactory> factory = m_dwriteFactory;
     if (!factory) {
         static ComPtr<IDWriteFactory> s_sharedDWriteFactory;
@@ -2265,12 +2266,12 @@ Size GraphicsContext::MeasureText(const std::string& text, const std::string& fo
         }
         factory = s_sharedDWriteFactory;
     }
-    if (!factory) return Size(text.length() * fontSize * 0.65f, fontSize + 4);
+    if (!factory) return Size(text.length() * snappedFontSize * 0.65f, snappedFontSize + 4);
 
     // 复用缓存的 IDWriteTextFormat（只用于测量，不修改其属性）。
     ComPtr<IDWriteTextFormat> format =
-        GetOrCreateTextFormat(factory.Get(), fontName, fontSize, weight, style, stretch);
-    if (!format) return Size(text.length() * fontSize * 0.65f, fontSize + 4);
+        GetOrCreateTextFormat(factory.Get(), fontName, snappedFontSize, weight, style, stretch);
+    if (!format) return Size(text.length() * snappedFontSize * 0.65f, snappedFontSize + 4);
 
     std::wstring wText = Utf8ToUtf16(text);
     ComPtr<IDWriteTextLayout> layout;
@@ -2288,11 +2289,11 @@ Size GraphicsContext::MeasureText(const std::string& text, const std::string& fo
         layout->GetMetrics(&metrics);
         // Include trailing whitespace and a 1px overhang slack for glyph side bearings.
         const float w = (std::max)(metrics.widthIncludingTrailingWhitespace, metrics.width) + 1.0f;
-        const float h = (std::max)(metrics.height, fontSize + 2.0f);
+        const float h = (std::max)(metrics.height, snappedFontSize + 2.0f);
         return Size(w, h);
     }
 
-    return Size(text.length() * fontSize * 0.65f, fontSize + 4);
+    return Size(text.length() * snappedFontSize * 0.65f, snappedFontSize + 4);
 }
 
 ComPtr<IDWriteFactory> GraphicsContext::GetSharedWriteFactory() {

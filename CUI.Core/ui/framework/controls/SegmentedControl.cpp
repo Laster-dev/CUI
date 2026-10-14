@@ -28,8 +28,8 @@ D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
 
 SegmentedControl::SegmentedControl() {
     SelectedIndex.Initialize(*this);
-        this->ApplyHeight(32.0f);
-    this->ApplyWidth(280.0f);
+    this->ApplyHeight(32.0f);
+    this->ApplyWidth(-1.0f);
     this->ApplyCornerRadius(6.0f);
     this->ApplyBorderThickness(1.5f);
     this->ApplyFontSize(12.0f);

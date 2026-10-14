@@ -611,8 +611,12 @@ bool TerminalControl::OnAnimationTick() {
 
 void TerminalControl::OnRender(GraphicsContext& ctx) {
     m_hwnd = ctx.GetHwnd();
-    m_dpiScale = ctx.GetDpiScale();
-    m_renderer->ApplyDpi(ctx.GetDpiScale());
+    const float newDpiScale = ctx.GetDpiScale();
+    if (std::abs(m_dpiScale - newDpiScale) > 0.001f) {
+        m_dpiScale = newDpiScale;
+        m_renderer->ApplyDpi(newDpiScale);
+        MarkViewportDirty();
+    }
     m_renderer->EnsureMetrics(ctx);
     RecalculateSize(ctx);
 

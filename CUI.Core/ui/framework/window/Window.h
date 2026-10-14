@@ -14,6 +14,7 @@
 #include "../dnd/DragDropService.h"
 #include <windows.h>
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -106,6 +107,11 @@ Window();
     bool Create(const std::string& title, int width = 1280, int height = 800, bool transparentMode = false);
 
     /**
+     * @brief 以逻辑 DIP 为单位动态设置窗口尺寸并可选择居中。
+     */
+    void SetLogicalSize(int widthDips, int heightDips, bool center = true);
+
+    /**
      * @brief 显示当前窗口，并向操作系统发送首次重绘指令。
      */
     void Show();
@@ -114,6 +120,12 @@ Window();
      * @brief 关闭当前窗口（向操作系统发送 WM_CLOSE 消息）。
      */
     void Close();
+
+    /**
+     * @brief 立即销毁原生 HWND（与 Hide() 仅隐藏、对象保留相对）。
+     * 销毁后对象通常随即析构。可安全重复调用。
+     */
+    void Destroy();
 
     /**
      * @brief 隐藏当前窗口。
@@ -285,6 +297,14 @@ Window();
     Event<Window*, CUI::ThemeMode>& OnThemeChanged() { return m_onThemeChanged; }
 
     /**
+     * @brief 关闭请求回调：点击标题栏关闭按钮或收到系统 WM_CLOSE 时触发（在默认处理之前）。
+     * 返回 true 表示已接管，框架不再执行默认销毁流程。
+     * 典型用途：业务层实现"关闭即销毁" —— 仅销毁 HWND 不够，还需把窗口对象
+     * 从外部持有者（如窗口注册表）中移除才能真正析构。
+     */
+    std::function<bool(Window*)> CloseRequested;
+
+    /**
      * @brief 设置是否显示右上角的帧率与脏渲染统计信息 Overlay。
      */
     void ApplyRenderStatsOverlayVisible(bool visible) { m_showRenderStatsOverlay = visible; }
@@ -382,6 +402,7 @@ private:
     void OnRButtonUp(int x, int y);                                     // 右键释放派发
     void OnMButtonDown(int x, int y);                                   // 中键按下派发
     void OnMButtonUp(int x, int y);                                     // 中键释放派发
+    void DismissPopups();                                               // 立即关闭并收起所有弹出层和右键上下文菜单
     void ClearMenuBarInteractionState();                                // 清除菜单栏交互激活状态
     void StopMiddleClickAutoscroll();                                   // 停用浏览器式的中键自动滚屏交互
     bool IsMiddleClickAutoscrollActive() const;                         // 检测中键自动滚屏是否处于运作状态
@@ -416,6 +437,9 @@ private:
     bool m_needOleUninit = false;                                       // 标识是否需要在窗口析构时调用 OleUninitialize()
 
     ::HWND m_hwnd = nullptr;                                              // 窗口的 OS 原生句柄
+    // 本窗口是否正在运行 RunMessageLoop()。仅它有权在 WM_DESTROY 时 PostQuitMessage，
+    // 否则销毁任意一个子窗口都会让整个进程的消息循环退出。
+    bool m_ownsMessageLoop = false;
     float m_dpiScale = 1.0f;                                            // 屏幕 DPI 逻辑缩放因子
     Size m_logicalClientSize{ 0.0f, 0.0f };                             // DPI 缩放后的逻辑窗口客户区尺寸 (宽度, 高度)
     GraphicsContext m_gfxContext;                                       // Direct3D 与 Direct2D 底层设备硬件图形渲染上下文

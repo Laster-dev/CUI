@@ -296,4 +296,6 @@ private:
         const D2D1_COLOR_F* foreground);
 };
 
+float SnapFontSizeToDevicePixels(float fontSizeDips, float dpiScale);
+
 } // namespace CUI
