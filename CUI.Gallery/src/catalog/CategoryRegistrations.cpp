@@ -106,6 +106,7 @@ void SystemCatalog::Register(std::vector<Entry>& entries) {
     entries.push_back({ "dragdrop", "Drag and Drop", "拖放操作。", Category::System, BuildDragDropPage });
     entries.push_back({ "commands", "Commands", "命令和快捷键。", Category::System, BuildCommandsPage });
     entries.push_back({ "reactivity", "Reactivity & Signal", "细粒度响应式信号引擎与控制流 (Signal, Computed, Effect, Batch, If, ForEach, Switch)。", Category::System, BuildReactivityPage });
+    entries.push_back({ "devtools", "DevTools & Inspector", "开发者工具与运行时诊断 (F12, Visual Tree, Box Model, Profiler, Snapshots)。", Category::System, BuildDevToolsPage });
 }
 
 void TextCatalog::Register(std::vector<Entry>& entries) {

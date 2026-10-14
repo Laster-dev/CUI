@@ -103,6 +103,7 @@ CUI::Element BuildFolderPickerPage();
 CUI::Element BuildDragDropPage();
 CUI::Element BuildCommandsPage();
 CUI::Element BuildReactivityPage();
+CUI::Element BuildDevToolsPage();
 
 // Text
 CUI::Element BuildAutoSuggestBoxPage();

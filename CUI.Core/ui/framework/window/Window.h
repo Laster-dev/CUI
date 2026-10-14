@@ -388,6 +388,15 @@ Window();
     UIElement* GetHoveredElement() const { return m_hoveredRaw; }
 
     /**
+     * @brief DevTools 开发者工具便捷接口
+     */
+    void ToggleDevTools();
+    void ToggleInspectMode();
+    void TogglePerformanceOverlay();
+    void ToggleOverdrawVisualizer();
+    bool IsDevToolsVisible() const;
+
+    /**
      * @brief 获取命令快捷键管理器。
      */
     CommandManager& GetCommands() { return m_commands; }

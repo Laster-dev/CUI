@@ -237,6 +237,12 @@
     <ClCompile Include="ui\framework\render\RenderNode.cpp" />
     <ClCompile Include="ui\framework\render\RenderResources.cpp" />
     <ClCompile Include="ui\framework\controls\MeshGradientPanel.cpp" />
+    <ClCompile Include="ui\framework\devtools\BoxModelOverlay.cpp" />
+    <ClCompile Include="ui\framework\devtools\DevToolsManager.cpp" />
+    <ClCompile Include="ui\framework\devtools\OverdrawVisualizer.cpp" />
+    <ClCompile Include="ui\framework\devtools\PerformanceOverlay.cpp" />
+    <ClCompile Include="ui\framework\devtools\PixelSnapshotTest.cpp" />
+    <ClCompile Include="ui\framework\devtools\VisualTreeInspector.cpp" />
     <ClCompile Include="ui\framework\style\ThemeManager.cpp" />
     <ClCompile Include="ui\framework\style\ThemeTokenId.cpp" />
     <ClCompile Include="ui\framework\text\TextLayoutCache.cpp" />
@@ -385,6 +391,13 @@
     <ClInclude Include="ui\framework\render\RenderNode.h" />
     <ClInclude Include="ui\framework\render\RenderResources.h" />
     <ClInclude Include="ui\framework\controls\MeshGradientPanel.h" />
+    <ClInclude Include="ui\framework\devtools\BoxModelOverlay.h" />
+    <ClInclude Include="ui\framework\devtools\DevToolsManager.h" />
+    <ClInclude Include="ui\framework\devtools\DevToolsTypes.h" />
+    <ClInclude Include="ui\framework\devtools\OverdrawVisualizer.h" />
+    <ClInclude Include="ui\framework\devtools\PerformanceOverlay.h" />
+    <ClInclude Include="ui\framework\devtools\PixelSnapshotTest.h" />
+    <ClInclude Include="ui\framework\devtools\VisualTreeInspector.h" />
     <ClInclude Include="ui\framework\style\ThemeManager.h" />
     <ClInclude Include="ui\framework\style\ThemeTokenId.h" />
     <ClInclude Include="ui\framework\text\TextLayoutCache.h" />

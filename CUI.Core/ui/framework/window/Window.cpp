@@ -18,6 +18,7 @@
 #include "../animation/AnimationService.h"
 #include "../animation/FrameScheduler.h"
 #include "../input/RoutedEvent.h"
+#include "../devtools/DevToolsManager.h"
 #include <windowsx.h>
 #ifdef IsMaximized
 #undef IsMaximized
@@ -925,6 +926,10 @@ bool Window::DispatchKey(int vkCode, bool sysKey) {
     const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     const bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
     const bool alt = sysKey || (GetKeyState(VK_MENU) & 0x8000) != 0;
+
+    if (DevToolsManager::Instance().OnKeyDown(vkCode, ctrl, shift, alt)) {
+        return true;
+    }
 
     if (IPopup* top = m_popupHost.GetTop()) {
         if (auto* menu = dynamic_cast<ContextMenu*>(top)) {
@@ -2318,6 +2323,10 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         Point logicalPt = ClientPointToLogical(pt.x, pt.y);
         float delta = static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) / WHEEL_DELTA;
 
+        if (DevToolsManager::Instance().OnMouseWheel(logicalPt, delta)) {
+            return 0;
+        }
+
         // Same hit order as mouse move/click: popup → overlay → tree.
         UIElement* target = m_popupHost.HitTest(logicalPt.x, logicalPt.y);
         if (!target && m_popupHost.HasOpenPopups()) {
@@ -2860,6 +2869,13 @@ void Window::OnPaint() {
         if (!isRippleComposing) {
             renderOverlaysOnly();
         }
+
+        DevToolsManager::Instance().Render(
+            m_gfxContext,
+            m_rootElement.get(),
+            m_logicalClientSize,
+            frameDirtyRegion.GetRects());
+
         SampleDisplayFps();
         DrawRenderStatsOverlay();
         m_gfxContext.EndDraw();
@@ -2895,6 +2911,26 @@ float Window::GetDisplayFps() const {
         m_overlayFpsSampleStart = now;
     }
     return m_overlayFps;
+}
+
+void Window::ToggleDevTools() {
+    DevToolsManager::Instance().ToggleDevTools();
+}
+
+void Window::ToggleInspectMode() {
+    DevToolsManager::Instance().ToggleInspectMode();
+}
+
+void Window::TogglePerformanceOverlay() {
+    DevToolsManager::Instance().TogglePerformanceOverlay();
+}
+
+void Window::ToggleOverdrawVisualizer() {
+    DevToolsManager::Instance().ToggleOverdrawVisualizer();
+}
+
+bool Window::IsDevToolsVisible() const {
+    return DevToolsManager::Instance().IsInspectorVisible();
 }
 
 void Window::DrawRenderStatsOverlay() {
@@ -3022,6 +3058,10 @@ bool Window::OnMouseMove(int x, int y) {
     float fx = logicalPt.x;
     float fy = logicalPt.y;
 
+    if (DevToolsManager::Instance().OnMouseMove(Point(fx, fy), m_rootElement.get())) {
+        return true;
+    }
+
     if (auto middle = LockElement(m_middleScrollElement)) {
         if (middle->IsMiddleScrollActive()) {
             middle->OnMouseMove(Point(fx, fy));
@@ -3113,6 +3153,10 @@ bool Window::OnLButtonDown(int x, int y) {
     Point logicalPt = ClientPointToLogical(x, y);
     float fx = logicalPt.x;
     float fy = logicalPt.y;
+
+    if (DevToolsManager::Instance().OnMouseDown(Point(fx, fy), m_rootElement.get())) {
+        return true;
+    }
 
     const bool hadContextMenu = m_activeContextMenu && m_activeContextMenu->IsOpen();
     Rect oldMenuBounds = hadContextMenu ? m_activeContextMenu->GetTotalBounds() : Rect();
@@ -3247,6 +3291,9 @@ void Window::OnLButtonDblClick(int x, int y) {
 bool Window::OnLButtonUp(int x, int y) {
     m_justLightDismissed = false;
     Point logicalPt = ClientPointToLogical(x, y);
+    if (DevToolsManager::Instance().OnMouseUp(logicalPt)) {
+        return true;
+    }
     float fx = logicalPt.x;
     float fy = logicalPt.y;
     bool dirty = false;

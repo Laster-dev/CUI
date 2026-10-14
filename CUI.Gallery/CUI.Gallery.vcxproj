@@ -235,6 +235,7 @@
     <ClCompile Include="src\pages\System\DragDropPage.cpp" />
     <ClCompile Include="src\pages\System\CommandsPage.cpp" />
     <ClCompile Include="src\pages\System\ReactivityPage.cpp" />
+    <ClCompile Include="src\pages\System\DevToolsPage.cpp" />
     <ClCompile Include="src\pages\Text\AutoSuggestBoxPage.cpp" />
     <ClCompile Include="src\pages\Text\NumberBoxPage.cpp" />
     <ClCompile Include="src\pages\Text\PasswordBoxPage.cpp" />
