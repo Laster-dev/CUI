@@ -25,6 +25,7 @@ namespace CUI {
 class GraphicsContext;
 class ContextMenu;
 class UIElement;
+class DisplayList;
 using Element = std::shared_ptr<UIElement>;
 
 struct CanvasDrawContext {
@@ -623,6 +624,15 @@ public:
     void RemoveChildRaw(UIElement* child);              // 针对弱引用的子控件原始指针进行删除操作
     void ClearChildren();                               // 清空名下的所有子控件
 
+    /**
+     * @brief 托管随 UIElement 生命周期自动释放的资源（如响应式 Effect 句柄）。
+     */
+    void ManageLifetime(std::shared_ptr<void> resource) {
+        if (resource) {
+            m_managedLifetimes.push_back(std::move(resource));
+        }
+    }
+
     // 层次树搜索查找
     std::shared_ptr<UIElement> FindElementById(const std::string& id); // 在当前子树中通过 ID 深度优先检索子控件
 
@@ -788,6 +798,12 @@ public:
     float GetComposeOffsetY() const { return m_composeOffsetY; } // 获取合成层 Y 轴平移距离
     bool HasComposeDirty() const { return m_composeDirty; } // 合成属性是否脏，需要重新提交 Composition 层级树
     void ClearComposeDirty() { m_composeDirty = false; } // 擦除合成属性脏标记
+
+    // 渲染指令流保留缓存 (DisplayList Subtree Retained Cache)
+    bool IsDisplayListCacheEnabled() const { return m_displayListCacheEnabled; }
+    void ApplyDisplayListCacheEnabled(bool enabled);
+    void InvalidateDisplayList() { m_cachedDisplayList = nullptr; }
+    std::shared_ptr<DisplayList> GetCachedDisplayList() const { return m_cachedDisplayList; }
 
     // 页面生命周期阶段回调
     virtual void OnNavigatedTo();                       // NavigationView 的内容子页面完成挂载展示后的调用入口
@@ -1004,6 +1020,10 @@ protected:
     void ArmToolTipHide();                                            // 启动自动淡出定时计时
     void DirtyToolTipRect();                                          // 使 ToolTip 覆盖区域失效以申请重绘擦除或刷新
     bool ToolTipTick(std::chrono::steady_clock::time_point now);      // 工具气泡计时轮询时钟步进，处理延迟唤醒及自动消退逻辑
+
+    std::vector<std::shared_ptr<void>> m_managedLifetimes;            // 托管资源（Effect、动态订阅等），随控件析构自动清理释放
+    bool m_displayListCacheEnabled = false;                           // 是否启用 DisplayList 指令流保留缓存
+    std::shared_ptr<DisplayList> m_cachedDisplayList;                 // 缓存的 DisplayList
 };
 
 
@@ -1068,6 +1088,29 @@ void PropertyRef<T, Id>::Bind(const std::shared_ptr<Observable<TSource>>& source
 template<typename T, PropertyId Id>
 template<typename TSource>
 void PropertyRef<T, Id>::Bind(const CUI::State<TSource>& source,
+                              const std::shared_ptr<IValueConverter<TSource, T>>& converter,
+                              BindingMode mode) {
+    if (auto* binding = operator->()) binding->Bind(source, converter, mode);
+}
+
+template<typename T, PropertyId Id>
+void PropertyRef<T, Id>::Bind(const Signal<T>& value, BindingMode mode) {
+    if (auto* binding = operator->()) binding->Bind(value, mode);
+}
+
+template<typename T, PropertyId Id>
+void PropertyRef<T, Id>::Bind(const Computed<T>& value) {
+    if (auto* binding = operator->()) binding->Bind(value);
+}
+
+template<typename T, PropertyId Id>
+void PropertyRef<T, Id>::Bind(std::function<T()> getter) {
+    if (auto* binding = operator->()) binding->Bind(std::move(getter));
+}
+
+template<typename T, PropertyId Id>
+template<typename TSource>
+void PropertyRef<T, Id>::Bind(const Signal<TSource>& source,
                               const std::shared_ptr<IValueConverter<TSource, T>>& converter,
                               BindingMode mode) {
     if (auto* binding = operator->()) binding->Bind(source, converter, mode);

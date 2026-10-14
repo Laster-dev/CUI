@@ -165,6 +165,9 @@ struct Rect {
     bool Contains(float px, float py) const { // 点碰撞测试判定
         return px >= x && px <= x + width && py >= y && py <= y + height;
     }
+    bool Contains(Point pt) const { return Contains(pt.x, pt.y); }
+    float Right() const { return x + width; }
+    float Bottom() const { return y + height; }
 
     bool IsEmpty() const { // 面积是否为空
         return width <= 0.0f || height <= 0.0f;

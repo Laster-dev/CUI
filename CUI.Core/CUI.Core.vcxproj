@@ -216,6 +216,7 @@
     <ClCompile Include="ui\framework\controls\UIElementPropertyBridge.cpp" />
     <ClCompile Include="ui\framework\controls\WindowTitleBar.cpp" />
     <ClCompile Include="ui\framework\controls\topology\TopologyView.cpp" />
+    <ClCompile Include="ui\framework\virtualization\VirtualizingStackPanel.cpp" />
     <ClCompile Include="ui\framework\input\Command.cpp" />
     <ClCompile Include="ui\framework\input\InputTypes.cpp" />
     <ClCompile Include="ui\framework\core\Binding.cpp" />
@@ -225,6 +226,9 @@
     <ClCompile Include="ui\framework\layout\Layout.cpp" />
     <ClCompile Include="ui\framework\parser\StyleManager.cpp" />
     <ClCompile Include="ui\framework\render\CompositionContext.cpp" />
+    <ClCompile Include="ui\framework\render\Compositor.cpp" />
+    <ClCompile Include="ui\framework\render\CustomShader.cpp" />
+    <ClCompile Include="ui\framework\render\DisplayList.cpp" />
     <ClCompile Include="ui\framework\render\DxLoader.cpp" />
     <ClCompile Include="ui\framework\render\DirtyRegion.cpp" />
     <ClCompile Include="ui\framework\render\GraphicsContext.cpp" />
@@ -232,6 +236,7 @@
     <ClCompile Include="ui\framework\render\RenderLayer.cpp" />
     <ClCompile Include="ui\framework\render\RenderNode.cpp" />
     <ClCompile Include="ui\framework\render\RenderResources.cpp" />
+    <ClCompile Include="ui\framework\controls\MeshGradientPanel.cpp" />
     <ClCompile Include="ui\framework\style\ThemeManager.cpp" />
     <ClCompile Include="ui\framework\style\ThemeTokenId.cpp" />
     <ClCompile Include="ui\framework\text\TextLayoutCache.cpp" />
@@ -368,6 +373,10 @@
     <ClInclude Include="ui\framework\parser\StyleManager.h" />
     <ClInclude Include="ui\framework\render\CompositionContext.h" />
     <ClInclude Include="ui\framework\render\CompositionLayer.h" />
+    <ClInclude Include="ui\framework\render\Compositor.h" />
+    <ClInclude Include="ui\framework\render\CustomShader.h" />
+    <ClInclude Include="ui\framework\render\DisplayList.h" />
+    <ClInclude Include="ui\framework\render\DrawOp.h" />
     <ClInclude Include="ui\framework\render\DxLoader.h" />
     <ClInclude Include="ui\framework\render\DirtyRegion.h" />
     <ClInclude Include="ui\framework\render\GraphicsContext.h" />
@@ -375,6 +384,7 @@
     <ClInclude Include="ui\framework\render\RenderLayer.h" />
     <ClInclude Include="ui\framework\render\RenderNode.h" />
     <ClInclude Include="ui\framework\render\RenderResources.h" />
+    <ClInclude Include="ui\framework\controls\MeshGradientPanel.h" />
     <ClInclude Include="ui\framework\style\ThemeManager.h" />
     <ClInclude Include="ui\framework\style\ThemeTokenId.h" />
     <ClInclude Include="ui\framework\text\TextLayoutCache.h" />

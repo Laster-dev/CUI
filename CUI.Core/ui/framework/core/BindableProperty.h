@@ -4,6 +4,7 @@
 #include "Observable.h"
 #include "State.h"
 #include "ValueConverter.h"
+#include "../reactive/Signal.h"
 
 #include <functional>
 #include <memory>
@@ -119,6 +120,97 @@ public:
     }
 
     /**
+     * @brief 绑定到响应式 Signal 状态。
+     */
+    void Bind(const Signal<T>& signal, BindingMode mode = BindingMode::TwoWay) {
+        Unbind();
+        m_isBound = true;
+        m_mode = mode;
+        ApplySourceValue(signal.Get());
+        if (mode == BindingMode::OneTime) return;
+
+        auto effect = std::make_shared<Effect>([this, signal]() {
+            ApplySourceValue(signal.Get());
+        });
+        m_disconnectSource = [effect]() {
+            effect->Dispose();
+        };
+
+        if (mode == BindingMode::TwoWay) {
+            m_writeBack = [signal](const T& updated) mutable {
+                signal.Set(updated);
+            };
+            ConnectTarget();
+        }
+    }
+
+    /**
+     * @brief 绑定到响应式 Computed 计算属性（单向）。
+     */
+    void Bind(const Computed<T>& computed) {
+        Unbind();
+        m_isBound = true;
+        m_mode = BindingMode::OneWay;
+        ApplySourceValue(computed.Get());
+
+        auto effect = std::make_shared<Effect>([this, computed]() {
+            ApplySourceValue(computed.Get());
+        });
+        m_disconnectSource = [effect]() {
+            effect->Dispose();
+        };
+    }
+
+    /**
+     * @brief 绑定到响应式求值函数（自动依赖收集）。
+     */
+    void Bind(std::function<T()> getter) {
+        Unbind();
+        if (!getter) return;
+        m_isBound = true;
+        m_mode = BindingMode::OneWay;
+
+        auto effect = std::make_shared<Effect>([this, getter = std::move(getter)]() {
+            ApplySourceValue(getter());
+        });
+        m_disconnectSource = [effect]() {
+            effect->Dispose();
+        };
+    }
+
+    /**
+     * @brief 带转换器的 Signal 绑定。
+     */
+    template<typename TSource>
+    void Bind(const Signal<TSource>& source,
+              const std::shared_ptr<IValueConverter<TSource, T>>& converter,
+              BindingMode mode = BindingMode::OneWay) {
+        Unbind();
+        if (!converter) return;
+
+        m_isBound = true;
+        m_mode = mode;
+        ApplySourceValue(converter->Convert(source.Get()));
+        if (mode == BindingMode::OneTime) return;
+
+        auto effect = std::make_shared<Effect>([this, source, converter]() {
+            ApplySourceValue(converter->Convert(source.Get()));
+        });
+        m_disconnectSource = [effect]() {
+            effect->Dispose();
+        };
+
+        if (mode == BindingMode::TwoWay) {
+            m_writeBack = [source, converter](const T& updated) mutable {
+                if (const auto converted = converter->ConvertBack(updated)) {
+                    source.Set(*converted);
+                }
+            };
+            ConnectTarget();
+        }
+    }
+
+    /**
      * @brief 断开并释放当前的所有绑定连接。
      */
     void Unbind() {
@@ -210,6 +302,15 @@ public:
 
     template<typename TSource>
     void Bind(const CUI::State<TSource>& source,
+              const std::shared_ptr<IValueConverter<TSource, T>>& converter,
+              BindingMode mode = BindingMode::OneWay);
+
+    void Bind(const Signal<T>& value, BindingMode mode = BindingMode::TwoWay);
+    void Bind(const Computed<T>& value);
+    void Bind(std::function<T()> getter);
+
+    template<typename TSource>
+    void Bind(const Signal<TSource>& source,
               const std::shared_ptr<IValueConverter<TSource, T>>& converter,
               BindingMode mode = BindingMode::OneWay);
 

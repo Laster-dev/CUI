@@ -186,6 +186,7 @@
     <ClCompile Include="src\pages\Collections\ListBoxPage.cpp" />
     <ClCompile Include="src\pages\Collections\ListViewPage.cpp" />
     <ClCompile Include="src\pages\Collections\TreeViewPage.cpp" />
+    <ClCompile Include="src\pages\Collections\VirtualizationPage.cpp" />
     <ClCompile Include="src\pages\DateAndTime\DatePickerPage.cpp" />
     <ClCompile Include="src\pages\DateAndTime\TimePickerPage.cpp" />
     <ClCompile Include="src\pages\Dialogs\ContentDialogPage.cpp" />
@@ -212,6 +213,7 @@
     <ClCompile Include="src\pages\Motion\AnimationPage.cpp" />
     <ClCompile Include="src\pages\Motion\ThemeTransitionPage.cpp" />
     <ClCompile Include="src\pages\Motion\PopupRevealPage.cpp" />
+    <ClCompile Include="src\pages\Motion\RenderPipelinePage.cpp" />
     <ClCompile Include="src\pages\Navigation\BreadcrumbBarPage.cpp" />
     <ClCompile Include="src\pages\Navigation\NavigationViewPage.cpp" />
     <ClCompile Include="src\pages\Navigation\TabViewPage.cpp" />
@@ -232,6 +234,7 @@
     <ClCompile Include="src\pages\System\FolderPickerPage.cpp" />
     <ClCompile Include="src\pages\System\DragDropPage.cpp" />
     <ClCompile Include="src\pages\System\CommandsPage.cpp" />
+    <ClCompile Include="src\pages\System\ReactivityPage.cpp" />
     <ClCompile Include="src\pages\Text\AutoSuggestBoxPage.cpp" />
     <ClCompile Include="src\pages\Text\NumberBoxPage.cpp" />
     <ClCompile Include="src\pages\Text\PasswordBoxPage.cpp" />

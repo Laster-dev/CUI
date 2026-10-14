@@ -6,6 +6,7 @@
 #include "../layout/Layout.h"
 #include "../render/CompositionContext.h"
 #include "../render/RenderLayer.h"
+#include "../render/DisplayList.h"
 #include "../style/ThemeManager.h"
 #include "../dnd/DragDropService.h"
 #include "../window/BubbleChrome.h"
@@ -205,6 +206,7 @@ UIElement::~UIElement() {
         }
     }
     m_children.clear();
+    m_managedLifetimes.clear();
 }
 
 ::HWND UIElement::GetHWND() const {
@@ -673,6 +675,93 @@ void UIElement::Render(GraphicsContext& ctx) {
         // Fall through to immediate path if layer alloc failed.
     }
 
+    if (m_displayListCacheEnabled) {
+        if (m_cachedDisplayList && !m_subtreeRenderDirty) {
+            if (auto* composition = ctx.GetCompositionContext()) {
+                composition->CountDisplayListCacheHit();
+                composition->CountDisplayListOps(static_cast<unsigned>(m_cachedDisplayList->GetOpCount()));
+            }
+            const bool useOffset = std::abs(m_composeOffsetX) > 0.01f || std::abs(m_composeOffsetY) > 0.01f;
+            if (useOffset) {
+                ctx.PushTranslation(m_composeOffsetX, m_composeOffsetY);
+            }
+            const bool useOpacity = !m_layerPromoted && drawOpacity < 0.999f;
+            if (useOpacity) {
+                ctx.PushOpacity(drawOpacity);
+            }
+            bool clip = ShouldClipToBounds();
+            if (clip) {
+                ctx.PushClip(m_bounds);
+            }
+
+            m_cachedDisplayList->Playback(ctx);
+
+            if (clip) {
+                ctx.PopClip();
+            }
+            if (useOpacity) {
+                ctx.PopOpacity();
+            }
+            if (useOffset) {
+                ctx.PopTransform();
+            }
+            ctx.PopInheritedTextStyle();
+            return;
+        }
+
+        // Cache miss: record into DisplayList
+        auto dl = std::make_shared<DisplayList>();
+        ctx.BeginRecording(dl);
+
+        if (auto* composition = ctx.GetCompositionContext()) {
+            composition->CountRasterizedNode();
+        }
+
+        OnRender(ctx);
+
+        for (auto& child : GetVisualChildren()) {
+            if (child && child->PresentsOnOwnerWindow() && !child->IsOverlayComposed()) {
+                child->Render(ctx);
+            }
+        }
+
+        ctx.EndRecording();
+        dl->Optimize();
+        if (auto* composition = ctx.GetCompositionContext()) {
+            composition->CountDisplayListBatchReduction(dl->GetBatchReductionCount());
+            composition->CountDisplayListOps(static_cast<unsigned>(dl->GetOpCount()));
+        }
+        m_cachedDisplayList = dl;
+        m_subtreeRenderDirty = false;
+
+        const bool useOffset = std::abs(m_composeOffsetX) > 0.01f || std::abs(m_composeOffsetY) > 0.01f;
+        if (useOffset) {
+            ctx.PushTranslation(m_composeOffsetX, m_composeOffsetY);
+        }
+        const bool useOpacity = !m_layerPromoted && drawOpacity < 0.999f;
+        if (useOpacity) {
+            ctx.PushOpacity(drawOpacity);
+        }
+        bool clip = ShouldClipToBounds();
+        if (clip) {
+            ctx.PushClip(m_bounds);
+        }
+
+        m_cachedDisplayList->Playback(ctx);
+
+        if (clip) {
+            ctx.PopClip();
+        }
+        if (useOpacity) {
+            ctx.PopOpacity();
+        }
+        if (useOffset) {
+            ctx.PopTransform();
+        }
+        ctx.PopInheritedTextStyle();
+        return;
+    }
+
     const bool useOffset = std::abs(m_composeOffsetX) > 0.01f || std::abs(m_composeOffsetY) > 0.01f;
     if (useOffset) {
         ctx.PushTranslation(m_composeOffsetX, m_composeOffsetY);
@@ -1063,13 +1152,23 @@ void UIElement::CollectRenderDirtyRegion(DirtyRegion& dirtyRegion, bool consume)
     }
 }
 
+void UIElement::ApplyDisplayListCacheEnabled(bool enabled) {
+    if (m_displayListCacheEnabled != enabled) {
+        m_displayListCacheEnabled = enabled;
+        m_cachedDisplayList = nullptr;
+        MarkRenderContentDirty();
+    }
+}
+
 void UIElement::MarkRenderContentDirty() {
     ++s_renderDirtySerial;
+    m_cachedDisplayList = nullptr;
     m_renderNode.MarkContentDirty();
     if (m_layerPromoted) {
         m_renderNode.GetLayer().Invalidate(RenderLayer::ContentDirty);
     }
     for (UIElement* walk = m_parent; walk; walk = walk->m_parent) {
+        walk->m_cachedDisplayList = nullptr;
         if (walk->m_layerPromoted) {
             walk->m_renderNode.GetLayer().Invalidate(RenderLayer::ContentDirty);
         }
@@ -1088,6 +1187,7 @@ void UIElement::MarkRenderContentDirty() {
 
 void UIElement::MarkRenderRectDirty(const Rect& rect) {
     ++s_renderDirtySerial;
+    m_cachedDisplayList = nullptr;
     m_renderNode.MarkDirtyRect(rect);
     m_subtreeRenderDirty = true;
     // Flag ancestors only — do NOT stamp the same rect onto every ancestor's
@@ -1095,17 +1195,20 @@ void UIElement::MarkRenderRectDirty(const Rect& rect) {
     // N copies of one ripple rect; Window then hits rects.size()>8 and
     // RequestFullRepaint() every animation frame (整帧 + ~13 FPS).
     for (UIElement* walk = m_parent; walk; walk = walk->m_parent) {
+        walk->m_cachedDisplayList = nullptr;
         walk->m_subtreeRenderDirty = true;
     }
     if (!m_parent && m_animationHost) {
         // Same as MarkRenderContentDirty: popup-hosted controls must dirty the
         // live-tree host or the owner window never invalidates.
+        m_animationHost->m_cachedDisplayList = nullptr;
         m_animationHost->m_subtreeRenderDirty = true;
         m_animationHost->m_renderNode.MarkDirtyRect(rect);
     }
 }
 
 void UIElement::OnThemeChanged() {
+    m_cachedDisplayList = nullptr;
     MarkRenderContentDirty();
 }
 

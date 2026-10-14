@@ -32,6 +32,7 @@ CUI::Element BuildSegmentedControlPage();
 CUI::Element BuildListBoxPage();
 CUI::Element BuildListViewPage();
 CUI::Element BuildTreeViewPage();
+CUI::Element BuildVirtualizationPage();
 
 // Date and Time
 CUI::Element BuildDatePickerPage();
@@ -70,6 +71,7 @@ CUI::Element BuildContextMenuPage();
 CUI::Element BuildAnimationPage();
 CUI::Element BuildThemeTransitionPage();
 CUI::Element BuildPopupRevealPage();
+CUI::Element BuildRenderPipelinePage();
 
 // Navigation
 CUI::Element BuildBreadcrumbBarPage();
@@ -100,6 +102,7 @@ CUI::Element BuildFilePickerPage();
 CUI::Element BuildFolderPickerPage();
 CUI::Element BuildDragDropPage();
 CUI::Element BuildCommandsPage();
+CUI::Element BuildReactivityPage();
 
 // Text
 CUI::Element BuildAutoSuggestBoxPage();

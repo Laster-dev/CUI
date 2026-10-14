@@ -101,6 +101,62 @@ public:
 
     // ---------------- 通用外观链式方法 ----------------
     Derived& Text(const std::string& v) const { impl_->ApplyText(v); return self(); }
+
+    template<typename T>
+    Derived& Text(const CUI::Reactive::Signal<T>& sig) const {
+        if constexpr (std::is_same_v<T, std::string>) {
+            impl_->Text.Bind(sig);
+        } else {
+            auto computed = CUI::Reactive::Computed<std::string>([sig]() {
+                if constexpr (std::is_arithmetic_v<T>) {
+                    return std::to_string(sig.Get());
+                } else {
+                    return sig.Get();
+                }
+            });
+            impl_->Text.Bind(computed);
+        }
+        return self();
+    }
+
+    Derived& Text(const CUI::Reactive::Computed<std::string>& computed) const {
+        impl_->Text.Bind(computed);
+        return self();
+    }
+
+    template<typename Func>
+        requires (std::is_invocable_r_v<std::string, Func> && !std::is_convertible_v<Func, std::string>)
+    Derived& Text(Func&& getter) const {
+        impl_->Text.Bind(std::forward<Func>(getter));
+        return self();
+    }
+
+    Derived& Visible(const CUI::Reactive::Signal<bool>& sig) const {
+        auto effect = std::make_shared<CUI::Reactive::Effect>([el = impl_.get(), sig]() {
+            el->ApplyVisibility(sig.Get() ? Visibility::Visible : Visibility::Collapsed);
+        });
+        impl_->ManageLifetime(effect);
+        return self();
+    }
+
+    Derived& Visible(const CUI::Reactive::Computed<bool>& comp) const {
+        auto effect = std::make_shared<CUI::Reactive::Effect>([el = impl_.get(), comp]() {
+            el->ApplyVisibility(comp.Get() ? Visibility::Visible : Visibility::Collapsed);
+        });
+        impl_->ManageLifetime(effect);
+        return self();
+    }
+
+    Derived& Enabled(const CUI::Reactive::Signal<bool>& sig) const {
+        impl_->IsEnabledProperty.Bind(sig);
+        return self();
+    }
+
+    Derived& Enabled(const CUI::Reactive::Computed<bool>& comp) const {
+        impl_->IsEnabledProperty.Bind(comp);
+        return self();
+    }
+
     Derived& FontSize(float v) const          { impl_->ApplyFontSize(v); return self(); }
     Derived& ToolTip(const std::string& v) const { impl_->ApplyToolTip(v); return self(); }
     Derived& Opacity(float v) const           { impl_->ApplyOpacity(v); return self(); }
@@ -122,6 +178,7 @@ public:
     Derived& LastChildFill(bool v) const { impl_->ApplyLastChildFill(v); return self(); }
     Derived& JustifyLines(bool v) const { impl_->ApplyJustifyLines(v); return self(); }
     Derived& FillLastLine(bool v) const { impl_->ApplyFillLastLine(v); return self(); }
+    Derived& EnableDisplayListCache(bool enabled = true) const { impl_->ApplyDisplayListCacheEnabled(enabled); return self(); }
     template<class... A> Derived& Rows(A&&... a) const { if constexpr (requires { impl_->ApplyRows(std::forward<A>(a)...); }) impl_->ApplyRows(std::forward<A>(a)...); return self(); }
     template<class... A> Derived& Columns(A&&... a) const { if constexpr (requires { impl_->ApplyColumns(std::forward<A>(a)...); }) impl_->ApplyColumns(std::forward<A>(a)...); return self(); }
     Derived& ClipToBounds(bool v) const { impl_->ApplyClipToBounds(v); return self(); }
@@ -263,7 +320,14 @@ public:
     Derived& Size(float w, float h) const { if constexpr (requires { impl_->ApplyWidth(w); }) impl_->ApplyWidth(w); return self(); }
     Derived& Source(const std::string& value) const { if constexpr (requires { impl_->ApplySource(value); }) impl_->ApplySource(value); return self(); }
     template<class V> Derived& Stretch(V value) const { if constexpr (requires { impl_->ApplyStretch(value); }) impl_->ApplyStretch(value); return self(); }
-    template<class V> Derived& Value(V value) const { if constexpr (requires { impl_->ApplyValue(value); }) impl_->ApplyValue(value); return self(); }
+    template<class V> Derived& Value(V value) const {
+        if constexpr (std::is_arithmetic_v<std::decay_t<V>> && requires { impl_->ApplyValue(static_cast<float>(value)); }) {
+            impl_->ApplyValue(static_cast<float>(value));
+        } else if constexpr (requires { impl_->ApplyValue(value); }) {
+            impl_->ApplyValue(value);
+        }
+        return self();
+    }
     template<class V> Derived& State(V value) const { if constexpr (requires { impl_->ApplyState(value); }) impl_->ApplyState(value); return self(); }
     template<class V> Derived& Content(V value) const { if constexpr (requires { impl_->ApplyContent(value); }) impl_->ApplyContent(value); return self(); }
     template<class V> Derived& Placement(V value) const { if constexpr (requires { impl_->ApplyPlacement(value); }) impl_->ApplyPlacement(value); return self(); }

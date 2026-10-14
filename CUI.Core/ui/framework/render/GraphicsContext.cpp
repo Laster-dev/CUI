@@ -1,6 +1,8 @@
 #define NOMINMAX
 #include "GraphicsContext.h"
 #include "DxLoader.h"
+#include "DisplayList.h"
+#include "CompositionContext.h"
 #include "../style/ThemeManager.h"
 #include <d3d11.h>
 #include <d3d11_4.h>
@@ -742,6 +744,10 @@ inline float SnapPixel(float val) {
 }
 
 void GraphicsContext::PushClip(const Rect& rect) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PushClip(rect);
+        return;
+    }
     if (m_d2dContext) {
         D2D1_RECT_F d2dRect = SnapRectForFill(rect, m_dpiScale);
         m_clipStack.push_back(d2dRect);
@@ -754,6 +760,10 @@ void GraphicsContext::PushClip(const Rect& rect) {
 }
 
 void GraphicsContext::PushRoundedClip(const Rect& rect, float radius) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PushRoundedClip(rect, radius);
+        return;
+    }
     if (!m_d2dContext) {
         return;
     }
@@ -788,6 +798,10 @@ void GraphicsContext::PushRoundedClip(const Rect& rect, float radius) {
 }
 
 void GraphicsContext::PushEllipseClip(Point center, float radiusX, float radiusY) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PushEllipseClip(center, radiusX, radiusY);
+        return;
+    }
     if (!m_d2dContext || !m_d2dFactory) {
         return;
     }
@@ -818,6 +832,10 @@ void GraphicsContext::PushEllipseClip(Point center, float radiusX, float radiusY
 }
 
 void GraphicsContext::PushOpacity(float opacity) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PushOpacity(opacity);
+        return;
+    }
     if (!m_d2dContext) {
         return;
     }
@@ -839,6 +857,10 @@ void GraphicsContext::PushOpacity(float opacity) {
 }
 
 void GraphicsContext::PopOpacity() {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PopOpacity();
+        return;
+    }
     if (!m_d2dContext || m_opacityStack.empty()) {
         return;
     }
@@ -847,6 +869,10 @@ void GraphicsContext::PopOpacity() {
 }
 
 void GraphicsContext::PushTransform(const Matrix3x2& transform) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PushTransform(transform);
+        return;
+    }
     D2D1_MATRIX_3X2_F d2dM = {
         transform.m11, transform.m12,
         transform.m21, transform.m22,
@@ -856,6 +882,10 @@ void GraphicsContext::PushTransform(const Matrix3x2& transform) {
 }
 
 void GraphicsContext::PushTranslation(float dx, float dy) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PushTranslation(dx, dy);
+        return;
+    }
     PushTransform(D2D1::Matrix3x2F::Translation(dx, dy));
 }
 
@@ -870,6 +900,10 @@ void GraphicsContext::PushTransform(const D2D1_MATRIX_3X2_F& transform) {
 }
 
 void GraphicsContext::PopTransform() {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PopTransform();
+        return;
+    }
     if (!m_d2dContext || m_transformStack.empty()) {
         return;
     }
@@ -878,6 +912,10 @@ void GraphicsContext::PopTransform() {
 }
 
 void GraphicsContext::PushPopupReveal(const Rect& bounds, float progress, Point origin) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PushPopupReveal(bounds, progress, origin);
+        return;
+    }
     (void)bounds;
     progress = std::clamp(progress, 0.0f, 1.0f);
     const float inv = 1.0f - progress;
@@ -888,6 +926,10 @@ void GraphicsContext::PushPopupReveal(const Rect& bounds, float progress, Point 
 }
 
 void GraphicsContext::PopPopupReveal() {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PopPopupReveal();
+        return;
+    }
     PopTransform();
     PopOpacity();
 }
@@ -1052,6 +1094,31 @@ void GraphicsContext::DrawLayerScratch(const RenderLayer& layer, const Rect& des
         D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
         nullptr
     );
+}
+
+void GraphicsContext::DrawDisplayList(const DisplayList& list, Point offset, float opacity) {
+    if (m_compositionContext) {
+        m_compositionContext->CountDisplayListOps(static_cast<unsigned>(list.GetOpCount()));
+    }
+    list.PlaybackWithOffset(*this, offset, opacity);
+}
+
+void GraphicsContext::BeginRecording(std::shared_ptr<DisplayList> list) {
+    if (m_activeDisplayList) {
+        m_displayListStack.push_back(m_activeDisplayList);
+    }
+    m_activeDisplayList = list ? list : std::make_shared<DisplayList>();
+}
+
+std::shared_ptr<DisplayList> GraphicsContext::EndRecording() {
+    auto recorded = m_activeDisplayList;
+    if (!m_displayListStack.empty()) {
+        m_activeDisplayList = m_displayListStack.back();
+        m_displayListStack.pop_back();
+    } else {
+        m_activeDisplayList = nullptr;
+    }
+    return recorded;
 }
 
 ID2D1Bitmap* GraphicsContext::GetOrCreateIconBitmap(HICON icon) {
@@ -1499,6 +1566,12 @@ void GraphicsContext::DrawSvg(
     const Color* tint,
     float opacity,
     const Color* foreground) {
+    if (m_activeDisplayList) {
+        std::optional<Color> t = tint ? std::optional<Color>(*tint) : std::nullopt;
+        std::optional<Color> fg = foreground ? std::optional<Color>(*foreground) : std::nullopt;
+        m_activeDisplayList->DrawSvg(source, dest, t, opacity, fg);
+        return;
+    }
     if (source.empty() || dest.width <= 0.5f || dest.height <= 0.5f) {
         return;
     }
@@ -1649,6 +1722,10 @@ void GraphicsContext::PopLayerTarget(RenderLayer& layer) {
 }
 
 void GraphicsContext::PopClip() {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->PopClip();
+        return;
+    }
     if (!m_d2dContext || m_clipStack.empty()) {
         return;
     }
@@ -1665,6 +1742,10 @@ void GraphicsContext::PopClip() {
 }
 
 void GraphicsContext::DrawRect(const Rect& rect, Color color, float strokeWidth) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->DrawRect(rect, color, strokeWidth);
+        return;
+    }
     if (!m_d2dContext) {
         return;
     }
@@ -1676,12 +1757,20 @@ void GraphicsContext::DrawRect(const Rect& rect, Color color, float strokeWidth)
 }
 
 void GraphicsContext::FillRect(const Rect& rect, Color color) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->FillRect(rect, color);
+        return;
+    }
     if (auto brush = m_resources.GetSolidBrush(color)) {
         m_d2dContext->FillRectangle(SnapRectForFill(rect, m_dpiScale), brush);
     }
 }
 
 void GraphicsContext::FillRoundedRect(const Rect& rect, float radius, Color color) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->FillRoundedRect(rect, radius, color);
+        return;
+    }
     if (auto brush = m_resources.GetSolidBrush(color)) {
         D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(SnapRectForFill(rect, m_dpiScale), radius, radius);
         m_d2dContext->FillRoundedRectangle(rr, brush);
@@ -1689,6 +1778,10 @@ void GraphicsContext::FillRoundedRect(const Rect& rect, float radius, Color colo
 }
 
 void GraphicsContext::DrawRoundedRect(const Rect& rect, float radius, Color color, float strokeWidth) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->DrawRoundedRect(rect, radius, color, strokeWidth);
+        return;
+    }
     if (!m_d2dContext) {
         return;
     }
@@ -1704,6 +1797,10 @@ void GraphicsContext::DrawRoundedRect(const Rect& rect, float radius, Color colo
 }
 
 void GraphicsContext::DrawLine(Point p1, Point p2, Color color, float strokeWidth) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->DrawLine(p1, p2, color, strokeWidth);
+        return;
+    }
     if (!m_d2dContext) {
         return;
     }
@@ -1762,6 +1859,10 @@ void GraphicsContext::DrawLine(Point p1, Point p2, Color color, float strokeWidt
 }
 
 void GraphicsContext::DrawSmoothLine(Point p1, Point p2, Color color, float strokeWidth) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->DrawSmoothLine(p1, p2, color, strokeWidth);
+        return;
+    }
     if (!m_d2dContext) {
         return;
     }
@@ -1806,6 +1907,10 @@ void GraphicsContext::DrawSmoothArc(
     float sweepRad,
     Color color,
     float strokeWidth) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->DrawSmoothArc(center, radius, startRad, sweepRad, color, strokeWidth);
+        return;
+    }
     if (!m_d2dContext || radius <= 0.5f || std::abs(sweepRad) < 0.0005f || color.a <= 0.001f) {
         return;
     }
@@ -1897,6 +2002,10 @@ void GraphicsContext::DrawSmoothArc(
 }
 
 void GraphicsContext::DrawChevron(const Rect& bounds, Color color, ChevronDirection direction, float strokeWidth) {
+    if (m_activeDisplayList) {
+        m_activeDisplayList->DrawChevron(bounds, color, direction, strokeWidth);
+        return;
+    }
     (void)strokeWidth;
     if (bounds.IsEmpty() || bounds.width < 2.0f || bounds.height < 2.0f) {
         return;
@@ -2439,6 +2548,15 @@ void GraphicsContext::DrawText(const std::string& text, const Rect& rect, Color 
                                DWRITE_FONT_WEIGHT weight, bool truncateWithEllipsis,
                                DWRITE_FONT_STYLE style, DWRITE_FONT_STRETCH stretch,
                                bool underline, bool strikethrough) {
+    if (m_activeDisplayList) {
+        TextAlignment a = (align == DWRITE_TEXT_ALIGNMENT_CENTER) ? TextAlignment::Center :
+                          (align == DWRITE_TEXT_ALIGNMENT_TRAILING) ? TextAlignment::Right :
+                          (align == DWRITE_TEXT_ALIGNMENT_JUSTIFIED) ? TextAlignment::Justified : TextAlignment::Left;
+        TextVerticalAlignment va = (vAlign == DWRITE_PARAGRAPH_ALIGNMENT_CENTER) ? TextVerticalAlignment::Center :
+                                   (vAlign == DWRITE_PARAGRAPH_ALIGNMENT_FAR) ? TextVerticalAlignment::Bottom : TextVerticalAlignment::Top;
+        m_activeDisplayList->DrawText(text, rect, color, fontName, fontSize, a, va, static_cast<FontWeight>(weight), truncateWithEllipsis, static_cast<FontStyle>(style), static_cast<FontStretch>(stretch), underline, strikethrough);
+        return;
+    }
     if (text.empty() || !m_d2dContext) {
         return;
     }

@@ -33,6 +33,7 @@
 #include "../controls/LogView.h"
 #include "../controls/MarkdownView.h"
 #include "../controls/MenuBar.h"
+#include "../controls/MeshGradientPanel.h"
 #include "../controls/MessageBox.h"
 #include "../controls/NavigationViewItem.h"
 #include "../controls/NumberBox.h"
@@ -61,6 +62,7 @@
 #include "../controls/topology/TopologyView.h"
 #include "../controls/TreeView.h"
 #include "../controls/WindowTitleBar.h"
+#include "../virtualization/VirtualizingStackPanel.h"
 
 namespace CUI {
 namespace Widgets {
@@ -506,6 +508,33 @@ public: using WidgetBase::WidgetBase;
     WindowTitleBar& IsCloseButtonEnabled(bool v1) const { impl_->ApplyIsCloseButtonEnabled(v1); return self(); }
 };
 class WrapPanel : public WidgetBase<WrapPanel, ::CUI::WrapPanel> { public: using WidgetBase::WidgetBase; };
+
+class VirtualizingStackPanel : public WidgetBase<VirtualizingStackPanel, ::CUI::VirtualizingStackPanel> {
+public:
+    using WidgetBase::WidgetBase;
+    VirtualizingStackPanel& ItemHeight(float v) const { impl_->ApplyItemHeight(v); return self(); }
+    VirtualizingStackPanel& ItemCount(size_t v) const { impl_->ApplyItemCount(v); return self(); }
+    VirtualizingStackPanel& BufferCount(int v) const { impl_->ApplyBufferCount(v); return self(); }
+    VirtualizingStackPanel& ItemProvider(std::shared_ptr<IVirtualizingItemProvider> v) const { impl_->ApplyItemProvider(std::move(v)); return self(); }
+    VirtualizingStackPanel& SelectedIndex(int v) const { impl_->ApplySelectedIndex(v); return self(); }
+    VirtualizingStackPanel& OnItemClicked(std::function<void(::CUI::VirtualizingStackPanel*, size_t)> handler) const {
+        impl_->OnItemClicked().Connect(std::move(handler));
+        return self();
+    }
+};
+
+class MeshGradientPanel : public WidgetBase<MeshGradientPanel, ::CUI::MeshGradientPanel> {
+public:
+    using WidgetBase::WidgetBase;
+    MeshGradientPanel& PrimaryColor(::CUI::Color c) const { impl_->ApplyPrimaryColor(c); return self(); }
+    MeshGradientPanel& SecondaryColor(::CUI::Color c) const { impl_->ApplySecondaryColor(c); return self(); }
+    MeshGradientPanel& AccentColor(::CUI::Color c) const { impl_->ApplyAccentColor(c); return self(); }
+    MeshGradientPanel& TertiaryColor(::CUI::Color c) const { impl_->ApplyTertiaryColor(c); return self(); }
+    MeshGradientPanel& Speed(float s) const { impl_->ApplySpeed(s); return self(); }
+    MeshGradientPanel& Intensity(float i) const { impl_->ApplyIntensity(i); return self(); }
+    MeshGradientPanel& Animated(bool a) const { impl_->ApplyAnimated(a); return self(); }
+    MeshGradientPanel& ShaderType(::CUI::BuiltInShaderType t) const { impl_->ApplyShaderType(t); return self(); }
+};
 
 class ContextMenu : public WidgetBase<ContextMenu, ::CUI::ContextMenu> { public: using WidgetBase::WidgetBase; };
 

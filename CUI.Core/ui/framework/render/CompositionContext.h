@@ -14,6 +14,9 @@ public:
         unsigned layerCacheMissCount = 0;
         unsigned layerCacheRerenderCount = 0;
         unsigned layerCacheReuseCount = 0;
+        unsigned displayListOpCount = 0;
+        unsigned displayListCacheHitCount = 0;
+        unsigned displayListBatchReductionCount = 0;
         bool fullRepaint = false;
     };
 
@@ -30,6 +33,9 @@ public:
     void CountLayerCacheMiss() { ++m_stats.layerCacheMissCount; }
     void CountLayerCacheRerender() { ++m_stats.layerCacheRerenderCount; }
     void CountLayerCacheReuse() { ++m_stats.layerCacheReuseCount; }
+    void CountDisplayListOps(unsigned count) { m_stats.displayListOpCount += count; }
+    void CountDisplayListCacheHit() { ++m_stats.displayListCacheHitCount; }
+    void CountDisplayListBatchReduction(unsigned count) { m_stats.displayListBatchReductionCount += count; }
     const FrameStats& GetStats() const { return m_stats; }
 
 private:

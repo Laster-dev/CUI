@@ -38,6 +38,7 @@
 #include "../controls/TeachingTip.h"
 #include "../controls/chart/Chart.h"
 #include "../controls/MarkdownView.h"
+#include "../controls/MeshGradientPanel.h"
 #include "../controls/LogView.h"
 #include "../controls/InfoBar.h"
 #include "../controls/CommandBar.h"
@@ -56,6 +57,8 @@
 #include "../controls/CanvasControl.h"
 #include "../controls/topology/TopologyView.h"
 #include "../controls/docking/DockManager.h"
+#include "../virtualization/VirtualizingStackPanel.h"
+#include "../virtualization/VirtualizingItemProvider.h"
 #include "../style/ThemeManager.h"
 
 #include <memory>
@@ -475,6 +478,61 @@ public:
 
     ElementBuilder& Text(const std::string& text) { // 设定核心文字展示信息
         m_ptr->ApplyText(text);
+        return *this;
+    }
+
+    template<typename T>
+    ElementBuilder& Text(const CUI::Reactive::Signal<T>& sig) {
+        if constexpr (std::is_same_v<T, std::string>) {
+            m_ptr->Text.Bind(sig);
+        } else {
+            auto computed = CUI::Reactive::Computed<std::string>([sig]() {
+                if constexpr (std::is_arithmetic_v<T>) {
+                    return std::to_string(sig.Get());
+                } else {
+                    return sig.Get();
+                }
+            });
+            m_ptr->Text.Bind(computed);
+        }
+        return *this;
+    }
+
+    ElementBuilder& Text(const CUI::Reactive::Computed<std::string>& comp) {
+        m_ptr->Text.Bind(comp);
+        return *this;
+    }
+
+    template<typename Func>
+        requires (std::is_invocable_r_v<std::string, Func> && !std::is_convertible_v<Func, std::string>)
+    ElementBuilder& Text(Func&& getter) {
+        m_ptr->Text.Bind(std::forward<Func>(getter));
+        return *this;
+    }
+
+    ElementBuilder& Visible(const CUI::Reactive::Signal<bool>& sig) {
+        auto effect = std::make_shared<CUI::Reactive::Effect>([raw = m_ptr.get(), sig]() {
+            raw->ApplyVisibility(sig.Get() ? Visibility::Visible : Visibility::Collapsed);
+        });
+        m_ptr->ManageLifetime(effect);
+        return *this;
+    }
+
+    ElementBuilder& Visible(const CUI::Reactive::Computed<bool>& comp) {
+        auto effect = std::make_shared<CUI::Reactive::Effect>([raw = m_ptr.get(), comp]() {
+            raw->ApplyVisibility(comp.Get() ? Visibility::Visible : Visibility::Collapsed);
+        });
+        m_ptr->ManageLifetime(effect);
+        return *this;
+    }
+
+    ElementBuilder& Enabled(const CUI::Reactive::Signal<bool>& sig) {
+        m_ptr->IsEnabledProperty.Bind(sig);
+        return *this;
+    }
+
+    ElementBuilder& Enabled(const CUI::Reactive::Computed<bool>& comp) {
+        m_ptr->IsEnabledProperty.Bind(comp);
         return *this;
     }
 
@@ -1045,6 +1103,28 @@ public:
 
 
 
+namespace Detail {
+
+template<typename T>
+std::shared_ptr<UIElement> ToElementShared(T&& val) {
+    using Decayed = std::decay_t<T>;
+    if constexpr (std::is_null_pointer_v<Decayed>) {
+        return nullptr;
+    } else if constexpr (std::is_base_of_v<UIElement, std::remove_pointer_t<Decayed>>) {
+        return std::shared_ptr<UIElement>(val);
+    } else if constexpr (requires { val.Shared(); }) {
+        return val.Shared();
+    } else if constexpr (requires { val.Build(); }) {
+        return std::shared_ptr<UIElement>(val.Build());
+    } else if constexpr (IsSharedPtr<Decayed>::value) {
+        return std::static_pointer_cast<UIElement>(val);
+    } else {
+        return nullptr;
+    }
+}
+
+} // namespace Detail
+
 struct ChildArgument {
     Element element;
     ChildArgument() = default;
@@ -1092,6 +1172,230 @@ inline ElementBuilder<TextBlock> Text(const std::string& content = "") { // 快�
     return l;
 }
 
+template<typename T>
+inline ElementBuilder<TextBlock> Text(const CUI::Reactive::Signal<T>& sig) {
+    auto l = ElementBuilder<TextBlock>();
+    l.Text(sig);
+    return l;
+}
+
+inline ElementBuilder<TextBlock> Text(const CUI::Reactive::Computed<std::string>& comp) {
+    auto l = ElementBuilder<TextBlock>();
+    l.Text(comp);
+    return l;
+}
+
+template<typename Func>
+    requires (std::is_invocable_r_v<std::string, Func> && !std::is_convertible_v<Func, std::string>)
+inline ElementBuilder<TextBlock> Text(Func&& getter) {
+    auto l = ElementBuilder<TextBlock>();
+    l.Text(std::forward<Func>(getter));
+    return l;
+}
+
+/**
+ * @brief 响应式条件渲染（If）。
+ * 自动监听 condition（Signal、Computed 或谓词 lambda），在条件发生变化时动态更新并重绘内部子元素。
+ */
+template<typename ConditionT, typename ThenFn, typename ElseFn = std::nullptr_t>
+inline ElementBuilder<StackPanel> If(
+    ConditionT&& condition,
+    ThenFn&& thenBranch,
+    ElseFn&& elseBranch = nullptr)
+{
+    auto panel = std::make_shared<StackPanel>();
+    panel->ApplyOrientation(Orientation::Vertical);
+    panel->ApplyGap(0.0f);
+
+    auto updateFn = [panel, cond = std::forward<ConditionT>(condition), 
+                     thenFn = std::forward<ThenFn>(thenBranch), 
+                     elseFn = std::forward<ElseFn>(elseBranch)]() {
+        panel->ClearChildren();
+        bool active = false;
+        if constexpr (std::is_invocable_r_v<bool, ConditionT>) {
+            active = cond();
+        } else if constexpr (requires { cond.Get(); }) {
+            active = static_cast<bool>(cond.Get());
+        } else {
+            active = static_cast<bool>(cond);
+        }
+
+        std::shared_ptr<UIElement> child;
+        if (active) {
+            if constexpr (std::is_invocable_v<ThenFn>) {
+                child = Detail::ToElementShared(thenFn());
+            } else {
+                child = Detail::ToElementShared(thenFn);
+            }
+        } else {
+            if constexpr (std::is_invocable_v<ElseFn>) {
+                child = Detail::ToElementShared(elseFn());
+            } else if constexpr (!std::is_null_pointer_v<std::decay_t<ElseFn>>) {
+                child = Detail::ToElementShared(elseFn);
+            }
+        }
+
+        if (child) {
+            panel->AddChild(child);
+        }
+        if (auto* parent = panel->GetParent()) {
+            parent->InvalidateMeasure();
+        }
+    };
+
+    auto effect = std::make_shared<Reactive::Effect>(std::move(updateFn));
+    panel->ManageLifetime(effect);
+
+    return ElementBuilder<StackPanel>(panel);
+}
+
+/**
+ * @brief 响应式列表渲染（ForEach）。
+ * 监听 items（Signal<vector<T>>、Computed 或 vector），每当列表更新时重新生成子控件项。
+ */
+template<typename SourceT, typename ItemRenderFn>
+inline ElementBuilder<StackPanel> ForEach(
+    SourceT&& source,
+    ItemRenderFn&& renderFn,
+    Orientation orientation = Orientation::Vertical,
+    float gap = 4.0f)
+{
+    auto panel = std::make_shared<StackPanel>();
+    panel->ApplyOrientation(orientation);
+    panel->ApplyGap(gap);
+
+    auto updateFn = [panel, src = std::forward<SourceT>(source), 
+                     render = std::forward<ItemRenderFn>(renderFn)]() {
+        panel->ClearChildren();
+        
+        auto renderItems = [&](const auto& items) {
+            size_t idx = 0;
+            for (const auto& item : items) {
+                std::shared_ptr<UIElement> child;
+                if constexpr (std::is_invocable_v<ItemRenderFn, decltype(item), size_t>) {
+                    child = Detail::ToElementShared(render(item, idx));
+                } else if constexpr (std::is_invocable_v<ItemRenderFn, decltype(item)>) {
+                    child = Detail::ToElementShared(render(item));
+                }
+                if (child) {
+                    panel->AddChild(child);
+                }
+                ++idx;
+            }
+        };
+
+        if constexpr (std::is_invocable_v<SourceT>) {
+            renderItems(src());
+        } else if constexpr (requires { src.Get(); }) {
+            renderItems(src.Get());
+        } else {
+            renderItems(src);
+        }
+
+        if (auto* parent = panel->GetParent()) {
+            parent->InvalidateMeasure();
+        }
+    };
+
+    auto effect = std::make_shared<Reactive::Effect>(std::move(updateFn));
+    panel->ManageLifetime(effect);
+
+    return ElementBuilder<StackPanel>(panel);
+}
+
+/**
+ * @brief 响应式多分支选择器（Switch）。
+ */
+template<typename KeyT>
+class SwitchBuilder {
+public:
+    explicit SwitchBuilder(Reactive::Signal<KeyT> key)
+        : m_panel(std::make_shared<StackPanel>()), m_keySignal(key) {
+        m_panel->ApplyOrientation(Orientation::Vertical);
+        m_panel->ApplyGap(0.0f);
+    }
+
+    template<typename CaseFn>
+    SwitchBuilder& Case(KeyT matchVal, CaseFn&& fn) {
+        m_cases.push_back({
+            matchVal,
+            [f = std::forward<CaseFn>(fn)]() { return Detail::ToElementShared(f()); }
+        });
+        return *this;
+    }
+
+    template<typename DefaultFn>
+    ElementBuilder<StackPanel> Default(DefaultFn&& fn) {
+        m_defaultCase = [f = std::forward<DefaultFn>(fn)]() { return Detail::ToElementShared(f()); };
+        BuildEffect();
+        return ElementBuilder<StackPanel>(m_panel);
+    }
+
+    operator ElementBuilder<StackPanel>() {
+        BuildEffect();
+        return ElementBuilder<StackPanel>(m_panel);
+    }
+
+    operator std::shared_ptr<UIElement>() {
+        BuildEffect();
+        return m_panel;
+    }
+
+    ElementBuilder<StackPanel> Build() {
+        BuildEffect();
+        return ElementBuilder<StackPanel>(m_panel);
+    }
+
+private:
+    void BuildEffect() {
+        if (m_built) return;
+        m_built = true;
+
+        auto panel = m_panel;
+        auto cases = m_cases;
+        auto defCase = m_defaultCase;
+        auto keySignal = m_keySignal;
+
+        auto effect = std::make_shared<Reactive::Effect>([panel, cases, defCase, keySignal]() {
+            panel->ClearChildren();
+            const auto currentKey = keySignal.Get();
+            std::shared_ptr<UIElement> child;
+            for (const auto& c : cases) {
+                if (c.val == currentKey) {
+                    child = c.builder();
+                    break;
+                }
+            }
+            if (!child && defCase) {
+                child = defCase();
+            }
+            if (child) {
+                panel->AddChild(child);
+            }
+            if (auto* parent = panel->GetParent()) {
+                parent->InvalidateMeasure();
+            }
+        });
+        panel->ManageLifetime(effect);
+    }
+
+    struct CaseItem {
+        KeyT val;
+        std::function<std::shared_ptr<UIElement>()> builder;
+    };
+
+    std::shared_ptr<StackPanel> m_panel;
+    Reactive::Signal<KeyT> m_keySignal;
+    std::vector<CaseItem> m_cases;
+    std::function<std::shared_ptr<UIElement>()> m_defaultCase;
+    bool m_built = false;
+};
+
+template<typename KeyT>
+inline SwitchBuilder<KeyT> Switch(const Reactive::Signal<KeyT>& key) {
+    return SwitchBuilder<KeyT>(key);
+}
+
 inline ElementBuilder<Button> ElevatedButton(const std::string& text = "", std::function<void(UIElement*)> onPressed = nullptr) { // 快速生成普通点击式凸起按钮
     auto b = ElementBuilder<Button>();
     if (!text.empty()) b.Text(text);
@@ -1121,6 +1425,73 @@ inline ElementBuilder<Panel> Expanded(std::shared_ptr<UIElement> child, float fl
         p.AddChild(child);
     }
     return p;
+}
+
+/**
+ * @brief 声明式虚拟化列表（VirtualList）。
+ * 针对海量数据（可达数百万行），仅测算和渲染视口内的条目，内部自动使用 RecyclePool 复用控件实例。
+ */
+template<typename RenderItemFn>
+inline ElementBuilder<VirtualizingStackPanel> VirtualList(
+    size_t itemCount,
+    float itemHeight,
+    RenderItemFn&& renderItemFn)
+{
+    auto panel = std::make_shared<VirtualizingStackPanel>();
+    panel->ApplyItemHeight(itemHeight);
+    auto provider = std::make_shared<FunctionalVirtualizingItemProvider>(
+        [itemCount]() { return itemCount; },
+        itemHeight,
+        [fn = std::forward<RenderItemFn>(renderItemFn)](size_t idx, RecyclePool& pool) -> std::shared_ptr<UIElement> {
+            if constexpr (std::is_invocable_v<RenderItemFn, size_t, RecyclePool&>) {
+                return Detail::ToElementShared(fn(idx, pool));
+            } else if constexpr (std::is_invocable_v<RenderItemFn, size_t>) {
+                return Detail::ToElementShared(fn(idx));
+            } else {
+                return nullptr;
+            }
+        }
+    );
+    panel->ApplyItemProvider(provider);
+    return ElementBuilder<VirtualizingStackPanel>(panel);
+}
+
+template<typename T, typename RenderItemFn>
+inline ElementBuilder<VirtualizingStackPanel> VirtualList(
+    const Signal<std::vector<T>>& itemsSignal,
+    float itemHeight,
+    RenderItemFn&& renderItemFn)
+{
+    auto panel = std::make_shared<VirtualizingStackPanel>();
+    panel->ApplyItemHeight(itemHeight);
+
+    auto provider = std::make_shared<FunctionalVirtualizingItemProvider>(
+        [itemsSignal]() { return itemsSignal.Get().size(); },
+        itemHeight,
+        [itemsSignal, fn = std::forward<RenderItemFn>(renderItemFn)](size_t idx, RecyclePool& pool) -> std::shared_ptr<UIElement> {
+            const auto& items = itemsSignal.Get();
+            if (idx >= items.size()) return nullptr;
+            if constexpr (std::is_invocable_v<RenderItemFn, size_t, const T&, RecyclePool&>) {
+                return Detail::ToElementShared(fn(idx, items[idx], pool));
+            } else if constexpr (std::is_invocable_v<RenderItemFn, size_t, const T&>) {
+                return Detail::ToElementShared(fn(idx, items[idx]));
+            } else if constexpr (std::is_invocable_v<RenderItemFn, const T&>) {
+                return Detail::ToElementShared(fn(items[idx]));
+            } else {
+                return nullptr;
+            }
+        }
+    );
+    panel->ApplyItemProvider(provider);
+
+    auto effect = std::make_shared<Reactive::Effect>([panel, itemsSignal]() {
+        (void)itemsSignal.Get();
+        panel->InvalidateMeasure();
+        panel->MarkRenderContentDirty();
+    });
+    panel->ManageLifetime(effect);
+
+    return ElementBuilder<VirtualizingStackPanel>(panel);
 }
 
 
@@ -1407,6 +1778,12 @@ inline ElementBuilder<CUI::Path> Path(const std::string& data = "") {
     auto p = Control<CUI::Path>();
     if (!data.empty()) p.Data(data);
     return p;
+}
+inline ElementBuilder<CUI::VirtualizingStackPanel> VirtualizingStackPanel() {
+    return Control<CUI::VirtualizingStackPanel>();
+}
+inline ElementBuilder<CUI::MeshGradientPanel> MeshGradientPanel() {
+    return Control<CUI::MeshGradientPanel>();
 }
 
 } // namespace Fluent

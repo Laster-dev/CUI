@@ -24,6 +24,7 @@ void CollectionsCatalog::Register(std::vector<Entry>& entries) {
     entries.push_back({ "listbox", "ListBox", "显示选项列表。", Category::Collections, BuildListBoxPage });
     entries.push_back({ "listview", "ListView", "显示数据项的列表。", Category::Collections, BuildListViewPage });
     entries.push_back({ "treeview", "TreeView", "显示分层数据。", Category::Collections, BuildTreeViewPage });
+    entries.push_back({ "virtualization", "VirtualizingStackPanel", "百万级海量数据虚拟化复用池与平滑滚动。", Category::Collections, BuildVirtualizationPage });
 }
 
 void DateAndTimeCatalog::Register(std::vector<Entry>& entries) {
@@ -68,6 +69,7 @@ void MotionCatalog::Register(std::vector<Entry>& entries) {
     entries.push_back({ "animation", "Implicit animations", "悬停、展开、数值过渡。", Category::Motion, BuildAnimationPage });
     entries.push_back({ "themetransition", "Theme transition", "主题切换波纹效果。", Category::Motion, BuildThemeTransitionPage });
     entries.push_back({ "popupreveal", "Popup reveal", "Flyout/菜单进入曲线。", Category::Motion, BuildPopupRevealPage });
+    entries.push_back({ "renderpipeline", "RenderPipeline & Compositor", "DisplayList指令流录制、独立合成器与GPU流体/网格渐变着色器。", Category::Motion, BuildRenderPipelinePage });
 }
 
 void NavigationCatalog::Register(std::vector<Entry>& entries) {
@@ -103,6 +105,7 @@ void SystemCatalog::Register(std::vector<Entry>& entries) {
     entries.push_back({ "folderpicker", "FolderPicker", "文件夹选择。", Category::System, BuildFolderPickerPage });
     entries.push_back({ "dragdrop", "Drag and Drop", "拖放操作。", Category::System, BuildDragDropPage });
     entries.push_back({ "commands", "Commands", "命令和快捷键。", Category::System, BuildCommandsPage });
+    entries.push_back({ "reactivity", "Reactivity & Signal", "细粒度响应式信号引擎与控制流 (Signal, Computed, Effect, Batch, If, ForEach, Switch)。", Category::System, BuildReactivityPage });
 }
 
 void TextCatalog::Register(std::vector<Entry>& entries) {

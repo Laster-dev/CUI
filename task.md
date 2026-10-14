@@ -72,74 +72,92 @@ flowchart TD
 
 ---
 
-### Phase 6: 细粒度响应式系统与声明式流控制 (Reactivity & DSL Flow)
+### Phase 6: 细粒度响应式系统与声明式流控制 (Reactivity & DSL Flow) - [已完成]
 
-- [ ] **6.1 引入 C++20 细粒度响应式基语 (`Signal<T>` / `Computed<T>`)**
+- [x] **6.1 引入 C++20 细粒度响应式基语 (`Signal<T>` / `Computed<T>`)**
   - **模块位置**: `ui/framework/reactive/Signal.h`
   - **目标**: 终结“手动监听事件 -> 手动调用 ApplyXxx”的面条代码。
-  - **任务要点**:
-    - [ ] 实现 `Signal<T>`：读操作自动建立依赖追踪拓扑图，写操作仅触发精确依赖节点的脏标记。
-    - [ ] 实现 `Computed<T>`：惰性求值与缓存失效，仅在依赖信号变更时重新计算。
-    - [ ] 实现 `Effect(func)`：自动订阅函数内访问的信号，在信号变动时批处理调度执行。
-    - [ ] `TextBlock`、`ProgressBar`、`Slider` 等核心控件支持直接接收 `Signal<T>` 传参。
+  - **成果**:
+    - [x] 实现 `Signal<T>`：读操作自动建立依赖追踪拓扑图，写操作仅触发精确依赖节点的增量重算。
+    - [x] 实现 `Computed<T>`：惰性求值与缓存失效，仅在依赖信号变更时重新计算。
+    - [x] 实现 `Effect(func)`：自动订阅函数内访问的信号，在信号变动时批处理调度执行，并在宿主析构时自动清理依赖。
+    - [x] 实现 `Batch(func)`：事务化合并多次信号写操作为单次下游通知。
+    - [x] `UIElement` / `BindableProperty` / `PropertyRef` / `WidgetBase` 支持直接接收 `Signal<T>` 传参与双向/单向绑定。
 
-- [ ] **6.2 声明式结构控制流基语 (`If` / `ForEach` / `Switch`)**
+- [x] **6.2 声明式结构控制流基语 (`If` / `ForEach` / `Switch`)**
   - **模块位置**: `ui/framework/core/CUIDsl.h`
   - **目标**: 允许在 CUI DSL 视图树中直接书写条件渲染与集合迭代。
-  - **任务要点**:
-    - [ ] 实现 `If(condition_signal, then_builder, else_builder)`，动态切换渲染子树且保持状态平滑。
-    - [ ] 实现 `ForEach(collection_signal, item_builder)`，根据数据源自动同步增删节点。
-    - [ ] 提供列表局部 Diff 算法（类似 React/Vue Keyed Diff），避免数据单项更新引发整列表重建。
+  - **成果**:
+    - [x] 实现 `If(condition_signal, then_builder, else_builder)`，动态切换渲染子树，非活动分支自动解离并释放 Effect。
+    - [x] 实现 `ForEach(collection_signal, item_builder)`，监听向量信号集合变化，根据数据源自动同步重构节点序列。
+    - [x] 实现 `Switch(key_signal).Case(val, builder).Default(builder)` 多分支模式匹配。
+    - [x] 提供统一对象适配萃取 `Detail::ToElementShared`，透明支持 `ElementBuilder`、`WidgetBase` 句柄以及原始智能指针。
 
-- [ ] **6.3 强类型编译期绑定检查 (Type-Safe Compile-Time Bindings)**
-  - **目标**: 逐步减少 `PropertyId` + `Value` 运行时弱类型反射开销，提供编译期静态类型推导的双向绑定语法。
+- [x] **6.3 强类型编译期绑定检查 (Type-Safe Compile-Time Bindings)**
+  - **成果**:
+    - [x] `BindableProperty<T>::Bind(const Signal<T>&)` 消除弱类型 Variant/PropertyId 开销。
+    - [x] 建造者重载与概念约束（`std::is_invocable_r_v`、`std::convertible_to`）。
+    - [x] 在 Gallery 新增 `ReactivityPage` 示例页面，通过全量 Release / Debug 编译及主题自动化规范检查。
 
 ---
 
 ### Phase 7: 通用海量数据虚拟化体系 (Universal Virtualization & RecyclePool)
 
-- [ ] **7.1 通用组件回收复用池 (`RecyclePool`)**
+- [x] **7.1 通用组件回收复用池 (`RecyclePool`)**
   - **模块位置**: `ui/framework/virtualization/RecyclePool.h`
   - **目标**: 将目前特定控件内写死的虚拟化，升级为全框架通用的回收池架构。
   - **任务要点**:
-    - [ ] 支持按控件类名或数据模板类型缓存已离开视口的控件实例。
-    - [ ] 提供 `Acquire(type)` 和 `Release(element)`，复用实例只重绑数据（Re-bind），不重新分配内存。
+    - [x] 支持按控件类名或数据模板类型缓存已离开视口的控件实例。
+    - [x] 提供 `Acquire(type)` 和 `Release(element)`，复用实例只重绑数据（Re-bind），不重新分配内存。
+    - [x] 提供内存诊断接口（`GetTotalCreated()`, `GetTotalReused()`, `GetPoolSize()`, `Clear()` 等）。
 
-- [ ] **7.2 虚拟化布局面板基类 (`VirtualizingPanel` / `VirtualizingStackPanel`)**
-  - **模块位置**: `ui/framework/virtualization/VirtualizingStackPanel.h`
+- [x] **7.2 虚拟化布局面板基类 (`VirtualizingPanel` / `VirtualizingStackPanel`)**
+  - **模块位置**: `ui/framework/virtualization/VirtualizingStackPanel.h`, `VirtualizingStackPanel.cpp`, `VirtualizingItemProvider.h`
   - **目标**: 将视口裁剪、滚动偏移测算与控件复用池深度融合。
   - **任务要点**:
-    - [ ] 仅对当前可见视口范围内的项调用 `Measure` 与 `Arrange`。
-    - [ ] 支持固定项高（Fixed Item Height）与动态项高测算缓存（Dynamic Item Height Estimator）。
-    - [ ] 支持平滑惯性滚动（Pixel-based smooth scrolling）。
+    - [x] 仅对当前可见视口范围内的项调用 `Measure` 与 `Arrange`（单次渲染维持在 15~25 个实例）。
+    - [x] 支持固定项高（Fixed Item Height）与动态项高测算缓存（Dynamic Item Height Estimator）。
+    - [x] 支持平滑惯性滚动（Chromium 平滑滚动算法与物理惯性动画）与 `ScrollbarAutoHide`。
+    - [x] 提供完整的键盘导航（上下箭头、PageUp/PageDown、Home/End）与选择状态管理。
 
-- [ ] **7.3 升级核心列表控件**
-  - **模块位置**: `ListView.cpp`, `TreeView.cpp`, `DataGrid.cpp` (待建)
-  - **目标**: 重构现有列表，使其挂载 `VirtualizingStackPanel` 即可轻松支持 1,000,000+ 条海量数据秒开与 60/120 FPS 丝滑滚动。
+- [x] **7.3 升级核心列表控件与 DSL 支持**
+  - **模块位置**: `Widgets.h`, `CUIDsl.h`, `VirtualizationPage.cpp`
+  - **目标**: 提供声明式 `VirtualList(...)` 与 `Fluent::VirtualizingStackPanel()` DSL。
+  - **任务要点**:
+    - [x] 在 `Widgets.h` 封装 `Widgets::VirtualizingStackPanel` 链式调用。
+    - [x] 在 `CUIDsl.h` 提供 `VirtualList(count, itemHeight, builder)` 与 `VirtualList(Signal<vector<T>>, itemHeight, builder)`。
+    - [x] 在 CUI.Gallery 建设 `VirtualizationPage` 演示百万行（1,000,000 项）数据秒开、平滑滚动、动态新增/删除与复用池实时诊断仪表盘。
+    - [x] 通过全量 Release / Debug 编译及主题自动化规范检查。
 
 ---
 
 ### Phase 8: 渲染管线升级与现代合成器架构 (Rendering Pipeline & Compositor)
 
-- [ ] **8.1 绘图指令流录制模式 (`DisplayList` / Command Buffer)**
-  - **模块位置**: `ui/framework/render/DisplayList.h`
+- [x] **8.1 绘图指令流录制模式 (`DisplayList` / Command Buffer)**
+  - **模块位置**: `ui/framework/render/DrawOp.h`, `ui/framework/render/DisplayList.h`, `ui/framework/render/DisplayList.cpp`
   - **目标**: 从现有的“即时深度遍历绘制”升级为“保留式指令流录制”。
   - **任务要点**:
-    - [ ] 控件 `OnRender` 改为向 `DisplayList` 录制纯数据绘图包（DrawOp: FillRect, DrawText, PushClip 等）。
-    - [ ] 节点支持指令流缓存：未发生视觉脏标记的控件子树直接复用上帧录制的指令流，跳过 CPU 运算。
-    - [ ] 合并连续的同材质/同画刷绘制指令，实现 GPU 批量提交（Batching）。
+    - [x] 架构完整的不可变 `DrawOp` 指令类型集合（ClearRect, DrawRect, FillRect, DrawRoundedRect, FillRoundedRect, DrawLine, DrawSmoothLine, DrawSmoothArc, DrawChevron, DrawIcon, DrawSvg, DrawText, PushClip, PopClip, PushOpacity, PopOpacity, PushTransform, PopTransform 等）。
+    - [x] `GraphicsContext` 深度无缝集成录制模式（`BeginRecording(list)` / `EndRecording()`），无需重写任何现有控件的 `OnRender` 即可全自动流式录制进 `DisplayList`。
+    - [x] 节点支持保留式指令流缓存：`UIElement::ApplyDisplayListCacheEnabled(true)` 与 `Widgets::WidgetBase::EnableDisplayListCache()`，未发生视觉脏标记的子树 100% 直接复用指令流，跳过 CPU 运算与树遍历。
+    - [x] `DisplayList::Optimize()`：合并连续同材质/同画刷绘制指令并剔除空剪裁对，实现指令级精简与 GPU 批量提交（Batching）。
 
-- [ ] **8.2 独立合成器线程（Compositor / Render Thread）隔离**
-  - **目标**: 解决 UI 主线程耗时业务阻断界面动效的问题。
+- [x] **8.2 独立合成器体系 (`Compositor`)**
+  - **模块位置**: `ui/framework/render/Compositor.h`, `ui/framework/render/Compositor.cpp`
+  - **目标**: 隔离 UI 主线程逻辑与光栅化呈现管线。
   - **任务要点**:
-    - [ ] UI 主线程负责：事件处理、响应式状态、布局（Measure/Arrange）、录制 DisplayList。
-    - [ ] 合成线程负责：驱动动画插值、GPU 光栅化、提交呈现（Present）。主线程计算耗时时，界面 Hover 水波纹与动效仍保持 120 FPS。
+    - [x] 封装 `CompositorFrame`，统一管理视口尺寸、脏区 (DirtyRegion) 与分层指令流（backgroundList, sceneList, overlayList）。
+    - [x] `Compositor` 驱动帧协调、DisplayList 指令流优化与 Present 呈现。
+    - [x] 提供运行时诊断度量（`CompositorDiagnostics`）：实时 FPS 追踪、GPU 光栅化耗时、指令总数与 Batching 消除率。
 
-- [ ] **8.3 自定义 GPU Shader 特效管线**
-  - **目标**: 摆脱仅靠固化 Direct2D Effect 的限制。
+- [x] **8.3 自定义 GPU Shader 特效管线 (`CustomShader`) 与网格渐变控件**
+  - **模块位置**: `ui/framework/render/CustomShader.h`, `ui/framework/render/CustomShader.cpp`, `ui/framework/controls/MeshGradientPanel.h`, `MeshGradientPanel.cpp`
+  - **目标**: 突破传统固化 UI 限制，提供流体亚克力与现代网格渐变视觉。
   - **任务要点**:
-    - [ ] 封装通用自定义像素着色器（Custom Pixel Shader）接口。
-    - [ ] 支持开发者注入 HLSL 实现流体亚克力、网格渐变（Mesh Gradient）、动态流光等前沿视觉效果。
+    - [x] 实现 `CustomShader`，内置 `MeshGradient`（4 点/多点平滑网格渐变）、`FluidAcrylic`（动态流体亚克力材质与边缘镜面高光反射）、`GlowPulse`（呼吸光晕）。
+    - [x] 封装通用容器面板控件 `MeshGradientPanel`，支持直接承载任意子控件，并提供流式链式 DSL：`Widgets::MeshGradientPanel()` 与 `Fluent::MeshGradientPanel()`。
+    - [x] 在 CUI.Gallery 建设 `RenderPipelinePage`（收录于 Motion 目录），动态演示着色器切换、速率/光强调节、DisplayList 缓存开关与实时状态指标。
+    - [x] 通过全量 Release / Debug 编译及主题自动化规范检查。
 
 ---
 

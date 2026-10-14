@@ -24,6 +24,7 @@ namespace CUI {
 
 using Microsoft::WRL::ComPtr;
 class CompositionContext;
+class DisplayList;
 
 class GraphicsContext {
 public:
@@ -94,6 +95,14 @@ public:
     void EndLayerDraw(RenderLayer& layer);
     void DrawLayer(const RenderLayer& layer, const Rect& destRect, const Rect* sourceRect = nullptr, float opacity = 1.0f);
     void DrawLayerScratch(const RenderLayer& layer, const Rect& destRect, float opacity = 1.0f);
+    void DrawDisplayList(const DisplayList& list, Point offset = {0.0f, 0.0f}, float opacity = 1.0f);
+
+    // 指令流录制模式 (DisplayList Recording Mode)
+    void BeginRecording(std::shared_ptr<DisplayList> list);
+    std::shared_ptr<DisplayList> EndRecording();
+    bool IsRecording() const { return m_activeDisplayList != nullptr; }
+    DisplayList* GetActiveDisplayList() const { return m_activeDisplayList.get(); }
+
     // clearTarget=false keeps existing layer pixels (dirty-rect patching).
     bool PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, Color clearColor, bool clearTarget = true);
     void PopLayerTarget(RenderLayer& layer);
@@ -306,6 +315,9 @@ private:
     };
     std::vector<TargetState> m_targetStack;
     CompositionContext* m_compositionContext = nullptr;
+
+    std::shared_ptr<DisplayList> m_activeDisplayList;
+    std::vector<std::shared_ptr<DisplayList>> m_displayListStack;
 
     // Cached HICON → D2D bitmap conversions (cleared with device resources).
     std::unordered_map<HICON, ComPtr<ID2D1Bitmap>> m_iconBitmapCache;
