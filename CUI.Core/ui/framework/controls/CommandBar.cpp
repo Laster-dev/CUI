@@ -121,7 +121,6 @@ void CommandBar::StyleItemButton(Button& btn, const Item& item, bool checked) co
         btn.ApplyHoverBackgroundToken(ThemeTokenId::AccentColor);
         btn.ApplyPressedBackgroundToken(ThemeTokenId::AccentColor);
         btn.ApplyColorToken(ThemeTokenId::AccentForeground);
-        btn.ApplyBackground(ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor));
         btn.ApplyBorderThickness(0.0f);
     } else {
         btn.ApplyBackgroundToken(ThemeTokenId::Unset);

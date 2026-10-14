@@ -15,14 +15,12 @@ ContentDialog::ContentDialog() {
         .FontWeight(CUI::FontWeight::Bold)
         .FontFamily("微软雅黑")
         .ForegroundToken(ThemeTokenId::TextPrimary)
-        .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
         .Build();
 
     m_txtMessage = Widgets::TextBlock(m_messageText)
         .FontSize(14.0f)
         .FontFamily("微软雅黑")
         .ForegroundToken(ThemeTokenId::TextSecondary)
-        .Foreground(ThemeManager::Instance().GetColor("textSecondary"))
         .Build();
 
     m_inputBox = Widgets::TextBox()
@@ -36,9 +34,7 @@ ContentDialog::ContentDialog() {
         .BackgroundToken(ThemeTokenId::AccentColor)
         .HoverBackgroundToken(ThemeTokenId::AccentColor)
         .PressedBackgroundToken(ThemeTokenId::AccentColor)
-        .Background(ThemeManager::Instance().GetColor("accentColor"))
         .ForegroundToken(ThemeTokenId::AccentForeground)
-        .Foreground(ThemeManager::Instance().GetColor("accentForeground"))
         .FontFamily("微软雅黑")
         .Padding(16.0f, 6.0f, 16.0f, 6.0f)
         .OnClick([this](UIElement*) {
@@ -55,8 +51,6 @@ ContentDialog::ContentDialog() {
             .BorderToken(ThemeTokenId::CardBorder)
             .BorderThickness(1.0f)
             .ForegroundToken(ThemeTokenId::TextPrimary)
-            .Foreground(ThemeManager::Instance().GetColor("textPrimary"))
-            .Background(ThemeManager::Instance().GetColor("cardBackground"))
             .FontFamily("微软雅黑")
             .Padding(16.0f, 6.0f, 16.0f, 6.0f);
     };

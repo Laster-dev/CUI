@@ -207,9 +207,11 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
 
         canvas->OnDraw().Connect([world, aim](GraphicsContext& ctx, Size size) {
         world->ApplyViewport(size.width, size.height);
-        // 深色舞台背景 + 边框
-        ctx.FillRoundedRect(Rect(0, 0, size.width, size.height), 6.0f, Rgb(0x16161E));
-        ctx.DrawRoundedRect(Rect(0.5f, 0.5f, size.width - 1.0f, size.height - 1.0f), 6.0f, Rgb(0x3A3A4A), 1.0f);
+        // 舞台背景 + 边框（自动适配深浅色主题）
+        Color bg = ThemeManager::Instance().GetColor(ThemeTokenId::InputBackground);
+        Color border = ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder);
+        ctx.FillRoundedRect(Rect(0, 0, size.width, size.height), 6.0f, bg);
+        ctx.DrawRoundedRect(Rect(0.5f, 0.5f, size.width - 1.0f, size.height - 1.0f), 6.0f, border, 1.0f);
 
         // 小球：实心圆盘用粗描边弧线一次调用绘制，无裁剪开销，适合大批量
         for (const auto& b : world->balls) {

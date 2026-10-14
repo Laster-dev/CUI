@@ -22,7 +22,8 @@ Element BuildDockManagerPage() {
     // ==========================================
     CUI::Widgets::Ref dock = Widgets::DockManager()
         .Height(480.0f)
-        .Border(Rgb(0x3F3F46, 0.6f), 1.0f)
+        .BorderToken(ThemeTokenId::CardBorder)
+        .BorderThickness(1.0f)
         .CornerRadius(6.0f)
         .Shared();
 
