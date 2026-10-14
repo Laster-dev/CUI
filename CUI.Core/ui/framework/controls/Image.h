@@ -1,15 +1,20 @@
 #pragma once
 #include "Control.h"
-#include <d2d1_1.h>
-#include <wincodec.h>
-#include <wrl/client.h>
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
+
+struct ID2D1Bitmap1;
+struct ID2D1DeviceContext;
+struct IWICImagingFactory2;
+struct IWICBitmap;
+struct IWICBitmapDecoder;
 
 namespace CUI {
 
-using Microsoft::WRL::ComPtr;
+struct ImageStorage;
 
 /**
  * @brief 图片呈现的具体渲染类型模式。
@@ -52,8 +57,8 @@ class Image : public Control {
 public:
     Image();
     Image(ImageType type, const std::string& text = "");
-    Image(ImageType type, const std::string& text, D2D1_COLOR_F color);
-    virtual ~Image() = default;
+    Image(ImageType type, const std::string& text, Color color);
+    virtual ~Image();
 
     virtual const char* GetClassName() const override { return "Image"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
@@ -69,7 +74,7 @@ public:
     void ApplyImageType(ImageType type); // 更改图片渲染模式并触发重绘
     ImageType GetImageType() const { return m_imageType; } // 获取图片渲染模式
     void ApplyBadgeText(const std::string& text) { m_badgeText = text; } // 设定状态徽章内部显示的文字符号
-    void ApplyBadgeColor(D2D1_COLOR_F color) { m_badgeColor = color; } // 设定状态徽章的填充背景色
+    void ApplyBadgeColor(Color color) { m_badgeColor = color; } // 设定状态徽章的填充背景色
 
     bool ApplySource(const std::string& path); // 传入 UTF-8 编码的磁盘物理路径以异步加载解码图像（支持 SVG / PNG / BMP 等）
     const std::string& GetSource() const { return m_sourcePath; } // 获取加载的文件路径
@@ -81,11 +86,11 @@ public:
 
     int GetPixelWidth() const { return static_cast<int>(m_bmpWidth); } // 获取已解码图像的实际物理像素宽度 (px)
     int GetPixelHeight() const { return static_cast<int>(m_bmpHeight); } // 获取已解码图像的实际物理像素高度 (px)
-    bool HasBitmap() const { return m_wicBitmap || m_d2dBitmap; } // 判断当前是否已装载并缓载了有效的位图纹理
+    bool HasBitmap() const; // 判断当前是否已装载并缓载了有效的位图纹理
     const std::string& GetLoadError() const { return m_loadError; } // 获取最近一次解码发生的报错描述
 
-    bool InitDynamicBitmap(ID2D1DeviceContext* ctx, UINT width, UINT height); // 初始化并开辟硬件动态 BGRA 纹理缓冲区以作高频更新流
-    void UpdatePixelBuffer(const uint32_t* bgraPixelData, UINT width, UINT height, UINT pitch = 0); // 线程安全地直接向硬件位图写入新的物理图像像素流
+    bool InitDynamicBitmap(ID2D1DeviceContext* ctx, uint32_t width, uint32_t height); // 初始化并开辟硬件动态 BGRA 纹理缓冲区以作高频更新流
+    void UpdatePixelBuffer(const uint32_t* bgraPixelData, uint32_t width, uint32_t height, uint32_t pitch = 0); // 线程安全地直接向硬件位图写入新的物理图像像素流
     void ApplyBitmap(ID2D1Bitmap1* bitmap); // 直接共享并绑定一个外部已经实例化的 ID2D1Bitmap1 纹理指针
 
 private:
@@ -101,14 +106,11 @@ private:
     std::string m_badgeText = "UI";                     // 徽章文字缓存
     std::string m_sourcePath;                           // 图片文件在磁盘上的物理路径
     std::string m_loadError;                            // 解码异常报错描述
-    D2D1_COLOR_F m_badgeColor{};                        // 徽章背景色
+    Color m_badgeColor{};                               // 徽章背景色
 
-    ComPtr<IWICImagingFactory2> m_wicFactory;           // WIC 图片工厂组件指针
-    ComPtr<IWICBitmap> m_wicBitmap;                     // 解码生成的 CPU 端 WIC 位图对象
-    ComPtr<ID2D1Bitmap1> m_d2dBitmap;                   // 转换到显存端的 D2D 硬件位图对象
-    ComPtr<ID2D1Device> m_boundDevice;                  // 位图当前关联绑定的渲染显卡设备实例
-    UINT m_bmpWidth = 0;                                // 图像像素高精宽限制
-    UINT m_bmpHeight = 0;                               // 图像像素高精高限制
+    std::unique_ptr<ImageStorage> m_storage;            // 内部 D2D/WIC 资源存储
+    uint32_t m_bmpWidth = 0;                            // 图像像素高精宽限制
+    uint32_t m_bmpHeight = 0;                           // 图像像素高精高限制
 
     std::vector<uint32_t> m_pendingPixelBuffer;         // 线程安全写入所用的双缓冲动态像素行数据
     std::mutex m_bufferMutex;                           // 双缓冲读写互斥锁

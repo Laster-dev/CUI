@@ -1,5 +1,4 @@
 #pragma once
-#include "../render/GraphicsContext.h"
 #include "UIElement.h"
 #include <functional>
 #include <memory>

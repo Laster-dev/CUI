@@ -12,9 +12,9 @@ Control::Control() {
     m_hasPressedBackgroundColor = true;
 }
 
-D2D1_COLOR_F Control::BlendColor(D2D1_COLOR_F from, D2D1_COLOR_F to, float t) const {
+Color Control::BlendColor(Color from, Color to, float t) const {
     t = std::clamp(t, 0.0f, 1.0f);
-    return D2D1::ColorF(
+    return Color(
         from.r + (to.r - from.r) * t,
         from.g + (to.g - from.g) * t,
         from.b + (to.b - from.b) * t,
@@ -40,12 +40,12 @@ float Control::GetVisualStateTarget() const {
 }
 
 bool Control::VisualStateChromeDiffers() const {
-    D2D1_COLOR_F bg = m_hasBackgroundColor
+    Color bg = m_hasBackgroundColor
         ? m_backgroundColor
         : ((m_backgroundToken != ThemeTokenId::Unset)
             ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
-            : D2D1::ColorF(0, 0, 0, 0));
-    D2D1_COLOR_F hoverBg = m_hasHoverBackgroundColor
+            : Color::Transparent);
+    Color hoverBg = m_hasHoverBackgroundColor
         ? m_hoverBackgroundColor
         : ((m_hoverBackgroundToken != ThemeTokenId::Unset)
             ? ResolveThemeColor(m_hoverBackgroundToken, ThemeTokenId::HoverBackground)
@@ -56,20 +56,20 @@ bool Control::VisualStateChromeDiffers() const {
         || std::abs(bg.a - hoverBg.a) > 0.002f;
 }
 
-D2D1_COLOR_F Control::GetAnimatedBackground(D2D1_COLOR_F fallback) {
-    D2D1_COLOR_F bg = m_hasBackgroundColor
+Color Control::GetAnimatedBackground(Color fallback) {
+    Color bg = m_hasBackgroundColor
         ? m_backgroundColor
         : ((m_backgroundToken != ThemeTokenId::Unset)
             ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
             : fallback);
 
-    D2D1_COLOR_F hoverBg = m_hasHoverBackgroundColor
+    Color hoverBg = m_hasHoverBackgroundColor
         ? m_hoverBackgroundColor
         : ((m_hoverBackgroundToken != ThemeTokenId::Unset)
             ? ResolveThemeColor(m_hoverBackgroundToken, ThemeTokenId::HoverBackground)
             : bg);
 
-    D2D1_COLOR_F pressedBg = m_hasPressedBackgroundColor
+    Color pressedBg = m_hasPressedBackgroundColor
         ? m_pressedBackgroundColor
         : ((m_pressedBackgroundToken != ThemeTokenId::Unset)
             ? ResolveThemeColor(m_pressedBackgroundToken, ThemeTokenId::PressedBackground)
@@ -109,7 +109,7 @@ bool Control::HasSelfAnimation() const {
 
 void Control::OnRender(GraphicsContext& ctx) {
     float radius = GetCornerRadius();
-    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0, 0, 0, 0));
+    Color bg = GetAnimatedBackground(Color::Transparent);
 
     if (bg.a > 0.0f) {
         if (radius > 0.0f) {
@@ -119,11 +119,11 @@ void Control::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    D2D1_COLOR_F borderBrush = m_hasBorderBrushColor
+    Color borderBrush = m_hasBorderBrushColor
         ? m_borderBrushColor
         : ((m_borderToken != ThemeTokenId::Unset)
             ? ResolveThemeColor(m_borderToken, ThemeTokenId::CardBorder)
-            : D2D1::ColorF(0, 0, 0, 0));
+            : Color::Transparent);
     float borderThickness = GetBorderThickness();
     if (borderBrush.a > 0.0f && borderThickness > 0.0f) {
         if (radius > 0.0f) {

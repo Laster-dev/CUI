@@ -119,6 +119,9 @@
     <ClCompile Include="ui\framework\window\MenuPopupWindow.cpp" />
     <ClCompile Include="ui\framework\window\Window.cpp" />
     <ClCompile Include="ui\framework\window\WindowBackdrop.cpp" />
+    <ClCompile Include="ui\framework\input\InputTypes.cpp" />
+    <ClCompile Include="ui\framework\text\TextLayout.cpp" />
+    <ClCompile Include="ui\framework\text\TextTypes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ui\framework\animation\AnimationManager.h" />
@@ -258,6 +261,11 @@
     <ClInclude Include="ui\framework\window\MenuPopupWindow.h" />
     <ClInclude Include="ui\framework\window\Window.h" />
     <ClInclude Include="ui\framework\window\WindowBackdrop.h" />
+    <ClInclude Include="ui\CUI.h" />
+    <ClInclude Include="ui\framework\core\CUIDslShortcuts.h" />
+    <ClInclude Include="ui\framework\input\InputTypes.h" />
+    <ClInclude Include="ui\framework\text\TextLayout.h" />
+    <ClInclude Include="ui\framework\text\TextTypes.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

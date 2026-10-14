@@ -1,4 +1,5 @@
 #include "TerminalRenderer.h"
+#include "../../render/GraphicsContext.h"
 #include "UnicodeWidth.h"
 #include <algorithm>
 #include <cmath>
@@ -124,47 +125,23 @@ void TerminalRenderer::Measure(GraphicsContext& ctx) {
         m_resolvedFamily = PickFontFamily(ctx, m_fontFamilyList);
     }
 
-    auto factory = GraphicsContext::GetSharedWriteFactory();
     const float snappedFontSize = SnapFontSizeToDevicePixels(m_fontSize, m_pixelsPerDip);
 
-    if (factory) {
-        std::wstring wFont = Utf16FromUtf8(m_resolvedFamily);
-        if (wFont.empty()) {
-            wFont = L"Consolas";
+    const int sampleCount = 64;
+    const std::wstring sample(static_cast<size_t>(sampleCount), L'W');
+    TextLayoutOptions opt;
+    opt.maxWidth = 100000.0f;
+    opt.maxHeight = 100000.0f;
+    opt.wrapping = TextWrapping::NoWrap;
+    TextLayout layout = TextLayout::Create(sample, m_resolvedFamily.empty() ? "Consolas" : m_resolvedFamily, snappedFontSize, opt);
+    if (layout) {
+        auto metrics = layout.GetMetrics();
+        const float exactWidth = (std::max)(metrics.widthIncludingTrailingWhitespace, metrics.width);
+        if (exactWidth > 0.0f) {
+            m_cellWidth = exactWidth / static_cast<float>(sampleCount);
         }
-        ComPtr<IDWriteTextFormat> format;
-        if (SUCCEEDED(factory->CreateTextFormat(
-                wFont.c_str(),
-                nullptr,
-                DWRITE_FONT_WEIGHT_NORMAL,
-                DWRITE_FONT_STYLE_NORMAL,
-                DWRITE_FONT_STRETCH_NORMAL,
-                snappedFontSize,
-                L"zh-CN",
-                &format)) && format) {
-            format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-
-            const int sampleCount = 64;
-            const std::wstring sample(static_cast<size_t>(sampleCount), L'W');
-            ComPtr<IDWriteTextLayout> layout;
-            if (SUCCEEDED(factory->CreateTextLayout(
-                    sample.c_str(),
-                    static_cast<UINT32>(sampleCount),
-                    format.Get(),
-                    100000.0f,
-                    100000.0f,
-                    &layout)) && layout) {
-                DWRITE_TEXT_METRICS metrics{};
-                if (SUCCEEDED(layout->GetMetrics(&metrics))) {
-                    const float exactWidth = (std::max)(metrics.widthIncludingTrailingWhitespace, metrics.width);
-                    if (exactWidth > 0.0f) {
-                        m_cellWidth = exactWidth / static_cast<float>(sampleCount);
-                    }
-                    if (metrics.height > 0.0f) {
-                        m_cellHeight = std::ceil(metrics.height * m_pixelsPerDip) / m_pixelsPerDip;
-                    }
-                }
-            }
+        if (metrics.height > 0.0f) {
+            m_cellHeight = std::ceil(metrics.height * m_pixelsPerDip) / m_pixelsPerDip;
         }
     }
 
@@ -205,17 +182,17 @@ void TerminalRenderer::FlushBatch(GraphicsContext& ctx, GlyphRunBatch& batch, fl
         return;
     }
 
-    const DWRITE_FONT_WEIGHT weight = (batch.attrs & CellData::AttrBold) != 0
-        ? DWRITE_FONT_WEIGHT_BOLD
-        : DWRITE_FONT_WEIGHT_NORMAL;
+    const FontWeight weight = (batch.attrs & CellData::AttrBold) != 0
+        ? FontWeight::Bold
+        : FontWeight::Normal;
 
     // A horizontal slack keeps DirectWrite from clipping the final glyph of
     // the run when its ink extends past the advance or due to subpixel rasterization.
     const Rect rect(batch.originX, originY,
                     batch.cells * m_cellWidth + m_cellWidth * 2.0f,
                     m_cellHeight);
-    ctx.DrawText(batch.text, rect, batch.fg.ToD2D(), m_resolvedFamily, m_fontSize,
-                 DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight);
+    ctx.DrawText(batch.text, rect, batch.fg.ToColor(), m_resolvedFamily, m_fontSize,
+                 TextAlignment::Left, TextVerticalAlignment::Center, weight);
 
     batch.active = false;
     batch.text.clear();
@@ -229,14 +206,14 @@ void TerminalRenderer::AppendBatch(GraphicsContext& ctx, GlyphRunBatch& batch, f
     if (cellSpan != 1) {
         // Wide / fallback glyphs get their own centered draw so the grid stays put.
         FlushBatch(ctx, batch, originY);
-        const DWRITE_FONT_WEIGHT weight = (styleAttrs & CellData::AttrBold) != 0
-            ? DWRITE_FONT_WEIGHT_BOLD
-            : DWRITE_FONT_WEIGHT_NORMAL;
+        const FontWeight weight = (styleAttrs & CellData::AttrBold) != 0
+            ? FontWeight::Bold
+            : FontWeight::Normal;
         std::string utf8;
         AppendUtf8CodePoint(utf8, codePoint);
         ctx.DrawText(utf8, Rect(x, originY, cellSpan * m_cellWidth + 1.0f, m_cellHeight),
-                     fg.ToD2D(), m_resolvedFamily, m_fontSize,
-                     DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight);
+                     fg.ToColor(), m_resolvedFamily, m_fontSize,
+                     TextAlignment::Center, TextVerticalAlignment::Center, weight);
         return;
     }
 
@@ -398,15 +375,7 @@ void TerminalRenderer::PaintSelectionGeometry(GraphicsContext& ctx, const std::v
     if (rects.size() == 1) {
         const Rect& r = rects[0];
         const float rr = (std::min)(radius, (std::min)(r.width, r.height) * 0.5f);
-        ctx.FillRoundedRect(r, rr, color.ToD2D());
-        return;
-    }
-
-    ID2D1DeviceContext* device = ctx.GetD2DContext();
-    if (device == nullptr) {
-        for (const auto& r : rects) {
-            ctx.FillRect(r, color.ToD2D());
-        }
+        ctx.FillRoundedRect(r, rr, color);
         return;
     }
 
@@ -461,101 +430,12 @@ void TerminalRenderer::PaintSelectionGeometry(GraphicsContext& ctx, const std::v
 
     if (pts.size() < 3) {
         for (const auto& r : rects) {
-            ctx.FillRect(r, color.ToD2D());
+            ctx.FillRect(r, color);
         }
         return;
     }
 
-    ComPtr<ID2D1Factory> factory;
-    device->GetFactory(factory.GetAddressOf());
-    if (!factory) {
-        for (const auto& r : rects) {
-            ctx.FillRect(r, color.ToD2D());
-        }
-        return;
-    }
-
-    ComPtr<ID2D1PathGeometry> geometry;
-    if (FAILED(factory->CreatePathGeometry(geometry.GetAddressOf())) || !geometry) {
-        for (const auto& r : rects) {
-            ctx.FillRect(r, color.ToD2D());
-        }
-        return;
-    }
-
-    ComPtr<ID2D1GeometrySink> sink;
-    if (FAILED(geometry->Open(sink.GetAddressOf())) || !sink) {
-        for (const auto& r : rects) {
-            ctx.FillRect(r, color.ToD2D());
-        }
-        return;
-    }
-
-    const size_t count = pts.size();
-    std::vector<float> radii(count, 0.0f);
-    for (size_t i = 0; i < count; ++i) {
-        const Point& prev = pts[(i + count - 1) % count];
-        const Point& cur = pts[i];
-        const Point& next = pts[(i + 1) % count];
-        radii[i] = (std::min)(radius, (std::min)(Distance(prev, cur), Distance(cur, next)) * 0.5f);
-    }
-
-    auto before = [&](size_t i) {
-        const Point& prev = pts[(i + count - 1) % count];
-        const Point& cur = pts[i];
-        return PointAlong(prev, cur, Distance(prev, cur) - radii[i]);
-    };
-    auto after = [&](size_t i) {
-        const Point& cur = pts[i];
-        const Point& next = pts[(i + 1) % count];
-        return PointAlong(cur, next, radii[i]);
-    };
-
-    sink->SetFillMode(D2D1_FILL_MODE_WINDING);
-    const Point start = before(0);
-    sink->BeginFigure(D2D1::Point2F(start.x, start.y), D2D1_FIGURE_BEGIN_FILLED);
-
-    for (size_t i = 0; i < count; ++i) {
-        if (i > 0) {
-            const Point p = before(i);
-            sink->AddLine(D2D1::Point2F(p.x, p.y));
-        }
-
-        const Point& prev = pts[(i + count - 1) % count];
-        const Point& cur = pts[i];
-        const Point& next = pts[(i + 1) % count];
-        const float r = radii[i];
-
-        if (r < 0.25f) {
-            sink->AddLine(D2D1::Point2F(cur.x, cur.y));
-            continue;
-        }
-
-        const float v1x = cur.x - prev.x;
-        const float v1y = cur.y - prev.y;
-        const float v2x = next.x - cur.x;
-        const float v2y = next.y - cur.y;
-        const float cross = v1x * v2y - v1y * v2x;
-
-        const Point arcEnd = after(i);
-        D2D1_ARC_SEGMENT arc = {};
-        arc.point = D2D1::Point2F(arcEnd.x, arcEnd.y);
-        arc.size = D2D1::SizeF(r, r);
-        arc.rotationAngle = 0.0f;
-        arc.sweepDirection = cross < 0.0f
-            ? D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE
-            : D2D1_SWEEP_DIRECTION_CLOCKWISE;
-        arc.arcSize = D2D1_ARC_SIZE_SMALL;
-        sink->AddArc(arc);
-    }
-
-    sink->EndFigure(D2D1_FIGURE_END_CLOSED);
-    sink->Close();
-
-    ID2D1SolidColorBrush* brush = ctx.GetResources().GetSolidBrush(color.ToD2D());
-    if (brush) {
-        device->FillGeometry(geometry.Get(), brush);
-    }
+    ctx.FillRoundedGeometry(pts, radius, color);
 }
 
 void TerminalRenderer::PaintSelectionText(GraphicsContext& ctx, Terminal& terminal,
@@ -656,10 +536,10 @@ void TerminalRenderer::PaintOverlay(GraphicsContext& ctx, Terminal& terminal, bo
         const Size measured = ctx.MeasureText(utf8, m_resolvedFamily, m_fontSize);
         const float w = (std::max)(measured.width, m_cellWidth);
         ctx.FillRect(Rect(x, y0, w, m_cellHeight),
-                     TermColor::FromArgb(0x60, 0x80, 0x80, 0xFF).ToD2D());
-        ctx.DrawText(utf8, Rect(x, y0, w, m_cellHeight), m_colors.DefaultForeground().ToD2D(),
+                     TermColor::FromArgb(0x60, 0x80, 0x80, 0xFF).ToColor());
+        ctx.DrawText(utf8, Rect(x, y0, w, m_cellHeight), m_colors.DefaultForeground().ToColor(),
                      m_resolvedFamily, m_fontSize,
-                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                     TextAlignment::Left, TextVerticalAlignment::Center);
     }
 }
 

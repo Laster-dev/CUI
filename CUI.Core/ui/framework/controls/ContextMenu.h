@@ -17,7 +17,7 @@ public:
     virtual ~MenuItem();
 
     virtual const char* GetClassName() const override { return "MenuItem"; }
-    virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; }
+    virtual CursorType GetCursor() const override { return IsEnabled() ? CursorType::Hand : CursorType::Arrow; }
 
     virtual Size Measure(Size availableSize) override;
     virtual void OnRender(GraphicsContext& ctx) override;

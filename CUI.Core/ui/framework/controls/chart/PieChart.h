@@ -29,7 +29,7 @@ private:
         float value = 0.0f;   // 扇区代表的真实数值大小
         float start = 0.0f;   // 扇区圆弧起始角度值（弧度制）
         float sweep = 0.0f;   // 扇区圆弧跨越跨度角度值（弧度制）
-        D2D1_COLOR_F color{}; // 扇区的色彩分配值
+        Color color{}; // 扇区的色彩分配值
     };
 
     void CollectSlices(std::vector<Slice>& slices, float& total) const; // 辅助方法：汇总所有系列的值并折算生成各个 Slice 扇区几何角度与占比

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/Value.h"
+#include "InputTypes.h"
 
 namespace CUI {
 
@@ -16,7 +16,8 @@ enum class RoutedEventType {
     PointerPressed,
     PointerReleased,
     PointerMoved,
-    KeyDown
+    KeyDown,
+    KeyUp
 };
 
 struct RoutedEventArgs {
@@ -24,6 +25,7 @@ struct RoutedEventArgs {
     RoutedEventPhase phase = RoutedEventPhase::Tunnel;
     Point position{};
     int keyCode = 0;
+    Key key = Key::None;
     bool handled = false;
     UIElement* originalSource = nullptr;
 };

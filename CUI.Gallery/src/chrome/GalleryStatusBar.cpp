@@ -11,9 +11,6 @@
 #include <windows.h>
 #include <psapi.h>
 #include <tlhelp32.h>
-#include <d3d11.h>
-#include <dxgi1_4.h>
-#include <wrl/client.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -85,33 +82,6 @@ uint32_t SampleHandleCount(HANDLE process) {
         return static_cast<uint32_t>(handles);
     }
     return 0;
-}
-
-float SampleGpuUsage01(ID3D11Device* device) {
-    if (!device) {
-        return -1.0f;
-    }
-    ComPtr<IDXGIDevice> dxgiDevice;
-    if (FAILED(device->QueryInterface(IID_PPV_ARGS(&dxgiDevice))) || !dxgiDevice) {
-        return -1.0f;
-    }
-    ComPtr<IDXGIAdapter> adapter;
-    if (FAILED(dxgiDevice->GetAdapter(&adapter)) || !adapter) {
-        return -1.0f;
-    }
-    ComPtr<IDXGIAdapter3> adapter3;
-    if (FAILED(adapter.As(&adapter3)) || !adapter3) {
-        return -1.0f;
-    }
-    DXGI_QUERY_VIDEO_MEMORY_INFO info{};
-    if (FAILED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info))) {
-        return -1.0f;
-    }
-    if (info.Budget == 0) {
-        return -1.0f;
-    }
-    return static_cast<float>(
-        (std::min)(1.0, static_cast<double>(info.CurrentUsage) / static_cast<double>(info.Budget)));
 }
 
 } // namespace
@@ -231,7 +201,6 @@ ResourceSnapshot GalleryStatusBar::SampleSnapshot() {
     m_cachedSnapshot.isDComp = false;
     m_cachedSnapshot.animationsEnabled = CUI::UIElement::AreAnimationsEnabled();
 
-    ID3D11Device* d3d = nullptr;
     if (CUI::Window* win = CUI::Window::Current()) {
         m_cachedSnapshot.fps = win->GetDisplayFps();
         float dpiScale = win->GetDpiScale();
@@ -241,15 +210,12 @@ ResourceSnapshot GalleryStatusBar::SampleSnapshot() {
         m_cachedSnapshot.dpi = static_cast<int>(std::lround(dpiScale * 96.0f));
         m_cachedSnapshot.zoomPct = static_cast<int>(std::lround(dpiScale * 100.0f));
         m_cachedSnapshot.isDComp = win->GetGraphicsContext().UsesCompositionSwapChain();
-        d3d = win->GetGraphicsContext().GetD3DDevice();
-    }
-
-    // 5. GPU 显存利用率
-    const float gpu01 = SampleGpuUsage01(d3d);
-    if (gpu01 >= 0.0f) {
-        m_cachedSnapshot.gpuPct = gpu01 * 100.0f;
-    } else {
-        m_cachedSnapshot.gpuPct = -1.0f;
+        const float gpu01 = win->GetGraphicsContext().GetGpuVideoMemoryUsage01();
+        if (gpu01 >= 0.0f) {
+            m_cachedSnapshot.gpuPct = gpu01 * 100.0f;
+        } else {
+            m_cachedSnapshot.gpuPct = -1.0f;
+        }
     }
 
     return m_cachedSnapshot;

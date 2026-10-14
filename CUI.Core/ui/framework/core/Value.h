@@ -1,7 +1,10 @@
 #pragma once
 #include <string>
 #include <variant>
-#include <d2d1.h>
+#include <concepts>
+#include <type_traits>
+
+struct D2D_RECT_F;
 
 namespace CUI {
 
@@ -35,8 +38,8 @@ struct Thickness {
 };
 
 /**
- * @brief 表示 RGBA 颜色的结构体。
- * 支持与 Direct2D 中的 D2D1_COLOR_F 隐式转换。
+ * @brief 表示 RGBA 颜色的纯净结构体。
+ * 支持与 Direct2D 底层颜色结构（D2D1_COLOR_F）无感互转，头文件无需包含任何 DirectX 代码。
  */
 struct Color {
     float r = 0.0f; // 红色分量 (0.0f - 1.0f)
@@ -45,34 +48,70 @@ struct Color {
     float a = 1.0f; // 透明度分量 (0.0f - 1.0f)
 
     Color() = default;
-    Color(float r_, float g_, float b_, float a_ = 1.0f) : r(r_), g(g_), b(b_), a(a_) {} // 构造带透明度的 RGBA 颜色
-    Color(const D2D1_COLOR_F& c) : r(c.r), g(c.g), b(c.b), a(c.a) {} // 从 Direct2D 颜色对象初始化
+    constexpr Color(float r_, float g_, float b_, float a_ = 1.0f) : r(r_), g(g_), b(b_), a(a_) {}
 
-    operator D2D1_COLOR_F() const { // 隐式转换为 D2D1_COLOR_F，方便与 D2D 交互
-        D2D1_COLOR_F c;
-        c.r = r;
-        c.g = g;
-        c.b = b;
-        c.a = a;
-        return c;
+    // 通用转换构造函数：自动适配具有 r,g,b,a 字段的第三方/底层颜色结构（如 D2D1_COLOR_F / ColorF）
+    template <typename T>
+        requires (!std::is_same_v<std::decay_t<T>, Color> &&
+                  requires(T t) { { t.r } -> std::convertible_to<float>;
+                                  { t.g } -> std::convertible_to<float>;
+                                  { t.b } -> std::convertible_to<float>;
+                                  { t.a } -> std::convertible_to<float>; })
+    constexpr Color(const T& c)
+        : r(static_cast<float>(c.r)), g(static_cast<float>(c.g)), b(static_cast<float>(c.b)), a(static_cast<float>(c.a)) {}
+
+    // 通用隐式转换运算符：向后兼容底层需要 D2D1_COLOR_F / ColorF 的绘制接口
+    template <typename T>
+        requires (!std::is_same_v<std::decay_t<T>, Color> &&
+                  requires(T t) { { t.r } -> std::convertible_to<float>;
+                                  { t.g } -> std::convertible_to<float>;
+                                  { t.b } -> std::convertible_to<float>;
+                                  { t.a } -> std::convertible_to<float>; })
+    constexpr operator T() const {
+        T result{};
+        result.r = r;
+        result.g = g;
+        result.b = b;
+        result.a = a;
+        return result;
     }
 
-    static Color RGBA(float r, float g, float b, float a = 1.0f) { // RGBA 颜色静态工厂
+    Color WithAlpha(float newAlpha) const {
+        return Color(r, g, b, newAlpha);
+    }
+
+    static Color Lerp(const Color& c1, const Color& c2, float t) {
+        return Color(
+            c1.r + (c2.r - c1.r) * t,
+            c1.g + (c2.g - c1.g) * t,
+            c1.b + (c2.b - c1.b) * t,
+            c1.a + (c2.a - c1.a) * t
+        );
+    }
+
+    bool operator==(const Color& o) const {
+        return r == o.r && g == o.g && b == o.b && a == o.a;
+    }
+    bool operator!=(const Color& o) const {
+        return !(*this == o);
+    }
+
+    static Color RGBA(float r, float g, float b, float a = 1.0f) {
         return Color(r, g, b, a);
     }
 
-    static Color FromRGBA(float r, float g, float b, float a = 1.0f) { // 从浮点 RGBA 组建颜色
+    static Color FromRGBA(float r, float g, float b, float a = 1.0f) {
         return Color(r, g, b, a);
     }
 
-    static Color FromRGB(float r, float g, float b) { // 从浮点 RGB 组建不透明颜色
+    static Color FromRGB(float r, float g, float b) {
         return Color(r, g, b, 1.0f);
     }
 
     static Color Hex(const std::string& hexStr); // 从十六进制 Hex 字符串解析颜色
-    static Color FromHex(const std::string& hexStr) { return Hex(hexStr); } // 从十六进制 Hex 字符串解析颜色别名
+    static Color FromHex(const std::string& hexStr) { return Hex(hexStr); }
 
-    // 预定义的常用行业标准颜色
+    // 预定义的常用标准颜色
     static const Color Transparent; // 全透明颜色 (0,0,0,0)
     static const Color Black;       // 纯黑色 (0,0,0,1)
     static const Color White;       // 纯白色 (1,1,1,1)
@@ -86,6 +125,7 @@ struct Color {
     static const Color Magenta;     // 洋红色 (1,0,1,1)
     static const Color Orange;      // 橙色 (1,0.6,0,1)
     static const Color Purple;      // 紫色 (0.5,0,0.5,1)
+    static const Color Accent;      // 强调主色
 };
 
 /**
@@ -153,9 +193,21 @@ struct Rect {
         return Rect(x - amount, y - amount, width + amount * 2.0f, height + amount * 2.0f);
     }
 
-    D2D1_RECT_F ToD2D() const { // 转换为 D2D 绘图 API 认知的结构体
-        return D2D1::RectF(x, y, x + width, y + height);
-    }
+    D2D_RECT_F ToD2D() const; // 转换为底层 D2D 矩形（实现于 Value.cpp）
+};
+
+/**
+ * @brief 2D 仿射变换矩阵（3x2）。
+ */
+struct Matrix3x2 {
+    float m11 = 1.0f, m12 = 0.0f;
+    float m21 = 0.0f, m22 = 1.0f;
+    float dx = 0.0f, dy = 0.0f;
+
+    static Matrix3x2 Identity() { return Matrix3x2{ 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f }; }
+    static Matrix3x2 Translation(float x, float y) { return Matrix3x2{ 1.0f, 0.0f, 0.0f, 1.0f, x, y }; }
+    static Matrix3x2 Scale(float sx, float sy) { return Matrix3x2{ sx, 0.0f, 0.0f, sy, 0.0f, 0.0f }; }
+    static Matrix3x2 Rotation(float angleDegrees, Point center = {});
 };
 
 /**
@@ -228,7 +280,7 @@ public:
     Value(float v) : m_type(Type::Float), m_val(v) {} // 从浮点型初始化
     Value(const std::string& v) : m_type(Type::String), m_val(v) {} // 从字符串强拷贝初始化
     Value(const char* v) : m_type(Type::String), m_val(std::string(v)) {} // 从 C 字符字面量初始化
-    Value(D2D1_COLOR_F v) : m_type(Type::Color), m_val(v) {} // 从 D2D 颜色结构初始化
+    Value(Color v) : m_type(Type::Color), m_val(v) {} // 从 Color 颜色结构初始化
     Value(Thickness v) : m_type(Type::Thickness), m_val(v) {} // 从 Thickness 结构初始化
     Value(void* v) : m_type(Type::Pointer), m_val(v) {} // 从裸指针初始化
 
@@ -239,16 +291,16 @@ public:
     int AsInt(int def = 0) const; // 转换为整型数值，失败返回默认值
     float AsFloat(float def = 0.0f) const; // 转换为浮点值，失败返回默认值
     std::string AsString(const std::string& def = "") const; // 转换为字符串，失败返回默认值
-    D2D1_COLOR_F AsColor(D2D1_COLOR_F def = D2D1::ColorF(D2D1::ColorF::White)) const; // 转换为 D2D 颜色结构，失败返回默认色
+    Color AsColor(Color def = Color::White) const; // 转换为 Color 颜色结构，失败返回默认色
     Thickness AsThickness(Thickness def = {}) const; // 转换为 Thickness 结构，失败返回默认边距
     void* AsPointer(void* def = nullptr) const; // 转换为裸指针，失败返回默认指针
 
-    static D2D1_COLOR_F ParseColor(const std::string& str); // 静态转换字符串得到 D2D 颜色结构
+    static Color ParseColor(const std::string& str); // 静态转换字符串得到颜色结构
     static Value ParseAuto(const std::string& str); // 自动识别并推断字符串对应的数据类型转换为 Value
 
 private:
     Type m_type = Type::None; // 存储的数据类型标志
-    std::variant<std::monostate, bool, int, float, std::string, D2D1_COLOR_F, Thickness, void*> m_val; // Variant 数据存储联合体
+    std::variant<std::monostate, bool, int, float, std::string, Color, Thickness, void*> m_val; // Variant 数据存储联合体
 };
 
 } // namespace CUI

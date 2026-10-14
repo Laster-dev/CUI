@@ -17,7 +17,7 @@ public:
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
     void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性
-    virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取交互鼠标样式
+    virtual CursorType GetCursor() const override { return IsEnabled() ? CursorType::Hand : CursorType::Arrow; } // 获取交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 测量文字所占物理大小尺寸
     virtual void OnRender(GraphicsContext& ctx) override; // 绘制超链接下划线以及前景字元

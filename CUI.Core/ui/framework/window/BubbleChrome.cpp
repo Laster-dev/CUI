@@ -160,8 +160,8 @@ BubbleLayout LayoutBubble(
 void PaintBubble(
     GraphicsContext& ctx,
     const BubbleLayout& layout,
-    D2D1_COLOR_F background,
-    D2D1_COLOR_F border,
+    Color background,
+    Color border,
     float radius)
 {
     if (layout.card.IsEmpty()) {

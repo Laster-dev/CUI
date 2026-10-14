@@ -51,7 +51,7 @@ std::shared_ptr<Window> SpawnMaterialWindow(
         root.Align(Alignment::Stretch);
 
     if (transparentMode) {
-                root.Background(D2D1::ColorF(0, 0, 0, 0));
+                root.Background(Color::Transparent);
                 root.BackgroundToken(ThemeTokenId::Unset);
     } else {
                 root.BackgroundToken(ThemeTokenId::WindowBackground);
@@ -128,8 +128,8 @@ std::shared_ptr<Window> SpawnMaterialWindow(
     }).Padding(16).CornerRadius(8).Build();
 
     if (transparentMode) {
-                card.Background(D2D1::ColorF(0.12f, 0.14f, 0.18f, 0.88f));
-                card.BorderBrush(D2D1::ColorF(0.38f, 0.65f, 0.98f, 0.65f));
+                card.Background(Color(0.12f, 0.14f, 0.18f, 0.88f));
+                card.BorderBrush(Color(0.38f, 0.65f, 0.98f, 0.65f));
                 card.BorderThickness(1.5f);
     } else {
                 card.BackgroundToken(ThemeTokenId::CardBackground);

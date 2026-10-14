@@ -49,7 +49,7 @@ public:
     virtual void OnMouseMove(Point pt) override; // 鼠标滑动，测试命中并切换高亮数据项，淡入提示卡片
     virtual void OnMouseLeave() override; // 鼠标离去，清空高亮状态并淡出提示卡片
     virtual bool OnKeyDown(int vkCode) override; // 响应键盘左右方向键以流动切换高亮索引
-    virtual HCURSOR GetCursor() const override; // 获取鼠标悬浮时的样式
+    virtual CursorType GetCursor() const override; // 获取鼠标悬浮时的样式
     virtual bool AcceptsTabFocus() const override { return true; } // 支持键盘 Tab 导航聚焦
     virtual bool ShouldClipToBounds() const override { return true; } // 开启边界截断以防图线绘制出界
     virtual bool OnAnimationTick() override; // 驱动入场生长绘制以及提示卡片位移追随等动画
@@ -69,7 +69,7 @@ protected:
     Rect ContentRect() const; // 计算考虑内边距后的图表内容区大小
     Rect PlotRect() const; // 计算笛卡尔绘图区占用的实际物理坐标矩形
     Rect LegendRect() const; // 计算底部图例占用的物理坐标矩形
-    D2D1_COLOR_F SeriesColor(int index) const; // 提取指定索引的系列标志底色（如果未定制则从资源色盘依次递进读取）
+    Color SeriesColor(int index) const; // 提取指定索引的系列标志底色（如果未定制则从资源色盘依次递进读取）
     std::string CategoryLabel(int index) const; // 提取指定索引的 X 轴分类名称文本
     int SeriesValueCount() const; // 获取数据系列中的分值条数
     bool DataRange(float& minValue, float& maxValue) const; // 计算所有数据中极小和极大的分值边界

@@ -24,10 +24,6 @@ float GetChromiumWheelStep(float viewportHeight) {
     return (std::max)(1u, lines) * 40.0f;
 }
 
-DWRITE_FONT_WEIGHT ResolveListFontWeight(FontWeight weight) {
-    return static_cast<DWRITE_FONT_WEIGHT>(weight);
-}
-
 float FrameBlend(float factorAt60Hz) {
     factorAt60Hz = std::clamp(factorAt60Hz, 0.0f, 0.999f);
     float frames = UIElement::GetAnimationDeltaSeconds() * 60.0f;
@@ -117,17 +113,17 @@ bool ListView::HasProperty(PropertyId id) const {
     return id == PropertyId::SelectedIndex || Control::HasProperty(id);
 }
 
-HCURSOR ListView::GetCursor() const {
-    if (!IsEnabled()) return nullptr;
+CursorType ListView::GetCursor() const {
+    if (!IsEnabled()) return CursorType::Arrow;
     if (m_middleScrollActive) {
         const float dx = m_middleLastMouse.x - m_middleOrigin.x;
         const float dy = m_middleLastMouse.y - m_middleOrigin.y;
         return MiddleClickAutoscroll::CursorForDelta(dx, dy, m_maxScrollX > 0.0f, m_maxScrollY > 0.0f);
     }
     if (m_hoveredColumnSplitter != -1 || m_isResizingColumn) {
-        return LoadCursor(nullptr, IDC_SIZEWE);
+        return CursorType::SizeWE;
     }
-    return LoadCursor(nullptr, IDC_ARROW);
+    return CursorType::Arrow;
 }
 
 void ListView::AddColumn(const std::string& header, float width) {
@@ -731,14 +727,14 @@ Rect ListView::GetRowsViewportRect() const {
 }
 
 void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, float scrollX, float scrollY) {
-    D2D1_COLOR_F gridLineClr = ResolveThemeColor(GetGridLineBrushToken(), ThemeTokenId::InputBorder);
-    D2D1_COLOR_F textClr = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-    D2D1_COLOR_F selectedBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
-    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
-    D2D1_COLOR_F focusBorderColor = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
+    Color gridLineClr = ResolveThemeColor(GetGridLineBrushToken(), ThemeTokenId::InputBorder);
+    Color textClr = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    Color selectedBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
+    Color hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    Color focusBorderColor = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
     std::string font = GetFontFamily();
     float fontH = GetFontSize();
-    const DWRITE_FONT_WEIGHT weight = ResolveListFontWeight(GetFontWeight());
+    const CUI::FontWeight weight = GetFontWeight();
     float totalColsW = GetTotalColumnsWidth();
     bool isFocused = m_isFocused;
 
@@ -780,7 +776,7 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
         }
 
         if (isCaret && isFocused) {
-            D2D1_COLOR_F ring = focusBorderColor;
+            Color ring = focusBorderColor;
             ring.a = (std::min)(1.0f, ring.a * 0.65f + 0.25f);
             ctx.DrawRoundedRect(pill, kPillRadius, ring, 1.0f);
         }
@@ -835,7 +831,7 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
                     textPad = 6.0f + iconSize + 6.0f;
                 }
                 Rect cellRect(cellX + textPad, rowY, (std::max)(0.0f, colW - textPad - 8.0f), m_rowHeight);
-                D2D1_COLOR_F cellClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textClr;
+                Color cellClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textClr;
                 if (!isSelected && !m_virtualMode && r >= 0 && r < static_cast<int>(m_rows.size()) && c < m_rows[static_cast<size_t>(r)].size()) {
                     const auto& cd = m_rows[static_cast<size_t>(r)][c];
                     if (cd.textColor.a > 0.001f) {
@@ -844,7 +840,7 @@ void ListView::PaintRowsRange(GraphicsContext& ctx, int startRow, int endRow, fl
                 }
                 // Clip + ellipsis so long names cannot bleed into the next column.
                 ctx.PushClip(cellRect);
-                ctx.DrawText(cellText, cellRect, cellClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight, true);
+                ctx.DrawText(cellText, cellRect, cellClr, font, fontH, TextAlignment::Left, TextVerticalAlignment::Center, weight, true);
                 ctx.PopClip();
             }
             cellX += colW;
@@ -885,21 +881,18 @@ void ListView::RenderRowsLayer(GraphicsContext& ctx) {
         || !m_rowsLayerCachesFull
         || !m_rowsLayer.IsValid()
         || m_rowsLayer.NeedsContentRaster()
-        || !m_rowsLayer.GetCacheBitmap();
+        || !m_rowsLayer.HasCache();
 
     if (needsRerender) {
         Rect contentWorld(m_bounds.x, m_bounds.y + m_headerHeight, contentW, contentH);
         // Opaque clear: ClearType (and any leftover AA) needs a real background.
         // Transparent clears + text AA produced vertical fringe garbage in rows.
-        D2D1_COLOR_F clearBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+        Color clearBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
         clearBg.a = 1.0f;
         if (ctx.PushLayerTarget(m_rowsLayer, cacheSize, contentWorld, clearBg)) {
-            auto* d2d = ctx.GetD2DContext();
-            D2D1_MATRIX_3X2_F oldTransform{};
-            d2d->GetTransform(&oldTransform);
-            d2d->SetTransform(D2D1::Matrix3x2F::Translation(-contentWorld.x, -contentWorld.y));
+            ctx.PushTranslation(-contentWorld.x, -contentWorld.y);
             PaintRowsRange(ctx, 0, static_cast<int>(GetRowCount()) - 1, 0.0f, 0.0f);
-            d2d->SetTransform(oldTransform);
+            ctx.PopTransform();
             ctx.PopLayerTarget(m_rowsLayer);
             m_rowsLayer.Validate();
             m_rowsLayerCachesFull = true;
@@ -923,12 +916,12 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
     float radius = GetCornerRadius();
     (void)radius;
-    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
-    D2D1_COLOR_F headerBg = ResolveThemeColor(GetHeaderBackgroundToken(), ThemeTokenId::PaneBackground);
-    D2D1_COLOR_F borderClr = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    Color bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    Color headerBg = ResolveThemeColor(GetHeaderBackgroundToken(), ThemeTokenId::PaneBackground);
+    Color borderClr = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     std::string font = GetFontFamily();
     float fontH = GetFontSize();
-    const DWRITE_FONT_WEIGHT weight = ResolveListFontWeight(GetFontWeight());
+    const CUI::FontWeight weight = GetFontWeight();
 
     ctx.FillRect(m_bounds, bg);
     ctx.DrawRect(m_bounds, borderClr, 1.0f);
@@ -949,7 +942,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
         if (static_cast<int>(colIdx) == m_sortColumn) {
             headerText += m_sortAscending ? " ▲" : " ▼";
         }
-        ctx.DrawText(headerText, colTextRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, weight, true);
+        ctx.DrawText(headerText, colTextRect, ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary), font, fontH, TextAlignment::Left, TextVerticalAlignment::Center, weight, true);
         ctx.DrawLine(Point(currColX + colW, m_bounds.y + 4.0f), Point(currColX + colW, m_bounds.y + m_headerHeight - 4.0f), borderClr, 1.0f);
         currColX += colW;
     }
@@ -990,8 +983,8 @@ void ListView::OnRender(GraphicsContext& ctx) {
         if (screenBottom > screenTop && screenRight > screenLeft) {
             Rect rubberRect(screenLeft, screenTop, screenRight - screenLeft, screenBottom - screenTop);
             bool dark = ThemeManager::Instance().GetThemeMode() == ThemeMode::Dark;
-            D2D1_COLOR_F fillClr = dark ? D2D1::ColorF(0.0f, 0.60f, 1.0f, 0.15f) : D2D1::ColorF(0.0f, 0.45f, 0.90f, 0.12f);
-            D2D1_COLOR_F strokeClr = dark ? D2D1::ColorF(0.35f, 0.82f, 1.0f, 0.95f) : D2D1::ColorF(0.0f, 0.45f, 0.90f, 0.95f);
+            Color fillClr = dark ? Color(0.0f, 0.60f, 1.0f, 0.15f) : Color(0.0f, 0.45f, 0.90f, 0.12f);
+            Color strokeClr = dark ? Color(0.35f, 0.82f, 1.0f, 0.95f) : Color(0.0f, 0.45f, 0.90f, 0.95f);
             ctx.FillRect(rubberRect, fillClr);
             ctx.DrawRect(rubberRect, strokeClr, 1.5f);
         }
@@ -1009,7 +1002,7 @@ void ListView::OnRender(GraphicsContext& ctx) {
         Rect thumbRect(trackX, thumbY, kScrollbarThumbW, thumbH);
         // Everything-style: always show thumb when scrollable (min 55% opacity).
         const float vis = (std::max)(m_scrollbarAutoHide.Opacity(), 0.55f);
-        ctx.FillRoundedRect(thumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.75f * vis));
+        ctx.FillRoundedRect(thumbRect, 3.0f, borderClr.WithAlpha(0.75f * vis));
     }
 
     // --- Horizontal scrollbar ---
@@ -1025,11 +1018,11 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
         Rect hThumbRect(hThumbX, hTrackY, hThumbW, kHScrollbarThumbH);
         const float hVis = (std::max)(m_scrollbarAutoHide.Opacity(), 0.55f);
-        ctx.FillRoundedRect(hThumbRect, 3.0f, D2D1::ColorF(borderClr.r, borderClr.g, borderClr.b, 0.75f * hVis));
+        ctx.FillRoundedRect(hThumbRect, 3.0f, borderClr.WithAlpha(0.75f * hVis));
     }
 
     if (m_isReorderingColumn && m_reorderingColumnIndex >= 0 && m_reorderingColumnIndex < static_cast<int>(m_columns.size())) {
-        D2D1_COLOR_F accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+        Color accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
 
         float dropX = m_bounds.x - m_scrollX;
         float currX = m_bounds.x - m_scrollX;
@@ -1047,24 +1040,24 @@ void ListView::OnRender(GraphicsContext& ctx) {
 
         float dragColW = m_columns[m_reorderingColumnIndex].width;
         Rect dragCard(m_columnDragCurrentX - dragColW * 0.5f, m_bounds.y + 2.0f, dragColW, m_headerHeight - 4.0f);
-        ctx.FillRoundedRect(dragCard, 4.0f, D2D1::ColorF(accent.r, accent.g, accent.b, 0.45f));
+        ctx.FillRoundedRect(dragCard, 4.0f, accent.WithAlpha(0.45f));
         ctx.DrawRoundedRect(dragCard, 4.0f, accent, 1.5f);
-        ctx.DrawText(m_columns[m_reorderingColumnIndex].header, dragCard, D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f), font, fontH, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(m_columns[m_reorderingColumnIndex].header, dragCard, Color(1.0f, 1.0f, 1.0f, 1.0f), font, fontH, TextAlignment::Center, TextVerticalAlignment::Center, CUI::FontWeight::Bold);
     }
 
     ctx.PopClip();
 
     if (m_middleScrollActive) {
         const bool dark = ThemeManager::Instance().GetThemeMode() == ThemeMode::Dark;
-        D2D1_COLOR_F fill = dark
-            ? D2D1::ColorF(0.18f, 0.18f, 0.20f, 0.92f)
-            : D2D1::ColorF(0.96f, 0.96f, 0.97f, 0.95f);
-        D2D1_COLOR_F stroke = dark
-            ? D2D1::ColorF(0.70f, 0.70f, 0.74f, 0.95f)
-            : D2D1::ColorF(0.35f, 0.35f, 0.40f, 0.90f);
-        D2D1_COLOR_F arrow = dark
-            ? D2D1::ColorF(0.92f, 0.92f, 0.95f, 1.0f)
-            : D2D1::ColorF(0.20f, 0.20f, 0.24f, 1.0f);
+        Color fill = dark
+            ? Color(0.18f, 0.18f, 0.20f, 0.92f)
+            : Color(0.96f, 0.96f, 0.97f, 0.95f);
+        Color stroke = dark
+            ? Color(0.70f, 0.70f, 0.74f, 0.95f)
+            : Color(0.35f, 0.35f, 0.40f, 0.90f);
+        Color arrow = dark
+            ? Color(0.92f, 0.92f, 0.95f, 1.0f)
+            : Color(0.20f, 0.20f, 0.24f, 1.0f);
         MiddleClickAutoscroll::PaintOriginIndicator(
             ctx,
             m_middleOrigin,
@@ -1185,7 +1178,7 @@ void ListView::OnMouseMove(Point pt) {
 
     if (m_middleScrollActive) {
         m_middleLastMouse = pt;
-        ::SetCursor(GetCursor());
+        UpdateCursor();
         RequestAnimationTicks();
         const float r = MiddleClickAutoscroll::kIndicatorRadius + 4.0f;
         MarkRenderRectDirty(Rect(m_middleOrigin.x - r, m_middleOrigin.y - r, r * 2.0f, r * 2.0f));
@@ -1477,7 +1470,7 @@ bool ListView::OnMiddleButtonDown(Point pt) {
     m_scrollYAnim.Reset(m_scrollY);
     m_scrollbarAutoHide.NotifyActivity(this);
     RequestAnimationTicks();
-    ::SetCursor(GetCursor());
+    UpdateCursor();
     const float r = MiddleClickAutoscroll::kIndicatorRadius + 4.0f;
     MarkRenderRectDirty(Rect(m_middleOrigin.x - r, m_middleOrigin.y - r, r * 2.0f, r * 2.0f));
     return true;

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 /**
  * @file Widgets.h
  * @brief 具体控件句柄声明表（自动生成）。
@@ -105,7 +105,7 @@ public: using WidgetBase::WidgetBase;
 class ColorPicker : public WidgetBase<ColorPicker, ::CUI::ColorPicker> {
 public: using WidgetBase::WidgetBase;
     ColorPicker& PopupOpen(bool v1) const { impl_->ApplyPopupOpen(v1); return self(); }
-    ColorPicker& SelectedColor(D2D1_COLOR_F v1) const { impl_->ApplySelectedColor(v1); return self(); }
+    ColorPicker& SelectedColor(::CUI::Color v1) const { impl_->ApplySelectedColor(v1); return self(); }
 };
 class ComboBox : public WidgetBase<ComboBox, ::CUI::ComboBox> {
 public: using WidgetBase::WidgetBase;
@@ -145,8 +145,8 @@ public: using WidgetBase::WidgetBase;
 };
 class Ellipse : public WidgetBase<Ellipse, ::CUI::Ellipse> {
 public: using WidgetBase::WidgetBase;
-    Ellipse& Fill(D2D1_COLOR_F v1) const { impl_->ApplyFill(v1); return self(); }
-    Ellipse& Stroke(D2D1_COLOR_F v1) const { impl_->ApplyStroke(v1); return self(); }
+    Ellipse& Fill(::CUI::Color v1) const { impl_->ApplyFill(v1); return self(); }
+    Ellipse& Stroke(::CUI::Color v1) const { impl_->ApplyStroke(v1); return self(); }
     Ellipse& StrokeThickness(float v1) const { impl_->ApplyStrokeThickness(v1); return self(); }
     Ellipse& Stretch(::CUI::Stretch v1) const { impl_->ApplyStretch(v1); return self(); }
 };
@@ -191,7 +191,7 @@ class Image : public WidgetBase<Image, ::CUI::Image> {
 public: using WidgetBase::WidgetBase;
     Image& ImageType(::CUI::ImageType v1) const { impl_->ApplyImageType(v1); return self(); }
     Image& BadgeText(const std::string& v1) const { impl_->ApplyBadgeText(v1); return self(); }
-    Image& BadgeColor(D2D1_COLOR_F v1) const { impl_->ApplyBadgeColor(v1); return self(); }
+    Image& BadgeColor(::CUI::Color v1) const { impl_->ApplyBadgeColor(v1); return self(); }
     Image& Stretch(::CUI::Stretch v1) const { impl_->ApplyStretch(v1); return self(); }
     Image& Bitmap(ID2D1Bitmap1* v1) const { impl_->ApplyBitmap(v1); return self(); }
 };
@@ -211,8 +211,8 @@ public: using WidgetBase::WidgetBase;
     Line& Y1(float v1) const { impl_->ApplyY1(v1); return self(); }
     Line& X2(float v1) const { impl_->ApplyX2(v1); return self(); }
     Line& Y2(float v1) const { impl_->ApplyY2(v1); return self(); }
-    Line& Fill(D2D1_COLOR_F v1) const { impl_->ApplyFill(v1); return self(); }
-    Line& Stroke(D2D1_COLOR_F v1) const { impl_->ApplyStroke(v1); return self(); }
+    Line& Fill(::CUI::Color v1) const { impl_->ApplyFill(v1); return self(); }
+    Line& Stroke(::CUI::Color v1) const { impl_->ApplyStroke(v1); return self(); }
     Line& StrokeThickness(float v1) const { impl_->ApplyStrokeThickness(v1); return self(); }
     Line& Stretch(::CUI::Stretch v1) const { impl_->ApplyStretch(v1); return self(); }
 };
@@ -304,8 +304,8 @@ public: using WidgetBase::WidgetBase;
 class Path : public WidgetBase<Path, ::CUI::Path> {
 public: using WidgetBase::WidgetBase;
     Path& Data(const std::string& v1) const { impl_->ApplyData(v1); return self(); }
-    Path& Fill(D2D1_COLOR_F v1) const { impl_->ApplyFill(v1); return self(); }
-    Path& Stroke(D2D1_COLOR_F v1) const { impl_->ApplyStroke(v1); return self(); }
+    Path& Fill(::CUI::Color v1) const { impl_->ApplyFill(v1); return self(); }
+    Path& Stroke(::CUI::Color v1) const { impl_->ApplyStroke(v1); return self(); }
     Path& StrokeThickness(float v1) const { impl_->ApplyStrokeThickness(v1); return self(); }
     Path& Stretch(::CUI::Stretch v1) const { impl_->ApplyStretch(v1); return self(); }
 };
@@ -361,8 +361,8 @@ public: using WidgetBase::WidgetBase;
 class Rectangle : public WidgetBase<Rectangle, ::CUI::Rectangle> {
 public: using WidgetBase::WidgetBase;
     Rectangle& CornerRadius(float v1) const { impl_->ApplyCornerRadius(v1); return self(); }
-    Rectangle& Fill(D2D1_COLOR_F v1) const { impl_->ApplyFill(v1); return self(); }
-    Rectangle& Stroke(D2D1_COLOR_F v1) const { impl_->ApplyStroke(v1); return self(); }
+    Rectangle& Fill(::CUI::Color v1) const { impl_->ApplyFill(v1); return self(); }
+    Rectangle& Stroke(::CUI::Color v1) const { impl_->ApplyStroke(v1); return self(); }
     Rectangle& StrokeThickness(float v1) const { impl_->ApplyStrokeThickness(v1); return self(); }
     Rectangle& Stretch(::CUI::Stretch v1) const { impl_->ApplyStretch(v1); return self(); }
 };
@@ -402,9 +402,9 @@ public: using WidgetBase::WidgetBase;
 class SvgIcon : public WidgetBase<SvgIcon, ::CUI::SvgIcon> {
 public: using WidgetBase::WidgetBase;
     SvgIcon& Source(const std::string& v1) const { impl_->ApplySource(v1); return self(); }
-    SvgIcon& TintColor(D2D1_COLOR_F v1) const { impl_->ApplyTintColor(v1); return self(); }
-    SvgIcon& Fill(D2D1_COLOR_F v1) const { impl_->ApplyFill(v1); return self(); }
-    SvgIcon& Stroke(D2D1_COLOR_F v1) const { impl_->ApplyStroke(v1); return self(); }
+    SvgIcon& TintColor(::CUI::Color v1) const { impl_->ApplyTintColor(v1); return self(); }
+    SvgIcon& Fill(::CUI::Color v1) const { impl_->ApplyFill(v1); return self(); }
+    SvgIcon& Stroke(::CUI::Color v1) const { impl_->ApplyStroke(v1); return self(); }
     SvgIcon& StrokeThickness(float v1) const { impl_->ApplyStrokeThickness(v1); return self(); }
     SvgIcon& Stretch(::CUI::Stretch v1) const { impl_->ApplyStretch(v1); return self(); }
 };

@@ -463,10 +463,10 @@ void ListBox::PaintItemsRange(GraphicsContext& ctx, int startIdx, int endIdx, fl
     float itemH = GetItemHeight();
     float fontH = GetFontSize();
     std::string font = GetFontFamily();
-    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-    D2D1_COLOR_F selectedBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
-    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
-    D2D1_COLOR_F focusBorderColor = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
+    Color textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    Color selectedBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
+    Color hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    Color focusBorderColor = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
     bool isFocused = m_isFocused;
 
     for (int i = startIdx; i <= endIdx; ++i) {
@@ -493,9 +493,9 @@ void ListBox::PaintItemsRange(GraphicsContext& ctx, int startIdx, int endIdx, fl
             m_itemDatas[i].customElement->Render(ctx);
         } else {
             std::string itemText = GetItemAt(i);
-            D2D1_COLOR_F textClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor;
+            Color textClr = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor;
             Rect textRect(itemRect.x + 8.0f, itemRect.y, itemRect.width - 16.0f, itemRect.height);
-            ctx.DrawText(itemText, textRect, textClr, font, fontH, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            ctx.DrawText(itemText, textRect, textClr, font, fontH, TextAlignment::Left, TextVerticalAlignment::Center);
         }
     }
 }
@@ -516,19 +516,16 @@ void ListBox::RenderItemsLayer(GraphicsContext& ctx, float itemW) {
         || !m_itemsLayerCachesFull
         || !m_itemsLayer.IsValid()
         || m_itemsLayer.NeedsContentRaster()
-        || !m_itemsLayer.GetCacheBitmap();
+        || !m_itemsLayer.HasCache();
 
     if (needsRerender) {
         Rect contentWorld(m_bounds.x + 2.0f, m_bounds.y + 2.0f, itemW, contentH);
-        D2D1_COLOR_F clearBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+        Color clearBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
         clearBg.a = 1.0f;
         if (ctx.PushLayerTarget(m_itemsLayer, cacheSize, contentWorld, clearBg)) {
-            auto* d2d = ctx.GetD2DContext();
-            D2D1_MATRIX_3X2_F oldTransform{};
-            d2d->GetTransform(&oldTransform);
-            d2d->SetTransform(D2D1::Matrix3x2F::Translation(-contentWorld.x, -contentWorld.y));
+            ctx.PushTranslation(-contentWorld.x, -contentWorld.y);
             PaintItemsRange(ctx, 0, static_cast<int>(GetItemCount()) - 1, itemW, 0.0f);
-            d2d->SetTransform(oldTransform);
+            ctx.PopTransform();
             ctx.PopLayerTarget(m_itemsLayer);
             m_itemsLayer.Validate();
             m_itemsLayerCachesFull = true;
@@ -563,8 +560,8 @@ void ListBox::OnRender(GraphicsContext& ctx) {
     ClampScroll();
 
     float radius = GetCornerRadius();
-    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
-    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    Color bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    Color border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     float borderThick = GetBorderThickness();
     const bool dropReady = m_dropInsertIndex >= 0;
 
@@ -573,7 +570,7 @@ void ListBox::OnRender(GraphicsContext& ctx) {
         ctx.FillRoundedRect(
             m_bounds,
             radius,
-            D2D1::ColorF(
+            Color(
                 bg.r * 0.72f + accent.r * 0.28f,
                 bg.g * 0.72f + accent.g * 0.28f,
                 bg.b * 0.72f + accent.b * 0.28f,
@@ -610,9 +607,9 @@ void ListBox::OnRender(GraphicsContext& ctx) {
 
         Rect thumbRect(trackX, thumbY, 6.0f, thumbH);
         const float vis = m_scrollbarAutoHide.Opacity();
-        D2D1_COLOR_F thumbBg = m_isDraggingScrollbar
-            ? D2D1::ColorF(border.r, border.g, border.b, 0.8f * vis)
-            : D2D1::ColorF(border.r, border.g, border.b, 0.5f * vis);
+        Color thumbBg = m_isDraggingScrollbar
+            ? Color(border.r, border.g, border.b, 0.8f * vis)
+            : Color(border.r, border.g, border.b, 0.5f * vis);
 
         ctx.FillRoundedRect(thumbRect, 3.0f, thumbBg);
     }

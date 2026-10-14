@@ -34,13 +34,13 @@ size_t TextLayoutCache::KeyHasher::operator()(const Key& key) const {
     return seed;
 }
 
-Microsoft::WRL::ComPtr<IDWriteTextLayout> TextLayoutCache::GetOrCreate(const Key& key) {
+TextLayout TextLayoutCache::GetOrCreate(const Key& key) {
     auto found = m_cache.find(key);
     if (found != m_cache.end()) {
         return found->second;
     }
 
-    GraphicsContext::TextLayoutOptions options;
+    TextLayoutOptions options;
     options.maxWidth = key.maxWidth;
     options.maxHeight = key.maxHeight;
     options.wrapping = key.wrapping;
@@ -48,7 +48,7 @@ Microsoft::WRL::ComPtr<IDWriteTextLayout> TextLayoutCache::GetOrCreate(const Key
     options.lineSpacing = key.lineSpacing;
     options.lineHeight = key.lineHeight;
 
-    auto layout = GraphicsContext::CreateTextLayout(key.text, key.fontName, key.fontSize, options, key.weight, key.style, key.stretch);
+    auto layout = TextLayout::Create(key.text, key.fontName, key.fontSize, options, key.weight, key.style, key.stretch);
     m_cache.emplace(key, layout);
     return layout;
 }

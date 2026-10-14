@@ -2,7 +2,6 @@
 // Temporary diagnostics for ProgressBar indeterminate / compose path.
 // Log: %TEMP%\CUI_ProgressBar.log  (also copied path via OutputDebugString)
 
-#include <windows.h>
 #include <cstdio>
 #include <cstdarg>
 #include <mutex>

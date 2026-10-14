@@ -9,13 +9,13 @@
 
 namespace CUI {
 
-D2D1_COLOR_F ChartPaletteColor(int index) {
+Color ChartPaletteColor(int index) {
     static const unsigned int kPalette[] = {
         0x0078D4u, 0x13A10Eu, 0xD83B01u, 0x8764B8u,
         0x00B7C3u, 0xE74856u, 0xFFB900u, 0xC239B3u
     };
     const unsigned int rgb = kPalette[index < 0 ? 0 : (index % 8)];
-    return D2D1::ColorF(
+    return Color(
         static_cast<float>((rgb >> 16) & 0xFFu) / 255.0f,
         static_cast<float>((rgb >> 8) & 0xFFu) / 255.0f,
         static_cast<float>(rgb & 0xFFu) / 255.0f,

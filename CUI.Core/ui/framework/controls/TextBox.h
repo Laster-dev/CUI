@@ -3,8 +3,6 @@
 #include "../text/TextLayoutCache.h"
 #include "../dnd/DragDropService.h"
 #include <vector>
-#include <dwrite.h>
-#include <wrl/client.h>
 
 namespace CUI {
 
@@ -25,7 +23,7 @@ public:
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
     void ApplyProperty(PropertyId id, const Value& val) override;
-    virtual HCURSOR GetCursor() const override;
+    virtual CursorType GetCursor() const override;
     bool AcceptsTabFocus() const override { return true; }
 
     virtual Size Measure(Size availableSize) override;
@@ -160,11 +158,11 @@ private:
     Rect GetTextRect() const;
     Point GetLayoutOrigin(const Rect& textRect) const;
 
-    Microsoft::WRL::ComPtr<IDWriteTextLayout> BuildTextLayout(GraphicsContext& ctx, const std::wstring& wtext,
-                                                              const Rect& textRect) const;
+    TextLayout BuildTextLayout(GraphicsContext& ctx, const std::wstring& wtext,
+                               const Rect& textRect) const;
 
     int GetCaretIndexFromPoint(GraphicsContext& ctx, float x, float y);
-    GraphicsContext::TextCaretInfo GetCaretScreenPos(GraphicsContext& ctx, int caretPos);
+    TextCaretInfo GetCaretScreenPos(GraphicsContext& ctx, int caretPos);
     void EnsureCaretVisible(GraphicsContext& ctx);
     void ClampScrollOffsets(GraphicsContext& ctx, const std::wstring& wtext, const Rect& textRect);
     float GetContentWidth(GraphicsContext& ctx, const std::wstring& wtext, const Rect& textRect) const;

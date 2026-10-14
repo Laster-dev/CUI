@@ -31,7 +31,7 @@ public:
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
     void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
-    virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取悬浮交互鼠标样式
+    virtual CursorType GetCursor() const override { return IsEnabled() ? CursorType::Hand : CursorType::Arrow; } // 获取悬浮交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 计算日期展示框的理想自适应尺寸
     virtual void OnRender(GraphicsContext& ctx) override; // 绘制正常状态下的日期标签与下拉箭头

@@ -12,7 +12,7 @@ namespace Gallery {
 
 namespace {
 
-std::shared_ptr<CUI::Button> MakeChip(const std::string& text, D2D1_COLOR_F color, float flexGrow = 0.0f) {
+std::shared_ptr<CUI::Button> MakeChip(const std::string& text, Color color, float flexGrow = 0.0f) {
     CUI::Widgets::Ref b =ElevatedButton(text).Background(color).Padding(14, 8, 14, 8).Build();
     if (flexGrow > 0.0f) {
                 b.FlexGrow(flexGrow);

@@ -20,9 +20,8 @@ AnimationSpec PillSlideSpec() {
     return s;
 }
 
-D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
-    c.a = a;
-    return c;
+Color WithAlpha(Color c, float a) {
+    return c.WithAlpha(a);
 }
 } // namespace
 
@@ -174,7 +173,7 @@ float SegmentedControl::MeasureContentWidth() const {
     const std::string& font = GetFontFamily();
     const float fontSize = GetFontSize();
     for (const auto& item : m_items) {
-        const Size ts = ctx.MeasureText(item, font, fontSize, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+        const Size ts = ctx.MeasureText(item, font, fontSize, CUI::FontWeight::SemiBold);
         total += (std::max)(48.0f, ts.width + 28.0f);
     }
     if (m_items.empty()) {
@@ -239,12 +238,12 @@ void SegmentedControl::SyncPill(bool snap) {
 
 void SegmentedControl::OnRender(GraphicsContext& ctx) {
     const float radius = (std::max)(0.0f, GetCornerRadius());
-    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetFlatColor(ThemeTokenId::InputBackground));
-    D2D1_COLOR_F accent = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
-    D2D1_COLOR_F accentFg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentForeground);
-    D2D1_COLOR_F selectedFill = ResolveThemeColor(GetSelectedItemBackgroundToken(), ThemeTokenId::AccentColor);
-    D2D1_COLOR_F idleText = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentColor);
-    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    Color bg = GetAnimatedBackground(ThemeManager::Instance().GetFlatColor(ThemeTokenId::InputBackground));
+    Color accent = ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor);
+    Color accentFg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentForeground);
+    Color selectedFill = ResolveThemeColor(GetSelectedItemBackgroundToken(), ThemeTokenId::AccentColor);
+    Color idleText = ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentColor);
+    Color hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
 
     // 1. Control Background
     if (radius > 0.0f) {
@@ -293,7 +292,7 @@ void SegmentedControl::OnRender(GraphicsContext& ctx) {
         const Rect cell = SegmentRect(i);
         const bool selected = (i == m_selectedIndex);
         const bool itemEnabled = IsItemEnabled(i);
-        D2D1_COLOR_F textColor;
+        Color textColor;
         if (!itemEnabled) {
             textColor = WithAlpha(idleText, 0.35f);
         } else if (selected) {
@@ -307,13 +306,13 @@ void SegmentedControl::OnRender(GraphicsContext& ctx) {
             textColor,
             font,
             fontSize,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            selected ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+            TextAlignment::Center,
+            TextVerticalAlignment::Center,
+            selected ? CUI::FontWeight::SemiBold : CUI::FontWeight::Normal);
     }
 
     // 6. Outer Border / Focus Indicator
-    const D2D1_COLOR_F outline = IsFocused()
+    const Color outline = IsFocused()
         ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
         : accent;
     const float bt = (std::max)(1.0f, GetBorderThickness());

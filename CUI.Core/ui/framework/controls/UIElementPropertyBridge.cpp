@@ -10,7 +10,7 @@ namespace CUI {
 
 namespace {
 
-bool ColorUnchanged(bool has, const D2D1_COLOR_F& cur, const D2D1_COLOR_F& next) {
+bool ColorUnchanged(bool has, const Color& cur, const Color& next) {
     return has && cur.r == next.r && cur.g == next.g && cur.b == next.b && cur.a == next.a;
 }
 
@@ -942,80 +942,10 @@ void UIElement::ApplyFontSize(float size) {
     NotifyFieldChanged(PropertyId::FontSize, Value(size));
 }
 
-const char* FontWeightToString(FontWeight value) {
-    switch (value) {
-    case CUI::FontWeight::Thin: return "Thin";
-    case CUI::FontWeight::ExtraLight: return "ExtraLight";
-    case CUI::FontWeight::Light: return "Light";
-    case CUI::FontWeight::Medium: return "Medium";
-    case CUI::FontWeight::SemiBold: return "SemiBold";
-    case CUI::FontWeight::Bold: return "Bold";
-    case CUI::FontWeight::ExtraBold: return "ExtraBold";
-    case CUI::FontWeight::Black: return "Black";
-    default: return "Normal";
-    }
-}
-
-FontWeight FontWeightFromString(const std::string& value) {
-    if (value == "Thin") return CUI::FontWeight::Thin;
-    if (value == "ExtraLight") return CUI::FontWeight::ExtraLight;
-    if (value == "Light") return CUI::FontWeight::Light;
-    if (value == "Medium") return CUI::FontWeight::Medium;
-    if (value == "SemiBold") return CUI::FontWeight::SemiBold;
-    if (value == "Bold") return CUI::FontWeight::Bold;
-    if (value == "ExtraBold") return CUI::FontWeight::ExtraBold;
-    if (value == "Black") return CUI::FontWeight::Black;
-    return CUI::FontWeight::Normal;
-}
-
-const char* FontStyleToString(FontStyle value) {
-    switch (value) {
-    case CUI::FontStyle::Italic: return "Italic";
-    case CUI::FontStyle::Oblique: return "Oblique";
-    default: return "Normal";
-    }
-}
-
-FontStyle FontStyleFromString(const std::string& value) {
-    if (value == "Italic") return CUI::FontStyle::Italic;
-    if (value == "Oblique") return CUI::FontStyle::Oblique;
-    return CUI::FontStyle::Normal;
-}
-
-const char* FontStretchToString(FontStretch value) {
-    switch (value) {
-    case CUI::FontStretch::UltraCondensed: return "UltraCondensed";
-    case CUI::FontStretch::ExtraCondensed: return "ExtraCondensed";
-    case CUI::FontStretch::Condensed: return "Condensed";
-    case CUI::FontStretch::SemiCondensed: return "SemiCondensed";
-    case CUI::FontStretch::SemiExpanded: return "SemiExpanded";
-    case CUI::FontStretch::Expanded: return "Expanded";
-    case CUI::FontStretch::ExtraExpanded: return "ExtraExpanded";
-    case CUI::FontStretch::UltraExpanded: return "UltraExpanded";
-    default: return "Normal";
-    }
-}
-
-FontStretch FontStretchFromString(const std::string& value) {
-    if (value == "UltraCondensed") return CUI::FontStretch::UltraCondensed;
-    if (value == "ExtraCondensed") return CUI::FontStretch::ExtraCondensed;
-    if (value == "Condensed") return CUI::FontStretch::Condensed;
-    if (value == "SemiCondensed") return CUI::FontStretch::SemiCondensed;
-    if (value == "SemiExpanded") return CUI::FontStretch::SemiExpanded;
-    if (value == "Expanded") return CUI::FontStretch::Expanded;
-    if (value == "ExtraExpanded") return CUI::FontStretch::ExtraExpanded;
-    if (value == "UltraExpanded") return CUI::FontStretch::UltraExpanded;
-    return CUI::FontStretch::Normal;
-}
-
 void UIElement::ApplyFontWeight(CUI::FontWeight weight) {
     if (m_fontWeight == weight) return;
     m_fontWeight = weight;
     NotifyFieldChanged(PropertyId::FontWeight, Value(FontWeightToString(weight)));
-}
-
-DWRITE_FONT_WEIGHT UIElement::ResolveFontWeight() const {
-    return static_cast<DWRITE_FONT_WEIGHT>(m_fontWeight);
 }
 
 void UIElement::ApplyFontStyle(CUI::FontStyle style) {
@@ -1024,18 +954,10 @@ void UIElement::ApplyFontStyle(CUI::FontStyle style) {
     NotifyFieldChanged(PropertyId::FontStyle, Value(FontStyleToString(style)));
 }
 
-DWRITE_FONT_STYLE UIElement::ResolveFontStyle() const {
-    return static_cast<DWRITE_FONT_STYLE>(m_fontStyle);
-}
-
 void UIElement::ApplyFontStretch(CUI::FontStretch stretch) {
     if (m_fontStretch == stretch) return;
     m_fontStretch = stretch;
     NotifyFieldChanged(PropertyId::FontStretch, Value(FontStretchToString(stretch)));
-}
-
-DWRITE_FONT_STRETCH UIElement::ResolveFontStretch() const {
-    return static_cast<DWRITE_FONT_STRETCH>(m_fontStretch);
 }
 
 void UIElement::ApplyIsUnderline(bool underline) {
@@ -1069,7 +991,7 @@ void UIElement::ApplyIcon(const std::string& icon) {
 
 // --- Theme resolve ---
 
-D2D1_COLOR_F UIElement::ResolveThemeColor(ThemeTokenId token, ThemeTokenId fallback) const {
+Color UIElement::ResolveThemeColor(ThemeTokenId token, ThemeTokenId fallback) const {
     ThemeTokenId id = (token != ThemeTokenId::Unset) ? token : fallback;
     if (id == ThemeTokenId::Unset) {
         id = ThemeTokenId::TextPrimary;
@@ -1077,7 +999,7 @@ D2D1_COLOR_F UIElement::ResolveThemeColor(ThemeTokenId token, ThemeTokenId fallb
     return ThemeManager::Instance().GetColor(id);
 }
 
-D2D1_COLOR_F UIElement::ResolveThemeColor(PropertyId tokenId, ThemeTokenId fallback) const {
+Color UIElement::ResolveThemeColor(PropertyId tokenId, ThemeTokenId fallback) const {
     ThemeTokenId id = ThemeTokenId::Unset;
     switch (tokenId) {
     case PropertyId::BackgroundToken: id = m_backgroundToken; break;
@@ -1161,7 +1083,7 @@ void UIElement::ApplyProperty(PropertyId id, const Value& val) {
     }
 }
 
-void UIElement::ApplyBackground(D2D1_COLOR_F c) {
+void UIElement::ApplyBackground(Color c) {
     if (ColorUnchanged(m_hasBackgroundColor, m_backgroundColor, c)) return;
     m_backgroundColor = c;
     m_hasBackgroundColor = true;
@@ -1169,7 +1091,7 @@ void UIElement::ApplyBackground(D2D1_COLOR_F c) {
     NotifyFieldChanged(PropertyId::Background, Value(c));
 }
 
-void UIElement::ApplyHoverBackground(D2D1_COLOR_F c) {
+void UIElement::ApplyHoverBackground(Color c) {
     if (ColorUnchanged(m_hasHoverBackgroundColor, m_hoverBackgroundColor, c)) return;
     m_hoverBackgroundColor = c;
     m_hasHoverBackgroundColor = true;
@@ -1177,7 +1099,7 @@ void UIElement::ApplyHoverBackground(D2D1_COLOR_F c) {
     NotifyFieldChanged(PropertyId::HoverBackground, Value(c));
 }
 
-void UIElement::ApplyPressedBackground(D2D1_COLOR_F c) {
+void UIElement::ApplyPressedBackground(Color c) {
     if (ColorUnchanged(m_hasPressedBackgroundColor, m_pressedBackgroundColor, c)) return;
     m_pressedBackgroundColor = c;
     m_hasPressedBackgroundColor = true;
@@ -1185,7 +1107,7 @@ void UIElement::ApplyPressedBackground(D2D1_COLOR_F c) {
     NotifyFieldChanged(PropertyId::PressedBackground, Value(c));
 }
 
-void UIElement::ApplyBorderBrush(D2D1_COLOR_F c) {
+void UIElement::ApplyBorderBrush(Color c) {
     if (ColorUnchanged(m_hasBorderBrushColor, m_borderBrushColor, c)) return;
     m_borderBrushColor = c;
     m_hasBorderBrushColor = true;
@@ -1193,7 +1115,7 @@ void UIElement::ApplyBorderBrush(D2D1_COLOR_F c) {
     NotifyFieldChanged(PropertyId::BorderBrush, Value(c));
 }
 
-void UIElement::ApplyColor(D2D1_COLOR_F c) {
+void UIElement::ApplyColor(Color c) {
     if (ColorUnchanged(m_hasColorValue, m_colorValue, c)) return;
     m_colorValue = c;
     m_hasColorValue = true;

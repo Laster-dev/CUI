@@ -82,22 +82,22 @@ public:
 
     void OnRender(GraphicsContext& ctx) override {
         const Rect rc = GetBounds();
-        D2D1_COLOR_F bg = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+        Color bg = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
         bg.a = m_opacityScalar.Current();
         ctx.FillRoundedRect(rc, m_radiusScalar.Current(), bg);
 
-        D2D1_COLOR_F border = ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder);
+        Color border = ThemeManager::Instance().GetColor(ThemeTokenId::CardBorder);
         ctx.DrawRoundedRect(rc, m_radiusScalar.Current(), border, 1.5f);
 
         std::string txt = m_expanded ? "展开态：W360 H100 R24" : "初始态：W160 H60 R8";
         ctx.DrawText(
             txt,
             rc,
-            D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f),
+            Color::White,
             "微软雅黑",
             13.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            TextAlignment::Center,
+            TextVerticalAlignment::Center);
     }
 
 private:

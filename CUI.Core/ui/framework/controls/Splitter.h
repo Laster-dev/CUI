@@ -14,7 +14,7 @@ public:
     virtual ~Splitter() = default;
 
     virtual const char* GetClassName() const override { return "Splitter"; } // 获取类名
-    virtual HCURSOR GetCursor() const override; // 获取悬浮交互时的 Windows 拖拽鼠标指针样式（根据朝向返回左右/上下箭头）
+    virtual CursorType GetCursor() const override; // 获取悬浮交互时的 Windows 拖拽鼠标指针样式（根据朝向返回左右/上下箭头）
 
     virtual Size Measure(Size availableSize) override; // 计算拆分条本身的静态厚度与尺寸
     virtual UIElement* HitTest(float x, float y) override; // 碰撞命中测试

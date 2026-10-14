@@ -121,7 +121,7 @@ Size ComboBox::Measure(Size availableSize) {
 
 void ComboBox::OnRender(GraphicsContext& ctx) {
     float radius = GetCornerRadius();
-    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetFlatColor(ThemeTokenId::InputBackground));
+    Color bg = GetAnimatedBackground(ThemeManager::Instance().GetFlatColor(ThemeTokenId::InputBackground));
     if (m_isDropDownOpen) {
         bg = BlendColor(bg, ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground), 0.8f);
     }
@@ -132,7 +132,7 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
         ctx.FillRect(m_bounds, bg);
     }
 
-    D2D1_COLOR_F borderBrush = m_hasBorderBrushColor
+    Color borderBrush = m_hasBorderBrushColor
         ? m_borderBrushColor
         : ((m_isFocused || m_isDropDownOpen)
             ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
@@ -156,7 +156,7 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
         if (displayText.empty()) displayText = "Select option...";
     }
 
-    D2D1_COLOR_F textColor = m_hasColorValue
+    Color textColor = m_hasColorValue
         ? m_colorValue
         : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     const std::string& font = GetFontFamily();
@@ -169,7 +169,7 @@ void ComboBox::OnRender(GraphicsContext& ctx) {
         m_bounds.y + padding.top,
         (std::max)(0.0f, m_bounds.width - padding.left - padding.right - kChevron - kChevronPad),
         m_bounds.height - padding.top - padding.bottom);
-    ctx.DrawText(displayText, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(displayText, textRect, textColor, font, fontSize, TextAlignment::Left, TextVerticalAlignment::Center);
 
     const bool open = m_isDropDownOpen || m_arrowAnim.Current() > 0.5f;
     const Rect arrowRect(
@@ -207,8 +207,8 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
 
-    D2D1_COLOR_F dropBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
-    D2D1_COLOR_F selBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::SelectedBackground);
+    Color dropBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+    Color selBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::SelectedBackground);
     float radius = GetCornerRadius();
     if (radius < 0.0f) radius = 4.0f;
 
@@ -223,8 +223,8 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
             ctx.FillRoundedRect(itemRect, 2.0f, selBg);
         }
 
-        D2D1_COLOR_F itemColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
-        ctx.DrawText(m_items[i], Rect(itemRect.x + 8, itemRect.y, itemRect.width - 16, itemRect.height), itemColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        Color itemColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+        ctx.DrawText(m_items[i], Rect(itemRect.x + 8, itemRect.y, itemRect.width - 16, itemRect.height), itemColor, font, fontSize, TextAlignment::Left, TextVerticalAlignment::Center);
     }
 
     // Scrollbar
@@ -237,8 +237,7 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
             const Rect trackRect(trackX, menuRect.y, kScrollW, menuH);
             const float vis = m_scrollbarAutoHide.Opacity();
 
-            D2D1_COLOR_F trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
-            trackColor.a = 0.35f * vis;
+            Color trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder).WithAlpha(0.35f * vis);
             ctx.DrawRoundedRect(trackRect, 4.0f, trackColor, 1.0f);
 
             const float thumbH = (std::max)(16.0f, (menuH * menuH) / contentH);
@@ -246,8 +245,7 @@ void ComboBox::RenderPopup(GraphicsContext& ctx) {
             const float thumbY = trackRect.y + (m_scrollOffset / maxScroll) * travel;
             Rect thumbRect(trackX + 1.5f, thumbY, kScrollW - 3.0f, thumbH);
 
-            D2D1_COLOR_F thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
-            thumbColor.a = 0.45f * vis;
+            Color thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor).WithAlpha(0.45f * vis);
             ctx.FillRoundedRect(thumbRect, 4.0f, thumbColor);
         }
     }

@@ -8,7 +8,7 @@ namespace CUI {
 struct ChartSeries {
     std::string name;
     std::vector<float> values;
-    D2D1_COLOR_F color{ 0.0f, 0.0f, 0.0f, 0.0f };
+    Color color{ 0.0f, 0.0f, 0.0f, 0.0f };
     bool hasColor = false;
 };
 
@@ -17,7 +17,7 @@ struct ChartTick {
     std::string label;
 };
 
-D2D1_COLOR_F ChartPaletteColor(int index);
+Color ChartPaletteColor(int index);
 std::string FormatChartNumber(float value);
 void ComputeNiceScale(float minValue, float maxValue, int maxTicks,
                       float& niceMin, float& niceMax, std::vector<ChartTick>& ticks);

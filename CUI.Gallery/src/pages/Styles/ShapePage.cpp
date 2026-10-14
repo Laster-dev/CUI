@@ -12,9 +12,9 @@ namespace Gallery {
 
 Element BuildShapePage() {
     ThemeManager& tm = ThemeManager::Instance();
-    const D2D1_COLOR_F accent = tm.GetFlatColor(ThemeTokenId::AccentColor);
-    const D2D1_COLOR_F cardBg = tm.GetFlatColor(ThemeTokenId::CardBackground);
-    const D2D1_COLOR_F cardBorder = tm.GetFlatColor(ThemeTokenId::CardBorder);
+    const Color accent = tm.GetFlatColor(ThemeTokenId::AccentColor);
+    const Color cardBg = tm.GetFlatColor(ThemeTokenId::CardBackground);
+    const Color cardBorder = tm.GetFlatColor(ThemeTokenId::CardBorder);
 
     // 圆角矩形阶梯
     auto radiusRow = Row(16, {});
@@ -38,7 +38,7 @@ Element BuildShapePage() {
     ellipse->Stroke = accent;
     ellipse->StrokeThickness = 1.5f;
     CUI::Widgets::Ref hollow = CUI::Widgets::Ellipse().Width(56.0f).Height(56.0f).Shared();
-    hollow->Fill = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f);
+    hollow->Fill = Color::Transparent;
     hollow->Stroke = cardBorder;
     hollow->StrokeThickness = 1.0f;
 

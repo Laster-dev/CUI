@@ -132,11 +132,11 @@ int HexEditor::HitTestNibble(float x, float y) const {
 }
 
 void HexEditor::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground);
-    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::InputBorder);
-    D2D1_COLOR_F text = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-    D2D1_COLOR_F selBg = ThemeManager::Instance().GetColor(ThemeTokenId::SelectedBackground);
-    D2D1_COLOR_F muted = ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary);
+    Color bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground);
+    Color border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::InputBorder);
+    Color text = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    Color selBg = ThemeManager::Instance().GetColor(ThemeTokenId::SelectedBackground);
+    Color muted = ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary);
 
     ctx.FillRect(m_bounds, bg);
     ctx.DrawRect(m_bounds, border, 1.0f);

@@ -24,9 +24,9 @@ Splitter::Splitter() {
     this->ApplyAlign(Alignment::Stretch);
 }
 
-HCURSOR Splitter::GetCursor() const {
-    if (!IsEnabled()) return nullptr;
-    return LoadCursor(nullptr, IsVerticalSplitter() ? IDC_SIZEWE : IDC_SIZENS);
+CursorType Splitter::GetCursor() const {
+    if (!IsEnabled()) return CursorType::Arrow;
+    return IsVerticalSplitter() ? CursorType::SizeWE : CursorType::SizeNS;
 }
 
 void Splitter::ApplyOrientation(CUI::Orientation orientation) {
@@ -185,11 +185,11 @@ void Splitter::OnMouseUp(Point pt) {
 
 void Splitter::OnRender(GraphicsContext& ctx) {
     // WinUI GridSplitter: mostly transparent track, thin accent line when active.
-    D2D1_COLOR_F border = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBorder);
-    D2D1_COLOR_F accent = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::AccentColor);
+    Color border = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBorder);
+    Color accent = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::AccentColor);
     const bool active = m_isHovered || m_isDragging;
 
-    D2D1_COLOR_F track = border;
+    Color track = border;
     track.a = active ? 0.0f : 0.18f;
     if (track.a > 0.01f) {
         ctx.FillRect(m_bounds, track);
@@ -198,13 +198,13 @@ void Splitter::OnRender(GraphicsContext& ctx) {
     if (IsVerticalSplitter()) {
         float lineW = active ? 2.0f : 1.0f;
         float cx = m_bounds.x + (m_bounds.width - lineW) * 0.5f;
-        D2D1_COLOR_F line = active ? accent : border;
+        Color line = active ? accent : border;
         line.a = active ? 1.0f : 0.45f;
         ctx.FillRect(Rect(cx, m_bounds.y + 4.0f, lineW, (std::max)(0.0f, m_bounds.height - 8.0f)), line);
     } else {
         float lineH = active ? 2.0f : 1.0f;
         float cy = m_bounds.y + (m_bounds.height - lineH) * 0.5f;
-        D2D1_COLOR_F line = active ? accent : border;
+        Color line = active ? accent : border;
         line.a = active ? 1.0f : 0.45f;
         ctx.FillRect(Rect(m_bounds.x + 4.0f, cy, (std::max)(0.0f, m_bounds.width - 8.0f), lineH), line);
     }

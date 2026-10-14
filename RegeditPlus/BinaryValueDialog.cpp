@@ -297,10 +297,10 @@ void BinaryValueDialog::OnRenderOverlay(GraphicsContext& ctx) {
                                 D2D1::ColorF(0, 0, 0, 0), true)) {
             const Rect saved = ctx.GetPaintBounds();
             ctx.ApplyPaintBounds(Rect());
-            ctx.PushTransform(D2D1::Matrix3x2F::Translation(-cardX, -cardY));
+            ctx.PushTranslation(-cardX, -cardY);
 
-            D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
-            D2D1_COLOR_F cardBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+            Color cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+            Color cardBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
             ctx.FillRoundedRect(m_dialogBounds, 8.0f, cardBg);
             ctx.DrawRoundedRect(m_dialogBounds, 8.0f, cardBorder, 1.0f);
 

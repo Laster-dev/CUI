@@ -13,7 +13,7 @@ public:
     virtual ~RatingControl() = default;
 
     virtual const char* GetClassName() const override { return "RatingControl"; } // 获取类名
-    virtual HCURSOR GetCursor() const override; // 获取悬浮交互鼠标样式
+    virtual CursorType GetCursor() const override; // 获取悬浮交互鼠标样式
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
     void ApplyProperty(PropertyId id, const CUI::Value& val) override; // 反射设定属性值
@@ -106,7 +106,7 @@ private:
     Rect StarRect(int index) const; // 计算第 index 个星星的局部绘制矩形包络盒
     float ValueFromPoint(Point pt) const; // 根据鼠标坐标反算实际的星级分数
     void DrawStar(GraphicsContext& ctx, const Rect& slot, float fill01,
-                  D2D1_COLOR_F fill, D2D1_COLOR_F empty, D2D1_COLOR_F stroke) const; // 绘制一颗具体的带进度填充的矢量星星
+                  Color fill, Color empty, Color stroke) const; // 绘制一颗具体的带进度填充的矢量星星
     void CommitFromPoint(Point pt); // 从点击位置确立并提交最新分数
 
     float m_value = 0.0f;               // 内部缓存的实际评分分值

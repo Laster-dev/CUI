@@ -1,4 +1,5 @@
 #include "TerminalControl.h"
+#include "terminal/ConPtyBackend.h"
 #include "ContextMenu.h"
 #include "../core/CUIDsl.h"
 #include "../style/ThemeManager.h"
@@ -204,12 +205,12 @@ void TerminalControl::ApplyProperty(PropertyId id, const Value& val) {
     }
 }
 
-HCURSOR TerminalControl::GetCursor() const {
+CursorType TerminalControl::GetCursor() const {
     const Rect surface = GetSurfaceRect();
     if (surface.Contains(m_lastMousePos.x, m_lastMousePos.y)) {
-        return LoadCursor(nullptr, IDC_IBEAM);
+        return CursorType::IBeam;
     }
-    return nullptr;
+    return CursorType::Arrow;
 }
 
 void TerminalControl::BuildFindBar() {
@@ -524,7 +525,7 @@ void TerminalControl::QueueRedraw() {
 }
 
 void TerminalControl::RequestWindowRepaint() {
-    ::HWND hwnd = m_hwnd;
+    ::HWND hwnd = static_cast<::HWND>(m_hwnd);
     if (hwnd != nullptr && m_bounds.width > 0.0f && m_bounds.height > 0.0f) {
         // Invalidate the entire terminal control bounds in physical pixels,
         // ensuring all active/modified terminal rows are within the paint bounds
@@ -642,8 +643,8 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
     }
 
     const float radius = GetCornerRadius();
-    const D2D1_COLOR_F bg = m_terminal->Options().Theme.Background.ToD2D();
-    const D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    const Color bg = m_terminal->Options().Theme.Background;
+    const Color border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     const float borderThick = GetBorderThickness();
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
@@ -653,20 +654,20 @@ void TerminalControl::OnRender(GraphicsContext& ctx) {
 
     if (m_findVisible) {
         const Rect bar = GetFindBarRect();
-        ctx.FillRect(bar, D2D1::ColorF(0x2D2D2D));
+        ctx.FillRect(bar, Color::FromRGB(0x2D, 0x2D, 0x2D));
         ctx.DrawText("Find:", Rect(bar.x + 8.0f, bar.y, 44.0f, bar.height),
-                     D2D1::ColorF(D2D1::ColorF::White), "微软雅黑", 12.0f,
-                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                     Color::White, "微软雅黑", 12.0f,
+                     TextAlignment::Left, TextVerticalAlignment::Center);
         ctx.DrawText(m_findStatus, Rect(bar.x + 280.0f, bar.y, 96.0f, bar.height),
-                     D2D1::ColorF(D2D1::ColorF::Gray), "微软雅黑", 12.0f,
-                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                     Color(0.5f, 0.5f, 0.5f, 1.0f), "微软雅黑", 12.0f,
+                     TextAlignment::Left, TextVerticalAlignment::Center);
         for (int i = 0; i < 3; ++i) {
             const Rect btn = GetFindButtonRect(i);
             const bool hot = (m_hoveredFindButton == i);
-            ctx.FillRoundedRect(btn, 3.0f, hot ? D2D1::ColorF(0x4A4A4A) : D2D1::ColorF(0x3A3A3A));
-            ctx.DrawText(kFindButtonLabels[i], btn, D2D1::ColorF(D2D1::ColorF::White),
+            ctx.FillRoundedRect(btn, 3.0f, hot ? Color::FromRGB(0x4A, 0x4A, 0x4A) : Color::FromRGB(0x3A, 0x3A, 0x3A));
+            ctx.DrawText(kFindButtonLabels[i], btn, Color::White,
                          "微软雅黑", 12.0f,
-                         DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                         TextAlignment::Center, TextVerticalAlignment::Center);
         }
     }
 

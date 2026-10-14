@@ -145,11 +145,11 @@ void MarkdownView::ApplyShowCodeLineNumbers(bool show) {
     MarkRenderRectDirty(m_bounds);
 }
 
-HCURSOR MarkdownView::GetCursor() const {
+CursorType MarkdownView::GetCursor() const {
     if (!m_hoverHref.empty()) {
-        return LoadCursor(nullptr, IDC_HAND);
+        return CursorType::Hand;
     }
-    return LoadCursor(nullptr, IDC_IBEAM);
+    return CursorType::IBeam;
 }
 
 Size MarkdownView::Measure(Size availableSize) {
@@ -430,9 +430,9 @@ void MarkdownView::OnRender(GraphicsContext& ctx) {
     const auto accent = theme.GetColor(ThemeTokenId::AccentColor);
     const auto codeBg = theme.GetColor(ThemeTokenId::InputBackground);
     const auto pane = theme.GetColor(ThemeTokenId::PaneBackground);
-    const D2D1_COLOR_F codeString = D2D1::ColorF(0.62f, 0.78f, 0.49f, 1.0f);
-    const D2D1_COLOR_F codeNumber = D2D1::ColorF(0.86f, 0.62f, 0.34f, 1.0f);
-    const D2D1_COLOR_F codeType = D2D1::ColorF(0.43f, 0.72f, 0.92f, 1.0f);
+    const Color codeString(0.62f, 0.78f, 0.49f, 1.0f);
+    const Color codeNumber(0.86f, 0.62f, 0.34f, 1.0f);
+    const Color codeType(0.43f, 0.72f, 0.92f, 1.0f);
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
     ctx.DrawRoundedRect(m_bounds, radius, border, GetBorderThickness() > 0.0f ? GetBorderThickness() : 1.0f);
@@ -451,17 +451,17 @@ void MarkdownView::OnRender(GraphicsContext& ctx) {
             continue;
         }
         if (block.type == MdPaintBlock::Type::Quote) {
-            ctx.FillRoundedRect(world, 4.0f, D2D1::ColorF(accent.r, accent.g, accent.b, 0.08f));
+            ctx.FillRoundedRect(world, 4.0f, accent.WithAlpha(0.08f));
             ctx.FillRect(Rect(world.x, world.y, 3.0f, world.height), accent);
         } else if (block.type == MdPaintBlock::Type::Code) {
-            D2D1_COLOR_F fill = codeBg;
+            Color fill = codeBg;
             fill.a = 1.0f;
             ctx.FillRoundedRect(world, 6.0f, fill);
             ctx.DrawRoundedRect(world, 6.0f, border, 1.0f);
         } else if (block.type == MdPaintBlock::Type::Hr) {
             ctx.FillRect(
                 Rect(world.x, world.y + world.height * 0.5f, world.width, 1.0f),
-                D2D1::ColorF(border.r, border.g, border.b, 0.85f));
+                border.WithAlpha(0.85f));
         } else if (block.type == MdPaintBlock::Type::Table && block.tableCols > 0) {
             ctx.FillRoundedRect(world, 4.0f, pane);
             ctx.DrawRoundedRect(world, 4.0f, border, 1.0f);
@@ -497,7 +497,7 @@ void MarkdownView::OnRender(GraphicsContext& ctx) {
             const float x1 = run.bounds.x + run.bounds.width * (static_cast<float>(b - run.plainStart) / span);
             ctx.FillRect(
                 Rect(ox + x0, oy + run.bounds.y, (std::max)(2.0f, x1 - x0), (std::max)(run.bounds.height, 16.0f)),
-                D2D1::ColorF(accent.r, accent.g, accent.b, 0.28f));
+                accent.WithAlpha(0.28f));
         }
     }
 
@@ -505,7 +505,7 @@ void MarkdownView::OnRender(GraphicsContext& ctx) {
         if (run.bounds.y + run.bounds.height < vis.y || run.bounds.y > vis.y + vis.height) {
             continue;
         }
-        D2D1_COLOR_F color = text;
+        Color color = text;
         if (run.link) {
             color = accent;
         } else if (run.syntaxKind == MdSyntaxKind::Keyword) {
@@ -524,28 +524,22 @@ void MarkdownView::OnRender(GraphicsContext& ctx) {
             ctx.FillRoundedRect(
                 Rect(dest.x - 3.0f, dest.y + 1.0f, dest.width + 6.0f, dest.height - 1.0f),
                 3.0f,
-                D2D1::ColorF(codeBg.r, codeBg.g, codeBg.b, 0.95f));
+                codeBg.WithAlpha(0.95f));
         }
-        if (run.italic) {
-            GraphicsContext::TextLayoutOptions opt;
-            opt.wrapping = DWRITE_WORD_WRAPPING_NO_WRAP;
-            auto layout = ctx.CreateTextLayout(Utf8ToUtf16(run.text), run.font, run.size, opt, run.weight);
-            if (layout) {
-                const std::wstring w = Utf8ToUtf16(run.text);
-                layout->SetFontStyle(DWRITE_FONT_STYLE_ITALIC, DWRITE_TEXT_RANGE{ 0, static_cast<UINT32>(w.size()) });
-                ctx.DrawTextLayout(layout.Get(), dest, color);
-            }
-        } else {
-            ctx.DrawText(
-                run.text,
-                dest,
-                color,
-                run.font,
-                run.size,
-                DWRITE_TEXT_ALIGNMENT_LEADING,
-                DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-                run.weight);
-        }
+        ctx.DrawText(
+            run.text,
+            dest,
+            color,
+            run.font,
+            run.size,
+            TextAlignment::Left,
+            TextVerticalAlignment::Top,
+            run.weight,
+            false,
+            run.italic ? FontStyle::Italic : FontStyle::Normal,
+            FontStretch::Normal,
+            false,
+            false);
         if (run.strikethrough) {
             ctx.FillRect(
                 Rect(dest.x, dest.y + dest.height * 0.52f, dest.width, 1.0f),

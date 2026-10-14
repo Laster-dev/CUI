@@ -8,11 +8,23 @@
 #include "../style/ThemeManager.h"
 #include <algorithm>
 #include <cstring>
+#include <d2d1_1.h>
+#include <wincodec.h>
+#include <wrl/client.h>
 
 // WIC 通过 CoCreateInstance 创建，CLSID 由 DxLoader 提供，无需 windowscodecs.lib。
 
-
 namespace CUI {
+
+using Microsoft::WRL::ComPtr;
+
+struct ImageStorage {
+    ComPtr<IWICImagingFactory2> wicFactory;
+    ComPtr<IWICBitmap> wicBitmap;
+    ComPtr<ID2D1Bitmap1> d2dBitmap;
+    ComPtr<ID2D1Device> boundDevice;
+};
+
 namespace {
 
 bool EndsWithIgnoreCase(const std::string& s, const char* ext) {
@@ -43,7 +55,7 @@ const char* FileNameOf(const std::string& path) {
 
 } // namespace
 
-Image::Image() {
+Image::Image() : m_storage(std::make_unique<ImageStorage>()) {
     m_badgeColor = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
     this->ApplyWidth(24.0f);
     this->ApplyHeight(24.0f);
@@ -51,17 +63,25 @@ Image::Image() {
 }
 
 Image::Image(ImageType type, const std::string& text)
-    : m_imageType(type), m_badgeText(text), m_badgeColor(ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor)) {
+    : m_imageType(type), m_badgeText(text), m_badgeColor(ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor)),
+      m_storage(std::make_unique<ImageStorage>()) {
     this->ApplyWidth(24.0f);
     this->ApplyHeight(24.0f);
     this->ApplyClipToBounds(true);
 }
 
-Image::Image(ImageType type, const std::string& text, D2D1_COLOR_F color)
-    : m_imageType(type), m_badgeText(text), m_badgeColor(color) {
+Image::Image(ImageType type, const std::string& text, Color color)
+    : m_imageType(type), m_badgeText(text), m_badgeColor(color),
+      m_storage(std::make_unique<ImageStorage>()) {
     this->ApplyWidth(24.0f);
     this->ApplyHeight(24.0f);
     this->ApplyClipToBounds(true);
+}
+
+Image::~Image() = default;
+
+bool Image::HasBitmap() const {
+    return m_storage && (m_storage->wicBitmap || m_storage->d2dBitmap);
 }
 
 namespace {
@@ -138,7 +158,7 @@ void Image::ApplyStretch(Stretch stretch) {
 
 void Image::ApplyBitmap(ID2D1Bitmap1* bitmap) {
     ReleaseDecoded();
-    m_d2dBitmap = bitmap;
+    if (m_storage) m_storage->d2dBitmap = bitmap;
     m_imageType = ImageType::DynamicBitmap;
     m_sourcePath.clear();
     m_loadError.clear();
@@ -162,9 +182,11 @@ void Image::ClearSource() {
 }
 
 void Image::ReleaseDecoded() {
-    m_wicBitmap.Reset();
-    m_d2dBitmap.Reset();
-    m_boundDevice.Reset();
+    if (m_storage) {
+        m_storage->wicBitmap.Reset();
+        m_storage->d2dBitmap.Reset();
+        m_storage->boundDevice.Reset();
+    }
     m_bmpWidth = 0;
     m_bmpHeight = 0;
     m_hasPendingUpdate.store(false, std::memory_order_release);
@@ -172,15 +194,16 @@ void Image::ReleaseDecoded() {
 }
 
 IWICImagingFactory2* Image::EnsureWicFactory() {
-    if (m_wicFactory) {
-        return m_wicFactory.Get();
+    if (!m_storage) return nullptr;
+    if (m_storage->wicFactory) {
+        return m_storage->wicFactory.Get();
     }
     const HRESULT hr = CoCreateInstance(
         Dx::kWicImagingFactory2,
         nullptr,
         CLSCTX_INPROC_SERVER,
-        IID_PPV_ARGS(m_wicFactory.ReleaseAndGetAddressOf()));
-    return SUCCEEDED(hr) ? m_wicFactory.Get() : nullptr;
+        IID_PPV_ARGS(m_storage->wicFactory.ReleaseAndGetAddressOf()));
+    return SUCCEEDED(hr) ? m_storage->wicFactory.Get() : nullptr;
 }
 
 bool Image::DecodeFrame(IWICBitmapDecoder* decoder) {
@@ -233,9 +256,11 @@ bool Image::DecodeFrame(IWICBitmapDecoder* decoder) {
         return false;
     }
 
-    m_wicBitmap = bitmap;
-    m_d2dBitmap.Reset();
-    m_boundDevice.Reset();
+    if (m_storage) {
+        m_storage->wicBitmap = bitmap;
+        m_storage->d2dBitmap.Reset();
+        m_storage->boundDevice.Reset();
+    }
     m_bmpWidth = w;
     m_bmpHeight = h;
     m_loadError.clear();
@@ -353,26 +378,28 @@ bool Image::LoadFromMemory(const void* bytes, size_t size) {
 void Image::OnThemeChanged() {
     Control::OnThemeChanged();
     // D2D bitmaps die with the device; WIC copy is device-independent.
-    m_d2dBitmap.Reset();
-    m_boundDevice.Reset();
+    if (m_storage) {
+        m_storage->d2dBitmap.Reset();
+        m_storage->boundDevice.Reset();
+    }
 }
 
 void Image::EnsureD2dBitmap(GraphicsContext& ctx) {
-    if (!m_wicBitmap || !ctx.GetD2DContext()) {
+    if (!m_storage || !m_storage->wicBitmap || !ctx.GetD2DContext()) {
         return;
     }
-    if (m_d2dBitmap && m_boundDevice.Get() == ctx.GetD2DDevice()) {
+    if (m_storage->d2dBitmap && m_storage->boundDevice.Get() == ctx.GetD2DDevice()) {
         return;
     }
-    m_d2dBitmap.Reset();
-    m_boundDevice = ctx.GetD2DDevice();
+    m_storage->d2dBitmap.Reset();
+    m_storage->boundDevice = ctx.GetD2DDevice();
     D2D1_BITMAP_PROPERTIES1 props = D2D1::BitmapProperties1(
         D2D1_BITMAP_OPTIONS_NONE,
         D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED));
     ctx.GetD2DContext()->CreateBitmapFromWicBitmap(
-        m_wicBitmap.Get(),
+        m_storage->wicBitmap.Get(),
         &props,
-        m_d2dBitmap.ReleaseAndGetAddressOf());
+        m_storage->d2dBitmap.ReleaseAndGetAddressOf());
 }
 
 Rect Image::DestRectFor(float srcW, float srcH) const {
@@ -418,17 +445,17 @@ void Image::DrawFilePlaceholder(GraphicsContext& ctx) {
         tokens.textMuted,
         "微软雅黑",
         11.0f,
-        DWRITE_TEXT_ALIGNMENT_CENTER,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        TextAlignment::Center,
+        TextVerticalAlignment::Center);
 }
 
-bool Image::InitDynamicBitmap(ID2D1DeviceContext* d2dCtx, UINT width, UINT height) {
-    if (!d2dCtx || width == 0 || height == 0) return false;
+bool Image::InitDynamicBitmap(ID2D1DeviceContext* d2dCtx, uint32_t width, uint32_t height) {
+    if (!d2dCtx || width == 0 || height == 0 || !m_storage) return false;
 
     m_bmpWidth = width;
     m_bmpHeight = height;
     m_imageType = ImageType::DynamicBitmap;
-    m_wicBitmap.Reset();
+    m_storage->wicBitmap.Reset();
     m_sourcePath.clear();
     m_loadError.clear();
 
@@ -443,10 +470,10 @@ bool Image::InitDynamicBitmap(ID2D1DeviceContext* d2dCtx, UINT width, UINT heigh
         nullptr,
         0,
         &props,
-        m_d2dBitmap.ReleaseAndGetAddressOf()
+        m_storage->d2dBitmap.ReleaseAndGetAddressOf()
     );
 
-    m_boundDevice.Reset();
+    m_storage->boundDevice.Reset();
     return SUCCEEDED(hr);
 }
 
@@ -535,13 +562,13 @@ void Image::OnRender(GraphicsContext& ctx) {
             return;
         }
         EnsureD2dBitmap(ctx);
-        if (m_d2dBitmap) {
+        if (m_storage && m_storage->d2dBitmap) {
             ctx.PushClip(m_bounds);
-            const D2D1_SIZE_F dip = m_d2dBitmap->GetSize();
+            const D2D1_SIZE_F dip = m_storage->d2dBitmap->GetSize();
             const Rect dest = DestRectFor(dip.width, dip.height);
             const D2D1_RECT_F destF = dest.ToD2D();
             ctx.GetD2DContext()->DrawBitmap(
-                m_d2dBitmap.Get(),
+                m_storage->d2dBitmap.Get(),
                 &destF,
                 1.0f,
                 D2D1_INTERPOLATION_MODE_LINEAR);
@@ -558,19 +585,19 @@ void Image::OnRender(GraphicsContext& ctx) {
         m_imageType = ImageType::DynamicBitmap;
     }
 
-    if (m_imageType == ImageType::DynamicBitmap) {
-        if ((!m_d2dBitmap || m_d2dBitmap->GetPixelSize().width != m_bmpWidth || m_d2dBitmap->GetPixelSize().height != m_bmpHeight)
+    if (m_imageType == ImageType::DynamicBitmap && m_storage) {
+        if ((!m_storage->d2dBitmap || m_storage->d2dBitmap->GetPixelSize().width != m_bmpWidth || m_storage->d2dBitmap->GetPixelSize().height != m_bmpHeight)
             && m_bmpWidth > 0 && m_bmpHeight > 0) {
             InitDynamicBitmap(ctx.GetD2DContext(), m_bmpWidth, m_bmpHeight);
         }
     }
 
-    if (m_imageType == ImageType::DynamicBitmap && m_d2dBitmap) {
+    if (m_imageType == ImageType::DynamicBitmap && m_storage && m_storage->d2dBitmap) {
         {
             std::lock_guard<std::mutex> lock(m_bufferMutex);
             if (m_hasPendingUpdate.load(std::memory_order_acquire) && !m_pendingPixelBuffer.empty()) {
                 D2D1_RECT_U dstRect = D2D1::RectU(0, 0, m_bmpWidth, m_bmpHeight);
-                m_d2dBitmap->CopyFromMemory(&dstRect, m_pendingPixelBuffer.data(), m_bmpWidth * sizeof(uint32_t));
+                m_storage->d2dBitmap->CopyFromMemory(&dstRect, m_pendingPixelBuffer.data(), m_bmpWidth * sizeof(uint32_t));
                 m_hasPendingUpdate.store(false, std::memory_order_release);
             }
         }
@@ -579,7 +606,7 @@ void Image::OnRender(GraphicsContext& ctx) {
         const Rect dest = DestRectFor(static_cast<float>(m_bmpWidth), static_cast<float>(m_bmpHeight));
         D2D1_RECT_F destRect = dest.ToD2D();
         ctx.GetD2DContext()->DrawBitmap(
-            m_d2dBitmap.Get(),
+            m_storage->d2dBitmap.Get(),
             &destRect,
             1.0f,
             D2D1_INTERPOLATION_MODE_LINEAR
@@ -603,21 +630,21 @@ void Image::OnRender(GraphicsContext& ctx) {
         Rect circleRect(m_bounds.x + (m_bounds.width - minDim) / 2.0f, m_bounds.y + (m_bounds.height - minDim) / 2.0f, minDim, minDim);
 
         ctx.FillRoundedRect(circleRect, radius, m_badgeColor);
-        ctx.DrawText(m_badgeText, circleRect, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "微软雅黑", minDim * 0.45f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(m_badgeText, circleRect, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "微软雅黑", minDim * 0.45f, TextAlignment::Center, TextVerticalAlignment::Center, CUI::FontWeight::Bold);
     } else if (m_imageType == ImageType::FileIcon) {
         ctx.FillRoundedRect(m_bounds, 3.0f, m_badgeColor);
-        ctx.DrawText(m_badgeText, m_bounds, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "微软雅黑", m_bounds.height * 0.4f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(m_badgeText, m_bounds, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "微软雅黑", m_bounds.height * 0.4f, TextAlignment::Center, TextVerticalAlignment::Center, CUI::FontWeight::Bold);
     } else if (m_imageType == ImageType::StatusBadge) {
         float minDim = (std::min)(m_bounds.width, m_bounds.height);
         float radius = minDim / 2.0f;
         Rect dotRect(m_bounds.x + (m_bounds.width - minDim) / 2.0f, m_bounds.y + (m_bounds.height - minDim) / 2.0f, minDim, minDim);
 
-        D2D1_COLOR_F ring = ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground);
+        Color ring = ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground);
         ctx.FillRoundedRect(dotRect, radius, m_badgeColor);
-        ctx.DrawRoundedRect(dotRect, radius, D2D1::ColorF(ring.r, ring.g, ring.b, 0.4f), 1.5f);
+        ctx.DrawRoundedRect(dotRect, radius, ring.WithAlpha(0.4f), 1.5f);
     } else {
         ctx.FillRoundedRect(m_bounds, 4.0f, m_badgeColor);
-        ctx.DrawText(m_badgeText, m_bounds, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(m_badgeText, m_bounds, ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground), "微软雅黑", 11.0f, TextAlignment::Center, TextVerticalAlignment::Center);
     }
 }
 

@@ -1,6 +1,5 @@
 #include "CanvasControl.h"
 #include "../animation/AnimationManager.h"
-#include <d2d1helper.h>
 
 namespace CUI {
 
@@ -19,7 +18,7 @@ static Point ToLocal(const CanvasControl* canvas, Point pt) {
  */
 void CanvasControl::OnRender(GraphicsContext& ctx) {
     const Rect& b = GetBounds();
-    ctx.PushTransform(D2D1::Matrix3x2F::Translation(b.x, b.y));
+    ctx.PushTranslation(b.x, b.y);
     Size size{ b.width, b.height };
     if (OnDraw) {
         OnDraw(ctx, size);

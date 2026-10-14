@@ -40,7 +40,7 @@ public:
 
     void OnRender(GraphicsContext& ctx) override {
         const auto& tokens = ThemeManager::Instance().GetTokens();
-        D2D1_COLOR_F bg = IsPressed() ? tokens.pressedBackground : (IsHovered() ? tokens.hoverBackground : tokens.cardBackground);
+        Color bg = IsPressed() ? tokens.pressedBackground : (IsHovered() ? tokens.hoverBackground : tokens.cardBackground);
         ctx.FillRoundedRect(m_bounds, 16.0f, bg);
         ctx.DrawRoundedRect(m_bounds, 16.0f, tokens.cardBorder, 1.0f);
 
@@ -51,8 +51,8 @@ public:
             tokens.textPrimary,
             "微软雅黑",
             12.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            TextAlignment::Left,
+            TextVerticalAlignment::Center);
     }
 
     void OnMouseDown(Point pt) override {
@@ -134,7 +134,7 @@ public:
         }
 
         std::string prompt = m_hot ? "⚡ 松开鼠标以完成放置 (Drop)" : m_statusText;
-        D2D1_COLOR_F textColor = m_hot ? tokens.accentColor : tokens.textSecondary;
+        Color textColor = m_hot ? tokens.accentColor : tokens.textSecondary;
 
         ctx.DrawText(
             prompt,
@@ -142,8 +142,8 @@ public:
             textColor,
             "微软雅黑",
             12.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            TextAlignment::Center,
+            TextVerticalAlignment::Center);
     }
 
     DragDropEffects OnDragOver(Point pt, const DataPackage& data, DragDropEffects allowed) override {
@@ -275,11 +275,11 @@ Element BuildDragDropPage() {
             Column(12, {
                 Row(12, {
                     Column(4, {
-                        Text("📁 源码工程列表 (List A)").FontSize(12.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)),
+                        Text("📁 源码工程列表 (List A)").FontSize(12.0f).Foreground(Rgb(0x94A3B8)),
                         listA,
                     }),
                     Column(4, {
-                        Text("📦 输出资产列表 (List B)").FontSize(12.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)),
+                        Text("📦 输出资产列表 (List B)").FontSize(12.0f).Foreground(Rgb(0x94A3B8)),
                         listB,
                     }),
                 }),

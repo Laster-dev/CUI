@@ -77,7 +77,7 @@ Line::Line(float x1, float y1, float x2, float y2)
  * 调用 DrawSmoothLine 生成带圆头帽与双线性抗锯齿的平滑直线。
  */
 void Line::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F color = (m_stroke.a > 0.0f) ? m_stroke : m_fill;
+    Color color = (m_stroke.a > 0.0f) ? m_stroke : m_fill;
     if (color.a <= 0.0f) return;
 
     // 渲染采用世界坐标：x1/y1…x2/y2 为元素局部坐标，需叠加元素左上角偏移。
@@ -132,7 +132,7 @@ void SvgIcon::OnRender(GraphicsContext& ctx) {
     // 渲染采用世界坐标：SVG 视口需叠加元素左上角偏移。
     Rect bounds{ m_bounds.x, m_bounds.y, m_bounds.width, m_bounds.height };
 
-    D2D1_COLOR_F foreground = GetColorValue();
+    Color foreground = GetColorValue();
     if (!HasColorValue()) {
         foreground = ThemeManager::Instance().GetColor(
             GetColorToken() == ThemeTokenId::Unset ? ThemeTokenId::TextPrimary : GetColorToken());

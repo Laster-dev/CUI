@@ -3,14 +3,13 @@
 #include "../UIElement.h"
 #include "../../animation/AnimationSystem.h"
 #include "DockTypes.h"
-#include "DockFloatWindow.h"
 #include <memory>
 #include <string>
 #include <vector>
-#include <windows.h>
 
 namespace CUI {
 
+class DockFloatWindow;
 class Window;
 
 /**
@@ -58,7 +57,7 @@ public:
     void OnMouseMove(Point pt) override; // 鼠标移动，更新吸附预览、更改调节边栏大小或悬停选项夹
     void OnMouseUp(Point pt) override; // 鼠标松开，确定完成吸附停靠重排或释放拖拽
     void OnMouseLeave() override; // 鼠标离去，清空各项卡片 Hover 焦点标记
-    HCURSOR GetCursor() const override; // 获取悬浮交互鼠标样式（依据所滑过的分隔条或按键返回对应鼠标指针）
+    CursorType GetCursor() const override; // 获取悬浮交互鼠标样式（依据所滑过的分隔条或按键返回对应鼠标指针）
     bool OnAnimationTick() override; // 驱动各边栏隐藏滑出、罗盘 Guides 淡入淡出动画帧步进
     bool HasSelfAnimation() const override; // 检查是否依然有面板过渡动画在活动中
     void OnMouseWheel(float delta) override; // 响应滚轮，可在选项标签条超出长限制时进行横向横向平移滚动
@@ -71,7 +70,7 @@ public:
     void UpdateFloatRedock(Point screenDip); // 拖动高频更新边缘吸附测试，判定鼠标落入哪个吸附罗盘热区
     bool CompleteFloatRedock(Point screenDip); // 拖拽释放，将卡片顺利合入罗盘所指定的那个物理边侧
     void CancelFloatRedock(); // 取消拖拽吸附操作
-    ::HWND OwnerHwnd() const; // 获取宿主主窗口的 ::HWND 句柄
+    void* OwnerHwnd() const; // 获取宿主主窗口的内部句柄
     void InvalidateOwner(); // 强行让主窗口失效，发出画面重绘请求
 
 private:
@@ -166,7 +165,7 @@ private:
     float AutoHideTabOrigin(DockSide side, int indexOnSide) const; // 计算窄条上第 index 个标签的相对位置起点坐标
     Rect AutoHideTabRect(DockSide side, int indexOnSide, const std::string& title) const; // 计算窄条上标签的逻辑绘制矩形
     void DrawAutoHideLabel(GraphicsContext& ctx, const Rect& btn, const std::string& title,
-                           DockSide side, D2D1_COLOR_F color) const; // 在侧边隐藏窄带上自绘出垂直旋转后的页签说明文字
+                           DockSide side, Color color) const; // 在侧边隐藏窄带上自绘出垂直旋转后的页签说明文字
     DockSide PeekSide() const; // 读取当前临时滑出展开的侧边方位
     Rect PeekOuterRect() const; // 读取临时滑出的卡片最外围绝对矩形边界
     SlotGeom MakePeekGeom() const; // 估算临时滑出卡片的排版数据
@@ -187,8 +186,8 @@ private:
     void DrawDragGhost(GraphicsContext& ctx) const; // 自绘淡蓝色的拖拽预览吸附幻影 Ghost 框
     void DrawAutoHideStrips(GraphicsContext& ctx) const; // 自绘四边缩折窄条
     void DrawChromeButtonBg(GraphicsContext& ctx, const Rect& r, float hoverT, bool danger) const; // 自绘关闭或图钉小按钮的悬浮高亮圆圈背景
-    void DrawCloseGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR_F color) const; // 自绘关闭叉图标
-    void DrawPinGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR_F color, bool autoHide) const; // 自绘大头针图钉图标
+    void DrawCloseGlyph(GraphicsContext& ctx, const Rect& r, Color color) const; // 自绘关闭叉图标
+    void DrawPinGlyph(GraphicsContext& ctx, const Rect& r, Color color, bool autoHide) const; // 自绘大头针图钉图标
     int SelectedPaneOf(const DockTabGroup& g) const; // 查找该组内目前被激活显示的内容绝对行号索引
     void SelectInGroup(DockSide side, int localIndex); // 切换该停靠边组内的活跃标签页项
     void CloseFloatForPane(int paneIndex); // 销毁与特定卡片绑定的悬浮窗体实例

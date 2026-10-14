@@ -1,9 +1,9 @@
 #pragma once
 #include "../core/Value.h"
 #include "../render/GraphicsContext.h"
+#include "../input/InputTypes.h"
 #include <algorithm>
 #include <cmath>
-#include <windows.h>
 
 namespace CUI {
 namespace MiddleClickAutoscroll {
@@ -24,19 +24,19 @@ inline float VelocityFromDelta(float deltaDip) {
     return std::copysign(speed, deltaDip);
 }
 
-inline HCURSOR CursorForDelta(float dx, float dy, bool canHorizontal, bool canVertical) {
+inline CursorType CursorForDelta(float dx, float dy, bool canHorizontal, bool canVertical) {
     const bool outV = canVertical && std::abs(dy) > kDeadZoneDip;
     const bool outH = canHorizontal && std::abs(dx) > kDeadZoneDip;
     if (outV && outH) {
-        return LoadCursor(nullptr, IDC_SIZEALL);
+        return CursorType::SizeAll;
     }
     if (outV) {
-        return LoadCursor(nullptr, IDC_SIZENS);
+        return CursorType::SizeNS;
     }
     if (outH) {
-        return LoadCursor(nullptr, IDC_SIZEWE);
+        return CursorType::SizeWE;
     }
-    return LoadCursor(nullptr, IDC_SIZEALL);
+    return CursorType::SizeAll;
 }
 
 inline void PaintOriginIndicator(
@@ -44,9 +44,9 @@ inline void PaintOriginIndicator(
     Point origin,
     bool canHorizontal,
     bool canVertical,
-    D2D1_COLOR_F fill,
-    D2D1_COLOR_F stroke,
-    D2D1_COLOR_F arrow) {
+    Color fill,
+    Color stroke,
+    Color arrow) {
     const float r = kIndicatorRadius;
     Rect badge(origin.x - r, origin.y - r, r * 2.0f, r * 2.0f);
     ctx.FillRoundedRect(badge, r, fill);

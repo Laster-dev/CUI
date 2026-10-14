@@ -3,6 +3,7 @@
 #include "Button.h"
 #include "../animation/AnimationSystem.h"
 #include "../input/Command.h"
+#include "../text/TextTypes.h"
 #include <memory>
 #include <string>
 
@@ -57,9 +58,9 @@ public:
 
 private:
     struct Palette {
-        D2D1_COLOR_F accent;
-        D2D1_COLOR_F fill;
-        D2D1_COLOR_F border;
+        Color accent;
+        Color fill;
+        Color border;
     };
 
     void EnsureChrome();
@@ -69,11 +70,11 @@ private:
     void CloseFromUser();
     void InvokeAction();
     Palette Colors() const;
-    void DrawSeverityIcon(GraphicsContext& ctx, const Rect& slot, D2D1_COLOR_F color) const;
+    void DrawSeverityIcon(GraphicsContext& ctx, const Rect& slot, Color color) const;
     Size MeasureWrapped(const std::string& text, float fontSize, float maxWidth,
-                        DWRITE_FONT_WEIGHT weight) const;
+                        CUI::FontWeight weight) const;
     void DrawWrapped(GraphicsContext& ctx, const std::string& text, const Rect& rect,
-                     float fontSize, D2D1_COLOR_F color, DWRITE_FONT_WEIGHT weight) const;
+                     float fontSize, Color color, CUI::FontWeight weight) const;
     float ContentHeight(float width) const;
 
     std::string m_title;

@@ -69,8 +69,8 @@ void TreeView::ApplyProperty(PropertyId id, const Value& val) {
     UIElement::ApplyProperty(id, val);
 }
 
-HCURSOR TreeView::GetCursor() const {
-    return IsEnabled() ? LoadCursor(nullptr, IDC_ARROW) : nullptr;
+CursorType TreeView::GetCursor() const {
+    return CursorType::Arrow;
 }
 
 void TreeView::ApplyParentRecursive(const std::shared_ptr<TreeViewItem>& item, TreeViewItem* parent) {
@@ -458,8 +458,8 @@ void TreeView::Render(GraphicsContext& ctx) {
 void TreeView::OnRender(GraphicsContext& ctx) {
     // Draw TreeView Container Background & Border
     float radius = GetCornerRadius();
-    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
-    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    Color bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    Color border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     float borderThick = GetBorderThickness();
 
     ctx.FillRoundedRect(m_bounds, radius, bg);
@@ -471,10 +471,10 @@ void TreeView::OnRender(GraphicsContext& ctx) {
     float indentW = GetIndentWidth();
     std::string fontFamily = GetFontFamily();
     float fontSize = GetFontSize();
-    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-    D2D1_COLOR_F selBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
-    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
-    D2D1_COLOR_F accentColor = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+    Color textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    Color selBg = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
+    Color hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    Color accentColor = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
 
     for (size_t i = 0; i < m_visibleItems.size(); ++i) {
         const auto& visItem = m_visibleItems[i];
@@ -533,23 +533,14 @@ void TreeView::OnRender(GraphicsContext& ctx) {
             Rect toggleRect = GetToggleRect(visItem, drawCellRect);
             const float animProgress = std::clamp(item->expandAnim.Current(), 0.0f, 1.0f);
 
-            D2D1_COLOR_F arrowColor = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
+            Color arrowColor = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
             arrowColor.a *= rowAlpha;
 
             // Interpolate Chevron matrix transform or smooth step transition
             if (animProgress > 0.001f && animProgress < 0.999f) {
-                // Perform rotation transform around center of toggle rect for smooth WinUI chevron motion
-                D2D1_POINT_2F center = D2D1::Point2F(toggleRect.x + toggleRect.width * 0.5f, toggleRect.y + toggleRect.height * 0.5f);
+                Point center(toggleRect.x + toggleRect.width * 0.5f, toggleRect.y + toggleRect.height * 0.5f);
                 float angleDegrees = animProgress * 90.0f; // Rotate from Right (0deg) to Down (90deg)
-                // D2D1::Matrix3x2F::Rotation() 内部调用 d2d1.dll 导出的
-                // D2D1MakeRotateMatrix，会引入 d2d1.lib 依赖，改走 DxLoader。
-                D2D1_MATRIX_3X2_F rotMatrix{};
-                Dx::D2D1MakeRotateMatrix(
-                    angleDegrees,
-                    Dx::Point2F{ center.x, center.y },
-                    &rotMatrix);
-
-                ctx.PushTransform(rotMatrix);
+                ctx.PushTransform(Matrix3x2::Rotation(angleDegrees, center));
                 ctx.DrawChevron(
                     toggleRect,
                     arrowColor,
@@ -586,10 +577,10 @@ void TreeView::OnRender(GraphicsContext& ctx) {
         // Render Header Text with opacity fade during expansion
         float textW = (std::max)(0.0f, drawCellRect.x + drawCellRect.width - contentX - 4.0f);
         Rect textRect(contentX, drawCellRect.y, textW, baseH);
-        D2D1_COLOR_F rowText = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor;
+        Color rowText = isSelected ? ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary) : textColor;
         rowText.a *= rowAlpha;
-        ctx.DrawText(item->header, textRect, rowText, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-                     isSelected ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL, true);
+        ctx.DrawText(item->header, textRect, rowText, fontFamily, fontSize, TextAlignment::Left, TextVerticalAlignment::Center,
+                     isSelected ? FontWeight::SemiBold : FontWeight::Normal, true);
 
         ctx.PopClip();
     }
@@ -600,11 +591,11 @@ void TreeView::OnRender(GraphicsContext& ctx) {
         Rect track = GetScrollbarTrackRect();
         Rect thumb = GetScrollbarThumbRect();
         const float vis = m_scrollbarAutoHide.Opacity();
-        D2D1_COLOR_F muted = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
+        Color muted = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
         float trackAlpha = (m_scrollbarHovered || m_isDraggingThumb ? 0.18f : 0.08f) * vis;
-        ctx.FillRoundedRect(track, 4.0f, D2D1::ColorF(border.r, border.g, border.b, trackAlpha));
+        ctx.FillRoundedRect(track, 4.0f, border.WithAlpha(trackAlpha));
         float thumbAlpha = (m_isDraggingThumb ? 0.75f : (m_scrollbarHovered ? 0.55f : 0.40f)) * vis;
-        ctx.FillRoundedRect(thumb, 4.0f, D2D1::ColorF(muted.r, muted.g, muted.b, thumbAlpha));
+        ctx.FillRoundedRect(thumb, 4.0f, muted.WithAlpha(thumbAlpha));
     }
 }
 

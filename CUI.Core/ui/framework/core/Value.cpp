@@ -1,11 +1,33 @@
 #include "Value.h"
 #include <windows.h>
+#include <d2d1.h>
 #include <sstream>
 #include <vector>
 #include <algorithm>
 #include <iomanip>
 
 namespace CUI {
+
+D2D_RECT_F Rect::ToD2D() const {
+    return D2D1::RectF(x, y, x + width, y + height);
+}
+
+Matrix3x2 Matrix3x2::Rotation(float angleDegrees, Point center) {
+    constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
+    const float rad = angleDegrees * kDegToRad;
+    const float c = std::cos(rad);
+    const float s = std::sin(rad);
+    const float x = center.x;
+    const float y = center.y;
+    return Matrix3x2{
+        c,
+        s,
+        -s,
+        c,
+        x * (1.0f - c) + y * s,
+        y * (1.0f - c) - x * s
+    };
+}
 
 const Color Color::Transparent(0.0f, 0.0f, 0.0f, 0.0f);
 const Color Color::Black(0.0f, 0.0f, 0.0f, 1.0f);
@@ -20,6 +42,7 @@ const Color Color::Cyan(0.0f, 1.0f, 1.0f, 1.0f);
 const Color Color::Magenta(1.0f, 0.0f, 1.0f, 1.0f);
 const Color Color::Orange(1.0f, 0.5f, 0.0f, 1.0f);
 const Color Color::Purple(0.5f, 0.0f, 0.5f, 1.0f);
+const Color Color::Accent(0.0f, 0.47f, 0.84f, 1.0f);
 
 Color Color::Hex(const std::string& hexStr) {
     if (hexStr.empty()) return Color(0, 0, 0, 1);
@@ -137,7 +160,7 @@ std::string Value::AsString(const std::string& def) const {
     if (m_type == Type::Int) return std::to_string(std::get<int>(m_val));
     if (m_type == Type::Float) return std::to_string(std::get<float>(m_val));
     if (m_type == Type::Color) {
-        D2D1_COLOR_F c = std::get<D2D1_COLOR_F>(m_val);
+        Color c = std::get<Color>(m_val);
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(4)
             << c.r << "," << c.g << "," << c.b << "," << c.a;
@@ -153,8 +176,8 @@ std::string Value::AsString(const std::string& def) const {
     return def;
 }
 
-D2D1_COLOR_F Value::AsColor(D2D1_COLOR_F def) const {
-    if (m_type == Type::Color) return std::get<D2D1_COLOR_F>(m_val);
+Color Value::AsColor(Color def) const {
+    if (m_type == Type::Color) return std::get<Color>(m_val);
     if (m_type == Type::String) return ParseColor(std::get<std::string>(m_val));
     return def;
 }
@@ -170,30 +193,8 @@ void* Value::AsPointer(void* def) const {
     return def;
 }
 
-D2D1_COLOR_F Value::ParseColor(const std::string& str) {
-    if (str.empty()) return D2D1::ColorF(0, 0, 0, 0);
-
-    std::string s = str;
-    if (s[0] == '#') s = s.substr(1);
-
-    unsigned int val = 0;
-    std::stringstream ss;
-    ss << std::hex << s;
-    ss >> val;
-
-    float r = 0.0f, g = 0.0f, b = 0.0f, a = 1.0f;
-    if (s.length() == 6) {
-        r = ((val >> 16) & 0xFF) / 255.0f;
-        g = ((val >> 8) & 0xFF) / 255.0f;
-        b = (val & 0xFF) / 255.0f;
-    } else if (s.length() == 8) {
-        r = ((val >> 24) & 0xFF) / 255.0f;
-        g = ((val >> 16) & 0xFF) / 255.0f;
-        b = ((val >> 8) & 0xFF) / 255.0f;
-        a = (val & 0xFF) / 255.0f;
-    }
-
-    return D2D1::ColorF(r, g, b, a);
+Color Value::ParseColor(const std::string& str) {
+    return Color::Hex(str);
 }
 
 Value Value::ParseAuto(const std::string& str) {

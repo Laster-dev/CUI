@@ -147,9 +147,9 @@ public:
     Derived& AllowDrop(bool value) const { if constexpr (requires { impl_->ApplyAllowDrop(value); }) impl_->ApplyAllowDrop(value); return self(); }
     Derived& AlwaysShowHeader(bool value) const { if constexpr (requires { impl_->ApplyAlwaysShowHeader(value); }) impl_->ApplyAlwaysShowHeader(value); return self(); }
     Derived& AutoClose(bool value) const { if constexpr (requires { impl_->ApplyAutoClose(value); }) impl_->ApplyAutoClose(value); return self(); }
-    Derived& BadgeColor(D2D1_COLOR_F value) const { if constexpr (requires { impl_->ApplyBadgeColor(value); }) impl_->ApplyBadgeColor(value); return self(); }
+    Derived& BadgeColor(::CUI::Color value) const { if constexpr (requires { impl_->ApplyBadgeColor(value); }) impl_->ApplyBadgeColor(value); return self(); }
     Derived& BadgeText(const std::string& value) const { if constexpr (requires { impl_->ApplyBadgeText(value); }) impl_->ApplyBadgeText(value); return self(); }
-    Derived& Border(D2D1_COLOR_F color, float thickness = 1.0f) const { if constexpr (requires { impl_->ApplyBorderBrush(color); }) impl_->ApplyBorderBrush(color); return self(); }
+    Derived& Border(::CUI::Color color, float thickness = 1.0f) const { if constexpr (requires { impl_->ApplyBorderBrush(color); }) impl_->ApplyBorderBrush(color); return self(); }
     Derived& BytesPerRow(int value) const { if constexpr (requires { impl_->ApplyBytesPerRow(value); }) impl_->ApplyBytesPerRow(value); return self(); }
     Derived& CanSave(bool value) const { if constexpr (requires { impl_->ApplyCanSave(value); }) impl_->ApplyCanSave(value); return self(); }
     Derived& CaretIndex(int value) const { if constexpr (requires { impl_->ApplyCaretIndex(value); }) impl_->ApplyCaretIndex(value); return self(); }
@@ -171,7 +171,7 @@ public:
     Derived& DurationMs(int value) const { if constexpr (requires { impl_->ApplyDurationMs(value); }) impl_->ApplyDurationMs(value); return self(); }
     Derived& Expanded(bool value) const { if constexpr (requires { impl_->ApplyExpanded(value); }) impl_->ApplyExpanded(value); return self(); }
     Derived& ExpandedModeThresholdWidth(float value) const { if constexpr (requires { impl_->ApplyExpandedModeThresholdWidth(value); }) impl_->ApplyExpandedModeThresholdWidth(value); return self(); }
-    Derived& Fill(D2D1_COLOR_F value) const { if constexpr (requires { impl_->ApplyFill(value); }) impl_->ApplyFill(value); return self(); }
+    Derived& Fill(::CUI::Color value) const { if constexpr (requires { impl_->ApplyFill(value); }) impl_->ApplyFill(value); return self(); }
     Derived& Filter(const std::string& name, const std::string& spec) const { if constexpr (requires { impl_->ApplyFilter(name, spec); }) impl_->ApplyFilter(name, spec); return self(); }
     Derived& FlowParticles(bool enabled = true) const { if constexpr (requires { impl_->ApplyFlowParticlesEnabled(enabled); }) impl_->ApplyFlowParticlesEnabled(enabled); return self(); }
     Derived& FlowParticlesEnabled(bool value) const { if constexpr (requires { impl_->ApplyFlowParticlesEnabled(value); }) impl_->ApplyFlowParticlesEnabled(value); return self(); }
@@ -342,12 +342,12 @@ public:
     Derived& Step(float s) const { if constexpr (requires { impl_->ApplyStep(s); }) impl_->ApplyStep(s); return self(); }
     Derived& Stiffness(float value) const { if constexpr (requires { impl_->ApplyStiffness(value); }) impl_->ApplyStiffness(value); return self(); }
     Derived& Strikethrough(bool strikethrough = true) const { if constexpr (requires { impl_->ApplyIsStrikethrough(strikethrough); }) impl_->ApplyIsStrikethrough(strikethrough); return self(); }
-    Derived& Stroke(D2D1_COLOR_F value) const { if constexpr (requires { impl_->ApplyStroke(value); }) impl_->ApplyStroke(value); return self(); }
+    Derived& Stroke(::CUI::Color value) const { if constexpr (requires { impl_->ApplyStroke(value); }) impl_->ApplyStroke(value); return self(); }
     Derived& StrokeThickness(float value) const { if constexpr (requires { impl_->ApplyStrokeThickness(value); }) impl_->ApplyStrokeThickness(value); return self(); }
     Derived& Tag(const std::string& value) const { if constexpr (requires { impl_->ApplyTag(value); }) impl_->ApplyTag(value); return self(); }
     Derived& TextWrapping(bool value) const { if constexpr (requires { impl_->ApplyTextWrapping(value); }) impl_->ApplyTextWrapping(value); return self(); }
     Derived& Time(int hour, int minute) const { if constexpr (requires { impl_->ApplyTime(hour, minute); }) impl_->ApplyTime(hour, minute); return self(); }
-    Derived& TintColor(D2D1_COLOR_F value) const { if constexpr (requires { impl_->ApplyTintColor(value); }) impl_->ApplyTintColor(value); return self(); }
+    Derived& TintColor(::CUI::Color value) const { if constexpr (requires { impl_->ApplyTintColor(value); }) impl_->ApplyTintColor(value); return self(); }
     Derived& Title(const std::string& t) const { if constexpr (requires { impl_->ApplyTitle(t); }) impl_->ApplyTitle(t); return self(); }
     Derived& TitleColor(const std::string& value) const { if constexpr (requires { impl_->ApplyTitleColor(value); }) impl_->ApplyTitleColor(value); return self(); }
     Derived& TopMode(bool value) const { if constexpr (requires { impl_->ApplyTopMode(value); }) impl_->ApplyTopMode(value); return self(); }
@@ -392,12 +392,12 @@ public:
     Derived& TitleColorToken(ThemeTokenId id) const { impl_->ApplyTitleColorToken(id); return self(); }
     Derived& MessageColorToken(ThemeTokenId id) const { impl_->ApplyMessageColorToken(id); return self(); }
     Derived& CaretColorToken(ThemeTokenId id) const { impl_->ApplyCaretColorToken(id); return self(); }
-    Derived& Background(D2D1_COLOR_F c) const { impl_->ApplyBackground(c); return self(); }
-    Derived& HoverBackground(D2D1_COLOR_F c) const { impl_->ApplyHoverBackground(c); return self(); }
-    Derived& PressedBackground(D2D1_COLOR_F c) const { impl_->ApplyPressedBackground(c); return self(); }
-    Derived& BorderBrush(D2D1_COLOR_F c) const { impl_->ApplyBorderBrush(c); return self(); }
-    Derived& Color(D2D1_COLOR_F c) const { impl_->ApplyColor(c); return self(); }
-    Derived& Foreground(D2D1_COLOR_F color) const { if constexpr (requires { impl_->ApplyColor(color); }) impl_->ApplyColor(color); return self(); }
+    Derived& Background(::CUI::Color c) const { impl_->ApplyBackground(c); return self(); }
+    Derived& HoverBackground(::CUI::Color c) const { impl_->ApplyHoverBackground(c); return self(); }
+    Derived& PressedBackground(::CUI::Color c) const { impl_->ApplyPressedBackground(c); return self(); }
+    Derived& BorderBrush(::CUI::Color c) const { impl_->ApplyBorderBrush(c); return self(); }
+    Derived& Color(::CUI::Color c) const { impl_->ApplyColor(c); return self(); }
+    Derived& Foreground(::CUI::Color color) const { if constexpr (requires { impl_->ApplyColor(color); }) impl_->ApplyColor(color); return self(); }
     Derived& Placeholder(const std::string& placeholder) const { impl_->ApplyPlaceholder(placeholder); return self(); }
     Derived& FontFamily(const std::string& font) const { impl_->ApplyFontFamily(font); return self(); }
     Derived& FontWeight(CUI::FontWeight weight) const { impl_->ApplyFontWeight(weight); return self(); }

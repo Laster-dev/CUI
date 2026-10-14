@@ -1,5 +1,4 @@
 #pragma once
-#include "../../render/GraphicsContext.h"
 #include "AnsiColors.h"
 #include "SelectionService.h"
 #include "Terminal.h"
@@ -8,6 +7,7 @@
 #include <vector>
 
 namespace CUI {
+class GraphicsContext;
 namespace Term {
 
 // Paints the terminal grid through the CUI GraphicsContext.

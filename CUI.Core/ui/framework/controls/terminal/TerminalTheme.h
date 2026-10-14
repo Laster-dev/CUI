@@ -1,12 +1,12 @@
 #pragma once
 #include <cstdint>
-#include <d2d1.h>
+#include "../../core/Value.h"
 
 namespace CUI {
 namespace Term {
 
 // Byte-accurate ARGB color so palette values and OSC color reports stay
-// bit-identical to the WPF source; converted to D2D1_COLOR_F only when painting.
+// bit-identical to the WPF source; converted to Color only when painting.
 struct TermColor {
     uint8_t a = 255;
     uint8_t r = 0;
@@ -19,8 +19,16 @@ struct TermColor {
     static TermColor FromRgb(uint8_t r, uint8_t g, uint8_t b) { return TermColor(255, r, g, b); }
     static TermColor FromArgb(uint8_t a, uint8_t r, uint8_t g, uint8_t b) { return TermColor(a, r, g, b); }
 
-    D2D1_COLOR_F ToD2D() const {
-        return D2D1::ColorF(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+    Color ToColor() const {
+        return Color(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+    }
+
+    operator Color() const {
+        return ToColor();
+    }
+
+    Color ToD2D() const {
+        return ToColor();
     }
 
     uint32_t Key() const {

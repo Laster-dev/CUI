@@ -25,22 +25,22 @@ enum class MaterialRole {
  * @brief 核心主题色彩标记 Token 解构明细表。
  */
 struct ThemeTokens {
-    D2D1_COLOR_F windowBackground;  // 窗口默认主背景色
-    D2D1_COLOR_F cardBackground;    // 卡片板块容器的背景色
-    D2D1_COLOR_F cardBorder;        // 卡片板块外包围线框的描边色
-    D2D1_COLOR_F textPrimary;       // 主正文字元前景文本色
-    D2D1_COLOR_F textSecondary;     // 次要辅助副标题的前景文本色
-    D2D1_COLOR_F textMuted;         // 被遮蔽/禁用的灰色字元前景文本色
-    D2D1_COLOR_F accentColor;       // 全局强调高亮高瞩目的主标志色彩
-    D2D1_COLOR_F accentForeground;  // 高亮条目上的前景反衬反差文本色
-    D2D1_COLOR_F dangerColor;       // 警告/危险类操作专属高亮色彩
-    D2D1_COLOR_F paneBackground;     // 侧边栏大抽屉专用的底色背景
-    D2D1_COLOR_F inputBackground;    // 输入框底盘背景色
-    D2D1_COLOR_F inputBorder;        // 输入框正常状态边框线圈色
-    D2D1_COLOR_F hoverBackground;    // 控件被鼠标滑过悬浮时的过渡背景色
-    D2D1_COLOR_F pressedBackground;  // 控件被鼠标左键按下交互时的过渡背景色
-    D2D1_COLOR_F selectedBackground; // 选项在被选中激活时的背景底盘色
-    D2D1_COLOR_F focusedBorder;      // 获得键盘聚焦后激活的突出高亮边框色
+    Color windowBackground;  // 窗口默认主背景色
+    Color cardBackground;    // 卡片板块容器的背景色
+    Color cardBorder;        // 卡片板块外包围线框的描边色
+    Color textPrimary;       // 主正文字元前景文本色
+    Color textSecondary;     // 次要辅助副标题的前景文本色
+    Color textMuted;         // 被遮蔽/禁用的灰色字元前景文本色
+    Color accentColor;       // 全局强调高亮高瞩目的主标志色彩
+    Color accentForeground;  // 高亮条目上的前景反衬反差文本色
+    Color dangerColor;       // 警告/危险类操作专属高亮色彩
+    Color paneBackground;     // 侧边栏大抽屉专用的底色背景
+    Color inputBackground;    // 输入框底盘背景色
+    Color inputBorder;        // 输入框正常状态边框线圈色
+    Color hoverBackground;    // 控件被鼠标滑过悬浮时的过渡背景色
+    Color pressedBackground;  // 控件被鼠标左键按下交互时的过渡背景色
+    Color selectedBackground; // 选项在被选中激活时的背景底盘色
+    Color focusedBorder;      // 获得键盘聚焦后激活的突出高亮边框色
 };
 
 /**
@@ -83,10 +83,10 @@ public:
 
     const ThemeTokens& GetTokens() const { return m_tokens; } // 获得解构后的明细色盘结构
 
-    D2D1_COLOR_F GetColor(ThemeTokenId id) const; // 获得指定 Token ID 对应的实际渲染 RGBA 颜色（在云母启用下自带材质半透混合）
-    D2D1_COLOR_F GetColor(const std::string& tokenName) const; // 从字符串格式 Token 名称查找渲染 RGBA 颜色
-    D2D1_COLOR_F GetFlatColor(ThemeTokenId id) const; // 获得指定 Token ID 绝对纯实的、永远不附带毛玻璃半透度的扁平 RGBA 颜色
-    D2D1_COLOR_F GetFlatColor(const std::string& tokenName) const; // 从字符串 Token 名称获取绝对纯实的扁平 RGBA 颜色
+    Color GetColor(ThemeTokenId id) const; // 获得指定 Token ID 对应的实际渲染 RGBA 颜色（在云母启用下自带材质半透混合）
+    Color GetColor(const std::string& tokenName) const; // 从字符串格式 Token 名称查找渲染 RGBA 颜色
+    Color GetFlatColor(ThemeTokenId id) const; // 获得指定 Token ID 绝对纯实的、永远不附带毛玻璃半透度的扁平 RGBA 颜色
+    Color GetFlatColor(const std::string& tokenName) const; // 从字符串 Token 名称获取绝对纯实的扁平 RGBA 颜色
     MaterialRole GetMaterialRole(const std::string& tokenName) const; // 从字符串获取材质作用级别分级
     MaterialRole GetMaterialRole(ThemeTokenId id) const; // 获取对应 Token ID 的材质作用级别分级
 
@@ -97,10 +97,10 @@ public:
 private:
     ThemeManager();
     void UpdateTokens(); // 彻底重新加载并刷新当前的 Token 配色板缓存数据
-    D2D1_COLOR_F LookupBaseColor(const std::string& tokenName) const; // 查找未发生半透转换的基础色值
-    D2D1_COLOR_F LookupBaseColor(ThemeTokenId id) const; // 查找未发生半透转换的基础色值
-    D2D1_COLOR_F ApplyMaterialRole(const std::string& tokenName, D2D1_COLOR_F base) const; // 融合 Backdrop 材质的半透度修饰
-    D2D1_COLOR_F ApplyMaterialRole(ThemeTokenId id, D2D1_COLOR_F base) const; // 融合 Backdrop 材质的半透度修饰
+    Color LookupBaseColor(const std::string& tokenName) const; // 查找未发生半透转换的基础色值
+    Color LookupBaseColor(ThemeTokenId id) const; // 查找未发生半透转换的基础色值
+    Color ApplyMaterialRole(const std::string& tokenName, Color base) const; // 融合 Backdrop 材质的半透度修饰
+    Color ApplyMaterialRole(ThemeTokenId id, Color base) const; // 融合 Backdrop 材质的半透度修饰
 
     ThemeSource m_source = ThemeSource::System;          // 配色方案来源，默认设为跟随操作系统
     ThemeMode m_mode = ThemeMode::Dark;                  // 实际所应用的主题皮肤，默认设为 Dark

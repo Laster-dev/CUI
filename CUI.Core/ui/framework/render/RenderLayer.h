@@ -65,6 +65,7 @@ public:
     const Rect& GetLastRenderedBounds() const { return m_lastRenderedBounds; }
     void ApplyCacheSurfaceSize(const Size& size) { m_cacheSurfaceSize = size; }
     const Size& GetCacheSurfaceSize() const { return m_cacheSurfaceSize; }
+    bool HasCache() const { return m_cacheBitmap != nullptr; }
     ID2D1DeviceContext* GetCacheContext() const { return m_cacheContext.Get(); }
     ID2D1Bitmap1* GetCacheBitmap() const { return m_cacheBitmap.Get(); }
     ID2D1Bitmap1* GetScratchBitmap() const { return m_scratchBitmap.Get(); }

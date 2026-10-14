@@ -116,8 +116,8 @@ void AutoSuggestBox::StyleField() {
     m_field->ApplyPadding(Thickness(8.0f, 6.0f, 8.0f, 6.0f));
 }
 
-HCURSOR AutoSuggestBox::GetCursor() const {
-    return nullptr;
+CursorType AutoSuggestBox::GetCursor() const {
+    return CursorType::Arrow;
 }
 
 void AutoSuggestBox::ApplyPlaceholder(const std::string& text) {
@@ -488,8 +488,7 @@ void AutoSuggestBox::RenderPopup(GraphicsContext& ctx) {
         Rect row(menu.x + 2.0f, y, menu.width - 4.0f, itemH - 2.0f);
         const bool hi = (i == m_highlightedIndex);
         if (hi) {
-            D2D1_COLOR_F sel = tokens.accentColor;
-            sel.a = 0.18f;
+            Color sel = tokens.accentColor.WithAlpha(0.18f);
             ctx.FillRoundedRect(row, 3.0f, sel);
         }
         ctx.DrawText(
@@ -498,9 +497,9 @@ void AutoSuggestBox::RenderPopup(GraphicsContext& ctx) {
             hi ? tokens.accentColor : tokens.textPrimary,
             GetFontFamily(),
             GetFontSize(),
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            hi ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
+            TextAlignment::Left,
+            TextVerticalAlignment::Center,
+            hi ? CUI::FontWeight::SemiBold : CUI::FontWeight::Normal,
             true);
     }
 
@@ -509,15 +508,13 @@ void AutoSuggestBox::RenderPopup(GraphicsContext& ctx) {
         constexpr float kScrollW = 8.0f;
         Rect track(menu.x + menu.width - kScrollW, menu.y, kScrollW, menu.height);
         const float vis = m_scrollbarAutoHide.Opacity();
-        D2D1_COLOR_F trackColor = tokens.cardBorder;
-        trackColor.a = 0.35f * vis;
+        Color trackColor = tokens.cardBorder.WithAlpha(0.35f * vis);
         ctx.DrawRoundedRect(track, 4.0f, trackColor, 1.0f);
         const float contentH = SuggestionContentHeight();
         const float thumbH = (std::max)(16.0f, (menu.height * menu.height) / contentH);
         const float travel = (std::max)(0.0f, menu.height - thumbH);
         const float thumbY = track.y + (m_suggestScroll / maxScroll) * travel;
-        D2D1_COLOR_F thumb = tokens.accentColor;
-        thumb.a = 0.45f * vis;
+        Color thumb = tokens.accentColor.WithAlpha(0.45f * vis);
         ctx.FillRoundedRect(Rect(track.x + 1.5f, thumbY, kScrollW - 3.0f, thumbH), 4.0f, thumb);
     }
 

@@ -1,4 +1,5 @@
 #include "DockManager.h"
+#include "DockFloatWindow.h"
 #include "../../core/CUIDsl.h"
 #include "DockLayoutSerializer.h"
 #include "../../window/Window.h"
@@ -50,12 +51,12 @@ DockManager::~DockManager() {
     m_floats.clear();
 }
 
-::HWND DockManager::OwnerHwnd() const {
+void* DockManager::OwnerHwnd() const {
     return m_ownerWindow ? m_ownerWindow->GetHWND() : nullptr;
 }
 
 Point DockManager::LocalToScreenDip(Point local) const {
-    ::HWND hwnd = OwnerHwnd();
+    ::HWND hwnd = static_cast<::HWND>(OwnerHwnd());
     if (!hwnd) {
         return local;
     }
@@ -69,7 +70,7 @@ Point DockManager::LocalToScreenDip(Point local) const {
 }
 
 Point DockManager::ScreenDipToLocal(Point screenDip) const {
-    ::HWND hwnd = OwnerHwnd();
+    ::HWND hwnd = static_cast<::HWND>(OwnerHwnd());
     if (!hwnd) {
         return screenDip;
     }
@@ -83,7 +84,7 @@ Point DockManager::ScreenDipToLocal(Point screenDip) const {
 }
 
 void DockManager::InvalidateOwner() {
-    if (::HWND hwnd = OwnerHwnd()) {
+    if (::HWND hwnd = static_cast<::HWND>(OwnerHwnd())) {
         InvalidateRect(hwnd, nullptr, FALSE);
         UpdateWindow(hwnd);
     } else {
@@ -332,7 +333,7 @@ void DockManager::ApplyLayoutNow() {
 
 float DockManager::MeasureTabWidth(const std::string& title) const {
     GraphicsContext probe;
-    const float textW = probe.MeasureText(title, "Segoe UI", 12.0f, DWRITE_FONT_WEIGHT_NORMAL).width;
+    const float textW = probe.MeasureText(title, "Segoe UI", 12.0f, CUI::FontWeight::Normal).width;
     return std::clamp(textW + kTabPadX * 2.0f, kTabMinW, kTabMaxW);
 }
 
@@ -354,7 +355,7 @@ void DockManager::AutoHideStripInsets(float& left, float& top, float& right, flo
 
 float DockManager::MeasureAutoHideTabExtent(const std::string& title) const {
     GraphicsContext probe;
-    const float textW = probe.MeasureText(title, "Segoe UI", 11.0f, DWRITE_FONT_WEIGHT_NORMAL).width;
+    const float textW = probe.MeasureText(title, "Segoe UI", 11.0f, CUI::FontWeight::Normal).width;
     return std::clamp(textW + 10.0f, 22.0f, 220.0f);
 }
 
@@ -397,7 +398,7 @@ Rect DockManager::AutoHideTabRect(DockSide side, int indexOnSide, const std::str
 }
 
 void DockManager::DrawAutoHideLabel(GraphicsContext& ctx, const Rect& btn, const std::string& title,
-                                    DockSide side, D2D1_COLOR_F color) const {
+                                    DockSide side, Color color) const {
     if (btn.IsEmpty() || title.empty()) {
         return;
     }
@@ -409,9 +410,9 @@ void DockManager::DrawAutoHideLabel(GraphicsContext& ctx, const Rect& btn, const
             color,
             "Segoe UI",
             11.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_NORMAL,
+            TextAlignment::Center,
+            TextVerticalAlignment::Center,
+            CUI::FontWeight::Normal,
             true);
         return;
     }
@@ -420,7 +421,7 @@ void DockManager::DrawAutoHideLabel(GraphicsContext& ctx, const Rect& btn, const
     const float cx = btn.x + btn.width * 0.5f;
     const float cy = btn.y + btn.height * 0.5f;
     const float deg = (side == DockSide::Left) ? -90.0f : 90.0f;
-    ctx.DrawTextRotated(title, Point(cx, cy), deg, color, "Segoe UI", 11.0f, DWRITE_FONT_WEIGHT_NORMAL);
+    ctx.DrawTextRotated(title, Point(cx, cy), deg, color, "Segoe UI", 11.0f, CUI::FontWeight::Normal);
 }
 
 DockSide DockManager::PeekSide() const {
@@ -894,7 +895,7 @@ void DockManager::FloatPane(int paneIndex, Point screenDipTopLeft) {
     if (!m_panes[paneIndex].canFloat) {
         return;
     }
-    ::HWND owner = OwnerHwnd();
+    ::HWND owner = static_cast<::HWND>(OwnerHwnd());
     if (!owner) {
         return;
     }
@@ -1509,17 +1510,17 @@ void DockManager::OnMouseLeave() {
     }
 }
 
-HCURSOR DockManager::GetCursor() const {
+CursorType DockManager::GetCursor() const {
     if (m_dragging) {
-        return LoadCursor(nullptr, IDC_SIZEALL);
+        return CursorType::SizeAll;
     }
     if (m_activeSplitter == 0 || m_activeSplitter == 1 || m_hover.part == HitPart::Splitter) {
         if (m_activeSplitter == 0 || m_activeSplitter == 1 || m_hover.splitter == 0 || m_hover.splitter == 1) {
-            return LoadCursor(nullptr, IDC_SIZEWE);
+            return CursorType::SizeWE;
         }
-        return LoadCursor(nullptr, IDC_SIZENS);
+        return CursorType::SizeNS;
     }
-    return nullptr;
+    return CursorType::Arrow;
 }
 
 bool DockManager::HasSelfAnimation() const {
@@ -1577,19 +1578,17 @@ void DockManager::DrawChromeButtonBg(GraphicsContext& ctx, const Rect& r, float 
     const auto& tokens = ThemeManager::Instance().GetTokens();
     const bool light = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
     if (danger && hoverT > 0.01f) {
-        D2D1_COLOR_F bg = tokens.dangerColor;
-        bg.a = 0.92f * hoverT;
+        Color bg = tokens.dangerColor.WithAlpha(0.92f * hoverT);
         ctx.FillRoundedRect(r, 4.0f, bg);
         return;
     }
     const float idle = light ? 0.07f : 0.12f;
     const float peak = light ? 0.14f : 0.24f;
     const float a = idle + (peak - idle) * std::clamp(hoverT, 0.0f, 1.0f);
-    ctx.FillRoundedRect(r, 4.0f, D2D1::ColorF(
-        tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, a));
+    ctx.FillRoundedRect(r, 4.0f, tokens.textPrimary.WithAlpha(a));
 }
 
-void DockManager::DrawCloseGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR_F color) const {
+void DockManager::DrawCloseGlyph(GraphicsContext& ctx, const Rect& r, Color color) const {
     const float cx = r.x + r.width * 0.5f;
     const float cy = r.y + r.height * 0.5f;
     const float arm = 4.6f;
@@ -1597,7 +1596,7 @@ void DockManager::DrawCloseGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR
     ctx.DrawSmoothLine(Point(cx + arm, cy - arm), Point(cx - arm, cy + arm), color, 1.7f);
 }
 
-void DockManager::DrawPinGlyph(GraphicsContext& ctx, const Rect& r, D2D1_COLOR_F color, bool autoHide) const {
+void DockManager::DrawPinGlyph(GraphicsContext& ctx, const Rect& r, Color color, bool autoHide) const {
     const float cx = r.x + r.width * 0.5f;
     const float cy = r.y + r.height * 0.5f;
     if (!autoHide) {
@@ -1638,8 +1637,8 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
     if (g.showScroll) {
         DrawChromeButtonBg(ctx, g.scrollLeft, scrollLT, false);
         DrawChromeButtonBg(ctx, g.scrollRight, scrollRT, false);
-        D2D1_COLOR_F cL = (scrollLT > 0.01f) ? tokens.textPrimary : tokens.textSecondary;
-        D2D1_COLOR_F cR = (scrollRT > 0.01f) ? tokens.textPrimary : tokens.textSecondary;
+        Color cL = (scrollLT > 0.01f) ? tokens.textPrimary : tokens.textSecondary;
+        Color cR = (scrollRT > 0.01f) ? tokens.textPrimary : tokens.textSecondary;
         ctx.DrawChevron(g.scrollLeft, cL, GraphicsContext::ChevronDirection::Left, 1.4f);
         ctx.DrawChevron(g.scrollRight, cR, GraphicsContext::ChevronDirection::Right, 1.4f);
     }
@@ -1678,9 +1677,9 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
                 sel ? tokens.textPrimary : tokens.textSecondary,
                 "Segoe UI",
                 12.0f,
-                DWRITE_TEXT_ALIGNMENT_LEADING,
-                DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-                sel ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
+                TextAlignment::Left,
+                TextVerticalAlignment::Center,
+                sel ? CUI::FontWeight::SemiBold : CUI::FontWeight::Normal,
                 true);
         }
         ctx.PopClip();
@@ -1707,8 +1706,7 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
     }
 
     if (m_dropPulse.Current() > 0.02f && anim.contentFade.Current() < 0.99f) {
-        D2D1_COLOR_F flash = tokens.accentColor;
-        flash.a = 0.12f * m_dropPulse.Current();
+        Color flash = tokens.accentColor.WithAlpha(0.12f * m_dropPulse.Current());
         ctx.FillRect(g.outer, flash);
     }
 
@@ -1716,12 +1714,12 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
         DrawChromeButtonBg(ctx, g.pinBtn, pinT, false);
         const int sel = SelectedPaneOf(group);
         const bool ah = (sel >= 0 && sel < static_cast<int>(m_panes.size()) && m_panes[sel].autoHide);
-        D2D1_COLOR_F icon = (pinT > 0.4f) ? tokens.textPrimary : tokens.textSecondary;
+        Color icon = (pinT > 0.4f) ? tokens.textPrimary : tokens.textSecondary;
         DrawPinGlyph(ctx, g.pinBtn, icon, ah);
     }
     if (!group.paneIndices.empty() && !g.closeBtn.IsEmpty()) {
         DrawChromeButtonBg(ctx, g.closeBtn, closeT, true);
-        D2D1_COLOR_F icon = (closeT > 0.4f) ? tokens.accentForeground : tokens.textSecondary;
+        Color icon = (closeT > 0.4f) ? tokens.accentForeground : tokens.textSecondary;
         DrawCloseGlyph(ctx, g.closeBtn, icon);
     }
 
@@ -1732,8 +1730,8 @@ void DockManager::DrawSlot(GraphicsContext& ctx, DockSide side, const SlotGeom& 
             tokens.textSecondary,
             "Segoe UI",
             13.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            TextAlignment::Center,
+            TextVerticalAlignment::Center);
     }
 }
 
@@ -1768,9 +1766,9 @@ void DockManager::DrawPeek(GraphicsContext& ctx) const {
         tokens.textPrimary,
         "Segoe UI",
         12.0f,
-        DWRITE_TEXT_ALIGNMENT_LEADING,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-        DWRITE_FONT_WEIGHT_SEMI_BOLD,
+        TextAlignment::Left,
+        TextVerticalAlignment::Center,
+        CUI::FontWeight::SemiBold,
         true);
 }
 
@@ -1798,7 +1796,7 @@ void DockManager::DrawAutoHideStrips(GraphicsContext& ctx) const {
         ctx.FillRect(btn, hot ? tokens.windowBackground : tokens.cardBackground);
         ctx.DrawRect(btn, tokens.cardBorder, 1.0f);
         if (hot) {
-            D2D1_COLOR_F accent = tokens.accentColor;
+            Color accent = tokens.accentColor;
             switch (it.side) {
             case DockSide::Left:
                 ctx.FillRect(Rect(btn.x + btn.width - 2.0f, btn.y, 2.0f, btn.height), accent);
@@ -1836,15 +1834,15 @@ void DockManager::DrawGuides(GraphicsContext& ctx) const {
              DockDropKind::EdgeBottom, DockDropKind::IntoCenter }) {
         const Rect r = GuideHot(k, m_bounds);
         const bool hot = (k == m_dropHighlight);
-        D2D1_COLOR_F fill = tokens.accentColor;
+        Color fill = tokens.accentColor;
         fill.a = (hot ? 0.55f : 0.28f) * guideOp;
         ctx.FillRoundedRect(r, 3.0f, fill);
-        D2D1_COLOR_F stroke = tokens.accentColor;
+        Color stroke = tokens.accentColor;
         stroke.a *= guideOp;
         ctx.DrawRoundedRect(r, 3.0f, stroke, 1.0f);
     }
     if (m_dropHighlight != DockDropKind::None) {
-        D2D1_COLOR_F preview = tokens.accentColor;
+        Color preview = tokens.accentColor;
         preview.a = 0.16f * guideOp;
         Rect band = m_bounds;
         switch (m_dropHighlight) {
@@ -1875,8 +1873,7 @@ void DockManager::DrawDragGhost(GraphicsContext& ctx) const {
     }
     const auto& tokens = ThemeManager::Instance().GetTokens();
     Rect ghost(m_dragPt.x + 14.0f, m_dragPt.y + 14.0f, 168.0f, 30.0f);
-    D2D1_COLOR_F fill = tokens.cardBackground;
-    fill.a = 0.94f;
+    Color fill = tokens.cardBackground.WithAlpha(0.94f);
     ctx.FillRoundedRect(ghost, 4.0f, fill);
     ctx.DrawRoundedRect(ghost, 4.0f, tokens.accentColor, 1.5f);
     ctx.DrawText(
@@ -1885,9 +1882,9 @@ void DockManager::DrawDragGhost(GraphicsContext& ctx) const {
         tokens.textPrimary,
         "Segoe UI",
         12.0f,
-        DWRITE_TEXT_ALIGNMENT_LEADING,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-        DWRITE_FONT_WEIGHT_SEMI_BOLD,
+        TextAlignment::Left,
+        TextVerticalAlignment::Center,
+        CUI::FontWeight::SemiBold,
         true);
 }
 

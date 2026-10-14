@@ -120,9 +120,9 @@ public:
             focused ? tokens.accentColor : tokens.textSecondary,
             "微软雅黑",
             12.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            focused ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+            TextAlignment::Left,
+            TextVerticalAlignment::Center,
+            focused ? FontWeight::SemiBold : FontWeight::Normal);
 
         // 实时最近捕获的命令执行状态
         ctx.DrawText(
@@ -131,8 +131,8 @@ public:
             tokens.textPrimary,
             "Consolas",
             12.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+            TextAlignment::Left,
+            TextVerticalAlignment::Top);
     }
 
     void OnMouseDown(Point pt) override {

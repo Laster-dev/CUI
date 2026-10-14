@@ -111,9 +111,8 @@ void StampTime(char out[13]) {
         st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
 }
 
-D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
-    c.a = std::clamp(a, 0.0f, 1.0f);
-    return c;
+Color WithAlpha(Color c, float a) {
+    return c.WithAlpha(std::clamp(a, 0.0f, 1.0f));
 }
 
 } // namespace
@@ -307,14 +306,14 @@ void LogView::ApplyProperty(PropertyId id, const Value& val) {
     }
 }
 
-HCURSOR LogView::GetCursor() const {
+CursorType LogView::GetCursor() const {
     if (!IsEnabled()) {
-        return nullptr;
+        return CursorType::Arrow;
     }
     if (m_hoverPart == Part::Header || m_hoverPart == Part::Chip) {
-        return LoadCursor(nullptr, IDC_HAND);
+        return CursorType::Hand;
     }
-    return LoadCursor(nullptr, IDC_ARROW);
+    return CursorType::Arrow;
 }
 
 Size LogView::Measure(Size availableSize) {
@@ -953,15 +952,15 @@ void LogView::DirtyBody() {
     }
 }
 
-D2D1_COLOR_F LogView::LevelColor(LogLevel level) const {
+Color LogView::LevelColor(LogLevel level) const {
     auto& theme = ThemeManager::Instance();
     switch (level) {
-    case LogLevel::Success: return D2D1::ColorF(0.16f, 0.72f, 0.42f, 1.0f);
+    case LogLevel::Success: return Color(0.16f, 0.72f, 0.42f, 1.0f);
     case LogLevel::Debug: return theme.GetColor(ThemeTokenId::TextSecondary);
     case LogLevel::Info: return theme.GetColor(ThemeTokenId::AccentColor);
-    case LogLevel::Warn: return D2D1::ColorF(0.90f, 0.68f, 0.12f, 1.0f);
+    case LogLevel::Warn: return Color(0.90f, 0.68f, 0.12f, 1.0f);
     case LogLevel::Error: return theme.GetColor(ThemeTokenId::DangerColor);
-    case LogLevel::Fatal: return D2D1::ColorF(0.78f, 0.16f, 0.22f, 1.0f);
+    case LogLevel::Fatal: return Color(0.78f, 0.16f, 0.22f, 1.0f);
     default: return theme.GetColor(ThemeTokenId::TextPrimary);
     }
 }
@@ -995,7 +994,7 @@ void LogView::PaintHeader(GraphicsContext& ctx) {
     const float fsTiny = (std::max)(8.0f, fs - 3.0f);
     const float fsRow = (std::max)(8.0f, fs - 1.0f);
     ctx.DrawText(counts, Rect(hdr.x + 28.0f, hdr.y, 72.0f, hdr.height), text, font, fs,
-        DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+        TextAlignment::Left, TextVerticalAlignment::Center, CUI::FontWeight::SemiBold);
 
     float badgeX = hdr.x + 96.0f;
     const uint32_t errN = m_levelCounts[static_cast<int>(LogLevel::Error)]
@@ -1006,8 +1005,8 @@ void LogView::PaintHeader(GraphicsContext& ctx) {
         std::snprintf(b, sizeof(b), "E%u", errN);
         const Rect br(badgeX, hdr.y + 7.0f, 36.0f, 18.0f);
         ctx.FillRoundedRect(br, 3.0f, WithAlpha(danger, 0.18f));
-        ctx.DrawText(b, br, danger, font, fsSmall, DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(b, br, danger, font, fsSmall, TextAlignment::Center,
+            TextVerticalAlignment::Center, CUI::FontWeight::Bold);
         badgeX += 40.0f;
     }
     if (wrnN > 0) {
@@ -1016,13 +1015,13 @@ void LogView::PaintHeader(GraphicsContext& ctx) {
         const Rect br(badgeX, hdr.y + 7.0f, 36.0f, 18.0f);
         const auto warn = LevelColor(LogLevel::Warn);
         ctx.FillRoundedRect(br, 3.0f, WithAlpha(warn, 0.18f));
-        ctx.DrawText(b, br, warn, font, fsSmall, DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(b, br, warn, font, fsSmall, TextAlignment::Center,
+            TextVerticalAlignment::Center, CUI::FontWeight::Bold);
         badgeX += 40.0f;
     }
     if (m_persistEnabled) {
         ctx.DrawText("●", Rect(hdr.x + hdr.width - 22.0f, hdr.y, 16.0f, hdr.height), accent, font, fsTiny,
-            DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            TextAlignment::Center, TextVerticalAlignment::Center);
     }
     const float previewFade = 1.0f - ExpandProgress();
     if (previewFade > 0.02f && m_size > 0) {
@@ -1035,8 +1034,8 @@ void LogView::PaintHeader(GraphicsContext& ctx) {
         const float x = badgeX + 8.0f;
         const float w = (std::max)(0.0f, hdr.x + hdr.width - x - 28.0f);
         ctx.DrawText(preview, Rect(x, hdr.y, w, hdr.height), WithAlpha(muted, muted.a * previewFade),
-            font, fsRow, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_NORMAL, true);
+            font, fsRow, TextAlignment::Left, TextVerticalAlignment::Center,
+            CUI::FontWeight::Normal, true);
     }
     ctx.FillRect(Rect(hdr.x, hdr.y + hdr.height - 1.0f, hdr.width, 1.0f), WithAlpha(border, 0.7f));
 }
@@ -1057,8 +1056,8 @@ void LogView::PaintChips(GraphicsContext& ctx) {
         const auto off = WithAlpha(muted, 0.45f);
         const auto tc = BlendColor(off, lc, on);
         ctx.DrawText(kChipNames[i], chip, tc, GetFontFamily(), (std::max)(8.0f, GetFontSize() - 1.0f),
-            DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            on > 0.5f ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_SEMI_BOLD);
+            TextAlignment::Center, TextVerticalAlignment::Center,
+            on > 0.5f ? CUI::FontWeight::Bold : CUI::FontWeight::SemiBold);
         if (on > 0.01f) {
             const float barW = (chip.width - 6.0f) * on;
             ctx.FillRoundedRect(
@@ -1109,16 +1108,16 @@ void LogView::PaintRows(GraphicsContext& ctx) {
         const float catX = levelX + kLevelCol + 8.0f;
         const float msgX = catX + kCatCol + 8.0f;
         ctx.DrawText(rec->time, Rect(timeX, row.y, kTimeCol, row.height), muted, font, fsRow,
-            DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            TextAlignment::Left, TextVerticalAlignment::Center);
         ctx.DrawText(LevelTag(rec->level), Rect(levelX, row.y, kLevelCol, row.height), lc, font, fsRow,
-            DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+            TextAlignment::Left, TextVerticalAlignment::Center, CUI::FontWeight::Bold);
         if (!rec->category.empty()) {
             ctx.DrawText(rec->category, Rect(catX, row.y, kCatCol, row.height), muted, font, fsRow,
-                DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL, true);
+                TextAlignment::Left, TextVerticalAlignment::Center, CUI::FontWeight::Normal, true);
         }
         ctx.DrawText(rec->message, Rect(msgX, row.y, (std::max)(0.0f, row.x + row.width - msgX - 4.0f), row.height),
-            text, font, fsRow, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_NORMAL, true);
+            text, font, fsRow, TextAlignment::Left, TextVerticalAlignment::Center,
+            CUI::FontWeight::Normal, true);
     }
     ctx.PopClip();
 }

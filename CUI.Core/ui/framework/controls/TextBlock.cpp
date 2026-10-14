@@ -46,24 +46,23 @@ Size TextBlock::Measure(Size availableSize) {
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
 
-    DWRITE_FONT_WEIGHT weight = ResolveFontWeight();
+    CUI::FontWeight weight = GetFontWeight();
 
     GraphicsContext ctx;
     Size measured;
     const bool customLead = m_lineHeight > 0.0f || std::abs(m_lineSpacing - 1.0f) > 0.001f;
     if (customLead) {
-        GraphicsContext::TextLayoutOptions opt;
+        TextLayoutOptions opt;
         opt.lineSpacing = m_lineSpacing;
         opt.lineHeight = m_lineHeight;
-        auto layout = GraphicsContext::CreateTextLayout(Utf8ToUtf16(text), font, fontSize, opt, weight, ResolveFontStyle(), ResolveFontStretch());
-        DWRITE_TEXT_METRICS metrics{};
-        if (layout && SUCCEEDED(layout->GetMetrics(&metrics))) {
-            measured = Size(metrics.widthIncludingTrailingWhitespace, metrics.height);
+        TextLayout layout = TextLayout::Create(text, font, fontSize, opt, weight, GetFontStyle(), GetFontStretch());
+        if (layout) {
+            measured = layout.GetSize();
         } else {
-            measured = ctx.MeasureText(text, font, fontSize, weight);
+            measured = ctx.MeasureText(text, font, fontSize, weight, GetFontStyle(), GetFontStretch());
         }
     } else {
-        measured = ctx.MeasureText(text, font, fontSize, weight);
+        measured = ctx.MeasureText(text, font, fontSize, weight, GetFontStyle(), GetFontStretch());
     }
 
     Thickness margin = GetMargin();
@@ -88,20 +87,14 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
     const std::string& text = GetText();
     if (text.empty()) return;
 
-    D2D1_COLOR_F color = m_hasColorValue
+    Color color = m_hasColorValue
         ? m_colorValue
         : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
-    DWRITE_FONT_WEIGHT weight = ResolveFontWeight();
-
-    DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING;
-    if (GetTextAlign() == TextAlignment::Center) align = DWRITE_TEXT_ALIGNMENT_CENTER;
-    else if (GetTextAlign() == TextAlignment::Right) align = DWRITE_TEXT_ALIGNMENT_TRAILING;
-
-    DWRITE_PARAGRAPH_ALIGNMENT vAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
-    if (GetVerticalAlign() == TextVerticalAlignment::Top) vAlign = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-    else if (GetVerticalAlign() == TextVerticalAlignment::Bottom) vAlign = DWRITE_PARAGRAPH_ALIGNMENT_FAR;
+    CUI::FontWeight weight = GetFontWeight();
+    TextAlignment align = GetTextAlign();
+    TextVerticalAlignment vAlign = GetVerticalAlign();
 
     Thickness padding = GetPadding();
     Rect textRect(
@@ -113,24 +106,20 @@ void TextBlock::OnRender(GraphicsContext& ctx) {
 
     const bool customLead = m_lineHeight > 0.0f || std::abs(m_lineSpacing - 1.0f) > 0.001f;
     if (customLead) {
-        GraphicsContext::TextLayoutOptions opt;
+        TextLayoutOptions opt;
         opt.maxWidth = textRect.width;
         opt.maxHeight = textRect.height;
-        opt.wrapping = DWRITE_WORD_WRAPPING_WRAP;
+        opt.wrapping = TextWrapping::Wrap;
         opt.paragraphAlignment = vAlign;
         opt.lineSpacing = m_lineSpacing;
         opt.lineHeight = m_lineHeight;
-        auto layout = GraphicsContext::CreateTextLayout(Utf8ToUtf16(text), font, fontSize, opt, weight, ResolveFontStyle(), ResolveFontStretch());
+        TextLayout layout = TextLayout::Create(text, font, fontSize, opt, weight, GetFontStyle(), GetFontStretch());
         if (layout) {
-            layout->SetTextAlignment(align);
-            const DWRITE_TEXT_RANGE range = { 0, static_cast<UINT32>(Utf8ToUtf16(text).length()) };
-            layout->SetUnderline(IsUnderline(), range);
-            layout->SetStrikethrough(IsStrikethrough(), range);
-            ctx.DrawTextLayout(layout.Get(), textRect, color);
+            ctx.DrawTextLayout(layout, textRect, color);
             return;
         }
     }
-    ctx.DrawText(text, textRect, color, font, fontSize, align, vAlign, weight, false, ResolveFontStyle(), ResolveFontStretch(), IsUnderline(), IsStrikethrough());
+    ctx.DrawText(text, textRect, color, font, fontSize, align, vAlign, weight, false, GetFontStyle(), GetFontStretch(), IsUnderline(), IsStrikethrough());
 }
 
 } // namespace CUI

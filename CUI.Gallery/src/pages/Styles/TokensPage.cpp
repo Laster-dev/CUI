@@ -16,7 +16,7 @@ Element BuildTokensPage() {
     grid.Gap(16.0f);
 
     for (const auto& name : tm.GetTokenNames()) {
-        const D2D1_COLOR_F color = tm.GetFlatColor(name);
+        const Color color = tm.GetFlatColor(name);
 
         auto chip =Container().Size(56.0f, 56.0f).CornerRadius(8.0f);
                 chip.Background(color);
@@ -45,7 +45,7 @@ Element BuildTokensPage() {
     spec.source =
         "control.BackgroundToken(ThemeTokenId::CardBackground);\n"
         "control.ColorToken(ThemeTokenId::TextPrimary);\n"
-        "D2D1_COLOR_F accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);\n"
+        "Color accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);\n"
         "std::string hex = ThemeManager::Instance().GetColorHex(\"accentColor\");\n";
     return BuildSamplePage(spec);
 }

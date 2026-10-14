@@ -14,7 +14,7 @@ public:
     virtual ~FilePicker();
 
     virtual const char* GetClassName() const override { return "FilePicker"; }
-    virtual HCURSOR GetCursor() const override;
+    virtual CursorType GetCursor() const override;
     bool AcceptsTabFocus() const override { return true; }
 
     virtual Size Measure(Size availableSize) override;

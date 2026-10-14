@@ -32,4 +32,7 @@
       <Filter>Resource Files</Filter>
     </Manifest>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\CUI\packages.config" />
+  </ItemGroup>
 </Project>

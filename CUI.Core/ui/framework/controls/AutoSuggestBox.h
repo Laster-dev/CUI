@@ -22,7 +22,7 @@ public:
     virtual ~AutoSuggestBox() = default;
 
     virtual const char* GetClassName() const override { return "AutoSuggestBox"; }
-    virtual HCURSOR GetCursor() const override;
+    virtual CursorType GetCursor() const override;
     bool AcceptsTabFocus() const override { return false; }
 
     virtual Size Measure(Size availableSize) override;

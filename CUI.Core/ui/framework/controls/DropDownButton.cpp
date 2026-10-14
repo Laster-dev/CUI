@@ -374,11 +374,11 @@ void DropDownButton::RenderPopup(GraphicsContext& ctx) {
     ctx.PushPopupReveal(menu, progress, Point(menu.x + menu.width * 0.5f, menu.y));
 
     const float radius = (std::max)(4.0f, GetCornerRadius());
-    D2D1_COLOR_F dropBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
-    D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
-    D2D1_COLOR_F hoverBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::HoverBackground);
-    D2D1_COLOR_F text = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
-    D2D1_COLOR_F muted = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
+    Color dropBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+    Color border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+    Color hoverBg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::HoverBackground);
+    Color text = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+    Color muted = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
 
     ctx.FillRoundedRect(menu, radius, dropBg);
     ctx.DrawRoundedRect(menu, radius, border, 1.0f);
@@ -405,8 +405,8 @@ void DropDownButton::RenderPopup(GraphicsContext& ctx) {
             item.enabled ? text : muted,
             GetFontFamily(),
             GetFontSize(),
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            TextAlignment::Left,
+            TextVerticalAlignment::Center);
         y += kItemH;
     }
 
@@ -421,17 +421,17 @@ void DropDownButton::OnRenderOverlay(GraphicsContext& ctx) {
 }
 
 void DropDownButton::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0, 0, 0, 0));
-    D2D1_COLOR_F border = m_hasBorderBrushColor
+    Color bg = GetAnimatedBackground(Color::Transparent);
+    Color border = m_hasBorderBrushColor
         ? m_borderBrushColor
         : ((GetBorderToken() != ThemeTokenId::Unset)
             ? ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor)
-            : D2D1::ColorF(0, 0, 0, 0));
+            : Color::Transparent);
     DrawButtonFace(ctx, bg, border, GetBorderThickness());
-    DrawButtonLabel(ctx, LabelRect(), DWRITE_TEXT_ALIGNMENT_CENTER);
+    DrawButtonLabel(ctx, LabelRect(), TextAlignment::Center);
 
     const bool open = m_isDropDownOpen || m_arrowAnim.Current() > 0.5f;
-    D2D1_COLOR_F chevron = IsEnabled()
+    Color chevron = IsEnabled()
         ? (m_hasColorValue
             ? m_colorValue
             : ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground))

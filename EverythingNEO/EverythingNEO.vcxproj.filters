@@ -15,22 +15,67 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="StringArena.cpp"><Filter>源文件</Filter></ClCompile>
-    <ClCompile Include="FileIndex.cpp"><Filter>源文件</Filter></ClCompile>
-    <ClCompile Include="DbSnapshot.cpp"><Filter>源文件</Filter></ClCompile>
-    <ClCompile Include="VolumeIndexer.cpp"><Filter>源文件</Filter></ClCompile>
-    <ClCompile Include="UsnWatcher.cpp"><Filter>源文件</Filter></ClCompile>
-    <ClCompile Include="EverythingEngine.cpp"><Filter>源文件</Filter></ClCompile>
-    <ClCompile Include="EverythingApp.cpp"><Filter>源文件</Filter></ClCompile>
-    <ClCompile Include="main.cpp"><Filter>源文件</Filter></ClCompile>
+    <ClCompile Include="StringArena.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FileIndex.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DbSnapshot.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="VolumeIndexer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="UsnWatcher.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="EverythingEngine.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="EverythingApp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FastMatch.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ShellContextMenu.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="StringArena.h"><Filter>头文件</Filter></ClInclude>
-    <ClInclude Include="FileIndex.h"><Filter>头文件</Filter></ClInclude>
-    <ClInclude Include="DbSnapshot.h"><Filter>头文件</Filter></ClInclude>
-    <ClInclude Include="VolumeIndexer.h"><Filter>头文件</Filter></ClInclude>
-    <ClInclude Include="UsnWatcher.h"><Filter>头文件</Filter></ClInclude>
-    <ClInclude Include="EverythingEngine.h"><Filter>头文件</Filter></ClInclude>
-    <ClInclude Include="EverythingApp.h"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="StringArena.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FileIndex.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DbSnapshot.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="VolumeIndexer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="UsnWatcher.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="EverythingEngine.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="EverythingApp.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FastMatch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SearchTypes.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ShellContextMenu.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

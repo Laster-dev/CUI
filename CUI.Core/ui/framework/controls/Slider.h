@@ -16,7 +16,7 @@ public:
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
     void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
-    virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取悬浮交互鼠标样式
+    virtual CursorType GetCursor() const override { return IsEnabled() ? CursorType::Hand : CursorType::Arrow; } // 获取悬浮交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 测算滑轨和手柄的默认自适应尺寸
     virtual void OnRender(GraphicsContext& ctx) override; // 绘制滑动槽底色、高亮进度条、以及拖动手柄

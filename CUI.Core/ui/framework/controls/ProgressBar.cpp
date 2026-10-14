@@ -9,8 +9,31 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
+#include <dcomp.h>
+#include <d2d1_1.h>
+#include <wrl/client.h>
 
 namespace CUI {
+
+struct ProgressBarCompose {
+    struct ComposePill {
+        Microsoft::WRL::ComPtr<IDCompositionVisual> visual;
+        Microsoft::WRL::ComPtr<IDCompositionSurface> surface;
+        Microsoft::WRL::ComPtr<IDCompositionMatrixTransform> transform;
+    };
+
+    Microsoft::WRL::ComPtr<IDCompositionVisual> hostVisual;
+    Microsoft::WRL::ComPtr<IDCompositionRectangleClip> hostClip;
+    ComposePill pill1;
+    ComposePill pill2;
+    float pillMaxWDips = 0.0f;
+    uint32_t hostWidthPx = 0;
+    uint32_t hostHeightPx = 0;
+    bool overlayAttached = false;
+    bool pillsParented = false;
+    bool useDcompOverlay = false;
+    bool releaseOverlay = false;
+};
 
 namespace {
 float WinUI3EaseInOut(float t) {
@@ -23,25 +46,27 @@ float WinUI3EaseInOut(float t) {
 constexpr float kMaxChunkFrac = 0.12f + 0.38f;
 } // namespace
 
-ProgressBar::ProgressBar() {
+ProgressBar::ProgressBar() : m_compose(std::make_unique<ProgressBarCompose>()) {
     this->ApplyFillColorToken(ThemeTokenId::AccentColor);
     this->ApplyTrackColorToken(ThemeTokenId::CardBorder);
     this->ApplyWidth(200.0f);
     this->ApplyHeight(3.0f);
     this->ApplyCornerRadius(1.5f);
     this->ApplyHoverBackgroundToken(ThemeTokenId::Unset);
-    this->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyHoverBackground(Color(0, 0, 0, 0));
+    this->ApplyBackground(Color(0, 0, 0, 0));
     ProgressBarDiag::Log("[PB] ctor this=%p", (void*)this);
 }
 
 ProgressBar::~ProgressBar() {
     ProgressBarDiag::Log("[PB] dtor this=%p indeterminate=%d", (void*)this, m_isIndeterminate ? 1 : 0);
-    m_hostVisual.Reset();
-    m_hostClip.Reset();
-    m_pill1 = {};
-    m_pill2 = {};
-    m_overlayAttached = false;
+    if (m_compose) {
+        m_compose->hostVisual.Reset();
+        m_compose->hostClip.Reset();
+        m_compose->pill1 = {};
+        m_compose->pill2 = {};
+        m_compose->overlayAttached = false;
+    }
 }
 
 void ProgressBar::ApplyIsIndeterminate(bool ind) {
@@ -63,31 +88,32 @@ void ProgressBar::ApplyIsIndeterminate(bool ind) {
             "[PB] SetIsIndeterminate arm ticksReg=%d (0=rejected until live-tree / OnNavigatedTo)",
             IsAnimationTicksRegistered() ? 1 : 0);
     } else {
-        m_releaseOverlay = true;
+        if (m_compose) m_compose->releaseOverlay = true;
     }
 }
 
 void ProgressBar::OnNavigatedFrom() {
     ProgressBarDiag::Log("[PB] OnNavigatedFrom this=%p ind=%d", (void*)this, m_isIndeterminate ? 1 : 0);
-    m_releaseOverlay = true;
+    if (m_compose) m_compose->releaseOverlay = true;
     UIElement::OnNavigatedFrom();
 }
 
 void ProgressBar::ReleaseComposeOverlay(GraphicsContext* ctx) {
-    if (m_overlayAttached && m_hostVisual && ctx) {
-        ctx->DetachCompositionOverlay(m_hostVisual.Get());
+    if (!m_compose) return;
+    if (m_compose->overlayAttached && m_compose->hostVisual && ctx) {
+        ctx->DetachCompositionOverlay(m_compose->hostVisual.Get());
     }
-    m_hostVisual.Reset();
-    m_hostClip.Reset();
-    m_pill1 = {};
-    m_pill2 = {};
-    m_pillMaxWDips = 0.0f;
-    m_hostWidthPx = 0;
-    m_hostHeightPx = 0;
-    m_overlayAttached = false;
-    m_pillsParented = false;
-    m_useDcompOverlay = false;
-    m_releaseOverlay = false;
+    m_compose->hostVisual.Reset();
+    m_compose->hostClip.Reset();
+    m_compose->pill1 = {};
+    m_compose->pill2 = {};
+    m_compose->pillMaxWDips = 0.0f;
+    m_compose->hostWidthPx = 0;
+    m_compose->hostHeightPx = 0;
+    m_compose->overlayAttached = false;
+    m_compose->pillsParented = false;
+    m_compose->useDcompOverlay = false;
+    m_compose->releaseOverlay = false;
 }
 
 Value ProgressBar::GetProperty(PropertyId id) const {
@@ -213,14 +239,15 @@ bool ProgressBar::HasSelfAnimation() const {
         || (UIElement::AreAnimationsEnabled() && std::abs(GetValue() - m_displayValue) > 0.01f);
 }
 
-void ProgressBar::UpdatePillTransform(
-    ComposePill& pill, float localXDips, float chunkWDips, float dpi, bool visible) {
+namespace {
+void UpdatePillTransform(
+    ProgressBarCompose& compose, ProgressBarCompose::ComposePill& pill, float localXDips, float chunkWDips, float dpi, bool visible) {
     if (!pill.transform || !pill.visual) {
         return;
     }
-    const float sx = (!visible || m_pillMaxWDips <= 0.001f)
+    const float sx = (!visible || compose.pillMaxWDips <= 0.001f)
         ? 0.0f
-        : std::clamp(chunkWDips / m_pillMaxWDips, 0.0f, 1.0f);
+        : std::clamp(chunkWDips / compose.pillMaxWDips, 0.0f, 1.0f);
     const float tx = localXDips * dpi;
     D2D_MATRIX_3X2_F m = {
         sx, 0.0f,
@@ -229,8 +256,10 @@ void ProgressBar::UpdatePillTransform(
     };
     pill.transform->SetMatrix(m);
 }
+} // namespace
 
 bool ProgressBar::EnsureComposeOverlay(GraphicsContext& ctx, float dpi) {
+    if (!m_compose) return false;
     auto* device = ctx.GetDCompDevice();
     if (!device || !ctx.GetDCompRootVisual()) {
         ProgressBarDiag::Log(
@@ -247,45 +276,45 @@ bool ProgressBar::EnsureComposeOverlay(GraphicsContext& ctx, float dpi) {
     const UINT pillWPx = (std::max)(1u, static_cast<UINT>(std::ceil(pillMaxW * dpi)));
 
     const bool sizeChanged =
-        widthPx != m_hostWidthPx
-        || heightPx != m_hostHeightPx
-        || std::abs(pillMaxW - m_pillMaxWDips) > 0.5f;
+        widthPx != m_compose->hostWidthPx
+        || heightPx != m_compose->hostHeightPx
+        || std::abs(pillMaxW - m_compose->pillMaxWDips) > 0.5f;
 
     if (sizeChanged) {
         ProgressBarDiag::Log(
             "[PB] EnsureCompose sizeChange host=%ux%u pillMaxW=%.2f pillWPx=%u",
             widthPx, heightPx, pillMaxW, pillWPx);
-        if (m_overlayAttached && m_hostVisual) {
-            ctx.DetachCompositionOverlay(m_hostVisual.Get());
-            m_overlayAttached = false;
+        if (m_compose->overlayAttached && m_compose->hostVisual) {
+            ctx.DetachCompositionOverlay(m_compose->hostVisual.Get());
+            m_compose->overlayAttached = false;
         }
-        m_hostVisual.Reset();
-        m_hostClip.Reset();
-        m_pill1 = {};
-        m_pill2 = {};
-        m_hostWidthPx = widthPx;
-        m_hostHeightPx = heightPx;
-        m_pillMaxWDips = pillMaxW;
-        m_pillsParented = false;
+        m_compose->hostVisual.Reset();
+        m_compose->hostClip.Reset();
+        m_compose->pill1 = {};
+        m_compose->pill2 = {};
+        m_compose->hostWidthPx = widthPx;
+        m_compose->hostHeightPx = heightPx;
+        m_compose->pillMaxWDips = pillMaxW;
+        m_compose->pillsParented = false;
     }
 
-    if (!m_hostVisual) {
-        if (FAILED(device->CreateVisual(&m_hostVisual)) || !m_hostVisual) {
+    if (!m_compose->hostVisual) {
+        if (FAILED(device->CreateVisual(&m_compose->hostVisual)) || !m_compose->hostVisual) {
             ProgressBarDiag::Log("[PB] EnsureCompose FAIL: CreateVisual host");
             return false;
         }
-        if (FAILED(device->CreateRectangleClip(&m_hostClip)) || !m_hostClip) {
+        if (FAILED(device->CreateRectangleClip(&m_compose->hostClip)) || !m_compose->hostClip) {
             ProgressBarDiag::Log("[PB] EnsureCompose FAIL: CreateRectangleClip");
             return false;
         }
-        m_hostClip->SetLeft(0.0f);
-        m_hostClip->SetTop(0.0f);
-        m_hostClip->SetRight(static_cast<float>(widthPx));
-        m_hostClip->SetBottom(static_cast<float>(heightPx));
-        m_hostVisual->SetClip(m_hostClip.Get());
+        m_compose->hostClip->SetLeft(0.0f);
+        m_compose->hostClip->SetTop(0.0f);
+        m_compose->hostClip->SetRight(static_cast<float>(widthPx));
+        m_compose->hostClip->SetBottom(static_cast<float>(heightPx));
+        m_compose->hostVisual->SetClip(m_compose->hostClip.Get());
     }
 
-    auto ensurePill = [&](ComposePill& pill, const char* name) -> bool {
+    auto ensurePill = [&](ProgressBarCompose::ComposePill& pill, const char* name) -> bool {
         if (!pill.visual) {
             if (FAILED(device->CreateVisual(&pill.visual)) || !pill.visual) {
                 ProgressBarDiag::Log("[PB] EnsureCompose FAIL: CreateVisual %s", name);
@@ -306,7 +335,7 @@ bool ProgressBar::EnsureComposeOverlay(GraphicsContext& ctx, float dpi) {
             }
             float radius = GetCornerRadius();
             if (radius < 0.0f) radius = m_bounds.height * 0.5f;
-            D2D1_COLOR_F fillBg = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
+            Color fillBg = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
             const bool drawn = ctx.DrawCompositionSurface(
                 pill.surface.Get(),
                 pillMaxW,
@@ -325,32 +354,33 @@ bool ProgressBar::EnsureComposeOverlay(GraphicsContext& ctx, float dpi) {
         return true;
     };
 
-    if (!ensurePill(m_pill1, "pill1") || !ensurePill(m_pill2, "pill2")) {
+    if (!ensurePill(m_compose->pill1, "pill1") || !ensurePill(m_compose->pill2, "pill2")) {
         return false;
     }
 
-    if (!m_pillsParented) {
-        HRESULT hr1 = m_hostVisual->AddVisual(m_pill1.visual.Get(), TRUE, nullptr);
-        HRESULT hr2 = m_hostVisual->AddVisual(m_pill2.visual.Get(), TRUE, nullptr);
+    if (!m_compose->pillsParented) {
+        HRESULT hr1 = m_compose->hostVisual->AddVisual(m_compose->pill1.visual.Get(), TRUE, nullptr);
+        HRESULT hr2 = m_compose->hostVisual->AddVisual(m_compose->pill2.visual.Get(), TRUE, nullptr);
         ProgressBarDiag::Log("[PB] EnsureCompose AddVisual pills hr=0x%08X 0x%08X", (unsigned)hr1, (unsigned)hr2);
-        m_pillsParented = true;
+        m_compose->pillsParented = true;
     }
 
-    if (!m_overlayAttached) {
-        if (!ctx.AttachCompositionOverlay(m_hostVisual.Get())) {
+    if (!m_compose->overlayAttached) {
+        if (!ctx.AttachCompositionOverlay(m_compose->hostVisual.Get())) {
             ProgressBarDiag::Log("[PB] EnsureCompose FAIL: AttachCompositionOverlay");
             return false;
         }
-        m_overlayAttached = true;
+        m_compose->overlayAttached = true;
         ProgressBarDiag::Log("[PB] EnsureCompose OK attached host %ux%u dpi=%.2f", widthPx, heightPx, dpi);
     }
     return true;
 }
 
 bool ProgressBar::ComposePresent(GraphicsContext& ctx) {
+    if (!m_compose) return false;
     auto fail = [&](const char* why) -> bool {
         ++ProgressBarDiag::ComposeFail();
-        m_useDcompOverlay = false;
+        m_compose->useDcompOverlay = false;
         MarkRenderRectDirty(m_bounds);
         ProgressBarDiag::Log(
             "[PB] ComposePresent FAIL#%u: %s usesSC=%d device=%p",
@@ -361,9 +391,9 @@ bool ProgressBar::ComposePresent(GraphicsContext& ctx) {
         return false;
     };
 
-    if (m_releaseOverlay || !IsIndeterminate()) {
+    if (m_compose->releaseOverlay || !IsIndeterminate()) {
         ReleaseComposeOverlay(&ctx);
-        ProgressBarDiag::Log("[PB] ComposePresent skip: %s", m_releaseOverlay ? "releaseOverlay" : "notIndeterminate");
+        ProgressBarDiag::Log("[PB] ComposePresent skip: %s", m_compose->releaseOverlay ? "releaseOverlay" : "notIndeterminate");
         return false;
     }
     if (m_visibility != Visibility::Visible || m_bounds.IsEmpty()) {
@@ -379,8 +409,8 @@ bool ProgressBar::ComposePresent(GraphicsContext& ctx) {
         return fail("EnsureComposeOverlay");
     }
 
-    m_hostVisual->SetOffsetX(m_bounds.x * dpi);
-    m_hostVisual->SetOffsetY(m_bounds.y * dpi);
+    m_compose->hostVisual->SetOffsetX(m_bounds.x * dpi);
+    m_compose->hostVisual->SetOffsetY(m_bounds.y * dpi);
 
     const float W = m_bounds.width;
     constexpr float cycleDur = 2.0f;
@@ -400,9 +430,9 @@ bool ProgressBar::ComposePresent(GraphicsContext& ctx) {
         const float endX = 1.2f * W;
         const float curX = startX + e1 * (endX - startX);
         const float chunkW = W * (0.12f + 0.38f * std::sin(p1 * 3.14159265f));
-        UpdatePillTransform(m_pill1, curX, chunkW, dpi, true);
+        UpdatePillTransform(*m_compose, m_compose->pill1, curX, chunkW, dpi, true);
     } else {
-        UpdatePillTransform(m_pill1, 0.0f, 0.0f, dpi, false);
+        UpdatePillTransform(*m_compose, m_compose->pill1, 0.0f, 0.0f, dpi, false);
     }
 
     if (tNorm >= 0.35f && tNorm <= 1.0f) {
@@ -412,17 +442,17 @@ bool ProgressBar::ComposePresent(GraphicsContext& ctx) {
         const float endX = 1.15f * W;
         const float curX = startX + e2 * (endX - startX);
         const float chunkW = W * (0.08f + 0.28f * std::sin(p2 * 3.14159265f));
-        UpdatePillTransform(m_pill2, curX, chunkW, dpi, true);
+        UpdatePillTransform(*m_compose, m_compose->pill2, curX, chunkW, dpi, true);
     } else {
-        UpdatePillTransform(m_pill2, 0.0f, 0.0f, dpi, false);
+        UpdatePillTransform(*m_compose, m_compose->pill2, 0.0f, 0.0f, dpi, false);
     }
 
-    m_useDcompOverlay = true;
+    m_compose->useDcompOverlay = true;
     const unsigned ok = ++ProgressBarDiag::ComposeOk();
     if (ProgressBarDiag::ShouldLogDetail(ok)) {
         ProgressBarDiag::Log(
             "[PB] ComposePresent OK#%u tNorm=%.3f hostOffset=(%.1f,%.1f) attached=%d",
-            ok, tNorm, m_bounds.x * dpi, m_bounds.y * dpi, m_overlayAttached ? 1 : 0);
+            ok, tNorm, m_bounds.x * dpi, m_bounds.y * dpi, m_compose->overlayAttached ? 1 : 0);
     }
     return true;
 }
@@ -430,7 +460,7 @@ bool ProgressBar::ComposePresent(GraphicsContext& ctx) {
 void ProgressBar::DrawIndeterminateFallback(GraphicsContext& ctx) const {
     float radius = GetCornerRadius();
     if (radius < 0.0f) radius = m_bounds.height * 0.5f;
-    D2D1_COLOR_F fillBg = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
+    Color fillBg = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
 
     ctx.PushClip(m_bounds);
     const float W = m_bounds.width;
@@ -475,7 +505,7 @@ void ProgressBar::OnRender(GraphicsContext& ctx) {
                 n,
                 (void*)this,
                 IsAnimationTicksRegistered() ? 1 : 0,
-                m_useDcompOverlay ? 1 : 0,
+                (m_compose && m_compose->useDcompOverlay) ? 1 : 0,
                 m_bounds.x, m_bounds.y, m_bounds.width, m_bounds.height,
                 ctx.UsesCompositionSwapChain() ? 1 : 0);
         }
@@ -490,20 +520,20 @@ void ProgressBar::OnRender(GraphicsContext& ctx) {
         RequestAnimationTicks();
     }
 
-    if (m_releaseOverlay) {
+    if (m_compose && m_compose->releaseOverlay) {
         ReleaseComposeOverlay(&ctx);
     }
 
     float radius = GetCornerRadius();
     if (radius < 0.0f) radius = m_bounds.height * 0.5f;
-    D2D1_COLOR_F trackBg = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
-    D2D1_COLOR_F fillBg = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
+    Color trackBg = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
+    Color fillBg = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
 
     ctx.FillRoundedRect(m_bounds, radius, trackBg);
 
     if (IsIndeterminate()) {
         // Always scene-draw pills; detach any leftover DComp host from earlier experiments.
-        if (m_overlayAttached || m_hostVisual) {
+        if (m_compose && (m_compose->overlayAttached || m_compose->hostVisual)) {
             ReleaseComposeOverlay(&ctx);
         }
         DrawIndeterminateFallback(ctx);

@@ -32,26 +32,20 @@ constexpr const char* kSvgClose =
     "L8 9.1 L2.2 14.9 L1.1 13.8 L6.9 8 L1.1 2.2 Z\"/>"
     "</svg>";
 
-D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
-    c.a = std::clamp(a, 0.0f, 1.0f);
-    return c;
+Color WithAlpha(Color c, float a) {
+    return c.WithAlpha(a);
 }
 
-D2D1_COLOR_F Mix(D2D1_COLOR_F a, D2D1_COLOR_F b, float t) {
-    t = std::clamp(t, 0.0f, 1.0f);
-    return D2D1::ColorF(
-        a.r + (b.r - a.r) * t,
-        a.g + (b.g - a.g) * t,
-        a.b + (b.b - a.b) * t,
-        a.a + (b.a - a.a) * t);
+Color Mix(Color a, Color b, float t) {
+    return Color::Lerp(a, b, t);
 }
 
-D2D1_COLOR_F SuccessColor() {
-    return D2D1::ColorF(0x0F7B0F);
+Color SuccessColor() {
+    return Color::FromHex("#0F7B0F");
 }
 
-D2D1_COLOR_F WarningColor() {
-    return D2D1::ColorF(0x9D5D00);
+Color WarningColor() {
+    return Color::FromHex("#9D5D00");
 }
 
 } // namespace
@@ -323,24 +317,21 @@ InfoBar::Palette InfoBar::Colors() const {
 }
 
 Size InfoBar::MeasureWrapped(const std::string& text, float fontSize, float maxWidth,
-                             DWRITE_FONT_WEIGHT weight) const {
+                             CUI::FontWeight weight) const {
     if (text.empty()) {
         return Size(0.0f, 0.0f);
     }
-    GraphicsContext::TextLayoutOptions options;
+    TextLayoutOptions options;
     options.maxWidth = (std::max)(24.0f, maxWidth);
     options.maxHeight = 400.0f;
-    options.wrapping = DWRITE_WORD_WRAPPING_WRAP;
-    ComPtr<IDWriteTextLayout> layout = GraphicsContext::CreateTextLayout(
-        Utf8ToUtf16(text), GetFontFamily(), fontSize, options, weight);
+    options.wrapping = TextWrapping::Wrap;
+    TextLayout layout = TextLayout::Create(text, GetFontFamily(), fontSize, options, weight);
     if (!layout) {
         return Size(maxWidth, fontSize + 4.0f);
     }
-    DWRITE_TEXT_METRICS metrics{};
-    layout->GetMetrics(&metrics);
     return Size(
-        std::ceil(metrics.widthIncludingTrailingWhitespace),
-        std::ceil(metrics.height));
+        std::ceil(layout.GetWidth()),
+        std::ceil(layout.GetHeight()));
 }
 
 void InfoBar::DrawWrapped(
@@ -348,20 +339,19 @@ void InfoBar::DrawWrapped(
     const std::string& text,
     const Rect& rect,
     float fontSize,
-    D2D1_COLOR_F color,
-    DWRITE_FONT_WEIGHT weight) const
+    Color color,
+    CUI::FontWeight weight) const
 {
     if (text.empty() || rect.IsEmpty()) {
         return;
     }
-    GraphicsContext::TextLayoutOptions options;
+    TextLayoutOptions options;
     options.maxWidth = (std::max)(1.0f, rect.width);
     options.maxHeight = (std::max)(1.0f, rect.height);
-    options.wrapping = DWRITE_WORD_WRAPPING_WRAP;
-    ComPtr<IDWriteTextLayout> layout = GraphicsContext::CreateTextLayout(
-        Utf8ToUtf16(text), GetFontFamily(), fontSize, options, weight);
+    options.wrapping = TextWrapping::Wrap;
+    TextLayout layout = TextLayout::Create(text, GetFontFamily(), fontSize, options, weight);
     if (layout) {
-        ctx.DrawTextLayout(layout.Get(), rect, color);
+        ctx.DrawTextLayout(layout, rect, color);
     }
 }
 
@@ -374,8 +364,8 @@ float InfoBar::ContentHeight(float width) const {
     const float textW = (std::max)(48.0f, width - reserved);
     const float titleSize = GetFontSize() + 1.0f;
     const float msgSize = GetFontSize();
-    const Size titleSz = MeasureWrapped(m_title, titleSize, textW, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-    const Size msgSz = MeasureWrapped(m_message, msgSize, textW, DWRITE_FONT_WEIGHT_NORMAL);
+    const Size titleSz = MeasureWrapped(m_title, titleSize, textW, CUI::FontWeight::SemiBold);
+    const Size msgSz = MeasureWrapped(m_message, msgSize, textW, CUI::FontWeight::Normal);
     float textH = titleSz.height;
     if (msgSz.height > 0.0f) {
         textH += (textH > 0.0f ? 4.0f : 0.0f) + msgSz.height;
@@ -448,12 +438,12 @@ void InfoBar::LayoutChrome() {
     }
 }
 
-void InfoBar::DrawSeverityIcon(GraphicsContext& ctx, const Rect& slot, D2D1_COLOR_F color) const {
+void InfoBar::DrawSeverityIcon(GraphicsContext& ctx, const Rect& slot, Color color) const {
     const float cx = slot.x + slot.width * 0.5f;
     const float cy = slot.y + slot.height * 0.5f;
     const float r = (std::min)(slot.width, slot.height) * 0.5f;
     ctx.FillRoundedRect(slot, r, color);
-    const D2D1_COLOR_F fg = ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground);
+    const Color fg = ThemeManager::Instance().GetColor(ThemeTokenId::AccentForeground);
 
     switch (m_severity) {
     case InfoBarSeverity::Success: {
@@ -522,8 +512,8 @@ void InfoBar::OnRender(GraphicsContext& ctx) {
     const float textW = (std::max)(8.0f, right - textX);
     const float titleSize = GetFontSize() + 1.0f;
     const float msgSize = GetFontSize();
-    const Size titleSz = MeasureWrapped(m_title, titleSize, textW, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-    const Size msgSz = MeasureWrapped(m_message, msgSize, textW, DWRITE_FONT_WEIGHT_NORMAL);
+    const Size titleSz = MeasureWrapped(m_title, titleSize, textW, FontWeight::SemiBold);
+    const Size msgSz = MeasureWrapped(m_message, msgSize, textW, FontWeight::Normal);
     float textH = titleSz.height;
     if (msgSz.height > 0.0f) {
         textH += (textH > 0.0f ? 4.0f : 0.0f) + msgSz.height;
@@ -532,13 +522,13 @@ void InfoBar::OnRender(GraphicsContext& ctx) {
     if (!m_title.empty()) {
         DrawWrapped(
             ctx, m_title, Rect(textX, y, textW, titleSz.height),
-            titleSize, tokens.textPrimary, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+            titleSize, tokens.textPrimary, FontWeight::SemiBold);
         y += titleSz.height + 4.0f;
     }
     if (!m_message.empty()) {
         DrawWrapped(
             ctx, m_message, Rect(textX, y, textW, msgSz.height),
-            msgSize, tokens.textSecondary, DWRITE_FONT_WEIGHT_NORMAL);
+            msgSize, tokens.textSecondary, FontWeight::Normal);
     }
 }
 

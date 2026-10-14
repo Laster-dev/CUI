@@ -160,12 +160,12 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     float boxY = m_bounds.y + (m_bounds.height - boxSize) / 2.0f;
     Rect boxRect(m_bounds.x + padding.left, boxY, boxSize, boxSize);
 
-    D2D1_COLOR_F accentBase = ResolveThemeColor(GetCheckedBackgroundToken(), ThemeTokenId::AccentColor);
+    Color accentBase = ResolveThemeColor(GetCheckedBackgroundToken(), ThemeTokenId::AccentColor);
     float visualState = m_visualStateAnim.Current();
-    D2D1_COLOR_F accentBlue = BlendColor(accentBase, ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor), visualState * 0.35f);
-    D2D1_COLOR_F checkedIconColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentForeground);
-    D2D1_COLOR_F bg = GetAnimatedBackground(ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground));
-    D2D1_COLOR_F border = BlendColor(
+    Color accentBlue = BlendColor(accentBase, ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor), visualState * 0.35f);
+    Color checkedIconColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentForeground);
+    Color bg = GetAnimatedBackground(ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground));
+    Color border = BlendColor(
         ThemeManager::Instance().GetFlatColor(ThemeTokenId::InputBorder),
         ThemeManager::Instance().GetFlatColor(ThemeTokenId::FocusedBorder),
         (std::min)(1.0f, visualState / 0.55f));
@@ -174,8 +174,8 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
     float checkProgress = m_checkAnim.Current();
     float indeterminateProgress = m_indeterminateAnim.Current();
 
-    D2D1_COLOR_F fillColor = BlendColor(bg, accentBlue, fillProgress);
-    D2D1_COLOR_F borderColor = BlendColor(border, accentBlue, fillProgress * 0.9f);
+    Color fillColor = BlendColor(bg, accentBlue, fillProgress);
+    Color borderColor = BlendColor(border, accentBlue, fillProgress * 0.9f);
     ctx.FillRoundedRect(boxRect, radius, fillColor);
     ctx.DrawRoundedRect(boxRect, radius, borderColor, 1.2f);
 
@@ -215,14 +215,14 @@ void CheckBox::OnRender(GraphicsContext& ctx) {
         float textX = boxRect.x + boxSize + 10.0f;
         Rect textRect(textX, m_bounds.y, m_bounds.width - (textX - m_bounds.x), m_bounds.height);
 
-        D2D1_COLOR_F textColor = m_hasColorValue
+        Color textColor = m_hasColorValue
             ? m_colorValue
             : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
         const std::string& font = GetFontFamily();
         float fontSize = GetFontSize();
 
-        ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER, ResolveFontWeight(), false, ResolveFontStyle(), ResolveFontStretch(), IsUnderline(), IsStrikethrough());
+        ctx.DrawText(text, textRect, textColor, font, fontSize, TextAlignment::Left,
+            TextVerticalAlignment::Center, GetFontWeight(), false, GetFontStyle(), GetFontStretch(), IsUnderline(), IsStrikethrough());
     }
 }
 

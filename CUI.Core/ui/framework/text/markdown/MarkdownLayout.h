@@ -1,7 +1,7 @@
 #pragma once
 #include "MarkdownAst.h"
 #include "../../core/Value.h"
-#include <dwrite.h>
+#include "../TextTypes.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -24,7 +24,7 @@ struct MdRun {
     std::string text;
     std::string font = "微软雅黑";
     float size = 14.0f;
-    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
+    FontWeight weight = FontWeight::Normal;
     bool italic = false;
     bool code = false;
     bool link = false;

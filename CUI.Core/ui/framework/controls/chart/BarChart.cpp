@@ -72,13 +72,13 @@ void BarChart::DrawPlot(GraphicsContext& ctx, const Rect& plot) {
     const int seriesCount = static_cast<int>(m_series.size());
     const float hover = HoverAmount();
     for (int s = 0; s < seriesCount; ++s) {
-        D2D1_COLOR_F color = SeriesColor(s);
+        Color color = SeriesColor(s);
         for (int c = 0; c < catCount; ++c) {
             Rect bar;
             if (!BarRect(plot, c, s, bar)) {
                 continue;
             }
-            D2D1_COLOR_F fill = color;
+            Color fill = color;
             const bool hot = (c == m_hoverIndex) && (m_hoverSeries < 0 || s == m_hoverSeries);
             if (hover > 0.01f && !hot) {
                 fill.a *= 1.0f - 0.58f * hover;

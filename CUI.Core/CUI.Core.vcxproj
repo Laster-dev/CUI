@@ -50,7 +50,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -217,6 +217,7 @@
     <ClCompile Include="ui\framework\controls\WindowTitleBar.cpp" />
     <ClCompile Include="ui\framework\controls\topology\TopologyView.cpp" />
     <ClCompile Include="ui\framework\input\Command.cpp" />
+    <ClCompile Include="ui\framework\input\InputTypes.cpp" />
     <ClCompile Include="ui\framework\core\Binding.cpp" />
     <ClCompile Include="ui\framework\core\Object.cpp" />
     <ClCompile Include="ui\framework\core\PropertyId.cpp" />
@@ -234,6 +235,8 @@
     <ClCompile Include="ui\framework\style\ThemeManager.cpp" />
     <ClCompile Include="ui\framework\style\ThemeTokenId.cpp" />
     <ClCompile Include="ui\framework\text\TextLayoutCache.cpp" />
+    <ClCompile Include="ui\framework\text\TextLayout.cpp" />
+    <ClCompile Include="ui\framework\text\TextTypes.cpp" />
     <ClCompile Include="ui\framework\window\CUIWindow.cpp" />
     <ClCompile Include="ui\framework\window\Dpi.cpp" />
     <ClCompile Include="ui\framework\window\PopupHost.cpp" />
@@ -359,6 +362,7 @@
     <ClInclude Include="ui\framework\core\Value.h" />
     <ClInclude Include="ui\framework\core\ValueConverter.h" />
     <ClInclude Include="ui\framework\input\Command.h" />
+    <ClInclude Include="ui\framework\input\InputTypes.h" />
     <ClInclude Include="ui\framework\input\RoutedEvent.h" />
     <ClInclude Include="ui\framework\layout\Layout.h" />
     <ClInclude Include="ui\framework\parser\StyleManager.h" />
@@ -374,6 +378,8 @@
     <ClInclude Include="ui\framework\style\ThemeManager.h" />
     <ClInclude Include="ui\framework\style\ThemeTokenId.h" />
     <ClInclude Include="ui\framework\text\TextLayoutCache.h" />
+    <ClInclude Include="ui\framework\text\TextLayout.h" />
+    <ClInclude Include="ui\framework\text\TextTypes.h" />
     <ClInclude Include="ui\framework\window\CUIWindow.h" />
     <ClInclude Include="ui\framework\window\Dpi.h" />
     <ClInclude Include="ui\framework\window\IWindowChrome.h" />

@@ -28,7 +28,7 @@ public:
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
     void ApplyProperty(PropertyId id, const Value& val) override;
-    virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_ARROW) : nullptr; }
+    virtual CursorType GetCursor() const override { return CursorType::Arrow; }
 
     virtual Size Measure(Size availableSize) override;
     virtual void Render(GraphicsContext& ctx) override;

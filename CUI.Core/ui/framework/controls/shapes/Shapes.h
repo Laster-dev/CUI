@@ -193,9 +193,9 @@ public:
     void ApplySource(const std::string& source) { m_source = source; Invalidate(); }
 
     /** @brief 获取着色覆盖颜色。 */
-    D2D1_COLOR_F GetTintColor() const { return m_tintColor; }
+    Color GetTintColor() const { return m_tintColor; }
     /** @brief 设置单色着色覆盖颜色 (TintColor)，用于适应主题配色。 */
-    void ApplyTintColor(D2D1_COLOR_F color) { m_tintColor = color; m_useTint = true; Invalidate(); }
+    void ApplyTintColor(Color color) { m_tintColor = color; m_useTint = true; Invalidate(); }
     /** @brief 清除着色覆盖，还原 SVG 本身的原始 Fill/Stroke 颜色。 */
     void ClearTintColor() { m_useTint = false; Invalidate(); }
 
@@ -207,7 +207,7 @@ public:
 
 private:
     std::string m_source;                                           ///< SVG XML 标记语言字符串或文件路径
-    D2D1_COLOR_F m_tintColor = D2D1::ColorF(1.0f, 1.0f, 1.0f, 1.0f); ///< 主题着色色值
+    Color m_tintColor = Color::White;                               ///< 主题着色色值
     bool m_useTint = false;                                         ///< 是否启用主题着色替换标志
 };
 

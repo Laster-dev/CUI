@@ -11,7 +11,7 @@ namespace {
 struct Style {
     std::string font = "微软雅黑";
     float size = 14.0f;
-    DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
+    FontWeight weight = FontWeight::Normal;
     bool italic = false;
     bool code = false;
     bool link = false;
@@ -74,23 +74,12 @@ Size MeasureStyled(
     if (text.empty()) {
         return Size(0.0f, style.size + 4.0f);
     }
-    if (!style.italic) {
-        return ctx.MeasureText(text, style.font, style.size, style.weight);
-    }
-    GraphicsContext::TextLayoutOptions opt;
-    opt.wrapping = DWRITE_WORD_WRAPPING_NO_WRAP;
-    auto layout = ctx.CreateTextLayout(Utf8ToUtf16(text), style.font, style.size, opt, style.weight);
-    if (!layout) {
-        return ctx.MeasureText(text, style.font, style.size, style.weight);
-    }
-    const std::wstring w = Utf8ToUtf16(text);
-    DWRITE_TEXT_RANGE range{ 0, static_cast<UINT32>(w.size()) };
-    layout->SetFontStyle(DWRITE_FONT_STYLE_ITALIC, range);
-    DWRITE_TEXT_METRICS metrics{};
-    layout->GetMetrics(&metrics);
-    return Size(
-        (std::max)(metrics.widthIncludingTrailingWhitespace, metrics.width) + 1.0f,
-        (std::max)(metrics.height, style.size + 2.0f));
+    return ctx.MeasureText(
+        text,
+        style.font,
+        style.size,
+        style.weight,
+        style.italic ? FontStyle::Italic : FontStyle::Normal);
 }
 
 struct Flow {
@@ -180,7 +169,7 @@ struct Flow {
                 Style code = style;
                 code.font = "Consolas";
                 code.size = (std::max)(11.0f, style.size - 1.0f);
-                code.weight = DWRITE_FONT_WEIGHT_NORMAL;
+                code.weight = FontWeight::Normal;
                 code.italic = false;
                 code.code = true;
                 AppendText(node.text, code);
@@ -188,7 +177,7 @@ struct Flow {
             }
             case MdInlineKind::Strong: {
                 Style next = style;
-                next.weight = DWRITE_FONT_WEIGHT_BOLD;
+                next.weight = FontWeight::Bold;
                 AppendInlines(node.children, next);
                 break;
             }
@@ -375,7 +364,7 @@ void LayoutFlowBlock(
     float width,
     float& y,
     float size,
-    DWRITE_FONT_WEIGHT weight,
+    FontWeight weight,
     int headingLevel,
     MdLayoutResult& out) {
     Flow flow{ ctx, out, x0, x0 + width, x0, y, size * 1.55f, y, {} };
@@ -415,7 +404,7 @@ void LayoutBlocks(
     for (const auto& block : blocks) {
         switch (block.kind) {
         case MdBlockKind::Paragraph:
-            LayoutFlowBlock(ctx, block.inlines, x0, width, y, 14.0f, DWRITE_FONT_WEIGHT_NORMAL, 0, out);
+            LayoutFlowBlock(ctx, block.inlines, x0, width, y, 14.0f, FontWeight::Normal, 0, out);
             y += 8.0f;
             break;
         case MdBlockKind::Heading: {
@@ -423,7 +412,7 @@ void LayoutBlocks(
             if (block.headingLevel <= 2 && y > 4.0f) {
                 y += 6.0f;
             }
-            LayoutFlowBlock(ctx, block.inlines, x0, width, y, sz, DWRITE_FONT_WEIGHT_SEMI_BOLD, block.headingLevel, out);
+            LayoutFlowBlock(ctx, block.inlines, x0, width, y, sz, FontWeight::SemiBold, block.headingLevel, out);
             y += block.headingLevel <= 2 ? 12.0f : 8.0f;
             break;
         }
@@ -452,7 +441,7 @@ void LayoutBlocks(
                 const float indent = 8.0f + static_cast<float>(item.listLevel) * 18.0f;
                 Style markerStyle;
                 markerStyle.size = 14.0f;
-                markerStyle.weight = DWRITE_FONT_WEIGHT_NORMAL;
+                markerStyle.weight = FontWeight::Normal;
                 const std::string marker = item.isTask
                     ? (item.isTaskChecked ? "☑" : "☐")
                     : (item.ordered ? (std::to_string(index++) + ".") : "•");
@@ -473,7 +462,7 @@ void LayoutBlocks(
                     (std::max)(40.0f, width - indent - ms.width - 8.0f),
                     y,
                     14.0f,
-                    DWRITE_FONT_WEIGHT_NORMAL,
+                    FontWeight::Normal,
                     0,
                     out);
                 y += 2.0f;
@@ -559,7 +548,7 @@ void LayoutBlocks(
                         : "";
                     Style style;
                     style.size = 13.0f;
-                    style.weight = rowIndex == 0 ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
+                    style.weight = rowIndex == 0 ? FontWeight::SemiBold : FontWeight::Normal;
                     const float cellTop = rowTop + 6.0f;
                     Flow flow{
                         ctx,

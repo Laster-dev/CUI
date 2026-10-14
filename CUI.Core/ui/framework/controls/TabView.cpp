@@ -197,7 +197,7 @@ float TabView::MeasureTabWidth(GraphicsContext& ctx, const TabViewItem& tab) con
     if (!tab.icon.empty()) {
         width += 16.0f + 8.0f;
     }
-    width += ctx.MeasureText(tab.title, "微软雅黑", 12.0f, DWRITE_FONT_WEIGHT_NORMAL).width;
+    width += ctx.MeasureText(tab.title, "微软雅黑", 12.0f, CUI::FontWeight::Normal).width;
     width += tab.isClosable ? 24.0f : 10.0f;
     return std::clamp(width, minW, maxW);
 }
@@ -295,7 +295,7 @@ void TabView::RenderHeaderLayer(GraphicsContext& ctx) {
         if (auto* composition = ctx.GetCompositionContext()) {
             if (needsRerender) {
                 composition->CountLayerCacheRerender();
-                if (!m_headerLayer.GetCacheBitmap()) {
+                if (!m_headerLayer.HasCache()) {
                     composition->CountLayerCacheMiss();
                 }
             } else {
@@ -304,13 +304,10 @@ void TabView::RenderHeaderLayer(GraphicsContext& ctx) {
             }
         }
 
-        if (needsRerender && ctx.PushLayerTarget(m_headerLayer, cacheSize, Rect(0, 0, cacheSize.width, cacheSize.height), D2D1::ColorF(0, 0, 0, 0))) {
-            auto* d2d = ctx.GetD2DContext();
-            D2D1_MATRIX_3X2_F oldTransform{};
-            d2d->GetTransform(&oldTransform);
-            d2d->SetTransform(D2D1::Matrix3x2F::Translation(-headerBarRect.x, -headerBarRect.y));
+        if (needsRerender && ctx.PushLayerTarget(m_headerLayer, cacheSize, Rect(0, 0, cacheSize.width, cacheSize.height), Color::Transparent)) {
+            ctx.PushTranslation(-headerBarRect.x, -headerBarRect.y);
             RenderHeaderContents(ctx);
-            d2d->SetTransform(oldTransform);
+            ctx.PopTransform();
             ctx.PopLayerTarget(m_headerLayer);
             m_headerLayer.Validate();
             m_headerDirty.Clear();
@@ -336,7 +333,7 @@ void TabView::RenderContentLayer(GraphicsContext& ctx) {
     if (auto* composition = ctx.GetCompositionContext()) {
         if (needsRerender) {
             composition->CountLayerCacheRerender();
-            if (!m_contentLayer.GetCacheBitmap()) {
+            if (!m_contentLayer.HasCache()) {
                 composition->CountLayerCacheMiss();
             }
         } else {
@@ -345,19 +342,16 @@ void TabView::RenderContentLayer(GraphicsContext& ctx) {
         }
     }
 
-    if (needsRerender && ctx.PushLayerTarget(m_contentLayer, cacheSize, contentRect, D2D1::ColorF(0, 0, 0, 0))) {
-        auto* d2d = ctx.GetD2DContext();
-        D2D1_MATRIX_3X2_F oldTransform{};
-        d2d->GetTransform(&oldTransform);
-        d2d->SetTransform(D2D1::Matrix3x2F::Translation(-contentRect.x, -contentRect.y));
+    if (needsRerender && ctx.PushLayerTarget(m_contentLayer, cacheSize, contentRect, Color::Transparent)) {
+        ctx.PushTranslation(-contentRect.x, -contentRect.y);
 
-        D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::WindowBackground);
+        Color bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::WindowBackground);
         ctx.FillRect(contentRect, bg);
         if (selectedContent) {
             selectedContent->Render(ctx);
         }
 
-        d2d->SetTransform(oldTransform);
+        ctx.PopTransform();
         ctx.PopLayerTarget(m_contentLayer);
         m_contentLayer.Validate();
         m_contentDirty.Clear();
@@ -374,7 +368,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
     Rect headerBarRect(m_bounds.x, m_bounds.y, m_bounds.width, headerH);
 
     // Draw TabBar Header background
-    D2D1_COLOR_F headerBg = ResolveThemeColor(GetHeaderBackgroundToken(), ThemeTokenId::PaneBackground);
+    Color headerBg = ResolveThemeColor(GetHeaderBackgroundToken(), ThemeTokenId::PaneBackground);
     ctx.FillRect(headerBarRect, headerBg);
 
     // Clip tab buttons within header bounds
@@ -382,11 +376,11 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
 
     float tabX = m_bounds.x + 4.0f - m_scrollOffsetXAnim.Current();
 
-    D2D1_COLOR_F defaultActiveTabBg = ResolveThemeColor(GetActiveTabBackgroundToken(), ThemeTokenId::WindowBackground);
-    D2D1_COLOR_F defaultInactiveTabBg = ResolveThemeColor(GetInactiveTabBackgroundToken(), ThemeTokenId::CardBackground);
-    D2D1_COLOR_F defaultActiveTextCol = ThemeManager::Instance().GetTokens().textPrimary;
-    D2D1_COLOR_F defaultInactiveTextCol = ThemeManager::Instance().GetTokens().textSecondary;
-    D2D1_COLOR_F defaultBorderCol = ThemeManager::Instance().GetTokens().cardBorder;
+    Color defaultActiveTabBg = ResolveThemeColor(GetActiveTabBackgroundToken(), ThemeTokenId::WindowBackground);
+    Color defaultInactiveTabBg = ResolveThemeColor(GetInactiveTabBackgroundToken(), ThemeTokenId::CardBackground);
+    Color defaultActiveTextCol = ThemeManager::Instance().GetTokens().textPrimary;
+    Color defaultInactiveTextCol = ThemeManager::Instance().GetTokens().textSecondary;
+    Color defaultBorderCol = ThemeManager::Instance().GetTokens().cardBorder;
 
     for (size_t i = 0; i < m_tabs.size(); ++i) {
         const auto& tab = m_tabs[i];
@@ -395,7 +389,7 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         float tabW = MeasureTabWidth(ctx, tab);
         Rect tabRect(tabX, m_bounds.y + 4.0f, tabW, headerH - 4.0f);
 
-        D2D1_COLOR_F tabBg = isActive ? defaultActiveTabBg : defaultInactiveTabBg;
+        Color tabBg = isActive ? defaultActiveTabBg : defaultInactiveTabBg;
 
         // Rounded top corners only; bottom edge stays flush with content.
         ctx.FillRoundedRect(tabRect, 4.0f, tabBg);
@@ -404,8 +398,8 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         float indicatorInset = 6.0f;
         float indicatorWidth = (std::max)(0.0f, tabW - indicatorInset * 2.0f);
         float indicatorY = m_bounds.y + 4.0f;
-        D2D1_COLOR_F underlineColor = ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::CardBorder);
-        D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
+        Color underlineColor = ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::CardBorder);
+        Color activeUnderlineColor = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
 
         if (isActive || tab.accentAnim.Current() > 0.01f) {
             ctx.DrawLine(
@@ -443,8 +437,8 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
         }
 
         // Draw Title Text
-        D2D1_COLOR_F textColor = isActive ? defaultActiveTextCol : defaultInactiveTextCol;
-        ctx.DrawText(tab.title, Rect(titleX, tabRect.y, tabW - (titleX - tabX) - 24.0f, tabRect.height), textColor, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isActive ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+        Color textColor = isActive ? defaultActiveTextCol : defaultInactiveTextCol;
+        ctx.DrawText(tab.title, Rect(titleX, tabRect.y, tabW - (titleX - tabX) - 24.0f, tabRect.height), textColor, "微软雅黑", 12.0f, TextAlignment::Left, TextVerticalAlignment::Center, isActive ? CUI::FontWeight::Bold : CUI::FontWeight::Normal);
 
         // Draw Close 'X' Button if closable
         if (tab.isClosable) {
@@ -454,12 +448,11 @@ void TabView::RenderHeaderContents(GraphicsContext& ctx) {
 
             bool isCloseHover = (m_hoveredCloseIndex == static_cast<int>(i));
             if (isCloseHover) {
-                D2D1_COLOR_F closeHover = ThemeManager::Instance().GetTokens().cardBorder;
-                closeHover.a = 0.18f;
+                Color closeHover = ThemeManager::Instance().GetTokens().cardBorder.WithAlpha(0.18f);
                 ctx.FillRoundedRect(closeRect, 3.0f, closeHover);
             }
 
-            D2D1_COLOR_F closeColor = isCloseHover ? defaultActiveTextCol : defaultInactiveTextCol;
+            Color closeColor = isCloseHover ? defaultActiveTextCol : defaultInactiveTextCol;
             float cx = closeX + 8.0f;
             float cy = closeY + 8.0f;
             ctx.DrawLine(Point(cx - 3.5f, cy - 3.5f), Point(cx + 3.5f, cy + 3.5f), closeColor, 1.2f);

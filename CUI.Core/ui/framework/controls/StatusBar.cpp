@@ -177,11 +177,11 @@ float StatusBar::MeasureItemWidth(GraphicsContext& ctx, const StatusBarItem& ite
         if (GraphicsContext::LooksLikeSvg(item.icon)) {
             w += GetFontSize() + 6.0f;
         } else {
-            w += ctx.MeasureText(item.icon, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width + 4.0f;
+            w += ctx.MeasureText(item.icon, GetFontFamily(), GetFontSize(), CUI::FontWeight::Normal).width + 4.0f;
         }
     }
     if (!item.text.empty()) {
-        w += ctx.MeasureText(item.text, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
+        w += ctx.MeasureText(item.text, GetFontFamily(), GetFontSize(), CUI::FontWeight::Normal).width;
     }
     if (item.kind == StatusBarItemKind::Progress) {
         w += 8.0f + kProgressMinW;
@@ -309,7 +309,7 @@ void StatusBar::DrawItem(GraphicsContext& ctx, const StatusBarItem& item, const 
         return;
     }
     const auto& tokens = ThemeManager::Instance().GetTokens();
-    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+    Color textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
 
     if (item.kind == StatusBarItemKind::Separator) {
         const float midX = bounds.x + bounds.width * 0.5f;
@@ -325,7 +325,7 @@ void StatusBar::DrawItem(GraphicsContext& ctx, const StatusBarItem& item, const 
     if (!item.icon.empty()) {
         const float iconSize = GraphicsContext::LooksLikeSvg(item.icon)
             ? GetFontSize() + 2.0f
-            : ctx.MeasureText(item.icon, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
+            : ctx.MeasureText(item.icon, GetFontFamily(), GetFontSize(), CUI::FontWeight::Normal).width;
         const Rect iconRect(x, bounds.y + (bounds.height - iconSize) * 0.5f, iconSize, iconSize);
         ctx.DrawIcon(item.icon, iconRect, textColor, 1.0f, GetFontFamily(), GetFontSize());
         x += iconSize + 4.0f;
@@ -335,7 +335,7 @@ void StatusBar::DrawItem(GraphicsContext& ctx, const StatusBarItem& item, const 
         const float trackW = (std::max)(kProgressMinW, bounds.x + bounds.width - x - 4.0f);
         float labelW = 0.0f;
         if (!item.text.empty()) {
-            labelW = ctx.MeasureText(item.text, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width + 6.0f;
+            labelW = ctx.MeasureText(item.text, GetFontFamily(), GetFontSize(), CUI::FontWeight::Normal).width + 6.0f;
         }
         const float barW = (std::max)(24.0f, trackW - labelW);
         if (!item.text.empty()) {
@@ -345,16 +345,15 @@ void StatusBar::DrawItem(GraphicsContext& ctx, const StatusBarItem& item, const 
                 textColor,
                 GetFontFamily(),
                 GetFontSize(),
-                DWRITE_TEXT_ALIGNMENT_LEADING,
-                DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-                DWRITE_FONT_WEIGHT_NORMAL,
+                TextAlignment::Left,
+                TextVerticalAlignment::Center,
+                CUI::FontWeight::Normal,
                 true);
             x += labelW;
         }
         const float trackY = bounds.y + (bounds.height - kProgressTrackH) * 0.5f;
         Rect track(x, trackY, barW, kProgressTrackH);
-        D2D1_COLOR_F trackBg = tokens.cardBorder;
-        trackBg.a *= 0.55f;
+        Color trackBg = tokens.cardBorder.WithAlpha(tokens.cardBorder.a * 0.55f);
         ctx.FillRoundedRect(track, 2.0f, trackBg);
         if (item.progress >= 0.0f) {
             const float fillW = barW * std::clamp(item.progress, 0.0f, 1.0f);
@@ -373,9 +372,9 @@ void StatusBar::DrawItem(GraphicsContext& ctx, const StatusBarItem& item, const 
             textColor,
             GetFontFamily(),
             GetFontSize(),
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_NORMAL,
+            TextAlignment::Left,
+            TextVerticalAlignment::Center,
+            CUI::FontWeight::Normal,
             true);
     }
 }
@@ -386,12 +385,12 @@ void StatusBar::OnRender(GraphicsContext& ctx) {
     }
 
     const auto& tokens = ThemeManager::Instance().GetTokens();
-    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::PaneBackground);
+    Color bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::PaneBackground);
     ctx.FillRect(m_bounds, bg);
 
     // Top hairline separator.
     if (GetBorderThickness() > 0.0f) {
-        D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+        Color border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
         ctx.DrawLine(
             Point(m_bounds.x, m_bounds.y + 0.5f),
             Point(m_bounds.x + m_bounds.width, m_bounds.y + 0.5f),

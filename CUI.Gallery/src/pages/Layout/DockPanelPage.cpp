@@ -14,7 +14,7 @@ namespace {
 
 std::shared_ptr<CUI::Button> MakeDockBar(
     const std::string& text,
-    D2D1_COLOR_F color,
+    Color color,
     Dock dock,
     float mainSize = 0.0f) {
     CUI::Widgets::Ref bar =ElevatedButton(text).Background(color).Build();
@@ -86,7 +86,7 @@ std::shared_ptr<UIElement> BuildDockPanelPage() {
     // 切换停靠方位是批量布局命令（改 Dock + 尺寸 + 颜色），保留事件驱动。
     auto applyDock = [hero](int index) {
         const Dock docks[] = { Dock::Left, Dock::Top, Dock::Right, Dock::Bottom };
-        const D2D1_COLOR_F colors[] = { Rgb(0x007ACC), Rgb(0x10B981), Rgb(0xF59F00), Rgb(0x845EF7) };
+        const Color colors[] = { Rgb(0x007ACC), Rgb(0x10B981), Rgb(0xF59F00), Rgb(0x845EF7) };
                 hero.Dock(docks[index]);
                 hero.Background(colors[index]);
         if (docks[index] == Dock::Left || docks[index] == Dock::Right) {

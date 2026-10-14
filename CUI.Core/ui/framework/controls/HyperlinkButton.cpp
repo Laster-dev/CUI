@@ -44,7 +44,7 @@ Size HyperlinkButton::Measure(Size availableSize) {
     float fontSize = GetFontSize();
 
     GraphicsContext ctx;
-    Size measured = ctx.MeasureText(text, font, fontSize, ResolveFontWeight(), ResolveFontStyle(), ResolveFontStretch());
+    Size measured = ctx.MeasureText(text, font, fontSize, GetFontWeight(), GetFontStyle(), GetFontStretch());
 
     Thickness margin = GetMargin();
     Thickness padding = GetPadding();
@@ -66,7 +66,7 @@ void HyperlinkButton::OnRender(GraphicsContext& ctx) {
     const std::string& text = GetText();
     if (text.empty()) return;
 
-    D2D1_COLOR_F textColor = m_hasColorValue
+    Color textColor = m_hasColorValue
         ? m_colorValue
         : ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentColor);
 
@@ -81,7 +81,7 @@ void HyperlinkButton::OnRender(GraphicsContext& ctx) {
         m_bounds.height - padding.top - padding.bottom
     );
 
-    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, ResolveFontWeight(), false, ResolveFontStyle(), ResolveFontStretch(), IsUnderline(), IsStrikethrough());
+    ctx.DrawText(text, textRect, textColor, font, fontSize, TextAlignment::Left, TextVerticalAlignment::Center, GetFontWeight(), false, GetFontStyle(), GetFontStretch(), IsUnderline(), IsStrikethrough());
 
     // Draw hover underline
     if (m_isHovered) {

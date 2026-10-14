@@ -72,9 +72,9 @@ std::wstring BuildDisplayText(const std::wstring& wtext, int cursorPos, const st
 TextBox::TextBox() {
     this->ApplyText("");
     this->ApplyPlaceholder("");
-    this->ApplyBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->ApplyHoverBackground(D2D1::ColorF(0, 0, 0, 0));
-    this->ApplyBorderBrush(D2D1::ColorF(0, 0, 0, 0));
+    this->ApplyBackground(Color::Transparent);
+    this->ApplyHoverBackground(Color::Transparent);
+    this->ApplyBorderBrush(Color::Transparent);
     this->ApplyBorderThickness(0.0f);
     this->ApplyUnderlineColorToken(ThemeTokenId::InputBorder);
     this->ApplyActiveUnderlineColorToken(ThemeTokenId::AccentColor);
@@ -228,11 +228,7 @@ Point TextBox::GetLayoutOrigin(const Rect& textRect) const {
 
 float TextBox::GetContentWidth(GraphicsContext& ctx, const std::wstring& wtext, const Rect& textRect) const {
     auto layout = BuildTextLayout(ctx, wtext, textRect);
-    if (!layout) return 0.0f;
-
-    DWRITE_TEXT_METRICS metrics = {};
-    layout->GetMetrics(&metrics);
-    return metrics.width;
+    return layout ? layout.GetWidth() : 0.0f;
 }
 
 void TextBox::ClampScrollOffsets(GraphicsContext& ctx, const std::wstring& wtext, const Rect& textRect) {
@@ -242,9 +238,7 @@ void TextBox::ClampScrollOffsets(GraphicsContext& ctx, const std::wstring& wtext
         layoutRect.height = 100000.0f;
         auto layout = BuildTextLayout(ctx, wtext, layoutRect);
         if (layout) {
-            DWRITE_TEXT_METRICS metrics = {};
-            layout->GetMetrics(&metrics);
-            float maxScrollY = std::max(0.0f, metrics.height - textRect.height);
+            float maxScrollY = std::max(0.0f, layout.GetHeight() - textRect.height);
             m_scrollOffsetY = std::clamp(m_scrollOffsetY, 0.0f, maxScrollY);
         }
     } else {
@@ -255,16 +249,16 @@ void TextBox::ClampScrollOffsets(GraphicsContext& ctx, const std::wstring& wtext
     }
 }
 
-Microsoft::WRL::ComPtr<IDWriteTextLayout> TextBox::BuildTextLayout(GraphicsContext& ctx, const std::wstring& wtext,
-                                                                     const Rect& textRect) const {
+TextLayout TextBox::BuildTextLayout(GraphicsContext& ctx, const std::wstring& wtext,
+                                    const Rect& textRect) const {
     (void)ctx;
-    GraphicsContext::TextLayoutOptions options;
+    TextLayoutOptions options;
     options.maxWidth = IsTextWrapping() ? textRect.width : 100000.0f;
     options.maxHeight = IsMultiline() ? 100000.0f : textRect.height;
-    options.wrapping = IsTextWrapping() ? DWRITE_WORD_WRAPPING_WRAP : DWRITE_WORD_WRAPPING_NO_WRAP;
+    options.wrapping = IsTextWrapping() ? TextWrapping::Wrap : TextWrapping::NoWrap;
     options.paragraphAlignment = IsMultiline()
-        ? DWRITE_PARAGRAPH_ALIGNMENT_NEAR
-        : DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+        ? TextVerticalAlignment::Top
+        : TextVerticalAlignment::Center;
     options.lineSpacing = GetLineSpacing();
     options.lineHeight = GetLineHeight();
 
@@ -280,9 +274,9 @@ Microsoft::WRL::ComPtr<IDWriteTextLayout> TextBox::BuildTextLayout(GraphicsConte
     key.paragraphAlignment = options.paragraphAlignment;
     key.lineSpacing = options.lineSpacing;
     key.lineHeight = options.lineHeight;
-    key.weight = ResolveFontWeight();
-    key.style = ResolveFontStyle();
-    key.stretch = ResolveFontStretch();
+    key.weight = GetFontWeight();
+    key.style = GetFontStyle();
+    key.stretch = GetFontStretch();
     return m_textLayoutCache.GetOrCreate(key);
 }
 
@@ -298,10 +292,10 @@ int TextBox::GetCaretIndexFromPoint(GraphicsContext& ctx, float x, float y) {
     if (!layout) return 0;
 
     Point origin = GetLayoutOrigin(textRect);
-    return static_cast<int>(ctx.HitTestTextLayout(layout.Get(), x, y, origin));
+    return static_cast<int>(layout.HitTest(x, y, origin));
 }
 
-GraphicsContext::TextCaretInfo TextBox::GetCaretScreenPos(GraphicsContext& ctx, int caretPos) {
+TextCaretInfo TextBox::GetCaretScreenPos(GraphicsContext& ctx, int caretPos) {
     std::wstring wtext = BuildDisplayText(
         GetDisplayedText(),
         m_cursorPos,
@@ -318,7 +312,8 @@ GraphicsContext::TextCaretInfo TextBox::GetCaretScreenPos(GraphicsContext& ctx, 
     }
 
     displayPos = std::clamp(displayPos, 0, static_cast<int>(wtext.length()));
-    return ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(displayPos), GetLayoutOrigin(textRect));
+    Point origin = GetLayoutOrigin(textRect);
+    return layout.GetCaretInfo(static_cast<UINT32>(displayPos), origin);
 }
 
 void TextBox::EnsureCaretVisible(GraphicsContext& ctx) {
@@ -338,7 +333,7 @@ void TextBox::EnsureCaretVisible(GraphicsContext& ctx) {
     if (!layout) return;
 
     Point origin = GetLayoutOrigin(textRect);
-    auto caret = ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(visiblePos), origin);
+    auto caret = layout.GetCaretInfo(static_cast<UINT32>(visiblePos), origin);
 
     if (IsMultiline()) {
         if (caret.y < textRect.y) {
@@ -405,15 +400,15 @@ void TextBox::PushUndoState() {
     m_redoStack.clear();
 }
 
-HCURSOR TextBox::GetCursor() const {
-    if (!IsEnabled()) return nullptr;
+CursorType TextBox::GetCursor() const {
+    if (!IsEnabled()) return CursorType::Arrow;
     if (m_isPasswordMode && m_showRevealButton) {
         Rect btnRect = GetRevealButtonRect();
         if (btnRect.Contains(m_lastMousePos.x, m_lastMousePos.y)) {
-            return LoadCursor(nullptr, IDC_HAND);
+            return CursorType::Hand;
         }
     }
-    return LoadCursor(nullptr, IDC_IBEAM);
+    return CursorType::IBeam;
 }
 
 void TextBox::Undo() {
@@ -469,9 +464,9 @@ Size TextBox::Measure(Size availableSize) {
         text,
         GetFontFamily(),
         GetFontSize(),
-        ResolveFontWeight(),
-        ResolveFontStyle(),
-        ResolveFontStretch());
+        GetFontWeight(),
+        GetFontStyle(),
+        GetFontStretch());
 
     const Thickness padding = GetPadding();
     const Thickness margin = GetMargin();
@@ -598,11 +593,11 @@ void TextBox::DeleteSelection() {
 
 void TextBox::OnRender(GraphicsContext& ctx) {
     float radius = GetCornerRadius();
-    D2D1_COLOR_F bg = m_hasBackgroundColor
+    Color bg = m_hasBackgroundColor
         ? m_backgroundColor
         : ((GetBackgroundToken() != ThemeTokenId::Unset)
             ? ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground)
-            : D2D1::ColorF(0, 0, 0, 0));
+            : Color::Transparent);
     const bool enabled = IsEnabled();
     if (bg.a > 0.0f) {
         if (radius > 0.0f) {
@@ -615,7 +610,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     if (m_dropHover && enabled) {
         const auto accent = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
         const float dropRadius = radius > 0.0f ? radius : 6.0f;
-        ctx.FillRoundedRect(m_bounds, dropRadius, D2D1::ColorF(accent.r, accent.g, accent.b, 0.18f));
+        ctx.FillRoundedRect(m_bounds, dropRadius, accent.WithAlpha(0.18f));
         ctx.DrawRoundedRect(m_bounds, dropRadius, accent, 2.0f);
     }
 
@@ -624,8 +619,8 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     const bool floating = UsesFloatingLabel();
     const std::string& font = GetFontFamily();
     float fontSize = GetFontSize();
-    D2D1_COLOR_F phBase = ResolveThemeColor(GetPlaceholderColorToken(), ThemeTokenId::TextMuted);
-    D2D1_COLOR_F phActive = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
+    Color phBase = ResolveThemeColor(GetPlaceholderColorToken(), ThemeTokenId::TextMuted);
+    Color phActive = ResolveThemeColor(GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
     Rect textRect = GetTextRect();
     const float labelProgress = std::clamp(m_labelAnim.Current(), 0.0f, 1.0f);
     // Single Fluent ease-out — avoid dual-draw ghosting of the same placeholder.
@@ -634,7 +629,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
     float focusLineProgress = enabled ? m_focusLineAnim.Current() : 0.0f;
     float labelFontSize = fontSize + (11.0f - fontSize) * labelEased;
     float labelY = m_bounds.y + 16.0f + (4.0f - 16.0f) * labelEased;
-    D2D1_COLOR_F labelColor = BlendColor(phBase, phActive, m_isFocused ? labelEased : labelEased * 0.35f);
+    Color labelColor = BlendColor(phBase, phActive, m_isFocused ? labelEased : labelEased * 0.35f);
 
     if (floating && (labelEased > 0.001f || text.empty())) {
         // One glyph only: floats from inline position up to the caption band.
@@ -642,7 +637,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         const float drawY = inlineY + (labelY - inlineY) * labelEased;
         const float drawSize = fontSize + (labelFontSize - fontSize) * labelEased;
         Rect drawRect(textRect.x, drawY, textRect.width, (std::max)(16.0f, m_bounds.height - 18.0f));
-        D2D1_COLOR_F drawColor = labelColor;
+        Color drawColor = labelColor;
         if (text.empty() && m_compString.empty() && labelEased < 0.001f) {
             drawColor = phBase;
         }
@@ -652,9 +647,9 @@ void TextBox::OnRender(GraphicsContext& ctx) {
             drawColor,
             font,
             drawSize,
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-            DWRITE_FONT_WEIGHT_NORMAL
+            TextAlignment::Left,
+            TextVerticalAlignment::Top,
+            FontWeight::Normal
         );
     } else if (!floating && text.empty() && m_compString.empty() && !placeholder.empty()) {
         ctx.DrawText(
@@ -663,9 +658,9 @@ void TextBox::OnRender(GraphicsContext& ctx) {
             phBase,
             font,
             fontSize,
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_NORMAL,
+            TextAlignment::Left,
+            TextVerticalAlignment::Center,
+            FontWeight::Normal,
             true
         );
     }
@@ -689,27 +684,23 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         int selMin = (std::min)(m_selectionStart, m_selectionEnd);
         int selMax = (std::max)(m_selectionStart, m_selectionEnd);
 
-        std::vector<D2D1_RECT_F> selRects;
-        if (ctx.GetTextSelectionBounds(layout.Get(), static_cast<UINT32>(selMin), static_cast<UINT32>(selMax), origin, selRects)) {
+        std::vector<Rect> selRects;
+        if (layout.GetSelectionBounds(static_cast<UINT32>(selMin), static_cast<UINT32>(selMax), origin, selRects)) {
             for (const auto& r : selRects) {
-                ctx.FillRect(Rect(r.left, r.top, r.right - r.left, r.bottom - r.top),
-                             D2D1::ColorF(phActive.r, phActive.g, phActive.b, 0.28f));
+                ctx.FillRect(r, phActive.WithAlpha(0.28f));
             }
         }
     }
 
-    D2D1_COLOR_F textColor = m_hasColorValue
+    Color textColor = m_hasColorValue
         ? m_colorValue
         : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-    const DWRITE_TEXT_RANGE range = { 0, static_cast<UINT32>(displayWText.length()) };
-    layout->SetUnderline(IsUnderline(), range);
-    layout->SetStrikethrough(IsStrikethrough(), range);
-    ctx.DrawTextLayout(layout.Get(), layoutRect, textColor);
+    ctx.DrawTextLayout(layout, layoutRect, textColor);
 
     if (!m_compString.empty()) {
-        auto compCaret = ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(m_cursorPos), origin);
+        auto compCaret = layout.GetCaretInfo(static_cast<UINT32>(m_cursorPos), origin);
         float compY = compCaret.y + compCaret.height - 2.0f;
-        auto compEnd = ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(m_cursorPos + static_cast<int>(m_compString.length())), origin);
+        auto compEnd = layout.GetCaretInfo(static_cast<UINT32>(m_cursorPos + static_cast<int>(m_compString.length())), origin);
         ctx.DrawLine(Point(compCaret.x, compY), Point(compEnd.x, compY),
                      ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor), 1.5f);
     }
@@ -725,12 +716,12 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         }
         displayCaretPos = std::clamp(displayCaretPos, 0, static_cast<int>(displayWText.length()));
 
-        auto caret = ctx.GetTextCaretInfo(layout.Get(), static_cast<UINT32>(displayCaretPos), origin);
+        auto caret = layout.GetCaretInfo(static_cast<UINT32>(displayCaretPos), origin);
         float cursorX = caret.x;
         float cursorY = caret.y + 2.0f;
         float cursorH = std::max(12.0f, caret.height - 4.0f);
         float cursorWidth = GetCaretWidth();
-        D2D1_COLOR_F cursorColor = ResolveThemeColor(GetCaretColorToken(), ThemeTokenId::AccentColor);
+        Color cursorColor = ResolveThemeColor(GetCaretColorToken(), ThemeTokenId::AccentColor);
 
         ctx.FillRect(Rect(cursorX, cursorY, cursorWidth, cursorH), cursorColor);
         m_lastCaretDirtyRect = Rect(cursorX - 2.0f, cursorY - 2.0f, cursorWidth + 4.0f, cursorH + 4.0f);
@@ -744,10 +735,10 @@ void TextBox::OnRender(GraphicsContext& ctx) {
         || GetActiveUnderlineColorToken() != ThemeTokenId::Unset;
     if (drawUnderline) {
         const bool hasVisibleBorderBrush = m_hasBorderBrushColor && m_borderBrushColor.a > 0.0f;
-        D2D1_COLOR_F underlineColor = hasVisibleBorderBrush
+        Color underlineColor = hasVisibleBorderBrush
             ? m_borderBrushColor
             : ResolveThemeColor(GetUnderlineColorToken(), ThemeTokenId::InputBorder);
-        D2D1_COLOR_F activeUnderlineColor = ResolveThemeColor(
+        Color activeUnderlineColor = ResolveThemeColor(
             GetActiveUnderlineColorToken(), ThemeTokenId::AccentColor);
         float lineY = m_bounds.y + m_bounds.height - 2.0f;
         if (m_dropHover && enabled) {
@@ -771,7 +762,7 @@ void TextBox::OnRender(GraphicsContext& ctx) {
 
     if (m_isPasswordMode && m_showRevealButton) {
         Rect btnRect = GetRevealButtonRect();
-        D2D1_COLOR_F eyeColor = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
+        Color eyeColor = ThemeManager::Instance().GetColor(ThemeTokenId::TextMuted);
         eyeColor.a = 0.85f;
         float cx = btnRect.x + btnRect.width * 0.5f;
         float cy = btnRect.y + btnRect.height * 0.5f;
@@ -1209,7 +1200,7 @@ bool TextBox::OnKeyDown(int vkCode) {
         auto layout = BuildTextLayout(ctx, displayWText, textRect);
         if (!layout) return true;
 
-        UINT32 newPos = ctx.HitTestTextLayout(layout.Get(), caret.x, targetY, GetLayoutOrigin(textRect));
+        UINT32 newPos = layout.HitTest(caret.x, targetY, GetLayoutOrigin(textRect));
         m_cursorPos = static_cast<int>(newPos);
         if (!isShiftDown) m_selectionStart = m_cursorPos;
         m_selectionEnd = m_cursorPos;
@@ -1224,7 +1215,7 @@ bool TextBox::OnKeyDown(int vkCode) {
             std::wstring displayWText = BuildDisplayText(wtext, m_cursorPos, m_compString);
             auto layout = BuildTextLayout(ctx, displayWText, textRect);
             if (layout) {
-                UINT32 newPos = ctx.HitTestTextLayout(layout.Get(), textRect.x, caret.y, GetLayoutOrigin(textRect));
+                UINT32 newPos = layout.HitTest(textRect.x, caret.y, GetLayoutOrigin(textRect));
                 m_cursorPos = static_cast<int>(newPos);
             }
         } else {
@@ -1243,7 +1234,7 @@ bool TextBox::OnKeyDown(int vkCode) {
             std::wstring displayWText = BuildDisplayText(wtext, m_cursorPos, m_compString);
             auto layout = BuildTextLayout(ctx, displayWText, textRect);
             if (layout) {
-                UINT32 newPos = ctx.HitTestTextLayout(layout.Get(), textRect.x + textRect.width, caret.y, GetLayoutOrigin(textRect));
+                UINT32 newPos = layout.HitTest(textRect.x + textRect.width, caret.y, GetLayoutOrigin(textRect));
                 m_cursorPos = static_cast<int>(newPos);
             }
         } else {

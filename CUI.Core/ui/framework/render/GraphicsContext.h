@@ -13,6 +13,8 @@
 #include "RenderResources.h"
 #include "RenderLayer.h"
 #include "../core/Value.h"
+#include "../text/TextTypes.h"
+#include "../text/TextLayout.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -50,6 +52,7 @@ public:
     bool UsesCompositionSwapChain() const { return m_usesCompositionSwapChain; }
     // True when the present path keeps per-pixel alpha for DWM Mica/Acrylic.
     bool SupportsPerPixelAlpha() const { return m_supportsPerPixelAlpha; }
+    float GetGpuVideoMemoryUsage01() const;
     IDCompositionDevice* GetDCompDevice() const { return m_dcompDevice.Get(); }
     IDCompositionVisual* GetDCompRootVisual() const { return m_dcompRootVisual.Get(); }
     // Commit the DComp tree (used after a normal swapchain Present).
@@ -77,7 +80,8 @@ public:
     void PopClip();
     void PushOpacity(float opacity);
     void PopOpacity();
-    void PushTransform(const D2D1_MATRIX_3X2_F& transform);
+    void PushTransform(const Matrix3x2& transform);
+    void PushTranslation(float dx, float dy);
     void PopTransform();
     // WinUI3-style popup enter: opacity + scale around origin. Pair with PopPopupReveal.
     void PushPopupReveal(const Rect& bounds, float progress, Point origin);
@@ -85,41 +89,44 @@ public:
     bool EnsureLayerCache(RenderLayer& layer, Size sizeInDips);
     // Lazily allocate the twin scratch bitmap (ScrollViewer scroll-patch path only).
     bool EnsureLayerScratch(RenderLayer& layer);
+    bool SnapshotLayerToScratch(RenderLayer& layer);
     ID2D1DeviceContext* BeginLayerDraw(RenderLayer& layer);
     void EndLayerDraw(RenderLayer& layer);
     void DrawLayer(const RenderLayer& layer, const Rect& destRect, const Rect* sourceRect = nullptr, float opacity = 1.0f);
+    void DrawLayerScratch(const RenderLayer& layer, const Rect& destRect, float opacity = 1.0f);
     // clearTarget=false keeps existing layer pixels (dirty-rect patching).
-    bool PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, D2D1_COLOR_F clearColor, bool clearTarget = true);
+    bool PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, Color clearColor, bool clearTarget = true);
     void PopLayerTarget(RenderLayer& layer);
     // Erase pixels in rect (SOURCE_COPY). Needed for transparent material clears under clip.
     // Prefer passing the scene clear color when patching opaque caches — transparent clears
     // leave holes that composite as black bars over WindowBackground.
     void ClearRect(const Rect& rect);
-    void ClearRect(const Rect& rect, D2D1_COLOR_F color);
+    void ClearRect(const Rect& rect, Color color);
     // Expand rect outward to whole device pixels (and optional DIP inflate). Clear+clip must share this.
     static Rect SnapExpandRect(const Rect& rect, float dpiScale, float inflateDips = 0.0f);
 
-    void DrawRect(const Rect& rect, D2D1_COLOR_F color, float strokeWidth = 1.0f);
-    void FillRect(const Rect& rect, D2D1_COLOR_F color);
-    void FillRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color);
-    void DrawRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color, float strokeWidth = 1.0f);
-    void DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth = 1.0f);
+    void DrawRect(const Rect& rect, Color color, float strokeWidth = 1.0f);
+    void FillRect(const Rect& rect, Color color);
+    void FillRoundedRect(const Rect& rect, float radius, Color color);
+    void DrawRoundedRect(const Rect& rect, float radius, Color color, float strokeWidth = 1.0f);
+    void DrawLine(Point p1, Point p2, Color color, float strokeWidth = 1.0f);
     // Antialiased stroke with round caps — for icons. DrawLine pixel-snaps and looks jagged on diagonals.
-    void DrawSmoothLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth = 1.5f);
+    void DrawSmoothLine(Point p1, Point p2, Color color, float strokeWidth = 1.5f);
     // Circular arc with round caps (angles in radians, 0 = +X, increasing = clockwise in DIP space).
     void DrawSmoothArc(
         Point center,
         float radius,
         float startRad,
         float sweepRad,
-        D2D1_COLOR_F color,
+        Color color,
         float strokeWidth = 1.5f);
 
     enum class ChevronDirection { Down, Up, Left, Right };
     // Theme-tinted SVG chevron (source points right; rotated for other directions).
-    void DrawChevron(const Rect& bounds, D2D1_COLOR_F color, ChevronDirection direction, float strokeWidth = 1.6f);
-    void FillPolygon(const Point* points, int count, D2D1_COLOR_F color);
-    void DrawPolygon(const Point* points, int count, D2D1_COLOR_F color, float strokeWidth = 1.0f);
+    void DrawChevron(const Rect& bounds, Color color, ChevronDirection direction, float strokeWidth = 1.6f);
+    void FillPolygon(const Point* points, int count, Color color);
+    void DrawPolygon(const Point* points, int count, Color color, float strokeWidth = 1.0f);
+    void FillRoundedGeometry(const std::vector<Point>& points, float radius, Color color);
     // Draw a native HICON (e.g. extracted from regedit.exe) into dest DIPs.
     void DrawHIcon(HICON icon, const Rect& dest, float opacity = 1.0f);
 
@@ -129,21 +136,21 @@ public:
     void DrawSvg(
         const std::string& source,
         const Rect& dest,
-        const D2D1_COLOR_F* tint = nullptr,
+        const Color* tint = nullptr,
         float opacity = 1.0f,
-        const D2D1_COLOR_F* foreground = nullptr);
+        const Color* foreground = nullptr);
     // SVG markup/path, else emoji/glyph text centered in dest.
     void DrawIcon(
         const std::string& icon,
         const Rect& dest,
-        D2D1_COLOR_F color,
+        Color color,
         float opacity = 1.0f,
         const std::string& glyphFont = "Segoe UI Emoji",
         float glyphSize = 0.0f);
     struct InheritedTextStyle {
-        DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL;
-        DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL;
-        DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL;
+        FontWeight weight = FontWeight::Normal;
+        FontStyle style = FontStyle::Normal;
+        FontStretch stretch = FontStretch::Normal;
         bool underline = false;
         bool strikethrough = false;
     };
@@ -151,9 +158,25 @@ public:
     void PushInheritedTextStyle(const InheritedTextStyle& style);
     void PopInheritedTextStyle();
 
-    void DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,
+    // High-level typography API
+    void DrawText(const std::string& text, const Rect& rect, Color color, const TextStyle& style);
+
+    // Pure CUI DrawText overload
+    void DrawText(const std::string& text, const Rect& rect, Color color,
                   const std::string& fontName = "微软雅黑", float fontSize = 13.0f,
-                  DWRITE_TEXT_ALIGNMENT align = DWRITE_TEXT_ALIGNMENT_LEADING,
+                  TextAlignment align = TextAlignment::Left,
+                  TextVerticalAlignment vAlign = TextVerticalAlignment::Center,
+                  FontWeight weight = FontWeight::Normal,
+                  bool truncateWithEllipsis = false,
+                  FontStyle style = FontStyle::Normal,
+                  FontStretch stretch = FontStretch::Normal,
+                  bool underline = false,
+                  bool strikethrough = false);
+
+    // Compatibility DrawText overload with DWRITE enums
+    void DrawText(const std::string& text, const Rect& rect, Color color,
+                  const std::string& fontName, float fontSize,
+                  DWRITE_TEXT_ALIGNMENT align,
                   DWRITE_PARAGRAPH_ALIGNMENT vAlign = DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
                   DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL,
                   bool truncateWithEllipsis = false,
@@ -161,35 +184,37 @@ public:
                   DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL,
                   bool underline = false,
                   bool strikethrough = false);
+
     // VS auto-hide tabs: rotate the whole run around `center` (ClearType cannot).
     void DrawTextRotated(
         const std::string& text,
         Point center,
         float degrees,
-        D2D1_COLOR_F color,
+        Color color,
         const std::string& fontName = "Segoe UI",
         float fontSize = 11.0f,
-        DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL);
+        FontWeight weight = FontWeight::Normal);
+
+    void DrawTextRotated(
+        const std::string& text,
+        Point center,
+        float degrees,
+        Color color,
+        const std::string& fontName,
+        float fontSize,
+        DWRITE_FONT_WEIGHT weight);
+
+    Size MeasureText(const std::string& text, const TextStyle& style, float maxWidth = 10000.0f);
 
     Size MeasureText(const std::string& text, const std::string& fontName = "微软雅黑",
-                     float fontSize = 13.0f, DWRITE_FONT_WEIGHT weight = DWRITE_FONT_WEIGHT_NORMAL,
+                     float fontSize = 13.0f, FontWeight weight = FontWeight::Normal,
+                     FontStyle style = FontStyle::Normal,
+                     FontStretch stretch = FontStretch::Normal);
+
+    Size MeasureText(const std::string& text, const std::string& fontName,
+                     float fontSize, DWRITE_FONT_WEIGHT weight,
                      DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL,
                      DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL);
-
-    struct TextLayoutOptions {
-        float maxWidth = 10000.0f;
-        float maxHeight = 10000.0f;
-        DWRITE_WORD_WRAPPING wrapping = DWRITE_WORD_WRAPPING_NO_WRAP;
-        DWRITE_PARAGRAPH_ALIGNMENT paragraphAlignment = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
-        float lineSpacing = 1.0f;
-        float lineHeight = 0.0f;
-    };
-
-    struct TextCaretInfo {
-        float x = 0.0f;
-        float y = 0.0f;
-        float height = 0.0f;
-    };
 
     static ComPtr<IDWriteFactory> GetSharedWriteFactory();
     static ComPtr<IDWriteTextLayout> CreateTextLayout(
@@ -201,7 +226,8 @@ public:
         DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL,
         DWRITE_FONT_STRETCH stretch = DWRITE_FONT_STRETCH_NORMAL);
 
-    void DrawTextLayout(IDWriteTextLayout* layout, const Rect& originRect, D2D1_COLOR_F color);
+    void DrawTextLayout(const TextLayout& layout, const Rect& originRect, Color color);
+    void DrawTextLayout(IDWriteTextLayout* layout, const Rect& originRect, Color color);
     static TextCaretInfo GetTextCaretInfo(IDWriteTextLayout* layout, UINT32 position, const Point& origin);
     static UINT32 HitTestTextLayout(IDWriteTextLayout* layout, float x, float y, const Point& origin);
     static bool GetTextSelectionBounds(IDWriteTextLayout* layout, UINT32 start, UINT32 end,
@@ -215,6 +241,7 @@ public:
     CompositionContext* GetCompositionContext() const { return m_compositionContext; }
 
 private:
+    void PushTransform(const D2D1_MATRIX_3X2_F& transform);
     HRESULT CreateDeviceIndependentResources();
     HRESULT CreateDeviceResources();
     HRESULT BindSwapChainTarget(float dpiX, float dpiY);
@@ -222,7 +249,7 @@ private:
         ID2D1RenderTarget* target,
         const std::wstring& text,
         const Rect& rect,
-        D2D1_COLOR_F color,
+        Color color,
         const std::string& fontName,
         float fontSize,
         DWRITE_TEXT_ALIGNMENT align,
@@ -238,7 +265,7 @@ private:
         ID2D1RenderTarget* target,
         IDWriteTextLayout* layout,
         const Rect& originRect,
-        D2D1_COLOR_F color,
+        Color color,
         D2D1_TEXT_ANTIALIAS_MODE antialiasMode);
 
     HWND m_hwnd = nullptr;

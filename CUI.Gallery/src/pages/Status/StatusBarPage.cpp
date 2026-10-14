@@ -22,8 +22,8 @@ Element BuildStatusBarPage() {
     // ==========================================
     CUI::Widgets::Ref bar = Widgets::StatusBar()
         .Height(28.0f)
-        .Background(D2D1::ColorF(0x18181B, 0.9f))
-        .Border(D2D1::ColorF(0x27272A, 1.0f), 1.0f)
+        .Background(Rgb(0x18181B, 0.9f))
+        .Border(Rgb(0x27272A), 1.0f)
         .CornerRadius(4.0f)
         .Shared();
 

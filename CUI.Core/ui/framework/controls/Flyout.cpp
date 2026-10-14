@@ -75,8 +75,8 @@ void FlyoutPresenter::Arrange(Rect finalRect) {
 void FlyoutPresenter::OnRender(GraphicsContext& ctx) {
     // Popups stay fully opaque — never borrow Surface/Mica alpha.
     float radius = GetCornerRadius();
-    D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
-    D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+    Color bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+    Color border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
 
     if (radius > 0.0f) {
         ctx.FillRoundedRect(m_bounds, radius, bg);

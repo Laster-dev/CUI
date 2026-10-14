@@ -10,6 +10,8 @@
 #include "../input/Command.h"
 #include "../core/BindableProperty.h"
 #include "../core/Property.h"
+#include "../text/TextTypes.h"
+#include "../input/InputTypes.h"
 #include <vector>
 #include <memory>
 #include <string>
@@ -20,6 +22,7 @@
 
 namespace CUI {
 
+class GraphicsContext;
 class ContextMenu;
 class UIElement;
 using Element = std::shared_ptr<UIElement>;
@@ -30,12 +33,6 @@ struct CanvasDrawContext {
     CanvasDrawContext(GraphicsContext& ctx, Size sz = {}) : Context(ctx), CanvasSize(sz) {}
     operator GraphicsContext&() { return Context; }
     GraphicsContext* operator->() { return &Context; }
-};
-
-struct PointerEventArgs {
-    Point Position{};
-    bool Handled = false;
-    int KeyCode = 0;
 };
 
 /**
@@ -64,73 +61,8 @@ enum class KeyboardNavigationMode {
     None       // 无：该控件及其所有子节点均不参与键盘 Tab 导航序列
 };
 
-/**
- * @brief 字体的粗细权重枚举。
- * Thin: 极细。
- * ExtraLight: 超细。
- * Light: 细。
- * Normal: 常规。
- * Medium: 中等。
- * SemiBold: 半粗。
- * Bold: 粗体。
- * ExtraBold: 特粗。
- * Black: 浓黑。
- */
-enum class FontWeight : uint16_t {
-    Thin = DWRITE_FONT_WEIGHT_THIN,                 // 极细：最轻薄的字体线条粗细
-    ExtraLight = DWRITE_FONT_WEIGHT_EXTRA_LIGHT,     // 超细：比极细略粗，但仍非常纤细的线条
-    Light = DWRITE_FONT_WEIGHT_LIGHT,               // 细：轻量级字重，常用于副标题
-    Normal = DWRITE_FONT_WEIGHT_NORMAL,             // 常规：最常用的常规字重，用于正文文本
-    Medium = DWRITE_FONT_WEIGHT_MEDIUM,             // 中等：介于常规和半粗之间的字重
-    SemiBold = DWRITE_FONT_WEIGHT_SEMI_BOLD,         // 半粗：中等偏粗，用于小标题以增强对比
-    Bold = DWRITE_FONT_WEIGHT_BOLD,                 // 粗体：标准的粗体字重，用于突出显示标题
-    ExtraBold = DWRITE_FONT_WEIGHT_EXTRA_BOLD,       // 特粗：非常粗的线条，用于高瞩目的标语
-    Black = DWRITE_FONT_WEIGHT_BLACK                // 浓黑：最粗的字重，线条极为厚重
-};
+// FontWeight, FontStyle, FontStretch and their string helpers are defined in TextTypes.h
 
-/**
- * @brief 字体字形倾斜样式枚举。
- * Normal: 常规直立。
- * Italic: 算法或字体内置斜体。
- * Oblique: 偏斜体。
- */
-enum class FontStyle : uint8_t {
-    Normal = DWRITE_FONT_STYLE_NORMAL,               // 常规：直立的正常字体样式
-    Italic = DWRITE_FONT_STYLE_ITALIC,               // 斜体：由字体设计师特别设计的倾斜字形风格
-    Oblique = DWRITE_FONT_STYLE_OBLIQUE              // 倾斜：通过倾斜算法强行拉斜的直立字形
-};
-
-/**
- * @brief 字体宽度横向拉伸/形变程度枚举。
- * UltraCondensed: 极窄。
- * ExtraCondensed: 特窄。
- * Condensed: 窄。
- * SemiCondensed: 偏窄。
- * Normal: 正常宽度。
- * SemiExpanded: 偏宽。
- * Expanded: 宽。
- * ExtraExpanded: 特宽。
- * UltraExpanded: 极宽。
- */
-enum class FontStretch : uint8_t {
-    UltraCondensed = DWRITE_FONT_STRETCH_ULTRA_CONDENSED, // 极窄：横向压缩到极致的窄体字
-    ExtraCondensed = DWRITE_FONT_STRETCH_EXTRA_CONDENSED, // 特窄：非常紧凑的窄体字
-    Condensed = DWRITE_FONT_STRETCH_CONDENSED,           // 窄：标准的窄体字
-    SemiCondensed = DWRITE_FONT_STRETCH_SEMI_CONDENSED,   // 偏窄：略微压缩宽度的字体
-    Normal = DWRITE_FONT_STRETCH_NORMAL,                 // 正常：设计师定义的标准常规宽度字体
-    SemiExpanded = DWRITE_FONT_STRETCH_SEMI_EXPANDED,     // 偏宽：略微横向扩展宽度的字体
-    Expanded = DWRITE_FONT_STRETCH_EXPANDED,             // 宽：宽体字
-    ExtraExpanded = DWRITE_FONT_STRETCH_EXTRA_EXPANDED,   // 特宽：横向大范围扩展宽度的字体
-    UltraExpanded = DWRITE_FONT_STRETCH_ULTRA_EXPANDED  // 极宽：横向拉伸至极致的字体
-};
-
-// 字体属性到字符串的序列化/反序列化映射方法
-const char* FontWeightToString(FontWeight value);
-FontWeight FontWeightFromString(const std::string& value);
-const char* FontStyleToString(FontStyle value);
-FontStyle FontStyleFromString(const std::string& value);
-const char* FontStretchToString(FontStretch value);
-FontStretch FontStretchFromString(const std::string& value);
 
 /**
  * @brief 属性值特化转换萃取器。
@@ -166,10 +98,9 @@ struct PropertyValueTraits<std::string> {
 template<>
 struct PropertyValueTraits<Color> {
     static Color FromValue(const Value& value) {
-        const D2D1_COLOR_F color = value.AsColor();
-        return Color(color.r, color.g, color.b, color.a); // 将通用值转换为 Color 结构体
+        return value.AsColor();
     }
-    static Value ToValue(const Color& value) { return Value(static_cast<D2D1_COLOR_F>(value)); } // 将 Color 结构体转换为通用值
+    static Value ToValue(const Color& value) { return Value(value); }
 };
 
 template<>
@@ -252,6 +183,9 @@ public:
 
     UIElement();
     virtual ~UIElement();
+#ifdef GetClassName
+#undef GetClassName
+#endif
     virtual const char* GetClassName() const override { return "UIElement"; } // 获取当前类的类名字符串
 
     // 以下为内置的响应式属性代理，支持通过 Bind() 直接绑定到数据源 State 实例
@@ -579,28 +513,28 @@ public:
     /**
      * @brief 解析对应的主题色彩 Token。若该 Token 未指定，则回退解析指定的 fallback 色彩 Token。
      */
-    D2D1_COLOR_F ResolveThemeColor(ThemeTokenId token, ThemeTokenId fallback) const;
-    D2D1_COLOR_F ResolveThemeColor(PropertyId tokenId, ThemeTokenId fallback) const;
+    Color ResolveThemeColor(ThemeTokenId token, ThemeTokenId fallback) const;
+    Color ResolveThemeColor(PropertyId tokenId, ThemeTokenId fallback) const;
 
     // 自定义具体硬编码配色重写接口
-    void ApplyBackground(D2D1_COLOR_F c);                 // 硬编码设置背景色（将覆盖对应的 Token 主题配置）
-    void ApplyBackgroundColor(D2D1_COLOR_F c) { ApplyBackground(c); } // 设置硬编码背景色彩值别名
-    D2D1_COLOR_F GetBackgroundColor() const { return m_backgroundColor; } // 获取重写的硬编码背景色
+    void ApplyBackground(Color c);                 // 硬编码设置背景色（将覆盖对应的 Token 主题配置）
+    void ApplyBackgroundColor(Color c) { ApplyBackground(c); } // 设置硬编码背景色彩值别名
+    Color GetBackgroundColor() const { return m_backgroundColor; } // 获取重写的硬编码背景色
     bool HasBackgroundColor() const { return m_hasBackgroundColor; } // 判断当前是否启用了硬编码背景重写
-    void ApplyHoverBackground(D2D1_COLOR_F c);            // 硬编码设置鼠标悬浮背景色
-    D2D1_COLOR_F GetHoverBackgroundColor() const { return m_hoverBackgroundColor; } // 获取硬编码悬浮背景色
+    void ApplyHoverBackground(Color c);            // 硬编码设置鼠标悬浮背景色
+    Color GetHoverBackgroundColor() const { return m_hoverBackgroundColor; } // 获取硬编码悬浮背景色
     bool HasHoverBackgroundColor() const { return m_hasHoverBackgroundColor; } // 是否设置了悬停背景重写
-    void ApplyPressedBackground(D2D1_COLOR_F c);          // 硬编码设置鼠标按下背景色
-    D2D1_COLOR_F GetPressedBackgroundColor() const { return m_pressedBackgroundColor; } // 获取硬编码按下背景色
+    void ApplyPressedBackground(Color c);          // 硬编码设置鼠标按下背景色
+    Color GetPressedBackgroundColor() const { return m_pressedBackgroundColor; } // 获取硬编码按下背景色
     bool HasPressedBackgroundColor() const { return m_hasPressedBackgroundColor; } // 是否设置了按压背景重写
     
-    void ApplyBorderBrush(D2D1_COLOR_F c);                // 硬编码设置边框笔刷色彩值
-    D2D1_COLOR_F GetBorderBrushColor() const { return m_borderBrushColor; } // 获取硬编码设置的边框色彩值
+    void ApplyBorderBrush(Color c);                // 硬编码设置边框笔刷色彩值
+    Color GetBorderBrushColor() const { return m_borderBrushColor; } // 获取硬编码设置的边框色彩值
     bool HasBorderBrushColor() const { return m_hasBorderBrushColor; } // 是否设置了边框重写色彩值
-    void ApplyColor(D2D1_COLOR_F c);                      // 硬编码设置前景/文本色彩值
-    void ApplyTextColor(D2D1_COLOR_F c) { ApplyColor(c); } // 设置硬编码前景/文本色彩值别名
-    D2D1_COLOR_F GetColorValue() const { return m_colorValue; } // 获取硬编码前景色彩值
-    D2D1_COLOR_F GetTextColor() const { return m_colorValue; } // 获取硬编码文本色彩值别名
+    void ApplyColor(Color c);                      // 硬编码设置前景/文本色彩值
+    void ApplyTextColor(Color c) { ApplyColor(c); } // 设置硬编码前景/文本色彩值别名
+    Color GetColorValue() const { return m_colorValue; } // 获取硬编码前景色彩值
+    Color GetTextColor() const { return m_colorValue; } // 获取硬编码文本色彩值别名
     bool HasColorValue() const { return m_hasColorValue; } // 是否存在硬编码前景色彩值
     bool HasTextColor() const { return m_hasColorValue; } // 是否存在硬编码文本色彩值别名
 
@@ -618,13 +552,11 @@ public:
     void ApplyFontSize(float size);                       // 修改渲染文字大小，触发重新测算
     CUI::FontWeight GetFontWeight() const { return m_fontWeight; } // 获取字重粗细
     void ApplyFontWeight(CUI::FontWeight weight);         // 设定字重粗细，触发重新测算
-    DWRITE_FONT_WEIGHT ResolveFontWeight() const;       // 解析成 DWrite API 可直接认知的数值
     CUI::FontStyle GetFontStyle() const { return m_fontStyle; } // 获取字体样式（斜体/直立）
     void ApplyFontStyle(CUI::FontStyle style);            // 设定字体样式，触发重新排版
-    DWRITE_FONT_STYLE ResolveFontStyle() const;         // 解析成 DWrite API 直接认知的斜体数值
     CUI::FontStretch GetFontStretch() const { return m_fontStretch; } // 获取字元水平拉伸变形度
     void ApplyFontStretch(CUI::FontStretch stretch);      // 设定字元水平拉伸变形度
-    DWRITE_FONT_STRETCH ResolveFontStretch() const;     // 解析成 DWrite 可认知的水平变形拉伸值
+
     
     bool IsUnderline() const { return m_isUnderline; }  // 判断文字是否拥有下划线修饰
     void ApplyIsUnderline(bool underline);                // 控制文字是否有下划线修饰
@@ -745,7 +677,9 @@ public:
     bool IsPressed() const { return m_isPressed; }      // 用户鼠标左键是否在此控件上处于按下的未释放状态
     bool IsFocused() const { return m_isFocused; }      // 控件当前是否持有窗口焦点
 
-    virtual HCURSOR GetCursor() const { return nullptr; } // 虚函数以允许控件自定义在 Hover 时的 Windows 鼠标样式类型
+    virtual CursorType GetCursor() const { return CursorType::Arrow; } // 允许控件自定义 Hover 时的抽象光标样式
+    virtual CursorType GetCursorType() const { return GetCursor(); }
+    void UpdateCursor();
 
     // 常规底层事件路由虚函数，派生控件可自行重写
     virtual void OnMouseEnter();                        // 鼠标首次进入控件物理几何边界时的触发入口
@@ -763,7 +697,10 @@ public:
     virtual void OnMiddleButtonUp(Point pt) { (void)pt; }                  // 鼠标中键释放回调
     virtual bool IsMiddleScrollActive() const { return false; }            // 验证当前是否正处于中键自动滚动运行模式
     
+    virtual bool OnKeyDown(const KeyEventArgs& args);   // 抽象键盘事件按键压下时的回调，返回 true 代表完全消耗此事件
     virtual bool OnKeyDown(int vkCode);                 // 键盘物理扫描按键压下时的回调，返回 true 代表完全消耗此事件
+    virtual bool OnKeyUp(const KeyEventArgs& args);     // 抽象键盘按键释放时的回调
+    virtual bool OnKeyUp(int vkCode) { (void)vkCode; return false; } // 键盘物理扫描按键释放时的回调
     virtual void OnCharInput(wchar_t ch) {}             // 键盘经过 IME 翻译后转出的 Unicode 字元字符输入回调
     
     // 键盘焦点属性与控制
@@ -1000,11 +937,11 @@ protected:
     ThemeTokenId m_caretColorToken = ThemeTokenId::Unset;              // 文本输入框中闪烁的竖线光标色彩 Token 标签
 
     // 硬编码颜色值 (若存在，则直接覆盖上述 Token 解析出的色彩)
-    D2D1_COLOR_F m_backgroundColor{};                                 // 手动赋值的背景 Direct2D RGBA 颜色结构体
-    D2D1_COLOR_F m_borderBrushColor{};                                // 手动赋值的边框笔刷 Direct2D RGBA 颜色结构体
-    D2D1_COLOR_F m_hoverBackgroundColor{};                             // 手动赋值的悬浮状态 Direct2D RGBA 背景颜色结构体
-    D2D1_COLOR_F m_pressedBackgroundColor{};                           // 手动赋值的按压状态 Direct2D RGBA 背景颜色结构体
-    D2D1_COLOR_F m_colorValue{ 1, 1, 1, 1 };                          // 手动赋值的前景/文字 Direct2D RGBA 颜色结构体
+    Color m_backgroundColor{};                                 // 手动赋值的背景颜色结构体
+    Color m_borderBrushColor{};                                // 手动赋值的边框笔刷颜色结构体
+    Color m_hoverBackgroundColor{};                             // 手动赋值的悬浮状态背景颜色结构体
+    Color m_pressedBackgroundColor{};                           // 手动赋值的按压状态背景颜色结构体
+    Color m_colorValue{ 1, 1, 1, 1 };                          // 手动赋值的前景/文字颜色结构体
     bool m_hasBackgroundColor = false;                                // 标记当前是否生效了硬编码背景色彩重写
     bool m_hasBorderBrushColor = false;                               // 标记当前是否生效了硬编码边框色彩重写
     bool m_hasHoverBackgroundColor = false;                           // 标记当前是否生效了硬编码悬浮色彩重写

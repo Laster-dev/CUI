@@ -50,14 +50,14 @@ Size ColorPicker::Measure(Size availableSize) {
     return m_desiredSize;
 }
 
-void ColorPicker::ApplySelectedColor(D2D1_COLOR_F color) {
+void ColorPicker::ApplySelectedColor(Color color) {
     m_selectedColor = color;
     NotifyFieldChanged(PropertyId::SelectedColor, Value(color));
     m_onColorChangedEvent.Invoke(this, color);
     MarkPopupDirty();
 }
 
-static D2D1_COLOR_F HSVToRGB(float h, float s, float v) {
+static Color HSVToRGB(float h, float s, float v) {
     float c = v * s;
     float x = c * (1.0f - std::abs(std::fmod(h / 60.0f, 2.0f) - 1.0f));
     float m = v - c;
@@ -70,7 +70,7 @@ static D2D1_COLOR_F HSVToRGB(float h, float s, float v) {
     else if (h >= 240 && h < 300) { r1 = x; g1 = 0; b1 = c; }
     else { r1 = c; g1 = 0; b1 = x; }
 
-    return D2D1::ColorF(r1 + m, g1 + m, b1 + m, 1.0f);
+    return Color(r1 + m, g1 + m, b1 + m, 1.0f);
 }
 
 UIElement* ColorPicker::OnHitTestOverlay(float x, float y) {
@@ -222,7 +222,7 @@ void ColorPicker::OnMouseUp(Point pt) {
 void ColorPicker::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
-    D2D1_COLOR_F selColor = GetSelectedColor();
+    Color selColor = GetSelectedColor();
 
     Rect previewRect(m_bounds.x + 6.0f, m_bounds.y + 5.0f, 22.0f, 22.0f);
     ctx.FillRoundedRect(previewRect, 3.0f, selColor);
@@ -231,7 +231,7 @@ void ColorPicker::OnRender(GraphicsContext& ctx) {
     char hexBuf[32];
     sprintf_s(hexBuf, "🎨 #%02X%02X%02X", static_cast<int>(selColor.r * 255), static_cast<int>(selColor.g * 255), static_cast<int>(selColor.b * 255));
     Rect textRect(m_bounds.x + 36.0f, m_bounds.y, m_bounds.width - 44.0f, m_bounds.height);
-    ctx.DrawText(hexBuf, textRect, ThemeManager::Instance().GetTokens().textPrimary, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(hexBuf, textRect, ThemeManager::Instance().GetTokens().textPrimary, "微软雅黑", 12.0f, TextAlignment::Left, TextVerticalAlignment::Center);
 }
 
 void ColorPicker::ApplyPopupOpen(bool open) {
@@ -275,19 +275,19 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
     float popW = popRect.width;
     ctx.PushPopupReveal(popRect, progress, Point(popRect.x + popW * 0.5f, popRect.y));
 
-    D2D1_COLOR_F bg = ThemeManager::Instance().GetTokens().cardBackground;
-    D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder;
-    D2D1_COLOR_F textCol = ThemeManager::Instance().GetTokens().textPrimary;
-    D2D1_COLOR_F accentCol = ThemeManager::Instance().GetTokens().accentColor;
-    D2D1_COLOR_F textMutedCol = ThemeManager::Instance().GetTokens().textMuted;
-    D2D1_COLOR_F selColor = GetSelectedColor();
+    Color bg = ThemeManager::Instance().GetTokens().cardBackground;
+    Color border = ThemeManager::Instance().GetTokens().cardBorder;
+    Color textCol = ThemeManager::Instance().GetTokens().textPrimary;
+    Color accentCol = ThemeManager::Instance().GetTokens().accentColor;
+    Color textMutedCol = ThemeManager::Instance().GetTokens().textMuted;
+    Color selColor = GetSelectedColor();
 
     ctx.FillRoundedRect(popRect, 6.0f, bg);
     ctx.DrawRoundedRect(popRect, 6.0f, border, 1.5f);
 
     // Title
     Rect headerRect(popRect.x, popRect.y + 4.0f, popW, 20.0f);
-    ctx.DrawText("高精度 HSV 调色盘面板", headerRect, accentCol, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+    ctx.DrawText("高精度 HSV 调色盘面板", headerRect, accentCol, "微软雅黑", 11.0f, TextAlignment::Center, TextVerticalAlignment::Center, CUI::FontWeight::Bold);
 
     // Render High Precision Color Canvas (Grid Sampling Saturation / Value)
     Rect canvasRect = CanvasRect(popRect);
@@ -299,7 +299,7 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
         float valRatio = 1.0f - static_cast<float>(y) / 10.0f;
         for (int x = 0; x < 16; ++x) {
             float satRatio = static_cast<float>(x) / 16.0f;
-            D2D1_COLOR_F cellColor = HSVToRGB(m_hue, satRatio, valRatio);
+            Color cellColor = HSVToRGB(m_hue, satRatio, valRatio);
             Rect cCell(canvasRect.x + x * stepX, canvasRect.y + y * stepY, stepX + 0.5f, stepY + 0.5f);
             ctx.FillRect(cCell, cellColor);
         }
@@ -310,7 +310,7 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
     float hueStepH = hueRect.height / 12.0f;
     for (int i = 0; i < 12; ++i) {
         float hVal = (static_cast<float>(i) / 12.0f) * 360.0f;
-        D2D1_COLOR_F hColor = HSVToRGB(hVal, 1.0f, 1.0f);
+        Color hColor = HSVToRGB(hVal, 1.0f, 1.0f);
         Rect hBar(hueRect.x, hueRect.y + i * hueStepH, hueRect.width, hueStepH + 0.5f);
         ctx.FillRect(hBar, hColor);
     }
@@ -331,7 +331,7 @@ void ColorPicker::RenderPopup(GraphicsContext& ctx) {
     char hexDetail[64];
     sprintf_s(hexDetail, "RGB(%d, %d, %d)", static_cast<int>(selColor.r * 255), static_cast<int>(selColor.g * 255), static_cast<int>(selColor.b * 255));
     Rect bottomText(popRect.x + 12.0f, popRect.y + 175.0f, popW - 24.0f, 20.0f);
-    ctx.DrawText(hexDetail, bottomText, textMutedCol, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(hexDetail, bottomText, textMutedCol, "微软雅黑", 11.0f, TextAlignment::Left, TextVerticalAlignment::Center);
 
     ctx.PopPopupReveal();
 }

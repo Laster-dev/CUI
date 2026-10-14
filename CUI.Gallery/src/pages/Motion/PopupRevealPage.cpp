@@ -53,11 +53,11 @@ public:
 
     void OnRender(GraphicsContext& ctx) override {
         const Rect rc = GetBounds();
-        D2D1_COLOR_F bg = ThemeManager::Instance().GetColor(ThemeTokenId::CardBackground);
+        Color bg = ThemeManager::Instance().GetColor(ThemeTokenId::CardBackground);
         bg.a = m_opacityScalar.Current();
         ctx.FillRoundedRect(rc, 8.0f, bg);
 
-        D2D1_COLOR_F border = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+        Color border = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
         border.a = m_opacityScalar.Current();
         ctx.DrawRoundedRect(rc, 8.0f, border, 1.5f);
 
@@ -67,8 +67,8 @@ public:
             ThemeManager::Instance().GetColor(ThemeTokenId::TextPrimary),
             "微软雅黑",
             13.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            TextAlignment::Center,
+            TextVerticalAlignment::Center);
     }
 
 private:

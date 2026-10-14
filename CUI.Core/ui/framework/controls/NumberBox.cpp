@@ -388,14 +388,14 @@ NumberBox::HitPart NumberBox::HitTestPart(Point pt) const {
     return HitPart::None;
 }
 
-HCURSOR NumberBox::GetCursor() const {
+CursorType NumberBox::GetCursor() const {
     if (!IsEnabled()) {
-        return nullptr;
+        return CursorType::Arrow;
     }
     if (m_hover == HitPart::Up || m_hover == HitPart::Down) {
-        return LoadCursor(nullptr, IDC_HAND);
+        return CursorType::Hand;
     }
-    return nullptr;
+    return CursorType::IBeam;
 }
 
 std::string NumberBox::FormatValue(float val) const {
@@ -497,7 +497,7 @@ bool NumberBox::HandleFieldKey(int vkCode) {
 
 void NumberBox::OnRender(GraphicsContext& ctx) {
     const float radius = GetCornerRadius();
-    D2D1_COLOR_F bg = GetAnimatedBackground(ThemeManager::Instance().GetFlatColor(ThemeTokenId::InputBackground));
+    Color bg = GetAnimatedBackground(ThemeManager::Instance().GetFlatColor(ThemeTokenId::InputBackground));
     if (radius > 0.0f) {
         ctx.FillRoundedRect(m_bounds, radius, bg);
     } else {
@@ -505,7 +505,7 @@ void NumberBox::OnRender(GraphicsContext& ctx) {
     }
 
     const bool fieldFocused = m_field && m_field->IsFocused();
-    D2D1_COLOR_F border = m_hasBorderBrushColor
+    Color border = m_hasBorderBrushColor
         ? m_borderBrushColor
         : ((m_isFocused || fieldFocused)
             ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
@@ -525,12 +525,12 @@ void NumberBox::OnRender(GraphicsContext& ctx) {
     const float upT = m_hotUp.Current();
     const float downT = m_hotDown.Current();
     if (upT > 0.01f) {
-        D2D1_COLOR_F fill = tokens.textPrimary;
+        Color fill = tokens.textPrimary;
         fill.a = 0.08f + 0.10f * upT;
         ctx.FillRect(up, fill);
     }
     if (downT > 0.01f) {
-        D2D1_COLOR_F fill = tokens.textPrimary;
+        Color fill = tokens.textPrimary;
         fill.a = 0.08f + 0.10f * downT;
         ctx.FillRect(down, fill);
     }
@@ -547,7 +547,7 @@ void NumberBox::OnRender(GraphicsContext& ctx) {
         tokens.cardBorder,
         1.0f);
 
-    D2D1_COLOR_F chevron = tokens.textSecondary;
+    Color chevron = tokens.textSecondary;
     ctx.DrawChevron(up, chevron, GraphicsContext::ChevronDirection::Up, 1.3f);
     ctx.DrawChevron(down, chevron, GraphicsContext::ChevronDirection::Down, 1.3f);
 }

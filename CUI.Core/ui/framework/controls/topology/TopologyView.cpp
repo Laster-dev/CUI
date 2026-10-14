@@ -39,11 +39,11 @@ TopologyView::TopologyView()
     m_panOffset = Point(60.0f, 60.0f);
 }
 
-HCURSOR TopologyView::GetCursor() const {
-    if (m_isPanning) return LoadCursor(nullptr, IDC_SIZEALL);
-    if (!m_isReadOnly && m_draggingNode) return LoadCursor(nullptr, IDC_HAND);
-    if (m_hoveredNode) return LoadCursor(nullptr, IDC_HAND);
-    return LoadCursor(nullptr, IDC_ARROW);
+CursorType TopologyView::GetCursor() const {
+    if (m_isPanning) return CursorType::SizeAll;
+    if (!m_isReadOnly && m_draggingNode) return CursorType::Hand;
+    if (m_hoveredNode) return CursorType::Hand;
+    return CursorType::Arrow;
 }
 
 Size TopologyView::Measure(Size availableSize) {
@@ -986,7 +986,7 @@ static inline Point EvalCubicBezier(Point p0, Point cp0, Point cp1, Point p1, fl
     );
 }
 
-static void DrawFastBezier(GraphicsContext& ctx, Point p1, Point cp1, Point cp2, Point p2, D2D1_COLOR_F color, float strokeWidth) {
+static void DrawFastBezier(GraphicsContext& ctx, Point p1, Point cp1, Point cp2, Point p2, Color color, float strokeWidth) {
     constexpr int kSegments = 6;
     Point prev = p1;
     for (int i = 1; i <= kSegments; ++i) {
@@ -997,7 +997,7 @@ static void DrawFastBezier(GraphicsContext& ctx, Point p1, Point cp1, Point cp2,
     }
 }
 
-static inline void FillFastCircle(GraphicsContext& ctx, Point center, float radius, D2D1_COLOR_F color) {
+static inline void FillFastCircle(GraphicsContext& ctx, Point center, float radius, Color color) {
     ctx.FillRoundedRect(Rect(center.x - radius, center.y - radius, radius * 2.0f, radius * 2.0f), radius, color);
 }
 
@@ -1016,8 +1016,8 @@ void TopologyView::OnRender(GraphicsContext& ctx) {
 void TopologyView::RenderGridBackground(GraphicsContext& ctx) {
     const Rect bounds = GetBounds();
     const bool isDark = (ThemeManager::Instance().GetThemeMode() == ThemeMode::Dark);
-    const D2D1_COLOR_F bgColor = isDark ? D2D1::ColorF(0x141416, 1.0f) : D2D1::ColorF(0xF8F9FA, 1.0f);
-    const D2D1_COLOR_F gridLineColor = isDark ? D2D1::ColorF(0x202024, 0.7f) : D2D1::ColorF(0xEBEEF2, 0.9f);
+    const Color bgColor = isDark ? Color::FromHex("#141416") : Color::FromHex("#F8F9FA");
+    const Color gridLineColor = isDark ? Color::FromHex("#202024").WithAlpha(0.7f) : Color::FromHex("#EBEEF2").WithAlpha(0.9f);
 
     ctx.FillRect(bounds, bgColor);
 
@@ -1035,16 +1035,16 @@ void TopologyView::RenderGridBackground(GraphicsContext& ctx) {
     }
 }
 
-static D2D1_COLOR_F GetStatusColor(TopologyNodeStatus status, bool isDark) {
+static Color GetStatusColor(TopologyNodeStatus status, bool isDark) {
     switch (status) {
-    case TopologyNodeStatus::Success: return isDark ? D2D1::ColorF(0x10B981, 1.0f) : D2D1::ColorF(0x059669, 1.0f);
-    case TopologyNodeStatus::Warning: return isDark ? D2D1::ColorF(0xF59E0B, 1.0f) : D2D1::ColorF(0xD97706, 1.0f);
-    case TopologyNodeStatus::Error: return isDark ? D2D1::ColorF(0xEF4444, 1.0f) : D2D1::ColorF(0xDC2626, 1.0f);
-    case TopologyNodeStatus::Inactive: return isDark ? D2D1::ColorF(0x71717A, 0.7f) : D2D1::ColorF(0x94A3B8, 0.8f);
-    case TopologyNodeStatus::Processing: return isDark ? D2D1::ColorF(0x8B5CF6, 1.0f) : D2D1::ColorF(0x7C3AED, 1.0f);
+    case TopologyNodeStatus::Success: return isDark ? Color::FromHex("#10B981") : Color::FromHex("#059669");
+    case TopologyNodeStatus::Warning: return isDark ? Color::FromHex("#F59E0B") : Color::FromHex("#D97706");
+    case TopologyNodeStatus::Error: return isDark ? Color::FromHex("#EF4444") : Color::FromHex("#DC2626");
+    case TopologyNodeStatus::Inactive: return isDark ? Color::FromHex("#71717A").WithAlpha(0.7f) : Color::FromHex("#94A3B8").WithAlpha(0.8f);
+    case TopologyNodeStatus::Processing: return isDark ? Color::FromHex("#8B5CF6") : Color::FromHex("#7C3AED");
     case TopologyNodeStatus::Normal:
     default:
-        return isDark ? D2D1::ColorF(0x3B82F6, 1.0f) : D2D1::ColorF(0x2563EB, 1.0f);
+        return isDark ? Color::FromHex("#3B82F6") : Color::FromHex("#2563EB");
     }
 }
 
@@ -1083,9 +1083,9 @@ void TopologyView::RenderEdges(GraphicsContext& ctx) {
             cp2 = Point(p2.x - (std::max)(40.0f, dx * 0.45f), p2.y);
         }
 
-        D2D1_COLOR_F strokeColor = edge.customColor.value_or(
-            edge.isHighlighted ? (isDark ? D2D1::ColorF(0x60A5FA, 1.0f) : D2D1::ColorF(0x2563EB, 1.0f)) :
-            (isDark ? D2D1::ColorF(0x4B5563, 0.75f) : D2D1::ColorF(0x94A3B8, 0.8f))
+        Color strokeColor = edge.customColor.value_or(
+            edge.isHighlighted ? (isDark ? Color::FromHex("#60A5FA") : Color::FromHex("#2563EB")) :
+            (isDark ? Color::FromHex("#4B5563").WithAlpha(0.75f) : Color::FromHex("#94A3B8").WithAlpha(0.8f))
         );
 
         if (edge.isDimmed) strokeColor.a *= 0.25f;
@@ -1107,7 +1107,7 @@ void TopologyView::RenderEdges(GraphicsContext& ctx) {
                     const float phaseOffset = particleCount == 2 ? static_cast<float>(particleIndex) * 0.5f : 0.0f;
                     const float t = std::fmod(edge.flowPhase + phaseOffset, 1.0f);
                     const Point particlePos = EvalCubicBezier(p1, cp1, cp2, p2, t);
-                    D2D1_COLOR_F glowColor = strokeColor;
+                    Color glowColor = strokeColor;
                     glowColor.a = 0.9f * edge.opacity;
                     FillFastCircle(ctx, particlePos, 3.2f * m_zoom, glowColor);
                 }
@@ -1124,13 +1124,13 @@ void TopologyView::RenderEdges(GraphicsContext& ctx) {
             const float labelH = 18.0f * m_zoom;
             Rect labelRect(mid.x - labelW * 0.5f, mid.y - labelH * 0.5f, labelW, labelH);
 
-            D2D1_COLOR_F pillBg = isDark ? D2D1::ColorF(0x27272A, 0.92f) : D2D1::ColorF(0xFFFFFF, 0.95f);
+            Color pillBg = isDark ? Color::FromHex("#27272A").WithAlpha(0.92f) : Color::FromHex("#FFFFFF").WithAlpha(0.95f);
             ctx.FillRoundedRect(labelRect, 4.0f * m_zoom, pillBg);
             ctx.DrawRoundedRect(labelRect, 4.0f * m_zoom, strokeColor, 1.0f);
 
-            D2D1_COLOR_F labelTextColor = isDark ? D2D1::ColorF(0xE4E4E7, 0.9f) : D2D1::ColorF(0x334155, 0.9f);
+            Color labelTextColor = isDark ? Color::FromHex("#E4E4E7").WithAlpha(0.9f) : Color::FromHex("#334155").WithAlpha(0.9f);
             ctx.DrawText(edge.label, labelRect, labelTextColor, "Segoe UI", 10.0f * m_zoom,
-                         DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                         TextAlignment::Center, TextVerticalAlignment::Center);
         }
     }
 }
@@ -1144,9 +1144,9 @@ void TopologyView::RenderNodes(GraphicsContext& ctx) {
         const Rect cardRect = GetNodeBounds(node);
         const float radius = 8.0f * m_zoom * node->scale;
 
-        D2D1_COLOR_F cardBg = isDark ? D2D1::ColorF(0x222226, 0.94f) : D2D1::ColorF(0xFFFFFF, 0.96f);
+        Color cardBg = isDark ? Color::FromHex("#222226").WithAlpha(0.94f) : Color::FromHex("#FFFFFF").WithAlpha(0.96f);
         if (node->isHighlighted) {
-            cardBg = isDark ? D2D1::ColorF(0x2D3748, 0.95f) : D2D1::ColorF(0xF0F7FF, 0.98f);
+            cardBg = isDark ? Color::FromHex("#2D3748").WithAlpha(0.95f) : Color::FromHex("#F0F7FF").WithAlpha(0.98f);
         }
         cardBg.a *= node->opacity;
         if (node->isDimmed) cardBg.a *= 0.35f;
@@ -1155,16 +1155,16 @@ void TopologyView::RenderNodes(GraphicsContext& ctx) {
         if (node->isSelected && node->opacity > 0.5f) {
             Rect glowRect(cardRect.x - 3.0f * m_zoom, cardRect.y - 3.0f * m_zoom,
                           cardRect.width + 6.0f * m_zoom, cardRect.height + 6.0f * m_zoom);
-            D2D1_COLOR_F glowColor = D2D1::ColorF(0x3B82F6, 0.45f * node->opacity);
+            Color glowColor = Color::FromHex("#3B82F6").WithAlpha(0.45f * node->opacity);
             ctx.DrawRoundedRect(glowRect, radius + 2.0f, glowColor, 3.0f * m_zoom);
         }
 
         ctx.FillRoundedRect(cardRect, radius, cardBg);
 
-        D2D1_COLOR_F borderColor = node->customColor.value_or(
-            node->isSelected ? D2D1::ColorF(0x3B82F6, 1.0f) :
-            (node->isHovered ? (isDark ? D2D1::ColorF(0x60A5FA, 0.85f) : D2D1::ColorF(0x3B82F6, 0.85f)) :
-            (isDark ? D2D1::ColorF(0x3F3F46, 0.8f) : D2D1::ColorF(0xCBD5E1, 0.85f)))
+        Color borderColor = node->customColor.value_or(
+            node->isSelected ? Color::FromHex("#3B82F6") :
+            (node->isHovered ? (isDark ? Color::FromHex("#60A5FA").WithAlpha(0.85f) : Color::FromHex("#3B82F6").WithAlpha(0.85f)) :
+            (isDark ? Color::FromHex("#3F3F46").WithAlpha(0.8f) : Color::FromHex("#CBD5E1").WithAlpha(0.85f)))
         );
         borderColor.a *= node->opacity;
         if (node->isDimmed) borderColor.a *= 0.3f;
@@ -1172,12 +1172,12 @@ void TopologyView::RenderNodes(GraphicsContext& ctx) {
         ctx.DrawRoundedRect(cardRect, radius, borderColor, (node->isSelected ? 2.0f : 1.0f) * m_zoom);
 
         // 状态指示灯
-        const D2D1_COLOR_F statusColor = GetStatusColor(node->status, isDark);
+        const Color statusColor = GetStatusColor(node->status, isDark);
         Point statusDotPos(cardRect.x + 14.0f * m_zoom * node->scale, cardRect.y + 16.0f * m_zoom * node->scale);
         
         if (node->status == TopologyNodeStatus::Error || node->status == TopologyNodeStatus::Processing) {
             float pulseScale = 1.0f + 0.3f * std::sin(m_particleTick * 3.0f);
-            D2D1_COLOR_F haloColor = statusColor;
+            Color haloColor = statusColor;
             haloColor.a = 0.35f * node->opacity;
             FillFastCircle(ctx, statusDotPos, 6.0f * m_zoom * pulseScale, haloColor);
         }
@@ -1187,10 +1187,10 @@ void TopologyView::RenderNodes(GraphicsContext& ctx) {
         float textLeft = cardRect.x + 26.0f * m_zoom * node->scale;
         if (!node->icon.empty()) {
             Rect iconRect(textLeft, cardRect.y + 8.0f * m_zoom * node->scale, 20.0f * m_zoom, 20.0f * m_zoom);
-            D2D1_COLOR_F iconColor = isDark ? D2D1::ColorF(0xFAFAFA, node->opacity) : D2D1::ColorF(0x0F172A, node->opacity);
+            Color iconColor = isDark ? Color::FromHex("#FAFAFA").WithAlpha(node->opacity) : Color::FromHex("#0F172A").WithAlpha(node->opacity);
             if (node->isDimmed) iconColor.a *= 0.35f;
             ctx.DrawText(node->icon, iconRect, iconColor, "Segoe UI Emoji", 13.0f * m_zoom * node->scale,
-                         DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                         TextAlignment::Left, TextVerticalAlignment::Center);
             textLeft += 22.0f * m_zoom * node->scale;
         }
 
@@ -1200,21 +1200,21 @@ void TopologyView::RenderNodes(GraphicsContext& ctx) {
             badgeW = (std::clamp)(static_cast<float>(node->badge.size()) * 7.5f + 14.0f, 48.0f, 85.0f) * m_zoom * node->scale;
             Rect badgeRect(cardRect.x + cardRect.width - badgeW - 8.0f * m_zoom, cardRect.y + 8.0f * m_zoom, badgeW, 18.0f * m_zoom * node->scale);
 
-            D2D1_COLOR_F badgeBg = isDark ? D2D1::ColorF(0x3F3F46, 0.65f * node->opacity) : D2D1::ColorF(0xE2E8F0, 0.85f * node->opacity);
+            Color badgeBg = isDark ? Color::FromHex("#3F3F46").WithAlpha(0.65f * node->opacity) : Color::FromHex("#E2E8F0").WithAlpha(0.85f * node->opacity);
             ctx.FillRoundedRect(badgeRect, 3.0f * m_zoom, badgeBg);
 
-            D2D1_COLOR_F badgeTextColor = isDark ? D2D1::ColorF(0xD4D4D8, node->opacity) : D2D1::ColorF(0x475569, node->opacity);
+            Color badgeTextColor = isDark ? Color::FromHex("#D4D4D8").WithAlpha(node->opacity) : Color::FromHex("#475569").WithAlpha(node->opacity);
             ctx.DrawText(node->badge, badgeRect, badgeTextColor, "Segoe UI", 9.5f * m_zoom * node->scale,
-                         DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                         TextAlignment::Center, TextVerticalAlignment::Center);
         }
 
         // 标题文本（明确限制宽度，开启省略号截断，杜绝文字重叠）
         const float titleAvailableW = (std::max)(20.0f, cardRect.width - (textLeft - cardRect.x) - (badgeW > 0 ? (badgeW + 14.0f * m_zoom) : 10.0f * m_zoom));
         Rect titleRect(textLeft, cardRect.y + 7.0f * m_zoom * node->scale, titleAvailableW, 20.0f * m_zoom * node->scale);
-        D2D1_COLOR_F titleColor = isDark ? D2D1::ColorF(0xF4F4F5, node->opacity) : D2D1::ColorF(0x0F172A, node->opacity);
+        Color titleColor = isDark ? Color::FromHex("#F4F4F5").WithAlpha(node->opacity) : Color::FromHex("#0F172A").WithAlpha(node->opacity);
         if (node->isDimmed) titleColor.a *= 0.35f;
         ctx.DrawText(node->label, titleRect, titleColor, "Segoe UI", 11.5f * m_zoom * node->scale,
-                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD, true);
+                     TextAlignment::Left, TextVerticalAlignment::Center, CUI::FontWeight::SemiBold, true);
 
         // 副标题 / 类别
         if (!node->subLabel.empty() || !node->category.empty()) {
@@ -1222,25 +1222,25 @@ void TopologyView::RenderNodes(GraphicsContext& ctx) {
             const float subAvailableW = (std::max)(20.0f, cardRect.width - 28.0f * m_zoom - (node->isCollapsible ? 26.0f * m_zoom : 0.0f));
             Rect subRect(cardRect.x + 14.0f * m_zoom * node->scale, cardRect.y + 34.0f * m_zoom * node->scale,
                          subAvailableW, 16.0f * m_zoom * node->scale);
-            D2D1_COLOR_F subColor = isDark ? D2D1::ColorF(0xA1A1AA, 0.9f * node->opacity) : D2D1::ColorF(0x64748B, 0.9f * node->opacity);
+            Color subColor = isDark ? Color::FromHex("#A1A1AA").WithAlpha(0.9f * node->opacity) : Color::FromHex("#64748B").WithAlpha(0.9f * node->opacity);
             if (node->isDimmed) subColor.a *= 0.35f;
             ctx.DrawText(sub, subRect, subColor, "Segoe UI", 10.0f * m_zoom * node->scale,
-                         DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL, true);
+                         TextAlignment::Left, TextVerticalAlignment::Center, CUI::FontWeight::Normal, true);
         }
 
         // 折叠切换按钮 (+ / -)
         if (node->isCollapsible && m_zoom > 0.5f) {
             Rect btnRect = GetCollapseButtonBounds(node);
-            D2D1_COLOR_F btnBg = isDark ? D2D1::ColorF(0x3F3F46, 0.8f * node->opacity) : D2D1::ColorF(0xE2E8F0, 0.95f * node->opacity);
+            Color btnBg = isDark ? Color::FromHex("#3F3F46").WithAlpha(0.8f * node->opacity) : Color::FromHex("#E2E8F0").WithAlpha(0.95f * node->opacity);
             if (btnRect.Contains(m_lastMousePos.x, m_lastMousePos.y)) {
-                btnBg = isDark ? D2D1::ColorF(0x3B82F6, 0.9f * node->opacity) : D2D1::ColorF(0x2563EB, 0.9f * node->opacity);
+                btnBg = isDark ? Color::FromHex("#3B82F6").WithAlpha(0.9f * node->opacity) : Color::FromHex("#2563EB").WithAlpha(0.9f * node->opacity);
             }
             ctx.FillRoundedRect(btnRect, 4.0f * m_zoom, btnBg);
 
             std::string btnSymbol = node->isExpanded ? "-" : "+";
-            D2D1_COLOR_F symbolColor = isDark ? D2D1::ColorF(0xFFFFFF, node->opacity) : D2D1::ColorF(0x1E293B, node->opacity);
+            Color symbolColor = isDark ? Color::FromHex("#FFFFFF").WithAlpha(node->opacity) : Color::FromHex("#1E293B").WithAlpha(node->opacity);
             ctx.DrawText(btnSymbol, btnRect, symbolColor, "Segoe UI", 12.0f * m_zoom * node->scale,
-                         DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+                         TextAlignment::Center, TextVerticalAlignment::Center, CUI::FontWeight::Bold);
         }
     }
 }
@@ -1253,18 +1253,18 @@ void TopologyView::RenderMinimapAndToolbar(GraphicsContext& ctx) {
     const float hudH = 34.0f;
     Rect hudRect(bounds.x + bounds.width - hudW - 14.0f, bounds.y + bounds.height - hudH - 14.0f, hudW, hudH);
 
-    D2D1_COLOR_F hudBg = isDark ? D2D1::ColorF(0x1F1F23, 0.92f) : D2D1::ColorF(0xFFFFFF, 0.95f);
-    D2D1_COLOR_F hudBorder = isDark ? D2D1::ColorF(0x3F3F46, 0.7f) : D2D1::ColorF(0xCBD5E1, 0.8f);
+    Color hudBg = isDark ? Color::FromHex("#1F1F23").WithAlpha(0.92f) : Color::FromHex("#FFFFFF").WithAlpha(0.95f);
+    Color hudBorder = isDark ? Color::FromHex("#3F3F46").WithAlpha(0.7f) : Color::FromHex("#CBD5E1").WithAlpha(0.8f);
 
     ctx.FillRoundedRect(hudRect, 6.0f, hudBg);
     ctx.DrawRoundedRect(hudRect, 6.0f, hudBorder, 1.0f);
 
     std::string modeText = m_isReadOnly ? "只读" : "可编辑";
     std::string zoomText = std::format("{:.0f}%", m_zoom * 100.0f);
-    D2D1_COLOR_F textColor = isDark ? D2D1::ColorF(0xD4D4D8, 1.0f) : D2D1::ColorF(0x334155, 1.0f);
+    Color textColor = isDark ? Color::FromHex("#D4D4D8") : Color::FromHex("#334155");
 
     ctx.DrawText(std::format("[{}] 缩放: {} | [F] 适配", modeText, zoomText), hudRect, textColor, "Segoe UI", 10.5f,
-                 DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                 TextAlignment::Center, TextVerticalAlignment::Center);
 }
 
 } // namespace CUI

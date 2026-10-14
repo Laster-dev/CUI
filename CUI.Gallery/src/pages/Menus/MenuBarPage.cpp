@@ -142,8 +142,8 @@ Element BuildMenuBarPage() {
         mockContent.TextWrapping(true);
 
     auto mockAppContainer = Column(0, { appMenuBar, mockContent })
-        .Background(D2D1::ColorF(0x18181B, 0.6f))
-        .Border(D2D1::ColorF(0x3F3F46, 0.5f), 1.0f)
+        .Background(Rgb(0x18181B, 0.6f))
+        .Border(Rgb(0x3F3F46, 0.5f), 1.0f)
         .CornerRadius(8.0f);
 
     SamplePageSpec spec;

@@ -42,4 +42,7 @@
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="1.ico" />
+  </ItemGroup>
 </Project>

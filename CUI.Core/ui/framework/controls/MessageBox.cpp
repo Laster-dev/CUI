@@ -409,10 +409,10 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
                 true)) {
             const Rect savedPaintBounds = ctx.GetPaintBounds();
             ctx.ApplyPaintBounds(Rect());
-            ctx.PushTransform(D2D1::Matrix3x2F::Translation(-cardX, -cardY));
+            ctx.PushTranslation(-cardX, -cardY);
 
-            D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
-            D2D1_COLOR_F cardBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+            Color cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+            Color cardBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
             ctx.FillRoundedRect(m_dialogBounds, 8.0f, cardBg);
             ctx.DrawRoundedRect(m_dialogBounds, 8.0f, cardBorder, 1.0f);
 
@@ -436,9 +436,9 @@ void ContentDialog::OnRenderOverlay(GraphicsContext& ctx) {
         return;
     }
 
-    D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    Color cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
     cardBg.a = m_animProgress;
-    D2D1_COLOR_F cardBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    Color cardBorder = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     cardBorder.a = m_animProgress;
     ctx.FillRoundedRect(m_dialogBounds, 8.0f, cardBg);
     ctx.DrawRoundedRect(m_dialogBounds, 8.0f, cardBorder, 1.0f);

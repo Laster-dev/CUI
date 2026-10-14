@@ -27,9 +27,8 @@ constexpr AnimationSpec kRevealSpec{ 0.22f, 0.008f, 0.58f };
 constexpr AnimationSpec kHoverSpec{ 0.20f, 0.01f, 0.18f };
 constexpr AnimationSpec kFollowSpec{ 0.16f, 0.4f, 0.0f };
 
-D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
-    c.a = std::clamp(a, 0.0f, 1.0f);
-    return c;
+Color WithAlpha(Color c, float a) {
+    return c.WithAlpha(a);
 }
 
 float EaseOutCubic(float t) {
@@ -255,7 +254,7 @@ Rect ChartBase::PlotRect() const {
         (std::max)(0.0f, content.y + content.height - kAxisBottom - top));
 }
 
-D2D1_COLOR_F ChartBase::SeriesColor(int index) const {
+Color ChartBase::SeriesColor(int index) const {
     if (index >= 0 && index < static_cast<int>(m_series.size()) && m_series[index].hasColor) {
         return m_series[index].color;
     }
@@ -336,9 +335,9 @@ void ChartBase::DrawCartesianFrame(GraphicsContext& ctx, const Rect& plot,
                                    float yMin, float yMax, const std::vector<ChartTick>& ticks) {
     const float fade = std::clamp(Reveal() * 1.35f, 0.0f, 1.0f);
     ctx.PushOpacity(fade);
-    D2D1_COLOR_F axis = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
-    D2D1_COLOR_F label = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
-    D2D1_COLOR_F grid = WithAlpha(axis, axis.a * 0.45f);
+    Color axis = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+    Color label = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+    Color grid = axis.WithAlpha(axis.a * 0.45f);
 
     ctx.DrawLine(Point(plot.x, plot.y), Point(plot.x, plot.y + plot.height), axis, 1.0f);
     ctx.DrawLine(Point(plot.x, plot.y + plot.height), Point(plot.x + plot.width, plot.y + plot.height), axis, 1.0f);
@@ -356,7 +355,7 @@ void ChartBase::DrawCartesianFrame(GraphicsContext& ctx, const Rect& plot,
             tick.label,
             Rect(plot.x - kAxisLeft, y - 8.0f, kAxisLeft - 6.0f, 16.0f),
             label, "微软雅黑", 10.0f,
-            DWRITE_TEXT_ALIGNMENT_TRAILING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            TextAlignment::Right, TextVerticalAlignment::Center);
     }
 
     const int count = SeriesValueCount();
@@ -377,7 +376,7 @@ void ChartBase::DrawCartesianFrame(GraphicsContext& ctx, const Rect& plot,
             CategoryLabel(i),
             Rect(x - 28.0f, plot.y + plot.height + 4.0f, 56.0f, 18.0f),
             label, "微软雅黑", 10.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+            TextAlignment::Center, TextVerticalAlignment::Top);
     }
     ctx.PopOpacity();
 }
@@ -395,8 +394,8 @@ void ChartBase::DrawLegend(GraphicsContext& ctx) {
         return;
     }
     ctx.PushOpacity(fade);
-    ctx.PushTransform(D2D1::Matrix3x2F::Translation((1.0f - fade) * 10.0f, 0.0f));
-    D2D1_COLOR_F text = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+    ctx.PushTranslation((1.0f - fade) * 10.0f, 0.0f);
+    Color text = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
     float y = box.y + 2.0f;
     const int rows = m_series.empty() ? 0 : static_cast<int>(m_series.size());
     for (int i = 0; i < rows; ++i) {
@@ -410,7 +409,7 @@ void ChartBase::DrawLegend(GraphicsContext& ctx) {
             name,
             Rect(box.x + 20.0f, y, box.width - 24.0f, kLegendRow),
             text, "微软雅黑", 11.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,             DWRITE_FONT_WEIGHT_NORMAL, true);
+            TextAlignment::Left, TextVerticalAlignment::Center, FontWeight::Normal, true);
         y += kLegendRow;
     }
     ctx.PopTransform();
@@ -439,9 +438,9 @@ void ChartBase::DrawTooltipCard(GraphicsContext& ctx, const std::vector<std::str
         y = anchor.y + 12.0f;
     }
     const Rect card(x, y, cardW, cardH);
-    D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
-    D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
-    D2D1_COLOR_F text = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+    Color bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+    Color border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+    Color text = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
     ctx.FillRoundedRect(card, 5.0f, bg);
     ctx.DrawRoundedRect(card, 5.0f, border, 1.0f);
     float ty = card.y + 4.0f;
@@ -460,19 +459,19 @@ void ChartBase::OnRender(GraphicsContext& ctx) {
         return;
     }
     if (!GetText().empty()) {
-        D2D1_COLOR_F title = ResolveThemeColor(GetTitleColorToken(), ThemeTokenId::TextPrimary);
+        Color title = ResolveThemeColor(GetTitleColorToken(), ThemeTokenId::TextPrimary);
         ctx.DrawText(
             GetText(),
             Rect(content.x, content.y, content.width, kTitleH - 4.0f),
             title, "微软雅黑", 13.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+            TextAlignment::Left, TextVerticalAlignment::Center, FontWeight::SemiBold);
     }
 
     const Rect plot = PlotRect();
     if (plot.IsEmpty() || m_series.empty() || SeriesValueCount() <= 0) {
-        D2D1_COLOR_F muted = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
+        Color muted = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
         ctx.DrawText("暂无数据", content, muted, "微软雅黑", 13.0f,
-                     DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                     TextAlignment::Center, TextVerticalAlignment::Center);
         return;
     }
 
@@ -597,8 +596,8 @@ bool ChartBase::OnKeyDown(int vkCode) {
     return true;
 }
 
-HCURSOR ChartBase::GetCursor() const {
-    return LoadCursor(nullptr, IDC_CROSS);
+CursorType ChartBase::GetCursor() const {
+    return CursorType::Cross;
 }
 
 bool ChartBase::OnAnimationTick() {

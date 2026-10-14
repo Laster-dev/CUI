@@ -19,6 +19,12 @@
 #include "../animation/FrameScheduler.h"
 #include "../input/RoutedEvent.h"
 #include <windowsx.h>
+#ifdef IsMaximized
+#undef IsMaximized
+#endif
+#ifdef IsMinimized
+#undef IsMinimized
+#endif
 #include "../render/DxLoader.h"
 #include <imm.h>
 #include <algorithm>
@@ -50,6 +56,24 @@ namespace {
 static std::vector<Window*> s_allWindows;
 constexpr UINT WM_CUI_RASTER_COMPLETE = WM_APP + 45;
 constexpr UINT WM_CUI_CLOSE_POPUPS = WM_APP + 46;
+
+static HCURSOR CursorTypeToWin32(CursorType ct) {
+    switch (ct) {
+    case CursorType::Arrow: return LoadCursor(nullptr, IDC_ARROW);
+    case CursorType::Hand: return LoadCursor(nullptr, IDC_HAND);
+    case CursorType::IBeam: return LoadCursor(nullptr, IDC_IBEAM);
+    case CursorType::Wait: return LoadCursor(nullptr, IDC_WAIT);
+    case CursorType::Cross: return LoadCursor(nullptr, IDC_CROSS);
+    case CursorType::SizeAll: return LoadCursor(nullptr, IDC_SIZEALL);
+    case CursorType::SizeNS: return LoadCursor(nullptr, IDC_SIZENS);
+    case CursorType::SizeWE: return LoadCursor(nullptr, IDC_SIZEWE);
+    case CursorType::SizeNESW: return LoadCursor(nullptr, IDC_SIZENESW);
+    case CursorType::SizeNWSE: return LoadCursor(nullptr, IDC_SIZENWSE);
+    case CursorType::NotAllowed: return LoadCursor(nullptr, IDC_NO);
+    case CursorType::None: return nullptr;
+    default: return LoadCursor(nullptr, IDC_ARROW);
+    }
+}
 
 class WindowOleDropTarget final : public ::IDropTarget {
 public:
@@ -479,7 +503,7 @@ void Window::DrawKeyboardFocusRing() {
         return;
     }
     const float radius = focused->GetCornerRadius() + 3.0f;
-    D2D1_COLOR_F color = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
+    Color color = ThemeManager::Instance().GetColor(ThemeTokenId::AccentColor);
     m_gfxContext.DrawRoundedRect(bounds, radius, color, 2.0f);
 }
 
@@ -925,6 +949,7 @@ bool Window::DispatchKey(int vkCode, bool sysKey) {
             args.type = RoutedEventType::KeyDown;
             args.phase = RoutedEventPhase::Target;
             args.keyCode = vkCode;
+            args.key = KeyFromVirtualKey(vkCode);
             args.originalSource = focused.get();
             focused->OnRoutedEvent(args);
             if (!args.handled) {
@@ -1314,7 +1339,7 @@ void Window::ApplyThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     };
 
     // 1. Capture old theme full window snapshot into m_themeOldSceneLayer
-    D2D1_COLOR_F oldClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
+    Color oldClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
     if (m_gfxContext.PushLayerTarget(m_themeOldSceneLayer, sceneSize, viewportBounds, oldClearBg, true)) {
         m_gfxContext.ApplyPaintBounds(viewportBounds);
         renderFullWindow();
@@ -1335,7 +1360,7 @@ void Window::ApplyThemeModeWithRipple(CUI::ThemeMode theme, Point origin) {
     m_onThemeChanged.Invoke(this, theme);
 
     // 2. Pre-render destination theme full window snapshot into m_sceneLayer
-    D2D1_COLOR_F newClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
+    Color newClearBg = ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
     if (m_gfxContext.PushLayerTarget(m_sceneLayer, sceneSize, viewportBounds, newClearBg, true)) {
         m_gfxContext.ApplyPaintBounds(viewportBounds);
         renderFullWindow();
@@ -1451,6 +1476,75 @@ void Window::Hide() {
     if (m_hwnd && IsWindow(m_hwnd)) {
         ShowWindow(m_hwnd, SW_HIDE);
     }
+}
+
+void Window::UpdateCursor() {
+    if (!m_hwnd || !IsWindow(m_hwnd)) return;
+    POINT pt;
+    if (::GetCursorPos(&pt)) {
+        const auto hitHwnd = ::WindowFromPoint(pt);
+        if (hitHwnd == m_hwnd) {
+            ::SendMessage(m_hwnd, WM_SETCURSOR, reinterpret_cast<WPARAM>(m_hwnd), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+        }
+    }
+}
+
+void Window::SetTitle(const std::string& title) {
+    if (m_hwnd && IsWindow(m_hwnd)) {
+        std::wstring wTitle;
+        const int n = MultiByteToWideChar(CP_UTF8, 0, title.c_str(), -1, nullptr, 0);
+        if (n > 1) {
+            wTitle.resize(static_cast<size_t>(n) - 1);
+            MultiByteToWideChar(CP_UTF8, 0, title.c_str(), -1, wTitle.data(), n);
+        }
+        SetWindowTextW(m_hwnd, wTitle.c_str());
+    }
+}
+
+void Window::SetSize(int width, int height) {
+    SetLogicalSize(width, height, false);
+}
+
+void Window::CenterOnScreen() {
+    if (!m_hwnd || !IsWindow(m_hwnd)) return;
+    RECT rc;
+    GetWindowRect(m_hwnd, &rc);
+    int width = rc.right - rc.left;
+    int height = rc.bottom - rc.top;
+
+    HMONITOR hMon = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi = { sizeof(mi) };
+    if (GetMonitorInfo(hMon, &mi)) {
+        int cx = mi.rcWork.left + (mi.rcWork.right - mi.rcWork.left - width) / 2;
+        int cy = mi.rcWork.top + (mi.rcWork.bottom - mi.rcWork.top - height) / 2;
+        SetWindowPos(m_hwnd, nullptr, cx, cy, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
+}
+
+void Window::Minimize() {
+    if (m_hwnd && IsWindow(m_hwnd)) {
+        ShowWindow(m_hwnd, SW_MINIMIZE);
+    }
+}
+
+void Window::Maximize() {
+    if (m_hwnd && IsWindow(m_hwnd)) {
+        ShowWindow(m_hwnd, SW_MAXIMIZE);
+    }
+}
+
+void Window::Restore() {
+    if (m_hwnd && IsWindow(m_hwnd)) {
+        ShowWindow(m_hwnd, SW_RESTORE);
+    }
+}
+
+bool Window::IsMaximized() const {
+    return m_hwnd && IsZoomed(m_hwnd) != FALSE;
+}
+
+bool Window::IsMinimized() const {
+    return m_hwnd && IsIconic(m_hwnd) != FALSE;
 }
 
 void Window::ApplyLowPerformanceMode(bool enabled) {
@@ -2344,15 +2438,16 @@ LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) {
         if (LOWORD(lParam) == HTCLIENT) {
             if (auto middle = LockElement(m_middleScrollElement)) {
                 if (middle->IsMiddleScrollActive()) {
-                    if (HCURSOR hCur = middle->GetCursor()) {
+                    CursorType ct = middle->GetCursor();
+                    if (HCURSOR hCur = CursorTypeToWin32(ct)) {
                         SetCursor(hCur);
                         return TRUE;
                     }
                 }
             }
             auto hovered = LockElement(m_hoveredElement);
-            HCURSOR hCur = hovered ? hovered->GetCursor() : nullptr;
-            if (hCur) {
+            CursorType ct = hovered ? hovered->GetCursor() : CursorType::Arrow;
+            if (HCURSOR hCur = CursorTypeToWin32(ct)) {
                 SetCursor(hCur);
                 return TRUE;
             }
@@ -2517,8 +2612,8 @@ void Window::OnPaint() {
     const bool usePerPixelAlpha =
         materialMode
         && m_gfxContext.SupportsPerPixelAlpha();
-    const D2D1_COLOR_F sceneClearColor = (usePerPixelAlpha || transparentModeActive)
-        ? D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f)
+    const Color sceneClearColor = (usePerPixelAlpha || transparentModeActive)
+        ? Color::Transparent
         : ThemeManager::Instance().GetColor(ThemeTokenId::WindowBackground);
 
     auto renderScene = [&]() {
@@ -2819,12 +2914,12 @@ void Window::DrawRenderStatsOverlay() {
 
     const std::string text = ss.str();
     Rect panel(12.0f, (std::max)(12.0f, m_rootElement ? (m_rootElement->GetBounds().height - 40.0f) : 12.0f), 820.0f, 28.0f);
-    m_gfxContext.FillRoundedRect(panel, 6.0f, D2D1::ColorF(0.05f, 0.05f, 0.05f, 0.82f));
-    m_gfxContext.DrawRoundedRect(panel, 6.0f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.10f), 1.0f);
+    m_gfxContext.FillRoundedRect(panel, 6.0f, Color(0.05f, 0.05f, 0.05f, 0.82f));
+    m_gfxContext.DrawRoundedRect(panel, 6.0f, Color(1.0f, 1.0f, 1.0f, 0.10f), 1.0f);
     m_gfxContext.DrawText(
         text,
         Rect(panel.x + 10.0f, panel.y, panel.width - 20.0f, panel.height),
-        D2D1::ColorF(0.92f, 0.92f, 0.92f, 1.0f),
+        Color(0.92f, 0.92f, 0.92f, 1.0f),
         "Consolas",
         12.0f,
         DWRITE_TEXT_ALIGNMENT_LEADING,
@@ -2845,7 +2940,7 @@ void Window::UpdateDwmChrome() {
     Dx::DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 
     // Match the app background on Win11's 1px window border.
-    const D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().windowBackground;
+    const Color border = ThemeManager::Instance().GetTokens().windowBackground;
     const COLORREF borderColor = RGB(
         static_cast<int>(border.r * 255.0f),
         static_cast<int>(border.g * 255.0f),

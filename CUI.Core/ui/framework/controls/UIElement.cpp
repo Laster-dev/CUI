@@ -449,7 +449,10 @@ void UIElement::OnRoutedEvent(RoutedEventArgs& args) {
         OnMouseMove(args.position);
         break;
     case RoutedEventType::KeyDown:
-        args.handled = OnKeyDown(args.keyCode);
+        {
+            KeyEventArgs keyArgs(KeyFromVirtualKey(args.keyCode), ModifierKeys::None, args.keyCode);
+            args.handled = OnKeyDown(keyArgs);
+        }
         break;
     }
 }
@@ -610,9 +613,9 @@ void UIElement::Render(GraphicsContext& ctx) {
     }
 
     ctx.PushInheritedTextStyle({
-        ResolveFontWeight(),
-        ResolveFontStyle(),
-        ResolveFontStretch(),
+        GetFontWeight(),
+        GetFontStyle(),
+        GetFontStretch(),
         IsUnderline(),
         IsStrikethrough()
     });
@@ -628,13 +631,13 @@ void UIElement::Render(GraphicsContext& ctx) {
                     layer,
                     Size(w, h),
                     Rect(0.0f, 0.0f, w, h),
-                    D2D1::ColorF(0, 0, 0, 0),
+                    Color::Transparent,
                     true)) {
                 // Record in local space so the bitmap is (0,0)-(w,h).
                 // Paint-bounds cull uses world coords — disable for this pass.
                 const Rect savedPaintBounds = ctx.GetPaintBounds();
                 ctx.ApplyPaintBounds(Rect());
-                ctx.PushTransform(D2D1::Matrix3x2F::Translation(-m_bounds.x, -m_bounds.y));
+                ctx.PushTranslation(-m_bounds.x, -m_bounds.y);
                 if (auto* composition = ctx.GetCompositionContext()) {
                     composition->CountRasterizedNode();
                     composition->CountLayerCacheMiss();
@@ -672,7 +675,7 @@ void UIElement::Render(GraphicsContext& ctx) {
 
     const bool useOffset = std::abs(m_composeOffsetX) > 0.01f || std::abs(m_composeOffsetY) > 0.01f;
     if (useOffset) {
-        ctx.PushTransform(D2D1::Matrix3x2F::Translation(m_composeOffsetX, m_composeOffsetY));
+        ctx.PushTranslation(m_composeOffsetX, m_composeOffsetY);
     }
 
     const bool useOpacity = !m_layerPromoted && drawOpacity < 0.999f;
@@ -721,19 +724,18 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
         const std::string& tip = GetToolTip();
         if (!tip.empty()) {
             const float maxWidth = (m_toolTipMaxWidth > 0.0f) ? m_toolTipMaxWidth : s_toolTipMaxWidth;
-            GraphicsContext::TextLayoutOptions options;
+            TextLayoutOptions options;
             options.maxWidth = (std::max)(32.0f, maxWidth);
             options.maxHeight = 400.0f;
-            options.wrapping = DWRITE_WORD_WRAPPING_WRAP;
-            ComPtr<IDWriteTextLayout> layout = GraphicsContext::CreateTextLayout(
-                Utf8ToUtf16(tip), GetFontFamily(), GetFontSize(), options,
-                ResolveFontWeight(), ResolveFontStyle(), ResolveFontStretch());
+            options.wrapping = TextWrapping::Wrap;
+            TextLayout layout = TextLayout::Create(
+                tip, GetFontFamily(), GetFontSize(), options,
+                GetFontWeight(), GetFontStyle(), GetFontStretch());
             Size textSize(maxWidth, 16.0f);
             if (layout) {
-                DWRITE_TEXT_METRICS metrics{};
-                layout->GetMetrics(&metrics);
-                textSize.width = std::ceil(metrics.widthIncludingTrailingWhitespace);
-                textSize.height = std::ceil(metrics.height);
+                textSize = layout.GetSize();
+                textSize.width = std::ceil(textSize.width);
+                textSize.height = std::ceil(textSize.height);
             }
 
             constexpr float padX = 8.0f;
@@ -749,17 +751,14 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
                 6.0f,
                 6.0f);
 
-            D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
-            D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
-            D2D1_COLOR_F textColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+            Color bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+            Color border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+            Color textColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
             PaintBubble(ctx, bubble, bg, border, 6.0f);
 
             if (layout) {
-                const DWRITE_TEXT_RANGE range = { 0, static_cast<UINT32>(Utf8ToUtf16(tip).length()) };
-                layout->SetUnderline(IsUnderline(), range);
-                layout->SetStrikethrough(IsStrikethrough(), range);
                 ctx.DrawTextLayout(
-                    layout.Get(),
+                    layout,
                     Rect(bubble.card.x + padX, bubble.card.y + padY, textSize.width, textSize.height),
                     textColor);
             }
@@ -777,11 +776,11 @@ void UIElement::RenderOverlay(GraphicsContext& ctx) {
 void UIElement::OnRender(GraphicsContext& ctx) {
     const float radius = m_cornerRadius;
 
-    D2D1_COLOR_F bg = m_hasBackgroundColor
+    Color bg = m_hasBackgroundColor
         ? m_backgroundColor
         : ((m_backgroundToken != ThemeTokenId::Unset)
             ? ResolveThemeColor(m_backgroundToken, ThemeTokenId::CardBackground)
-            : D2D1::ColorF(0, 0, 0, 0));
+            : Color::Transparent);
     if (bg.a > 0.0f) {
         if (radius > 0.0f) {
             ctx.FillRoundedRect(m_bounds, radius, bg);
@@ -790,11 +789,11 @@ void UIElement::OnRender(GraphicsContext& ctx) {
         }
     }
 
-    D2D1_COLOR_F borderBrush = m_hasBorderBrushColor
+    Color borderBrush = m_hasBorderBrushColor
         ? m_borderBrushColor
         : ((m_borderToken != ThemeTokenId::Unset)
             ? ResolveThemeColor(m_borderToken, ThemeTokenId::CardBorder)
-            : D2D1::ColorF(0, 0, 0, 0));
+            : Color::Transparent);
     const float borderThickness = m_borderThickness;
     if (borderBrush.a > 0.0f && borderThickness > 0.0f) {
         if (radius > 0.0f) {
@@ -917,9 +916,23 @@ void UIElement::OnMouseWheel(float delta) {
     }
 }
 
+bool UIElement::OnKeyDown(const KeyEventArgs& args) {
+    return OnKeyDown(args.virtualKey);
+}
+
 bool UIElement::OnKeyDown(int vkCode) {
     (void)vkCode;
     return false;
+}
+
+bool UIElement::OnKeyUp(const KeyEventArgs& args) {
+    return OnKeyUp(args.virtualKey);
+}
+
+void UIElement::UpdateCursor() {
+    if (Window* window = Window::Current()) {
+        window->UpdateCursor();
+    }
 }
 
 bool UIElement::Focus(FocusState state) {

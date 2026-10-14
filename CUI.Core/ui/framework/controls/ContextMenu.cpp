@@ -63,7 +63,7 @@ float MenuItem::MeasurePreferredContentWidth(GraphicsContext& ctx) const {
 
     const std::string font = GetFontFamily();
     const float fontSize = GetFontSize();
-    const Size label = ctx.MeasureText(GetText(), font, fontSize, DWRITE_FONT_WEIGHT_NORMAL);
+    const Size label = ctx.MeasureText(GetText(), font, fontSize, CUI::FontWeight::Normal);
 
     // Left gutter always reserved for checkmark / icon.
     float left = 28.0f;
@@ -74,7 +74,7 @@ float MenuItem::MeasurePreferredContentWidth(GraphicsContext& ctx) const {
         right = 24.0f;
     } else if (!m_shortcutText.empty()) {
         const float shortcutFontSize = (std::max)(10.0f, fontSize - 1.0f);
-        const Size sc = ctx.MeasureText(m_shortcutText, font, shortcutFontSize, DWRITE_FONT_WEIGHT_NORMAL);
+        const Size sc = ctx.MeasureText(m_shortcutText, font, shortcutFontSize, CUI::FontWeight::Normal);
         right = sc.width + 20.0f;
     }
 
@@ -93,7 +93,7 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
     const float hoverT = (IsHovered() || m_hoverAnim.Current() > 0.001f) ? 1.0f : 0.0f;
     if (hoverT > 0.001f && enabled) {
-        D2D1_COLOR_F hover = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
+        Color hover = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
         const float peak = lightTheme ? 0.16f : 0.32f;
         hover.a = peak * hoverT;
         ctx.FillRoundedRect(m_bounds, 3.0f, hover);
@@ -106,15 +106,15 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
     float fontSize = GetFontSize();
     const float shortcutFontSize = (std::max)(10.0f, fontSize - 1.0f);
 
-    D2D1_COLOR_F textColor = enabled
+    Color textColor = enabled
         ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary)
         : ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
 
     float textLeft = m_bounds.x + 28.0f;
     if (m_isChecked) {
         Rect checkRect(m_bounds.x + 4.0f, m_bounds.y, 22.0f, m_bounds.height);
-        ctx.DrawText("✓", checkRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_CENTER,
-                     DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+        ctx.DrawText("✓", checkRect, textColor, font, fontSize, TextAlignment::Center,
+                     TextVerticalAlignment::Center, CUI::FontWeight::Normal);
     } else if (m_nativeIcon) {
         const float iconSize = 16.0f;
         Rect iconRect(m_bounds.x + 6.0f, m_bounds.y + (m_bounds.height - iconSize) * 0.5f, iconSize, iconSize);
@@ -129,15 +129,15 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
     if (HasSubMenu()) {
         rightReserve = 24.0f;
     } else if (!shortcut.empty()) {
-        const Size sc = ctx.MeasureText(shortcut, font, shortcutFontSize, DWRITE_FONT_WEIGHT_NORMAL);
+        const Size sc = ctx.MeasureText(shortcut, font, shortcutFontSize, CUI::FontWeight::Normal);
         rightReserve = sc.width + 20.0f;
     }
 
     Rect textRect(textLeft, m_bounds.y,
                   (std::max)(0.0f, m_bounds.x + m_bounds.width - textLeft - rightReserve),
                   m_bounds.height);
-    ctx.DrawText(text, textRect, textColor, font, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING,
-                 DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+    ctx.DrawText(text, textRect, textColor, font, fontSize, TextAlignment::Left,
+                 TextVerticalAlignment::Center, CUI::FontWeight::Normal);
 
     if (HasSubMenu()) {
         // Submenu chevron — inline SVG triangle, tinted to match the theme.
@@ -150,9 +150,9 @@ void MenuItem::OnRender(GraphicsContext& ctx) {
     } else if (!shortcut.empty()) {
         Rect shortcutRect(m_bounds.x + m_bounds.width - rightReserve, m_bounds.y,
                           rightReserve - 8.0f, m_bounds.height);
-        D2D1_COLOR_F scColor = enabled ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted) : textColor;
-        ctx.DrawText(shortcut, shortcutRect, scColor, font, shortcutFontSize, DWRITE_TEXT_ALIGNMENT_TRAILING,
-                     DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL);
+        Color scColor = enabled ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted) : textColor;
+        ctx.DrawText(shortcut, shortcutRect, scColor, font, shortcutFontSize, TextAlignment::Right,
+                     TextVerticalAlignment::Center, CUI::FontWeight::Normal);
     }
 }
 
@@ -741,8 +741,8 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
 
     float radius = GetCornerRadius();
 
-    D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
-    D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+    Color bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+    Color border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
 
     const Rect drawBounds = m_bounds;
     // No popup reveal animation — context menus appear instantly.
@@ -764,7 +764,7 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
             Rect trackRect(trackX, drawBounds.y, kScrollW, visibleH);
             const float vis = m_scrollbarAutoHide.Opacity();
 
-            D2D1_COLOR_F trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+            Color trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
             trackColor.a = 0.35f * vis;
             ctx.DrawRoundedRect(trackRect, 4.0f, trackColor, 1.0f);
 
@@ -773,7 +773,7 @@ void ContextMenu::RenderPopup(GraphicsContext& ctx) {
             const float thumbY = trackRect.y + (m_scrollOffset / maxScroll) * travel;
 
             Rect thumbRect(trackX + 1.5f, thumbY, kScrollW - 3.0f, thumbH);
-            D2D1_COLOR_F thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
+            Color thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
             thumbColor.a = 0.45f * vis;
             ctx.FillRoundedRect(thumbRect, 4.0f, thumbColor);
         }

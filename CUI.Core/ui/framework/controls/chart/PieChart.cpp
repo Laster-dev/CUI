@@ -17,7 +17,7 @@ Point Polar(Point center, float radius, float angle) {
     return Point(center.x + std::cos(angle) * radius, center.y + std::sin(angle) * radius);
 }
 
-void FillSlice(GraphicsContext& ctx, Point center, float radius, float start, float sweep, D2D1_COLOR_F color) {
+void FillSlice(GraphicsContext& ctx, Point center, float radius, float start, float sweep, Color color) {
     if (sweep <= 0.001f || radius < 2.0f) {
         return;
     }
@@ -95,9 +95,9 @@ void PieChart::DrawPlot(GraphicsContext& ctx, const Rect& plot) {
     float total = 0.0f;
     CollectSlices(slices, total);
     if (slices.empty() || total <= 0.0f) {
-        D2D1_COLOR_F muted = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
+        Color muted = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
         ctx.DrawText("暂无正值", plot, muted, "微软雅黑", 13.0f,
-                     DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                     TextAlignment::Center, TextVerticalAlignment::Center);
         return;
     }
 
@@ -119,7 +119,7 @@ void PieChart::DrawPlot(GraphicsContext& ctx, const Rect& plot) {
             continue;
         }
         const bool hot = slice.index == m_hoverIndex;
-        D2D1_COLOR_F color = slice.color;
+        Color color = slice.color;
         if (hover > 0.01f && !hot) {
             color.a *= 1.0f - 0.55f * hover;
         }
@@ -144,11 +144,11 @@ void PieChart::DrawLegend(GraphicsContext& ctx) {
         return;
     }
     ctx.PushOpacity(fade);
-    ctx.PushTransform(D2D1::Matrix3x2F::Translation((1.0f - fade) * 10.0f, 0.0f));
+    ctx.PushTranslation((1.0f - fade) * 10.0f, 0.0f);
     std::vector<Slice> slices;
     float total = 0.0f;
     CollectSlices(slices, total);
-    D2D1_COLOR_F text = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+    Color text = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
     float y = box.y + 2.0f;
     for (const auto& slice : slices) {
         if (y + 18.0f > box.y + box.height) {
@@ -161,7 +161,7 @@ void PieChart::DrawLegend(GraphicsContext& ctx) {
             label,
             Rect(box.x + 20.0f, y, box.width - 24.0f, 18.0f),
             text, "微软雅黑", 11.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL, true);
+            TextAlignment::Left, TextVerticalAlignment::Center, CUI::FontWeight::Normal, true);
         y += 18.0f;
     }
     ctx.PopTransform();

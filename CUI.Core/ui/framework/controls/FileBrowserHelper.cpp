@@ -2,6 +2,7 @@
 #define NOMINMAX
 #endif
 #include "FileBrowserHelper.h"
+#include "../render/GraphicsContext.h"
 #include "../core/CUIDsl.h"
 #include "../core/Value.h"
 #include "../style/ThemeManager.h"
@@ -355,15 +356,15 @@ void FileBrowserSession::RenderChrome(
     ctx.DrawRoundedRect(popRect, 6.0f, tokens.cardBorder, 1.5f);
 
     const Rect up = UpButtonRect(popRect);
-    D2D1_COLOR_F upBg = hoverUp ? tokens.hoverBackground : tokens.cardBackground;
+    Color upBg = hoverUp ? tokens.hoverBackground : tokens.cardBackground;
     ctx.FillRoundedRect(up, 4.0f, upBg);
     ctx.DrawText("↑", up, tokens.accentColor, "Segoe UI", 14.0f,
-        DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        TextAlignment::Center, TextVerticalAlignment::Center, CUI::FontWeight::Bold);
 
     if (m_mode == FileBrowserMode::OpenFile) {
         const Rect filterBtn = FilterButtonRect(popRect);
         const bool filterActive = filterDropDownOpen || hoverFilter;
-        D2D1_COLOR_F fBg = filterActive ? tokens.hoverBackground : tokens.inputBackground;
+        Color fBg = filterActive ? tokens.hoverBackground : tokens.inputBackground;
         ctx.FillRoundedRect(filterBtn, 4.0f, fBg);
         ctx.DrawRoundedRect(filterBtn, 4.0f,
             filterDropDownOpen ? tokens.focusedBorder : tokens.inputBorder,
@@ -375,7 +376,7 @@ void FileBrowserSession::RenderChrome(
             filterBtn.width - 26.0f,
             filterBtn.height);
         ctx.DrawText(GetActiveFilterLabel(), filterText, tokens.textPrimary, "Segoe UI", 12.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_NORMAL, true);
+            TextAlignment::Left, TextVerticalAlignment::Center, CUI::FontWeight::Normal, true);
         Rect chevronBox(filterBtn.x + filterBtn.width - 18.0f, filterBtn.y, 16.0f, filterBtn.height);
         ctx.DrawChevron(
             chevronBox,
@@ -399,16 +400,16 @@ void FileBrowserSession::RenderChrome(
     ctx.FillRoundedRect(cancel, 4.0f, hoverCancel ? tokens.hoverBackground : tokens.inputBackground);
     ctx.DrawRoundedRect(cancel, 4.0f, tokens.inputBorder, 1.0f);
     ctx.DrawText("取消", cancel, tokens.textPrimary, "Segoe UI", 12.0f,
-        DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        TextAlignment::Center, TextVerticalAlignment::Center);
 
-    D2D1_COLOR_F okBg = tokens.accentColor;
+    Color okBg = tokens.accentColor;
     if (!hoverConfirm) {
         okBg.a = 0.90f;
     }
     ctx.FillRoundedRect(confirm, 4.0f, okBg);
     const char* okLabel = (m_mode == FileBrowserMode::OpenFolder) ? "选择" : "打开";
-    ctx.DrawText(okLabel, confirm, D2D1::ColorF(1, 1, 1, 1), "Segoe UI", 12.0f,
-        DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+    ctx.DrawText(okLabel, confirm, Color(1.0f, 1.0f, 1.0f, 1.0f), "Segoe UI", 12.0f,
+        TextAlignment::Center, TextVerticalAlignment::Center, CUI::FontWeight::SemiBold);
 }
 
 void FileBrowserSession::RenderFilterDropdown(
@@ -432,23 +433,22 @@ void FileBrowserSession::RenderFilterDropdown(
         const bool selected = (i == m_filterIndex);
         const bool hovered = (i == hoverFilterItem);
         if (selected) {
-            D2D1_COLOR_F sel = tokens.accentColor;
-            sel.a = 0.18f;
+            Color sel = tokens.accentColor.WithAlpha(0.18f);
             ctx.FillRoundedRect(item, 3.0f, sel);
         } else if (hovered) {
             ctx.FillRoundedRect(item, 3.0f, tokens.hoverBackground);
         }
 
-        D2D1_COLOR_F itemColor = selected ? tokens.accentColor : tokens.textPrimary;
+        Color itemColor = selected ? tokens.accentColor : tokens.textPrimary;
         ctx.DrawText(
             m_filters[static_cast<size_t>(i)].first,
             Rect(item.x + 8.0f, item.y, item.width - 12.0f, item.height),
             itemColor,
             "Segoe UI",
             12.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            selected ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
+            TextAlignment::Left,
+            TextVerticalAlignment::Center,
+            selected ? CUI::FontWeight::SemiBold : CUI::FontWeight::Normal,
             true);
     }
 }

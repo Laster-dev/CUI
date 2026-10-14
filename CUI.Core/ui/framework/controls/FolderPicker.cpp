@@ -105,11 +105,11 @@ FolderPicker::HitPart FolderPicker::HitTestPart(Point pt) const {
     return HitPart::None;
 }
 
-HCURSOR FolderPicker::GetCursor() const {
+CursorType FolderPicker::GetCursor() const {
     if (!IsEnabled() || (m_hover == HitPart::None && !m_isPopupOpen)) {
-        return nullptr;
+        return CursorType::Arrow;
     }
-    return LoadCursor(nullptr, IDC_HAND);
+    return CursorType::Hand;
 }
 
 Size FolderPicker::Measure(Size availableSize) {
@@ -248,8 +248,8 @@ bool FolderPicker::HandleBrowserClick(Point pt) {
 void FolderPicker::OnRender(GraphicsContext& ctx) {
     const float radius = GetCornerRadius();
     const auto& tokens = ThemeManager::Instance().GetTokens();
-    D2D1_COLOR_F bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground);
-    D2D1_COLOR_F border = m_isFocused
+    Color bg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::InputBackground);
+    Color border = m_isFocused
         ? ResolveThemeColor(GetFocusedBorderToken(), ThemeTokenId::FocusedBorder)
         : ResolveThemeColor(GetBorderToken(), ThemeTokenId::InputBorder);
     const float borderW = m_isFocused ? 1.5f : GetBorderThickness();
@@ -261,7 +261,7 @@ void FolderPicker::OnRender(GraphicsContext& ctx) {
 
     const Rect browse = BrowseRect();
     const bool browseHot = (m_hover == HitPart::Browse || m_pressed == HitPart::Browse || m_isPopupOpen);
-    D2D1_COLOR_F browseFill = browseHot ? tokens.hoverBackground : tokens.cardBackground;
+    Color browseFill = browseHot ? tokens.hoverBackground : tokens.cardBackground;
     if (m_pressed == HitPart::Browse) {
         browseFill = tokens.pressedBackground;
     }
@@ -285,7 +285,7 @@ void FolderPicker::OnRender(GraphicsContext& ctx) {
 
     const std::string& path = GetText();
     const std::string& display = path.empty() ? GetPlaceholder() : path;
-    D2D1_COLOR_F textColor = path.empty()
+    Color textColor = path.empty()
         ? tokens.textMuted
         : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     ctx.DrawText(
@@ -294,9 +294,9 @@ void FolderPicker::OnRender(GraphicsContext& ctx) {
         textColor,
         GetFontFamily(),
         GetFontSize(),
-        DWRITE_TEXT_ALIGNMENT_LEADING,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-        DWRITE_FONT_WEIGHT_NORMAL,
+        TextAlignment::Left,
+        TextVerticalAlignment::Center,
+        CUI::FontWeight::Normal,
         true);
 }
 

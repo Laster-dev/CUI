@@ -50,13 +50,13 @@ Size NavigationViewItemHeader::Measure(Size availableSize) {
 
 void NavigationViewItemHeader::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
-    const D2D1_COLOR_F color = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+    const Color color = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
     const float indent = 12.0f + m_depth * 12.0f;
     Rect textRect(m_bounds.x + indent, m_bounds.y, (std::max)(0.0f, m_bounds.width - indent - 8.0f), m_bounds.height);
     ctx.PushClip(textRect);
     ctx.DrawText(m_text, textRect, color, "微软雅黑", 11.0f,
-                 DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-                 DWRITE_FONT_WEIGHT_SEMI_BOLD);
+                 TextAlignment::Left, TextVerticalAlignment::Center,
+                 CUI::FontWeight::SemiBold);
     ctx.PopClip();
 }
 
@@ -70,7 +70,7 @@ void NavigationViewItemSeparator::OnRender(GraphicsContext& ctx) {
     if (GetBorderToken() == ThemeTokenId::Unset) {
         ApplyBorderToken(ThemeTokenId::CardBorder);
     }
-    const D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    const Color border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     const float y = m_bounds.y + m_bounds.height * 0.5f;
     const float inset = 12.0f + m_depth * 12.0f;
     ctx.DrawLine(Point(m_bounds.x + inset, y),
@@ -186,7 +186,7 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
         (std::max)(0.0f, m_bounds.width - kHighlightInsetX * 2.0f),
         m_bounds.height
     );
-    D2D1_COLOR_F fill = D2D1::ColorF(0, 0, 0, 0);
+    Color fill(0.0f, 0.0f, 0.0f, 0.0f);
     if (showSelected) {
         fill = ResolveThemeColor(GetSelectedBackgroundToken(), ThemeTokenId::SelectedBackground);
     } else if (m_hovered) {
@@ -200,7 +200,7 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
     if (m_rippleActive && m_rippleOpacity > 0.0f) {
         const Rect clipRect = highlight.IsEmpty() ? m_bounds : highlight;
         ctx.PushRoundedClip(clipRect, radius);
-        D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+        Color rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
         rippleColor.a = m_rippleOpacity;
         Rect rippleRect(
             m_rippleCenter.x - m_rippleRadius,
@@ -214,7 +214,7 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
 
     // Always resolve through ThemeManager (token → GetColor). User overrides of
     // theme.colorToken are honored; never use a DIY palette here.
-    const D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    const Color textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
 
     const float indent = m_topMode ? 0.0f : (m_depth * 12.0f);
     float x = m_bounds.x + indent;
@@ -239,8 +239,8 @@ void NavigationViewItem::OnRender(GraphicsContext& ctx) {
         Rect textRect(x, m_bounds.y, (std::max)(0.0f, m_bounds.x + m_bounds.width - x - rightPad), m_bounds.height);
         ctx.PushClip(textRect);
         ctx.DrawText(m_content, textRect, textColor, "微软雅黑", 14.0f,
-                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-                     showSelected ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+                     TextAlignment::Left, TextVerticalAlignment::Center,
+                     showSelected ? CUI::FontWeight::SemiBold : CUI::FontWeight::Normal);
         ctx.PopClip();
 
         if (!chevron.IsEmpty()) {

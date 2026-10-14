@@ -44,7 +44,7 @@ void LineChart::DrawPlot(GraphicsContext& ctx, const Rect& plot) {
     const float hover = HoverAmount();
 
     if (hover > 0.01f) {
-        D2D1_COLOR_F cross = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
+        Color cross = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextMuted);
         cross.a *= 0.55f * hover;
         ctx.DrawLine(Point(CrossX(), plot.y), Point(CrossX(), plot.y + plot.height), cross, 1.0f);
         ctx.DrawLine(Point(plot.x, CrossY()), Point(plot.x + plot.width, CrossY()), cross, 1.0f);
@@ -52,7 +52,7 @@ void LineChart::DrawPlot(GraphicsContext& ctx, const Rect& plot) {
 
     for (int s = 0; s < static_cast<int>(m_series.size()); ++s) {
         const auto& series = m_series[s];
-        const D2D1_COLOR_F color = SeriesColor(s);
+        const Color color = SeriesColor(s);
         const int n = (std::min)(count, static_cast<int>(series.values.size()));
         if (n <= 0) {
             continue;
@@ -73,7 +73,7 @@ void LineChart::DrawPlot(GraphicsContext& ctx, const Rect& plot) {
             area.insert(area.end(), pts.begin(), pts.end());
             area.push_back(Point(pts.back().x, baseline));
             area.push_back(Point(pts.front().x, baseline));
-            D2D1_COLOR_F fill = color;
+            Color fill = color;
             fill.a *= 0.14f;
             ctx.FillPolygon(area.data(), static_cast<int>(area.size()), fill);
         }
@@ -92,7 +92,7 @@ void LineChart::DrawPlot(GraphicsContext& ctx, const Rect& plot) {
             const float r = 2.6f + 3.2f * pulse;
             const Point p = pts[static_cast<size_t>(i)];
             if (pulse > 0.01f) {
-                D2D1_COLOR_F glow = color;
+                Color glow = color;
                 glow.a *= 0.22f * pulse;
                 const float gr = r + 5.0f * pulse;
                 ctx.FillRoundedRect(Rect(p.x - gr, p.y - gr, gr * 2.0f, gr * 2.0f), gr, glow);

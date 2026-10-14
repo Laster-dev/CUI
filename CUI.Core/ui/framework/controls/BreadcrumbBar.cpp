@@ -91,16 +91,16 @@ float BreadcrumbBar::MeasureNodeWidth(GraphicsContext& ctx, size_t index) const 
         return 0.0f;
     }
     const bool isLast = (index + 1 == m_pathNodes.size());
-    const DWRITE_FONT_WEIGHT weight = isLast ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL;
+    const CUI::FontWeight weight = isLast ? CUI::FontWeight::SemiBold : CUI::FontWeight::Normal;
     return ctx.MeasureText(m_pathNodes[index], GetFontFamily(), GetFontSize(), weight).width;
 }
 
 float BreadcrumbBar::MeasureSepWidth(GraphicsContext& ctx) const {
-    return ctx.MeasureText(kSep, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
+    return ctx.MeasureText(kSep, GetFontFamily(), GetFontSize(), CUI::FontWeight::Normal).width;
 }
 
 float BreadcrumbBar::MeasureEllipsisWidth(GraphicsContext& ctx) const {
-    return ctx.MeasureText(kEllipsis, GetFontFamily(), GetFontSize(), DWRITE_FONT_WEIGHT_NORMAL).width;
+    return ctx.MeasureText(kEllipsis, GetFontFamily(), GetFontSize(), CUI::FontWeight::Normal).width;
 }
 
 void BreadcrumbBar::RebuildVisualSlots(GraphicsContext& ctx) {
@@ -290,7 +290,7 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
 
     // Bottom hairline under the address/breadcrumb strip (standalone bar only).
     if (GetBorderThickness() > 0.0f) {
-        D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+        Color border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
         ctx.DrawLine(
             Point(m_bounds.x, m_bounds.y + m_bounds.height - 1.0f),
             Point(m_bounds.x + m_bounds.width, m_bounds.y + m_bounds.height - 1.0f),
@@ -302,9 +302,9 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
 
     const std::string& font = GetFontFamily();
     const float fontH = GetFontSize();
-    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
-    D2D1_COLOR_F activeColor = ResolveThemeColor(GetActiveColorToken(), ThemeTokenId::TextPrimary);
-    D2D1_COLOR_F sepColor = ThemeManager::Instance().GetTokens().textMuted;
+    Color textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+    Color activeColor = ResolveThemeColor(GetActiveColorToken(), ThemeTokenId::TextPrimary);
+    Color sepColor = ThemeManager::Instance().GetTokens().textMuted;
 
     for (const VisualSlot& slot : m_slots) {
         if (slot.kind == SlotKind::Separator) {
@@ -314,8 +314,8 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
                 sepColor,
                 font,
                 fontH,
-                DWRITE_TEXT_ALIGNMENT_LEADING,
-                DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                TextAlignment::Left,
+                TextVerticalAlignment::Center);
             continue;
         }
         if (slot.kind == SlotKind::Ellipsis) {
@@ -325,8 +325,8 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
                 textColor,
                 font,
                 fontH,
-                DWRITE_TEXT_ALIGNMENT_LEADING,
-                DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                TextAlignment::Left,
+                TextVerticalAlignment::Center);
             continue;
         }
         if (slot.pathIndex < 0 || slot.pathIndex >= static_cast<int>(m_pathNodes.size())) {
@@ -339,9 +339,9 @@ void BreadcrumbBar::OnRender(GraphicsContext& ctx) {
             isLast ? activeColor : textColor,
             font,
             fontH,
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            isLast ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
+            TextAlignment::Left,
+            TextVerticalAlignment::Center,
+            isLast ? CUI::FontWeight::SemiBold : CUI::FontWeight::Normal,
             true);
     }
 }

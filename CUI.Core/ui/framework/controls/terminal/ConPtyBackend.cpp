@@ -1,4 +1,5 @@
 #include "ConPtyBackend.h"
+#include <windows.h>
 #include <algorithm>
 #include <vector>
 
@@ -131,9 +132,9 @@ bool ConPtyBackend::Start(int cols, int rows) {
 
     SIZE_T attrListSize = 0;
     InitializeProcThreadAttributeList(nullptr, 1, 0, &attrListSize);
-    m_attrList = static_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(
-        HeapAlloc(GetProcessHeap(), 0, attrListSize));
-    if (!m_attrList || !InitializeProcThreadAttributeList(m_attrList, 1, 0, &attrListSize)) {
+    m_attrList = HeapAlloc(GetProcessHeap(), 0, attrListSize);
+    auto attrList = static_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(m_attrList);
+    if (!m_attrList || !InitializeProcThreadAttributeList(attrList, 1, 0, &attrListSize)) {
         if (m_attrList) {
             HeapFree(GetProcessHeap(), 0, m_attrList);
             m_attrList = nullptr;
@@ -142,7 +143,7 @@ bool ConPtyBackend::Start(int cols, int rows) {
         return false;
     }
 
-    if (!UpdateProcThreadAttribute(m_attrList, 0, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+    if (!UpdateProcThreadAttribute(attrList, 0, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
                                    m_pseudoConsole, sizeof(PVOID), nullptr, nullptr)) {
         Stop();
         return false;
@@ -150,7 +151,7 @@ bool ConPtyBackend::Start(int cols, int rows) {
 
     STARTUPINFOEXW startup{};
     startup.StartupInfo.cb = sizeof(STARTUPINFOEXW);
-    startup.lpAttributeList = m_attrList;
+    startup.lpAttributeList = attrList;
 
     std::vector<wchar_t> commandBuffer(m_commandLine.begin(), m_commandLine.end());
     commandBuffer.push_back(L'\0');
@@ -280,7 +281,7 @@ void ConPtyBackend::Stop() {
     }
 
     if (m_attrList != nullptr) {
-        DeleteProcThreadAttributeList(m_attrList);
+        DeleteProcThreadAttributeList(static_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(m_attrList));
         HeapFree(GetProcessHeap(), 0, m_attrList);
         m_attrList = nullptr;
     }
@@ -288,9 +289,9 @@ void ConPtyBackend::Stop() {
     // 关闭 ConPTY 后子进程一般自行退出；但它可能忽略控制台关闭（例如仍在等待子命令），
     // 从而变成残留进程占着句柄。这里先给它一个短暂宽限期，超时则强制终止。
     if (m_process != nullptr) {
-        if (WaitForSingleObject(m_process, 2000) == WAIT_TIMEOUT) {
-            TerminateProcess(m_process, 1);
-            WaitForSingleObject(m_process, 1000);
+        if (WaitForSingleObject(static_cast<HANDLE>(m_process), 2000) == WAIT_TIMEOUT) {
+            TerminateProcess(static_cast<HANDLE>(m_process), 1);
+            WaitForSingleObject(static_cast<HANDLE>(m_process), 1000);
         }
     }
 
@@ -305,7 +306,7 @@ void ConPtyBackend::ReadLoop() {
     std::vector<char> buffer(64 * 1024);
     while (!m_cancelled && m_outputRead != nullptr) {
         DWORD read = 0;
-        if (!ReadFile(m_outputRead, buffer.data(), static_cast<DWORD>(buffer.size()), &read, nullptr)) {
+        if (!ReadFile(static_cast<HANDLE>(m_outputRead), buffer.data(), static_cast<DWORD>(buffer.size()), &read, nullptr)) {
             break;
         }
         if (read == 0) {
@@ -318,11 +319,11 @@ void ConPtyBackend::ReadLoop() {
     m_readerAlive = false;
 }
 
-void ConPtyBackend::SafeClose(HANDLE& handle) {
+void ConPtyBackend::SafeClose(void*& handle) {
     if (handle == nullptr) {
         return;
     }
-    CloseHandle(handle);
+    CloseHandle(static_cast<HANDLE>(handle));
     handle = nullptr;
 }
 

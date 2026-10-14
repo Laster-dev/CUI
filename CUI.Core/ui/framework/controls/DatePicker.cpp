@@ -325,10 +325,10 @@ void DatePicker::OnRender(GraphicsContext& ctx) {
     std::string text = "📅 " + GetFormattedDate();
     float fontSize = GetFontSize();
     std::string fontFamily = GetFontFamily();
-    D2D1_COLOR_F textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    Color textColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
 
     Rect textRect(m_bounds.x + 8.0f, m_bounds.y, m_bounds.width - 16.0f, m_bounds.height);
-    ctx.DrawText(text, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText(text, textRect, textColor, fontFamily, fontSize, TextAlignment::Left, TextVerticalAlignment::Center);
 }
 
 void DatePicker::ApplyPopupOpen(bool open) {
@@ -367,12 +367,12 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
     float popH = popRect.height;
     ctx.PushPopupReveal(popRect, progress, Point(popRect.x + popW * 0.5f, popRect.y));
 
-    D2D1_COLOR_F bg = ThemeManager::Instance().GetTokens().cardBackground;
-    D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().cardBorder;
-    D2D1_COLOR_F textCol = ThemeManager::Instance().GetTokens().textPrimary;
-    D2D1_COLOR_F textMutedCol = ThemeManager::Instance().GetTokens().textMuted;
-    D2D1_COLOR_F btnCol = ThemeManager::Instance().GetTokens().accentColor;
-    D2D1_COLOR_F selBg = ThemeManager::Instance().GetTokens().accentColor;
+    Color bg = ThemeManager::Instance().GetTokens().cardBackground;
+    Color border = ThemeManager::Instance().GetTokens().cardBorder;
+    Color textCol = ThemeManager::Instance().GetTokens().textPrimary;
+    Color textMutedCol = ThemeManager::Instance().GetTokens().textMuted;
+    Color btnCol = ThemeManager::Instance().GetTokens().accentColor;
+    Color selBg = ThemeManager::Instance().GetTokens().accentColor;
 
     ctx.FillRoundedRect(popRect, 6.0f, bg);
     ctx.DrawRoundedRect(popRect, 6.0f, border, 1.5f);
@@ -384,11 +384,11 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
     Rect yrRect(popRect.x + 28.0f, popRect.y + 6.0f, midW, 22.0f);
     Rect moRect(popRect.x + 28.0f + midW, popRect.y + 6.0f, midW, 22.0f);
 
-    ctx.DrawText("‹", btnPrev, btnCol, "微软雅黑", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
-    ctx.DrawText("›", btnNext, btnCol, "微软雅黑", 16.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    ctx.DrawText("‹", btnPrev, btnCol, "微软雅黑", 16.0f, TextAlignment::Center, TextVerticalAlignment::Center);
+    ctx.DrawText("›", btnNext, btnCol, "微软雅黑", 16.0f, TextAlignment::Center, TextVerticalAlignment::Center);
 
     auto drawHeaderWithChevron = [&](const std::string& label, const Rect& rect) {
-        const Size ts = ctx.MeasureText(label, "微软雅黑", 12.0f, DWRITE_FONT_WEIGHT_BOLD);
+        const Size ts = ctx.MeasureText(label, "微软雅黑", 12.0f, CUI::FontWeight::Bold);
         const float chev = 10.0f;
         const float gap = 3.0f;
         const float total = ts.width + gap + chev;
@@ -399,9 +399,9 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
             textCol,
             "微软雅黑",
             12.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_BOLD);
+            TextAlignment::Left,
+            TextVerticalAlignment::Center,
+            CUI::FontWeight::Bold);
         ctx.DrawChevron(
             Rect(start + ts.width + gap, rect.y + (rect.height - chev) * 0.5f, chev, chev),
             textCol,
@@ -414,10 +414,10 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
         drawHeaderWithChevron(std::to_string(m_month) + "月", moRect);
     } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
         Rect fullTitle(popRect.x + 28.0f, popRect.y + 6.0f, popW - 56.0f, 22.0f);
-        ctx.DrawText(std::to_string(m_year) + "年 (选择月份)", fullTitle, textCol, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(std::to_string(m_year) + "年 (选择月份)", fullTitle, textCol, "微软雅黑", 12.0f, TextAlignment::Center, TextVerticalAlignment::Center, CUI::FontWeight::Bold);
     } else {
         Rect fullTitle(popRect.x + 28.0f, popRect.y + 6.0f, popW - 56.0f, 22.0f);
-        ctx.DrawText(std::to_string(m_viewStartYear) + " - " + std::to_string(m_viewStartYear + 11) + "年", fullTitle, textCol, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, DWRITE_FONT_WEIGHT_BOLD);
+        ctx.DrawText(std::to_string(m_viewStartYear) + " - " + std::to_string(m_viewStartYear + 11) + "年", fullTitle, textCol, "微软雅黑", 12.0f, TextAlignment::Center, TextVerticalAlignment::Center, CUI::FontWeight::Bold);
     }
 
     ctx.DrawLine(Point(popRect.x + 6.0f, popRect.y + 32.0f), Point(popRect.x + popW - 6.0f, popRect.y + 32.0f), border);
@@ -458,7 +458,7 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
         float cellW = popW / 7.0f;
         for (int w = 0; w < 7; ++w) {
             Rect wRect(popRect.x + w * cellW, bodyY + yShift, cellW, 18.0f);
-            ctx.DrawText(weekNames[w], wRect, textMutedCol, "微软雅黑", 10.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+            ctx.DrawText(weekNames[w], wRect, textMutedCol, "微软雅黑", 10.0f, TextAlignment::Center, TextVerticalAlignment::Center);
         }
 
         // Days Grid
@@ -477,8 +477,8 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
                 ctx.FillRoundedRect(cellRect, 4.0f, selBg);
             }
 
-            D2D1_COLOR_F dCol = isSelected ? ThemeManager::Instance().GetTokens().textPrimary : textCol;
-            ctx.DrawText(std::to_string(d), cellRect, dCol, "微软雅黑", 11.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+            Color dCol = isSelected ? ThemeManager::Instance().GetTokens().textPrimary : textCol;
+            ctx.DrawText(std::to_string(d), cellRect, dCol, "微软雅黑", 11.0f, TextAlignment::Center, TextVerticalAlignment::Center, isSelected ? CUI::FontWeight::Bold : CUI::FontWeight::Normal);
         }
     } else if (m_viewMode == DatePickerViewMode::MonthGrid) {
         // 3x4 Month Grid (scrollable)
@@ -496,8 +496,8 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
                 ctx.FillRoundedRect(cellRect, 4.0f, selBg);
             }
 
-            D2D1_COLOR_F mCol = isSelected ? ThemeManager::Instance().GetTokens().textPrimary : textCol;
-            ctx.DrawText(monthNames[m - 1], cellRect, mCol, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+            Color mCol = isSelected ? ThemeManager::Instance().GetTokens().textPrimary : textCol;
+            ctx.DrawText(monthNames[m - 1], cellRect, mCol, "微软雅黑", 12.0f, TextAlignment::Center, TextVerticalAlignment::Center, isSelected ? CUI::FontWeight::Bold : CUI::FontWeight::Normal);
         }
     } else if (m_viewMode == DatePickerViewMode::YearGrid) {
         // 3x4 Year Grid (scrollable)
@@ -515,8 +515,8 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
                 ctx.FillRoundedRect(cellRect, 4.0f, selBg);
             }
 
-            D2D1_COLOR_F yCol = isSelected ? ThemeManager::Instance().GetTokens().textPrimary : textCol;
-            ctx.DrawText(std::to_string(yr), cellRect, yCol, "微软雅黑", 12.0f, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, isSelected ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+            Color yCol = isSelected ? ThemeManager::Instance().GetTokens().textPrimary : textCol;
+            ctx.DrawText(std::to_string(yr), cellRect, yCol, "微软雅黑", 12.0f, TextAlignment::Center, TextVerticalAlignment::Center, isSelected ? CUI::FontWeight::Bold : CUI::FontWeight::Normal);
         }
     }
 
@@ -526,7 +526,7 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
         const Rect trackRect(trackX, bodyY, kScrollBarW, visibleScrollH);
         const float vis = m_scrollbarAutoHide.Opacity();
 
-        D2D1_COLOR_F trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+        Color trackColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
         trackColor.a = 0.35f * vis;
         ctx.DrawRoundedRect(trackRect, 4.0f, trackColor, 1.0f);
 
@@ -535,7 +535,7 @@ void DatePicker::RenderPopup(GraphicsContext& ctx) {
         const float thumbY = bodyY + ((maxScroll > 0.001f) ? (m_scrollOffset / maxScroll) * travel : 0.0f);
 
         Rect thumbRect(trackX + 2.0f, thumbY, kScrollBarW - 4.0f, thumbH);
-        D2D1_COLOR_F thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
+        Color thumbColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentColor);
         thumbColor.a = 0.45f * vis;
         ctx.FillRoundedRect(thumbRect, 4.0f, thumbColor);
     }

@@ -28,7 +28,7 @@ public:
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
     void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
-    virtual HCURSOR GetCursor() const override; // 获取悬浮交互鼠标样式
+    virtual CursorType GetCursor() const override; // 获取悬浮交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 测算头部空间及下方折拢状态下的子内容排版占高
     virtual void Arrange(Rect finalRect) override; // 排布头部栏及下方面板裁剪内容

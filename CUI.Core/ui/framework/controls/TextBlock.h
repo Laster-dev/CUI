@@ -3,18 +3,6 @@
 
 namespace CUI {
 
-enum class TextAlignment : uint8_t {
-    Left,
-    Center,
-    Right
-};
-
-enum class TextVerticalAlignment : uint8_t {
-    Top,
-    Center,
-    Bottom
-};
-
 class TextBlock : public UIElement {
 public:
     TextBlock();

@@ -24,24 +24,21 @@ constexpr float kActionH = 28.0f;
 constexpr float kCaret = 7.0f;
 constexpr float kRadius = 8.0f;
 
-Size MeasureWrapped(const std::string& text, float fontSize, float maxWidth, DWRITE_FONT_WEIGHT weight) {
+Size MeasureWrapped(const std::string& text, float fontSize, float maxWidth, FontWeight weight) {
     if (text.empty()) {
         return Size(0.0f, 0.0f);
     }
-    GraphicsContext::TextLayoutOptions options;
+    TextLayoutOptions options;
     options.maxWidth = (std::max)(32.0f, maxWidth);
     options.maxHeight = 480.0f;
-    options.wrapping = DWRITE_WORD_WRAPPING_WRAP;
-    ComPtr<IDWriteTextLayout> layout = GraphicsContext::CreateTextLayout(
-        Utf8ToUtf16(text), "微软雅黑", fontSize, options, weight);
+    options.wrapping = TextWrapping::Wrap;
+    TextLayout layout = TextLayout::Create(text, "微软雅黑", fontSize, options, weight);
     if (!layout) {
         return Size(maxWidth, fontSize + 4.0f);
     }
-    DWRITE_TEXT_METRICS metrics{};
-    layout->GetMetrics(&metrics);
     return Size(
-        std::ceil(metrics.widthIncludingTrailingWhitespace),
-        std::ceil(metrics.height));
+        std::ceil(layout.GetWidth()),
+        std::ceil(layout.GetHeight()));
 }
 
 } // namespace
@@ -263,12 +260,12 @@ void TeachingTip::Arrange(Rect finalRect) {
 void TeachingTip::Relayout() {
     const Rect viewport = GetPopupViewportOrDefault();
     const float innerMax = (std::max)(80.0f, m_maxWidth - kPad * 2.0f - (m_closeVisible ? (kClose + 6.0f) : 0.0f));
-    const Size titleSize = MeasureWrapped(m_title, 14.0f, innerMax, DWRITE_FONT_WEIGHT_SEMI_BOLD);
-    const Size bodySize = MeasureWrapped(m_message, 12.0f, (std::max)(80.0f, m_maxWidth - kPad * 2.0f), DWRITE_FONT_WEIGHT_NORMAL);
+    const Size titleSize = MeasureWrapped(m_title, 14.0f, innerMax, FontWeight::SemiBold);
+    const Size bodySize = MeasureWrapped(m_message, 12.0f, (std::max)(80.0f, m_maxWidth - kPad * 2.0f), FontWeight::Normal);
 
     Size actionSize(0.0f, 0.0f);
     if (!m_actionText.empty()) {
-        Size label = MeasureWrapped(m_actionText, 12.0f, innerMax, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+        Size label = MeasureWrapped(m_actionText, 12.0f, innerMax, FontWeight::SemiBold);
         actionSize.width = (std::max)(64.0f, label.width + 20.0f);
         actionSize.height = kActionH;
     }
@@ -510,13 +507,13 @@ void TeachingTip::RenderPopup(GraphicsContext& ctx) {
 
     if (m_isModal) {
         const Rect viewport = GetPopupViewportOrDefault();
-        D2D1_COLOR_F scrim = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.28f * progress);
+        Color scrim(0.0f, 0.0f, 0.0f, 0.28f * progress);
         ctx.FillRect(viewport, scrim);
     }
 
     ctx.PushOpacity(progress);
-    D2D1_COLOR_F bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
-    D2D1_COLOR_F border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
+    Color bg = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBackground);
+    Color border = ThemeManager::Instance().GetFlatColor(ThemeTokenId::CardBorder);
     PaintBubble(ctx, m_layout, bg, border, kRadius);
 
     // 气泡外壳自绘；内部标题 / 正文 / 操作按钮 / 关闭按钮均为真实子控件

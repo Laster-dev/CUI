@@ -4,6 +4,7 @@
 #include "../../window/Dpi.h"
 #include "../../style/ThemeManager.h"
 #include "../../controls/UIElement.h"
+#include <windows.h>
 #include <windowsx.h>
 #include "../../render/DxLoader.h"
 #include <cmath>
@@ -51,6 +52,8 @@ std::string DefaultIconText(const std::string& title) {
     }
     return "C";
 }
+
+inline HWND AsHwnd(void* p) { return static_cast<HWND>(p); }
 } // namespace
 
 DockFloatWindow::DockFloatWindow() {
@@ -62,22 +65,23 @@ DockFloatWindow::~DockFloatWindow() {
     Destroy();
 }
 
-bool DockFloatWindow::IsDockFloatHwnd(HWND hwnd) {
-    if (!hwnd || !IsWindow(hwnd)) {
+bool DockFloatWindow::IsDockFloatHwnd(void* hwnd) {
+    HWND h = static_cast<HWND>(hwnd);
+    if (!h || !IsWindow(h)) {
         return false;
     }
     wchar_t cls[64] = {};
-    if (GetClassNameW(hwnd, cls, 64) <= 0) {
+    if (GetClassNameW(h, cls, 64) <= 0) {
         return false;
     }
     return wcscmp(cls, kDockFloatClass) == 0;
 }
 
-DockFloatWindow* DockFloatWindow::FromHwnd(HWND hwnd) {
+DockFloatWindow* DockFloatWindow::FromHwnd(void* hwnd) {
     if (!IsDockFloatHwnd(hwnd)) {
         return nullptr;
     }
-    return reinterpret_cast<DockFloatWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+    return reinterpret_cast<DockFloatWindow*>(GetWindowLongPtrW(static_cast<HWND>(hwnd), GWLP_USERDATA));
 }
 
 void DockFloatWindow::EnsureClass() {
@@ -89,7 +93,7 @@ void DockFloatWindow::EnsureClass() {
     WNDCLASSEXW wc{};
     wc.cbSize = sizeof(wc);
     wc.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
-    wc.lpfnWndProc = WndProc;
+    wc.lpfnWndProc = reinterpret_cast<WNDPROC>(WndProc);
     wc.hInstance = GetModuleHandleW(nullptr);
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     wc.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
@@ -101,25 +105,27 @@ void DockFloatWindow::ApplyCuiChrome() {
     if (!m_hwnd) {
         return;
     }
-    const bool maximized = IsZoomed(m_hwnd) != FALSE;
+    HWND hwnd = AsHwnd(m_hwnd);
+    const bool maximized = IsZoomed(hwnd) != FALSE;
     const Dx::Margins margins = maximized ? Dx::Margins{ 0, 0, 0, 0 } : Dx::Margins{ 1, 1, 1, 1 };
-    Dx::DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+    Dx::DwmExtendFrameIntoClientArea(hwnd, &margins);
 
     const Dx::DwmCornerPreference preference =
         maximized ? Dx::DwmCornerDoNotRound : Dx::DwmCornerRound;
-    Dx::DwmSetWindowAttribute(m_hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
+    Dx::DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 
-    const D2D1_COLOR_F border = ThemeManager::Instance().GetTokens().windowBackground;
+    const Color border = ThemeManager::Instance().GetTokens().windowBackground;
     const COLORREF borderColor = RGB(
         static_cast<int>(border.r * 255.0f),
         static_cast<int>(border.g * 255.0f),
         static_cast<int>(border.b * 255.0f));
-    Dx::DwmSetWindowAttribute(m_hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
+    Dx::DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
 }
 
-bool DockFloatWindow::EnsureWindow(HWND owner) {
+bool DockFloatWindow::EnsureWindow(void* owner) {
     EnsureClass();
-    if (m_hwnd && IsWindow(m_hwnd)) {
+    HWND hOwner = static_cast<HWND>(owner);
+    if (m_hwnd && IsWindow(static_cast<HWND>(m_hwnd))) {
         m_owner = owner;
         return true;
     }
@@ -131,20 +137,21 @@ bool DockFloatWindow::EnsureWindow(HWND owner) {
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT,
         400, 300,
-        owner,
+        hOwner,
         nullptr,
         GetModuleHandleW(nullptr),
         this);
     if (!m_hwnd) {
         return false;
     }
-    SetWindowLongPtrW(m_hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
-    m_dpiScale = GetDpiScaleForWindow(m_hwnd);
+    HWND hwnd = static_cast<HWND>(m_hwnd);
+    SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+    m_dpiScale = GetDpiScaleForWindow(hwnd);
     ApplyCuiChrome();
-    m_deviceReady = m_gfx.Initialize(m_hwnd);
+    m_deviceReady = m_gfx.Initialize(hwnd);
     if (m_deviceReady) {
         RECT crc{};
-        GetClientRect(m_hwnd, &crc);
+        GetClientRect(hwnd, &crc);
         m_lastPxW = static_cast<UINT>((std::max)(1L, crc.right));
         m_lastPxH = static_cast<UINT>((std::max)(1L, crc.bottom));
     }
@@ -157,7 +164,7 @@ void DockFloatWindow::ApplyTitleFromPane() {
             m_titleUtf8 = p->title;
             m_title = Utf8ToWide(p->title);
             if (m_hwnd) {
-                SetWindowTextW(m_hwnd, m_title.c_str());
+                SetWindowTextW(static_cast<HWND>(m_hwnd), m_title.c_str());
             }
         }
     }
@@ -165,7 +172,7 @@ void DockFloatWindow::ApplyTitleFromPane() {
 
 bool DockFloatWindow::Show(DockManager* manager,
                            int paneIndex,
-                           HWND owner,
+                           void* owner,
                            Point screenDipTopLeft,
                            Size windowDipSize) {
     if (!manager || paneIndex < 0 || !owner) {
@@ -194,19 +201,20 @@ bool DockFloatWindow::Show(DockManager* manager,
     }
     ApplyTitleFromPane();
 
-    m_dpiScale = GetDpiScaleForWindow(m_hwnd);
+    HWND hwnd = AsHwnd(m_hwnd);
+    m_dpiScale = GetDpiScaleForWindow(hwnd);
     const int px = static_cast<int>(std::lround(screenDipTopLeft.x * m_dpiScale));
     const int py = static_cast<int>(std::lround(screenDipTopLeft.y * m_dpiScale));
     const int pw = (std::max)(240, static_cast<int>(std::lround(windowDipSize.width * m_dpiScale)));
     const int ph = (std::max)(180, static_cast<int>(std::lround(windowDipSize.height * m_dpiScale)));
 
-    SetWindowPos(m_hwnd, HWND_TOP, px, py, pw, ph, SWP_NOACTIVATE);
+    SetWindowPos(hwnd, HWND_TOP, px, py, pw, ph, SWP_NOACTIVATE);
     HandleClientSize();
     ApplyCuiChrome();
-    ShowWindow(m_hwnd, SW_SHOW);
-    SetForegroundWindow(m_hwnd);
+    ShowWindow(hwnd, SW_SHOW);
+    SetForegroundWindow(hwnd);
     Relayout();
-    InvalidateRect(m_hwnd, nullptr, FALSE);
+    InvalidateRect(hwnd, nullptr, FALSE);
     return true;
 }
 
@@ -237,7 +245,7 @@ void DockFloatWindow::Destroy() {
     DetachContent();
     m_manager = nullptr;
     m_paneIndex = -1;
-    HWND hwnd = m_hwnd;
+    HWND hwnd = AsHwnd(m_hwnd);
     m_hwnd = nullptr;
     if (hwnd && IsWindow(hwnd)) {
         DestroyWindow(hwnd);
@@ -260,7 +268,7 @@ Point DockFloatWindow::ClientPhysicalToDip(int x, int y) const {
 Rect DockFloatWindow::TitleBarRect() const {
     RECT crc{};
     if (m_hwnd) {
-        GetClientRect(m_hwnd, &crc);
+        GetClientRect(AsHwnd(m_hwnd), &crc);
     }
     const float cw = static_cast<float>(crc.right) / m_dpiScale;
     return Rect(0.0f, 0.0f, cw, m_titleH);
@@ -281,13 +289,14 @@ int DockFloatWindow::HitCaptionButton(float x, float y) const {
     return -1;
 }
 
-LRESULT DockFloatWindow::HitTest(int screenX, int screenY) const {
+intptr_t DockFloatWindow::HitTest(int screenX, int screenY) const {
     POINT pt{ screenX, screenY };
-    ScreenToClient(m_hwnd, &pt);
+    HWND hwnd = AsHwnd(m_hwnd);
+    ScreenToClient(hwnd, &pt);
     const Point dip = ClientPhysicalToDip(pt.x, pt.y);
 
     RECT rc{};
-    GetClientRect(m_hwnd, &rc);
+    GetClientRect(hwnd, &rc);
     const float scale = (m_dpiScale > 0.001f) ? m_dpiScale : 1.0f;
     const int border = (std::max)(1, static_cast<int>(std::lround(kResizeBorderDip * scale)));
 
@@ -302,7 +311,7 @@ LRESULT DockFloatWindow::HitTest(int screenX, int screenY) const {
         return HTCLOSE;
     }
 
-    if (!IsZoomed(m_hwnd)) {
+    if (!IsZoomed(hwnd)) {
         const bool left = (pt.x < border);
         const bool right = (pt.x >= rc.right - border);
         const bool top = (pt.y < border);
@@ -328,13 +337,13 @@ void DockFloatWindow::ApplyCaptionHover(int region) {
         return;
     }
     m_captionHover = region;
-    InvalidateRect(m_hwnd, nullptr, FALSE);
+    InvalidateRect(AsHwnd(m_hwnd), nullptr, FALSE);
 }
 
 Point DockFloatWindow::CursorScreenDip() const {
     POINT pt{};
     GetCursorPos(&pt);
-    HWND scaleHwnd = m_owner ? m_owner : m_hwnd;
+    HWND scaleHwnd = AsHwnd(m_owner ? m_owner : m_hwnd);
     const float scale = GetDpiScaleForWindow(scaleHwnd);
     return Point(static_cast<float>(pt.x) / scale, static_cast<float>(pt.y) / scale);
 }
@@ -359,12 +368,12 @@ void DockFloatWindow::FinishRedockTracking() {
         return;
     }
     m_redocking = false;
-    PostMessageW(m_hwnd, WM_CUI_FLOAT_REDOCK, 0, 0);
+    PostMessageW(AsHwnd(m_hwnd), WM_CUI_FLOAT_REDOCK, 0, 0);
 }
 
 void DockFloatWindow::PresentAll() {
     for (DockFloatWindow* wnd : g_liveFloats) {
-        if (wnd && wnd->m_hwnd && wnd->m_deviceReady && wnd->m_content && !IsIconic(wnd->m_hwnd)) {
+        if (wnd && wnd->m_hwnd && wnd->m_deviceReady && wnd->m_content && !IsIconic(AsHwnd(wnd->m_hwnd))) {
             wnd->Paint();
         }
     }
@@ -377,7 +386,7 @@ void DockFloatWindow::TrackClientMouse() {
     TRACKMOUSEEVENT tme{};
     tme.cbSize = sizeof(tme);
     tme.dwFlags = TME_LEAVE;
-    tme.hwndTrack = m_hwnd;
+    tme.hwndTrack = AsHwnd(m_hwnd);
     if (TrackMouseEvent(&tme)) {
         m_trackingMouse = true;
     }
@@ -391,16 +400,17 @@ void DockFloatWindow::HandleWheel(float delta, int x, int y) {
     } else if (m_content) {
         m_content->OnMouseWheel(delta);
     }
-    InvalidateRect(m_hwnd, nullptr, FALSE);
+    InvalidateRect(AsHwnd(m_hwnd), nullptr, FALSE);
 }
 
 void DockFloatWindow::HandleClientSize() {
     if (!m_hwnd) {
         return;
     }
-    m_dpiScale = GetDpiScaleForWindow(m_hwnd);
+    HWND hwnd = AsHwnd(m_hwnd);
+    m_dpiScale = GetDpiScaleForWindow(hwnd);
     RECT crc{};
-    GetClientRect(m_hwnd, &crc);
+    GetClientRect(hwnd, &crc);
     const UINT w = static_cast<UINT>((std::max)(1L, crc.right));
     const UINT h = static_cast<UINT>((std::max)(1L, crc.bottom));
     if (m_deviceReady && (w != m_lastPxW || h != m_lastPxH)) {
@@ -420,7 +430,7 @@ void DockFloatWindow::Relayout() {
         return;
     }
     RECT crc{};
-    GetClientRect(m_hwnd, &crc);
+    GetClientRect(AsHwnd(m_hwnd), &crc);
     const float cw = static_cast<float>(crc.right) / m_dpiScale;
     const float ch = static_cast<float>(crc.bottom) / m_dpiScale;
     const float bodyH = (std::max)(0.0f, ch - m_titleH);
@@ -435,7 +445,7 @@ void DockFloatWindow::Paint() {
         return;
     }
     RECT crc{};
-    GetClientRect(m_hwnd, &crc);
+    GetClientRect(AsHwnd(m_hwnd), &crc);
     const float cw = static_cast<float>(crc.right) / m_dpiScale;
     const float ch = static_cast<float>(crc.bottom) / m_dpiScale;
 
@@ -454,9 +464,9 @@ void DockFloatWindow::Paint() {
         tokens.accentForeground,
         "微软雅黑",
         11.0f,
-        DWRITE_TEXT_ALIGNMENT_CENTER,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-        DWRITE_FONT_WEIGHT_BOLD);
+        TextAlignment::Center,
+        TextVerticalAlignment::Center,
+        CUI::FontWeight::Bold);
 
     const Rect minRect = CaptionButtonRect(0);
     const Rect maxRect = CaptionButtonRect(1);
@@ -465,16 +475,13 @@ void DockFloatWindow::Paint() {
     const float hoverPeak = light ? 0.08f : 0.14f;
 
     if (m_captionHover == 0) {
-        m_gfx.FillRect(minRect, D2D1::ColorF(
-            tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, hoverPeak));
+        m_gfx.FillRect(minRect, tokens.textPrimary.WithAlpha(hoverPeak));
     }
     if (m_captionHover == 1) {
-        m_gfx.FillRect(maxRect, D2D1::ColorF(
-            tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b, hoverPeak));
+        m_gfx.FillRect(maxRect, tokens.textPrimary.WithAlpha(hoverPeak));
     }
     if (m_captionHover == 2) {
-        D2D1_COLOR_F closeBg = tokens.dangerColor;
-        closeBg.a = 0.92f;
+        Color closeBg = tokens.dangerColor.WithAlpha(0.92f);
         m_gfx.FillRect(closeRect, closeBg);
     }
 
@@ -487,9 +494,9 @@ void DockFloatWindow::Paint() {
             tokens.textPrimary,
             "微软雅黑",
             13.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_SEMI_BOLD,
+            TextAlignment::Left,
+            TextVerticalAlignment::Center,
+            CUI::FontWeight::SemiBold,
             true);
     }
 
@@ -500,7 +507,7 @@ void DockFloatWindow::Paint() {
         tokens.textPrimary,
         1.4f);
 
-    const bool maximized = IsZoomed(m_hwnd) != FALSE;
+    const bool maximized = IsZoomed(AsHwnd(m_hwnd)) != FALSE;
     if (maximized) {
         m_gfx.DrawRect(Rect(maxRect.x + 20.0f, iconCy - 4.0f, 8.0f, 8.0f), tokens.textPrimary, 1.0f);
         m_gfx.DrawRect(Rect(maxRect.x + 18.0f, iconCy - 6.0f, 8.0f, 8.0f), tokens.textPrimary, 1.0f);
@@ -508,7 +515,7 @@ void DockFloatWindow::Paint() {
         m_gfx.DrawRect(Rect(maxRect.x + 18.0f, iconCy - 5.0f, 10.0f, 10.0f), tokens.textPrimary, 1.0f);
     }
 
-    D2D1_COLOR_F closeIcon = (m_captionHover == 2) ? tokens.accentForeground : tokens.textPrimary;
+    Color closeIcon = (m_captionHover == 2) ? tokens.accentForeground : tokens.textPrimary;
     const float closeCx = closeRect.x + closeRect.width * 0.5f;
     m_gfx.DrawSmoothLine(Point(closeCx - 5.0f, iconCy - 5.0f), Point(closeCx + 5.0f, iconCy + 5.0f), closeIcon, 1.5f);
     m_gfx.DrawSmoothLine(Point(closeCx + 5.0f, iconCy - 5.0f), Point(closeCx - 5.0f, iconCy + 5.0f), closeIcon, 1.5f);
@@ -525,14 +532,14 @@ void DockFloatWindow::Paint() {
     m_gfx.EndDraw();
 }
 
-void DockFloatWindow::HandleMouse(UINT msg, int x, int y) {
+void DockFloatWindow::HandleMouse(unsigned int msg, int x, int y) {
     const Point pt = ClientPhysicalToDip(x, y);
     if (!m_content) {
         return;
     }
     switch (msg) {
     case WM_LBUTTONDOWN:
-        SetCapture(m_hwnd);
+        SetCapture(AsHwnd(m_hwnd));
         m_pressed = m_content->HitTest(pt.x, pt.y);
         if (m_pressed) {
             m_pressed->OnMouseDown(pt);
@@ -574,10 +581,11 @@ void DockFloatWindow::HandleMouse(UINT msg, int x, int y) {
     default:
         break;
     }
-    InvalidateRect(m_hwnd, nullptr, FALSE);
+    InvalidateRect(AsHwnd(m_hwnd), nullptr, FALSE);
 }
 
-LRESULT CALLBACK DockFloatWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+intptr_t __stdcall DockFloatWindow::WndProc(void* hwndVal, unsigned int msg, uintptr_t wParam, intptr_t lParam) {
+    HWND hwnd = static_cast<HWND>(hwndVal);
     DockFloatWindow* self = FromHwnd(hwnd);
     if (msg == WM_NCCREATE) {
         auto* cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
@@ -726,10 +734,23 @@ LRESULT CALLBACK DockFloatWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LP
     }
     case WM_SETCURSOR:
         if (LOWORD(lParam) == HTCLIENT && self->m_hovered) {
-            if (HCURSOR cursor = self->m_hovered->GetCursor()) {
-                SetCursor(cursor);
-                return TRUE;
+            CursorType ct = self->m_hovered->GetCursor();
+            LPCWSTR idc = IDC_ARROW;
+            switch (ct) {
+            case CursorType::Hand: idc = IDC_HAND; break;
+            case CursorType::IBeam: idc = IDC_IBEAM; break;
+            case CursorType::Wait: idc = IDC_WAIT; break;
+            case CursorType::Cross: idc = IDC_CROSS; break;
+            case CursorType::SizeAll: idc = IDC_SIZEALL; break;
+            case CursorType::SizeNS: idc = IDC_SIZENS; break;
+            case CursorType::SizeWE: idc = IDC_SIZEWE; break;
+            case CursorType::SizeNESW: idc = IDC_SIZENESW; break;
+            case CursorType::SizeNWSE: idc = IDC_SIZENWSE; break;
+            case CursorType::NotAllowed: idc = IDC_NO; break;
+            default: break;
             }
+            SetCursor(LoadCursor(nullptr, idc));
+            return TRUE;
         }
         break;
     case WM_CLOSE:

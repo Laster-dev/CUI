@@ -22,7 +22,7 @@ Element BuildDockManagerPage() {
     // ==========================================
     CUI::Widgets::Ref dock = Widgets::DockManager()
         .Height(480.0f)
-        .Border(D2D1::ColorF(0x3F3F46, 0.6f), 1.0f)
+        .Border(Rgb(0x3F3F46, 0.6f), 1.0f)
         .CornerRadius(6.0f)
         .Shared();
 
@@ -37,23 +37,23 @@ Element BuildDockManagerPage() {
     // 2.1 解决方案资源管理器
     auto solutionContent = Column(4, {
         Text("📁 CUI.Solution (项目解决方案)").FontWeight(FontWeight::SemiBold).FontSize(12.0f),
-        Text("  ├─ 📁 CUI.Core (核心框架)").FontSize(12.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)),
-        Text("  │   ├─ 📄 DockManager.cpp").FontSize(12.0f).Foreground(D2D1::ColorF(0x38BDF8, 1.0f)),
-        Text("  │   └─ 📄 DockFloatWindow.cpp").FontSize(12.0f).Foreground(D2D1::ColorF(0x38BDF8, 1.0f)),
-        Text("  ├─ 📁 CUI.Gallery (示例画廊)").FontSize(12.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)),
-        Text("  │   └─ 📄 DockManagerPage.cpp").FontSize(12.0f).Foreground(D2D1::ColorF(0x38BDF8, 1.0f)),
-        Text("  └─ 📄 README.md").FontSize(12.0f).Foreground(D2D1::ColorF(0xA78BFA, 1.0f)),
-    }).Padding(8.0f).Background(D2D1::ColorF(0x18181B, 0.4f)).Build();
+        Text("  ├─ 📁 CUI.Core (核心框架)").FontSize(12.0f).Foreground(Rgb(0x94A3B8)),
+        Text("  │   ├─ 📄 DockManager.cpp").FontSize(12.0f).Foreground(Rgb(0x38BDF8)),
+        Text("  │   └─ 📄 DockFloatWindow.cpp").FontSize(12.0f).Foreground(Rgb(0x38BDF8)),
+        Text("  ├─ 📁 CUI.Gallery (示例画廊)").FontSize(12.0f).Foreground(Rgb(0x94A3B8)),
+        Text("  │   └─ 📄 DockManagerPage.cpp").FontSize(12.0f).Foreground(Rgb(0x38BDF8)),
+        Text("  └─ 📄 README.md").FontSize(12.0f).Foreground(Rgb(0xA78BFA)),
+    }).Padding(8.0f).Background(Rgb(0x18181B, 0.4f)).Build();
 
     // 2.2 大纲结构视图
     auto outlineContent = Column(4, {
-        Text("class DockManager : public UIElement").FontWeight(FontWeight::SemiBold).FontSize(12.0f).Foreground(D2D1::ColorF(0x4ADE80, 1.0f)),
+        Text("class DockManager : public UIElement").FontWeight(FontWeight::SemiBold).FontSize(12.0f).Foreground(Rgb(0x4ADE80)),
         Text("  + AddToolPane(title, content, side)").FontSize(11.0f),
         Text("  + AddDocument(title, content)").FontSize(11.0f),
         Text("  + FloatPane(paneIndex, pt)").FontSize(11.0f),
         Text("  + .PaneAutoHide(paneIndex, bool)").FontSize(11.0f),
         Text("  + SaveLayout(path) / LoadLayout(path)").FontSize(11.0f),
-    }).Padding(8.0f).Background(D2D1::ColorF(0x18181B, 0.4f)).Build();
+    }).Padding(8.0f).Background(Rgb(0x18181B, 0.4f)).Build();
 
     int paneSolution = dock->AddToolPane("解决方案资源管理器", solutionContent, DockSide::Left);
     dock->AddToolPane("结构大纲", outlineContent, DockSide::Left);
@@ -98,18 +98,18 @@ Element BuildDockManagerPage() {
     // ==========================================
     auto propsContent = Column(6, {
         Text("🔧 属性检查器 (Inspector)").FontWeight(FontWeight::SemiBold).FontSize(12.0f),
-        Row(4, { Text("控件名称: ").FontSize(11.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)), Text("MainDockView").FontSize(11.0f) }),
-        Row(4, { Text("停靠模式: ").FontSize(11.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)), Text("DockSide::Left").FontSize(11.0f).Foreground(D2D1::ColorF(0x38BDF8, 1.0f)) }),
-        Row(4, { Text("分栏尺寸: ").FontSize(11.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)), Text("190.0 px").FontSize(11.0f) }),
-        Row(4, { Text("自动收拢: ").FontSize(11.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)), Text("False (可钉选)").FontSize(11.0f).Foreground(D2D1::ColorF(0x4ADE80, 1.0f)) }),
-    }).Padding(8.0f).Background(D2D1::ColorF(0x18181B, 0.4f)).Build();
+        Row(4, { Text("控件名称: ").FontSize(11.0f).Foreground(Rgb(0x94A3B8)), Text("MainDockView").FontSize(11.0f) }),
+        Row(4, { Text("停靠模式: ").FontSize(11.0f).Foreground(Rgb(0x94A3B8)), Text("DockSide::Left").FontSize(11.0f).Foreground(Rgb(0x38BDF8)) }),
+        Row(4, { Text("分栏尺寸: ").FontSize(11.0f).Foreground(Rgb(0x94A3B8)), Text("190.0 px").FontSize(11.0f) }),
+        Row(4, { Text("自动收拢: ").FontSize(11.0f).Foreground(Rgb(0x94A3B8)), Text("False (可钉选)").FontSize(11.0f).Foreground(Rgb(0x4ADE80)) }),
+    }).Padding(8.0f).Background(Rgb(0x18181B, 0.4f)).Build();
 
     auto diagContent = Column(4, {
         Text("📊 性能与依赖监控").FontWeight(FontWeight::SemiBold).FontSize(12.0f),
-        Text("• 帧率: 60 FPS (Direct2D 硬件加速)").FontSize(11.0f).Foreground(D2D1::ColorF(0x4ADE80, 1.0f)),
+        Text("• 帧率: 60 FPS (Direct2D 硬件加速)").FontSize(11.0f).Foreground(Rgb(0x4ADE80)),
         Text("• 内存占用: 24.2 MB").FontSize(11.0f),
         Text("• 活动面板: 7 个").FontSize(11.0f),
-    }).Padding(8.0f).Background(D2D1::ColorF(0x18181B, 0.4f)).Build();
+    }).Padding(8.0f).Background(Rgb(0x18181B, 0.4f)).Build();
 
     dock->AddToolPane("属性检查器", propsContent, DockSide::Right);
     dock->AddToolPane("性能与诊断", diagContent, DockSide::Right);
@@ -118,16 +118,16 @@ Element BuildDockManagerPage() {
     // 5. 构造底部输出与控制台面板 (Bottom Panes)
     // ==========================================
     auto outputContent = Column(4, {
-        Text("[18:50:12] [生成] 正在启动 x64-Debug 增量构建..").FontSize(11.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)),
-        Text("[18:50:14] [生成] CUI.Core.lib -> 已完成 0 错误，0 警告。").FontSize(11.0f).Foreground(D2D1::ColorF(0x4ADE80, 1.0f)),
-        Text("[18:50:15] [生成] 停靠管理器布局树初始化完成，视口就绪。").FontSize(11.0f).Foreground(D2D1::ColorF(0x38BDF8, 1.0f)),
-    }).Padding(8.0f).Background(D2D1::ColorF(0x141416, 0.8f)).Build();
+        Text("[18:50:12] [生成] 正在启动 x64-Debug 增量构建..").FontSize(11.0f).Foreground(Rgb(0x94A3B8)),
+        Text("[18:50:14] [生成] CUI.Core.lib -> 已完成 0 错误，0 警告。").FontSize(11.0f).Foreground(Rgb(0x4ADE80)),
+        Text("[18:50:15] [生成] 停靠管理器布局树初始化完成，视口就绪。").FontSize(11.0f).Foreground(Rgb(0x38BDF8)),
+    }).Padding(8.0f).Background(Rgb(0x141416, 0.8f)).Build();
 
     auto termContent = Column(4, {
-        Text("PS E:\\C++project\\CUI> git status").FontSize(11.0f).Foreground(D2D1::ColorF(0x38BDF8, 1.0f)),
-        Text("On branch master - working tree clean").FontSize(11.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)),
-        Text("PS E:\\C++project\\CUI> _").FontSize(11.0f).Foreground(D2D1::ColorF(0x4ADE80, 1.0f)),
-    }).Padding(8.0f).Background(D2D1::ColorF(0x141416, 0.8f)).Build();
+        Text("PS E:\\C++project\\CUI> git status").FontSize(11.0f).Foreground(Rgb(0x38BDF8)),
+        Text("On branch master - working tree clean").FontSize(11.0f).Foreground(Rgb(0x94A3B8)),
+        Text("PS E:\\C++project\\CUI> _").FontSize(11.0f).Foreground(Rgb(0x4ADE80)),
+    }).Padding(8.0f).Background(Rgb(0x141416, 0.8f)).Build();
 
     dock->AddToolPane("输出控制台", outputContent, DockSide::Bottom);
     dock->AddToolPane("集成终端", termContent, DockSide::Bottom);
@@ -142,7 +142,7 @@ Element BuildDockManagerPage() {
             std::string title = std::format("自定义工具 {}", dynamicCount++);
             auto card = Column(4, {
                 Text(std::format("这是动态添加的侧边面板：{}", title)).FontSize(12.0f),
-                Text("支持随时拖拽重排、悬浮或关闭。").FontSize(11.0f).Foreground(D2D1::ColorF(0x94A3B8, 1.0f)),
+                Text("支持随时拖拽重排、悬浮或关闭。").FontSize(11.0f).Foreground(Rgb(0x94A3B8)),
             }).Padding(8.0f).Build();
 
             dock->AddToolPane(title, card, DockSide::Left);

@@ -151,19 +151,19 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     float pillH = 20.0f;
     Rect pillRect(m_bounds.x, m_bounds.y + (m_bounds.height - pillH) * 0.5f, pillW, pillH);
 
-    D2D1_COLOR_F onColor = m_hasBackgroundColor
+    Color onColor = m_hasBackgroundColor
         ? m_backgroundColor
         : ResolveThemeColor(GetOnColorToken(), ThemeTokenId::AccentColor);
-    D2D1_COLOR_F offColor = ResolveThemeColor(GetOffColorToken(), ThemeTokenId::InputBorder);
-    D2D1_COLOR_F knobColor = ResolveThemeColor(GetKnobColorToken(), ThemeTokenId::AccentForeground);
-    D2D1_COLOR_F borderBrush = m_hasBorderBrushColor
+    Color offColor = ResolveThemeColor(GetOffColorToken(), ThemeTokenId::InputBorder);
+    Color knobColor = ResolveThemeColor(GetKnobColorToken(), ThemeTokenId::AccentForeground);
+    Color borderBrush = m_hasBorderBrushColor
         ? m_borderBrushColor
         : ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
     borderBrush.a = (std::min)(borderBrush.a, 0.55f);
 
     const float eased = FluentEaseOut(m_knobPosAnim.Current());
-    D2D1_COLOR_F trackBg = BlendColor(offColor, onColor, eased);
-    D2D1_COLOR_F trackBorder = BlendColor(borderBrush, onColor, eased * 0.9f);
+    Color trackBg = BlendColor(offColor, onColor, eased);
+    Color trackBorder = BlendColor(borderBrush, onColor, eased * 0.9f);
 
     ctx.FillRoundedRect(pillRect, pillH * 0.5f, trackBg);
     ctx.DrawRoundedRect(pillRect, pillH * 0.5f, trackBorder, 1.0f);
@@ -184,12 +184,12 @@ void ToggleSwitch::OnRender(GraphicsContext& ctx) {
     if (!header.empty()) {
         float fontSize = GetFontSize();
         const std::string& fontFamily = GetFontFamily();
-        D2D1_COLOR_F textColor = m_hasColorValue
+        Color textColor = m_hasColorValue
             ? m_colorValue
             : ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
 
         Rect textRect(pillRect.x + pillW + 10.0f, m_bounds.y, (std::max)(0.0f, m_bounds.width - pillW - 10.0f), m_bounds.height);
-        ctx.DrawText(header, textRect, textColor, fontFamily, fontSize, DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        ctx.DrawText(header, textRect, textColor, fontFamily, fontSize, TextAlignment::Left, TextVerticalAlignment::Center);
     }
 }
 

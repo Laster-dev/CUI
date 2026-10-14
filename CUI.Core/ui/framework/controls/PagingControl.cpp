@@ -19,9 +19,8 @@ AnimationSpec PillSlideSpec() {
     return s;
 }
 
-D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float alpha) {
-    c.a = alpha;
-    return c;
+Color WithAlpha(Color c, float alpha) {
+    return c.WithAlpha(alpha);
 }
 } // namespace
 
@@ -201,17 +200,17 @@ PagingControl::HitTarget PagingControl::HitTestTarget(Point pt) const {
     return HitTarget::None;
 }
 
-HCURSOR PagingControl::GetCursor() const {
+CursorType PagingControl::GetCursor() const {
     if (!IsEnabled() || m_hover == HitTarget::None) {
-        return nullptr;
+        return CursorType::Arrow;
     }
     if (m_hover == HitTarget::Prev && !IsNavEnabled(true)) {
-        return nullptr;
+        return CursorType::Arrow;
     }
     if (m_hover == HitTarget::Next && !IsNavEnabled(false)) {
-        return nullptr;
+        return CursorType::Arrow;
     }
-    return LoadCursor(nullptr, IDC_HAND);
+    return CursorType::Hand;
 }
 
 void PagingControl::ActivateTarget(HitTarget target) {
@@ -271,13 +270,13 @@ void PagingControl::OnRender(GraphicsContext& ctx) {
     UpdateLayout();
 
     const auto& tokens = ThemeManager::Instance().GetTokens();
-    const D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
-    const D2D1_COLOR_F pressedBg = ResolveThemeColor(GetPressedBackgroundToken(), ThemeTokenId::PressedBackground);
-    const D2D1_COLOR_F accent = tokens.accentColor;
-    const D2D1_COLOR_F accentFg = tokens.accentForeground;
-    const D2D1_COLOR_F textSecondary = tokens.textSecondary;
-    const D2D1_COLOR_F textMuted = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextMuted);
-    const D2D1_COLOR_F border = tokens.cardBorder;
+    const Color hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    const Color pressedBg = ResolveThemeColor(GetPressedBackgroundToken(), ThemeTokenId::PressedBackground);
+    const Color accent = tokens.accentColor;
+    const Color accentFg = tokens.accentForeground;
+    const Color textSecondary = tokens.textSecondary;
+    const Color textMuted = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextMuted);
+    const Color border = tokens.cardBorder;
 
     const float pillX = UIElement::AreAnimationsEnabled() ? m_pillX.Current() : SelectionPillTarget().x;
     const float pillW = UIElement::AreAnimationsEnabled() ? m_pillW.Current() : SelectionPillTarget().width;
@@ -291,7 +290,7 @@ void PagingControl::OnRender(GraphicsContext& ctx) {
         const HitTarget part = prev ? HitTarget::Prev : HitTarget::Next;
         const bool hot = (m_hover == part);
         const bool pressed = (m_pressed == part);
-        D2D1_COLOR_F fill = tokens.inputBackground;
+        Color fill = tokens.inputBackground;
         if (!enabled) {
             fill = WithAlpha(tokens.inputBackground, 0.55f);
         } else if (pressed) {
@@ -332,13 +331,13 @@ void PagingControl::OnRender(GraphicsContext& ctx) {
                 textMuted,
                 GetFontFamily(),
                 12.0f,
-                DWRITE_TEXT_ALIGNMENT_CENTER,
-                DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                TextAlignment::Center,
+                TextVerticalAlignment::Center);
             continue;
         }
 
         if (!active && (hot || pressed)) {
-            D2D1_COLOR_F fill = pressed ? pressedBg : hoverBg;
+            Color fill = pressed ? pressedBg : hoverBg;
             ctx.FillRoundedRect(
                 Rect(item.bounds.x + 1.0f, item.bounds.y + 1.0f, item.bounds.width - 2.0f, item.bounds.height - 2.0f),
                 kCorner - 1.0f,
@@ -351,9 +350,9 @@ void PagingControl::OnRender(GraphicsContext& ctx) {
             active ? accentFg : textSecondary,
             GetFontFamily(),
             GetFontSize(),
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            active ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL);
+            TextAlignment::Center,
+            TextVerticalAlignment::Center,
+            active ? CUI::FontWeight::SemiBold : CUI::FontWeight::Normal);
     }
 
     const std::string info = "共 " + std::to_string((std::max)(1, m_totalPages)) + " 页";
@@ -363,8 +362,8 @@ void PagingControl::OnRender(GraphicsContext& ctx) {
         textMuted,
         GetFontFamily(),
         11.0f,
-        DWRITE_TEXT_ALIGNMENT_LEADING,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+        TextAlignment::Left,
+        TextVerticalAlignment::Center);
 }
 
 void PagingControl::OnMouseDown(Point pt) {

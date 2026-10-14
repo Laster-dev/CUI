@@ -54,7 +54,7 @@ void MenuBar::RegisterCommands(CommandManager& manager) const {
 float MenuBar::GetTotalWidth(GraphicsContext& ctx) {
     float totalW = 12.0f;
     for (size_t i = 0; i < m_menus.size(); ++i) {
-        Size txtSize = ctx.MeasureText(m_menus[i].title, "微软雅黑", 16.0f, DWRITE_FONT_WEIGHT_NORMAL);
+        Size txtSize = ctx.MeasureText(m_menus[i].title, "微软雅黑", 16.0f, CUI::FontWeight::Normal);
         totalW += txtSize.width + 20.0f;
     }
     return totalW;
@@ -63,7 +63,7 @@ float MenuBar::GetTotalWidth(GraphicsContext& ctx) {
 void MenuBar::LayoutItems(GraphicsContext& ctx) {
     float curX = m_bounds.x + 6.0f;
     for (size_t i = 0; i < m_menus.size(); ++i) {
-        const Size txtSize = ctx.MeasureText(m_menus[i].title, "微软雅黑", 16.0f, DWRITE_FONT_WEIGHT_NORMAL);
+        const Size txtSize = ctx.MeasureText(m_menus[i].title, "微软雅黑", 16.0f, CUI::FontWeight::Normal);
         const float itemW = txtSize.width + 16.0f;
         m_menus[i].bounds = Rect(curX, m_bounds.y + 3.0f, itemW, m_bounds.height - 6.0f);
         curX += itemW + 4.0f;
@@ -127,11 +127,9 @@ void MenuBar::SyncHoverAnimationTargets() {
 
 void MenuBar::OnRender(GraphicsContext& ctx) {
     const bool lightTheme = ThemeManager::Instance().GetThemeMode() == ThemeMode::Light;
-    D2D1_COLOR_F defaultTextColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    Color defaultTextColor = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
     const float hoverPeak = lightTheme ? 0.12f : 0.18f;
-    D2D1_COLOR_F openBgColor = lightTheme
-        ? D2D1::ColorF(ThemeManager::Instance().GetTokens().accentColor.r, ThemeManager::Instance().GetTokens().accentColor.g, ThemeManager::Instance().GetTokens().accentColor.b, 0.10f)
-        : D2D1::ColorF(ThemeManager::Instance().GetTokens().accentColor.r, ThemeManager::Instance().GetTokens().accentColor.g, ThemeManager::Instance().GetTokens().accentColor.b, 0.18f);
+    Color openBgColor = ThemeManager::Instance().GetTokens().accentColor.WithAlpha(lightTheme ? 0.10f : 0.18f);
 
     LayoutItems(ctx);
 
@@ -144,11 +142,7 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
         if (isOpen) {
             ctx.FillRoundedRect(itemRect, 4.0f, openBgColor);
         } else if (hoverT > 0.001f) {
-            D2D1_COLOR_F hoverBgColor = D2D1::ColorF(
-                ThemeManager::Instance().GetTokens().cardBorder.r,
-                ThemeManager::Instance().GetTokens().cardBorder.g,
-                ThemeManager::Instance().GetTokens().cardBorder.b,
-                hoverPeak * hoverT);
+            Color hoverBgColor = ThemeManager::Instance().GetTokens().cardBorder.WithAlpha(hoverPeak * hoverT);
             ctx.FillRoundedRect(itemRect, 4.0f, hoverBgColor);
         }
 
@@ -158,9 +152,9 @@ void MenuBar::OnRender(GraphicsContext& ctx) {
             defaultTextColor,
             "微软雅黑",
             16.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_NORMAL
+            TextAlignment::Center,
+            TextVerticalAlignment::Center,
+            CUI::FontWeight::Normal
         );
     }
 }

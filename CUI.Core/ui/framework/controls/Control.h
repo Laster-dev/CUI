@@ -38,10 +38,10 @@ protected:
      * @brief 获取融合了当前 Hover/Pressed 状态过渡比例的动画背景色。
      * @param fallback 若未设置任何自定义背景，返回的后备颜色。
      */
-    D2D1_COLOR_F GetAnimatedBackground(D2D1_COLOR_F fallback);
+    Color GetAnimatedBackground(Color fallback);
     
     // 线性插值混合两个颜色（包含 Alpha 通道）
-    D2D1_COLOR_F BlendColor(D2D1_COLOR_F from, D2D1_COLOR_F to, float t) const;
+    Color BlendColor(Color from, Color to, float t) const;
     
     // 触发并更新目标视觉过渡状态的数值（0.0f 为静止状态，1.0f 为交互状态如 Hover/Press）
     void UpdateVisualStateTarget();

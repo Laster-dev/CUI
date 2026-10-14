@@ -16,14 +16,8 @@ float Clamp01(float value) {
     return std::clamp(value, 0.0f, 1.0f);
 }
 
-D2D1_COLOR_F MixColor(D2D1_COLOR_F a, D2D1_COLOR_F b, float t) {
-    t = Clamp01(t);
-    return D2D1::ColorF(
-        a.r + (b.r - a.r) * t,
-        a.g + (b.g - a.g) * t,
-        a.b + (b.b - a.b) * t,
-        a.a + (b.a - a.a) * t
-    );
+Color MixColor(Color a, Color b, float t) {
+    return Color::Lerp(a, b, Clamp01(t));
 }
 }
 
@@ -84,8 +78,8 @@ void Expander::ApplyProperty(PropertyId id, const Value& val) {
     }
 }
 
-HCURSOR Expander::GetCursor() const {
-    return (IsEnabled() && m_headerHovered) ? LoadCursor(nullptr, IDC_HAND) : nullptr;
+CursorType Expander::GetCursor() const {
+    return (IsEnabled() && m_headerHovered) ? CursorType::Hand : CursorType::Arrow;
 }
 
 void Expander::ApplyHeader(const std::string& header) {
@@ -513,17 +507,17 @@ void Expander::OnRender(GraphicsContext& ctx) {
     const Rect headerRect = GetHeaderRect();
     const Rect bodyRect = GetBodyRect();
 
-    D2D1_COLOR_F cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
-    D2D1_COLOR_F hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
-    D2D1_COLOR_F pressedBg = ResolveThemeColor(GetPressedBackgroundToken(), ThemeTokenId::PressedBackground);
-    D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
-    D2D1_COLOR_F textPrimary = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-    D2D1_COLOR_F textSecondary = ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary);
+    Color cardBg = ResolveThemeColor(GetBackgroundToken(), ThemeTokenId::CardBackground);
+    Color hoverBg = ResolveThemeColor(GetHoverBackgroundToken(), ThemeTokenId::HoverBackground);
+    Color pressedBg = ResolveThemeColor(GetPressedBackgroundToken(), ThemeTokenId::PressedBackground);
+    Color border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    Color textPrimary = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    Color textSecondary = ThemeManager::Instance().GetColor(ThemeTokenId::TextSecondary);
 
     const float radius = GetCornerRadius() > 0.0f ? GetCornerRadius() : kCornerRadius;
     const float borderThickness = GetBorderThickness() > 0.0f ? GetBorderThickness() : 1.0f;
 
-    D2D1_COLOR_F fill = cardBg;
+    Color fill = cardBg;
     if (m_headerPressed) {
         fill = pressedBg;
     } else if (m_headerHovered) {
@@ -554,9 +548,9 @@ void Expander::OnRender(GraphicsContext& ctx) {
             textPrimary,
             GetFontFamily(),
             GetFontSize(),
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_SEMI_BOLD);
+            TextAlignment::Left,
+            TextVerticalAlignment::Center,
+            CUI::FontWeight::SemiBold);
     } else {
         Rect titleRect(textLeft, headerRect.y + 10.0f, textWidth, 18.0f);
         Rect subtitleRect(textLeft, headerRect.y + 30.0f, textWidth, 16.0f);
@@ -566,18 +560,18 @@ void Expander::OnRender(GraphicsContext& ctx) {
             textPrimary,
             GetFontFamily(),
             GetFontSize(),
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-            DWRITE_FONT_WEIGHT_SEMI_BOLD);
+            TextAlignment::Left,
+            TextVerticalAlignment::Top,
+            CUI::FontWeight::SemiBold);
         ctx.DrawText(
             m_subtitle,
             subtitleRect,
             textSecondary,
             GetFontFamily(),
             12.0f,
-            DWRITE_TEXT_ALIGNMENT_LEADING,
-            DWRITE_PARAGRAPH_ALIGNMENT_NEAR,
-            DWRITE_FONT_WEIGHT_NORMAL);
+            TextAlignment::Left,
+            TextVerticalAlignment::Top,
+            CUI::FontWeight::Normal);
     }
 
     const Rect chevronHit = GetChevronRect();
@@ -593,8 +587,7 @@ void Expander::OnRender(GraphicsContext& ctx) {
         1.8f);
 
     if (GetExpandProgress() > 0.01f && bodyRect.height > 0.0f) {
-        D2D1_COLOR_F divider = border;
-        divider.a *= Clamp01(GetExpandProgress());
+        Color divider = border.WithAlpha(border.a * Clamp01(GetExpandProgress()));
         if (m_expandDirection == ExpandDirection::Down) {
             const float y = headerRect.y + headerRect.height;
             ctx.DrawLine(Point(m_bounds.x + 1.0f, y), Point(m_bounds.x + m_bounds.width - 1.0f, y), divider, 1.0f);

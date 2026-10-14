@@ -455,7 +455,7 @@ void ScrollViewer::Render(GraphicsContext& ctx) {
         && paintBounds.x >= track.x - 4.0f
         && (paintBounds.x + paintBounds.width) <= (track.x + track.width + 4.0f)
         && m_contentLayer.IsValid()
-        && m_contentLayer.GetCacheBitmap() != nullptr
+        && m_contentLayer.HasCache()
         && (m_contentLayer.GetDirtyFlags()
             & (RenderLayer::SizeDirty | RenderLayer::StructureDirty | RenderLayer::ClipDirty
                 | RenderLayer::ContentDirty)) == 0;
@@ -465,15 +465,15 @@ void ScrollViewer::Render(GraphicsContext& ctx) {
     RenderScrollChrome(ctx);
     if (m_middleScrollActive) {
         const bool dark = ThemeManager::Instance().GetThemeMode() == ThemeMode::Dark;
-        D2D1_COLOR_F fill = dark
-            ? D2D1::ColorF(0.18f, 0.18f, 0.20f, 0.92f)
-            : D2D1::ColorF(0.96f, 0.96f, 0.97f, 0.95f);
-        D2D1_COLOR_F stroke = dark
-            ? D2D1::ColorF(0.70f, 0.70f, 0.74f, 0.95f)
-            : D2D1::ColorF(0.35f, 0.35f, 0.40f, 0.90f);
-        D2D1_COLOR_F arrow = dark
-            ? D2D1::ColorF(0.92f, 0.92f, 0.95f, 1.0f)
-            : D2D1::ColorF(0.20f, 0.20f, 0.24f, 1.0f);
+        Color fill = dark
+            ? Color(0.18f, 0.18f, 0.20f, 0.92f)
+            : Color(0.96f, 0.96f, 0.97f, 0.95f);
+        Color stroke = dark
+            ? Color(0.70f, 0.70f, 0.74f, 0.95f)
+            : Color(0.35f, 0.35f, 0.40f, 0.90f);
+        Color arrow = dark
+            ? Color(0.92f, 0.92f, 0.95f, 1.0f)
+            : Color(0.20f, 0.20f, 0.24f, 1.0f);
         MiddleClickAutoscroll::PaintOriginIndicator(
             ctx, m_middleOrigin, false, GetMaxScroll() > 0.0f, fill, stroke, arrow);
     }
@@ -538,7 +538,7 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         && !modeChanged
         && !sizeChanged
         && m_contentLayer.IsValid()
-        && m_contentLayer.GetCacheBitmap() != nullptr
+        && m_contentLayer.HasCache()
         && m_pendingViewportScrollPatch
         && std::abs(m_pendingViewportPatchDeltaY) > 0.01f
         && std::abs(m_pendingViewportPatchDeltaY) < m_contentViewportRect.height
@@ -552,7 +552,7 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         && !modeChanged
         && !sizeChanged
         && m_contentLayer.IsValid()
-        && m_contentLayer.GetCacheBitmap() != nullptr
+        && m_contentLayer.HasCache()
         && (m_contentLayer.GetDirtyFlags() & RenderLayer::ContentDirty) != 0
         && (m_contentLayer.GetDirtyFlags() & kHardMask) == 0
         && m_contentLayerDirty.GetRectCount() >= 1
@@ -565,7 +565,7 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
             composition->CountLayerCacheReuse();
         } else if (needsRerender) {
             composition->CountLayerCacheRerender();
-            if (modeChanged || sizeChanged || !m_contentLayer.GetCacheBitmap()) {
+            if (modeChanged || sizeChanged || !m_contentLayer.HasCache()) {
                 composition->CountLayerCacheMiss();
             }
         } else {
@@ -585,30 +585,17 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
     if (canPatchViewportCache && ctx.EnsureLayerScratch(m_contentLayer)) {
         // Snapshot BEFORE PushLayerTarget: once the cache bitmap is the D2D target,
         // Clear+CopyFromBitmap races and produces torn/jittery scroll frames.
-        ID2D1Bitmap1* cacheBmp = m_contentLayer.GetCacheBitmap();
-        ID2D1Bitmap1* scratchBmp = m_contentLayer.GetScratchBitmap();
-        if (cacheBmp && scratchBmp) {
-            scratchBmp->CopyFromBitmap(nullptr, cacheBmp, nullptr);
-        }
+        ctx.SnapshotLayerToScratch(m_contentLayer);
 
         if (ctx.PushLayerTarget(
                 m_contentLayer,
                 cacheSize,
                 visibleWorldRect,
-                D2D1::ColorF(0, 0, 0, 0),
+                Color::Transparent,
                 false)) {
-            auto* d2d = ctx.GetD2DContext();
             const float deltaY = m_pendingViewportPatchDeltaY;
-
-            if (scratchBmp) {
-                Rect shiftedDest(0.0f, -deltaY, cacheSize.width, cacheSize.height);
-                d2d->DrawBitmap(
-                    scratchBmp,
-                    shiftedDest.ToD2D(),
-                    1.0f,
-                    D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
-                    nullptr);
-            }
+            Rect shiftedDest(0.0f, -deltaY, cacheSize.width, cacheSize.height);
+            ctx.DrawLayerScratch(m_contentLayer, shiftedDest);
 
             Rect exposedRect;
             if (deltaY > 0.0f) {
@@ -620,10 +607,8 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
             if (!exposedRect.IsEmpty()) {
                 ctx.ClearRect(exposedRect);
                 ctx.PushClip(exposedRect);
-                D2D1_MATRIX_3X2_F oldTransform{};
-                d2d->GetTransform(&oldTransform);
                 const float contentTop = m_contentViewportRect.y - m_offsetY;
-                d2d->SetTransform(D2D1::Matrix3x2F::Translation(-m_contentViewportRect.x, -contentTop));
+                ctx.PushTranslation(-m_contentViewportRect.x, -contentTop);
                 for (auto& child : GetChildren()) {
                     RenderVisibleSubtree(child.get(), ctx, Rect(
                         m_contentViewportRect.x,
@@ -632,7 +617,7 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
                         exposedRect.height
                     ));
                 }
-                d2d->SetTransform(oldTransform);
+                ctx.PopTransform();
                 ctx.PopClip();
             }
 
@@ -647,17 +632,14 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         m_contentLayer,
         cacheSize,
         cacheFullContent ? fullContentWorldRect : visibleWorldRect,
-        D2D1::ColorF(0, 0, 0, 0),
+        Color::Transparent,
         false)) {
         // Localized content update (ripple/hover) into the existing cache bitmap.
         // Clear/clip in WORLD space while the world→layer transform is active —
         // converting to layer-local first double-transformed the rects and missed
         // the item (stuck nav ripples / "animations don't work").
-        auto* d2d = ctx.GetD2DContext();
         const float contentTop = m_contentViewportRect.y - (cacheFullContent ? m_offsetY : 0.0f);
-        D2D1_MATRIX_3X2_F oldTransform{};
-        d2d->GetTransform(&oldTransform);
-        d2d->SetTransform(D2D1::Matrix3x2F::Translation(-m_contentViewportRect.x, -contentTop));
+        ctx.PushTranslation(-m_contentViewportRect.x, -contentTop);
 
         for (const Rect& worldDirty : m_contentLayerDirty.GetRects()) {
             Rect clipped = worldDirty;
@@ -679,7 +661,7 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
             ctx.PopClip();
         }
 
-        d2d->SetTransform(oldTransform);
+        ctx.PopTransform();
         ctx.PopLayerTarget(m_contentLayer);
         m_contentLayer.Validate();
         m_contentLayerDirty.Clear();
@@ -690,12 +672,9 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
         m_contentLayer,
         cacheSize,
         cacheFullContent ? fullContentWorldRect : visibleWorldRect,
-        D2D1::ColorF(0, 0, 0, 0))) {
+        Color::Transparent)) {
         const float contentTop = m_contentViewportRect.y - (cacheFullContent ? m_offsetY : 0.0f);
-        auto* d2d = ctx.GetD2DContext();
-        D2D1_MATRIX_3X2_F oldTransform{};
-        d2d->GetTransform(&oldTransform);
-        d2d->SetTransform(D2D1::Matrix3x2F::Translation(-m_contentViewportRect.x, -contentTop));
+        ctx.PushTranslation(-m_contentViewportRect.x, -contentTop);
 
         for (auto& child : GetChildren()) {
             RenderVisibleSubtree(child.get(), ctx, cacheFullContent
@@ -703,7 +682,7 @@ void ScrollViewer::RenderContentLayer(GraphicsContext& ctx) {
                 : m_contentViewportRect);
         }
 
-        d2d->SetTransform(oldTransform);
+        ctx.PopTransform();
         ctx.PopLayerTarget(m_contentLayer);
         m_contentLayer.Validate();
         m_contentLayerDirty.Clear();
@@ -748,13 +727,13 @@ void ScrollViewer::RenderScrollChrome(GraphicsContext& ctx) {
     Rect track = GetScrollbarTrackRect();
     Rect thumb = GetScrollbarThumbRect();
 
-    D2D1_COLOR_F trackBase = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
-    D2D1_COLOR_F thumbBase = ResolveThemeColor(GetThumbColorToken(), ThemeTokenId::TextMuted);
+    Color trackBase = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
+    Color thumbBase = ResolveThemeColor(GetThumbColorToken(), ThemeTokenId::TextMuted);
     float trackAlpha = (m_scrollbarHovered || m_isDraggingThumb ? 0.18f : 0.08f) * visibility;
-    ctx.FillRoundedRect(track, 4.0f, D2D1::ColorF(trackBase.r, trackBase.g, trackBase.b, trackAlpha));
+    ctx.FillRoundedRect(track, 4.0f, trackBase.WithAlpha(trackAlpha));
 
     float thumbAlpha = (m_isDraggingThumb ? 0.75f : (m_scrollbarHovered ? 0.55f : 0.40f)) * visibility;
-    ctx.FillRoundedRect(thumb, 4.0f, D2D1::ColorF(thumbBase.r, thumbBase.g, thumbBase.b, thumbAlpha));
+    ctx.FillRoundedRect(thumb, 4.0f, thumbBase.WithAlpha(thumbAlpha));
 }
 
 void ScrollViewer::SyncRenderState() {
@@ -897,15 +876,15 @@ UIElement* ScrollViewer::HitTest(float x, float y) {
     return this;
 }
 
-HCURSOR ScrollViewer::GetCursor() const {
+CursorType ScrollViewer::GetCursor() const {
     if (m_middleScrollActive) {
         const float dy = m_middleLastMouse.y - m_middleOrigin.y;
         return MiddleClickAutoscroll::CursorForDelta(0.0f, dy, false, GetMaxScroll() > 0.0f);
     }
     if (m_scrollbarHovered || m_isDraggingThumb) {
-        return LoadCursor(nullptr, IDC_ARROW);
+        return CursorType::Arrow;
     }
-    return nullptr;
+    return CursorType::Arrow;
 }
 
 void ScrollViewer::OnMouseDown(Point pt) {
@@ -954,7 +933,7 @@ void ScrollViewer::OnMouseMove(Point pt) {
 
     if (m_middleScrollActive) {
         m_middleLastMouse = pt;
-        ::SetCursor(GetCursor());
+        UpdateCursor();
         RequestAnimationTicks();
         // Keep the origin badge + cursor responsive while mouse wanders.
         const float r = MiddleClickAutoscroll::kIndicatorRadius + 4.0f;
@@ -1017,7 +996,7 @@ bool ScrollViewer::OnMiddleButtonDown(Point pt) {
     StopSmoothScroll();
     m_scrollbarAutoHide.NotifyActivity(this);
     RequestAnimationTicks();
-    ::SetCursor(GetCursor());
+    UpdateCursor();
     const float r = MiddleClickAutoscroll::kIndicatorRadius + 4.0f;
     UIElement::MarkRenderRectDirty(Rect(m_middleOrigin.x - r, m_middleOrigin.y - r, r * 2.0f, r * 2.0f));
     return true;

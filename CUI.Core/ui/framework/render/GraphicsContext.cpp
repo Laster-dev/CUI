@@ -5,6 +5,7 @@
 #include <d3d11.h>
 #include <d3d11_4.h>
 #include <dxgi1_2.h>
+#include <dxgi1_4.h>
 #include <shlwapi.h>
 #include <stdexcept>
 #include <algorithm>
@@ -213,6 +214,20 @@ HRESULT GraphicsContext::BindSwapChainTarget(float dpiX, float dpiY) {
     m_dpiScale = dpiX / 96.0f;
     m_d2dContext->SetDpi(dpiX, dpiY);
     return S_OK;
+}
+
+float GraphicsContext::GetGpuVideoMemoryUsage01() const {
+    if (!m_d3dDevice) return -1.0f;
+    ComPtr<IDXGIDevice> dxgiDevice;
+    if (FAILED(m_d3dDevice.As(&dxgiDevice)) || !dxgiDevice) return -1.0f;
+    ComPtr<IDXGIAdapter> adapter;
+    if (FAILED(dxgiDevice->GetAdapter(&adapter)) || !adapter) return -1.0f;
+    ComPtr<IDXGIAdapter3> adapter3;
+    if (FAILED(adapter.As(&adapter3)) || !adapter3) return -1.0f;
+    DXGI_QUERY_VIDEO_MEMORY_INFO info{};
+    if (FAILED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info))) return -1.0f;
+    if (info.Budget == 0) return -1.0f;
+    return static_cast<float>(static_cast<double>(info.CurrentUsage) / static_cast<double>(info.Budget));
 }
 
 HRESULT GraphicsContext::CreateDeviceResources() {
@@ -831,6 +846,19 @@ void GraphicsContext::PopOpacity() {
     m_d2dContext->PopLayer();
 }
 
+void GraphicsContext::PushTransform(const Matrix3x2& transform) {
+    D2D1_MATRIX_3X2_F d2dM = {
+        transform.m11, transform.m12,
+        transform.m21, transform.m22,
+        transform.dx, transform.dy
+    };
+    PushTransform(d2dM);
+}
+
+void GraphicsContext::PushTranslation(float dx, float dy) {
+    PushTransform(D2D1::Matrix3x2F::Translation(dx, dy));
+}
+
 void GraphicsContext::PushTransform(const D2D1_MATRIX_3X2_F& transform) {
     if (!m_d2dContext) {
         return;
@@ -954,6 +982,13 @@ bool GraphicsContext::EnsureLayerScratch(RenderLayer& layer) {
     return SUCCEEDED(hr) && layer.m_scratchBitmap;
 }
 
+bool GraphicsContext::SnapshotLayerToScratch(RenderLayer& layer) {
+    if (!layer.m_cacheBitmap || !layer.m_scratchBitmap) {
+        return false;
+    }
+    return SUCCEEDED(layer.m_scratchBitmap->CopyFromBitmap(nullptr, layer.m_cacheBitmap.Get(), nullptr));
+}
+
 ID2D1DeviceContext* GraphicsContext::BeginLayerDraw(RenderLayer& layer) {
     if (!layer.m_cacheContext || !layer.m_cacheBitmap) {
         return nullptr;
@@ -1001,6 +1036,21 @@ void GraphicsContext::DrawLayer(const RenderLayer& layer, const Rect& destRect, 
         opacity,
         D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
         src
+    );
+}
+
+void GraphicsContext::DrawLayerScratch(const RenderLayer& layer, const Rect& destRect, float opacity) {
+    if (!m_d2dContext || !layer.m_scratchBitmap) {
+        return;
+    }
+    const Rect snappedDest = SnapRectToDevicePixels(destRect, m_dpiScale);
+    D2D1_RECT_F dest = snappedDest.ToD2D();
+    m_d2dContext->DrawBitmap(
+        layer.m_scratchBitmap.Get(),
+        &dest,
+        opacity,
+        D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
+        nullptr
     );
 }
 
@@ -1446,17 +1496,20 @@ const GraphicsContext::SvgCacheEntry* GraphicsContext::GetOrCreateSvg(
 void GraphicsContext::DrawSvg(
     const std::string& source,
     const Rect& dest,
-    const D2D1_COLOR_F* tint,
+    const Color* tint,
     float opacity,
-    const D2D1_COLOR_F* foreground) {
+    const Color* foreground) {
     if (source.empty() || dest.width <= 0.5f || dest.height <= 0.5f) {
         return;
     }
     ComPtr<ID2D1DeviceContext5> ctx5 = GetSvgContext();
     const bool hasThemePaint = source.find("var(--") != std::string::npos
         || source.find("currentColor") != std::string::npos;
-    const D2D1_COLOR_F* effectiveTint = hasThemePaint ? nullptr : tint;
-    const SvgCacheEntry* entry = GetOrCreateSvg(source, effectiveTint, foreground);
+    D2D1_COLOR_F tintVal, fgVal;
+    const D2D1_COLOR_F* d2dTint = tint ? (tintVal = *tint, &tintVal) : nullptr;
+    const D2D1_COLOR_F* d2dFg = foreground ? (fgVal = *foreground, &fgVal) : nullptr;
+    const D2D1_COLOR_F* effectiveTint = hasThemePaint ? nullptr : d2dTint;
+    const SvgCacheEntry* entry = GetOrCreateSvg(source, effectiveTint, d2dFg);
     if (!ctx5 || !entry || !entry->doc) {
         return;
     }
@@ -1487,7 +1540,7 @@ void GraphicsContext::DrawSvg(
 void GraphicsContext::DrawIcon(
     const std::string& icon,
     const Rect& dest,
-    D2D1_COLOR_F color,
+    Color color,
     float opacity,
     const std::string& glyphFont,
     float glyphSize) {
@@ -1513,7 +1566,7 @@ void GraphicsContext::DrawIcon(
         DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 }
 
-bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, D2D1_COLOR_F clearColor, bool clearTarget) {
+bool GraphicsContext::PushLayerTarget(RenderLayer& layer, Size sizeInDips, const Rect& paintBounds, Color clearColor, bool clearTarget) {
     if (!EnsureLayerCache(layer, sizeInDips)) {
         return false;
     }
@@ -1559,10 +1612,10 @@ Rect GraphicsContext::SnapExpandRect(const Rect& rect, float dpiScale, float inf
 }
 
 void GraphicsContext::ClearRect(const Rect& rect) {
-    ClearRect(rect, D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+    ClearRect(rect, Color::Transparent);
 }
 
-void GraphicsContext::ClearRect(const Rect& rect, D2D1_COLOR_F color) {
+void GraphicsContext::ClearRect(const Rect& rect, Color color) {
     if (!m_d2dContext || rect.IsEmpty()) {
         return;
     }
@@ -1611,7 +1664,7 @@ void GraphicsContext::PopClip() {
     }
 }
 
-void GraphicsContext::DrawRect(const Rect& rect, D2D1_COLOR_F color, float strokeWidth) {
+void GraphicsContext::DrawRect(const Rect& rect, Color color, float strokeWidth) {
     if (!m_d2dContext) {
         return;
     }
@@ -1622,20 +1675,20 @@ void GraphicsContext::DrawRect(const Rect& rect, D2D1_COLOR_F color, float strok
     }
 }
 
-void GraphicsContext::FillRect(const Rect& rect, D2D1_COLOR_F color) {
+void GraphicsContext::FillRect(const Rect& rect, Color color) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
         m_d2dContext->FillRectangle(SnapRectForFill(rect, m_dpiScale), brush);
     }
 }
 
-void GraphicsContext::FillRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color) {
+void GraphicsContext::FillRoundedRect(const Rect& rect, float radius, Color color) {
     if (auto brush = m_resources.GetSolidBrush(color)) {
         D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(SnapRectForFill(rect, m_dpiScale), radius, radius);
         m_d2dContext->FillRoundedRectangle(rr, brush);
     }
 }
 
-void GraphicsContext::DrawRoundedRect(const Rect& rect, float radius, D2D1_COLOR_F color, float strokeWidth) {
+void GraphicsContext::DrawRoundedRect(const Rect& rect, float radius, Color color, float strokeWidth) {
     if (!m_d2dContext) {
         return;
     }
@@ -1650,7 +1703,7 @@ void GraphicsContext::DrawRoundedRect(const Rect& rect, float radius, D2D1_COLOR
     }
 }
 
-void GraphicsContext::DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth) {
+void GraphicsContext::DrawLine(Point p1, Point p2, Color color, float strokeWidth) {
     if (!m_d2dContext) {
         return;
     }
@@ -1708,7 +1761,7 @@ void GraphicsContext::DrawLine(Point p1, Point p2, D2D1_COLOR_F color, float str
     }
 }
 
-void GraphicsContext::DrawSmoothLine(Point p1, Point p2, D2D1_COLOR_F color, float strokeWidth) {
+void GraphicsContext::DrawSmoothLine(Point p1, Point p2, Color color, float strokeWidth) {
     if (!m_d2dContext) {
         return;
     }
@@ -1751,7 +1804,7 @@ void GraphicsContext::DrawSmoothArc(
     float radius,
     float startRad,
     float sweepRad,
-    D2D1_COLOR_F color,
+    Color color,
     float strokeWidth) {
     if (!m_d2dContext || radius <= 0.5f || std::abs(sweepRad) < 0.0005f || color.a <= 0.001f) {
         return;
@@ -1843,7 +1896,7 @@ void GraphicsContext::DrawSmoothArc(
         stroke.Get());
 }
 
-void GraphicsContext::DrawChevron(const Rect& bounds, D2D1_COLOR_F color, ChevronDirection direction, float strokeWidth) {
+void GraphicsContext::DrawChevron(const Rect& bounds, Color color, ChevronDirection direction, float strokeWidth) {
     (void)strokeWidth;
     if (bounds.IsEmpty() || bounds.width < 2.0f || bounds.height < 2.0f) {
         return;
@@ -1900,7 +1953,7 @@ void GraphicsContext::DrawChevron(const Rect& bounds, D2D1_COLOR_F color, Chevro
     FillPolygon(pts, 6, color);
 }
 
-void GraphicsContext::FillPolygon(const Point* points, int count, D2D1_COLOR_F color) {
+void GraphicsContext::FillPolygon(const Point* points, int count, Color color) {
     if (!m_d2dContext || !points || count < 3) {
         return;
     }
@@ -1928,7 +1981,7 @@ void GraphicsContext::FillPolygon(const Point* points, int count, D2D1_COLOR_F c
     }
 }
 
-void GraphicsContext::DrawPolygon(const Point* points, int count, D2D1_COLOR_F color, float strokeWidth) {
+void GraphicsContext::DrawPolygon(const Point* points, int count, Color color, float strokeWidth) {
     if (!m_d2dContext || !points || count < 2) {
         return;
     }
@@ -1958,11 +2011,122 @@ void GraphicsContext::DrawPolygon(const Point* points, int count, D2D1_COLOR_F c
     }
 }
 
+namespace {
+static float DistancePoints(Point a, Point b) {
+    const float dx = b.x - a.x;
+    const float dy = b.y - a.y;
+    return std::sqrt(dx * dx + dy * dy);
+}
+} // namespace
+
+void GraphicsContext::FillRoundedGeometry(const std::vector<Point>& pts, float radius, Color color) {
+    if (!m_d2dContext || pts.size() < 3) return;
+
+    ComPtr<ID2D1Factory> factory;
+    m_d2dContext->GetFactory(factory.GetAddressOf());
+    if (!factory) return;
+
+    ComPtr<ID2D1PathGeometry> geometry;
+    if (FAILED(factory->CreatePathGeometry(geometry.GetAddressOf())) || !geometry) return;
+
+    ComPtr<ID2D1GeometrySink> sink;
+    if (FAILED(geometry->Open(sink.GetAddressOf())) || !sink) return;
+
+    const size_t count = pts.size();
+    std::vector<float> radii(count, 0.0f);
+    for (size_t i = 0; i < count; ++i) {
+        const Point& prev = pts[(i + count - 1) % count];
+        const Point& cur = pts[i];
+        const Point& next = pts[(i + 1) % count];
+        radii[i] = (std::min)(radius, (std::min)(DistancePoints(prev, cur), DistancePoints(cur, next)) * 0.5f);
+    }
+
+    auto before = [&](size_t i) {
+        const Point& prev = pts[(i + count - 1) % count];
+        const Point& cur = pts[i];
+        const float d = DistancePoints(prev, cur);
+        if (d < 1e-4f) return cur;
+        const float t = 1.0f - radii[i] / d;
+        return Point(prev.x + (cur.x - prev.x) * t, prev.y + (cur.y - prev.y) * t);
+    };
+
+    auto after = [&](size_t i) {
+        const Point& cur = pts[i];
+        const Point& next = pts[(i + 1) % count];
+        const float d = DistancePoints(cur, next);
+        if (d < 1e-4f) return cur;
+        const float t = radii[i] / d;
+        return Point(cur.x + (next.x - cur.x) * t, cur.y + (next.y - cur.y) * t);
+    };
+
+    const Point startPt = after(0);
+    sink->BeginFigure(D2D1::Point2F(startPt.x, startPt.y), D2D1_FIGURE_BEGIN_FILLED);
+
+    for (size_t i = 1; i < count; ++i) {
+        const Point pBefore = before(i);
+        sink->AddLine(D2D1::Point2F(pBefore.x, pBefore.y));
+        const float r = radii[i];
+        if (r > 1e-3f) {
+            const Point& prev = pts[(i + count - 1) % count];
+            const Point& cur = pts[i];
+            const Point& next = pts[(i + 1) % count];
+            const float v1x = cur.x - prev.x;
+            const float v1y = cur.y - prev.y;
+            const float v2x = next.x - cur.x;
+            const float v2y = next.y - cur.y;
+            const float cross = v1x * v2y - v1y * v2x;
+
+            const Point arcEnd = after(i);
+            D2D1_ARC_SEGMENT arc = {};
+            arc.point = D2D1::Point2F(arcEnd.x, arcEnd.y);
+            arc.size = D2D1::SizeF(r, r);
+            arc.rotationAngle = 0.0f;
+            arc.sweepDirection = cross < 0.0f
+                ? D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE
+                : D2D1_SWEEP_DIRECTION_CLOCKWISE;
+            arc.arcSize = D2D1_ARC_SIZE_SMALL;
+            sink->AddArc(arc);
+        }
+    }
+
+    const Point pBefore0 = before(0);
+    sink->AddLine(D2D1::Point2F(pBefore0.x, pBefore0.y));
+    const float r0 = radii[0];
+    if (r0 > 1e-3f) {
+        const Point& prev = pts[count - 1];
+        const Point& cur = pts[0];
+        const Point& next = pts[1];
+        const float v1x = cur.x - prev.x;
+        const float v1y = cur.y - prev.y;
+        const float v2x = next.x - cur.x;
+        const float v2y = next.y - cur.y;
+        const float cross = v1x * v2y - v1y * v2x;
+
+        const Point arcEnd = after(0);
+        D2D1_ARC_SEGMENT arc = {};
+        arc.point = D2D1::Point2F(arcEnd.x, arcEnd.y);
+        arc.size = D2D1::SizeF(r0, r0);
+        arc.rotationAngle = 0.0f;
+        arc.sweepDirection = cross < 0.0f
+            ? D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE
+            : D2D1_SWEEP_DIRECTION_CLOCKWISE;
+        arc.arcSize = D2D1_ARC_SIZE_SMALL;
+        sink->AddArc(arc);
+    }
+
+    sink->EndFigure(D2D1_FIGURE_END_CLOSED);
+    sink->Close();
+
+    if (auto brush = m_resources.GetSolidBrush(color)) {
+        m_d2dContext->FillGeometry(geometry.Get(), brush);
+    }
+}
+
 void GraphicsContext::DrawTextOnTarget(
     ID2D1RenderTarget* target,
     const std::wstring& text,
     const Rect& rect,
-    D2D1_COLOR_F color,
+    Color color,
     const std::string& fontName,
     float fontSize,
     DWRITE_TEXT_ALIGNMENT align,
@@ -2064,7 +2228,7 @@ void GraphicsContext::DrawTextLayoutOnTarget(
     ID2D1RenderTarget* target,
     IDWriteTextLayout* layout,
     const Rect& originRect,
-    D2D1_COLOR_F color,
+    Color color,
     D2D1_TEXT_ANTIALIAS_MODE antialiasMode) {
 
     if (!target || !layout) {
@@ -2109,7 +2273,7 @@ void GraphicsContext::DrawTextRotated(
     const std::string& text,
     Point center,
     float degrees,
-    D2D1_COLOR_F color,
+    Color color,
     const std::string& fontName,
     float fontSize,
     DWRITE_FONT_WEIGHT weight) {
@@ -2120,8 +2284,8 @@ void GraphicsContext::DrawTextRotated(
     TextLayoutOptions opt;
     opt.maxWidth = 4096.0f;
     opt.maxHeight = 256.0f;
-    opt.wrapping = DWRITE_WORD_WRAPPING_NO_WRAP;
-    opt.paragraphAlignment = DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+    opt.wrapping = TextWrapping::NoWrap;
+    opt.paragraphAlignment = TextVerticalAlignment::Top;
     ComPtr<IDWriteTextLayout> layout = CreateTextLayout(
         Utf8ToUtf16(text),
         fontName,
@@ -2200,7 +2364,76 @@ void GraphicsContext::PopInheritedTextStyle() {
     }
 }
 
-void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_COLOR_F color,
+static DWRITE_TEXT_ALIGNMENT ToDWrite(TextAlignment align) {
+    switch (align) {
+    case TextAlignment::Center: return DWRITE_TEXT_ALIGNMENT_CENTER;
+    case TextAlignment::Right: return DWRITE_TEXT_ALIGNMENT_TRAILING;
+    case TextAlignment::Justified: return DWRITE_TEXT_ALIGNMENT_JUSTIFIED;
+    case TextAlignment::Left:
+    default: return DWRITE_TEXT_ALIGNMENT_LEADING;
+    }
+}
+
+static DWRITE_PARAGRAPH_ALIGNMENT ToDWrite(TextVerticalAlignment vAlign) {
+    switch (vAlign) {
+    case TextVerticalAlignment::Center: return DWRITE_PARAGRAPH_ALIGNMENT_CENTER;
+    case TextVerticalAlignment::Bottom: return DWRITE_PARAGRAPH_ALIGNMENT_FAR;
+    case TextVerticalAlignment::Top:
+    default: return DWRITE_PARAGRAPH_ALIGNMENT_NEAR;
+    }
+}
+
+static DWRITE_WORD_WRAPPING ToDWrite(TextWrapping wrapping) {
+    switch (wrapping) {
+    case TextWrapping::Wrap: return DWRITE_WORD_WRAPPING_WRAP;
+    case TextWrapping::EmergencyBreak: return DWRITE_WORD_WRAPPING_EMERGENCY_BREAK;
+    case TextWrapping::NoWrap:
+    default: return DWRITE_WORD_WRAPPING_NO_WRAP;
+    }
+}
+
+void GraphicsContext::DrawText(const std::string& text, const Rect& rect, Color color, const TextStyle& style) {
+    DrawText(
+        text,
+        rect,
+        color,
+        style.fontFamily,
+        style.fontSize,
+        style.alignment,
+        style.verticalAlignment,
+        style.weight,
+        style.truncateWithEllipsis,
+        style.style,
+        style.stretch,
+        style.underline,
+        style.strikethrough
+    );
+}
+
+void GraphicsContext::DrawText(const std::string& text, const Rect& rect, Color color,
+                               const std::string& fontName, float fontSize,
+                               TextAlignment align, TextVerticalAlignment vAlign,
+                               FontWeight weight, bool truncateWithEllipsis,
+                               FontStyle style, FontStretch stretch,
+                               bool underline, bool strikethrough) {
+    DrawText(
+        text,
+        rect,
+        color,
+        fontName,
+        fontSize,
+        ToDWrite(align),
+        ToDWrite(vAlign),
+        static_cast<DWRITE_FONT_WEIGHT>(weight),
+        truncateWithEllipsis,
+        static_cast<DWRITE_FONT_STYLE>(style),
+        static_cast<DWRITE_FONT_STRETCH>(stretch),
+        underline,
+        strikethrough
+    );
+}
+
+void GraphicsContext::DrawText(const std::string& text, const Rect& rect, Color color,
                                const std::string& fontName, float fontSize,
                                DWRITE_TEXT_ALIGNMENT align, DWRITE_PARAGRAPH_ALIGNMENT vAlign,
                                DWRITE_FONT_WEIGHT weight, bool truncateWithEllipsis,
@@ -2212,9 +2445,9 @@ void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_C
 
     if (!m_inheritedTextStyleStack.empty()) {
         const InheritedTextStyle& inherited = m_inheritedTextStyleStack.back();
-        weight = inherited.weight;
-        style = inherited.style;
-        stretch = inherited.stretch;
+        weight = static_cast<DWRITE_FONT_WEIGHT>(inherited.weight);
+        style = static_cast<DWRITE_FONT_STYLE>(inherited.style);
+        stretch = static_cast<DWRITE_FONT_STRETCH>(inherited.stretch);
         underline = underline || inherited.underline;
         strikethrough = strikethrough || inherited.strikethrough;
     }
@@ -2247,14 +2480,51 @@ void GraphicsContext::DrawText(const std::string& text, const Rect& rect, D2D1_C
     );
 }
 
+void GraphicsContext::DrawTextRotated(
+    const std::string& text,
+    Point center,
+    float degrees,
+    Color color,
+    const std::string& fontName,
+    float fontSize,
+    FontWeight weight)
+{
+    DrawTextRotated(text, center, degrees, color, fontName, fontSize, static_cast<DWRITE_FONT_WEIGHT>(weight));
+}
+
+Size GraphicsContext::MeasureText(const std::string& text, const TextStyle& style, float maxWidth) {
+    (void)maxWidth;
+    return MeasureText(
+        text,
+        style.fontFamily,
+        style.fontSize,
+        style.weight,
+        style.style,
+        style.stretch
+    );
+}
+
+Size GraphicsContext::MeasureText(const std::string& text, const std::string& fontName,
+                                 float fontSize, FontWeight weight,
+                                 FontStyle style, FontStretch stretch) {
+    return MeasureText(
+        text,
+        fontName,
+        fontSize,
+        static_cast<DWRITE_FONT_WEIGHT>(weight),
+        static_cast<DWRITE_FONT_STYLE>(style),
+        static_cast<DWRITE_FONT_STRETCH>(stretch)
+    );
+}
+
 Size GraphicsContext::MeasureText(const std::string& text, const std::string& fontName, float fontSize, DWRITE_FONT_WEIGHT weight, DWRITE_FONT_STYLE style, DWRITE_FONT_STRETCH stretch) {
     if (text.empty()) return Size(0, fontSize + 4);
 
     if (!m_inheritedTextStyleStack.empty()) {
         const InheritedTextStyle& inherited = m_inheritedTextStyleStack.back();
-        weight = inherited.weight;
-        style = inherited.style;
-        stretch = inherited.stretch;
+        weight = static_cast<DWRITE_FONT_WEIGHT>(inherited.weight);
+        style = static_cast<DWRITE_FONT_STYLE>(inherited.style);
+        stretch = static_cast<DWRITE_FONT_STRETCH>(inherited.stretch);
     }
 
     const float snappedFontSize = SnapFontSizeToDevicePixels(fontSize, m_dpiScale);
@@ -2326,9 +2596,9 @@ ComPtr<IDWriteTextLayout> GraphicsContext::CreateTextLayout(
         weight,
         style,
         stretch,
-        options.wrapping,
+        ToDWrite(options.wrapping),
         DWRITE_TEXT_ALIGNMENT_LEADING,
-        options.paragraphAlignment);
+        ToDWrite(options.paragraphAlignment));
     if (!format) return nullptr;
 
     ComPtr<IDWriteTextLayout> layout;
@@ -2353,7 +2623,12 @@ ComPtr<IDWriteTextLayout> GraphicsContext::CreateTextLayout(
     return layout;
 }
 
-void GraphicsContext::DrawTextLayout(IDWriteTextLayout* layout, const Rect& originRect, D2D1_COLOR_F color) {
+void GraphicsContext::DrawTextLayout(const TextLayout& layout, const Rect& originRect, Color color) {
+    if (!layout.IsValid()) return;
+    DrawTextLayout(static_cast<IDWriteTextLayout*>(layout.GetNativeLayout()), originRect, color);
+}
+
+void GraphicsContext::DrawTextLayout(IDWriteTextLayout* layout, const Rect& originRect, Color color) {
     if (!layout || !m_d2dContext) {
         return;
     }
@@ -2378,7 +2653,7 @@ void GraphicsContext::DrawTextLayout(IDWriteTextLayout* layout, const Rect& orig
     );
 }
 
-GraphicsContext::TextCaretInfo GraphicsContext::GetTextCaretInfo(IDWriteTextLayout* layout, UINT32 position, const Point& origin) {
+TextCaretInfo GraphicsContext::GetTextCaretInfo(IDWriteTextLayout* layout, UINT32 position, const Point& origin) {
     TextCaretInfo info;
     if (!layout) return info;
 

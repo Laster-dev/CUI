@@ -7,7 +7,6 @@
 #include <optional>
 #include <functional>
 #include <unordered_map>
-#include <d2d1.h>
 
 namespace CUI {
 
@@ -59,7 +58,7 @@ struct TopologyNode : public std::enable_shared_from_this<TopologyNode> {
     std::string parentId;                               ///< 父节点标识符 (用于树状层级折叠)
     std::vector<std::shared_ptr<TopologyNode>> children;///< 直系子节点集合
 
-    std::optional<D2D1_COLOR_F> customColor;            ///< 节点自定义强调主色
+    std::optional<Color> customColor;                   ///< 节点自定义强调主色
 
     // --- 动态排版与动画渲染参数 ---
     Point currentPos{ 0.0f, 0.0f };                     ///< 当前动画插值渲染坐标
@@ -103,7 +102,7 @@ struct TopologyEdge {
     std::string toId;                                   ///< 终点节点标识
     std::string label;                                  ///< 连线标注文本 (如 "HTTPS", "Kafka")
     TopologyEdgeStyle style = TopologyEdgeStyle::Solid; ///< 连线线型
-    std::optional<D2D1_COLOR_F> customColor;            ///< 自定义连线颜色
+    std::optional<Color> customColor;                   ///< 自定义连线颜色
     bool isDirected = true;                             ///< 是否具有方向箭头
     
     // --- 动态流向粒子特效 ---

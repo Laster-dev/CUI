@@ -5,8 +5,6 @@
 #include "../animation/AnimationSystem.h"
 #include "../window/IWindowChrome.h"
 
-#include <wrl/client.h>
-#include <d2d1_1.h>
 
 namespace CUI {
 
@@ -135,7 +133,6 @@ private:
     int HitTestHoverRegion(float x, float y) const; // 判断鼠标落入哪个具体的控制按钮区域（返回区域编号索引）
     Rect LayoutMenuBar(GraphicsContext& ctx); // 对菜单栏进行排版计算并定位
     Rect LayoutRightContent(); // 对右侧自定义元素进行排版定位
-    bool EnsureNativeIconBitmap(GraphicsContext& ctx); // 确保将原生 HICON 句柄转化为 Direct2D 能够渲染的位图纹理
     void ApplyHoverRegion(int region, bool forceDirty); // 更新并激活按钮悬停区域，标记画面变脏
     void SyncCaptionHoverTargets(); // 同步三大按钮的目标过渡淡入淡出动画参数
 
@@ -145,7 +142,6 @@ private:
     std::string m_iconText;                                           // 以文本符号表达的图标标签
     HICON m_nativeIcon = nullptr;                                     // 原生 Windows 系统图标 HICON 句柄
     bool m_ownsNativeIcon = false;                                    // 指示当前标题栏是否独占该 HICON 句柄并在析构时负责销毁它
-    Microsoft::WRL::ComPtr<ID2D1Bitmap> m_nativeIconBitmap;           // 转换后的 D2D 渲染位图缓存对象
     bool m_menuChromeDirty = false;                                   // 标记标题栏局部需要重绘的非客户区脏标记
     int m_hoverRegion = -1;                                           // 鼠标当前悬浮在哪个按钮区域编号（-1为无，1为最小化，2为最大化，3为关闭）
     AnimatedScalar m_minHoverAnim{ 0.0f };                            // 最小化按钮 Hover 状态淡入淡出动画时钟

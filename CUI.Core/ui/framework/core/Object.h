@@ -6,6 +6,10 @@
 #include <utility>
 #include <vector>
 
+#ifdef GetClassName
+#undef GetClassName
+#endif
+
 namespace CUI {
 
 class Object : public std::enable_shared_from_this<Object> {

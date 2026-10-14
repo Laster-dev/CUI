@@ -37,7 +37,7 @@ std::shared_ptr<UIElement> BuildWrapPanelPage() {
         vertical.ItemWidth(88.0f);
         vertical.ItemHeight(34.0f);
         vertical.Gap(8.0f);
-    const D2D1_COLOR_F colors[] = {
+    const Color colors[] = {
         Rgb(0x007ACC), Rgb(0x0E639C), Rgb(0x10B981), Rgb(0xD13438),
         Rgb(0x845EF7), Rgb(0xF783AC), Rgb(0x22B8CF), Rgb(0xF59F00),
     };

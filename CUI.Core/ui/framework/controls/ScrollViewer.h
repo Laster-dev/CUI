@@ -34,7 +34,7 @@ public:
     virtual bool OnAnimationTick() override;
     virtual bool HasSelfAnimation() const override;
     virtual void CollectSelfAnimationBounds(Rect& dirtyRect, bool& hasDirty) const override;
-    virtual HCURSOR GetCursor() const override;
+    virtual CursorType GetCursor() const override;
     virtual void SyncRenderState() override;
     virtual void MarkRenderContentDirty() override;
     virtual void MarkRenderRectDirty(const Rect& rect) override;

@@ -23,14 +23,6 @@ constexpr float kIconSize = 18.0f;
 // Match MenuBar hover: ease-out over ~160ms when animations are enabled.
 constexpr AnimationSpec kCaptionHoverSpec{ 0.22f, 0.01f, 0.16f };
 
-D2D1_COLOR_F LerpColor(const D2D1_COLOR_F& a, const D2D1_COLOR_F& b, float t) {
-    t = std::clamp(t, 0.0f, 1.0f);
-    return D2D1::ColorF(
-        a.r + (b.r - a.r) * t,
-        a.g + (b.g - a.g) * t,
-        a.b + (b.b - a.b) * t,
-        a.a + (b.a - a.a) * t);
-}
 
 std::string DefaultIconTextFromTitle(const std::string& title) {
     for (unsigned char ch : title) {
@@ -80,85 +72,7 @@ void WindowTitleBar::ApplyNativeIcon(HICON icon, bool takeOwnership) {
     }
     m_nativeIcon = icon;
     m_ownsNativeIcon = takeOwnership && icon != nullptr;
-    m_nativeIconBitmap.Reset();
     MarkRenderContentDirty();
-}
-
-bool WindowTitleBar::EnsureNativeIconBitmap(GraphicsContext& ctx) {
-    if (!m_nativeIcon) return false;
-    if (m_nativeIconBitmap) return true;
-
-    auto* d2d = ctx.GetD2DContext();
-    if (!d2d) return false;
-
-    ICONINFO ii = {};
-    if (!GetIconInfo(m_nativeIcon, &ii)) return false;
-
-    BITMAP bmp = {};
-    if (ii.hbmColor) {
-        GetObject(ii.hbmColor, sizeof(bmp), &bmp);
-    } else if (ii.hbmMask) {
-        GetObject(ii.hbmMask, sizeof(bmp), &bmp);
-        bmp.bmHeight /= 2;
-    }
-
-    const int w = (std::max)(1, static_cast<int>(bmp.bmWidth));
-    const int h = (std::max)(1, static_cast<int>(bmp.bmHeight > 0 ? bmp.bmHeight : bmp.bmWidth));
-
-    BITMAPINFO bmi = {};
-    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bmi.bmiHeader.biWidth = w;
-    bmi.bmiHeader.biHeight = -h; // top-down
-    bmi.bmiHeader.biPlanes = 1;
-    bmi.bmiHeader.biBitCount = 32;
-    bmi.bmiHeader.biCompression = BI_RGB;
-
-    std::vector<UINT32> pixels(static_cast<size_t>(w) * static_cast<size_t>(h), 0);
-    HDC screenDc = GetDC(nullptr);
-    HDC memDc = CreateCompatibleDC(screenDc);
-    void* bits = nullptr;
-    HBITMAP dib = CreateDIBSection(memDc, &bmi, DIB_RGB_COLORS, &bits, nullptr, 0);
-    bool ok = false;
-    if (dib && memDc && bits) {
-        HGDIOBJ old = SelectObject(memDc, dib);
-        DrawIconEx(memDc, 0, 0, m_nativeIcon, w, h, 0, nullptr, DI_NORMAL);
-        memcpy(pixels.data(), bits, pixels.size() * sizeof(UINT32));
-        SelectObject(memDc, old);
-        ok = true;
-    }
-    if (dib) DeleteObject(dib);
-    if (memDc) DeleteDC(memDc);
-    if (screenDc) ReleaseDC(nullptr, screenDc);
-    if (ii.hbmColor) DeleteObject(ii.hbmColor);
-    if (ii.hbmMask) DeleteObject(ii.hbmMask);
-    if (!ok) return false;
-
-    for (UINT32& px : pixels) {
-        const UINT32 a = (px >> 24) & 0xFFu;
-        if (a == 0 || a == 255) continue;
-        const UINT32 r = (px >> 16) & 0xFFu;
-        const UINT32 g = (px >> 8) & 0xFFu;
-        const UINT32 b = px & 0xFFu;
-        px = (a << 24)
-            | (((r * a) / 255u) << 16)
-            | (((g * a) / 255u) << 8)
-            | ((b * a) / 255u);
-    }
-
-    D2D1_BITMAP_PROPERTIES props = D2D1::BitmapProperties(
-        D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)
-    );
-    Microsoft::WRL::ComPtr<ID2D1Bitmap> bitmap;
-    const HRESULT hr = d2d->CreateBitmap(
-        D2D1::SizeU(static_cast<UINT32>(w), static_cast<UINT32>(h)),
-        pixels.data(),
-        static_cast<UINT32>(w * 4),
-        &props,
-        &bitmap
-    );
-    if (FAILED(hr) || !bitmap) return false;
-    m_nativeIconBitmap = bitmap;
-    return true;
 }
 
 Rect WindowTitleBar::GetCloseButtonRect() const {
@@ -276,8 +190,6 @@ void WindowTitleBar::NotifyNonClientMouseLeave() {
 
 void WindowTitleBar::OnThemeChanged() {
     Control::OnThemeChanged();
-    // Device resources may have been dropped on theme switch.
-    m_nativeIconBitmap.Reset();
 }
 
 void WindowTitleBar::OnRender(GraphicsContext& ctx) {
@@ -296,9 +208,8 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     );
 
     bool drewNative = false;
-    if (m_nativeIcon && EnsureNativeIconBitmap(ctx) && m_nativeIconBitmap && ctx.GetD2DContext()) {
-        const D2D1_RECT_F dest = iconRect.ToD2D();
-        ctx.GetD2DContext()->DrawBitmap(m_nativeIconBitmap.Get(), dest, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+    if (m_nativeIcon) {
+        ctx.DrawHIcon(m_nativeIcon, iconRect);
         drewNative = true;
     }
     if (!drewNative) {
@@ -319,16 +230,16 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
                 tokens.accentForeground,
                 "微软雅黑",
                 11.0f,
-                DWRITE_TEXT_ALIGNMENT_CENTER,
-                DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-                DWRITE_FONT_WEIGHT_BOLD
+                TextAlignment::Center,
+                TextVerticalAlignment::Center,
+                FontWeight::Bold
             );
         }
     }
 
     const Rect menuBarRect = LayoutMenuBar(ctx);
 
-    const D2D1_COLOR_F titleColor = tokens.textPrimary;
+    const Color titleColor = tokens.textPrimary;
     const float captionHoverPeak = lightTheme ? 0.08f : 0.14f;
 
     const float titleLeft = menuBarRect.x + menuBarRect.width + 12.0f;
@@ -340,9 +251,9 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
             titleColor,
             "微软雅黑",
             16.0f,
-            DWRITE_TEXT_ALIGNMENT_CENTER,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            DWRITE_FONT_WEIGHT_NORMAL,
+            TextAlignment::Center,
+            TextVerticalAlignment::Center,
+            FontWeight::Normal,
             true
         );
     }
@@ -353,28 +264,24 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     const float minHoverT = m_minHoverAnim.Current();
     const float maxHoverT = m_maxHoverAnim.Current();
     const float closeHoverT = m_closeHoverAnim.Current();
-    const D2D1_COLOR_F disabledColor = tokens.textMuted;
+    const Color disabledColor = tokens.textMuted;
     const float iconCenterY = m_bounds.y + m_bounds.height * 0.5f;
 
     // 1. 最小化按钮
     if (m_isMinimizeButtonVisible) {
         if (m_isMinimizeButtonEnabled && minHoverT > 0.001f) {
-            ctx.FillRect(minRect, D2D1::ColorF(
-                tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b,
-                captionHoverPeak * minHoverT));
+            ctx.FillRect(minRect, tokens.textPrimary.WithAlpha(captionHoverPeak * minHoverT));
         }
-        const D2D1_COLOR_F minColor = m_isMinimizeButtonEnabled ? titleColor : disabledColor;
+        const Color minColor = m_isMinimizeButtonEnabled ? titleColor : disabledColor;
         ctx.DrawLine(Point(minRect.x + 18.0f, iconCenterY), Point(minRect.x + 28.0f, iconCenterY), minColor, 1.0f);
     }
 
     // 2. 最大化按钮
     if (m_isMaximizeButtonVisible) {
         if (m_isMaximizeButtonEnabled && maxHoverT > 0.001f) {
-            ctx.FillRect(maxRect, D2D1::ColorF(
-                tokens.textPrimary.r, tokens.textPrimary.g, tokens.textPrimary.b,
-                captionHoverPeak * maxHoverT));
+            ctx.FillRect(maxRect, tokens.textPrimary.WithAlpha(captionHoverPeak * maxHoverT));
         }
-        const D2D1_COLOR_F maxColor = m_isMaximizeButtonEnabled ? titleColor : disabledColor;
+        const Color maxColor = m_isMaximizeButtonEnabled ? titleColor : disabledColor;
         if (isMaximized) {
             ctx.DrawRect(Rect(maxRect.x + 20.0f, iconCenterY - 4.0f, 8.0f, 8.0f), maxColor, 1.0f);
             ctx.DrawRect(Rect(maxRect.x + 18.0f, iconCenterY - 6.0f, 8.0f, 8.0f), maxColor, 1.0f);
@@ -386,12 +293,12 @@ void WindowTitleBar::OnRender(GraphicsContext& ctx) {
     // 3. 关闭按钮
     if (m_isCloseButtonVisible) {
         if (m_isCloseButtonEnabled && closeHoverT > 0.001f) {
-            D2D1_COLOR_F closeBg = tokens.dangerColor;
+            Color closeBg = tokens.dangerColor;
             closeBg.a *= closeHoverT;
             ctx.FillRect(closeRect, closeBg);
         }
-        const D2D1_COLOR_F closeIconColor = m_isCloseButtonEnabled
-            ? LerpColor(titleColor, tokens.accentForeground, closeHoverT)
+        const Color closeIconColor = m_isCloseButtonEnabled
+            ? Color::Lerp(titleColor, tokens.accentForeground, closeHoverT)
             : disabledColor;
         const float closeCenterX = closeRect.x + closeRect.width * 0.5f;
         ctx.DrawLine(Point(closeCenterX - 5.0f, iconCenterY - 5.0f), Point(closeCenterX + 5.0f, iconCenterY + 5.0f), closeIconColor, 1.2f);

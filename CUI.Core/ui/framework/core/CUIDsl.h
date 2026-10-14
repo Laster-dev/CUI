@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Widgets.h"
 #include "../controls/UIElement.h"
@@ -85,12 +85,12 @@ std::shared_ptr<T> Make(Args&&... args) { // 实例化 UI 控件并返回智能�
 }
 
 /**
- * @brief 将 RGB 十六进制整数格式颜色转换为 Direct2D 所需的 D2D1_COLOR_F 结构。
+ * @brief 将 RGB 十六进制整数格式颜色转换为 Color 结构。
  * @param rgb 十六进制颜色代码。
  * @param alpha 透明度等级。
  */
-inline D2D1_COLOR_F Rgb(unsigned int rgb, float alpha = 1.0f) { // 十六进制 RGB 颜色值转换
-    return D2D1::ColorF(
+inline CUI::Color Rgb(unsigned int rgb, float alpha = 1.0f) { // 十六进制 RGB 颜色值转换
+    return CUI::Color(
         static_cast<float>((rgb >> 16) & 0xFF) / 255.0f,
         static_cast<float>((rgb >> 8) & 0xFF) / 255.0f,
         static_cast<float>(rgb & 0xFF) / 255.0f,
@@ -310,13 +310,13 @@ public:
         return *this;
     }
 
-    ElementBuilder& Background(D2D1_COLOR_F color) { // 设定硬编码背景颜色
+    ElementBuilder& Background(CUI::Color color) { // 设定硬编码背景颜色
         if constexpr (requires { m_ptr->ApplyBackground(color); }) m_ptr->ApplyBackground(color);
         return *this;
     }
 
     ElementBuilder& Background(const std::string& color) {
-        return Background(Color::Hex(color));
+        return Background(CUI::Color::Hex(color));
     }
 
     ElementBuilder& HoverBackgroundToken(ThemeTokenId id) { // 绑定悬浮背景色主题 Token
@@ -324,12 +324,12 @@ public:
         return *this;
     }
 
-    ElementBuilder& HoverBackground(D2D1_COLOR_F color) { // 设定硬编码悬浮背景颜色
+    ElementBuilder& HoverBackground(CUI::Color color) { // 设定硬编码悬浮背景颜色
         if constexpr (requires { m_ptr->ApplyHoverBackground(color); }) m_ptr->ApplyHoverBackground(color);
         return *this;
     }
     ElementBuilder& HoverBackground(const std::string& color) {
-        return HoverBackground(Color::Hex(color));
+        return HoverBackground(CUI::Color::Hex(color));
     }
 
 
@@ -338,12 +338,12 @@ public:
         return *this;
     }
 
-    ElementBuilder& PressedBackground(D2D1_COLOR_F color) { // 设定硬编码按下背景颜色
+    ElementBuilder& PressedBackground(CUI::Color color) { // 设定硬编码按下背景颜色
         if constexpr (requires { m_ptr->ApplyPressedBackground(color); }) m_ptr->ApplyPressedBackground(color);
         return *this;
     }
     ElementBuilder& PressedBackground(const std::string& color) {
-        return PressedBackground(Color::Hex(color));
+        return PressedBackground(CUI::Color::Hex(color));
     }
 
 
@@ -356,9 +356,9 @@ public:
         return *this;
     }
 
-    ElementBuilder& Color(D2D1_COLOR_F color) { return Foreground(color); }
+    ElementBuilder& Color(CUI::Color color) { return Foreground(color); }
 
-    ElementBuilder& Foreground(D2D1_COLOR_F color) {
+    ElementBuilder& Foreground(CUI::Color color) {
         if constexpr (requires { m_ptr->ApplyColor(color); }) m_ptr->ApplyColor(color);
         return *this;
     }
@@ -410,8 +410,8 @@ public:
         return *this;
     }
 
-    ElementBuilder& BorderBrush(D2D1_COLOR_F color) { if constexpr (requires { m_ptr->ApplyBorderBrush(color); }) m_ptr->ApplyBorderBrush(color); return *this; }
-    ElementBuilder& Border(D2D1_COLOR_F color, float thickness = 1.0f) { // 设定硬编码边框颜色和粗细
+    ElementBuilder& BorderBrush(CUI::Color color) { if constexpr (requires { m_ptr->ApplyBorderBrush(color); }) m_ptr->ApplyBorderBrush(color); return *this; }
+    ElementBuilder& Border(CUI::Color color, float thickness = 1.0f) { // 设定硬编码边框颜色和粗细
         m_ptr->ApplyBorderBrush(color);
         m_ptr->ApplyBorderThickness(thickness);
         return *this;
@@ -748,7 +748,7 @@ public:
     ElementBuilder& IsCloseVisible(bool value) { if constexpr (requires { m_ptr->ApplyIsCloseVisible(value); }) m_ptr->ApplyIsCloseVisible(value); return *this; }
     ElementBuilder& IsModal(bool value) { if constexpr (requires { m_ptr->ApplyIsModal(value); }) m_ptr->ApplyIsModal(value); return *this; }
     ElementBuilder& PreferredPlacement(BubblePlacement value) { if constexpr (requires { m_ptr->ApplyPreferredPlacement(value); }) m_ptr->ApplyPreferredPlacement(value); return *this; }
-    ElementBuilder& TintColor(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->ApplyTintColor(value); }) m_ptr->ApplyTintColor(value); return *this; }
+    ElementBuilder& TintColor(CUI::Color value) { if constexpr (requires { m_ptr->ApplyTintColor(value); }) m_ptr->ApplyTintColor(value); return *this; }
     template<typename ItemT> ElementBuilder& ItemExpanded(const std::shared_ptr<ItemT>& item, bool value) { if constexpr (requires { m_ptr->ApplyItemExpanded(item, value); }) m_ptr->ApplyItemExpanded(item, value); return *this; }
     ElementBuilder& State(CheckState value) { if constexpr (requires { m_ptr->ApplyState(value); }) m_ptr->ApplyState(value); return *this; }    ElementBuilder& IsPasswordMode(bool value) { if constexpr (requires { m_ptr->ApplyIsPasswordMode(value); }) m_ptr->ApplyIsPasswordMode(value); return *this; }
     ElementBuilder& ShowRevealButton(bool value) { if constexpr (requires { m_ptr->ApplyShowRevealButton(value); }) m_ptr->ApplyShowRevealButton(value); return *this; }
@@ -907,7 +907,8 @@ public:
     ElementBuilder& Stretch(CUI::Stretch value) { if constexpr (requires { m_ptr->ApplyStretch(value); }) m_ptr->ApplyStretch(value); return *this; }
     ElementBuilder& StretchMode(CUI::Stretch value) { if constexpr (requires { m_ptr->ApplyStretch(value); }) m_ptr->ApplyStretch(value); return *this; }
     ElementBuilder& BadgeText(const std::string& value) { if constexpr (requires { m_ptr->ApplyBadgeText(value); }) m_ptr->ApplyBadgeText(value); return *this; }
-    ElementBuilder& BadgeColor(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->ApplyBadgeColor(value); }) m_ptr->ApplyBadgeColor(value); return *this; }    ElementBuilder& Source(const std::string& value) {
+    ElementBuilder& BadgeColor(CUI::Color value) { if constexpr (requires { m_ptr->ApplyBadgeColor(value); }) m_ptr->ApplyBadgeColor(value); return *this; }
+    ElementBuilder& Source(const std::string& value) {
         if constexpr (requires { m_ptr->ApplySource(value); }) m_ptr->ApplySource(value);
         return *this;
     }
@@ -983,8 +984,8 @@ public:
     ElementBuilder& RowSelected(int index, bool value) { if constexpr (requires { m_ptr->ApplyRowSelected(index, value); }) m_ptr->ApplyRowSelected(index, value); return *this; }
     ElementBuilder& Date(int year, int month, int day) { if constexpr (requires { m_ptr->ApplyDate(year, month, day); }) m_ptr->ApplyDate(year, month, day); return *this; }
     ElementBuilder& Time(int hour, int minute) { if constexpr (requires { m_ptr->ApplyTime(hour, minute); }) m_ptr->ApplyTime(hour, minute); return *this; }
-    ElementBuilder& Fill(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->ApplyFill(value); }) m_ptr->ApplyFill(value); return *this; }
-    ElementBuilder& Stroke(D2D1_COLOR_F value) { if constexpr (requires { m_ptr->ApplyStroke(value); }) m_ptr->ApplyStroke(value); return *this; }
+    ElementBuilder& Fill(CUI::Color value) { if constexpr (requires { m_ptr->ApplyFill(value); }) m_ptr->ApplyFill(value); return *this; }
+    ElementBuilder& Stroke(CUI::Color value) { if constexpr (requires { m_ptr->ApplyStroke(value); }) m_ptr->ApplyStroke(value); return *this; }
     ElementBuilder& StrokeThickness(float value) { if constexpr (requires { m_ptr->ApplyStrokeThickness(value); }) m_ptr->ApplyStrokeThickness(value); return *this; }
     ElementBuilder& Damping(float value) { if constexpr (requires { m_ptr->ApplyDamping(value); }) m_ptr->ApplyDamping(value); return *this; }
     ElementBuilder& Stiffness(float value) { if constexpr (requires { m_ptr->ApplyStiffness(value); }) m_ptr->ApplyStiffness(value); return *this; }

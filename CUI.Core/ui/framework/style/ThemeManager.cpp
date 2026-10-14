@@ -6,13 +6,13 @@
 namespace CUI {
 
 namespace {
-D2D1_COLOR_F Rgb(int r, int g, int b, float a = 1.0f) {
-    return D2D1::ColorF(r / 255.0f, g / 255.0f, b / 255.0f, a);
+Color Rgb(int r, int g, int b, float a = 1.0f) {
+    return Color(r / 255.0f, g / 255.0f, b / 255.0f, a);
 }
 
 // WinUI Color is often #AARRGGBB. Helpers match Common_themeresources Light/Default.
-D2D1_COLOR_F Argb(int a, int r, int g, int b) {
-    return D2D1::ColorF(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+Color Argb(int a, int r, int g, int b) {
+    return Color(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
 }
 } // namespace
 
@@ -133,19 +133,19 @@ MaterialRole ThemeManager::GetMaterialRole(const std::string& tokenName) const {
     return GetMaterialRole(ThemeTokenIdFromName(tokenName));
 }
 
-D2D1_COLOR_F ThemeManager::ApplyMaterialRole(const std::string& tokenName, D2D1_COLOR_F base) const {
+Color ThemeManager::ApplyMaterialRole(const std::string& tokenName, Color base) const {
     return ApplyMaterialRole(ThemeTokenIdFromName(tokenName), base);
 }
 
-D2D1_COLOR_F ThemeManager::LookupBaseColor(const std::string& tokenName) const {
+Color ThemeManager::LookupBaseColor(const std::string& tokenName) const {
     return LookupBaseColor(ThemeTokenIdFromName(tokenName));
 }
 
-D2D1_COLOR_F ThemeManager::GetColor(const std::string& tokenName) const {
+Color ThemeManager::GetColor(const std::string& tokenName) const {
     return GetColor(ThemeTokenIdFromName(tokenName));
 }
 
-D2D1_COLOR_F ThemeManager::LookupBaseColor(ThemeTokenId id) const {
+Color ThemeManager::LookupBaseColor(ThemeTokenId id) const {
     switch (id) {
     case ThemeTokenId::WindowBackground: return m_tokens.windowBackground;
     case ThemeTokenId::CardBackground: return m_tokens.cardBackground;
@@ -166,7 +166,7 @@ D2D1_COLOR_F ThemeManager::LookupBaseColor(ThemeTokenId id) const {
     case ThemeTokenId::Unset:
     case ThemeTokenId::Count:
     default:
-        return D2D1::ColorF(1.0f, 0.0f, 1.0f, 1.0f);
+        return Color(1.0f, 0.0f, 1.0f, 1.0f);
     }
 }
 
@@ -186,7 +186,7 @@ MaterialRole ThemeManager::GetMaterialRole(ThemeTokenId id) const {
     }
 }
 
-D2D1_COLOR_F ThemeManager::ApplyMaterialRole(ThemeTokenId id, D2D1_COLOR_F base) const {
+Color ThemeManager::ApplyMaterialRole(ThemeTokenId id, Color base) const {
     if (!m_backdropActive) return base;
     if (id == ThemeTokenId::WindowBackground) {
         base.a = 0.0f;
@@ -196,28 +196,28 @@ D2D1_COLOR_F ThemeManager::ApplyMaterialRole(ThemeTokenId id, D2D1_COLOR_F base)
     return base;
 }
 
-D2D1_COLOR_F ThemeManager::GetColor(ThemeTokenId id) const {
+Color ThemeManager::GetColor(ThemeTokenId id) const {
     if (id == ThemeTokenId::Unset) {
-        return D2D1::ColorF(1.0f, 0.0f, 1.0f, 1.0f);
+        return Color(1.0f, 0.0f, 1.0f, 1.0f);
     }
     return ApplyMaterialRole(id, LookupBaseColor(id));
 }
 
-D2D1_COLOR_F ThemeManager::GetFlatColor(ThemeTokenId id) const {
+Color ThemeManager::GetFlatColor(ThemeTokenId id) const {
     if (id == ThemeTokenId::Unset) {
-        return D2D1::ColorF(1.0f, 0.0f, 1.0f, 1.0f);
+        return Color(1.0f, 0.0f, 1.0f, 1.0f);
     }
-    D2D1_COLOR_F c = LookupBaseColor(id);
+    Color c = LookupBaseColor(id);
     c.a = 1.0f;
     return c;
 }
 
-D2D1_COLOR_F ThemeManager::GetFlatColor(const std::string& tokenName) const {
+Color ThemeManager::GetFlatColor(const std::string& tokenName) const {
     return GetFlatColor(ThemeTokenIdFromName(tokenName));
 }
 
 std::string ThemeManager::GetColorHex(const std::string& tokenName) const {
-    D2D1_COLOR_F c = GetColor(tokenName);
+    Color c = GetColor(tokenName);
     // Premul-aware opaque hex for CSS-like APIs (ignore alpha).
     const float a = (std::max)(c.a, 0.001f);
     const int r = static_cast<int>(std::clamp(c.r / a, 0.0f, 1.0f) * 255.0f + 0.5f);

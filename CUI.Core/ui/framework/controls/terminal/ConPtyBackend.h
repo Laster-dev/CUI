@@ -1,6 +1,5 @@
 #pragma once
 #include "ITerminalBackend.h"
-#include <windows.h>
 #include <atomic>
 #include <condition_variable>
 #include <deque>
@@ -37,19 +36,19 @@ public:
 private:
     void ReadLoop();
     void WriteLoop();
-    static void SafeClose(HANDLE& handle);
+    static void SafeClose(void*& handle);
 
     std::wstring m_commandLine;
     std::wstring m_shellPath;   // 可执行文件全路径（CreateProcess 的 lpApplicationName）
     std::wstring m_arguments;   // 参数部分（拼接时带引号，避免路径劫持与参数注入）
-    HANDLE m_inputRead = nullptr;   // child side; closed after PTY creation
-    HANDLE m_inputWrite = nullptr;  // we write pty input here
-    HANDLE m_outputRead = nullptr;  // we read pty output here
-    HANDLE m_outputWrite = nullptr; // child side; closed after PTY creation
-    HANDLE m_process = nullptr;
-    HANDLE m_thread = nullptr;
-    PVOID m_pseudoConsole = nullptr; // HPCON
-    LPPROC_THREAD_ATTRIBUTE_LIST m_attrList = nullptr;
+    void* m_inputRead = nullptr;   // child side; closed after PTY creation
+    void* m_inputWrite = nullptr;  // we write pty input here
+    void* m_outputRead = nullptr;  // we read pty output here
+    void* m_outputWrite = nullptr; // child side; closed after PTY creation
+    void* m_process = nullptr;
+    void* m_thread = nullptr;
+    void* m_pseudoConsole = nullptr; // HPCON
+    void* m_attrList = nullptr;
 
     std::thread m_readThread;
     std::thread m_writeThread;

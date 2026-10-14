@@ -12,7 +12,7 @@ public:
     virtual ~FolderPicker() = default;
 
     virtual const char* GetClassName() const override { return "FolderPicker"; }
-    virtual HCURSOR GetCursor() const override;
+    virtual CursorType GetCursor() const override;
     bool AcceptsTabFocus() const override { return true; }
 
     virtual Size Measure(Size availableSize) override;

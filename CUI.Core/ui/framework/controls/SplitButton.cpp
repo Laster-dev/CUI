@@ -24,7 +24,7 @@ void SplitButton::OnRender(GraphicsContext& ctx) {
     DropDownButton::OnRender(ctx);
 
     const Rect chevron = ChevronRect();
-    D2D1_COLOR_F line = m_hasColorValue
+    Color line = m_hasColorValue
         ? m_colorValue
         : ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground);
     line.a *= 0.35f;

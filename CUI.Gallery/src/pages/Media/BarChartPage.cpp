@@ -99,17 +99,17 @@ Element BuildBarChartPage() {
 
     ChartSeries web;
     web.name = "线上商城";
-    web.color = D2D1::ColorF(D2D1::ColorF::DodgerBlue, 0.95f);
+    web.color = Rgb(0x1E90FF, 0.95f);
     web.hasColor = true;
     web.values = { 26.0f, 32.0f, 29.0f, 41.0f };
     ChartSeries store;
     store.name = "实体门店";
-    store.color = D2D1::ColorF(D2D1::ColorF::OrangeRed, 0.95f);
+    store.color = Rgb(0xFF4500, 0.95f);
     store.hasColor = true;
     store.values = { 18.0f, 22.0f, 27.0f, 24.0f };
     ChartSeries agent;
     agent.name = "渠道代理";
-    agent.color = D2D1::ColorF(D2D1::ColorF::MediumSeaGreen, 0.95f);
+    agent.color = Rgb(0x3CB371, 0.95f);
     agent.hasColor = true;
     agent.values = { 12.0f, 15.0f, 19.0f, 22.0f };
         colorChart.Series({ std::move(web), std::move(store), std::move(agent) });
@@ -191,7 +191,7 @@ chart.Categories({ "1月", "2月", "3月" });
 ChartSeries s;
 s.name = "线上商城";
 s.values = { 26.0f, 32.0f, 29.0f };
-s.color = D2D1::ColorF(D2D1::ColorF::DodgerBlue, 0.95f);
+s.color = Rgb(0x1E90FF, 0.95f);
 s.hasColor = true;
 chart.Series({ std::move(s) });
 

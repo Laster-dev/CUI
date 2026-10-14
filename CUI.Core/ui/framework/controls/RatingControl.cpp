@@ -18,11 +18,6 @@ constexpr float kClearSlot = 18.0f;
 constexpr float kInnerRatio = 0.382f;
 constexpr AnimationSpec kFillSpec{ 0.22f, 0.01f, 0.16f };
 
-D2D1_COLOR_F WithAlpha(D2D1_COLOR_F c, float a) {
-    c.a = std::clamp(a, 0.0f, 1.0f);
-    return c;
-}
-
 void StarPoints(Point center, float radius, Point out[10]) {
     const float inner = radius * kInnerRatio;
     for (int i = 0; i < 10; ++i) {
@@ -47,8 +42,8 @@ RatingControl::RatingControl() : MaxRating(this), Step(this), Value(this) {
     m_displayValueAnim.Reset(m_value);
 }
 
-HCURSOR RatingControl::GetCursor() const {
-    return CanInteract() ? LoadCursor(nullptr, IDC_HAND) : nullptr;
+CursorType RatingControl::GetCursor() const {
+    return CanInteract() ? CursorType::Hand : CursorType::Arrow;
 }
 
 Value RatingControl::GetProperty(PropertyId id) const {
@@ -371,9 +366,9 @@ void RatingControl::DrawStar(
     GraphicsContext& ctx,
     const Rect& slot,
     float fill01,
-    D2D1_COLOR_F fill,
-    D2D1_COLOR_F empty,
-    D2D1_COLOR_F stroke) const
+    Color fill,
+    Color empty,
+    Color stroke) const
 {
     const Point center(slot.x + slot.width * 0.5f, slot.y + slot.height * 0.5f);
     const float radius = (std::min)(slot.width, slot.height) * 0.48f;
@@ -400,17 +395,17 @@ void RatingControl::DrawStar(
 void RatingControl::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
-    const D2D1_COLOR_F fill = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
-    D2D1_COLOR_F empty = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
+    const Color fill = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
+    Color empty = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
     empty.a *= 0.35f;
-    D2D1_COLOR_F stroke = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
+    Color stroke = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
     stroke.a = (std::min)(1.0f, stroke.a * 0.85f);
-    const D2D1_COLOR_F glyph = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
+    const Color glyph = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextSecondary);
 
     if (m_isClearEnabled) {
         const Rect clear = ClearRect();
         const float inset = clear.width * 0.28f;
-        D2D1_COLOR_F xColor = glyph;
+        Color xColor = glyph;
         if (m_hoverValue == 0.0f && CanInteract()) {
             xColor = fill;
         }
@@ -431,7 +426,7 @@ void RatingControl::OnRender(GraphicsContext& ctx) {
     }
 
     if (IsFocused() && CanInteract()) {
-        ctx.DrawRoundedRect(m_bounds, 4.0f, WithAlpha(fill, 0.85f), 1.5f);
+        ctx.DrawRoundedRect(m_bounds, 4.0f, fill.WithAlpha(0.85f), 1.5f);
     }
 }
 

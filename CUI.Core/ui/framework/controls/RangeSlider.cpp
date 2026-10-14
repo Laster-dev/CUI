@@ -526,16 +526,16 @@ void RangeSlider::DrawValueChip(GraphicsContext& ctx, const Rect& thumb, float v
         chip = Rect(thumb.x + thumb.width + 8.0f, thumb.y + thumb.height * 0.5f - h * 0.5f, w, h);
     }
     const float alpha = active ? 1.0f : 0.82f;
-    ctx.FillRoundedRect(chip, 4.0f, D2D1::ColorF(accent.r, accent.g, accent.b, alpha));
+    ctx.FillRoundedRect(chip, 4.0f, accent.WithAlpha(alpha));
     ctx.DrawText(
         label,
         chip,
         onAccent,
         "微软雅黑",
         11.0f,
-        DWRITE_TEXT_ALIGNMENT_CENTER,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-        DWRITE_FONT_WEIGHT_SEMI_BOLD);
+        TextAlignment::Center,
+        TextVerticalAlignment::Center,
+        CUI::FontWeight::SemiBold);
 }
 
 void RangeSlider::OnRender(GraphicsContext& ctx) {

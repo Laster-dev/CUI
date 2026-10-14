@@ -13,7 +13,7 @@ namespace Gallery {
 
 namespace {
 
-const D2D1_COLOR_F kCellColors[] = {
+const Color kCellColors[] = {
     Rgb(0x007ACC), Rgb(0x0E639C), Rgb(0x10B981), Rgb(0xD13438),
     Rgb(0x845EF7), Rgb(0xF59F00), Rgb(0x22B8CF), Rgb(0xF783AC),
 };

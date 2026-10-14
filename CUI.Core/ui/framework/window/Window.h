@@ -13,6 +13,12 @@
 #include "PopupHost.h"
 #include "../dnd/DragDropService.h"
 #include <windows.h>
+#ifdef IsMaximized
+#undef IsMaximized
+#endif
+#ifdef IsMinimized
+#undef IsMinimized
+#endif
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -131,6 +137,51 @@ Window();
      * @brief 隐藏当前窗口。
      */
     void Hide();
+
+    /**
+     * @brief 请求刷新当前窗口光标样式。
+     */
+    void UpdateCursor();
+
+    /**
+     * @brief 设置窗口标题。
+     */
+    void SetTitle(const std::string& title);
+
+    /**
+     * @brief 设置窗口逻辑尺寸（DIP）。
+     */
+    void SetSize(int width, int height);
+
+    /**
+     * @brief 居中显示于当前屏幕工作区。
+     */
+    void CenterOnScreen();
+
+    /**
+     * @brief 最小化窗口。
+     */
+    void Minimize();
+
+    /**
+     * @brief 最大化窗口。
+     */
+    void Maximize();
+
+    /**
+     * @brief 还原窗口。
+     */
+    void Restore();
+
+    /**
+     * @brief 检查窗口是否已最大化。
+     */
+    bool IsMaximized() const;
+
+    /**
+     * @brief 检查窗口是否已最小化。
+     */
+    bool IsMinimized() const;
 
     /**
      * @brief 阻塞并运行 Win32 消息循环（GetMessage / DispatchMessage）。

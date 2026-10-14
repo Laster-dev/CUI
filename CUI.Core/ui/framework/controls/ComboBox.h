@@ -19,7 +19,7 @@ public:
     virtual const char* GetClassName() const override { return "ComboBox"; } // 获取类名
     virtual Value GetProperty(PropertyId id) const override; // 反射获取属性值
     virtual bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
-    virtual HCURSOR GetCursor() const override { return IsEnabled() ? LoadCursor(nullptr, IDC_HAND) : nullptr; } // 获取悬浮交互鼠标样式
+    virtual CursorType GetCursor() const override { return IsEnabled() ? CursorType::Hand : CursorType::Arrow; } // 获取悬浮交互鼠标样式
 
     virtual Size Measure(Size availableSize) override; // 计算自适应宽度并为右侧下拉箭头留出空间
     virtual void OnRender(GraphicsContext& ctx) override; // 绘制正常状态下的边框、当前选中项文本及下拉箭头

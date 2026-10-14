@@ -1,4 +1,4 @@
-﻿#ifndef NOMINMAX
+#ifndef NOMINMAX
 #define NOMINMAX
 #endif
 #include "Button.h"
@@ -54,13 +54,13 @@ Size Button::Measure(Size availableSize) {
         if (GraphicsContext::LooksLikeSvg(icon)) {
             contentW += fontSize + 2.0f;
         } else {
-            const Size iconSize = ctx.MeasureText(icon, font, fontSize, ResolveFontWeight(), ResolveFontStyle(), ResolveFontStretch());
+            const Size iconSize = ctx.MeasureText(icon, font, fontSize, GetFontWeight(), GetFontStyle(), GetFontStretch());
             contentW += iconSize.width;
             contentH = (std::max)(contentH, iconSize.height);
         }
     }
     if (!text.empty()) {
-        const Size textSize = ctx.MeasureText(text, font, fontSize, ResolveFontWeight(), ResolveFontStyle(), ResolveFontStretch());
+        const Size textSize = ctx.MeasureText(text, font, fontSize, GetFontWeight(), GetFontStyle(), GetFontStretch());
         if (contentW > 0.0f) {
             contentW += 6.0f;
         }
@@ -133,7 +133,7 @@ void Button::DrawRipple(GraphicsContext& ctx) {
     }
     const float radius = GetCornerRadius();
     ctx.PushRoundedClip(m_bounds, radius);
-    D2D1_COLOR_F rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
+    Color rippleColor = ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary);
     rippleColor.a = m_rippleOpacity;
     Rect rippleRect(
         m_rippleCenter.x - m_rippleRadius,
@@ -144,7 +144,7 @@ void Button::DrawRipple(GraphicsContext& ctx) {
     ctx.PopClip();
 }
 
-void Button::DrawButtonFace(GraphicsContext& ctx, D2D1_COLOR_F bg, D2D1_COLOR_F border, float borderThickness) {
+void Button::DrawButtonFace(GraphicsContext& ctx, Color bg, Color border, float borderThickness) {
     const float radius = GetCornerRadius();
     if (radius > 0.0f) {
         ctx.FillRoundedRect(m_bounds, radius, bg);
@@ -161,13 +161,13 @@ void Button::DrawButtonFace(GraphicsContext& ctx, D2D1_COLOR_F bg, D2D1_COLOR_F 
     }
 }
 
-void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_TEXT_ALIGNMENT align) {
+void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, TextAlignment align) {
     const std::string& text = GetText();
     const std::string& icon = GetIcon();
     if (text.empty() && icon.empty()) {
         return;
     }
-    D2D1_COLOR_F textColor = m_hasColorValue
+    Color textColor = m_hasColorValue
         ? m_colorValue
         : ResolveThemeColor(GetColorToken(), ThemeTokenId::AccentForeground);
     if (icon.empty()) {
@@ -178,8 +178,8 @@ void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_
             GetFontFamily(),
             GetFontSize(),
             align,
-            DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-            ResolveFontWeight(), false, ResolveFontStyle(), ResolveFontStretch(), IsUnderline(), IsStrikethrough());
+            TextVerticalAlignment::Center,
+            GetFontWeight(), false, GetFontStyle(), GetFontStretch(), IsUnderline(), IsStrikethrough());
         return;
     }
 
@@ -195,13 +195,13 @@ void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_
         return;
     }
 
-    const Size textSize = ctx.MeasureText(text, GetFontFamily(), fontSize, ResolveFontWeight(), ResolveFontStyle(), ResolveFontStretch());
+    const Size textSize = ctx.MeasureText(text, GetFontFamily(), fontSize, GetFontWeight(), GetFontStyle(), GetFontStretch());
     const float gap = 6.0f;
     const float total = iconSize + gap + textSize.width;
     float startX = textRect.x;
-    if (align == DWRITE_TEXT_ALIGNMENT_CENTER) {
+    if (align == TextAlignment::Center) {
         startX = textRect.x + (textRect.width - total) * 0.5f;
-    } else if (align == DWRITE_TEXT_ALIGNMENT_TRAILING) {
+    } else if (align == TextAlignment::Right || align == TextAlignment::Trailing) {
         startX = textRect.x + textRect.width - total;
     }
     const Rect iconRect(
@@ -216,9 +216,9 @@ void Button::DrawButtonLabel(GraphicsContext& ctx, const Rect& textRect, DWRITE_
         textColor,
         GetFontFamily(),
         fontSize,
-        DWRITE_TEXT_ALIGNMENT_LEADING,
-        DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-        ResolveFontWeight(), false, ResolveFontStyle(), ResolveFontStretch(), IsUnderline(), IsStrikethrough());
+        TextAlignment::Left,
+        TextVerticalAlignment::Center,
+        GetFontWeight(), false, GetFontStyle(), GetFontStretch(), IsUnderline(), IsStrikethrough());
 }
 
 void Button::OnMouseDown(Point pt) {
@@ -252,12 +252,12 @@ bool Button::HasSelfAnimation() const {
 }
 
 void Button::OnRender(GraphicsContext& ctx) {
-    D2D1_COLOR_F bg = GetAnimatedBackground(D2D1::ColorF(0, 0, 0, 0));
-    D2D1_COLOR_F baseBorder = m_hasBorderBrushColor
+    Color bg = GetAnimatedBackground(Color::Transparent);
+    Color baseBorder = m_hasBorderBrushColor
         ? m_borderBrushColor
         : ((GetBorderToken() != ThemeTokenId::Unset)
             ? ResolveThemeColor(GetBorderToken(), ThemeTokenId::AccentColor)
-            : D2D1::ColorF(0, 0, 0, 0));
+            : Color::Transparent);
     DrawButtonFace(ctx, bg, baseBorder, GetBorderThickness());
 
     Thickness padding = GetPadding();
@@ -266,7 +266,7 @@ void Button::OnRender(GraphicsContext& ctx) {
         m_bounds.y + padding.top,
         m_bounds.width - padding.left - padding.right,
         m_bounds.height - padding.top - padding.bottom);
-    DrawButtonLabel(ctx, textRect, DWRITE_TEXT_ALIGNMENT_CENTER);
+    DrawButtonLabel(ctx, textRect, TextAlignment::Center);
 }
 
 } // namespace CUI

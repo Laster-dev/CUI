@@ -1,11 +1,11 @@
 #pragma once
 #include "Control.h"
 #include <chrono>
-#include <dcomp.h>
-#include <d2d1_1.h>
-#include <wrl/client.h>
+#include <memory>
 
 namespace CUI {
+
+struct ProgressBarCompose;
 
 class ProgressBar : public Control {
 public:
@@ -64,15 +64,8 @@ public:
     void ApplyIsIndeterminate(bool ind);
 
 private:
-    struct ComposePill {
-        Microsoft::WRL::ComPtr<IDCompositionVisual> visual;
-        Microsoft::WRL::ComPtr<IDCompositionSurface> surface;
-        Microsoft::WRL::ComPtr<IDCompositionMatrixTransform> transform;
-    };
-
     void ReleaseComposeOverlay(GraphicsContext* ctx);
     bool EnsureComposeOverlay(GraphicsContext& ctx, float dpi);
-    void UpdatePillTransform(ComposePill& pill, float localXDips, float chunkWDips, float dpi, bool visible);
     void DrawIndeterminateFallback(GraphicsContext& ctx) const;
 
     float m_value = 0.0f;
@@ -83,17 +76,7 @@ private:
     float m_displayValue = 0.0f;
     std::chrono::steady_clock::time_point m_lastTickTime{};
 
-    Microsoft::WRL::ComPtr<IDCompositionVisual> m_hostVisual;
-    Microsoft::WRL::ComPtr<IDCompositionRectangleClip> m_hostClip;
-    ComposePill m_pill1;
-    ComposePill m_pill2;
-    float m_pillMaxWDips = 0.0f;
-    UINT m_hostWidthPx = 0;
-    UINT m_hostHeightPx = 0;
-    bool m_overlayAttached = false;
-    bool m_pillsParented = false;
-    bool m_useDcompOverlay = false;
-    bool m_releaseOverlay = false;
+    std::unique_ptr<ProgressBarCompose> m_compose;
 };
 
 } // namespace CUI

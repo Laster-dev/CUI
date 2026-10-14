@@ -158,7 +158,7 @@ void ProgressRing::DrawRingArc(
     Point center,
     float radius,
     float strokeWidth,
-    D2D1_COLOR_F color,
+    Color color,
     float startRad,
     float sweepRad) const {
     ctx.DrawSmoothArc(center, radius, startRad, sweepRad, color, strokeWidth);
@@ -205,8 +205,8 @@ void ProgressRing::OnRender(GraphicsContext& ctx) {
         return;
     }
 
-    const D2D1_COLOR_F accent = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
-    D2D1_COLOR_F track = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
+    const Color accent = ResolveThemeColor(GetFillColorToken(), ThemeTokenId::AccentColor);
+    Color track = ResolveThemeColor(GetTrackColorToken(), ThemeTokenId::CardBorder);
     track.a *= 0.55f;
 
     const float size = (std::min)(m_bounds.width, m_bounds.height);

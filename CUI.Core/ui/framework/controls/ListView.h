@@ -50,7 +50,7 @@ public:
     virtual ~ListView() = default;
 
     virtual const char* GetClassName() const override { return "ListView"; }
-    virtual HCURSOR GetCursor() const override;
+    virtual CursorType GetCursor() const override;
 
     // 反射式属性存取（供 PropertyRef 绑定系统使用）
     virtual void ApplyProperty(PropertyId id, const Value& val) override;

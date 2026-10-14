@@ -33,7 +33,7 @@ public:
     virtual Value GetProperty(PropertyId id) const override;
     virtual bool HasProperty(PropertyId id) const override;
     void ApplyProperty(PropertyId id, const Value& val) override;
-    virtual HCURSOR GetCursor() const override;
+    virtual CursorType GetCursor() const override;
     bool AcceptsTabFocus() const override { return false; }
 
     virtual Size Measure(Size availableSize) override;
@@ -146,7 +146,7 @@ private:
     void DirtyBody();
     void ApplyFollowFlag(bool follow);
     void NotifyChanged();
-    D2D1_COLOR_F LevelColor(LogLevel level) const;
+    Color LevelColor(LogLevel level) const;
     const char* LevelTag(LogLevel level) const;
 
     void PaintHeader(GraphicsContext& ctx);

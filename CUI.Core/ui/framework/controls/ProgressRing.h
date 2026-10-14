@@ -37,7 +37,7 @@ private:
         Point center,
         float radius,
         float strokeWidth,
-        D2D1_COLOR_F color,
+        Color color,
         float startRad,
         float sweepRad) const;
 

@@ -1379,10 +1379,10 @@ void NavigationView::Arrange(Rect finalRect) {
 void NavigationView::OnRender(GraphicsContext& ctx) {
     Control::OnRender(ctx);
 
-    const D2D1_COLOR_F paneBg = ResolveThemeColor(GetPaneBackgroundToken(), ThemeTokenId::PaneBackground);
-    const D2D1_COLOR_F border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
-    const D2D1_COLOR_F textPrimary = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
-    const D2D1_COLOR_F textSecondary = ResolveThemeColor(GetSecondaryColorToken(), ThemeTokenId::TextSecondary);
+    const Color paneBg = ResolveThemeColor(GetPaneBackgroundToken(), ThemeTokenId::PaneBackground);
+    const Color border = ResolveThemeColor(GetBorderToken(), ThemeTokenId::CardBorder);
+    const Color textPrimary = ResolveThemeColor(GetColorToken(), ThemeTokenId::TextPrimary);
+    const Color textSecondary = ResolveThemeColor(GetSecondaryColorToken(), ThemeTokenId::TextSecondary);
 
     if (IsTopNavigation()) {
         const Rect top = GetTopNavRect();
@@ -1418,8 +1418,8 @@ void NavigationView::OnRender(GraphicsContext& ctx) {
                                (std::max)(0.0f, pane.x + pane.width - titleX - 8.0f), kChromeButton);
                 ctx.PushClip(titleRect);
                 ctx.DrawText(m_paneTitle, titleRect, textPrimary, "微软雅黑", 14.0f,
-                             DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-                             DWRITE_FONT_WEIGHT_SEMI_BOLD);
+                             TextAlignment::Left, TextVerticalAlignment::Center,
+                             CUI::FontWeight::SemiBold);
                 ctx.PopClip();
             }
         }
@@ -1430,8 +1430,8 @@ void NavigationView::OnRender(GraphicsContext& ctx) {
         const Rect header = GetHeaderRect();
         ctx.DrawText(m_header, Rect(header.x + 24.0f, header.y, header.width - 32.0f, header.height),
                      textPrimary, "微软雅黑", 20.0f,
-                     DWRITE_TEXT_ALIGNMENT_LEADING, DWRITE_PARAGRAPH_ALIGNMENT_CENTER,
-                     DWRITE_FONT_WEIGHT_SEMI_BOLD);
+                     TextAlignment::Left, TextVerticalAlignment::Center,
+                     CUI::FontWeight::SemiBold);
         ctx.DrawLine(Point(header.x, header.y + header.height),
                      Point(header.x + header.width, header.y + header.height),
                      border, 1.0f);
@@ -1443,7 +1443,7 @@ void NavigationView::OnRenderOverlay(GraphicsContext& ctx) {
     Control::OnRenderOverlay(ctx);
 
     if (m_selectedItem || m_selectionIndicatorTo) {
-        const D2D1_COLOR_F indicator = ResolveThemeColor(GetIndicatorColorToken(), ThemeTokenId::AccentColor);
+        const Color indicator = ResolveThemeColor(GetIndicatorColorToken(), ThemeTokenId::AccentColor);
         const Rect fromRect = GetIndicatorRectForItem(m_selectionIndicatorFrom ? m_selectionIndicatorFrom : m_selectedItem);
         const Rect toRect = GetIndicatorRectForItem(m_selectionIndicatorTo ? m_selectionIndicatorTo : m_selectedItem);
         if (!toRect.IsEmpty()) {

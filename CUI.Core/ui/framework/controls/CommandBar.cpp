@@ -30,13 +30,8 @@ constexpr const char* kSvgMore =
     "c28.198788 0 50.980202-22.238384 50.980202-49.648485-0.012929-27.397172-22.781414-49.648485-50.993131-49.648485z\"/>"
     "</svg>";
 
-D2D1_COLOR_F Mix(D2D1_COLOR_F a, D2D1_COLOR_F b, float t) {
-    t = std::clamp(t, 0.0f, 1.0f);
-    return D2D1::ColorF(
-        a.r + (b.r - a.r) * t,
-        a.g + (b.g - a.g) * t,
-        a.b + (b.b - a.b) * t,
-        a.a + (b.a - a.a) * t);
+Color Mix(Color a, Color b, float t) {
+    return Color::Lerp(a, b, t);
 }
 
 } // namespace

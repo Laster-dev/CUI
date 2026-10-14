@@ -12,7 +12,7 @@ namespace {
 
 std::shared_ptr<CUI::Button> MakeCell(
     const std::string& text,
-    D2D1_COLOR_F color,
+    Color color,
     int row,
     int column,
     int columnSpan = 1,

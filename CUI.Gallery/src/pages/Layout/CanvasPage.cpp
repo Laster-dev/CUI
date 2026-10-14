@@ -19,8 +19,8 @@ std::shared_ptr<Canvas> MakeStage(float minHeight) {
         .MinHeight(minHeight).Shared();
         stage.ClipToBounds(true);
         stage.CornerRadius(4.0f);
-        stage.Background(D2D1::ColorF(0.97f, 0.97f, 0.99f, 0.5f));
-        stage.BorderBrush(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.08f));
+        stage.Background(Color(0.97f, 0.97f, 0.99f, 0.5f));
+        stage.BorderBrush(Color(0.0f, 0.0f, 0.0f, 0.08f));
         stage.BorderThickness(1.0f);
     return stage;
 }
@@ -36,7 +36,7 @@ constexpr float kRestitution = 0.82f; // 碰撞能量保留系数
 constexpr float kLaunchPower = 4.6f;  // 拖拽距离 -> 初速度 放大倍数
 constexpr size_t kMaxBalls = 150;
 
-const D2D1_COLOR_F kPalette[] = {
+const Color kPalette[] = {
     Rgb(0xFF6B6B), Rgb(0xFFA94D), Rgb(0xFFD93D), Rgb(0x51CF66),
     Rgb(0x339AF0), Rgb(0x845EF7), Rgb(0xF783AC), Rgb(0x22B8CF),
 };
@@ -45,7 +45,7 @@ struct Ball {
     float x = 0.0f, y = 0.0f;
     float vx = 0.0f, vy = 0.0f;
     float radius = 8.0f;
-    D2D1_COLOR_F color = kPalette[0];
+    Color color = kPalette[0];
 };
 
 class PhysicsWorld {
@@ -215,7 +215,7 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
         for (const auto& b : world->balls) {
             ctx.DrawSmoothArc(Point(b.x, b.y), b.radius * 0.5f, 0.0f, 6.28318530718f, b.color, b.radius);
             ctx.DrawSmoothArc(Point(b.x, b.y), b.radius - 1.0f, 0.0f, 6.28318530718f,
-                              D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.28f), 1.5f);
+                              Color(1.0f, 1.0f, 1.0f, 0.28f), 1.5f);
         }
 
         // 拖拽瞄准：瞄准线 + 出射方向预览 + 幽灵球
@@ -224,7 +224,7 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
             float dy = aim->current.y - aim->start.y;
             float dist = std::sqrt(dx * dx + dy * dy);
 
-            ctx.DrawSmoothLine(aim->start, aim->current, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.4f), 1.5f);
+            ctx.DrawSmoothLine(aim->start, aim->current, Color(1.0f, 1.0f, 1.0f, 0.4f), 1.5f);
 
             if (dist > 2.0f) {
                 // 出射方向与拖拽方向相反，速度正比于拖拽距离
@@ -235,7 +235,7 @@ std::shared_ptr<CanvasControl> BuildPhysicsCanvas(
                 ctx.DrawSmoothLine(aim->start, tip, Rgb(0x51CF66), 2.0f);
                 ctx.DrawSmoothArc(tip, 3.5f, 0.0f, 6.28318530718f, Rgb(0x51CF66), 3.0f);
             }
-            ctx.DrawSmoothArc(aim->start, 9.0f, 0.0f, 6.28318530718f, D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.35f), 1.5f);
+            ctx.DrawSmoothArc(aim->start, 9.0f, 0.0f, 6.28318530718f, Color(1.0f, 1.0f, 1.0f, 0.35f), 1.5f);
         }
     });
 

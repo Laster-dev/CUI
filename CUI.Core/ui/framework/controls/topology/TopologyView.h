@@ -19,7 +19,7 @@ public:
     virtual ~TopologyView() override = default;
 
     virtual const char* GetClassName() const override { return "TopologyView"; }
-    virtual HCURSOR GetCursor() const override;
+    virtual CursorType GetCursor() const override;
 
     virtual Size Measure(Size availableSize) override;
     virtual void Arrange(Rect finalRect) override;

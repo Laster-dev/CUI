@@ -104,7 +104,7 @@ private:
     void UpdateTextElements();
     void SyncMembersFromProperties();
     Rect GetCloseButtonRect() const;
-    static D2D1_COLOR_F ColorWithAlpha(const std::string& color, float alpha);
+    static Color ColorWithAlpha(const std::string& color, float alpha);
     static ToastCorner ParseCorner(const std::string& corner, ToastCorner fallback = ToastCorner::BottomRight);
     static const char* CornerToString(ToastCorner corner);
     static ToastType ParseType(const std::string& typeStr, ToastType fallback = ToastType::Info);

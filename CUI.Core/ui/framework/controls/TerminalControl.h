@@ -2,7 +2,6 @@
 #include "Control.h"
 #include "ScrollbarAutoHide.h"
 #include "TextBox.h"
-#include "terminal/ConPtyBackend.h"
 #include "terminal/Terminal.h"
 #include "terminal/TerminalRenderer.h"
 #include <atomic>
@@ -12,6 +11,9 @@
 #include <vector>
 
 namespace CUI {
+namespace Term {
+class ConPtyBackend;
+}
 
 /**
  * @brief 内嵌式虚拟终端模拟器控件（TerminalControl / Terminal）。
@@ -32,7 +34,7 @@ public:
     Value GetProperty(PropertyId id) const override; // 反射获取属性值
     bool HasProperty(PropertyId id) const override; // 检查是否存在对应属性
     void ApplyProperty(PropertyId id, const Value& val) override; // 反射设定属性值
-    HCURSOR GetCursor() const override; // 获取终端网格表面上特有的 Windows I-Beam 文本鼠标指针
+    CursorType GetCursor() const override; // 获取终端网格表面上特有的 Windows I-Beam 文本鼠标指针
 
     Term::Terminal& Terminal() { return *m_terminal; } // 获取内部终端虚拟缓冲区对象
     Term::TerminalRenderer& Renderer() { return *m_renderer; } // 获取终端物理渲染核心对象
@@ -131,7 +133,7 @@ private:
     float m_flushAccumMs = 0.0f;                                        // 帧率及脏状态冲刷累计毫秒数
     bool m_redrawQueued = false;                                        // 标志是否已有重绘请求在队列中等待调度
     std::atomic<bool> m_outputPending{ false };                         // 标记是否有新接收到的终端命令行回显数据等待冲刷显示
-    ::HWND m_hwnd = nullptr;                                              // 主窗口句柄
+    void* m_hwnd = nullptr;                                              // 主窗口句柄
     float m_dpiScale = 1.0f;                                            // 当前窗口 DPI 缩放比
 
     int m_lastCols = -1;                                                // 终端前一帧的网格列数限制

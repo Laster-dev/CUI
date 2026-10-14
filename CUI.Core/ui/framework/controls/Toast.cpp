@@ -19,7 +19,7 @@ static float EaseOutCubic(float value) {
 }
 
 static std::string ThemeHex(const std::string& tokenName) {
-    D2D1_COLOR_F c = ThemeManager::Instance().GetFlatColor(tokenName);
+    Color c = ThemeManager::Instance().GetFlatColor(tokenName);
     char buf[16];
     sprintf_s(buf, "#%02X%02X%02X",
         static_cast<int>(Clamp01(c.r) * 255.0f + 0.5f),
@@ -238,8 +238,8 @@ void Toast::ApplyFrom(const UIElement* source) {
     UpdateTextElements();
 }
 
-D2D1_COLOR_F Toast::ColorWithAlpha(const std::string& color, float alpha) {
-    D2D1_COLOR_F c = Value::ParseColor(color);
+Color Toast::ColorWithAlpha(const std::string& color, float alpha) {
+    Color c = Value::ParseColor(color);
     c.a = Clamp01(alpha) * c.a;
     return c;
 }
@@ -377,12 +377,12 @@ void Toast::RenderContent(GraphicsContext& ctx, const Rect& bounds, float opacit
     const ThemeMode themeMode = ThemeManager::Instance().GetThemeMode();
     const bool lightTheme = themeMode == ThemeMode::Light;
 
-    D2D1_COLOR_F shadow = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.28f * opacity);
-    D2D1_COLOR_F bg = ColorWithAlpha(m_background, opacity);
-    D2D1_COLOR_F accentClr = ColorWithAlpha(m_accent, opacity);
-    D2D1_COLOR_F border = ColorWithAlpha(ThemeHex("cardBorder"), opacity);
-    D2D1_COLOR_F titleClr = ColorWithAlpha(m_titleColor, opacity);
-    D2D1_COLOR_F messageClr = ColorWithAlpha(m_messageColor, opacity);
+    Color shadow = Color(0.0f, 0.0f, 0.0f, 0.28f * opacity);
+    Color bg = ColorWithAlpha(m_background, opacity);
+    Color accentClr = ColorWithAlpha(m_accent, opacity);
+    Color border = ColorWithAlpha(ThemeHex("cardBorder"), opacity);
+    Color titleClr = ColorWithAlpha(m_titleColor, opacity);
+    Color messageClr = ColorWithAlpha(m_messageColor, opacity);
 
     ctx.FillRoundedRect(Rect(renderRect.x + 3, renderRect.y + 4, renderRect.width - 4, renderRect.height - 4), 10.0f, shadow);
     ctx.FillRoundedRect(renderRect, 10.0f, bg);
@@ -409,14 +409,14 @@ void Toast::RenderContent(GraphicsContext& ctx, const Rect& bounds, float opacit
     if (m_closeable) {
         m_closeBtnBounds = GetCloseButtonRect();
         const float closeAlpha = (m_isHovering ? (lightTheme ? 0.08f : 0.12f) : 0.0f) * opacity;
-        D2D1_COLOR_F closeBg = lightTheme
+        Color closeBg = lightTheme
             ? ThemeManager::Instance().GetFlatColor(ThemeTokenId::TextPrimary)
             : ThemeManager::Instance().GetFlatColor(ThemeTokenId::AccentForeground);
         closeBg.a = closeAlpha;
         if (closeBg.a > 0.01f) {
             ctx.FillRoundedRect(m_closeBtnBounds, 4.0f, closeBg);
         }
-        D2D1_COLOR_F xColor = ColorWithAlpha(ThemeHex("textSecondary"), opacity);
+        Color xColor = ColorWithAlpha(ThemeHex("textSecondary"), opacity);
         float cx = m_closeBtnBounds.x + m_closeBtnBounds.width * 0.5f;
         float cy = m_closeBtnBounds.y + m_closeBtnBounds.height * 0.5f;
         ctx.DrawLine(Point(cx - 4.0f, cy - 4.0f), Point(cx + 4.0f, cy + 4.0f), xColor, 1.4f);
@@ -454,9 +454,9 @@ void Toast::OnRenderOverlay(GraphicsContext& ctx) {
                 layer,
                 Size(w, h),
                 Rect(0, 0, w, h),
-                D2D1::ColorF(0, 0, 0, 0),
+                Color(0.0f, 0.0f, 0.0f, 0.0f),
                 true)) {
-            ctx.PushTransform(D2D1::Matrix3x2F::Translation(-bounds.x, -bounds.y));
+            ctx.PushTranslation(-bounds.x, -bounds.y);
             RenderContent(ctx, bounds, 1.0f, 0.0f, 0.0f);
             ctx.PopTransform();
             ctx.PopLayerTarget(layer);
